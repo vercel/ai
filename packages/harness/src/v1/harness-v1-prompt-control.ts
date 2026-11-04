@@ -1,3 +1,5 @@
+import type { ToolResultPart } from '@ai-sdk/provider-utils';
+
 /**
  * Bidirectional control surface returned by `doPromptTurn`.
  *
@@ -11,11 +13,15 @@ export type HarnessV1PromptControl = {
   /**
    * Provide a result for a `tool-call` the adapter emitted. The adapter
    * forwards the result to the underlying runtime so the model can continue.
+   * `output` is the raw execution result for consumer-facing events. When
+   * `toolResult` is present, its output is the model-facing representation
+   * and takes precedence when constructing the runtime's tool response.
    */
   submitToolResult(input: {
     toolCallId: string;
     output: unknown;
     isError?: boolean;
+    toolResult?: ToolResultPart;
   }): PromiseLike<void>;
 
   /**

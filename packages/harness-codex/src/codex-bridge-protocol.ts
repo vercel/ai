@@ -4,6 +4,7 @@ import {
   harnessV1BridgeReadySchema,
   harnessV1BridgeStartBaseSchema,
 } from '@ai-sdk/harness';
+import { harnessPromptContentSchema } from '@ai-sdk/harness/utils';
 import { z } from 'zod/v4';
 
 /*
@@ -17,13 +18,19 @@ export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
-  reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+  prompt: harnessPromptContentSchema,
+  instructions: z.string().optional(),
+  reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
   webSearch: z.boolean().optional(),
-  // Resume signal. When supplied, the bridge calls
-  // `codex.resumeThread(resumeThreadId, …)` instead of starting a fresh thread.
-  // The host sources the id from lifecycle state `data` cached from a prior
-  // `agent.detach`.
+  codexConfig: z.record(z.string(), z.unknown()).optional(),
+  mcpServers: z.record(z.string(), z.unknown()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
+  /*
+   * The host carries this app-server thread ID in lifecycle state. Supplying it
+   * makes the bridge call `thread/resume` instead of starting a fresh thread.
+   */
   resumeThreadId: z.string().optional(),
+  restartThread: z.boolean().optional(),
 });
 
 export type StartMessage = z.infer<typeof startMessageSchema>;

@@ -143,7 +143,7 @@ export async function generateResponse(prompt: string) {
 
 ### Client
 
-```tsx filename='app/page.tsx' highlight="22,30-34"
+```tsx filename='app/page.tsx' highlight="22,34-42"
 'use client';
 
 import { useState } from 'react';
@@ -169,15 +169,24 @@ export default function Home() {
 
           let textContent = '';
 
-          for await (const responseDelta of readStreamableValue(response)) {
-            textContent = `${textContent}${responseDelta}`;
-            setGeneration(textContent);
-          }
-          for await (const loadingDelta of readStreamableValue(loadingState)) {
-            if (loadingDelta) {
-              setLoading(loadingDelta.loading);
-            }
-          }
+          // read both streamable values concurrently
+          await Promise.all([
+            (async () => {
+              for await (const responseDelta of readStreamableValue(response)) {
+                textContent = `${textContent}${responseDelta}`;
+                setGeneration(textContent);
+              }
+            })(),
+            (async () => {
+              for await (const loadingDelta of readStreamableValue(
+                loadingState,
+              )) {
+                if (loadingDelta) {
+                  setLoading(loadingDelta.loading);
+                }
+              }
+            })(),
+          ]);
           setInput('');
           setLoading(false);
         }}
@@ -214,7 +223,7 @@ import { streamUI } from '@ai-sdk/rsc';
 
 export async function generateResponse(prompt: string) {
   const result = await streamUI({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt,
     text: async function* ({ content }) {
       yield <div>loading...</div>;

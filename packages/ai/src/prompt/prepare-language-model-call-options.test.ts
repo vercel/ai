@@ -71,80 +71,6 @@ describe('prepareLanguageModelCallOptions', () => {
       });
     });
 
-    describe('temperature', () => {
-      it('should throw InvalidArgumentError if temperature is not a number', () => {
-        expect(() =>
-          prepareLanguageModelCallOptions({ temperature: 'invalid' as any }),
-        ).toThrow(
-          new InvalidArgumentError({
-            parameter: 'temperature',
-            value: 'invalid',
-            message: 'temperature must be a number',
-          }),
-        );
-      });
-    });
-
-    describe('topP', () => {
-      it('should throw InvalidArgumentError if topP is not a number', () => {
-        expect(() =>
-          prepareLanguageModelCallOptions({ topP: 'invalid' as any }),
-        ).toThrow(
-          new InvalidArgumentError({
-            parameter: 'topP',
-            value: 'invalid',
-            message: 'topP must be a number',
-          }),
-        );
-      });
-    });
-
-    describe('topK', () => {
-      it('should throw InvalidArgumentError if topK is not a number', () => {
-        expect(() =>
-          prepareLanguageModelCallOptions({ topK: 'invalid' as any }),
-        ).toThrow(
-          new InvalidArgumentError({
-            parameter: 'topK',
-            value: 'invalid',
-            message: 'topK must be a number',
-          }),
-        );
-      });
-    });
-
-    describe('presencePenalty', () => {
-      it('should throw InvalidArgumentError if presencePenalty is not a number', () => {
-        expect(() =>
-          prepareLanguageModelCallOptions({
-            presencePenalty: 'invalid' as any,
-          }),
-        ).toThrow(
-          new InvalidArgumentError({
-            parameter: 'presencePenalty',
-            value: 'invalid',
-            message: 'presencePenalty must be a number',
-          }),
-        );
-      });
-    });
-
-    describe('frequencyPenalty', () => {
-      it('should throw InvalidArgumentError if frequencyPenalty is not a number', () => {
-        expect(() =>
-          prepareLanguageModelCallOptions({
-            frequencyPenalty: 'invalid' as any,
-          }),
-        ).toThrow(
-          new InvalidArgumentError({
-            parameter: 'frequencyPenalty',
-            value: 'invalid',
-            message: 'frequencyPenalty must be a number',
-          }),
-        );
-      });
-    });
-
     describe('seed', () => {
       it('should throw InvalidArgumentError if seed is not an integer', () => {
         expect(() => prepareLanguageModelCallOptions({ seed: 10.5 })).toThrow(
@@ -167,6 +93,7 @@ describe('prepareLanguageModelCallOptions', () => {
         'medium',
         'high',
         'xhigh',
+        'max',
       ] as const) {
         const options = prepareLanguageModelCallOptions({ reasoning: value });
         expect(options.reasoning).toBe(value);

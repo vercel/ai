@@ -142,6 +142,40 @@ describe('connectToWebSocket', () => {
     await flush();
     expect(onSocketError).toHaveBeenCalledOnce();
     expect(onClose).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledWith({
+      code: undefined,
+      reason: undefined,
+    });
+  });
+
+  it('should pass the close code and reason to onClose', async () => {
+    MockWebSocket.instances = [];
+    const onClose = vi.fn();
+
+    connectToWebSocket({ ...baseOptions, onClose });
+
+    const ws = MockWebSocket.instances[0];
+    ws.onclose?.({ code: 1011, reason: 'server error' });
+    await flush();
+    expect(onClose).toHaveBeenCalledWith({
+      code: 1011,
+      reason: 'server error',
+    });
+  });
+
+  it('should ignore non-standard close event shapes', async () => {
+    MockWebSocket.instances = [];
+    const onClose = vi.fn();
+
+    connectToWebSocket({ ...baseOptions, onClose });
+
+    const ws = MockWebSocket.instances[0];
+    ws.onclose?.({ code: 'not-a-number', reason: 42 });
+    await flush();
+    expect(onClose).toHaveBeenCalledWith({
+      code: undefined,
+      reason: undefined,
+    });
   });
 
   it('should route onOpen throws to onProcessingError', () => {

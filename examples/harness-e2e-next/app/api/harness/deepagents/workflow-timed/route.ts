@@ -1,12 +1,13 @@
-import { latestUserMessage } from '@/util/latest-user-message';
 import {
   convertToModelMessages,
+  createUIMessageStream,
   createUIMessageStreamResponse,
   type UIMessage,
   type UIMessageChunk,
 } from 'ai';
+import { getHarnessE2EErrorMessage } from '@/util/harness-ui-stream';
 import { start } from 'workflow/api';
-import { deepAgentsTimedWorkflow } from './workflow';
+import { timeSliceWorkflow } from './workflow';
 
 // Durable multi-turn DeepAgents chat via the Workflow DevKit; the `'use workflow'` orchestration lives in `./workflow` (kept `ai`-free) and this is the plain POST handler.
 export async function POST(request: Request) {
@@ -18,17 +19,22 @@ export async function POST(request: Request) {
   if (!body.id) {
     return new Response('Missing chat id', { status: 400 });
   }
-  const prompt = latestUserMessage(await convertToModelMessages(body.messages));
-  if (!prompt) {
-    return new Response('No user message to run', { status: 400 });
-  }
 
-  // The chat id is the stable harness session id; the session owns history, so we send only the newest user message.
-  const run = await start(deepAgentsTimedWorkflow, [
-    { prompt, sessionId: body.id },
-  ]);
-
+  const chatId = body.id;
+  const messages = await convertToModelMessages(body.messages);
+  /*
+   * The chat id is the stable harness session id. The complete message list
+   * lets HarnessAgent identify new turns and tool continuations.
+   */
   return createUIMessageStreamResponse({
-    stream: run.readable as ReadableStream<UIMessageChunk>,
+    stream: createUIMessageStream({
+      execute: async ({ writer }) => {
+        const run = await start(timeSliceWorkflow, [
+          { messages, sessionId: chatId },
+        ]);
+        writer.merge(run.readable as ReadableStream<UIMessageChunk>);
+      },
+      onError: getHarnessE2EErrorMessage,
+    }),
   });
 }

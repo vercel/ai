@@ -20,7 +20,6 @@ run(async () => {
         providerOptions: {
           bytedance: {
             watermark: false,
-            pollTimeoutMs: 600000,
           },
         },
       }),

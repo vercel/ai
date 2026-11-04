@@ -6,7 +6,7 @@ import { convertBase64ToUint8Array } from '../../lib/convert-base64';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-5-nano'),
+    model: openai('gpt-5.4-nano'),
     prompt: 'Generate an image of a cat.',
     tools: {
       image_generation: openai.tools.imageGeneration({

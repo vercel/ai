@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { GoogleJSONAccumulator } from './google-json-accumulator';
+import {
+  GoogleJSONAccumulator,
+  type PartialArg,
+} from './google-json-accumulator';
 
 describe('GoogleJSONAccumulator', () => {
   describe('flat paths', () => {
@@ -35,9 +38,39 @@ describe('GoogleJSONAccumulator', () => {
           "currentJSON": {
             "location": "Boston, MA",
           },
-          "textDelta": ", MA",
+          "textDelta": ", MA"",
         }
       `);
+    });
+
+    it('should close a continued string on its final chunk', () => {
+      const accumulator = new GoogleJSONAccumulator();
+
+      accumulator.processPartialArgs([
+        { jsonPath: '$.location', stringValue: 'Bos', willContinue: true },
+      ]);
+
+      const finalChunkResult = accumulator.processPartialArgs([
+        { jsonPath: '$.location', stringValue: 'ton' },
+      ]);
+
+      expect(finalChunkResult.textDelta).toBe('ton"');
+      expect(accumulator.finalize().closingDelta).toBe('}');
+    });
+
+    it('should close a continued string on an empty final chunk', () => {
+      const accumulator = new GoogleJSONAccumulator();
+
+      accumulator.processPartialArgs([
+        { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
+      ]);
+
+      const finalChunkResult = accumulator.processPartialArgs([
+        { jsonPath: '$.location', stringValue: '' },
+      ]);
+
+      expect(finalChunkResult.textDelta).toBe('"');
+      expect(accumulator.finalize().closingDelta).toBe('}');
     });
 
     it('should accumulate a complete string arg (no willContinue)', () => {
@@ -173,7 +206,7 @@ describe('GoogleJSONAccumulator', () => {
           "currentJSON": {
             "query": "Boston "Logan"",
           },
-          "textDelta": "gan\\"",
+          "textDelta": "gan\\""",
         }
       `);
     });
@@ -192,7 +225,7 @@ describe('GoogleJSONAccumulator', () => {
       `);
     });
 
-    it('should skip args with no resolvable value', () => {
+    it('should treat a value-less arg for a new path as an empty object', () => {
       const accumulator = new GoogleJSONAccumulator();
       const result = accumulator.processPartialArgs([
         { jsonPath: '$.something' },
@@ -200,8 +233,10 @@ describe('GoogleJSONAccumulator', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "currentJSON": {},
-          "textDelta": "",
+          "currentJSON": {
+            "something": {},
+          },
+          "textDelta": "{"something":{",
         }
       `);
     });
@@ -432,7 +467,7 @@ describe('GoogleJSONAccumulator', () => {
               ],
             },
           },
-          "textDelta": " to 375°F.",
+          "textDelta": " to 375°F."",
         }
       `);
     });
@@ -526,6 +561,130 @@ describe('GoogleJSONAccumulator', () => {
     });
   });
 
+  describe('empty containers', () => {
+    function accumulate(chunks: PartialArg[][]) {
+      const accumulator = new GoogleJSONAccumulator();
+      const deltas: string[] = [];
+      let currentJSON: Record<string, unknown> = {};
+      for (const chunk of chunks) {
+        const result = accumulator.processPartialArgs(chunk);
+        currentJSON = result.currentJSON;
+        deltas.push(result.textDelta);
+      }
+      const { finalJSON, closingDelta } = accumulator.finalize();
+      deltas.push(closingDelta);
+      return { currentJSON, text: deltas.join(''), finalJSON };
+    }
+
+    it('should keep empty arrays, empty objects, and nested empty arrays', () => {
+      const result = accumulate([
+        [{ jsonPath: '$.id', stringValue: 'x' }],
+        [{ jsonPath: '$.emptyArr[]' }],
+        [{ jsonPath: '$.emptyObj' }],
+        [{ jsonPath: '$.emptyStr', stringValue: '' }],
+        [{ jsonPath: '$.nested.tags[]' }],
+        [{ jsonPath: '$.zero', numberValue: 0 }],
+        [{ jsonPath: '$.no', boolValue: false }],
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "emptyArr": [],
+            "emptyObj": {},
+            "emptyStr": "",
+            "id": "x",
+            "nested": {
+              "tags": [],
+            },
+            "no": false,
+            "zero": 0,
+          },
+          "finalJSON": "{"id":"x","emptyArr":[],"emptyObj":{},"emptyStr":"","nested":{"tags":[]},"zero":0,"no":false}",
+          "text": "{"id":"x","emptyArr":[],"emptyObj":{},"emptyStr":"","nested":{"tags":[]},"zero":0,"no":false}",
+        }
+      `);
+    });
+
+    it('should keep an empty container as the last argument', () => {
+      const result = accumulate([
+        [{ jsonPath: '$.id', stringValue: 'x', willContinue: true }],
+        [{ jsonPath: '$.nested.tags[]' }],
+      ]);
+
+      expect(result.finalJSON).toBe('{"id":"x","nested":{"tags":[]}}');
+      expect(result.text).toBe(result.finalJSON);
+    });
+
+    it('should ignore an array terminator after the array elements', () => {
+      const result = accumulate([
+        [
+          {
+            jsonPath: '$.tables[0]',
+            stringValue: 'orders',
+            willContinue: true,
+          },
+        ],
+        [{ jsonPath: '$.tables[0]' }],
+        [{ jsonPath: '$.tables[1]', stringValue: 'customers' }],
+        [{ jsonPath: '$.tables[]' }],
+      ]);
+
+      expect(result.finalJSON).toBe('{"tables":["orders","customers"]}');
+      expect(result.text).toBe(result.finalJSON);
+    });
+
+    it('should ignore a string terminator', () => {
+      const result = accumulate([
+        [{ jsonPath: '$.location', stringValue: 'Boston', willContinue: true }],
+        [{ jsonPath: '$.location' }],
+      ]);
+
+      expect(result.finalJSON).toBe('{"location":"Boston"}');
+      expect(result.text).toBe(result.finalJSON);
+    });
+
+    it('should close a continued string on a string terminator', () => {
+      const accumulator = new GoogleJSONAccumulator();
+
+      accumulator.processPartialArgs([
+        { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
+      ]);
+
+      const terminatorResult = accumulator.processPartialArgs([
+        { jsonPath: '$.location' },
+      ]);
+
+      expect(terminatorResult.textDelta).toBe('"');
+      expect(accumulator.finalize().closingDelta).toBe('}');
+    });
+
+    it('should continue into an empty container when children follow', () => {
+      const result = accumulate([
+        [{ jsonPath: '$.recipe' }],
+        [{ jsonPath: '$.recipe.name', stringValue: 'Lasagna' }],
+        [{ jsonPath: '$.recipe.steps[]' }],
+        [{ jsonPath: '$.recipe.steps[0]', stringValue: 'Cook.' }],
+      ]);
+
+      expect(result.finalJSON).toBe(
+        '{"recipe":{"name":"Lasagna","steps":["Cook."]}}',
+      );
+      expect(result.text).toBe(result.finalJSON);
+    });
+
+    it('should ignore value-less root paths', () => {
+      const result = accumulate([
+        [{ jsonPath: '$' }],
+        [{ jsonPath: '$[]' }],
+        [{ jsonPath: '$.id', stringValue: 'x' }],
+      ]);
+
+      expect(result.finalJSON).toBe('{"id":"x"}');
+      expect(result.text).toBe(result.finalJSON);
+    });
+  });
+
   describe('finalize', () => {
     it('should produce closing delta for a continued string', () => {
       const accumulator = new GoogleJSONAccumulator();
@@ -581,7 +740,7 @@ describe('GoogleJSONAccumulator', () => {
 
       expect(accumulator.finalize()).toMatchInlineSnapshot(`
         {
-          "closingDelta": ""}",
+          "closingDelta": "}",
           "finalJSON": "{"location":"Boston, MA"}",
         }
       `);

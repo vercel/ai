@@ -1,10 +1,12 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { pi } from '@ai-sdk/harness-pi';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createPi } from './_create';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const pi = createPi();
 
 /*
  * Demonstrates that a HarnessAgent's `fullStream` exposes both Pi's built-in
@@ -14,11 +16,6 @@ import { run } from '../../lib/run';
  * the declared schema. No casts.
  */
 run(async () => {
-  const sandbox = createVercelSandbox({
-    runtime: 'node24',
-    timeout: 10 * 60 * 1000,
-  });
-
   const today = tool({
     description: 'Return the current date in ISO format.',
     inputSchema: z.object({}),
@@ -27,13 +24,17 @@ run(async () => {
 
   const agent = new HarnessAgent({
     harness: pi,
-    sandbox,
     tools: { today },
   });
 
-  let exitCode = 0;
-  const session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     const result = await agent.stream({
       session,
       prompt:
@@ -41,11 +42,8 @@ run(async () => {
     });
 
     await printFullStream({ result });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
-    await session.destroy();
-    process.exit(exitCode);
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

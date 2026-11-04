@@ -9,7 +9,7 @@ import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   callOptionsSchema: z.object({ topic: z.string() }),
   output: Output.array({
     element: z.object({

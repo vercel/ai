@@ -1,0 +1,26 @@
+{
+  "answers": [
+    {
+      "name": "department",
+      "type": "choice",
+      "choice": "billing",
+      "confidence": 0.88,
+      "probabilities": [
+        { "value": "technical", "probability": 0.08 },
+        { "value": "billing", "probability": 0.92 }
+      ]
+    },
+    {
+      "name": "severity",
+      "type": "score",
+      "score": 0.98,
+      "confidence": 0.79,
+      "probabilities": [
+        { "value": 0, "label": "0", "probability": 0.08 },
+        { "value": 1, "label": "1", "probability": 0.86 },
+        { "value": 2, "label": "2", "probability": 0.06 }
+      ]
+    },
+    { "name": "refund", "type": "predicate", "probability": 0.96 }
+  ]
+}

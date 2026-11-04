@@ -129,8 +129,8 @@ async function handleCustomerQuery(query: string) {
   const { text: response } = await generateText({
     model:
       classification.complexity === 'simple'
-        ? 'openai/gpt-4o-mini'
-        : 'openai/o4-mini',
+        ? 'openai/gpt-6-luna'
+        : 'openai/gpt-6-astra',
     instructions: {
       general:
         'You are an expert customer service agent handling general inquiries.',

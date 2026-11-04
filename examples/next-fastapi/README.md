@@ -4,8 +4,8 @@ These examples show you how to use the [AI SDK](https://ai-sdk.dev/docs) with [N
 
 ## Prerequisites
 
-- Node.js 22, 24, or 26
-- pnpm 10 or later
+- Node.js 22.13+, 24, or 26
+- pnpm 11 or later
 - [Python 3.8 or later](https://www.python.org/downloads/)
 - macOS, Linux, or Windows Subsystem for Linux (the Python dependencies include `uvloop`, which does not support native Windows)
 

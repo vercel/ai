@@ -15,6 +15,11 @@ export type ToolApprovalRequest = {
   toolCallId: string;
 
   /**
+   * Reason why the tool call requires approval.
+   */
+  reason?: string;
+
+  /**
    * Flag indicating whether the tool was automatically approved or denied.
    *
    * @default false
@@ -26,4 +31,12 @@ export type ToolApprovalRequest = {
    * Present only when `experimental_toolApprovalSecret` is configured.
    */
   signature?: string;
+
+  /**
+   * Tool input before input schema validation and transformation.
+   *
+   * This is included when it differs from the validated tool input so that
+   * approved tool calls can be safely revalidated before execution.
+   */
+  inputSchemaInput?: unknown;
 };

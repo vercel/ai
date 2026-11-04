@@ -1,4 +1,8 @@
-import { stringifyForTelemetry } from './stringify-for-telemetry';
+import type { FilePart } from 'ai';
+import {
+  stringifyForTelemetry,
+  stringifyDecisionStateForTelemetry,
+} from './stringify-for-telemetry';
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 
@@ -125,5 +129,72 @@ describe('stringifyForTelemetry', () => {
     expect(result).toMatchInlineSnapshot(
       `"[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":[{"type":"file","data":"iVBOR///","mediaType":"image/png"},{"type":"file","data":"https://example.com/image.jpg","mediaType":"image/jpeg"}]},{"role":"assistant","content":[{"type":"text","text":"I see the images!"}]}]"`,
     );
+  });
+});
+
+describe('stringifyDecisionStateForTelemetry', () => {
+  const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+  const inputs: FilePart['data'][] = [
+    bytes,
+    Buffer.from(bytes),
+    bytes.buffer,
+    'iVBOR///',
+    { type: 'data', data: bytes },
+    { type: 'data', data: bytes.buffer },
+    { type: 'data', data: 'iVBOR///' },
+  ];
+  it.each(inputs)('serializes public and normalized image data: %j', data => {
+    expect(
+      stringifyDecisionStateForTelemetry([
+        { type: 'text', text: 'Inspect.' },
+        { type: 'file', mediaType: 'image/png', filename: 'image.png', data },
+        { type: 'json', value: [1, null] },
+      ]),
+    ).toBe(
+      JSON.stringify([
+        { type: 'text', text: 'Inspect.' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          filename: 'image.png',
+          data: 'iVBOR///',
+        },
+        { type: 'json', value: [1, null] },
+      ]),
+    );
+  });
+  it('preserves shorthand state and empty parts', () => {
+    expect(stringifyDecisionStateForTelemetry('Inspect.')).toBe('"Inspect."');
+    expect(stringifyDecisionStateForTelemetry({ message: 'Inspect.' })).toBe(
+      '{"message":"Inspect."}',
+    );
+    expect(stringifyDecisionStateForTelemetry([])).toBe('[]');
+  });
+  it('serializes file URLs, references, and inline text', () => {
+    const data: FilePart['data'][] = [
+      new URL('https://example.com/image.png'),
+      { type: 'url', url: new URL('https://example.com/image.png') },
+      { type: 'reference', reference: { test: 'file-1' } },
+      { test: 'file-1' },
+      { type: 'text', text: 'Inline text' },
+    ];
+    const expected = [
+      'https://example.com/image.png',
+      'https://example.com/image.png',
+      { test: 'file-1' },
+      { test: 'file-1' },
+      'Inline text',
+    ];
+    for (const [index, value] of data.entries()) {
+      expect(
+        stringifyDecisionStateForTelemetry([
+          { type: 'file', mediaType: 'image/png', data: value },
+        ]),
+      ).toBe(
+        JSON.stringify([
+          { type: 'file', mediaType: 'image/png', data: expected[index] },
+        ]),
+      );
+    }
   });
 });

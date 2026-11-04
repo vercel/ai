@@ -17,7 +17,9 @@ export class TextStreamChatTransport<
     stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
   ): ReadableStream<UIMessageChunk> {
     return transformTextToUiMessageStream({
-      stream: stream.pipeThrough(new TextDecoderStream()),
+      stream: stream.pipeThrough(
+        new TextDecoderStream() as ReadableWritablePair<string, Uint8Array>,
+      ),
     });
   }
 }

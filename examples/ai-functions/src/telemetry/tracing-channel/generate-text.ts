@@ -24,7 +24,7 @@ tracingChannel(AI_SDK_TELEMETRY_TRACING_CHANNEL).subscribe({
 
 run(async () => {
   await generateText({
-    model: gateway('openai/gpt-5-nano'),
+    model: gateway('openai/gpt-5.4-nano'),
     prompt: 'Say hello in 5 words.',
     telemetry: {
       functionId: 'tracing-channel-example',

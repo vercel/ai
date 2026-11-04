@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-5.6'),
+    model: openai.responses('gpt-6-astra'),
     tools: {
       shell: openai.tools.shell({
         execute: async ({ action }) => {

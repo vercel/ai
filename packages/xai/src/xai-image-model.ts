@@ -1,5 +1,9 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
@@ -17,11 +21,12 @@ import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
 import { xaiImageModelOptions } from './xai-image-model-options';
 import type { XaiImageModelId } from './xai-image-settings';
+import { getXaiImageModelEntry } from './xai-model-catalog';
 
 interface XaiImageModelConfig {
   provider: string;
   baseURL: string | undefined;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -30,7 +35,19 @@ interface XaiImageModelConfig {
 
 export class XaiImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 3;
+  readonly maxImagesPerCall: number;
+
+  get supportsFileInputs(): boolean | undefined {
+    const support = getXaiImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return typeof support === 'boolean' ? support : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    const support = getXaiImageModelEntry(this.modelId).capabilities.image
+      .maskInput;
+    return typeof support === 'boolean' ? support : undefined;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -53,7 +70,10 @@ export class XaiImageModel implements ImageModelV4 {
   constructor(
     readonly modelId: XaiImageModelId,
     private config: XaiImageModelConfig,
-  ) {}
+  ) {
+    this.maxImagesPerCall =
+      getXaiImageModelEntry(modelId).capabilities.image.maxImagesPerCall;
+  }
 
   async doGenerate({
     prompt,
@@ -152,7 +172,7 @@ export class XaiImageModel implements ImageModelV4 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${baseURL}${endpoint}`,
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -161,6 +181,12 @@ export class XaiImageModel implements ImageModelV4 {
       abortSignal,
       fetch: this.config.fetch,
     });
+
+    if (response.data.some(image => image.respect_moderation === false)) {
+      throw new Error(
+        'Image generation was blocked due to a content policy violation.',
+      );
+    }
 
     const hasAllBase64 = response.data.every(image => image.b64_json != null);
 
@@ -213,17 +239,22 @@ export class XaiImageModel implements ImageModelV4 {
   }
 }
 
-const xaiImageResponseSchema = z.object({
-  data: z.array(
+const xaiImageResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      url: z.string().nullish(),
-      b64_json: z.string().nullish(),
-      revised_prompt: z.string().nullish(),
+      data: z.array(
+        z.object({
+          url: z.string().nullish(),
+          b64_json: z.string().nullish(),
+          revised_prompt: z.string().nullish(),
+          respect_moderation: z.boolean().nullish(),
+        }),
+      ),
+      usage: z
+        .object({
+          cost_in_usd_ticks: z.number().nullish(),
+        })
+        .nullish(),
     }),
   ),
-  usage: z
-    .object({
-      cost_in_usd_ticks: z.number().nullish(),
-    })
-    .nullish(),
-});
+);

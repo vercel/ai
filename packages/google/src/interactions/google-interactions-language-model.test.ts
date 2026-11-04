@@ -28,6 +28,46 @@ const provider = createGoogle({
 
 const model = provider.interactions('gemini-2.5-flash');
 
+const DISABLED_TOOL_CASES: Array<{
+  name: string;
+  tools: Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>;
+}> = [
+  {
+    name: 'provider tools',
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'search',
+        args: {},
+      },
+      { type: 'provider', id: 'google.code_execution', name: 'code', args: {} },
+      {
+        type: 'provider',
+        id: 'google.mcp_server',
+        name: 'connector',
+        args: {
+          name: 'my-mcp',
+          url: 'https://example.com/mcp',
+          headers: { Authorization: 'Bearer test-connector-token' },
+          allowedTools: ['getWeather'],
+        },
+      },
+    ],
+  },
+];
+DISABLED_TOOL_CASES.push({
+  name: 'function and provider tools',
+  tools: [
+    ...DISABLED_TOOL_CASES[0].tools,
+    {
+      type: 'function',
+      name: 'getWeather',
+      inputSchema: { type: 'object', properties: {} },
+    },
+  ],
+});
+
 describe('GoogleInteractionsLanguageModel.doGenerate', () => {
   const server = createTestServer({ [TEST_URL]: {} });
 
@@ -42,6 +82,21 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       ),
     };
   }
+
+  it.each(DISABLED_TOOL_CASES)(
+    'omits $name when toolChoice is none',
+    async ({ tools }) => {
+      prepareJsonFixtureResponse('basic');
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        tools,
+        toolChoice: { type: 'none' },
+      });
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('tools');
+      expect(body.generation_config?.tool_choice).toBeUndefined();
+    },
+  );
 
   describe('basic text', () => {
     beforeEach(() => {
@@ -381,6 +436,73 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(body.response_format).toBeUndefined();
     });
 
+    it('serializes video response format controls and returns inline video data', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: {
+          id: 'v1_video',
+          status: 'completed',
+          model: 'gemini-omni-flash-preview',
+          steps: [
+            {
+              type: 'model_output',
+              content: [
+                {
+                  type: 'video',
+                  mime_type: 'video/mp4',
+                  data: 'AAAAIGZ0eXBpc29t',
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            responseModalities: ['video'],
+            responseFormat: [
+              {
+                type: 'video',
+                aspectRatio: '16:9',
+                resolution: '360p',
+                duration: '4s',
+                delivery: 'uri',
+                gcsUri: 'gs://video-output/clip.mp4',
+              },
+            ],
+          },
+        },
+      });
+
+      const body = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        unknown
+      >;
+      expect(body.response_modalities).toEqual(['video']);
+      expect(body.response_format).toEqual([
+        {
+          type: 'video',
+          aspect_ratio: '16:9',
+          resolution: '360p',
+          duration: '4s',
+          delivery: 'uri',
+          gcs_uri: 'gs://video-output/clip.mp4',
+        },
+      ]);
+      expect(result.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'file',
+            mediaType: 'video/mp4',
+            data: { type: 'data', data: 'AAAAIGZ0eXBpc29t' },
+          }),
+        ]),
+      );
+    });
+
     it('returns the JSON-shaped text content from the parsed response', async () => {
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -692,6 +814,35 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       };
       expect(body.generation_config?.thinking_level).toBe('high');
       expect(body.generation_config?.thinking_summaries).toBe('auto');
+    });
+
+    it('forwards topK and warns for unsupported penalties', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        topK: 10,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      });
+      const body = (await server.calls[0].requestBodyJson) as {
+        generation_config?: {
+          top_k?: number;
+          frequency_penalty?: number;
+          presence_penalty?: number;
+        };
+      };
+      expect(body.generation_config).toEqual({
+        top_k: 10,
+      });
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'frequencyPenalty',
+        },
+        {
+          type: 'unsupported',
+          feature: 'presencePenalty',
+        },
+      ]);
     });
 
     it('returns interactionId for turn 1 from a captured fixture', async () => {
@@ -1496,12 +1647,15 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(warning).toBeUndefined();
     });
 
-    it('emits a warning and drops generation-config fields (temperature, topP, thinkingLevel) when an agent is set', async () => {
+    it('emits a warning listing every dropped generation-config field when an agent is set', async () => {
       const agentModel = provider.interactions({ agent: AGENT_NAME });
       const result = await agentModel.doGenerate({
         prompt: TEST_PROMPT,
         temperature: 0.5,
         topP: 0.9,
+        topK: 10,
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
         providerOptions: {
           google: { thinkingLevel: 'high' },
         },
@@ -1516,6 +1670,9 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
           w.type === 'other' &&
           (w as { message?: string }).message?.includes('temperature') &&
           (w as { message?: string }).message?.includes('topP') &&
+          (w as { message?: string }).message?.includes('topK') &&
+          (w as { message?: string }).message?.includes('frequencyPenalty') &&
+          (w as { message?: string }).message?.includes('presencePenalty') &&
           (w as { message?: string }).message?.includes('thinkingLevel'),
       );
       expect(warning).toBeDefined();
@@ -1865,6 +2022,55 @@ describe('GoogleInteractionsLanguageModel agent polling', () => {
     expect(calls[1].requestMethod).toBe('GET');
     expect(calls[2].requestMethod).toBe('GET');
     expect(getCallCount).toBe(2);
+  });
+
+  it('polls doGenerate until terminal for model calls with background: true', async () => {
+    pollServer.urls[POST_URL].response = {
+      type: 'json-value',
+      body: { id: 'v1_poll-test', status: 'in_progress' },
+    };
+    pollServer.urls[POLL_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'v1_poll-test',
+        status: 'completed',
+        steps: [
+          {
+            type: 'model_output',
+            content: [{ type: 'text', text: 'long answer' }],
+          },
+        ],
+        usage: {
+          total_input_tokens: 5,
+          total_output_tokens: 100_000,
+          total_tokens: 100_005,
+        },
+      },
+    };
+
+    const fastProvider = createGoogle({
+      apiKey: 'test-api-key',
+      generateId: () => 'test-id',
+    });
+    const result = await fastProvider
+      .interactions('gemini-4-argon')
+      .doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 200_000,
+        providerOptions: { google: { background: true } },
+      });
+
+    expect(await pollServer.calls[0].requestBodyJson).toMatchObject({
+      model: 'gemini-4-argon',
+      background: true,
+      generation_config: { max_output_tokens: 200_000 },
+    });
+    expect(pollServer.calls[1].requestMethod).toBe('GET');
+    expect(result.finishReason.unified).toBe('stop');
+    expect(result.content).toEqual([
+      expect.objectContaining({ type: 'text', text: 'long answer' }),
+    ]);
+    expect(result.usage.outputTokens.total).toBe(100_000);
   });
 
   it('opens GET /interactions/{id}?stream=true and pipes SSE events through when POST is non-terminal', async () => {
@@ -2227,6 +2433,107 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       chunks,
     };
   }
+
+  it.each(DISABLED_TOOL_CASES)(
+    'omits $name when toolChoice is none',
+    async ({ tools }) => {
+      prepareChunksFixtureResponse('basic');
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        tools,
+        toolChoice: { type: 'none' },
+      });
+      await convertReadableStreamToArray(stream);
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('tools');
+      expect(body.generation_config?.tool_choice).toBeUndefined();
+    },
+  );
+
+  it('serializes video response format controls and streams inline video data', async () => {
+    server.urls[TEST_URL].response = {
+      type: 'stream-chunks',
+      chunks: [
+        {
+          event_type: 'interaction.created',
+          interaction: {
+            id: 'v1_video',
+            status: 'in_progress',
+            model: 'gemini-omni-flash-preview',
+          },
+        },
+        {
+          event_type: 'step.start',
+          index: 0,
+          step: { type: 'model_output' },
+        },
+        {
+          event_type: 'step.delta',
+          index: 0,
+          delta: {
+            type: 'video',
+            mime_type: 'video/mp4',
+            data: 'AAAAIGZ0eXBpc29t',
+          },
+        },
+        {
+          event_type: 'step.stop',
+          index: 0,
+        },
+        {
+          event_type: 'interaction.completed',
+          interaction: {
+            id: 'v1_video',
+            status: 'completed',
+          },
+        },
+      ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          responseModalities: ['video'],
+          responseFormat: [
+            {
+              type: 'video',
+              aspectRatio: '9:16',
+              resolution: '4k',
+              duration: '8s',
+              delivery: 'inline',
+            },
+          ],
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    const body = (await server.calls[0].requestBodyJson) as Record<
+      string,
+      unknown
+    >;
+    expect(body.response_format).toEqual([
+      {
+        type: 'video',
+        aspect_ratio: '9:16',
+        resolution: '4k',
+        duration: '8s',
+        delivery: 'inline',
+      },
+    ]);
+
+    const parts = await convertReadableStreamToArray(stream);
+    expect(parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'file',
+          mediaType: 'video/mp4',
+          data: { type: 'data', data: 'AAAAIGZ0eXBpc29t' },
+        }),
+      ]),
+    );
+  });
 
   describe('basic text', () => {
     beforeEach(() => {

@@ -75,7 +75,7 @@ async function executeShellCommand({
 }
 
 export const openaiShellSkillsAgent = new ToolLoopAgent({
-  model: openai.responses('gpt-5.6'),
+  model: openai.responses('gpt-6-astra'),
   instructions:
     'You have access to a shell tool that can execute commands on the local filesystem. ' +
     'You also have access to skills installed locally. ' +

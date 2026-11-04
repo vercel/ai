@@ -3,6 +3,7 @@ import { GatewayError } from '@ai-sdk/gateway';
 import {
   retryWithExponentialBackoff,
   type RetryFunction,
+  type ShouldRetryFunction,
 } from '@ai-sdk/provider-utils';
 import { RetryError } from './retry-error';
 
@@ -66,21 +67,25 @@ export const retryWithExponentialBackoffRespectingRetryHeaders = ({
   initialDelayInMs = 2000,
   backoffFactor = 2,
   abortSignal,
+  additionalRetryableError,
 }: {
   maxRetries?: number;
   initialDelayInMs?: number;
   backoffFactor?: number;
   abortSignal?: AbortSignal;
+  additionalRetryableError?: ShouldRetryFunction;
 } = {}): RetryFunction =>
   retryWithExponentialBackoff({
     maxRetries,
     initialDelayInMs,
     backoffFactor,
     abortSignal,
-    shouldRetry: error =>
-      error instanceof Error &&
-      ((APICallError.isInstance(error) && error.isRetryable === true) ||
-        (GatewayError.isInstance(error) && error.isRetryable === true)),
+    shouldRetry: async error =>
+      (error instanceof Error &&
+        ((APICallError.isInstance(error) && error.isRetryable === true) ||
+          (GatewayError.isInstance(error) && error.isRetryable === true))) ||
+      (additionalRetryableError != null &&
+        (await additionalRetryableError(error))),
     getDelayInMs: ({ error, exponentialBackoffDelay }) =>
       getRetryDelayInMs({
         error: error as APICallError | GatewayError,

@@ -256,7 +256,7 @@ export function StepDetailContent({
   const nextInput = nextStep
     ? (parseJson(nextStep.input) as ParsedInput | null)
     : null;
-  const toolResults: ContentPart[] =
+  const fallbackToolResults: ContentPart[] =
     nextInput?.prompt
       ?.filter((msg: PromptMessage) => msg.role === 'tool')
       ?.flatMap((msg: PromptMessage) =>
@@ -290,7 +290,10 @@ export function StepDetailContent({
               {step.error}
             </div>
           ) : output ? (
-            <OutputDisplay output={output} toolResults={toolResults} />
+            <OutputDisplay
+              output={output}
+              fallbackToolResults={fallbackToolResults}
+            />
           ) : isActiveStep ? (
             <div className="flex items-center gap-2 text-sm text-info">
               <Loader2 className="size-4 animate-spin" />

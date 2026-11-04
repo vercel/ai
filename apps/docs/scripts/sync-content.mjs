@@ -6,6 +6,11 @@
  *   - v7: ../../content/docs (this repo's working tree, i.e. `main`)
  *   - v6: content/docs from a reviewed `release-v6.0` commit (git, with
  *         a GitHub tarball fallback for environments without git access)
+ *   - v5: content/docs from a reviewed `release-v5.0` commit (using the same
+ *         git and GitHub fallback strategy)
+ *
+ * In dev (`--dev`), only v7 is synced so the dev server compiles a third of
+ * the MDX. Set `DOCS_ALL_VERSIONS=1` to include v5 and v6.
  *
  * Transforms (content authored with `NN-` ordering prefixes -> fumadocs):
  *   1. Strips `NN-` numeric prefixes from every path segment.
@@ -19,34 +24,31 @@
  */
 
 import { execSync } from "node:child_process";
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseSegment, transformMdx } from "./sync-content-utils.mjs";
+import { transformDir } from "./sync-content-utils.mjs";
 
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(appDir, "../..");
 const cacheDir = join(appDir, "node_modules/.cache/ai-sdk-docs");
 const force = process.argv.includes("--force");
+const skipLegacyVersions =
+  process.argv.includes("--dev") && process.env.DOCS_ALL_VERSIONS !== "1";
 
 /** Version definitions. `ref: null` means the local working tree. */
 const versions = [
   { id: "v7", ref: null },
   // Update this SHA explicitly when stable v6 documentation changes should
   // ship. Pinning keeps builds reproducible and content changes reviewable.
-  { id: "v6", ref: "31e168b16f71a2abc03a1fae69176886577337f4" },
+  { id: "v6", ref: "718ee0b7886f35a74f232c05f3f7637f32728b1f" },
+  // Update this SHA explicitly when stable v5 documentation changes should
+  // ship. Pinning keeps builds reproducible and content changes reviewable.
+  { id: "v5", ref: "5ecbd1f0a1ff41b8fadfebf2cbf56aa6208846e2" },
 ];
 
-/** Content families to sync. Phase 1: docs only. */
-const families = ["docs"];
+/** Content families to sync. */
+const families = ["docs", "providers", "cookbook"];
 
 const log = (msg) => console.log(`[sync-content] ${msg}`);
 
@@ -103,74 +105,28 @@ const fetchRef = (ref) => {
   throw new Error(`could not fetch content for ref ${ref}`);
 };
 
-const frontmatterOf = (mdx) => {
-  const match = mdx.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
-  return match ? match[1] : "";
-};
-
-/**
- * Recursively transforms `srcDir` into `outDir`, returning the ordered list
- * of clean entry names for the parent meta.json.
- */
-const transformDir = (srcDir, outDir, relPath = "") => {
-  mkdirSync(outDir, { recursive: true });
-
-  const entries = readdirSync(srcDir, { withFileTypes: true })
-    .filter((entry) => !entry.name.startsWith("."))
-    .map((entry) => {
-      const { prefix, clean } = parseSegment(
-        entry.isDirectory() ? entry.name : entry.name.replace(/\.mdx$/, "")
-      );
-      return { entry, prefix, clean };
-    })
-    .sort(
-      (a, b) =>
-        (a.prefix ?? Number.MAX_SAFE_INTEGER) -
-          (b.prefix ?? Number.MAX_SAFE_INTEGER) ||
-        a.clean.localeCompare(b.clean)
-    );
-
-  const seen = new Map();
-  const pages = [];
-  let defaultOpen;
-
-  for (const { entry, clean } of entries) {
-    const srcPath = join(srcDir, entry.name);
-
-    if (seen.has(clean)) {
-      throw new Error(
-        `prefix-strip collision in ${relPath || "."}: "${entry.name}" and "${seen.get(clean)}" both map to "${clean}"`
-      );
-    }
-    seen.set(clean, entry.name);
-
-    if (entry.isDirectory()) {
-      transformDir(srcPath, join(outDir, clean), join(relPath, clean));
-      pages.push(clean);
-    } else if (entry.name.endsWith(".mdx")) {
-      const mdx = readFileSync(srcPath, "utf8");
-      writeFileSync(join(outDir, `${clean}.mdx`), transformMdx(mdx));
-      if (clean === "index" && /^collapsed:\s*true/m.test(frontmatterOf(mdx))) {
-        defaultOpen = false;
-      }
-      // `index` is the folder page; fumadocs doesn't want it in `pages`.
-      if (clean !== "index") {
-        pages.push(clean);
-      }
-    } else {
-      // Copy non-MDX assets verbatim.
-      cpSync(srcPath, join(outDir, entry.name));
-    }
-  }
-
-  const meta = { pages };
-  if (defaultOpen === false) {
-    meta.defaultOpen = false;
-  }
-  writeFileSync(join(outDir, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
-};
-
 for (const version of versions) {
+  if (skipLegacyVersions && version.ref) {
+    // Replace each family with a single placeholder page. Stale content from
+    // a previous full sync must not be compiled, Cache Components requires
+    // `generateStaticParams` to return at least one page, and lib/recipes.ts
+    // reads each family's meta.json.
+    for (const family of families) {
+      const outDir = join(appDir, "content", version.id, family);
+      rmSync(outDir, { recursive: true, force: true });
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        join(outDir, "index.mdx"),
+        `---\ntitle: ${version.id} content not synced\n---\n\n` +
+          `The dev server only syncs v7 content. Restart it with ` +
+          `\`DOCS_ALL_VERSIONS=1\` to include ${version.id}.\n`
+      );
+      writeFileSync(join(outDir, "meta.json"), `${JSON.stringify({ pages: ["index"] })}\n`);
+    }
+    log(`skipping ${version.id} in dev (set DOCS_ALL_VERSIONS=1 to include it)`);
+    continue;
+  }
+
   const sourceRoot = version.ref ? join(fetchRef(version.ref), "content") : join(repoRoot, "content");
 
   for (const family of families) {

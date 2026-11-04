@@ -174,7 +174,7 @@ export interface Agent<
 
 ## Method Parameters
 
-Both `generate()` and `stream()` accept an `AgentCallParameters<CALL_OPTIONS, TOOLS>` object with:
+`generate()` accepts an `AgentCallParameters<CALL_OPTIONS, TOOLS>` object, and `stream()` accepts an `AgentStreamParameters<CALL_OPTIONS, TOOLS>` object, which extends `AgentCallParameters` with an optional `experimental_transform`. Both accept:
 
 - `prompt` (optional): A string prompt or array of `ModelMessage` objects
 - `messages` (optional): An array of `ModelMessage` objects (mutually exclusive with `prompt`)
