@@ -1,5 +1,5 @@
 import { azure } from '@ai-sdk/azure';
-import { generateText } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { tmpdir } from 'node:os';
@@ -13,6 +13,7 @@ run(async () => {
 
   const result = await generateText({
     model: azure.responses('gpt-5.1'),
+    stopWhen: isStepCount(5),
     tools: {
       apply_patch: azure.tools.applyPatch({
         execute: createApplyPatchExecutor(workspaceRoot),

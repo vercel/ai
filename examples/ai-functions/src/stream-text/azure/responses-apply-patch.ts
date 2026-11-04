@@ -1,5 +1,5 @@
 import { azure } from '@ai-sdk/azure';
-import { streamText } from 'ai';
+import { streamText, isStepCount } from 'ai';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { tmpdir } from 'node:os';
@@ -13,6 +13,7 @@ run(async () => {
 
   const result = await streamText({
     model: azure.responses('gpt-5.1'),
+    stopWhen: isStepCount(5),
     prompt: `Create a markdown file with a shopping checklist of 5 entries.`,
     tools: {
       apply_patch: azure.tools.applyPatch({
