@@ -24704,6 +24704,56 @@ describe('streamText', () => {
       expect(await result.content).toEqual([]);
     });
 
+    it('delivers a heartbeat once while discarding failed-attempt tool input and content', async () => {
+      let callCount = 0;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream<LanguageModelV4StreamPart>(
+              callCount++ === 0
+                ? [
+                    { type: 'text-start', id: 'failed' },
+                    { type: 'text-delta', id: 'failed', delta: 'partial' },
+                    {
+                      type: 'tool-input-start',
+                      id: 'call-1',
+                      toolName: 'testTool',
+                    },
+                    { type: 'ping' },
+                    { type: 'error', error: new Error('provider error') },
+                  ]
+                : [
+                    { type: 'text-start', id: 'recovered' },
+                    { type: 'text-delta', id: 'recovered', delta: 'recovered' },
+                    { type: 'text-end', id: 'recovered' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ],
+            ),
+          }),
+        }),
+        prompt: 'test',
+        maxRetries: 0,
+        streamRetries: 1,
+        onError: () => {},
+      });
+      const chunks = await convertAsyncIterableToArray(result.stream);
+      expect(callCount).toBe(2);
+      expect(chunks.filter(chunk => chunk.type === 'ping')).toEqual([
+        { type: 'ping' },
+      ]);
+      expect(chunks.some(chunk => chunk.type === 'tool-input-start')).toBe(
+        false,
+      );
+      expect(await result.text).toBe('recovered');
+      expect(await result.content).toEqual([
+        expect.objectContaining({ type: 'text', text: 'recovered' }),
+      ]);
+    });
+
     it('does not treat a ping-only incomplete stream as generated output', async () => {
       const result = streamText({
         model: createTestModel({

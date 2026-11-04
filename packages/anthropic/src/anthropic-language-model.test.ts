@@ -17,7 +17,10 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type { AnthropicLanguageModelOptions } from './anthropic-language-model-options';
-import { getModelCapabilities } from './anthropic-language-model';
+import {
+  AnthropicLanguageModel,
+  getModelCapabilities,
+} from './anthropic-language-model';
 import type { AnthropicTextProviderMetadata } from './anthropic-provider-metadata';
 import { anthropic, createAnthropic } from './anthropic-provider';
 
@@ -61,6 +64,18 @@ describe('AnthropicLanguageModel', () => {
       chunks,
     };
   }
+
+  it('ignores typed ping opt-in for non-streaming requests', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { anthropic: { includePings: true } },
+    });
+    expect(result.content.some(part => part.type === 'text')).toBe(true);
+    expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+      'includePings',
+    );
+  });
 
   describe('initial per-message effort', () => {
     it.each([
@@ -10732,9 +10747,19 @@ describe('AnthropicLanguageModel', () => {
         `);
     });
 
-    it.each([undefined, false, true])(
-      'only emits typed pings when explicitly enabled (%s)',
-      async includePings => {
+    it.each(
+      [undefined, false, true].flatMap(includePings =>
+        [false, true].flatMap(includeRawChunks =>
+          ['anthropic', 'vertex'].map(providerKey => ({
+            includePings,
+            includeRawChunks,
+            providerKey,
+          })),
+        ),
+      ),
+    )(
+      'only emits typed pings when enabled ($includePings, raw: $includeRawChunks, key: $providerKey)',
+      async ({ includePings, includeRawChunks, providerKey }) => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'stream-chunks',
           chunks: [
@@ -10748,9 +10773,18 @@ describe('AnthropicLanguageModel', () => {
           ],
         };
 
-        const { stream } = await model.doStream({
+        const currentModel =
+          providerKey === 'anthropic'
+            ? model
+            : new AnthropicLanguageModel('claude-3-haiku-20240307', {
+                provider: 'vertex.anthropic',
+                baseURL: 'https://api.anthropic.com/v1',
+                headers: {},
+              });
+        const { stream } = await currentModel.doStream({
           prompt: TEST_PROMPT,
-          providerOptions: { anthropic: { includePings } },
+          includeRawChunks,
+          providerOptions: { [providerKey]: { includePings } },
         });
 
         const chunks = await convertReadableStreamToArray(stream);
@@ -10761,7 +10795,16 @@ describe('AnthropicLanguageModel', () => {
         expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
           'includePings',
         );
-        expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+        expect(
+          chunks.filter(
+            chunk =>
+              chunk.type === 'raw' &&
+              chunk.rawValue != null &&
+              typeof chunk.rawValue === 'object' &&
+              'type' in chunk.rawValue &&
+              chunk.rawValue.type === 'ping',
+          ),
+        ).toHaveLength(includeRawChunks ? 1 : 0);
       },
     );
 
