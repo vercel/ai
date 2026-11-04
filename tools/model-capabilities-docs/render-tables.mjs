@@ -24,7 +24,7 @@ export function renderProviderOptionTable(options, section) {
         Object.entries(definitions).map(([name, { description }]) => [
           operation,
           `\`${name}\``,
-          description,
+          description.replace(/\s+/g, ' ').trim(),
         ]),
       ),
   );
