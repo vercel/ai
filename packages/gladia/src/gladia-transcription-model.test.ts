@@ -1,3 +1,7 @@
+import {
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+} from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
 import { createGladia } from './gladia-provider';
@@ -542,4 +546,28 @@ describe('legacy vocabulary validation', () => {
         'customVocabularyConfig.vocabulary overrides the deprecated customVocabulary array.',
     });
   });
+});
+
+describe('selected model identity', () => {
+  beforeEach(() => prepareJsonFixtureResponse());
+  it.each(['default', 'solaria-3'])(
+    'retains %s through workflow serialization and response metadata',
+    async modelId => {
+      const original = provider.transcription(
+        modelId,
+      ) as GladiaTranscriptionModel;
+      const snapshot = GladiaTranscriptionModel[WORKFLOW_SERIALIZE](original);
+      const restored = GladiaTranscriptionModel[WORKFLOW_DESERIALIZE](snapshot);
+      expect(restored.modelId).toBe(modelId);
+      const result = await restored.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mp3',
+        providerOptions: { gladia: { languageConfig: { languages: ['en'] } } },
+      });
+      expect(result.response.modelId).toBe(modelId);
+      const body = await server.calls[1].requestBodyJson;
+      if (modelId === 'default') expect(body).not.toHaveProperty('model');
+      else expect(body.model).toBe(modelId);
+    },
+  );
 });

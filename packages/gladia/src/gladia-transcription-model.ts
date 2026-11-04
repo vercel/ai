@@ -45,17 +45,26 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: GladiaTranscriptionModel) {
-    return serializeModelOptions({
+    const serialized = serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
     });
+    return {
+      ...serialized,
+      config: { ...serialized.config, provider: model.provider },
+    };
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: GladiaTranscriptionModelId;
-    config: GladiaTranscriptionModelConfig;
+    config: Omit<GladiaTranscriptionModelConfig, 'url'> &
+      Partial<Pick<GladiaTranscriptionModelConfig, 'url'>>;
   }) {
-    return new GladiaTranscriptionModel(options.modelId, options.config);
+    return new GladiaTranscriptionModel(options.modelId, {
+      ...options.config,
+      // The provider's fixed endpoint callback is omitted by serialization.
+      url: options.config.url ?? (({ path }) => `https://api.gladia.io${path}`),
+    });
   }
 
   constructor(
@@ -298,7 +307,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     const { value: uploadResponse } = await postFormDataToApi({
       url: this.config.url({
         path: '/v2/upload',
-        modelId: 'default',
+        modelId: this.modelId,
       }),
       headers: combineHeaders(
         await resolve(this.config.headers),
@@ -318,7 +327,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     const { value: transcriptionInitResponse } = await postJsonToApi({
       url: this.config.url({
         path: '/v2/pre-recorded',
-        modelId: 'default',
+        modelId: this.modelId,
       }),
       headers: combineHeaders(
         await resolve(this.config.headers),
@@ -340,7 +349,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     // The result URL comes from the provider response; only send credentials
     // when it stays on the provider's own origin.
     const resultUrl = transcriptionInitResponse.result_url;
-    const apiOrigin = this.config.url({ modelId: 'default', path: '' });
+    const apiOrigin = this.config.url({ modelId: this.modelId, path: '' });
     let transcriptionResult;
     let transcriptionResultHeaders;
     const timeoutMs = 60 * 1000; // 60 seconds timeout
@@ -416,7 +425,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
       ),
       response: {
         timestamp: currentDate,
-        modelId: 'default',
+        modelId: this.modelId,
         headers: transcriptionResultHeaders,
       },
       providerMetadata: {
