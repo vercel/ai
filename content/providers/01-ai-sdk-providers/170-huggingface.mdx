@@ -253,21 +253,47 @@ You can also pass image URLs:
 
 ## Model Capabilities
 
-| Model                                           | Image Input | Object Generation | Tool Usage | Tool Streaming |
-| ----------------------------------------------- | ----------- | ----------------- | ---------- | -------------- |
-| `meta-llama/Llama-3.1-8B-Instruct`              | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `meta-llama/Llama-3.1-70B-Instruct`             | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `meta-llama/Llama-3.3-70B-Instruct`             | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `meta-llama/Llama-4-Maverick-17B-128E-Instruct` | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `deepseek-ai/DeepSeek-V3.1`                     | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `deepseek-ai/DeepSeek-V3-0324`                  | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `deepseek-ai/DeepSeek-R1`                       | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `deepseek-ai/DeepSeek-R1-Distill-Llama-70B`     | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `Qwen/Qwen3-32B`                                | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `Qwen/Qwen3-Coder-480B-A35B-Instruct`           | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `Qwen/Qwen2.5-VL-7B-Instruct`                   | <Check />   | <Check />         | <Check />  | <Check />      |
-| `google/gemma-3-27b-it`                         | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `moonshotai/Kimi-K2-Instruct`                   | <Cross />   | <Check />         | <Check />  | <Check />      |
+{/* model-capabilities:huggingface-language:start */}
+
+| Model                                               | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| --------------------------------------------------- | ----------- | ----------------- | ---------- | -------------- |
+| `meta-llama/Llama-3.1-8B-Instruct`                  | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `meta-llama/Llama-3.1-70B-Instruct`                 | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `meta-llama/Llama-3.1-405B-Instruct`                | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Llama-3.3-70B-Instruct`                 | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `meta-llama/Meta-Llama-3-8B-Instruct`               | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Meta-Llama-3-70B-Instruct`              | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Llama-3.2-3B-Instruct`                  | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Llama-4-Maverick-17B-128E-Instruct`     | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8` | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Llama-Guard-4-12B`                      | Unknown     | Unknown           | Unknown    | Unknown        |
+| `deepseek-ai/DeepSeek-V3.1`                         | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `deepseek-ai/DeepSeek-V3-0324`                      | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `deepseek-ai/DeepSeek-R1`                           | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `deepseek-ai/DeepSeek-R1-0528`                      | Unknown     | Unknown           | Unknown    | Unknown        |
+| `deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B`         | Unknown     | Unknown           | Unknown    | Unknown        |
+| `deepseek-ai/DeepSeek-R1-Distill-Qwen-7B`           | Unknown     | Unknown           | Unknown    | Unknown        |
+| `deepseek-ai/DeepSeek-R1-Distill-Qwen-14B`          | Unknown     | Unknown           | Unknown    | Unknown        |
+| `deepseek-ai/DeepSeek-R1-Distill-Qwen-32B`          | Unknown     | Unknown           | Unknown    | Unknown        |
+| `deepseek-ai/DeepSeek-R1-Distill-Llama-8B`          | Unknown     | Unknown           | Unknown    | Unknown        |
+| `deepseek-ai/DeepSeek-R1-Distill-Llama-70B`         | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `deepseek-ai/DeepSeek-Prover-V2-671B`               | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Qwen/Qwen3-32B`                                    | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `Qwen/Qwen3-14B`                                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Qwen/Qwen3-8B`                                     | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Qwen/Qwen3-4B`                                     | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Qwen/Qwen3-Coder-480B-A35B-Instruct`               | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8`           | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Qwen/Qwen3-30B-A3B`                                | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Qwen/Qwen2.5-VL-7B-Instruct`                       | <Check />   | <Check />         | <Check />  | <Check />      |
+| `Qwen/Qwen2.5-7B-Instruct`                          | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Qwen/Qwen2.5-Coder-7B-Instruct`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Qwen/Qwen2.5-Coder-32B-Instruct`                   | Unknown     | Unknown           | Unknown    | Unknown        |
+| `google/gemma-2-9b-it`                              | Unknown     | Unknown           | Unknown    | Unknown        |
+| `google/gemma-3-27b-it`                             | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `moonshotai/Kimi-K2-Instruct`                       | <Cross />   | <Check />         | <Check />  | <Check />      |
+
+{/* model-capabilities:huggingface-language:end */}
 
 <Note>
   The table above lists popular models. You can explore all available models on
@@ -276,3 +302,18 @@ You can also pass image URLs:
   model documentation on Hugging Face Hub for detailed information about each
   model's features.
 </Note>
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:huggingface-provider-options:start */}
+
+| Operation | Option             | Description      |
+| --------- | ------------------ | ---------------- |
+| language  | `metadata`         | metadata         |
+| language  | `instructions`     | instructions     |
+| language  | `strictJsonSchema` | strictJsonSchema |
+| language  | `reasoningEffort`  | reasoningEffort  |
+
+{/* model-capabilities:huggingface-provider-options:end */}
