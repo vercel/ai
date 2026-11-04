@@ -595,7 +595,7 @@ describe('transcribe', () => {
           text: sampleTranscript.text,
           audio: { byteLength: 4, mediaType: 'audio/wav' },
           usage: { inputTokens: 12 },
-          providerMetadata: { mock: { traceId: 'trace-1' } },
+          providerMetadata: undefined,
           functionId: 'transcribe-audio',
         },
       },
