@@ -207,6 +207,8 @@ export default function Chat() {
       new WorkflowChatTransport({
         api: '/api/chat',
         maxConsecutiveErrors: 5,
+        retryDelayMs: ({ consecutiveErrors }) =>
+          Math.min(500 * 2 ** Math.max(0, consecutiveErrors - 1), 10_000),
       }),
     [],
   );
@@ -216,6 +218,13 @@ export default function Chat() {
   // ... render chat UI
 }
 ```
+
+`retryDelayMs` can be a fixed delay or a callback for backoff. Its
+`consecutiveErrors` value resets to `0` after a reconnect stream receives UI
+message chunks. The first reconnect is immediate, pending waits are cancelled
+when the chat operation stops, and waiting does not consume an additional
+error attempt. No wait occurs after `finish` or after `maxConsecutiveErrors`
+is reached.
 
 The transport requires your POST endpoint to return an `x-workflow-run-id` response header, and a GET endpoint at `{api}/{runId}/stream` for reconnection:
 
