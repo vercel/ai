@@ -114,6 +114,14 @@ export const togetherAIProviderOptions = {
 } as const satisfies ProviderOptionDefinitions;
 
 const languageModelIds = [
+  'moonshotai/Kimi-K2.5',
+  'Qwen/Qwen3.5-397B-A17B',
+  'MiniMaxAI/MiniMax-M2.5',
+  'zai-org/GLM-5',
+  'deepseek-ai/DeepSeek-V3.1',
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8',
   'meta-llama/Llama-3.3-70B-Instruct-Turbo',
   'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
   'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
@@ -160,6 +168,8 @@ const embeddingModelIds = [
   'togethercomputer/m2-bert-80M-8k-retrieval',
   'WhereIsAI/UAE-Large-V1',
   'BAAI/bge-large-en-v1.5',
+  'Alibaba-NLP/gte-modernbert-base',
+  'intfloat/multilingual-e5-large-instruct',
   'BAAI/bge-base-en-v1.5',
   'sentence-transformers/msmarco-bert-base-dot-v5',
   'bert-base-uncased',
@@ -243,7 +253,12 @@ const documentedLanguageCapabilities: Record<
     reasoning: { support: 'unknown' },
     sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
   },
-};
+} satisfies Partial<
+  Record<
+    (typeof languageModelIds)[number],
+    NonNullable<ModelCapabilities['language']>
+  >
+>;
 const unknownLanguageCapabilities: NonNullable<ModelCapabilities['language']> =
   {
     inputs: { image: 'unknown', audio: 'unknown' },
@@ -325,7 +340,7 @@ const embeddingDimensions: Partial<Record<string, number>> = {
   'BAAI/bge-large-en-v1.5': 1024,
   'Alibaba-NLP/gte-modernbert-base': 768,
   'intfloat/multilingual-e5-large-instruct': 1024,
-};
+} satisfies Partial<Record<(typeof embeddingModelIds)[number], number>>;
 export function getTogetherAIEmbeddingModelEntry(modelId: string) {
   const dimensions = embeddingDimensions[modelId];
   return {

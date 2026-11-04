@@ -153,47 +153,55 @@ The Together.ai provider also supports [completion models](https://docs.together
 
 {/* model-capabilities:togetherai-language:start */}
 
-| Model                                           | Image Input | Object Generation | Tool Usage | Tool Streaming |
-| ----------------------------------------------- | ----------- | ----------------- | ---------- | -------------- |
-| `meta-llama/Llama-3.3-70B-Instruct-Turbo`       | Unknown     | Unknown           | Unknown    | Unknown        |
-| `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo`   | Unknown     | Unknown           | Unknown    | Unknown        |
-| `meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo`  | Unknown     | Unknown           | Unknown    | Unknown        |
-| `meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo` | Unknown     | Unknown           | Unknown    | Unknown        |
-| `meta-llama/Meta-Llama-3-8B-Instruct-Turbo`     | Unknown     | Unknown           | Unknown    | Unknown        |
-| `meta-llama/Meta-Llama-3-70B-Instruct-Turbo`    | Unknown     | Unknown           | Unknown    | Unknown        |
-| `meta-llama/Llama-3.2-3B-Instruct-Turbo`        | Unknown     | Unknown           | Unknown    | Unknown        |
-| `meta-llama/Meta-Llama-3-8B-Instruct-Lite`      | Unknown     | Unknown           | Unknown    | Unknown        |
-| `meta-llama/Meta-Llama-3-70B-Instruct-Lite`     | Unknown     | Unknown           | Unknown    | Unknown        |
-| `meta-llama/Llama-3-8b-chat-hf`                 | Unknown     | Unknown           | Unknown    | Unknown        |
-| `meta-llama/Llama-3-70b-chat-hf`                | Unknown     | Unknown           | Unknown    | Unknown        |
-| `nvidia/Llama-3.1-Nemotron-70B-Instruct-HF`     | Unknown     | Unknown           | Unknown    | Unknown        |
-| `Qwen/Qwen2.5-Coder-32B-Instruct`               | Unknown     | Unknown           | Unknown    | Unknown        |
-| `Qwen/QwQ-32B-Preview`                          | Unknown     | Unknown           | Unknown    | Unknown        |
-| `microsoft/WizardLM-2-8x22B`                    | Unknown     | Unknown           | Unknown    | Unknown        |
-| `google/gemma-2-27b-it`                         | Unknown     | Unknown           | Unknown    | Unknown        |
-| `google/gemma-2-9b-it`                          | Unknown     | Unknown           | Unknown    | Unknown        |
-| `databricks/dbrx-instruct`                      | Unknown     | Unknown           | Unknown    | Unknown        |
-| `deepseek-ai/deepseek-llm-67b-chat`             | Unknown     | Unknown           | Unknown    | Unknown        |
-| `deepseek-ai/DeepSeek-V3`                       | Unknown     | Unknown           | Unknown    | Unknown        |
-| `deepseek-ai/DeepSeek-V4-Flash-0731`            | Unknown     | Unknown           | Unknown    | Unknown        |
-| `google/gemma-2b-it`                            | Unknown     | Unknown           | Unknown    | Unknown        |
-| `Gryphe/MythoMax-L2-13b`                        | Unknown     | Unknown           | Unknown    | Unknown        |
-| `meta-llama/Llama-2-13b-chat-hf`                | Unknown     | Unknown           | Unknown    | Unknown        |
-| `mistralai/Mistral-7B-Instruct-v0.1`            | Unknown     | Unknown           | Unknown    | Unknown        |
-| `mistralai/Mistral-7B-Instruct-v0.2`            | Unknown     | Unknown           | Unknown    | Unknown        |
-| `mistralai/Mistral-7B-Instruct-v0.3`            | Unknown     | Unknown           | Unknown    | Unknown        |
-| `mistralai/Mixtral-8x7B-Instruct-v0.1`          | Unknown     | Unknown           | Unknown    | Unknown        |
-| `mistralai/Mixtral-8x22B-Instruct-v0.1`         | Unknown     | Unknown           | Unknown    | Unknown        |
-| `NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO`   | Unknown     | Unknown           | Unknown    | Unknown        |
-| `Qwen/Qwen2.5-7B-Instruct-Turbo`                | Unknown     | Unknown           | Unknown    | Unknown        |
-| `Qwen/Qwen2.5-72B-Instruct-Turbo`               | Unknown     | Unknown           | Unknown    | Unknown        |
-| `Qwen/Qwen2-72B-Instruct`                       | Unknown     | Unknown           | Unknown    | Unknown        |
-| `upstage/SOLAR-10.7B-Instruct-v1.0`             | Unknown     | Unknown           | Unknown    | Unknown        |
-| `meta-llama/Llama-2-70b-hf`                     | Unknown     | Unknown           | Unknown    | Unknown        |
-| `mistralai/Mistral-7B-v0.1`                     | Unknown     | Unknown           | Unknown    | Unknown        |
-| `mistralai/Mixtral-8x7B-v0.1`                   | Unknown     | Unknown           | Unknown    | Unknown        |
-| `Meta-Llama/Llama-Guard-7b`                     | Unknown     | Unknown           | Unknown    | Unknown        |
-| `codellama/CodeLlama-34b-Instruct-hf`           | Unknown     | Unknown           | Unknown    | Unknown        |
+| Model                                               | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| --------------------------------------------------- | ----------- | ----------------- | ---------- | -------------- |
+| `moonshotai/Kimi-K2.5`                              | <Check />   | <Check />         | <Check />  | <Check />      |
+| `Qwen/Qwen3.5-397B-A17B`                            | <Check />   | <Check />         | <Check />  | <Check />      |
+| `MiniMaxAI/MiniMax-M2.5`                            | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `zai-org/GLM-5`                                     | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `deepseek-ai/DeepSeek-V3.1`                         | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `openai/gpt-oss-120b`                               | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `openai/gpt-oss-20b`                                | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8` | <Check />   | <Check />         | <Check />  | <Check />      |
+| `meta-llama/Llama-3.3-70B-Instruct-Turbo`           | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo`       | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo`      | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo`     | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Meta-Llama-3-8B-Instruct-Turbo`         | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Meta-Llama-3-70B-Instruct-Turbo`        | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Llama-3.2-3B-Instruct-Turbo`            | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Meta-Llama-3-8B-Instruct-Lite`          | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Meta-Llama-3-70B-Instruct-Lite`         | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Llama-3-8b-chat-hf`                     | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Llama-3-70b-chat-hf`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `nvidia/Llama-3.1-Nemotron-70B-Instruct-HF`         | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Qwen/Qwen2.5-Coder-32B-Instruct`                   | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Qwen/QwQ-32B-Preview`                              | Unknown     | Unknown           | Unknown    | Unknown        |
+| `microsoft/WizardLM-2-8x22B`                        | Unknown     | Unknown           | Unknown    | Unknown        |
+| `google/gemma-2-27b-it`                             | Unknown     | Unknown           | Unknown    | Unknown        |
+| `google/gemma-2-9b-it`                              | Unknown     | Unknown           | Unknown    | Unknown        |
+| `databricks/dbrx-instruct`                          | Unknown     | Unknown           | Unknown    | Unknown        |
+| `deepseek-ai/deepseek-llm-67b-chat`                 | Unknown     | Unknown           | Unknown    | Unknown        |
+| `deepseek-ai/DeepSeek-V3`                           | Unknown     | Unknown           | Unknown    | Unknown        |
+| `deepseek-ai/DeepSeek-V4-Flash-0731`                | Unknown     | Unknown           | Unknown    | Unknown        |
+| `google/gemma-2b-it`                                | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Gryphe/MythoMax-L2-13b`                            | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Llama-2-13b-chat-hf`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `mistralai/Mistral-7B-Instruct-v0.1`                | Unknown     | Unknown           | Unknown    | Unknown        |
+| `mistralai/Mistral-7B-Instruct-v0.2`                | Unknown     | Unknown           | Unknown    | Unknown        |
+| `mistralai/Mistral-7B-Instruct-v0.3`                | Unknown     | Unknown           | Unknown    | Unknown        |
+| `mistralai/Mixtral-8x7B-Instruct-v0.1`              | Unknown     | Unknown           | Unknown    | Unknown        |
+| `mistralai/Mixtral-8x22B-Instruct-v0.1`             | Unknown     | Unknown           | Unknown    | Unknown        |
+| `NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO`       | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Qwen/Qwen2.5-7B-Instruct-Turbo`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Qwen/Qwen2.5-72B-Instruct-Turbo`                   | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Qwen/Qwen2-72B-Instruct`                           | Unknown     | Unknown           | Unknown    | Unknown        |
+| `upstage/SOLAR-10.7B-Instruct-v1.0`                 | Unknown     | Unknown           | Unknown    | Unknown        |
+| `meta-llama/Llama-2-70b-hf`                         | Unknown     | Unknown           | Unknown    | Unknown        |
+| `mistralai/Mistral-7B-v0.1`                         | Unknown     | Unknown           | Unknown    | Unknown        |
+| `mistralai/Mixtral-8x7B-v0.1`                       | Unknown     | Unknown           | Unknown    | Unknown        |
+| `Meta-Llama/Llama-Guard-7b`                         | Unknown     | Unknown           | Unknown    | Unknown        |
+| `codellama/CodeLlama-34b-Instruct-hf`               | Unknown     | Unknown           | Unknown    | Unknown        |
 
 {/* model-capabilities:togetherai-language:end */}
 
@@ -392,9 +400,11 @@ const { embedding } = await embed({
 
 {/* model-capabilities:togetherai-embedding:start */}
 
-| Model                    | Dimensions | Max Tokens |
-| ------------------------ | ---------- | ---------- |
-| `BAAI/bge-large-en-v1.5` | 1024       | 512        |
+| Model                                     | Dimensions | Max Tokens |
+| ----------------------------------------- | ---------- | ---------- |
+| `BAAI/bge-large-en-v1.5`                  | 1024       | 512        |
+| `Alibaba-NLP/gte-modernbert-base`         | 768        | 8192       |
+| `intfloat/multilingual-e5-large-instruct` | 1024       | 514        |
 
 {/* model-capabilities:togetherai-embedding:end */}
 
