@@ -121,6 +121,22 @@ export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
   /** Entity identifier against which quota is tracked. */
   quotaEntityId?: string;
 
+  /**
+   * Assert that the request reached the matching regional ingress hostname.
+   * Defaults inference only when the Gateway has no effective inference-region
+   * policy, including normalized provider-specific settings. Not a full residency assertion.
+   * `pinInference: false` disables only this default, not the ingress assertion
+   * or any explicit, team, or model-configuration inference constraints.
+   * This option is forwarded to the Gateway and never changes the request URL.
+   * Requires Gateway support on synchronous HTTP inference routes; older
+   * deployments may ignore it. Not an assertion for WebSocket or batch requests.
+   */
+  regionalHosting?:
+    | 'au'
+    | 'eu'
+    | 'us'
+    | { region: 'au' | 'eu' | 'us'; pinInference?: boolean };
+
   /** Unified service tier intent. */
   serviceTier?: 'flex' | 'priority';
 

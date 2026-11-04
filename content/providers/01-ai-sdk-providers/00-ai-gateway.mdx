@@ -90,6 +90,13 @@ You can use the following optional settings to customize the AI Gateway provider
 - **baseURL** _string_
 
   Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v4/ai`.
+  Cannot be combined with `regionalHosting`, even when both select the same URL.
+
+- **regionalHosting** _'au' | 'eu' | 'us'_
+
+  Select a regional Gateway endpoint. This constructor setting only chooses the
+  endpoint; it does not add the request-level `regionalHosting` option or pin
+  inference. See [Regional hosting (proposal)](#regional-hosting-proposal).
 
 - **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
@@ -122,6 +129,80 @@ You can use the following optional settings to customize the AI Gateway provider
 - **metadataCacheRefreshMillis** _number_
 
   How frequently to refresh the metadata cache in milliseconds. Defaults to 5 minutes (300,000ms).
+
+## Regional hosting (proposal)
+
+<Note>
+  This API is a draft for discussion. The request assertions and inference
+  constraints described here require Gateway support on synchronous HTTP
+  inference routes; the SDK only forwards the options. Older Gateway deployments
+  may ignore unknown provider options. Do not rely on these body assertions for
+  WebSocket, asynchronous, batch, compaction, or streamed video requests.
+</Note>
+
+Use the constructor's `regionalHosting` setting to select a regional endpoint:
+
+```ts
+import { createGateway, generateText } from 'ai';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+
+const gateway = createGateway({ regionalHosting: 'eu' });
+
+const { text } = await generateText({
+  model: gateway('anthropic/claude-sonnet-4.5'),
+  prompt: 'Explain how a rainbow forms.',
+  providerOptions: {
+    gateway: {
+      regionalHosting: 'eu',
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+| Constructor value | API URL prefix                          |
+| ----------------- | --------------------------------------- |
+| `'au'`            | `https://au.ai-gateway.vercel.sh/v4/ai` |
+| `'eu'`            | `https://eu.ai-gateway.vercel.sh/v4/ai` |
+| `'us'`            | `https://us.ai-gateway.vercel.sh/v4/ai` |
+
+The SDK accepts only these three values, including at runtime. Providing both
+`baseURL` and `regionalHosting` throws, even when the URLs would be equivalent.
+The selected origin is also used for metadata, account helpers, batch requests,
+server-executed tool requests, token minting, and WebSocket URLs.
+
+The request-level `providerOptions.gateway.regionalHosting` is separate from the
+constructor setting. It accepts a region string or an object:
+
+```ts
+providerOptions: {
+  gateway: {
+    regionalHosting: { region: 'eu', pinInference: false },
+  } satisfies GatewayProviderOptions,
+}
+```
+
+Under this proposal:
+
+- The request option asserts that ingress used the matching regional hostname.
+  A mismatched hostname is rejected by the Gateway; the SDK never rewrites the
+  request URL based on this option.
+- A region string, or an object with `pinInference` omitted or `true`, defaults
+  inference to the same geography only when the Gateway has no effective
+  inference-region policy. An explicit `inferenceRegion`, including a
+  provider-specific inference setting normalized by the Gateway, takes precedence
+  over that default. These are independent controls: `regionalHosting` is not a
+  complete data-residency assertion and does not guarantee matching inference
+  geography when another inference policy is set.
+- `pinInference: false` disables only that synthesized inference default. It does
+  not disable the ingress assertion or relax explicit, team, or model-configuration
+  inference constraints.
+- The constructor only selects an endpoint. It does not inject the body option,
+  and neither the constructor alone nor a regional `baseURL` alone adds an
+  inference constraint in this draft.
+
+This endpoint-versus-assertion asymmetry is intentional in the draft and open for
+discussion: selecting the regional endpoint and requesting the regional assertion
+are two explicit choices, not interchangeable forms of the same setting.
 
 ## Authentication
 
