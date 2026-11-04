@@ -198,3 +198,51 @@ for await (const part of result.fullStream) {
   console.log(part);
 }
 ```
+
+## Model Capability Reference
+
+{/* model-capabilities:zai-language:start */}
+
+| Model                        | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| ---------------------------- | ----------- | ----------------- | ---------- | -------------- |
+| `glm-5.3`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-5.2`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-5.1`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-5-turbo`                | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-5`                      | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4.7`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4.7-flash`              | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4.7-flashx`             | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4.6`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4.5`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4.5-air`                | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4.5-x`                  | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4.5-airx`               | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4.5-flash`              | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4-32b-0414-128k`        | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-5.3-flash`              | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-5v-turbo`               | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4.6v`                   | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4.6v-flash`             | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4.6v-flashx`            | Unknown     | Unknown           | Unknown    | Unknown        |
+| `glm-4.5v`                   | Unknown     | Unknown           | Unknown    | Unknown        |
+| `autoglm-phone-multilingual` | Unknown     | Unknown           | Unknown    | Unknown        |
+
+{/* model-capabilities:zai-language:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:zai-provider-options:start */}
+
+| Operation | Option            | Description                                                                           |
+| --------- | ----------------- | ------------------------------------------------------------------------------------- |
+| language  | `doSample`        | Enables or disables sampling. When disabled, temperature and topP do not take effect. |
+| language  | `thinking`        | Controls model thinking and whether reasoning from earlier turns is kept.             |
+| language  | `reasoningEffort` | Controls reasoning effort for GLM-5.2 and later models.                               |
+| language  | `toolStream`      | Enables incremental function-call argument streaming on supported models.             |
+| language  | `requestId`       | A caller-provided request identifier between 6 and 64 characters.                     |
+| language  | `userId`          | A non-sensitive end-user identifier between 6 and 128 characters.                     |
+
+{/* model-capabilities:zai-provider-options:end */}
