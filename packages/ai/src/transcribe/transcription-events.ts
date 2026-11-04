@@ -25,8 +25,9 @@ type TranscriptionStartEventFor<OPERATION_ID extends string> = {
   readonly modelId: string;
 
   /**
-   * Metadata about the input audio. The byte length is known immediately for
-   * non-streaming transcription and is reported on the end event for streams.
+   * Metadata about the input audio. Native URL transcription does not inspect
+   * the audio, so its byte length and media type are unknown. Streaming byte
+   * length is reported on the end event after consuming the stream.
    */
   readonly audio: {
     readonly byteLength: number | undefined;
@@ -79,8 +80,12 @@ type TranscriptionEndEventFor<OPERATION_ID extends string> = {
 
   /** Metadata about the input audio. */
   readonly audio: {
-    readonly byteLength: number;
-    readonly mediaType: string;
+    readonly byteLength: OPERATION_ID extends 'ai.transcribe'
+      ? number | undefined
+      : number;
+    readonly mediaType: OPERATION_ID extends 'ai.transcribe'
+      ? string | undefined
+      : string;
   };
 
   /** The complete transcript. */

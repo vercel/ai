@@ -38,7 +38,8 @@ console.log(transcript);
     {
       name: 'audio',
       type: 'DataContent (string | Uint8Array | ArrayBuffer | Buffer) | URL',
-      description: 'The audio file to generate the transcript from.',
+      description:
+        'The audio file to generate the transcript from. HTTP(S) URLs are sent directly to models with native URL support unless a custom download function is supplied; other models download the audio locally.',
     },
     {
       name: 'timestampGranularities',
@@ -83,7 +84,7 @@ console.log(transcript);
       type: '(options: { url: URL; abortSignal?: AbortSignal }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>',
       isOptional: true,
       description:
-        'Custom download function for fetching audio from URLs. Use `createDownload()` from `ai` to create a download function with custom size limits, e.g. `createDownload({ maxBytes: 50 * 1024 * 1024 })`. Default: built-in download with 2 GiB limit.',
+        'Custom download function for fetching audio from URLs. Supplying this option forces local downloading even for models with native URL support. Use `createDownload()` from `ai` to create a download function with custom size limits, e.g. `createDownload({ maxBytes: 50 * 1024 * 1024 })`. Default: native URL transcription when supported, otherwise built-in download with 2 GiB limit.',
     },
   ]}
 />

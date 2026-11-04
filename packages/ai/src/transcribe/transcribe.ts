@@ -123,6 +123,8 @@ export async function transcribe({
 
   /**
    * Custom download function for fetching audio from URLs.
+   * Providing this option forces local downloading even when the provider
+   * supports native URL transcription.
    * Use `createDownload()` from `ai` to create a download function with custom size limits.
    *
    * @default createDownload() (2 GiB limit)
@@ -205,14 +207,22 @@ export async function transcribe({
 
   let preparationError: unknown;
   let preparationFailed = false;
-  let audioData: Uint8Array;
+  let audioData: Uint8Array | URL;
   let downloadedMediaType: string | undefined;
 
   try {
     if (audio instanceof URL) {
-      const downloadResult = await downloadFn({ url: audio, abortSignal });
-      audioData = downloadResult.data;
-      downloadedMediaType = downloadResult.mediaType;
+      if (
+        resolvedModel.doGenerateFromUrl != null &&
+        downloadFn === defaultDownload &&
+        (audio.protocol === 'https:' || audio.protocol === 'http:')
+      ) {
+        audioData = audio;
+      } else {
+        const downloadResult = await downloadFn({ url: audio, abortSignal });
+        audioData = downloadResult.data;
+        downloadedMediaType = downloadResult.mediaType;
+      }
     } else {
       audioData = convertDataContentToUint8Array(audio);
     }
@@ -241,15 +251,18 @@ export async function transcribe({
     }
   }
 
-  const mediaType =
-    getAudioMediaType(downloadedMediaType) ??
-    detectMediaType({
-      data: audioData,
-      topLevelType: 'audio',
-    }) ??
-    'audio/wav';
+  let mediaType =
+    audioData instanceof URL
+      ? undefined
+      : (getAudioMediaType(downloadedMediaType) ??
+        detectMediaType({
+          data: audioData,
+          topLevelType: 'audio',
+        }) ??
+        'audio/wav');
+  let byteLength = audioData instanceof URL ? undefined : audioData.byteLength;
   const startEvent = createStartEvent({
-    byteLength: audioData.byteLength,
+    byteLength,
     mediaType,
   });
 
@@ -257,18 +270,41 @@ export async function transcribe({
     return await executeWithStartEvent({
       startEvent,
       execute: async () => {
-        const result = await retry(() =>
-          resolvedModel.doGenerate({
-            audio: audioData,
+        const result = await retry(async () => {
+          const callOptions = {
             abortSignal,
             headers: headersWithUserAgent,
             providerOptions,
-            mediaType,
             ...(timestampGranularities != null
               ? { timestampGranularities }
               : {}),
-          }),
-        );
+          };
+          if (audioData instanceof URL) {
+            const nativeResult = await resolvedModel.doGenerateFromUrl?.({
+              ...callOptions,
+              audio: audioData,
+            });
+            if (nativeResult != null) return nativeResult;
+
+            // A capable provider can decline an unsupported URL (for example,
+            // a redirect). Keep the existing secure download and file path.
+            const downloaded = await downloadFn({
+              url: audioData,
+              abortSignal,
+            });
+            audioData = downloaded.data;
+            mediaType =
+              getAudioMediaType(downloaded.mediaType) ??
+              detectMediaType({ data: audioData, topLevelType: 'audio' }) ??
+              'audio/wav';
+            byteLength = audioData.byteLength;
+          }
+          return resolvedModel.doGenerate({
+            ...callOptions,
+            audio: audioData,
+            mediaType: mediaType ?? 'audio/wav',
+          });
+        });
 
         logWarnings({
           warnings: result.warnings,
@@ -288,7 +324,7 @@ export async function transcribe({
           provider: resolvedModel.provider,
           modelId: resolvedModel.modelId,
           audio: {
-            byteLength: audioData.byteLength,
+            byteLength,
             mediaType,
           },
           text: result.text,
