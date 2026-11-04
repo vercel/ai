@@ -18,7 +18,7 @@ run(async () => {
     },
     toolChoice: 'required',
     prompt:
-      'Simulate rolling two dice 10000 times and, return the sum of all the results, and upload the result to a file.',
+      'Simulate rolling two dice 10000 times, return the sum of all the results, and upload the result to a file.',
   });
 
   const codeInterpreter = (await result.staticToolCalls).find(
