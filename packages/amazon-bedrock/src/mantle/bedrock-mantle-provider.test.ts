@@ -5,6 +5,7 @@ import {
   OpenAIResponsesLanguageModel,
 } from '@ai-sdk/openai/internal';
 import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
+import { resolve } from '@ai-sdk/provider-utils';
 import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
@@ -121,6 +122,7 @@ describe('bedrock-mantle-provider', () => {
       'test-model',
       expect.objectContaining({
         provider: 'bedrock-mantle.responses',
+        supportsWebSearchSourcesInclude: false,
       }),
     );
   });
@@ -159,6 +161,67 @@ describe('bedrock-mantle-provider', () => {
     );
   });
 
+  it('should use the OpenAI route for models served under /openai/v1', () => {
+    const provider = createBedrockMantle({
+      region: 'us-west-2',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider.chat('openai.gpt-6-sol');
+    provider.responses('openai.gpt-6-luna');
+
+    const chatConfig = vi.mocked(OpenAIChatLanguageModel).mock.calls[0][1];
+    const responsesConfig = vi.mocked(OpenAIResponsesLanguageModel).mock
+      .calls[0][1];
+
+    expect(
+      chatConfig.url({
+        path: '/chat/completions',
+        modelId: 'openai.gpt-6-sol',
+      }),
+    ).toBe(
+      'https://bedrock-mantle.us-west-2.api.aws/openai/v1/chat/completions',
+    );
+    expect(
+      responsesConfig.url({
+        path: '/responses',
+        modelId: 'openai.gpt-6-luna',
+      }),
+    ).toBe('https://bedrock-mantle.us-west-2.api.aws/openai/v1/responses');
+
+    for (const modelId of [
+      'openai.gpt-5.6-sol',
+      'google.gemma-4-31b',
+      'xai.grok-4.3',
+    ]) {
+      expect(chatConfig.url({ path: '/chat/completions', modelId })).toBe(
+        'https://bedrock-mantle.us-west-2.api.aws/openai/v1/chat/completions',
+      );
+    }
+  });
+
+  it('should use the default route for gpt-oss and other models', () => {
+    const provider = createBedrockMantle({
+      region: 'us-west-2',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('openai.gpt-oss-120b');
+
+    const config = vi.mocked(OpenAIChatLanguageModel).mock.calls[0][1];
+
+    for (const modelId of [
+      'openai.gpt-oss-120b',
+      'openai.gpt-oss-safeguard-20b',
+      'google.gemma-3-27b-it',
+      'qwen.qwen3-32b',
+    ]) {
+      expect(config.url({ path: '/chat/completions', modelId })).toBe(
+        'https://bedrock-mantle.us-west-2.api.aws/v1/chat/completions',
+      );
+    }
+  });
+
   it('should pass custom baseURL to the model when created', () => {
     const customBaseURL = 'https://custom-mantle.example.com/v1';
     const provider = createBedrockMantle({
@@ -181,9 +244,15 @@ describe('bedrock-mantle-provider', () => {
     expect(generatedUrl).toBe(
       'https://custom-mantle.example.com/v1/chat/completions',
     );
+    expect(
+      config.url({
+        path: '/chat/completions',
+        modelId: 'openai.gpt-6-sol',
+      }),
+    ).toBe('https://custom-mantle.example.com/v1/chat/completions');
   });
 
-  it('should include custom headers with user-agent suffix', () => {
+  it('should include custom headers with user-agent suffix', async () => {
     const customHeaders = { 'Custom-Header': 'custom-value' };
     const provider = createBedrockMantle({
       region: 'us-east-1',
@@ -198,9 +267,9 @@ describe('bedrock-mantle-provider', () => {
     ];
     const config = constructorCall[1];
 
-    const resolvedHeaders = config.headers!();
+    const resolvedHeaders = (await resolve(config.headers))!;
     expect(resolvedHeaders).toMatchObject(customHeaders);
-    expect(resolvedHeaders['user-agent']).toContain('ai-sdk/amazon-bedrock/');
+    expect(resolvedHeaders['user-agent']).toContain('ai-sdk-amazon-bedrock/');
   });
 
   it('should use createApiKeyFetchFunction when apiKey is provided', () => {

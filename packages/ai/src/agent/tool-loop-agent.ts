@@ -1,5 +1,6 @@
 import {
   validateTypes,
+  withUserAgentSuffix,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
   type ModelMessage,
@@ -12,17 +13,31 @@ import type {
 } from '../generate-text/generate-text-events';
 import type { GenerateTextResult } from '../generate-text/generate-text-result';
 import type { Output } from '../generate-text/output';
-import { isStepCount } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import type { StreamTextResult } from '../generate-text/stream-text-result';
+import type { Steering } from '../generate-text/steering';
 import type { Prompt } from '../prompt';
+import { isCausedByAbort } from '../util/is-caused-by-abort';
 import { mergeCallbacks } from '../util/merge-callbacks';
+import { notify } from '../util/notify';
 import type {
   Agent,
   AgentCallParameters,
   AgentStreamParameters,
 } from './agent';
 import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
+import { createDefaultStopCondition } from './default-stop-condition';
+
+/**
+ * Call parameters that only `ToolLoopAgent` supports.
+ */
+export interface ToolLoopAgentCallExtensions {
+  /**
+   * A steering object created with `experimental_createSteering()`.
+   * Messages sent with it are added to the run at the next step boundary.
+   */
+  experimental_steering?: Steering;
+}
 
 /**
  * A tool loop agent is an agent that runs tools in a loop. In each step,
@@ -95,6 +110,8 @@ export class ToolLoopAgent<
       | 'onToolExecutionEnd'
       | 'onStepEnd'
       | 'onStepFinish'
+      | 'onError'
+      | 'onAbort'
       | 'onEnd'
       | 'onFinish'
     > &
@@ -121,6 +138,8 @@ export class ToolLoopAgent<
       onToolExecutionEnd: _settingsOnToolExecutionEnd,
       onStepEnd: _settingsOnStepEnd,
       onStepFinish: _settingsOnStepFinish,
+      onError: _settingsOnError,
+      onAbort: _settingsOnAbort,
       onFinish: _settingsOnFinish,
       onEnd: _settingsOnEnd,
       ...settingsWithoutCallbacks
@@ -128,7 +147,7 @@ export class ToolLoopAgent<
 
     const baseCallArgs = {
       ...settingsWithoutCallbacks,
-      stopWhen: this.settings.stopWhen ?? isStepCount(20),
+      stopWhen: this.settings.stopWhen ?? createDefaultStopCondition(20),
       ...options,
     };
 
@@ -177,12 +196,27 @@ export class ToolLoopAgent<
   }
 
   /**
+   * Tags outgoing requests so usage can be attributed to ToolLoopAgent. Chains
+   * with the `ai/<version>` and `ai-sdk/<provider>/<version>` suffixes added
+   * downstream by generateText/streamText and the provider.
+   */
+  private agentHeaders(preparedCall: {
+    headers?: unknown;
+  }): Record<string, string> {
+    return withUserAgentSuffix(
+      (preparedCall.headers as Record<string, string | undefined>) ?? {},
+      'ai-sdk-agent/tool-loop',
+    );
+  }
+
+  /**
    * Generates an output from the agent (non-streaming).
    */
   async generate({
     abortSignal,
     timeout,
     experimental_sandbox: sandbox,
+    experimental_steering: steering,
     onStart,
     experimental_onStart,
     onStepStart,
@@ -194,7 +228,8 @@ export class ToolLoopAgent<
     onFinish,
     onEnd = onFinish,
     ...options
-  }: AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>): Promise<
+  }: AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT> &
+    ToolLoopAgentCallExtensions): Promise<
     GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
     const generate = generateText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
@@ -204,8 +239,9 @@ export class ToolLoopAgent<
     });
     const callbackArgs = {
       abortSignal,
-      timeout,
+      timeout: timeout ?? preparedCall.timeout,
       experimental_sandbox: sandbox,
+      experimental_steering: steering,
       onStart: mergeCallbacks(
         this.settings.onStart ?? this.settings.experimental_onStart,
         (onStart ?? experimental_onStart) as
@@ -233,10 +269,21 @@ export class ToolLoopAgent<
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
     };
 
-    return await generate({
-      ...preparedCall,
-      ...callbackArgs,
-    } as unknown as Parameters<typeof generate>[0]);
+    try {
+      return await generate({
+        ...preparedCall,
+        ...callbackArgs,
+        headers: this.agentHeaders(preparedCall),
+      } as unknown as Parameters<typeof generate>[0]);
+    } catch (error) {
+      // generateText has no onError option, so report the error before it is
+      // thrown. Aborts (with any reason) and timeouts are not reported, like in
+      // streamText:
+      if (!isCausedByAbort(error) && !abortSignal?.aborted) {
+        await notify({ event: { error }, callbacks: this.settings.onError });
+      }
+      throw error;
+    }
   }
 
   /**
@@ -246,6 +293,7 @@ export class ToolLoopAgent<
     abortSignal,
     timeout,
     experimental_sandbox: sandbox,
+    experimental_steering: steering,
     experimental_transform,
     onStart,
     experimental_onStart,
@@ -258,7 +306,8 @@ export class ToolLoopAgent<
     onFinish,
     onEnd = onFinish,
     ...options
-  }: AgentStreamParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>): Promise<
+  }: AgentStreamParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT> &
+    ToolLoopAgentCallExtensions): Promise<
     StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
     const stream = streamText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
@@ -268,8 +317,9 @@ export class ToolLoopAgent<
     });
     const callbackArgs = {
       abortSignal,
-      timeout,
+      timeout: timeout ?? preparedCall.timeout,
       experimental_sandbox: sandbox,
+      experimental_steering: steering,
       experimental_transform,
       onStart: mergeCallbacks(
         this.settings.onStart ?? this.settings.experimental_onStart,
@@ -296,11 +346,16 @@ export class ToolLoopAgent<
         onStepEnd ?? onStepFinish,
       ),
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
+      onError: this.settings.onError,
+      onAbort: this.settings.onAbort,
     };
 
     return await stream({
-      ...preparedCall,
-      ...callbackArgs,
-    } as unknown as Parameters<typeof stream>[0]);
+      ...({
+        ...preparedCall,
+        ...callbackArgs,
+        headers: this.agentHeaders(preparedCall),
+      } as unknown as Parameters<typeof stream>[0]),
+    });
   }
 }

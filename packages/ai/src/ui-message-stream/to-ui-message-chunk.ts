@@ -1,10 +1,20 @@
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import {
+  convertUint8ArrayToBase64,
+  type ToolSet,
+  type UserModelMessage,
+} from '@ai-sdk/provider-utils';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
+import { getToolCallInputSchemaInput } from '../generate-text/tool-call';
+import { convertDataContentToBase64String } from '../prompt/data-content';
+import { convertToLanguageModelV4FilePart } from '../prompt/file-part-data';
 import type {
+  FileUIPart,
   InferUIMessageData,
   InferUIMessageMetadata,
+  TextUIPart,
   UIMessage,
 } from '../ui/ui-messages';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
 
 export type ToUIMessageChunkOptions<
@@ -16,6 +26,11 @@ export type ToUIMessageChunkOptions<
   sendSources?: boolean;
   sendStart?: boolean;
   sendFinish?: boolean;
+  /**
+   * Formats stream errors, invalid tool calls, and application-executed tool
+   * errors. Provider-executed tool execution errors bypass this callback so
+   * their original error data survives model-message round trips.
+   */
   onError?: (error: unknown) => string;
   messageMetadata?: InferUIMessageMetadata<UI_MESSAGE>;
   responseMessageId?: string;
@@ -38,7 +53,7 @@ export function toUIMessageChunk<
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
+    onError = () => 'An error occurred.', // masks errors except provider-executed tool execution errors
     messageMetadata,
     responseMessageId,
   }: ToUIMessageChunkOptions<TOOLS, UI_MESSAGE> = {},
@@ -82,6 +97,7 @@ export function toUIMessageChunk<
       return {
         type: 'text-end',
         id: part.id,
+        ...(part.citations != null ? { citations: part.citations } : {}),
         ...(part.providerMetadata != null
           ? { providerMetadata: part.providerMetadata }
           : {}),
@@ -184,6 +200,9 @@ export function toUIMessageChunk<
         type: 'tool-input-start',
         toolCallId: part.id,
         toolName: part.toolName,
+        ...(part.inputEncoding != null
+          ? { inputEncoding: part.inputEncoding }
+          : {}),
         ...(part.providerExecuted != null
           ? { providerExecuted: part.providerExecuted }
           : {}),
@@ -250,10 +269,16 @@ export function toUIMessageChunk<
     }
 
     case 'tool-approval-request': {
+      const inputSchemaInput = getToolCallInputSchemaInput(part.toolCall);
       return {
         type: 'tool-approval-request',
         approvalId: part.approvalId,
         toolCallId: part.toolCall.toolCallId,
+        ...(inputSchemaInput != null &&
+        !isDeepEqualData(inputSchemaInput.value, part.toolCall.input)
+          ? { inputSchemaInput: inputSchemaInput.value }
+          : {}),
+        ...(part.reason != null ? { reason: part.reason } : {}),
         ...(part.isAutomatic != null ? { isAutomatic: part.isAutomatic } : {}),
         ...(part.signature != null ? { signature: part.signature } : {}),
       };
@@ -277,7 +302,9 @@ export function toUIMessageChunk<
       return {
         type: 'tool-output-available',
         toolCallId: part.toolCallId,
-        output: part.output,
+        // UI stream chunks are serialized as JSON, which drops undefined
+        // properties. Use null so tool outputs always keep the output field.
+        output: part.output === undefined ? null : part.output,
         ...(part.providerExecuted != null
           ? { providerExecuted: part.providerExecuted }
           : {}),
@@ -295,6 +322,9 @@ export function toUIMessageChunk<
     case 'tool-error': {
       const dynamic = isDynamic(part);
 
+      // Preserve provider error codes for model-message round trips and harness
+      // runtime error messages. These execution errors intentionally bypass
+      // onError; invalid tool calls and stream errors still go through it.
       return {
         type: 'tool-output-error',
         toolCallId: part.toolCallId,
@@ -327,6 +357,14 @@ export function toUIMessageChunk<
       return {
         type: 'error',
         errorText: onError(part.error),
+      };
+    }
+
+    case 'steering-message': {
+      return {
+        type: 'steering-message',
+        id: part.id,
+        parts: convertUserMessageToUIParts(part.message),
       };
     }
 
@@ -382,4 +420,58 @@ export function toUIMessageChunk<
       throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
     }
   }
+}
+
+function convertUserMessageToUIParts(
+  message: UserModelMessage,
+): Array<TextUIPart | FileUIPart> {
+  if (typeof message.content === 'string') {
+    return [{ type: 'text', text: message.content }];
+  }
+
+  return message.content.map((part): TextUIPart | FileUIPart => {
+    const providerMetadata =
+      part.providerOptions != null
+        ? { providerMetadata: part.providerOptions }
+        : {};
+
+    if (part.type === 'text') {
+      return { type: 'text', text: part.text, ...providerMetadata };
+    }
+
+    const { data, mediaType: dataUrlMediaType } =
+      convertToLanguageModelV4FilePart(
+        part.type === 'image' ? part.image : part.data,
+      );
+    const mediaType = dataUrlMediaType ?? part.mediaType ?? 'image';
+    const filename = part.type === 'file' ? part.filename : undefined;
+    const file = {
+      type: 'file' as const,
+      mediaType,
+      ...(filename != null ? { filename } : {}),
+      ...providerMetadata,
+    };
+
+    switch (data.type) {
+      case 'url': {
+        return { ...file, url: data.url.toString() };
+      }
+      case 'data': {
+        return {
+          ...file,
+          url: `data:${mediaType};base64,${convertDataContentToBase64String(data.data)}`,
+        };
+      }
+      case 'text': {
+        return {
+          ...file,
+          url: `data:${mediaType};base64,${convertUint8ArrayToBase64(new TextEncoder().encode(data.text))}`,
+        };
+      }
+      case 'reference': {
+        // the provider reference takes precedence over the url in model messages:
+        return { ...file, url: '', providerReference: data.reference };
+      }
+    }
+  });
 }

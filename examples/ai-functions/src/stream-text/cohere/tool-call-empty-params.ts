@@ -15,7 +15,7 @@ run(async () => {
   let toolResponseAvailable = false;
 
   const result = streamText({
-    model: cohere('command-r-plus'),
+    model: cohere('command-a-03-2025'),
     maxOutputTokens: 512,
     tools: {
       currentTime: tool({

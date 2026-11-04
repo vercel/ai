@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   const messages = [...previousMessages, message];
 
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     messages: await convertToModelMessages(messages),
   });
 

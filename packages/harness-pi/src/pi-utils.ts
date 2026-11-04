@@ -3,35 +3,47 @@ import {
   type HarnessV1Prompt,
   type HarnessV1Skill,
 } from '@ai-sdk/harness';
+import { extractHarnessPromptContent } from '@ai-sdk/harness/utils';
 
 const HARNESS_ID = 'pi';
 
-/**
- * Extract a single user text string from a `HarnessV1Prompt`. Pi's
- * `session.prompt(text)` accepts a string; multimodal user content
- * is not supported in this foundational version.
- */
-export function extractUserText(prompt: HarnessV1Prompt): string {
-  if (typeof prompt === 'string') {
-    return prompt;
-  }
+export type PiPromptContent = {
+  text: string;
+  images: Array<{ type: 'image'; data: string; mimeType: string }>;
+};
 
-  const { content } = prompt;
+export function extractPiPromptContent({
+  prompt,
+}: {
+  prompt: HarnessV1Prompt;
+}): PiPromptContent {
+  const content = extractHarnessPromptContent({ prompt });
   if (typeof content === 'string') {
-    return content;
+    return { text: content, images: [] };
   }
 
-  const parts: string[] = [];
+  const textParts: string[] = [];
+  const images: PiPromptContent['images'] = [];
   for (const part of content) {
-    if (part.type !== 'text') {
-      throw new HarnessCapabilityUnsupportedError({
-        message: `pi: only text user-message parts are supported; got '${part.type}'.`,
-        harnessId: HARNESS_ID,
+    if (part.type === 'text') {
+      if (images.length > 0) {
+        throw new HarnessCapabilityUnsupportedError({
+          message:
+            "Harness 'pi' cannot preserve text that follows an inline image in a user message.",
+          harnessId: HARNESS_ID,
+        });
+      }
+      textParts.push(part.text);
+    } else {
+      images.push({
+        type: 'image',
+        data: part.data,
+        mimeType: part.mediaType,
       });
     }
-    parts.push(part.text);
   }
-  return parts.join('\n\n');
+
+  return { text: textParts.join('\n\n'), images };
 }
 
 /*
@@ -52,11 +64,6 @@ export function frameInstructions(
     '</session-instructions>\n\n' +
     `<user-message>\n${userText}\n</user-message>`
   );
-}
-
-/** POSIX shell single-quote escape. */
-export function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
 /** Serialize a tool output to the string Pi feeds back to the model. */

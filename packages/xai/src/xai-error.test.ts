@@ -11,7 +11,7 @@ function makeResponse(body: object) {
 }
 
 describe('xaiFailedResponseHandler', () => {
-  it('extracts message from chat completions error shape', async () => {
+  it('extracts message from the nested API error shape', async () => {
     const response = makeResponse({
       error: {
         message: 'Invalid value: temperature must be between 0 and 2',
@@ -21,7 +21,7 @@ describe('xaiFailedResponseHandler', () => {
     });
 
     const { value } = await xaiFailedResponseHandler({
-      url: 'https://api.x.ai/v1/chat/completions',
+      url: 'https://api.x.ai/v1/images/generations',
       requestBodyValues: {},
       response,
     });
@@ -49,5 +49,20 @@ describe('xaiFailedResponseHandler', () => {
     expect(value.message).toBe(
       'Client specified an invalid argument: Invalid request content: Each message must have at least one content element.',
     );
+  });
+
+  it('extracts message from text to speech error shape', async () => {
+    const response = makeResponse({
+      error: 'speed must be between 0.7 and 1.5',
+    });
+
+    const { value } = await xaiFailedResponseHandler({
+      url: 'https://api.x.ai/v1/tts',
+      requestBodyValues: {},
+      response,
+    });
+
+    expect(value).toBeInstanceOf(APICallError);
+    expect(value.message).toBe('speed must be between 0.7 and 1.5');
   });
 });

@@ -9,9 +9,15 @@ import type {
   Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
 import {
-  type FetchFunction,
+  resolve,
   removeUndefinedEntries,
+  type Resolvable,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import {
+  getRealtimeBaseURL,
+  getRealtimeWebSocketURL,
+} from '../get-realtime-base-url';
 import {
   GoogleRealtimeEventMapper,
   buildGoogleSessionConfig,
@@ -27,19 +33,6 @@ const realtimeWebSocketPath =
 const realtimeServerWebSocketPath =
   'google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
 
-function getRealtimeBaseURL(baseURL: string): URL {
-  const url = new URL(baseURL);
-  const pathSegments = url.pathname.split('/');
-  const version = pathSegments.at(-1);
-
-  if (version === 'v1beta' || version === 'v1alpha') {
-    pathSegments.pop();
-    url.pathname = pathSegments.join('/') || '/';
-  }
-
-  return url;
-}
-
 function getAuthTokensURL(baseURL: string): string {
   const url = getRealtimeBaseURL(baseURL);
   url.pathname = `${url.pathname.replace(/\/$/, '')}/v1alpha/auth_tokens`;
@@ -47,10 +40,7 @@ function getAuthTokensURL(baseURL: string): string {
 }
 
 function getWebSocketURL(baseURL: string): string {
-  const url = getRealtimeBaseURL(baseURL);
-  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  url.pathname = `${url.pathname.replace(/\/$/, '')}/ws/${realtimeWebSocketPath}`;
-  return url.toString();
+  return getRealtimeWebSocketURL(baseURL, realtimeWebSocketPath).toString();
 }
 
 function getServerWebSocketURL(baseURL: string): string {
@@ -63,7 +53,7 @@ function getServerWebSocketURL(baseURL: string): string {
 export type GoogleRealtimeModelConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -85,7 +75,7 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
     options: RealtimeModelV4ClientSecretOptions,
   ): Promise<RealtimeModelV4ClientSecretResult> {
     const fetchFn = this.config.fetch ?? fetch;
-    const headers = this.config.headers();
+    const headers = await resolve(this.config.headers);
     const apiKey = headers['x-goog-api-key'];
 
     if (!apiKey) {

@@ -15,16 +15,16 @@ run(async () => {
 
   const firstResult = await generateText({
     model: alibaba('qwen-plus'),
-    messages: [
-      {
-        role: 'system',
-        content: longSystemPrompt,
-        providerOptions: {
-          alibaba: {
-            cache_control: { type: 'ephemeral' },
-          },
+    instructions: {
+      role: 'system',
+      content: longSystemPrompt,
+      providerOptions: {
+        alibaba: {
+          cache_control: { type: 'ephemeral' },
         },
       },
+    },
+    messages: [
       {
         role: 'user',
         content: 'What is artificial intelligence?',
@@ -38,16 +38,16 @@ run(async () => {
 
   const secondResult = await generateText({
     model: alibaba('qwen-plus'),
-    messages: [
-      {
-        role: 'system',
-        content: longSystemPrompt, // Same content
-        providerOptions: {
-          alibaba: {
-            cache_control: { type: 'ephemeral' },
-          },
+    instructions: {
+      role: 'system',
+      content: longSystemPrompt, // Same content
+      providerOptions: {
+        alibaba: {
+          cache_control: { type: 'ephemeral' },
         },
       },
+    },
+    messages: [
       {
         role: 'user',
         content: 'Explain machine learning briefly.',
@@ -62,13 +62,27 @@ run(async () => {
 
   console.log('='.repeat(50));
 
-  const firstRaw = firstResult.usage.raw as AlibabaUsage;
-  const secondRaw = secondResult.usage.raw as AlibabaUsage;
+  // `raw` holds the provider's own usage object, including fields the SDK does
+  // not map. It is per-step: the top-level `usage` sums steps, and summing raw
+  // provider payloads is not meaningful, so `raw` is only on step usage.
+  const firstRaw = firstResult.finalStep.usage.raw as AlibabaUsage | undefined;
+  const secondRaw = secondResult.finalStep.usage.raw as
+    | AlibabaUsage
+    | undefined;
 
   const firstCreated =
-    firstRaw.prompt_tokens_details?.cache_creation_input_tokens || 0;
-  const firstHit = firstRaw.prompt_tokens_details?.cached_tokens || 0;
-  const secondHit = secondRaw.prompt_tokens_details?.cached_tokens || 0;
+    firstResult.usage.inputTokenDetails?.cacheWriteTokens ?? 0;
+  const firstHit = firstResult.usage.inputTokenDetails?.cacheReadTokens ?? 0;
+  const secondHit = secondResult.usage.inputTokenDetails?.cacheReadTokens ?? 0;
+
+  // `cache_type` is unmapped and only present under explicit caching, so it
+  // distinguishes an explicit cache hit from an implicit one.
+  console.log('First cache_type:', firstRaw?.prompt_tokens_details?.cache_type);
+  console.log(
+    'Second cache_type:',
+    secondRaw?.prompt_tokens_details?.cache_type,
+  );
+  console.log();
 
   if (firstCreated > 0) {
     console.log(

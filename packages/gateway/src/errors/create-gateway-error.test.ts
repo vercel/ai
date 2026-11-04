@@ -6,6 +6,7 @@ import {
   GatewayRateLimitError,
   GatewayModelNotFoundError,
   GatewayInternalServerError,
+  GatewayNotFoundError,
   GatewayFailedDependencyError,
   GatewayForbiddenError,
   GatewayResponseError,
@@ -66,6 +67,43 @@ describe('Valid error responses', () => {
     expect(error.message).toBe('Request denied by a routing rule.');
     expect(error.statusCode).toBe(403);
     expect(error.type).toBe('forbidden');
+    expect((error as GatewayForbiddenError).ruleId).toBeUndefined();
+  });
+
+  it('exposes the ruleId on GatewayForbiddenError when present in param', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'Request denied by a routing rule.',
+        type: 'forbidden',
+        param: { ruleId: 'rule_abc123' },
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 403,
+    });
+
+    expect(error).toBeInstanceOf(GatewayForbiddenError);
+    expect((error as GatewayForbiddenError).ruleId).toBe('rule_abc123');
+  });
+
+  it('leaves ruleId undefined when the forbidden param has an unexpected shape', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'Request denied by a routing rule.',
+        type: 'forbidden',
+        param: 'model',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 403,
+    });
+
+    expect(error).toBeInstanceOf(GatewayForbiddenError);
+    expect((error as GatewayForbiddenError).ruleId).toBeUndefined();
   });
 
   it('should create GatewayRateLimitError for rate_limit_exceeded type', async () => {
@@ -106,6 +144,26 @@ describe('Valid error responses', () => {
     expect((error as GatewayModelNotFoundError).modelId).toBe(
       'gpt-ai-sdk-test',
     );
+  });
+
+  it('should create GatewayNotFoundError for not_found type', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'Async job not found.',
+        type: 'not_found',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 404,
+    });
+
+    expect(error).toBeInstanceOf(GatewayNotFoundError);
+    expect(error.message).toBe('Async job not found.');
+    expect(error.statusCode).toBe(404);
+    expect(error.type).toBe('not_found');
+    expect(error.isRetryable).toBe(false);
   });
 
   it('should create GatewayModelNotFoundError without modelId for invalid param', async () => {

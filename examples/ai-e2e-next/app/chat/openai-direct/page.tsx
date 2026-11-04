@@ -22,7 +22,7 @@ const openai = createOpenAI({
 });
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-4o-mini'),
+  model: openai('gpt-6-luna'),
   instructions: 'You are a helpful assistant.',
 });
 

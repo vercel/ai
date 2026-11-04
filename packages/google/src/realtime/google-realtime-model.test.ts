@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { GoogleRealtimeModel } from './google-realtime-model';
+import type { GoogleRealtimeModelOptions } from './google-realtime-model-options';
 
 describe('GoogleRealtimeModel', () => {
   describe('doCreateClientSecret', () => {
@@ -148,6 +149,45 @@ describe('GoogleRealtimeModel', () => {
       expect(body.bidiGenerateContentSetup.outputAudioTranscription).toEqual(
         {},
       );
+    });
+
+    it('embeds Google Live Translation config in auth token setup', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ name: 'token' }),
+      });
+
+      const model = new GoogleRealtimeModel(
+        'gemini-3.5-live-translate-preview',
+        {
+          provider: 'google.realtime',
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          headers: () => ({ 'x-goog-api-key': 'test-key' }),
+          fetch: mockFetch,
+        },
+      );
+
+      await model.doCreateClientSecret({
+        sessionConfig: {
+          providerOptions: {
+            google: {
+              translationConfig: {
+                targetLanguageCode: 'pl',
+                echoTargetLanguage: true,
+              },
+            } satisfies GoogleRealtimeModelOptions,
+          },
+        },
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(
+        body.bidiGenerateContentSetup.generationConfig.translationConfig,
+      ).toEqual({
+        targetLanguageCode: 'pl',
+        echoTargetLanguage: true,
+      });
+      expect(body.bidiGenerateContentSetup.google).toBeUndefined();
     });
 
     it('throws on missing API key', async () => {

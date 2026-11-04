@@ -2,42 +2,114 @@ import {
   UnsupportedFunctionalityError,
   type SharedV4Warning,
   type LanguageModelV4Prompt,
+  type SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import type { OpenAIChatPrompt } from './openai-chat-prompt';
 import {
+  parseProviderOptions,
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 
+import { openaiChatMessageProviderOptions } from './openai-chat-language-model-options';
+
 function serializeToolCallArguments(input: unknown): string {
-  return JSON.stringify(input === undefined ? {} : input);
+  if (typeof input === 'string') {
+    try {
+      const parsed = secureJsonParse(input);
+      if (
+        typeof parsed !== 'object' ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        return '{}';
+      }
+      return input;
+    } catch {
+      return '{}';
+    }
+  }
+  return stringifyWithBigIntAndCycles(
+    typeof input === 'object' && input !== null && !Array.isArray(input)
+      ? input
+      : {},
+  );
 }
 
-export function convertToOpenAIChatMessages({
+type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
+
+function getPromptCacheBreakpoint(
+  providerOptions: SharedV4ProviderOptions | undefined,
+): OpenAIPromptCacheBreakpoint | undefined {
+  return providerOptions?.openai?.promptCacheBreakpoint as
+    | OpenAIPromptCacheBreakpoint
+    | undefined;
+}
+
+export async function convertToOpenAIChatMessages({
   prompt,
   systemMessageMode = 'system',
 }: {
   prompt: LanguageModelV4Prompt;
   systemMessageMode?: 'system' | 'developer' | 'remove';
-}): {
+}): Promise<{
   messages: OpenAIChatPrompt;
   warnings: Array<SharedV4Warning>;
-} {
+}> {
   const messages: OpenAIChatPrompt = [];
   const warnings: Array<SharedV4Warning> = [];
 
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
+    const messageOptions = await parseProviderOptions({
+      provider: 'openai',
+      providerOptions,
+      schema: openaiChatMessageProviderOptions,
+    });
+    const name = messageOptions?.name;
+
     switch (role) {
       case 'system': {
         switch (systemMessageMode) {
           case 'system': {
-            messages.push({ role: 'system', content });
+            const promptCacheBreakpoint =
+              getPromptCacheBreakpoint(providerOptions);
+            messages.push({
+              role: 'system',
+              ...(name != null && { name }),
+              content:
+                promptCacheBreakpoint == null
+                  ? content
+                  : [
+                      {
+                        type: 'text',
+                        text: content,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ],
+            });
             break;
           }
           case 'developer': {
-            messages.push({ role: 'developer', content });
+            const promptCacheBreakpoint =
+              getPromptCacheBreakpoint(providerOptions);
+            messages.push({
+              role: 'developer',
+              ...(name != null && { name }),
+              content:
+                promptCacheBreakpoint == null
+                  ? content
+                  : [
+                      {
+                        type: 'text',
+                        text: content,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ],
+            });
             break;
           }
           case 'remove': {
@@ -58,19 +130,40 @@ export function convertToOpenAIChatMessages({
       }
 
       case 'user': {
-        if (content.length === 1 && content[0].type === 'text') {
-          messages.push({ role: 'user', content: content[0].text });
+        if (
+          content.length === 1 &&
+          content[0].type === 'text' &&
+          getPromptCacheBreakpoint(content[0].providerOptions) == null
+        ) {
+          messages.push({
+            role: 'user',
+            content: content[0].text,
+            ...(name != null && { name }),
+          });
           break;
         }
 
         messages.push({
           role: 'user',
+          ...(name != null && { name }),
           content: content.map((part, index) => {
             switch (part.type) {
               case 'text': {
-                return { type: 'text', text: part.text };
+                const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                  part.providerOptions,
+                );
+                return {
+                  type: 'text',
+                  text: part.text,
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
               }
               case 'file': {
+                const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                  part.providerOptions,
+                );
                 switch (part.data.type) {
                   case 'reference': {
                     return {
@@ -81,6 +174,9 @@ export function convertToOpenAIChatMessages({
                           provider: 'openai',
                         }),
                       },
+                      ...(promptCacheBreakpoint != null && {
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      }),
                     };
                   }
                   case 'text': {
@@ -99,10 +195,13 @@ export function convertToOpenAIChatMessages({
                           url:
                             part.data.type === 'url'
                               ? part.data.url.toString()
-                              : convertToBase64(part.data.data),
+                              : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
 
                           detail: part.providerOptions?.openai?.imageDetail,
                         },
+                        ...(promptCacheBreakpoint != null && {
+                          prompt_cache_breakpoint: promptCacheBreakpoint,
+                        }),
                       };
                     } else if (topLevel === 'audio') {
                       if (part.data.type === 'url') {
@@ -121,6 +220,9 @@ export function convertToOpenAIChatMessages({
                               data: convertToBase64(part.data.data),
                               format: 'wav',
                             },
+                            ...(promptCacheBreakpoint != null && {
+                              prompt_cache_breakpoint: promptCacheBreakpoint,
+                            }),
                           };
                         }
                         case 'audio/mp3':
@@ -131,6 +233,9 @@ export function convertToOpenAIChatMessages({
                               data: convertToBase64(part.data.data),
                               format: 'mp3',
                             },
+                            ...(promptCacheBreakpoint != null && {
+                              prompt_cache_breakpoint: promptCacheBreakpoint,
+                            }),
                           };
                         }
 
@@ -161,6 +266,9 @@ export function convertToOpenAIChatMessages({
                           filename: part.filename ?? `part-${index}.pdf`,
                           file_data: `data:application/pdf;base64,${convertToBase64(part.data.data)}`,
                         },
+                        ...(promptCacheBreakpoint != null && {
+                          prompt_cache_breakpoint: promptCacheBreakpoint,
+                        }),
                       };
                     }
                   }
@@ -175,6 +283,12 @@ export function convertToOpenAIChatMessages({
 
       case 'assistant': {
         let text = '';
+        const textParts: Array<{
+          type: 'text';
+          text: string;
+          prompt_cache_breakpoint?: OpenAIPromptCacheBreakpoint;
+        }> = [];
+        let hasPromptCacheBreakpoint = false;
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -184,7 +298,18 @@ export function convertToOpenAIChatMessages({
         for (const part of content) {
           switch (part.type) {
             case 'text': {
+              const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                part.providerOptions,
+              );
               text += part.text;
+              textParts.push({
+                type: 'text',
+                text: part.text,
+                ...(promptCacheBreakpoint != null && {
+                  prompt_cache_breakpoint: promptCacheBreakpoint,
+                }),
+              });
+              hasPromptCacheBreakpoint ||= promptCacheBreakpoint != null;
               break;
             }
             case 'tool-call': {
@@ -203,7 +328,12 @@ export function convertToOpenAIChatMessages({
 
         messages.push({
           role: 'assistant',
-          content: toolCalls.length > 0 ? text || null : text,
+          ...(name != null && { name }),
+          content: hasPromptCacheBreakpoint
+            ? textParts
+            : toolCalls.length > 0
+              ? text || null
+              : text,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 
@@ -211,32 +341,59 @@ export function convertToOpenAIChatMessages({
       }
 
       case 'tool': {
+        if (name != null) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'message name on tool messages',
+          });
+        }
+
         for (const toolResponse of content) {
           if (toolResponse.type === 'tool-approval-response') {
             continue;
           }
           const output = toolResponse.output;
+          const promptCacheBreakpoint =
+            (output.type === 'content'
+              ? output.value
+                  .map(part => getPromptCacheBreakpoint(part.providerOptions))
+                  .find(breakpoint => breakpoint != null)
+              : getPromptCacheBreakpoint(output.providerOptions)) ??
+            getPromptCacheBreakpoint(toolResponse.providerOptions);
 
           let contentValue: string;
           switch (output.type) {
             case 'text':
-            case 'error-text':
               contentValue = output.value;
+              break;
+            case 'error-text':
+            case 'error-json':
+              contentValue = stringifyWithBigIntAndCycles({
+                error: output.value,
+              });
               break;
             case 'execution-denied':
               contentValue = output.reason ?? 'Tool call execution denied.';
               break;
             case 'content':
             case 'json':
-            case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 
           messages.push({
             role: 'tool',
             tool_call_id: toolResponse.toolCallId,
-            content: contentValue,
+            content:
+              promptCacheBreakpoint == null
+                ? contentValue
+                : [
+                    {
+                      type: 'text',
+                      text: contentValue,
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    },
+                  ],
           });
         }
         break;

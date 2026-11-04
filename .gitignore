@@ -1,8 +1,8 @@
 .DS_Store
 .cache
-.claude
 .env
 .envrc
+.memory-benchmark-context-*
 .next
 .pnpm-store
 .turbo
@@ -21,3 +21,5 @@ tsconfig.vitest-temp.json
 *.local
 *.tsbuildinfo
 packages/ai/docs
+.vercel
+.devtools

@@ -27,7 +27,6 @@ function findLatestInteractionId(messages: UIMessage[]): string | undefined {
       }
     }
   }
-  return undefined;
 }
 
 export async function POST(req: Request) {

@@ -1,5 +1,11 @@
+import type { Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
-import type { Context, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  Context,
+  IdGenerator,
+  ToolSet,
+  UserModelMessage,
+} from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import type {
   CallWarning,
@@ -11,7 +17,9 @@ import type { Source } from '../types/language-model';
 import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import type { LanguageModelUsage } from '../types/usage';
 import type { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
-import type { UIMessageStreamOnFinishCallback } from '../ui-message-stream/ui-message-stream-on-finish-callback';
+import type { UIMessageStreamOnEndCallback } from '../ui-message-stream/ui-message-stream-on-end-callback';
+import type { UIMessageStreamOnStepEndCallback } from '../ui-message-stream/ui-message-stream-on-step-end-callback';
+import type { UIMessageStreamOnStepFinishCallback } from '../ui-message-stream/ui-message-stream-on-step-finish-callback';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import type { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -57,10 +65,24 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    */
   generateMessageId?: IdGenerator;
 
-  onFinish?: UIMessageStreamOnFinishCallback<UI_MESSAGE>;
+  /**
+   * Called after each step is converted to UI message parts.
+   * Receives the accumulated UI message for inspection or persistence.
+   */
+  onStepEnd?: UIMessageStreamOnStepEndCallback<UI_MESSAGE>;
+
+  /** @deprecated Use `onStepEnd` instead. */
+  onStepFinish?: UIMessageStreamOnStepFinishCallback<UI_MESSAGE>;
+
+  onEnd?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
 
   /**
-   * Extracts message metadata that will be send to the client.
+   * @deprecated Use `onEnd` instead.
+   */
+  onFinish?: UIMessageStreamOnEndCallback<UI_MESSAGE>;
+
+  /**
+   * Extracts message metadata that will be sent to the client.
    *
    * Called on `start` and `finish` events.
    */
@@ -98,6 +120,11 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
 
   /**
    * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
+   *
+   * Tool execution errors marked `providerExecuted: true` bypass this callback.
+   * Their strings pass through unchanged; other values are JSON-stringified to
+   * preserve provider error data for model-message round trips and harness
+   * runtime error messages. Stream errors and invalid tool calls still use it.
    *
    * @returns error message to include in the data stream.
    */
@@ -295,8 +322,9 @@ export interface StreamTextResult<
 
   /**
    * A text stream that returns only the generated text deltas. You can use it
-   * as either an AsyncIterable or a ReadableStream. When an error occurs, the
-   * stream will throw the error.
+   * as either an AsyncIterable or a ReadableStream. Error parts are not
+   * surfaced in this stream. Use the `onError` callback or `stream` to observe
+   * them.
    */
   readonly textStream: AsyncIterableStream<string>;
 
@@ -376,7 +404,7 @@ export interface StreamTextResult<
   pipeUIMessageStreamToResponse<UI_MESSAGE extends UIMessage>(
     response: ServerResponse,
     options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,
-  ): void;
+  ): Promise<void>;
 
   /**
    * Writes text delta output to a Node.js response-like object.
@@ -390,7 +418,10 @@ export interface StreamTextResult<
    *   `pipeTextStreamToResponse` helpers from `'ai'` with `result.stream`
    *   instead. This method will be removed in the next major release.
    */
-  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
+  pipeTextStreamToResponse(
+    response: ServerResponse,
+    init?: ResponseInit,
+  ): Promise<void>;
 
   /**
    * Converts the result to a streamed response object with a stream data part stream.
@@ -433,6 +464,7 @@ export type TextStreamTextStartPart = {
 
 export type TextStreamTextEndPart = {
   type: 'text-end';
+  citations?: Array<Citation>;
   id: string;
   providerMetadata?: ProviderMetadata;
 };
@@ -466,6 +498,8 @@ export type TextStreamToolInputStartPart = {
   type: 'tool-input-start';
   id: string;
   toolName: string;
+  /** Encoding of the input deltas. Defaults to JSON when omitted. */
+  inputEncoding?: 'json' | 'text';
   providerMetadata?: ProviderMetadata;
   toolMetadata?: JSONObject;
   providerExecuted?: boolean;
@@ -521,6 +555,23 @@ export type TextStreamToolApprovalRequestPart<TOOLS extends ToolSet> =
 
 export type TextStreamToolApprovalResponsePart<TOOLS extends ToolSet> =
   ToolApprovalResponseOutput<TOOLS>;
+
+/**
+ * Experimental. A steering message that was added to the run before the step
+ * with the given number. Streamed before the output of that step.
+ */
+export type TextStreamSteeringMessagePart = {
+  type: 'steering-message';
+
+  /** The id of the steering message. */
+  id: string;
+
+  /** The user message that was added to the run. */
+  message: UserModelMessage;
+
+  /** The number of the step whose model call received the message. */
+  stepNumber: number;
+};
 
 export type TextStreamStartStepPart = {
   type: 'start-step';
@@ -584,6 +635,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | TextStreamToolOutputDeniedPart<TOOLS>
   | TextStreamToolApprovalRequestPart<TOOLS>
   | TextStreamToolApprovalResponsePart<TOOLS>
+  | TextStreamSteeringMessagePart
   | TextStreamStartStepPart
   | TextStreamFinishStepPart
   | TextStreamStartPart

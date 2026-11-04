@@ -1,3 +1,9 @@
+import {
+  type Resolvable,
+  resolve,
+  removeUndefinedEntries,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
 import type {
   Experimental_RealtimeModelV4 as RealtimeModelV4,
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
@@ -9,10 +15,6 @@ import type {
   Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
 import {
-  type FetchFunction,
-  removeUndefinedEntries,
-} from '@ai-sdk/provider-utils';
-import {
   buildOpenAISessionConfig,
   parseOpenAIRealtimeServerEvent,
   serializeOpenAIRealtimeClientEvent,
@@ -21,7 +23,7 @@ import {
 export type OpenAIRealtimeModelConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -52,7 +54,7 @@ export class OpenAIRealtimeModel implements RealtimeModelV4 {
     const response = await fetchFn(url, {
       method: 'POST',
       headers: {
-        ...this.config.headers(),
+        ...(await resolve(this.config.headers)),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

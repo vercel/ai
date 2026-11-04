@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: deepSeek('deepseek-chat'),
+    model: deepSeek('deepseek-v4-flash'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

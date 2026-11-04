@@ -59,6 +59,14 @@ type BaseTool<
   CONTEXT extends Context | unknown | never = any,
 > = {
   /**
+   * Defer exposing this tool until it is discovered by `toolSearch`.
+   * Supports direct calls and local callers that announce tools in conversation
+   * messages (code mode with `toolDiscovery: 'conversation'`). Discovered tools
+   * become available on the next model step.
+   */
+  deferLoading?: boolean;
+
+  /**
    * An optional title of the tool.
    *
    * @deprecated Use `providerMetadata` for source-specific tool display metadata.
@@ -112,8 +120,8 @@ type BaseTool<
       >;
 
   /**
-   * Optional function that is called when the argument streaming starts.
-   * Only called when the tool is used in a streaming context.
+   * Optional function that is called when the model starts generating the tool input.
+   * In non-streaming contexts, it is called immediately before `onInputAvailable`.
    */
   onInputStart?: (
     options: ToolExecutionOptions<NoInfer<CONTEXT>>,

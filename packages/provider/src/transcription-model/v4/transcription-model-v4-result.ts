@@ -31,6 +31,26 @@ export type TranscriptionModelV4Result = {
   }>;
 
   /**
+   * Word-level timings reported by the provider, whether requested or returned
+   * by default. Existing `segments` behavior is preserved; some providers also
+   * put word timings in `segments`. Omitted when word timings are unavailable.
+   */
+  words?: Array<{
+    /**
+     * The text of this word.
+     */
+    text: string;
+    /**
+     * The start time of this word in seconds.
+     */
+    startSecond: number;
+    /**
+     * The end time of this word in seconds.
+     */
+    endSecond: number;
+  }>;
+
+  /**
    * The detected language of the audio content, as an ISO-639-1 code (e.g., 'en' for English).
    * May be undefined if the language couldn't be detected.
    */
@@ -46,6 +66,12 @@ export type TranscriptionModelV4Result = {
    * Warnings for the call, e.g. unsupported settings.
    */
   warnings: Array<SharedV4Warning>;
+
+  /**
+   * Usage information reported by the provider, in the provider's native
+   * JSON-compatible shape.
+   */
+  usage?: JSONObject;
 
   /**
    * Optional request information for telemetry and debugging purposes.

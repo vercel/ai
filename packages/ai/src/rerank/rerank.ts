@@ -1,12 +1,18 @@
-import type { JSONObject, RerankingModelV4CallOptions } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type JSONObject,
+  type RerankingModelV4CallOptions,
+  type RerankingModelV4Result,
+} from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  type Context,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveRerankingModel } from '../model/resolve-model';
-import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { RerankingModel } from '../types';
 import type { Callback } from '../util/callback';
@@ -32,10 +38,14 @@ const originalGenerateCallId = createIdGenerator({
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  * @param providerOptions - Additional provider-specific options.
  * @param telemetry - Optional telemetry configuration.
+ * @param runtimeContext - User-defined runtime context passed to callbacks and, when explicitly included, telemetry.
  *
  * @returns A result object that contains the reranked documents, the reranked indices, and additional information.
  */
-export async function rerank<VALUE extends JSONObject | string>({
+export async function rerank<
+  VALUE extends JSONObject | string,
+  RUNTIME_CONTEXT extends Context = Context,
+>({
   model: modelArg,
   documents,
   query,
@@ -46,6 +56,7 @@ export async function rerank<VALUE extends JSONObject | string>({
   providerOptions,
   experimental_telemetry,
   telemetry = experimental_telemetry,
+  runtimeContext = {} as RUNTIME_CONTEXT,
   onStart,
   experimental_onStart,
   onEnd,
@@ -93,14 +104,19 @@ export async function rerank<VALUE extends JSONObject | string>({
   /**
    * Optional telemetry configuration.
    */
-  telemetry?: TelemetryOptions;
+  telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
 
   /**
    * Optional telemetry configuration.
    *
    * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
    */
-  experimental_telemetry?: TelemetryOptions;
+  experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
+
+  /**
+   * User-defined runtime context. Treat runtime context as immutable.
+   */
+  runtimeContext?: RUNTIME_CONTEXT;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -113,7 +129,7 @@ export async function rerank<VALUE extends JSONObject | string>({
    * Callback that is called when the rerank operation begins,
    * before the reranking model is called.
    */
-  onStart?: Callback<RerankStartEvent>;
+  onStart?: Callback<RerankStartEvent<RUNTIME_CONTEXT>>;
 
   /**
    * Callback that is called when the rerank operation begins,
@@ -121,13 +137,13 @@ export async function rerank<VALUE extends JSONObject | string>({
    *
    * @deprecated Use `onStart` instead.
    */
-  experimental_onStart?: Callback<RerankStartEvent>;
+  experimental_onStart?: Callback<RerankStartEvent<RUNTIME_CONTEXT>>;
 
   /**
    * Callback that is called when the rerank operation completes,
    * after the reranking model returns.
    */
-  onEnd?: Callback<RerankEndEvent>;
+  onEnd?: Callback<RerankEndEvent<RUNTIME_CONTEXT>>;
 
   /**
    * Callback that is called when the rerank operation completes,
@@ -135,7 +151,7 @@ export async function rerank<VALUE extends JSONObject | string>({
    *
    * @deprecated Use `onEnd` instead.
    */
-  experimental_onEnd?: Callback<RerankEndEvent>;
+  experimental_onEnd?: Callback<RerankEndEvent<RUNTIME_CONTEXT>>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -149,15 +165,21 @@ export async function rerank<VALUE extends JSONObject | string>({
   const resolvedOnStart = onStart ?? experimental_onStart;
   const resolvedOnEnd = onEnd ?? experimental_onEnd;
 
-  const telemetryDispatcher = createTelemetryDispatcher({
+  const telemetryDispatcher = createRestrictedTelemetryDispatcher({
     telemetry,
   });
+
+  const runInTracingChannelSpan =
+    telemetryDispatcher.runInTracingChannelSpan ??
+    (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
+      await execute());
 
   if (documents.length === 0) {
     await notify({
       event: {
         callId,
         operationId: 'ai.rerank',
+        runtimeContext,
         provider: model.provider,
         modelId: model.modelId,
         documents,
@@ -174,6 +196,7 @@ export async function rerank<VALUE extends JSONObject | string>({
       event: {
         callId,
         operationId: 'ai.rerank',
+        runtimeContext,
         provider: model.provider,
         modelId: model.modelId,
         documents,
@@ -210,122 +233,151 @@ export async function rerank<VALUE extends JSONObject | string>({
       ? { type: 'text', values: documents as string[] }
       : { type: 'object', values: documents as JSONObject[] };
 
-  await notify({
-    event: {
-      callId,
-      operationId: 'ai.rerank',
-      provider: model.provider,
-      modelId: model.modelId,
-      documents,
-      query,
-      topN,
-      maxRetries,
-      headers,
-      providerOptions,
-    },
-    callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
-  });
+  const startEvent = {
+    callId,
+    operationId: 'ai.rerank',
+    runtimeContext,
+    provider: model.provider,
+    modelId: model.modelId,
+    documents,
+    query,
+    topN,
+    maxRetries,
+    headers,
+    providerOptions,
+  };
 
-  try {
-    const { ranking, response, providerMetadata, warnings } = await retry(
-      async () => {
+  return await runInTracingChannelSpan({
+    type: 'rerank',
+    event: startEvent,
+    execute: async () => {
+      await notify({
+        event: startEvent,
+        callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
+      });
+
+      try {
+        const { ranking, response, providerMetadata, warnings } = await retry(
+          async () => {
+            await notify({
+              event: {
+                callId,
+                operationId: 'ai.rerank.doRerank',
+                provider: model.provider,
+                modelId: model.modelId,
+                documents,
+                documentsType: documentsToSend.type,
+                query,
+                topN,
+              },
+              callbacks: [telemetryDispatcher.onRerankStart],
+            });
+
+            const modelResponse = await model.doRerank({
+              documents: documentsToSend,
+              query,
+              topN,
+              providerOptions,
+              abortSignal,
+              headers,
+            });
+
+            const ranking = modelResponse.ranking;
+
+            await notify({
+              event: {
+                callId,
+                operationId: 'ai.rerank.doRerank',
+                provider: model.provider,
+                modelId: model.modelId,
+                documentsType: documentsToSend.type,
+                ranking,
+              },
+              callbacks: [telemetryDispatcher.onRerankEnd],
+            });
+
+            return {
+              ranking,
+              providerMetadata: modelResponse.providerMetadata,
+              response: modelResponse.response,
+              warnings: modelResponse.warnings,
+            };
+          },
+        );
+
+        validateRankingIndices({ ranking, documents });
+
+        logWarnings({
+          warnings: warnings ?? [],
+          provider: model.provider,
+          model: model.modelId,
+        });
+
         await notify({
           event: {
             callId,
-            operationId: 'ai.rerank.doRerank',
+            operationId: 'ai.rerank',
+            runtimeContext,
             provider: model.provider,
             modelId: model.modelId,
             documents,
-            documentsType: documentsToSend.type,
             query,
-            topN,
+            ranking: ranking.map(ranking => ({
+              originalIndex: ranking.index,
+              score: ranking.relevanceScore,
+              document: documents[ranking.index],
+            })),
+            warnings: warnings ?? [],
+            providerMetadata,
+            response: {
+              id: response?.id,
+              timestamp: response?.timestamp ?? new Date(),
+              modelId: response?.modelId ?? model.modelId,
+              headers: response?.headers,
+              body: response?.body,
+            },
           },
-          callbacks: [telemetryDispatcher.onRerankStart],
+          callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
         });
 
-        const modelResponse = await model.doRerank({
-          documents: documentsToSend,
-          query,
-          topN,
-          providerOptions,
-          abortSignal,
-          headers,
-        });
-
-        const ranking = modelResponse.ranking;
-
-        await notify({
-          event: {
-            callId,
-            operationId: 'ai.rerank.doRerank',
-            provider: model.provider,
-            modelId: model.modelId,
-            documentsType: documentsToSend.type,
-            ranking,
+        return new DefaultRerankResult({
+          originalDocuments: documents,
+          ranking: ranking.map(ranking => ({
+            originalIndex: ranking.index,
+            score: ranking.relevanceScore,
+            document: documents[ranking.index],
+          })),
+          providerMetadata,
+          response: {
+            id: response?.id,
+            timestamp: response?.timestamp ?? new Date(),
+            modelId: response?.modelId ?? model.modelId,
+            headers: response?.headers,
+            body: response?.body,
           },
-          callbacks: [telemetryDispatcher.onRerankEnd],
         });
+      } catch (error) {
+        await telemetryDispatcher.onError?.({ callId, error });
+        throw error;
+      }
+    },
+  });
+}
 
-        return {
-          ranking,
-          providerMetadata: modelResponse.providerMetadata,
-          response: modelResponse.response,
-          warnings: modelResponse.warnings,
-        };
-      },
-    );
-
-    logWarnings({
-      warnings: warnings ?? [],
-      provider: model.provider,
-      model: model.modelId,
-    });
-
-    await notify({
-      event: {
-        callId,
-        operationId: 'ai.rerank',
-        provider: model.provider,
-        modelId: model.modelId,
-        documents,
-        query,
-        ranking: ranking.map(r => ({
-          originalIndex: r.index,
-          score: r.relevanceScore,
-          document: documents[r.index],
-        })),
-        warnings: warnings ?? [],
-        providerMetadata,
-        response: {
-          id: response?.id,
-          timestamp: response?.timestamp ?? new Date(),
-          modelId: response?.modelId ?? model.modelId,
-          headers: response?.headers,
-          body: response?.body,
-        },
-      },
-      callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
-    });
-
-    return new DefaultRerankResult({
-      originalDocuments: documents,
-      ranking: ranking.map(ranking => ({
-        originalIndex: ranking.index,
-        score: ranking.relevanceScore,
-        document: documents[ranking.index],
-      })),
-      providerMetadata,
-      response: {
-        id: response?.id,
-        timestamp: response?.timestamp ?? new Date(),
-        modelId: response?.modelId ?? model.modelId,
-        headers: response?.headers,
-        body: response?.body,
-      },
-    });
-  } catch (error) {
-    await telemetryDispatcher.onError?.({ callId, error });
-    throw error;
+function validateRankingIndices<VALUE>({
+  ranking,
+  documents,
+}: {
+  ranking: RerankingModelV4Result['ranking'];
+  documents: Array<VALUE>;
+}) {
+  for (const { index } of ranking) {
+    if (!Number.isInteger(index) || index < 0 || index >= documents.length) {
+      throw new InvalidResponseDataError({
+        data: ranking,
+        message: `Invalid ranking index ${index}. Expected an integer between 0 and ${documents.length - 1}.`,
+      });
+    }
   }
 }
 

@@ -1,3 +1,4 @@
+import type { OpenTelemetryIdGenerator } from './durable-span-ids';
 import type { Attributes, Tracer } from '@opentelemetry/api';
 import type { TelemetryOptions } from 'ai';
 import {
@@ -11,6 +12,7 @@ type SupplementalAttributeOption =
   | 'providerMetadata'
   | 'embedding'
   | 'reranking'
+  | 'experimental_decision'
   | 'runtimeContext'
   | 'headers'
   | 'toolChoice'
@@ -27,7 +29,8 @@ export type OpenTelemetrySpanType =
   | 'languageModel'
   | 'tool'
   | 'embedding'
-  | 'reranking';
+  | 'reranking'
+  | 'experimental_decision';
 
 export type EnrichSpan = (options: {
   spanType: OpenTelemetrySpanType;
@@ -41,6 +44,27 @@ export type OpenTelemetryOptions = {
    * The tracer to use for the telemetry data.
    */
   tracer?: Tracer;
+
+  /** The same bridge registered as the tracer provider's idGenerator and sampler. */
+  durable?: OpenTelemetryIdGenerator;
+
+  /**
+   * Controls root agent span names for text and object generation.
+   *
+   * With `modelId` (the default), names are `invoke_agent {modelId}`.
+   * With `functionId`, names are `invoke_agent {functionId}`, falling back to
+   * the model ID when no function ID is provided.
+   *
+   * A callback returns the complete span name. If it returns `undefined` or
+   * throws, the default model-based name is used.
+   */
+  agentSpanName?:
+    | 'modelId'
+    | 'functionId'
+    | ((options: {
+        modelId: string;
+        functionId: string | undefined;
+      }) => string | undefined);
 
   /**
    * Adds custom attributes to spans when they are created. These attributes are
@@ -69,6 +93,14 @@ export type OpenTelemetryOptions = {
   reranking?: boolean;
 
   /**
+   * Emit decision state, questions, and answers.
+   */
+  experimental_decision?: boolean;
+
+  /** @deprecated Use `experimental_decision` instead. */
+  experimental_evaluation?: boolean;
+
+  /**
    * Emit runtime context values.
    */
   runtimeContext?: boolean;
@@ -94,6 +126,7 @@ const disabledSupplementalAttributes: SupplementalAttributeOptions = {
   providerMetadata: false,
   embedding: false,
   reranking: false,
+  experimental_decision: false,
   runtimeContext: false,
   headers: false,
   toolChoice: false,
@@ -109,6 +142,8 @@ export function normalizeSupplementalAttributes(
     providerMetadata: options.providerMetadata ?? false,
     embedding: options.embedding ?? false,
     reranking: options.reranking ?? false,
+    experimental_decision:
+      options.experimental_decision ?? options.experimental_evaluation ?? false,
     runtimeContext: options.runtimeContext ?? false,
     headers: options.headers ?? false,
     toolChoice: options.toolChoice ?? false,

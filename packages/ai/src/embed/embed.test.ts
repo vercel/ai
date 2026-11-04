@@ -1,6 +1,15 @@
 import type { EmbeddingModelV4 } from '@ai-sdk/provider';
 import assert from 'node:assert';
-import { beforeEach, describe, expect, it, vi, vitest } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
+import { InvalidResponseDataError } from '../error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
@@ -27,6 +36,38 @@ describe('result.embedding', () => {
     });
 
     assert.deepStrictEqual(result.embedding, dummyEmbedding);
+  });
+
+  it('should reject when the model returns no embeddings', async () => {
+    const model = new MockEmbeddingModelV4({
+      doEmbed: async () => ({
+        embeddings: [],
+        usage: { tokens: 5 },
+        warnings: [],
+      }),
+    });
+    const onEnd = vi.fn();
+    const onError = vi.fn();
+
+    const result = embed({
+      model,
+      value: testValue,
+      telemetry: {
+        integrations: { onEnd, onError },
+      },
+    });
+
+    await expect(result).rejects.toSatisfy(error => {
+      expect(InvalidResponseDataError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        data: [],
+        message: 'No embedding generated.',
+      });
+      return true;
+    });
+    expect(model.doEmbedCalls).toHaveLength(1);
+    expect(onEnd).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledOnce();
   });
 });
 
@@ -157,6 +198,18 @@ describe('options.providerOptions', () => {
 });
 
 describe('result.warnings', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   it('should include warnings in the result', async () => {
     const expectedWarnings: Warning[] = [
       {
@@ -202,7 +255,13 @@ describe('logWarnings', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
   beforeEach(() => {
-    logWarningsSpy = vitest.spyOn(logWarningsModule, 'logWarnings');
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
   });
 
   it('should call logWarnings with the correct warnings', async () => {
@@ -387,6 +446,18 @@ describe('options.onStart', () => {
 });
 
 describe('options.onEnd', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   it('should send correct event information', async () => {
     let endEvent!: EmbedEndEvent;
 

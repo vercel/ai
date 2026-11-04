@@ -1,3 +1,4 @@
+import type { Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
 import type {
   InferToolInput,
@@ -88,6 +89,7 @@ export type UIMessagePart<
   | FileUIPart
   | ReasoningFileUIPart
   | DataUIPart<DATA_TYPES>
+  | SteeringMessageUIPart
   | StepStartUIPart;
 
 /**
@@ -95,6 +97,9 @@ export type UIMessagePart<
  */
 export type TextUIPart = {
   type: 'text';
+
+  /** References supporting this text, separate from retrieved sources. */
+  citations?: Array<Citation>;
 
   /**
    * The text content.
@@ -134,6 +139,11 @@ export type CustomContentUIPart = {
  */
 export type ReasoningUIPart = {
   type: 'reasoning';
+
+  /**
+   * The reasoning part ID.
+   */
+  id?: string;
 
   /**
    * The reasoning text.
@@ -244,6 +254,25 @@ export type ReasoningFileUIPart = {
 };
 
 /**
+ * Experimental. A user message that was added to the run with steering while
+ * the assistant message was generated. It is placed before the output of the
+ * step that received it.
+ */
+export type SteeringMessageUIPart = {
+  type: 'steering-message';
+
+  /**
+   * The id of the steering message.
+   */
+  id: string;
+
+  /**
+   * The content of the user message.
+   */
+  parts: Array<TextUIPart | FileUIPart>;
+};
+
+/**
  * A step boundary part of a message.
  */
 export type StepStartUIPart = {
@@ -292,6 +321,15 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'input-streaming';
       input?: DeepPartial<asUITool<TOOL>['input']> | undefined;
+      /**
+       * The raw tool input text received so far.
+       *
+       * This is used to continue input streaming when a message is persisted
+       * and later resumed.
+       */
+      rawInput?: string;
+      /** Encoding of `rawInput`. Defaults to JSON when omitted. */
+      inputEncoding?: 'json' | 'text';
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -314,9 +352,12 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved?: never;
+        descriptor?: unknown;
+        requestReason?: string;
         reason?: never;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -328,9 +369,12 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved: boolean;
+        descriptor?: unknown;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -344,15 +388,22 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
-      state: 'output-error'; // TODO AI SDK 6: change to 'error' state
+      state: 'output-error';
       input: asUITool<TOOL>['input'] | undefined;
-      rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
+      /**
+       * @deprecated Use `input` instead. This field will be removed in the next
+       * major version.
+       */
+      rawInput?: unknown;
       output?: never;
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
@@ -360,9 +411,12 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -374,9 +428,12 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved: false;
+        descriptor?: unknown;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
 );
@@ -389,6 +446,14 @@ export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
 
 export type DynamicToolUIPart = {
   type: 'dynamic-tool';
+
+  /**
+   * `false` when a static tool part was normalized to a dynamic tool part
+   * because its current tool schema was unavailable or incompatible.
+   *
+   * This preserves its static origin across persistence boundaries.
+   */
+  dynamic?: false;
 
   /**
    * Name of the tool that is being called.
@@ -410,6 +475,15 @@ export type DynamicToolUIPart = {
   | {
       state: 'input-streaming';
       input?: unknown;
+      /**
+       * The raw tool input text received so far.
+       *
+       * This is used to continue input streaming when a message is persisted
+       * and later resumed.
+       */
+      rawInput?: string;
+      /** Encoding of `rawInput`. Defaults to JSON when omitted. */
+      inputEncoding?: 'json' | 'text';
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -432,9 +506,12 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved?: never;
+        descriptor?: unknown;
+        requestReason?: string;
         reason?: never;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -446,9 +523,12 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved: boolean;
+        descriptor?: unknown;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -462,13 +542,16 @@ export type DynamicToolUIPart = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
-      state: 'output-error'; // TODO AI SDK 6: change to 'error' state
+      state: 'output-error';
       input: unknown;
       output?: never;
       errorText: string;
@@ -477,9 +560,12 @@ export type DynamicToolUIPart = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -491,12 +577,26 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved: false;
+        descriptor?: unknown;
+        requestReason?: string;
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
 );
+
+/**
+ * A static or dynamic tool UI part whose execution failed.
+ *
+ * Use `isToolOutputErrorUIPart` to identify tool output errors without
+ * depending on the underlying tool state discriminator.
+ */
+export type ToolOutputErrorUIPart<TOOLS extends UITools = UITools> = Extract<
+  ToolUIPart<TOOLS> | DynamicToolUIPart,
+  { state: 'output-error' }
+>;
 
 /**
  * Type guard to check if a message part is a text part.
@@ -576,6 +676,17 @@ export function isToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
   return isStaticToolUIPart(part) || isDynamicToolUIPart(part);
+}
+
+/**
+ * Check if a message part is a tool output error part.
+ *
+ * This works for both static and dynamic tools.
+ */
+export function isToolOutputErrorUIPart<TOOLS extends UITools>(
+  part: UIMessagePart<UIDataTypes, TOOLS>,
+): part is ToolOutputErrorUIPart<TOOLS> {
+  return isToolUIPart(part) && part.state === 'output-error';
 }
 
 /**

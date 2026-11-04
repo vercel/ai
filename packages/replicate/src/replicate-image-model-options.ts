@@ -14,50 +14,61 @@ import { z } from 'zod/v4';
  */
 export const replicateImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
-    z
-      .object({
-        /**
-         * Maximum time in seconds to wait for the prediction to complete in sync mode.
-         * By default, Replicate uses sync mode with a 60-second timeout.
-         *
-         * - When not specified: Uses default 60-second sync wait (`prefer: wait`)
-         * - When set to a positive number: Uses that duration (`prefer: wait=N`)
-         */
-        maxWaitTimeInSeconds: z.number().positive().nullish(),
+    z.looseObject({
+      /**
+       * Maximum time in seconds to wait for the prediction to complete in sync mode.
+       * By default, Replicate uses sync mode with a 60-second timeout.
+       *
+       * - When not specified: Uses default 60-second sync wait (`prefer: wait`)
+       * - When set to a positive number: Uses that duration (`prefer: wait=N`)
+       */
+      maxWaitTimeInSeconds: z.number().positive().nullish(),
 
-        /**
-         * Guidance scale for classifier-free guidance.
-         * Higher values make the output more closely match the prompt.
-         */
-        guidance_scale: z.number().nullish(),
+      /**
+       * Interval in milliseconds between polling attempts when the prediction
+       * does not complete within the synchronous wait duration.
+       * Defaults to 500 milliseconds.
+       */
+      pollIntervalMillis: z.number().int().positive().nullish(),
 
-        /**
-         * Number of denoising steps. More steps = higher quality but slower.
-         */
-        num_inference_steps: z.number().nullish(),
+      /**
+       * Maximum number of polling attempts before giving up.
+       * Defaults to 240 attempts.
+       */
+      maxPollAttempts: z.number().int().positive().nullish(),
 
-        /**
-         * Negative prompt to guide what to avoid in the generation.
-         */
-        negative_prompt: z.string().nullish(),
+      /**
+       * Guidance scale for classifier-free guidance.
+       * Higher values make the output more closely match the prompt.
+       */
+      guidance_scale: z.number().nullish(),
 
-        /**
-         * Output image format.
-         */
-        output_format: z.enum(['png', 'jpg', 'webp']).nullish(),
+      /**
+       * Number of denoising steps. More steps = higher quality but slower.
+       */
+      num_inference_steps: z.number().nullish(),
 
-        /**
-         * Output image quality (1-100). Only applies to jpg and webp.
-         */
-        output_quality: z.number().min(1).max(100).nullish(),
+      /**
+       * Negative prompt to guide what to avoid in the generation.
+       */
+      negative_prompt: z.string().nullish(),
 
-        /**
-         * Strength of the transformation for img2img (0-1).
-         * Lower values keep more of the original image.
-         */
-        strength: z.number().min(0).max(1).nullish(),
-      })
-      .passthrough(),
+      /**
+       * Output image format.
+       */
+      output_format: z.enum(['png', 'jpg', 'webp']).nullish(),
+
+      /**
+       * Output image quality (1-100). Only applies to jpg and webp.
+       */
+      output_quality: z.number().min(1).max(100).nullish(),
+
+      /**
+       * Strength of the transformation for img2img (0-1).
+       * Lower values keep more of the original image.
+       */
+      strength: z.number().min(0).max(1).nullish(),
+    }),
   ),
 );
 

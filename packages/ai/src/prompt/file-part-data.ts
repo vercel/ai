@@ -1,5 +1,8 @@
+import { convertDataContentToUint8Array } from './data-content';
 import type { LanguageModelV4FilePart } from '@ai-sdk/provider';
 import {
+  isUint8Array,
+  isArrayBuffer,
   isBuffer,
   isProviderReference,
   type DataContent,
@@ -24,7 +27,10 @@ type ConvertResult = {
   mediaType: string | undefined;
 };
 
-function convertUrlToFilePartData(url: URL): ConvertResult {
+function convertUrlToFilePartData(
+  url: URL,
+  originalUrl?: string,
+): ConvertResult {
   if (url.protocol === 'data:') {
     const { mediaType, base64Content } = splitDataUrl(url.toString());
 
@@ -38,16 +44,26 @@ function convertUrlToFilePartData(url: URL): ConvertResult {
     return { data: { type: 'data', data: base64Content }, mediaType };
   }
 
-  return { data: { type: 'url', url }, mediaType: undefined };
+  return {
+    data: { type: 'url', url, ...(originalUrl != null ? { originalUrl } : {}) },
+    mediaType: undefined,
+  };
+}
+
+function convertUrlStringToFilePartData(content: string): ConvertResult {
+  const result = convertUrlToFilePartData(new URL(content));
+
+  if (result.data.type === 'url' && result.data.url.toString() !== content) {
+    result.data.originalUrl = content;
+  }
+
+  return result;
 }
 
 function convertInlineDataToFilePartData(content: DataContent): ConvertResult {
-  if (content instanceof Uint8Array) {
-    return { data: { type: 'data', data: content }, mediaType: undefined };
-  }
-  if (content instanceof ArrayBuffer) {
+  if (isUint8Array(content) || isArrayBuffer(content)) {
     return {
-      data: { type: 'data', data: new Uint8Array(content) },
+      data: { type: 'data', data: convertDataContentToUint8Array(content) },
       mediaType: undefined,
     };
   }
@@ -88,7 +104,7 @@ export function convertToLanguageModelV4FilePart(
         }
         return convertInlineDataToFilePartData(content.data);
       case 'url':
-        return convertUrlToFilePartData(content.url);
+        return convertUrlToFilePartData(content.url, content.originalUrl);
       case 'reference':
         return {
           data: { type: 'reference', reference: content.reference },
@@ -108,10 +124,14 @@ export function convertToLanguageModelV4FilePart(
 
   if (typeof content === 'string') {
     try {
-      return convertUrlToFilePartData(new URL(content));
+      return convertUrlStringToFilePartData(content);
     } catch {
       return convertInlineDataToFilePartData(content);
     }
+  }
+
+  if (isUint8Array(content) || isArrayBuffer(content)) {
+    return convertInlineDataToFilePartData(content);
   }
 
   if (isProviderReference(content)) {

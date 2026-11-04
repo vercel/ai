@@ -1,5 +1,8 @@
 import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -14,6 +17,7 @@ import type { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
 import { deepgramTranscriptionModelOptionsSchema } from './deepgram-transcription-model-options';
 import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+import { streamDeepgramTranscription } from './deepgram-streaming-transcription';
 
 interface DeepgramTranscriptionModelConfig extends DeepgramConfig {
   _internal?: {
@@ -59,29 +63,39 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
       schema: deepgramTranscriptionModelOptionsSchema,
     });
 
+    if (deepgramOptions?.streaming != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.deepgram.streaming',
+        details:
+          'Deepgram batch transcription does not support streaming options.',
+      });
+    }
+
     const body: DeepgramTranscriptionAPITypes = {
       model: this.modelId,
-      diarize: true,
     };
 
     // Add provider-specific options
     if (deepgramOptions) {
       body.detect_entities = deepgramOptions.detectEntities ?? undefined;
       body.detect_language = deepgramOptions.detectLanguage ?? undefined;
+      body.diarize = deepgramOptions.diarize ?? undefined;
       body.filler_words = deepgramOptions.fillerWords ?? undefined;
+      body.intents = deepgramOptions.intents ?? undefined;
+      body.keyterm = deepgramOptions.keyterm ?? undefined;
       body.language = deepgramOptions.language ?? undefined;
+      body.paragraphs = deepgramOptions.paragraphs ?? undefined;
       body.punctuate = deepgramOptions.punctuate ?? undefined;
       body.redact = deepgramOptions.redact ?? undefined;
+      body.replace = deepgramOptions.replace ?? undefined;
       body.search = deepgramOptions.search ?? undefined;
+      body.sentiment = deepgramOptions.sentiment ?? undefined;
       body.smart_format = deepgramOptions.smartFormat ?? undefined;
       body.summarize = deepgramOptions.summarize ?? undefined;
       body.topics = deepgramOptions.topics ?? undefined;
       body.utterances = deepgramOptions.utterances ?? undefined;
       body.utt_split = deepgramOptions.uttSplit ?? undefined;
-
-      if (typeof deepgramOptions.diarize === 'boolean') {
-        body.diarize = deepgramOptions.diarize;
-      }
     }
 
     // Convert body to URL query parameters
@@ -96,6 +110,14 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
       queryParams,
       warnings,
     };
+  }
+
+  async doStream(
+    options: Parameters<NonNullable<TranscriptionModelV4['doStream']>>[0],
+  ): Promise<
+    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+  > {
+    return streamDeepgramTranscription(this.modelId, this.config, options);
   }
 
   async doGenerate(
@@ -117,7 +139,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
         '?' +
         queryParams.toString(),
       headers: {
-        ...combineHeaders(this.config.headers?.(), options.headers),
+        ...combineHeaders(await resolve(this.config.headers), options.headers),
         'Content-Type': options.mediaType,
       },
       body: {
@@ -131,6 +153,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
+    const durationInSeconds = response.metadata?.duration ?? undefined;
 
     return {
       text:
@@ -143,7 +166,10 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
         })) ?? [],
       language:
         response.results?.channels.at(0)?.detected_language ?? undefined,
-      durationInSeconds: response.metadata?.duration ?? undefined,
+      durationInSeconds,
+      ...(durationInSeconds != null
+        ? { usage: { seconds: durationInSeconds } }
+        : {}),
       warnings,
       response: {
         timestamp: currentDate,
@@ -155,31 +181,35 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const deepgramTranscriptionResponseSchema = z.object({
-  metadata: z
-    .object({
-      duration: z.number(),
-    })
-    .nullish(),
-  results: z
-    .object({
-      channels: z.array(
-        z.object({
-          detected_language: z.string().nullish(),
-          alternatives: z.array(
+const deepgramTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      metadata: z
+        .object({
+          duration: z.number(),
+        })
+        .nullish(),
+      results: z
+        .object({
+          channels: z.array(
             z.object({
-              transcript: z.string(),
-              words: z.array(
+              detected_language: z.string().nullish(),
+              alternatives: z.array(
                 z.object({
-                  word: z.string(),
-                  start: z.number(),
-                  end: z.number(),
+                  transcript: z.string(),
+                  words: z.array(
+                    z.object({
+                      word: z.string(),
+                      start: z.number(),
+                      end: z.number(),
+                    }),
+                  ),
                 }),
               ),
             }),
           ),
-        }),
-      ),
-    })
-    .nullish(),
-});
+        })
+        .nullish(),
+    }),
+  ),
+);

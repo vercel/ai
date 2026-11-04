@@ -1,6 +1,23 @@
+import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+
+export const googleVertexAnthropicProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      labels: z.record(z.string(), z.string()).optional(),
+    }),
+  ),
+);
+
 // https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude
 export type GoogleVertexAnthropicModelId =
+  | 'claude-sonnet-5'
+  | 'claude-sonnet-5-5'
+  | 'claude-haiku-5-5'
   | 'claude-fable-5'
+  | 'claude-fable-5-1'
+  | 'claude-opus-5'
+  | 'claude-opus-5-5'
   | 'claude-opus-4-8'
   | 'claude-opus-4-7'
   | 'claude-opus-4-6'

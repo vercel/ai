@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { embedding, usage } = await embed({
-    model: voyage.embedding('voyage-3.5'),
+    model: voyage.embedding('voyage-4'),
     value: 'sunny day at the beach',
   });
 

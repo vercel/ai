@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
 import {
-  extractUserText,
+  extractPiPromptContent,
   frameInstructions,
   renderPiSkillFile,
   safePiMetadataSegment,
   serializeToolOutput,
-  shellQuote,
 } from './pi-utils';
 
 describe('frameInstructions', () => {
@@ -24,56 +23,93 @@ describe('frameInstructions', () => {
   });
 });
 
-describe('extractUserText', () => {
-  it('returns the string prompt verbatim', () => {
-    expect(extractUserText('hello there')).toBe('hello there');
+describe('extractPiPromptContent', () => {
+  it('returns the string prompt as text', () => {
+    expect(extractPiPromptContent({ prompt: 'hello there' })).toEqual({
+      text: 'hello there',
+      images: [],
+    });
   });
 
   it('joins multiple text parts with double newlines', () => {
-    const text = extractUserText({
-      role: 'user',
-      content: [
-        { type: 'text', text: 'first' },
-        { type: 'text', text: 'second' },
-      ],
+    const prompt = extractPiPromptContent({
+      prompt: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'first' },
+          { type: 'text', text: 'second' },
+        ],
+      },
     });
-    expect(text).toBe('first\n\nsecond');
+    expect(prompt).toEqual({ text: 'first\n\nsecond', images: [] });
   });
 
   it('handles a single string content', () => {
-    expect(extractUserText({ role: 'user', content: 'just text' })).toBe(
-      'just text',
-    );
+    expect(
+      extractPiPromptContent({
+        prompt: { role: 'user', content: 'just text' },
+      }),
+    ).toEqual({ text: 'just text', images: [] });
   });
 
-  it('throws HarnessCapabilityUnsupportedError on non-text parts', () => {
+  it('extracts inline image data', () => {
+    expect(
+      extractPiPromptContent({
+        prompt: {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Describe this.' },
+            {
+              type: 'image',
+              image: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      }),
+    ).toEqual({
+      text: 'Describe this.',
+      images: [{ type: 'image', data: 'AQID', mimeType: 'image/png' }],
+    });
+  });
+
+  it('rejects text parts after an inline image', () => {
     expect(() =>
-      extractUserText({
-        role: 'user',
-        content: [
-          { type: 'text', text: 'before' },
-          {
-            type: 'image',
-            image: new Uint8Array([1, 2]),
-            mediaType: 'image/png',
-          },
-        ],
+      extractPiPromptContent({
+        prompt: {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              image: new Uint8Array([1, 2]),
+              mediaType: 'image/png',
+            },
+            { type: 'text', text: 'after' },
+          ],
+        },
       }),
     ).toThrowError(HarnessCapabilityUnsupportedError);
   });
-});
 
-describe('shellQuote', () => {
-  it('wraps simple values in single quotes', () => {
-    expect(shellQuote('hello')).toBe(`'hello'`);
-  });
-
-  it('escapes embedded single quotes', () => {
-    expect(shellQuote(`it's`)).toBe(`'it'\\''s'`);
-  });
-
-  it('handles empty strings', () => {
-    expect(shellQuote('')).toBe(`''`);
+  it('throws for unsupported user content parts', () => {
+    let error: unknown;
+    try {
+      extractPiPromptContent({
+        prompt: {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new Uint8Array([1, 2]),
+              mediaType: 'text/plain',
+            },
+          ],
+        },
+      });
+    } catch (caughtError) {
+      error = caughtError;
+    }
+    expect(HarnessCapabilityUnsupportedError.isInstance(error)).toBe(true);
   });
 });
 

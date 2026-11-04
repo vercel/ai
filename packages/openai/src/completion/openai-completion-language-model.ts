@@ -9,6 +9,8 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -21,7 +23,10 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
+import {
+  createOpenAIProviderStreamError,
+  throwIfOpenAIStreamErrorBeforeOutput,
+} from '../openai-stream-error';
 import {
   convertOpenAICompletionUsage,
   type OpenAICompletionUsage,
@@ -40,7 +45,9 @@ import {
 } from './openai-completion-language-model-options';
 type OpenAICompletionConfig = {
   provider: string;
-  headers?: () => Record<string, string | undefined>;
+  /** Model ID sent to the API. Defaults to the model's reported ID. */
+  requestModelId?: string;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -145,7 +152,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
     return {
       args: {
         // model id:
-        model: this.modelId,
+        model: this.config.requestModelId ?? this.modelId,
 
         // model specific settings:
         echo: openaiOptions.echo,
@@ -189,9 +196,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
     } = await postJsonToApi({
       url: this.config.url({
         path: '/completions',
-        modelId: this.modelId,
+        modelId: this.config.requestModelId ?? this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -243,12 +253,15 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
 
     const url = this.config.url({
       path: '/completions',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -267,8 +280,9 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
       responseHeaders,
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
@@ -302,7 +316,11 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
             // handle error chunks:
             if ('error' in value) {
               finishReason = { unified: 'error', raw: undefined };
-              controller.enqueue({ type: 'error', error: value.error });
+              controller.enqueue({
+                type: 'error',
+                error:
+                  createOpenAIProviderStreamError(value.error) ?? value.error,
+              });
               return;
             }
 

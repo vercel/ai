@@ -7,7 +7,7 @@ import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const result = await generateText({
-    model: deepSeek('deepseek-reasoner'),
+    model: deepSeek('deepseek-v4-pro'),
     tools: {
       weather: weatherTool,
     },

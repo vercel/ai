@@ -13,7 +13,7 @@ import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
 
 const { text: transcript } = await transcribe({
-  model: openai.transcription('whisper-1'),
+  model: openai.transcription('gpt-4o-transcribe'),
   audio: await readFile('audio.mp3'),
 });
 
@@ -38,7 +38,15 @@ console.log(transcript);
     {
       name: 'audio',
       type: 'DataContent (string | Uint8Array | ArrayBuffer | Buffer) | URL',
-      description: 'The audio file to generate the transcript from.',
+      description:
+        'The audio file to generate the transcript from. HTTP(S) URLs are sent directly to models with native URL support unless a custom download function is supplied; other models download the audio locally.',
+    },
+    {
+      name: 'timestampGranularities',
+      type: "Array<'word' | 'segment'>",
+      isOptional: true,
+      description:
+        'Word and segment timings to request. Supported by the OpenAI, Azure Speech, Vertex Gemini, and xAI adapters. Explicit provider options take precedence; these adapters warn about unavailable requested timings. AI Gateway warns that it does not forward this option; use provider options or a direct provider model. Omit this option to keep provider defaults. An empty array requests no additional timing detail; it does not suppress timings returned by default.',
     },
     {
       name: 'providerOptions',
@@ -65,11 +73,18 @@ console.log(transcript);
       description: 'Additional HTTP headers for the request.',
     },
     {
+      name: 'telemetry',
+      type: 'TelemetryOptions',
+      isOptional: true,
+      description:
+        'Telemetry configuration. Supports functionId, recordInputs, recordOutputs, isEnabled, and per-call integrations.',
+    },
+    {
       name: 'download',
       type: '(options: { url: URL; abortSignal?: AbortSignal }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>',
       isOptional: true,
       description:
-        'Custom download function for fetching audio from URLs. Use `createDownload()` from `ai` to create a download function with custom size limits, e.g. `createDownload({ maxBytes: 50 * 1024 * 1024 })`. Default: built-in download with 2 GiB limit.',
+        'Custom download function for fetching audio from URLs. Supplying this option forces local downloading even for models with native URL support. Use `createDownload()` from `ai` to create a download function with custom size limits, e.g. `createDownload({ maxBytes: 50 * 1024 * 1024 })`. Default: native URL transcription when supported, otherwise built-in download with 2 GiB limit.',
     },
   ]}
 />
@@ -88,6 +103,13 @@ console.log(transcript);
       type: 'Array<{ text: string; startSecond: number; endSecond: number }>',
       description:
         'An array of transcript segments, each containing a portion of the transcribed text along with its start and end times in seconds.',
+    },
+    {
+      name: 'words',
+      type: 'Array<{ text: string; startSecond: number; endSecond: number }>',
+      isOptional: true,
+      description:
+        'Word-level timings when the adapter exposes them, including timings returned by default. Undefined when unavailable. Existing segments behavior is preserved: some providers also put word timings in segments.',
     },
     {
       name: 'language',

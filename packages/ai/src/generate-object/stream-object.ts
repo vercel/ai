@@ -1,3 +1,4 @@
+import { sanitizeRequestMetadata } from '../telemetry/get-request-origin';
 import type {
   JSONValue,
   LanguageModelV4FinishReason,
@@ -67,6 +68,12 @@ import type {
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
+
+async function markPromiseAsHandled<T>(promise: Promise<T>): Promise<void> {
+  try {
+    await promise;
+  } catch {}
+}
 
 /**
  * Callback that is set using the `onError` option.
@@ -168,6 +175,10 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  * - 'enum': The output is an enum.
  * - 'no-schema': The output is not a schema.
  *
+ * @param repairText - A function that attempts to repair the raw output of the model
+ * to enable JSON parsing.
+ * @param experimental_repairText - Deprecated alias for `repairText`.
+ *
  * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
@@ -230,6 +241,14 @@ export function streamObject<
       /**
        * A function that attempts to repair the raw output of the model
        * to enable JSON parsing.
+       */
+      repairText?: RepairTextFunction;
+
+      /**
+       * A function that attempts to repair the raw output of the model
+       * to enable JSON parsing.
+       *
+       * @deprecated Use `repairText` instead.
        */
       experimental_repairText?: RepairTextFunction;
 
@@ -335,6 +354,16 @@ export function streamObject<
       : never
     : never
 > {
+  logWarnings({
+    warnings: [
+      {
+        type: 'deprecated',
+        setting: 'streamObject',
+        message: 'Use streamText with an output setting instead.',
+      },
+    ],
+  });
+
   const {
     model,
     output = 'object',
@@ -346,7 +375,8 @@ export function streamObject<
     maxRetries,
     abortSignal,
     headers,
-    experimental_repairText: repairText,
+    experimental_repairText,
+    repairText = experimental_repairText,
     experimental_telemetry,
     telemetry = experimental_telemetry,
     experimental_download: download,
@@ -527,7 +557,10 @@ class DefaultStreamObjectResult<
         controller.enqueue(chunk);
 
         if (chunk.type === 'error') {
-          onError({ error: wrapGatewayError(chunk.error) });
+          void notify({
+            event: { error: wrapGatewayError(chunk.error) },
+            callbacks: onError,
+          });
         }
       },
     });
@@ -590,6 +623,7 @@ class DefaultStreamObjectResult<
           prompt: standardizedPrompt,
           supportedUrls: await model.supportedUrls,
           download,
+          abortSignal,
           provider: model.provider.split('.')[0],
         }),
         providerOptions,
@@ -631,10 +665,13 @@ class DefaultStreamObjectResult<
       };
 
       const startTimestampMs = now();
-      const { stream, response, request } = await retry(() =>
-        model.doStream(callOptions),
-      );
+      const {
+        stream,
+        response,
+        request: rawRequest,
+      } = await retry(() => model.doStream(callOptions));
 
+      const request = sanitizeRequestMetadata(rawRequest);
       self._request.resolve(request ?? {});
 
       let warnings: SharedV4Warning[] | undefined;
@@ -643,6 +680,7 @@ class DefaultStreamObjectResult<
       let providerMetadata: ProviderMetadata | undefined;
       let object: RESULT | undefined;
       let error: unknown | undefined;
+      let terminalError: { error: unknown } | undefined;
       let msToFirstChunk: number | undefined = undefined;
 
       let accumulatedText = '';
@@ -738,19 +776,35 @@ class DefaultStreamObjectResult<
                   break;
                 }
 
+                case 'error': {
+                  if (terminalError === undefined) {
+                    const wrappedError = wrapGatewayError(chunk.error);
+                    terminalError = { error: wrappedError };
+                    error = wrappedError;
+                    finishReason = 'error';
+                    self.rejectResultPromises(wrappedError);
+                  }
+
+                  controller.enqueue(chunk);
+                  break;
+                }
+
                 case 'finish': {
                   if (textDelta !== '') {
                     controller.enqueue({ type: 'text-delta', textDelta });
                   }
 
-                  finishReason = chunk.finishReason.unified;
+                  finishReason =
+                    terminalError === undefined
+                      ? chunk.finishReason.unified
+                      : 'error';
 
                   usage = asLanguageModelUsage(chunk.usage);
                   providerMetadata = chunk.providerMetadata;
 
                   controller.enqueue({
                     ...chunk,
-                    finishReason: chunk.finishReason.unified,
+                    finishReason,
                     usage,
                     response: fullResponse,
                   });
@@ -760,6 +814,10 @@ class DefaultStreamObjectResult<
                     provider: model.provider,
                     model: model.modelId,
                   });
+
+                  if (terminalError !== undefined) {
+                    break;
+                  }
 
                   self._usage.resolve(usage);
                   self._providerMetadata.resolve(providerMetadata);
@@ -854,9 +912,19 @@ class DefaultStreamObjectResult<
           }),
         );
 
-      stitchableStream.addStream(transformedStream);
+      stitchableStream.addStream(transformedStream, {
+        onError(error) {
+          const wrappedError = wrapGatewayError(error);
+          self.rejectResultPromises(wrappedError);
+          void notify({
+            event: { error: wrappedError },
+            callbacks: onError,
+          });
+        },
+      });
     })()
       .catch(async error => {
+        self.rejectResultPromises(error);
         await telemetryDispatcher.onError?.({ callId, error });
 
         stitchableStream.addStream(
@@ -873,6 +941,29 @@ class DefaultStreamObjectResult<
       });
 
     this.outputStrategy = outputStrategy;
+  }
+
+  private rejectResultPromises(error: unknown) {
+    this.rejectResultPromise({ delayedPromise: this._object, error });
+    this.rejectResultPromise({ delayedPromise: this._usage, error });
+    this.rejectResultPromise({ delayedPromise: this._providerMetadata, error });
+    this.rejectResultPromise({ delayedPromise: this._warnings, error });
+    this.rejectResultPromise({ delayedPromise: this._request, error });
+    this.rejectResultPromise({ delayedPromise: this._response, error });
+    this.rejectResultPromise({ delayedPromise: this._finishReason, error });
+  }
+
+  private rejectResultPromise<T>({
+    delayedPromise,
+    error,
+  }: {
+    delayedPromise: DelayedPromise<T>;
+    error: unknown;
+  }) {
+    if (delayedPromise.isPending()) {
+      delayedPromise.reject(error);
+      markPromiseAsHandled(delayedPromise.promise);
+    }
   }
 
   get object() {
@@ -964,7 +1055,7 @@ class DefaultStreamObjectResult<
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
-    pipeTextStreamToResponse({
+    return pipeTextStreamToResponse({
       response,
       stream: this.textStream,
       ...init,

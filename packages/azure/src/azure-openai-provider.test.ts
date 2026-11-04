@@ -1,9 +1,11 @@
 import type {
   EmbeddingModelV4Embedding,
   LanguageModelV4,
+  LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
+import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -95,23 +97,34 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/responses': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/transcriptions': {},
   'https://test-resource.openai.azure.com/openai/v1/audio/speech': {},
+  'https://our-gateway.example.com/azure/chat/completions': {},
+  'https://test-resource.services.ai.azure.com/openai/v1/chat/completions': {},
+  'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions':
+    {},
+  'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions':
+    {},
+  'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/responses':
+    {},
   'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions':
     {},
 });
 
+type TestServerURL = keyof typeof server.urls;
+
 describe('responses (default language model)', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({
-      content = '',
-      usage = {
-        input_tokens: 4,
-        output_tokens: 30,
-        total_tokens: 34,
-      },
-    } = {}) {
-      server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/responses'
-      ].response = {
+    function prepareJsonResponse(
+      {
+        content = '',
+        usage = {
+          input_tokens: 4,
+          output_tokens: 30,
+          total_tokens: 34,
+        },
+      } = {},
+      url: TestServerURL = 'https://test-resource.openai.azure.com/openai/v1/responses',
+    ) {
+      server.urls[url].response = {
         type: 'json-value',
         body: {
           id: 'resp_67c97c0203188190a025beb4a75242bc',
@@ -191,7 +204,7 @@ describe('responses (default language model)', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -214,7 +227,7 @@ describe('responses (default language model)', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -271,15 +284,64 @@ describe('responses (default language model)', () => {
         `"https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1"`,
       );
     });
+
+    it('should include explicit message item types for Foundry project endpoints', async () => {
+      const foundryURL =
+        'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/responses';
+      prepareJsonResponse({}, foundryURL);
+
+      const foundryProvider = createAzure({
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1',
+        apiKey: 'test-api-key',
+      });
+
+      await foundryProvider('test-deployment').doGenerate({
+        prompt: [
+          { role: 'system', content: 'You are concise.' },
+          { role: 'user', content: [{ type: 'text', text: 'Say hi.' }] },
+          { role: 'assistant', content: [{ type: 'text', text: 'Hi.' }] },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Say it again.' }],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input).toEqual([
+        {
+          type: 'message',
+          role: 'system',
+          content: 'You are concise.',
+        },
+        {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'Say hi.' }],
+        },
+        {
+          type: 'message',
+          role: 'assistant',
+          content: 'Hi.',
+        },
+        {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'Say it again.' }],
+        },
+      ]);
+    });
   });
 });
 
 describe('chat', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
-      server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/chat/completions'
-      ].response = {
+    function prepareJsonResponse({
+      content = '',
+      url = 'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+    }: { content?: string; url?: TestServerURL } = {}) {
+      server.urls[url].response = {
         type: 'json-value',
         body: {
           id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
@@ -357,7 +419,7 @@ describe('chat', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -376,10 +438,178 @@ describe('chat', () => {
         `"https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1"`,
       );
     });
+
+    it.each([
+      {
+        name: 'complete Azure OpenAI v1',
+        baseURL: 'https://test-resource.openai.azure.com/openai/v1',
+        expectedURL:
+          'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.openai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'unversioned Foundry',
+        baseURL: 'https://test-resource.services.ai.azure.com/openai',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions?api-version=v1',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Foundry v1',
+        baseURL: 'https://test-resource.services.ai.azure.com/openai/v1/',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'unversioned Cognitive Services',
+        baseURL: 'https://test-resource.cognitiveservices.azure.com/openai',
+        expectedURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions?api-version=v1',
+        responseURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Cognitive Services v1',
+        baseURL: 'https://test-resource.cognitiveservices.azure.com/openai/v1',
+        expectedURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.cognitiveservices.azure.com/openai/v1/chat/completions',
+      },
+      {
+        name: 'unversioned Foundry project',
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+      },
+      {
+        name: 'complete Foundry project v1',
+        baseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1',
+        expectedURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+        responseURL:
+          'https://test-resource.services.ai.azure.com/api/projects/test-project/openai/v1/chat/completions',
+      },
+    ] satisfies Array<{
+      name: string;
+      baseURL: string;
+      expectedURL: string;
+      responseURL: TestServerURL;
+    }>)(
+      'should use $name baseURL correctly',
+      async ({ baseURL, expectedURL, responseURL }) => {
+        prepareJsonResponse({ url: responseURL });
+
+        const provider = createAzure({
+          baseURL,
+          apiKey: 'test-api-key',
+        });
+
+        await provider.chat('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(server.calls[0].requestUrl).toBe(expectedURL);
+      },
+    );
+
+    it('should use custom gateway baseURL as-is', async () => {
+      server.urls[
+        'https://our-gateway.example.com/azure/chat/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-repro-13956',
+          object: 'chat.completion',
+          created: 0,
+          model: 'test-deployment',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'ok' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        },
+      };
+
+      const provider = createAzure({
+        baseURL: 'https://our-gateway.example.com/azure',
+        apiKey: 'test-api-key',
+      });
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://our-gateway.example.com/azure/chat/completions"`,
+      );
+    });
   });
 });
 
 describe('deepseek', () => {
+  describe.each(['doGenerate', 'doStream'] as const)(
+    '%s strict tools',
+    method => {
+      it.each([true, false, undefined])(
+        'should forward strict tools with companion strict=%s when endpoint support is unspecified',
+        async companionStrict => {
+          if (method === 'doGenerate') {
+            prepareJsonFixtureResponse(
+              'azure-deepseek-reasoning.1',
+              undefined,
+              'chat',
+            );
+          } else {
+            prepareChunksFixtureResponse(
+              'azure-deepseek-reasoning.1',
+              undefined,
+              'chat',
+            );
+          }
+
+          const result = await provider.deepseek('deepseek-v4-pro')[method]({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'function',
+                name: 'ready',
+                inputSchema: { type: 'object' },
+                strict: true,
+              },
+              {
+                type: 'function',
+                name: 'other',
+                inputSchema: { type: 'object' },
+                strict: companionStrict,
+              },
+            ],
+          });
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.tools[0].function.strict).toBe(true);
+          expect(body.tools[1].function.strict).toBe(companionStrict);
+
+          if ('stream' in result) {
+            const parts = await convertReadableStreamToArray(result.stream);
+            expect(parts.find(part => part.type === 'error')).toBeUndefined();
+          }
+        },
+      );
+    },
+  );
+
   it('should map top-level reasoning to Azure DeepSeek reasoning effort', async () => {
     prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
 
@@ -437,6 +667,56 @@ describe('deepseek', () => {
         ],
         "model": "deepseek-v4-flash",
         "reasoning_effort": "max",
+      }
+    `);
+  });
+
+  it('should send a json_schema response format for structured output', async () => {
+    prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
+
+    await provider.deepseek('deepseek-v4-flash').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'high',
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { sentiment: { type: 'string' } },
+          required: ['sentiment'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "deepseek-v4-flash",
+        "reasoning_effort": "high",
+        "response_format": {
+          "json_schema": {
+            "name": "response",
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "sentiment": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "sentiment",
+              ],
+              "type": "object",
+            },
+            "strict": true,
+          },
+          "type": "json_schema",
+        },
       }
     `);
   });
@@ -531,8 +811,11 @@ describe('deepseek', () => {
         },
         "providerMetadata": {
           "azure": {
+            "choiceIndex": 0,
+            "messageRole": "assistant",
             "promptCacheHitTokens": undefined,
             "promptCacheMissTokens": undefined,
+            "responseObject": "chat.completion.chunk",
           },
         },
         "type": "finish",
@@ -551,6 +834,8 @@ describe('deepseek', () => {
           "raw": {
             "completion_tokens": 1720,
             "prompt_tokens": 19,
+            "prompt_tokens_details": null,
+            "reasoning_tokens": 0,
             "total_tokens": 1739,
           },
         },
@@ -637,7 +922,7 @@ describe('completion', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
   });
@@ -727,6 +1012,15 @@ describe('embedding', () => {
   ];
   const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
+  it('should expose the aggregate token limit', () => {
+    expect(
+      Reflect.get(
+        provider.embedding('my-embedding'),
+        EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+      ),
+    ).toBe(300_000);
+  });
+
   describe('doEmbed', () => {
     const model = provider.embedding('my-embedding');
 
@@ -790,7 +1084,7 @@ describe('embedding', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
   });
@@ -798,6 +1092,20 @@ describe('embedding', () => {
 
 describe('image', () => {
   const prompt = 'A cute baby sea otter';
+
+  describe('image editing capabilities', () => {
+    it.each(['image', 'imageModel'] as const)(
+      'leaves capabilities unknown for arbitrary deployment names created with %s',
+      factoryMethod => {
+        for (const deploymentName of ['gpt-image-production', 'dall-e-3']) {
+          const model = provider[factoryMethod](deploymentName);
+
+          expect(model.supportsFileInputs).toBeUndefined();
+          expect(model.supportsMaskInputs).toBeUndefined();
+        }
+      },
+    );
+  });
 
   describe('doGenerate', () => {
     function prepareJsonResponse() {
@@ -895,7 +1203,7 @@ describe('image', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -1036,6 +1344,7 @@ describe('responses', () => {
             "output_tokens_details": {
               "reasoning_tokens": 0,
             },
+            "total_tokens": 22,
           },
         }
       `);
@@ -1118,7 +1427,7 @@ describe('responses', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -1560,7 +1869,16 @@ describe('responses', () => {
           ],
         });
       });
-      it('should stream web search preview results include', async () => {
+      it('should retain web search preview citation sources', async () => {
+        expect(result.content).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://www.nbcnews.com/',
+            }),
+          ]),
+        );
         expect(result.content).toMatchSnapshot();
       });
     });
@@ -1602,6 +1920,662 @@ describe('responses', () => {
       });
       it('should generate with reasoning encrypted content', async () => {
         expect(result).toMatchSnapshot();
+      });
+    });
+
+    describe('custom tool', () => {
+      const sql = 'SELECT "name" FROM users WHERE age > 25';
+      const customCall = {
+        type: 'custom_tool_call',
+        id: 'ct_sql',
+        call_id: 'call_sql',
+        name: 'write_sql',
+        input: sql,
+        status: 'completed',
+      };
+      const customResponse = {
+        id: 'resp_custom',
+        created_at: 1741257730,
+        model: 'test-deployment',
+        output: [customCall],
+        usage: { input_tokens: 2, output_tokens: 4 },
+      };
+      const customTools = (): LanguageModelV4CallOptions['tools'] => {
+        const customTool = provider.tools.customTool({
+          description: 'Write a SQL query.',
+          format: { type: 'grammar', syntax: 'regex', definition: 'SELECT .+' },
+        });
+        return [
+          {
+            type: 'provider',
+            id: customTool.id,
+            name: 'write_sql',
+            args: customTool.args,
+          },
+        ];
+      };
+
+      it('exposes the shared provider-defined custom tool factory', () => {
+        expect(
+          createAzure({ resourceName: 'test-resource' }).tools.customTool({}),
+        ).toMatchObject({
+          type: 'provider',
+          id: 'openai.custom',
+          isProviderExecuted: false,
+        });
+      });
+
+      it('sends custom tool definitions and parses raw string inputs with Azure metadata', async () => {
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/responses'
+        ].response = {
+          type: 'json-value',
+          body: customResponse,
+        };
+        const result = await provider.responses('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: customTools(),
+          toolChoice: { type: 'required' },
+        });
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'custom',
+            name: 'write_sql',
+            description: 'Write a SQL query.',
+            format: {
+              type: 'grammar',
+              syntax: 'regex',
+              definition: 'SELECT .+',
+            },
+          },
+        ]);
+        expect(result.content).toMatchObject([
+          {
+            type: 'tool-call',
+            toolCallId: 'call_sql',
+            toolName: 'write_sql',
+            input: JSON.stringify(sql),
+            providerMetadata: { azure: { itemId: 'ct_sql' } },
+          },
+        ]);
+      });
+
+      it('streams raw custom input deltas and the final Azure tool call', async () => {
+        const deltas = ['SELECT "name"', ' FROM users WHERE age > 25'];
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/responses'
+        ].response = {
+          type: 'stream-chunks',
+          chunks: [
+            { type: 'response.created', response: customResponse },
+            {
+              type: 'response.output_item.added',
+              output_index: 0,
+              item: { ...customCall, input: '' },
+            },
+            ...deltas.map(delta => ({
+              type: 'response.custom_tool_call_input.delta',
+              item_id: 'ct_sql',
+              output_index: 0,
+              delta,
+            })),
+            {
+              type: 'response.output_item.done',
+              output_index: 0,
+              item: customCall,
+            },
+            { type: 'response.completed', response: customResponse },
+          ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        };
+        const { stream } = await provider
+          .responses('test-deployment')
+          .doStream({
+            prompt: TEST_PROMPT,
+            tools: customTools(),
+          });
+        const chunks = await convertReadableStreamToArray(stream);
+        expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([]);
+        expect(chunks).toContainEqual({
+          type: 'tool-input-start',
+          id: 'call_sql',
+          toolName: 'write_sql',
+          inputEncoding: 'text',
+        });
+        expect(
+          chunks
+            .filter(chunk => chunk.type === 'tool-input-delta')
+            .map(chunk => chunk.delta),
+        ).toEqual(deltas);
+        expect(chunks).toContainEqual(
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_sql',
+            toolName: 'write_sql',
+            input: JSON.stringify(sql),
+            providerMetadata: { azure: { itemId: 'ct_sql' } },
+          }),
+        );
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'custom',
+            name: 'write_sql',
+            description: 'Write a SQL query.',
+            format: {
+              type: 'grammar',
+              syntax: 'regex',
+              definition: 'SELECT .+',
+            },
+          },
+        ]);
+      });
+
+      it('sends custom tool results in follow-up prompts', async () => {
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/responses'
+        ].response = {
+          type: 'json-value',
+          body: { ...customResponse, output: [] },
+        };
+        await provider.responses('test-deployment').doGenerate({
+          tools: customTools(),
+          prompt: [
+            ...TEST_PROMPT,
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_sql',
+                  toolName: 'write_sql',
+                  input: sql,
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_sql',
+                  toolName: 'write_sql',
+                  output: { type: 'text', value: 'Query received.' },
+                },
+              ],
+            },
+          ],
+        });
+        expect((await server.calls[0].requestBodyJson).input).toContainEqual({
+          type: 'custom_tool_call_output',
+          call_id: 'call_sql',
+          output: 'Query received.',
+        });
+      });
+    });
+
+    describe('apply patch tool', () => {
+      const tools: LanguageModelV4CallOptions['tools'] = [
+        {
+          type: 'provider',
+          id: 'openai.apply_patch',
+          name: 'apply_patch',
+          args: {},
+        },
+      ];
+      const fixture = JSON.parse(
+        fs.readFileSync(
+          '../openai/src/responses/__fixtures__/openai-apply-patch-tool.1.json',
+          'utf8',
+        ),
+      );
+      const patch = fixture.output[0];
+      const input = { callId: patch.call_id, operation: patch.operation };
+      const url = 'https://test-resource.openai.azure.com/openai/v1/responses';
+
+      it('should expose a client-executed Azure tool factory', () => {
+        expect(
+          createAzure({ resourceName: 'test-resource' }).tools.applyPatch({
+            execute: async () => ({ status: 'completed' }),
+          }),
+        ).toMatchObject({ type: 'provider', id: 'openai.apply_patch' });
+      });
+
+      it('should send the native definition and retain Azure item metadata', async () => {
+        server.urls[url].response = { type: 'json-value', body: fixture };
+        const result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          { type: 'apply_patch' },
+        ]);
+        const call = result.content.find(part => part.type === 'tool-call');
+        expect(call).toMatchObject({
+          toolCallId: patch.call_id,
+          toolName: 'apply_patch',
+          providerMetadata: { azure: { itemId: patch.id } },
+        });
+        expect(JSON.parse(call!.input)).toEqual(input);
+        expect(result.finishReason.unified).toBe('tool-calls');
+      });
+
+      it('should stream the patch input with Azure item metadata', async () => {
+        const chunks = fs
+          .readFileSync(
+            '../openai/src/responses/__fixtures__/openai-apply-patch-tool.1.chunks.txt',
+            'utf8',
+          )
+          .split('\n')
+          .filter(line => line.trim().length > 0)
+          .map(line => `data: ${line}\n\n`);
+        server.urls[url].response = {
+          type: 'stream-chunks',
+          chunks: [...chunks, 'data: [DONE]\n\n'],
+        };
+        const { stream } = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          { type: 'apply_patch' },
+        ]);
+        const events = chunks.map(chunk => JSON.parse(chunk.slice(6)));
+        const streamedPatch = events.find(
+          event => event.type === 'response.output_item.done',
+        ).item;
+        const call = parts.find(part => part.type === 'tool-call');
+        expect(call).toMatchObject({
+          toolCallId: streamedPatch.call_id,
+          toolName: 'apply_patch',
+          providerMetadata: { azure: { itemId: streamedPatch.id } },
+        });
+        expect(JSON.parse(call!.input)).toEqual({
+          callId: streamedPatch.call_id,
+          operation: streamedPatch.operation,
+        });
+      });
+
+      it.each([true, false])(
+        'should serialize patch calls and results with store=%s',
+        async store => {
+          prepareJsonFixtureResponse('azure-text.1');
+          await createModel('test-deployment').doGenerate({
+            tools,
+            providerOptions: { azure: { store } },
+            prompt: [
+              ...TEST_PROMPT,
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: patch.call_id,
+                    toolName: 'apply_patch',
+                    input,
+                    providerOptions: { azure: { itemId: patch.id } },
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolCallId: patch.call_id,
+                    toolName: 'apply_patch',
+                    output: {
+                      type: 'json',
+                      value: { status: 'completed', output: 'Created file' },
+                    },
+                  },
+                ],
+              },
+            ],
+          });
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.store).toBe(store);
+          expect(body.input.slice(1)).toEqual([
+            store
+              ? { type: 'item_reference', id: patch.id }
+              : {
+                  type: 'apply_patch_call',
+                  id: patch.id,
+                  call_id: patch.call_id,
+                  status: 'completed',
+                  operation: patch.operation,
+                },
+            {
+              type: 'apply_patch_call_output',
+              call_id: patch.call_id,
+              status: 'completed',
+              output: 'Created file',
+            },
+          ]);
+        },
+      );
+    });
+
+    describe('shell tool', () => {
+      type Mode = 'local' | 'containerAuto' | 'containerReference';
+      const url = 'https://test-resource.openai.azure.com/openai/v1/responses';
+      const call = {
+        id: 'sh_test',
+        type: 'shell_call',
+        status: 'completed',
+        call_id: 'call_test',
+        action: {
+          commands: ['printf azure-shell'],
+          timeout_ms: 1000,
+          max_output_length: 1000,
+        },
+      };
+      const input = {
+        action: {
+          commands: call.action.commands,
+          timeoutMs: 1000,
+          maxOutputLength: 1000,
+        },
+      };
+      const output = {
+        output: [
+          {
+            stdout: 'azure-shell',
+            stderr: '',
+            outcome: { type: 'exit', exitCode: 0 },
+          },
+        ],
+      };
+      const nativeOutput = {
+        type: 'shell_call_output',
+        call_id: call.call_id,
+        output: [
+          {
+            stdout: 'azure-shell',
+            stderr: '',
+            outcome: { type: 'exit', exit_code: 0 },
+          },
+        ],
+      };
+      const tools = (mode: Mode): LanguageModelV4CallOptions['tools'] => [
+        {
+          type: 'provider',
+          id: 'openai.shell',
+          name: 'shell',
+          args: {
+            environment:
+              mode === 'local'
+                ? {
+                    type: 'local',
+                    skills: [
+                      {
+                        name: 'test',
+                        description: 'Test',
+                        path: '/skills/test',
+                      },
+                    ],
+                  }
+                : mode === 'containerAuto'
+                  ? { type: 'containerAuto' }
+                  : { type: 'containerReference', containerId: 'cntr_test' },
+          },
+        },
+      ];
+      const response = {
+        id: 'resp_test',
+        created_at: 1764713372,
+        model: 'test-deployment',
+        output: [call],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      };
+
+      it('should expose the shared Azure shell factory', () => {
+        expect(
+          createAzure({ resourceName: 'test-resource' }).tools.shell({
+            execute: async () => ({ output: [] }),
+          }),
+        ).toMatchObject({ type: 'provider', id: 'openai.shell' });
+      });
+
+      it.each(['local', 'containerAuto', 'containerReference'] as const)(
+        'should serialize %s and retain Azure metadata when generating',
+        async mode => {
+          server.urls[url].response = { type: 'json-value', body: response };
+          const result = await createModel('test-deployment').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: tools(mode),
+          });
+          expect((await server.calls[0].requestBodyJson).tools).toEqual([
+            {
+              type: 'shell',
+              environment:
+                mode === 'local'
+                  ? {
+                      type: 'local',
+                      skills: [
+                        {
+                          name: 'test',
+                          description: 'Test',
+                          path: '/skills/test',
+                        },
+                      ],
+                    }
+                  : mode === 'containerAuto'
+                    ? { type: 'container_auto' }
+                    : {
+                        type: 'container_reference',
+                        container_id: 'cntr_test',
+                      },
+            },
+          ]);
+          const toolCall = result.content.find(
+            part => part.type === 'tool-call',
+          );
+          expect(toolCall).toMatchObject({
+            toolCallId: call.call_id,
+            toolName: 'shell',
+            providerMetadata: { azure: { itemId: call.id } },
+          });
+          expect(JSON.parse(toolCall!.input)).toEqual(input);
+          expect(toolCall?.providerExecuted).toBe(
+            mode === 'local' ? undefined : true,
+          );
+        },
+      );
+
+      it.each(['local', 'containerAuto', 'containerReference'] as const)(
+        'should retain Azure metadata and execution mode for %s streams',
+        async mode => {
+          const events = [
+            { type: 'response.created', response: { ...response, output: [] } },
+            {
+              type: 'response.output_item.added',
+              output_index: 0,
+              item: { ...call, status: 'in_progress' },
+            },
+            { type: 'response.output_item.done', output_index: 0, item: call },
+            { type: 'response.completed', response },
+          ];
+          server.urls[url].response = {
+            type: 'stream-chunks',
+            chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+          };
+          const { stream } = await createModel('test-deployment').doStream({
+            prompt: TEST_PROMPT,
+            tools: tools(mode),
+          });
+          const parts = await convertReadableStreamToArray(stream);
+          const toolCall = parts.find(part => part.type === 'tool-call');
+          expect(toolCall).toMatchObject({
+            toolCallId: call.call_id,
+            toolName: 'shell',
+            providerMetadata: { azure: { itemId: call.id } },
+          });
+          expect(JSON.parse(toolCall!.input)).toEqual(input);
+          expect(toolCall?.providerExecuted).toBe(
+            mode === 'local' ? undefined : true,
+          );
+        },
+      );
+
+      it.each([
+        { store: true, hosted: false },
+        { store: false, hosted: false },
+        { store: true, hosted: true },
+        { store: false, hosted: true },
+      ])(
+        'should round-trip shell results with $store storage and hosted=$hosted',
+        async ({ store, hosted }) => {
+          prepareJsonFixtureResponse('azure-text.1');
+          await createModel('test-deployment').doGenerate({
+            tools: tools(hosted ? 'containerAuto' : 'local'),
+            providerOptions: { azure: { store } },
+            prompt: [
+              ...TEST_PROMPT,
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: call.call_id,
+                    toolName: 'shell',
+                    input,
+                    providerExecuted: hosted,
+                    providerOptions: { azure: { itemId: call.id } },
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolCallId: call.call_id,
+                    toolName: 'shell',
+                    output: { type: 'json', value: output },
+                  },
+                ],
+              },
+            ],
+          });
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.store).toBe(store);
+          expect(body.input.slice(1)).toEqual([
+            store ? { type: 'item_reference', id: call.id } : call,
+            nativeOutput,
+          ]);
+        },
+      );
+    });
+
+    describe('tool search tool', () => {
+      it('should expose toolSearch as an Azure tool', () => {
+        expect(
+          createAzure({ resourceName: 'test-resource' }).tools.toolSearch(),
+        ).toMatchObject({
+          type: 'provider',
+          id: 'openai.tool_search',
+        });
+      });
+
+      const toolSearchTools = (
+        providerOptionsName: 'azure' | 'openai',
+      ): LanguageModelV4CallOptions['tools'] => [
+        {
+          type: 'provider',
+          id: 'openai.tool_search',
+          name: 'toolSearch',
+          args: {},
+        },
+        {
+          type: 'function',
+          name: 'get_weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+          },
+          providerOptions: {
+            [providerOptionsName]: { deferLoading: true },
+          },
+        },
+      ];
+
+      it.each(['azure', 'openai'] as const)(
+        'should defer function tools marked with providerOptions.%s',
+        async providerOptionsName => {
+          prepareJsonFixtureResponse('azure-text.1');
+
+          await createModel('test-deployment').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: toolSearchTools(providerOptionsName),
+          });
+
+          expect((await server.calls[0].requestBodyJson).tools)
+            .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "tool_search",
+              },
+              {
+                "defer_loading": true,
+                "name": "get_weather",
+                "parameters": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "location",
+                  ],
+                  "type": "object",
+                },
+                "strict": false,
+                "type": "function",
+              },
+            ]
+          `);
+        },
+      );
+
+      it('should defer function tools marked with providerOptions.azure when streaming', async () => {
+        prepareChunksFixtureResponse('azure-text.1');
+
+        const { stream } = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools: toolSearchTools('azure'),
+        });
+        await convertReadableStreamToArray(stream);
+
+        expect((await server.calls[0].requestBodyJson).tools)
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "tool_search",
+            },
+            {
+              "defer_loading": true,
+              "name": "get_weather",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "location": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "location",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+              "type": "function",
+            },
+          ]
+        `);
       });
     });
 
@@ -1738,6 +2712,65 @@ describe('responses', () => {
             "warnings": [],
           },
           {
+            "citations": [
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "assistant-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "azure": {
+                      "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                      "index": 145,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "assistant-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "azure": {
+                      "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                      "index": 192,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+            ],
+            "id": "msg_456",
+            "providerMetadata": {
+              "azure": {
+                "annotations": [
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
+            "type": "text-end",
+          },
+          {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
@@ -1766,29 +2799,6 @@ describe('responses', () => {
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
-          },
-          {
-            "id": "msg_456",
-            "providerMetadata": {
-              "azure": {
-                "annotations": [
-                  {
-                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 145,
-                    "type": "file_citation",
-                  },
-                  {
-                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 192,
-                    "type": "file_citation",
-                  },
-                ],
-                "itemId": "msg_456",
-              },
-            },
-            "type": "text-end",
           },
           {
             "finishReason": {
@@ -1822,6 +2832,7 @@ describe('responses', () => {
                 "output_tokens_details": {
                   "reasoning_tokens": 0,
                 },
+                "total_tokens": 75,
               },
             },
           },
@@ -1939,7 +2950,7 @@ describe('responses', () => {
     });
 
     describe('web search preview tool', () => {
-      it('should stream web search preview results include', async () => {
+      it('should retain streamed web search preview citation sources', async () => {
         prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
         const result = await createModel('test-deployment').doStream({
           prompt: TEST_PROMPT,
@@ -1952,9 +2963,18 @@ describe('responses', () => {
             },
           ],
         });
-        expect(
-          await convertReadableStreamToArray(result.stream),
-        ).toMatchSnapshot();
+        const events = await convertReadableStreamToArray(result.stream);
+
+        expect(events).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://www.nbcnews.com/',
+            }),
+          ]),
+        );
+        expect(events).toMatchSnapshot();
       });
     });
 
@@ -1979,4 +2999,93 @@ describe('responses', () => {
       });
     });
   });
+});
+
+describe('resourceName validation', () => {
+  it.each([
+    'resource\n',
+    'resource\r',
+    'resource.example',
+    'my_resource',
+    'résource',
+    '-resource',
+    'resource-',
+    'a'.repeat(64),
+    '',
+    'user@internal:8080/#',
+    '169.254.169.254:80/x#',
+    'evil.example.com/#',
+  ])('rejects %j before sending a request', async resourceName => {
+    const fetch = vi.fn();
+    const provider = createAzure({ resourceName, apiKey: 'test-key', fetch });
+    await expect(
+      provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'resourceName',
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('accepts a DNS-label resource name', async () => {
+    const fetch = vi.fn(
+      async (_url: RequestInfo | URL, _init?: RequestInit) =>
+        new Response('{}', { status: 500 }),
+    );
+    const provider = createAzure({
+      resourceName: 'my-resource',
+      apiKey: 'test-key',
+      fetch,
+    });
+    await expect(
+      provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toBeDefined();
+    expect(String(fetch.mock.calls[0]?.[0])).toContain(
+      'https://my-resource.openai.azure.com/',
+    );
+  });
+
+  it.each(['a', 'a'.repeat(63), 'My-Resource-1'])(
+    'accepts the DNS-label boundary case %j',
+    async resourceName => {
+      const fetch = vi.fn(
+        async (_url: RequestInfo | URL, _init?: RequestInit) =>
+          new Response('{}', { status: 500 }),
+      );
+      const provider = createAzure({ resourceName, apiKey: 'test-key', fetch });
+      await expect(
+        provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toBeDefined();
+      expect(new URL(String(fetch.mock.calls[0]?.[0])).hostname).toBe(
+        `${resourceName.toLowerCase()}.openai.azure.com`,
+      );
+    },
+  );
+
+  it('rejects an invalid AZURE_RESOURCE_NAME for non-language models', async () => {
+    vi.stubEnv('AZURE_RESOURCE_NAME', 'user@internal:8080/#');
+    try {
+      const fetch = vi.fn();
+      const provider = createAzure({ apiKey: 'test-key', fetch });
+      await expect(
+        provider.embedding('test-deployment').doEmbed({ values: ['hi'] }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'resourceName',
+      });
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
+it('does not validate an unused resource name with a custom endpoint', () => {
+  expect(() =>
+    createAzure({
+      resourceName: 'not a resource',
+      baseURL: 'https://proxy.example/openai',
+      apiKey: 'test-key',
+    })('test-deployment'),
+  ).not.toThrow();
 });

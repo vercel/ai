@@ -38,7 +38,10 @@ const tools = {
   }),
 };
 
-const providers: Record<string, { factory: RealtimeFactory; model: string }> = {
+const providers: Record<
+  string,
+  { factory: RealtimeFactory; model: string; includeTools?: boolean }
+> = {
   openai: {
     factory: openai.experimental_realtime,
     model: 'gpt-realtime',
@@ -46,6 +49,11 @@ const providers: Record<string, { factory: RealtimeFactory; model: string }> = {
   google: {
     factory: google.experimental_realtime,
     model: 'gemini-3.1-flash-live-preview',
+  },
+  'google-live-translate': {
+    factory: google.experimental_realtime,
+    model: 'gemini-3.5-live-translate-preview',
+    includeTools: false,
   },
   xai: {
     factory: xai.experimental_realtime,
@@ -72,15 +80,25 @@ export async function POST(
     const sessionConfig: RealtimeSessionConfig | undefined =
       body.sessionConfig ?? undefined;
 
-    const toolDefs = await getRealtimeToolDefinitions({ tools });
+    const providerConfig = providers[provider] ?? providers.openai;
+    const toolDefs =
+      providerConfig.includeTools === false
+        ? undefined
+        : await getRealtimeToolDefinitions({ tools });
 
-    const { factory, model } = providers[provider] ?? providers.openai;
+    const { factory, model } = providerConfig;
     const tokenResult = await factory.getToken({
       model,
-      sessionConfig: { ...sessionConfig, tools: toolDefs },
+      sessionConfig:
+        toolDefs == null
+          ? sessionConfig
+          : { ...sessionConfig, tools: toolDefs },
     });
 
-    return Response.json({ ...tokenResult, tools: toolDefs });
+    return Response.json({
+      ...tokenResult,
+      ...(toolDefs == null ? {} : { tools: toolDefs }),
+    });
   }
 
   if (route === 'weather') {

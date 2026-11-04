@@ -1,5 +1,5 @@
+import { citationSchema, type Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
-import { z } from 'zod/v4';
 import {
   providerMetadataSchema,
   type ProviderMetadata,
@@ -7,58 +7,63 @@ import {
 import { jsonValueSchema } from '../types/json-value';
 import type { FinishReason } from '../types/language-model';
 import type {
+  FileUIPart,
   InferUIMessageData,
   InferUIMessageMetadata,
+  TextUIPart,
   UIDataTypes,
   UIMessage,
 } from '../ui/ui-messages';
 import type { ValueOf } from '../util/value-of';
+import { z, type ZodType } from '../util/zod';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
-const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
+const toolMetadataSchema: ZodType<JSONObject> = z.record(
   z.string(),
   jsonValueSchema.optional(),
 );
 
 export const uiMessageChunkSchema = lazySchema(() =>
-  zodSchema(
+  zodSchema<UIMessageChunk>(
     z.union([
-      z.strictObject({
+      z.looseObject({
         type: z.literal('text-start'),
         id: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('text-delta'),
         id: z.string(),
         delta: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('text-end'),
         id: z.string(),
+        citations: z.array(citationSchema).optional(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('error'),
         errorText: z.string(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-input-start'),
         toolCallId: z.string(),
         toolName: z.string(),
+        inputEncoding: z.enum(['json', 'text']).optional(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
         toolMetadata: toolMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
         title: z.string().optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-input-delta'),
         toolCallId: z.string(),
         inputTextDelta: z.string(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-input-available'),
         toolCallId: z.string(),
         toolName: z.string(),
@@ -69,7 +74,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         dynamic: z.boolean().optional(),
         title: z.string().optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-input-error'),
         toolCallId: z.string(),
         toolName: z.string(),
@@ -81,14 +86,17 @@ export const uiMessageChunkSchema = lazySchema(() =>
         errorText: z.string(),
         title: z.string().optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-approval-request'),
         approvalId: z.string(),
         toolCallId: z.string(),
+        approvalDescriptor: z.unknown().optional(),
+        inputSchemaInput: z.unknown().optional(),
+        reason: z.string().optional(),
         isAutomatic: z.boolean().optional(),
         signature: z.string().optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-approval-response'),
         approvalId: z.string(),
         approved: z.boolean(),
@@ -96,7 +104,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-output-available'),
         toolCallId: z.string(),
         output: z.unknown(),
@@ -106,7 +114,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         dynamic: z.boolean().optional(),
         preliminary: z.boolean().optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-output-error'),
         toolCallId: z.string(),
         errorText: z.string(),
@@ -115,39 +123,39 @@ export const uiMessageChunkSchema = lazySchema(() =>
         toolMetadata: toolMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('tool-output-denied'),
         toolCallId: z.string(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('reasoning-start'),
         id: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('reasoning-delta'),
         id: z.string(),
         delta: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('reasoning-end'),
         id: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('custom'),
         kind: z.string().transform(value => value as `${string}.${string}`),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('source-url'),
         sourceId: z.string(),
         url: z.string(),
         title: z.string().optional(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('source-document'),
         sourceId: z.string(),
         mediaType: z.string(),
@@ -155,19 +163,40 @@ export const uiMessageChunkSchema = lazySchema(() =>
         filename: z.string().optional(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('file'),
         url: z.string(),
         mediaType: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('reasoning-file'),
         url: z.string(),
         mediaType: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
-      z.strictObject({
+      z.looseObject({
+        type: z.literal('steering-message'),
+        id: z.string(),
+        parts: z.array(
+          z.union([
+            z.looseObject({
+              type: z.literal('text'),
+              text: z.string(),
+              providerMetadata: providerMetadataSchema.optional(),
+            }),
+            z.looseObject({
+              type: z.literal('file'),
+              mediaType: z.string(),
+              url: z.string(),
+              filename: z.string().optional(),
+              providerReference: z.record(z.string(), z.string()).optional(),
+              providerMetadata: providerMetadataSchema.optional(),
+            }),
+          ]),
+        ),
+      }),
+      z.looseObject({
         type: z.custom<`data-${string}`>(
           (value): value is `data-${string}` =>
             typeof value === 'string' && value.startsWith('data-'),
@@ -177,18 +206,21 @@ export const uiMessageChunkSchema = lazySchema(() =>
         data: z.unknown(),
         transient: z.boolean().optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('start-step'),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('finish-step'),
       }),
-      z.strictObject({
+      z.looseObject({
+        type: z.literal('reset-step'),
+      }),
+      z.looseObject({
         type: z.literal('start'),
         messageId: z.string().optional(),
         messageMetadata: z.unknown().optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('finish'),
         finishReason: z
           .enum([
@@ -197,16 +229,17 @@ export const uiMessageChunkSchema = lazySchema(() =>
             'content-filter',
             'tool-calls',
             'error',
+            'interrupted',
             'other',
           ] as const satisfies readonly FinishReason[])
           .optional(),
         messageMetadata: z.unknown().optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('abort'),
         reason: z.string().optional(),
       }),
-      z.strictObject({
+      z.looseObject({
         type: z.literal('message-metadata'),
         messageMetadata: z.unknown(),
       }),
@@ -240,6 +273,7 @@ export type UIMessageChunk<
     }
   | {
       type: 'text-end';
+      citations?: Array<Citation>;
       id: string;
       providerMetadata?: ProviderMetadata;
     }
@@ -295,6 +329,9 @@ export type UIMessageChunk<
       type: 'tool-approval-request';
       approvalId: string;
       toolCallId: string;
+      approvalDescriptor?: unknown;
+      inputSchemaInput?: unknown;
+      reason?: string;
       isAutomatic?: boolean;
       signature?: string;
     }
@@ -333,6 +370,8 @@ export type UIMessageChunk<
       type: 'tool-input-start';
       toolCallId: string;
       toolName: string;
+      /** Encoding of the input deltas. Defaults to JSON when omitted. */
+      inputEncoding?: 'json' | 'text';
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
       toolMetadata?: JSONObject;
@@ -373,10 +412,24 @@ export type UIMessageChunk<
     }
   | DataUIMessageChunk<DATA_TYPES>
   | {
+      /**
+       * Experimental. A user message that was added to the run with steering.
+       */
+      type: 'steering-message';
+      id: string;
+      parts: Array<TextUIPart | FileUIPart>;
+    }
+  | {
       type: 'start-step';
     }
   | {
       type: 'finish-step';
+    }
+  | {
+      /**
+       * Removes all message parts added during the current step.
+       */
+      type: 'reset-step';
     }
   | {
       type: 'start';

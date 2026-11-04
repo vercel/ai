@@ -5,8 +5,10 @@ import type {
   ModelMessage,
   ProviderOptions,
   ToolSet,
+  UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import type { Instructions } from '../prompt';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { ActiveTools } from './active-tools';
 import type { ResponseMessage } from './response-message';
@@ -25,6 +27,7 @@ import type { ToolOrder } from './tool-order';
  * @param options.messages - The messages that will be sent to the model for the current step. If you return a `messages` override, those messages carry forward to later steps.
  * @param options.initialMessages - The initial messages that were passed into generateText or streamText.
  * @param options.responseMessages - The response messages that have been accumulated from previous steps.
+ * @param options.experimental_steeringMessages - The steering messages that were added to `messages` for the current step.
  * @param options.runtimeContext - The user-defined runtime context.
  *
  * @returns An object that contains the settings for the step.
@@ -76,6 +79,16 @@ export type PrepareStepFunction<
   responseMessages: Array<ResponseMessage>;
 
   /**
+   * The user messages that were sent with `experimental_steering` and added to
+   * `messages` for the current step. Undefined when the step received no
+   * steering messages. `messages` already contains them. If you return a
+   * `messages` override that is rebuilt from other fields, e.g.
+   * `initialMessages` and `responseMessages`, add them back together with the
+   * steering messages of previous steps from `steps`.
+   */
+  experimental_steeringMessages?: Array<UserModelMessage>;
+
+  /**
    * Tool context.
    */
   toolsContext: InferToolSetContext<TOOLS>;
@@ -95,13 +108,17 @@ export type PrepareStepFunction<
 
 /**
  * The result type returned by a {@link PrepareStepFunction},
- * allowing per-step overrides of model, tools, instructions, or messages.
+ * allowing per-step overrides of model call settings, model, tools,
+ * instructions, or messages.
+ *
+ * Model call setting overrides apply only to the current step. Undefined
+ * settings fall back to the outer call settings.
  */
 export type PrepareStepResult<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
 > =
-  | {
+  | ({
       /**
        * Optionally override which LanguageModel instance is used for this step.
        */
@@ -175,5 +192,5 @@ export type PrepareStepResult<
        * container IDs for Anthropic's code execution.
        */
       providerOptions?: ProviderOptions;
-    }
+    } & LanguageModelCallOptions)
   | undefined;

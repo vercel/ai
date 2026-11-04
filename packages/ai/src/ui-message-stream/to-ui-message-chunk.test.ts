@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
 import type { GeneratedFile } from '../generate-text';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
+import { setToolCallInputSchemaInput } from '../generate-text/tool-call';
 import type { ProviderMetadata } from '../types/provider-metadata';
-import type { UIMessage } from '../ui/ui-messages';
 import { toUIMessageChunk } from './to-ui-message-chunk';
 
 const providerMetadata: ProviderMetadata = {
@@ -164,6 +164,145 @@ describe('toUIMessageChunk', () => {
     expect(
       toUIMessageChunk(reasoningFilePart, { sendReasoning: false }),
     ).toBeUndefined();
+  });
+
+  it('maps steering messages with text content', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'steering-message',
+        id: 'steer-1',
+        message: { role: 'user', content: 'I meant Paris, Texas.' },
+        stepNumber: 1,
+      }),
+    ).toEqual({
+      type: 'steering-message',
+      id: 'steer-1',
+      parts: [{ type: 'text', text: 'I meant Paris, Texas.' }],
+    });
+  });
+
+  it('keeps provider options of steering message parts as provider metadata', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'steering-message',
+        id: 'steer-1',
+        message: {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'I meant Paris, Texas.',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+            {
+              type: 'file',
+              data: new URL('https://example.com/map.png'),
+              mediaType: 'image/png',
+              providerOptions: { openai: { imageDetail: 'low' } },
+            },
+          ],
+        },
+        stepNumber: 1,
+      }),
+    ).toEqual({
+      type: 'steering-message',
+      id: 'steer-1',
+      parts: [
+        {
+          type: 'text',
+          text: 'I meant Paris, Texas.',
+          providerMetadata: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          url: 'https://example.com/map.png',
+          providerMetadata: { openai: { imageDetail: 'low' } },
+        },
+      ],
+    });
+  });
+
+  it('maps files in steering messages to ui file parts', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'steering-message',
+        id: 'steer-1',
+        message: {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Look at these.' },
+            {
+              type: 'image',
+              image: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            },
+            { type: 'image', image: new URL('https://example.com/cat.png') },
+            {
+              type: 'file',
+              data: 'data:application/pdf;base64,AQID',
+              mediaType: 'application/pdf',
+              filename: 'report.pdf',
+            },
+            {
+              type: 'file',
+              data: { type: 'text', text: 'Hello' },
+              mediaType: 'text/plain',
+            },
+            {
+              type: 'file',
+              data: { type: 'reference', reference: { openai: 'file-1' } },
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+        stepNumber: 1,
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "id": "steer-1",
+        "parts": [
+          {
+            "text": "Look at these.",
+            "type": "text",
+          },
+          {
+            "mediaType": "image/png",
+            "type": "file",
+            "url": "data:image/png;base64,AQID",
+          },
+          {
+            "mediaType": "image",
+            "type": "file",
+            "url": "https://example.com/cat.png",
+          },
+          {
+            "filename": "report.pdf",
+            "mediaType": "application/pdf",
+            "type": "file",
+            "url": "data:application/pdf;base64,AQID",
+          },
+          {
+            "mediaType": "text/plain",
+            "type": "file",
+            "url": "data:text/plain;base64,SGVsbG8=",
+          },
+          {
+            "mediaType": "application/pdf",
+            "providerReference": {
+              "openai": "file-1",
+            },
+            "type": "file",
+            "url": "",
+          },
+        ],
+        "type": "steering-message",
+      }
+    `);
   });
 
   it('skips sources by default and sends them when enabled', () => {
@@ -349,6 +488,7 @@ describe('toUIMessageChunk', () => {
           type: 'tool-input-start',
           id: 'call-1',
           toolName: 'dynamicTool',
+          inputEncoding: 'text',
           providerExecuted: true,
           providerMetadata,
           toolMetadata,
@@ -360,6 +500,7 @@ describe('toUIMessageChunk', () => {
       type: 'tool-input-start',
       toolCallId: 'call-1',
       toolName: 'dynamicTool',
+      inputEncoding: 'text',
       providerExecuted: true,
       providerMetadata,
       toolMetadata,
@@ -470,6 +611,31 @@ describe('toUIMessageChunk', () => {
     });
   });
 
+  it('preserves schema input for transformed tool approval requests', () => {
+    const toolCall = setToolCallInputSchemaInput<Tools>(
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'staticTool',
+        input: { value: 'trimmed' },
+      },
+      { value: ' trimmed ' },
+    );
+
+    expect(
+      toUIMessageChunk<Tools>({
+        type: 'tool-approval-request',
+        approvalId: 'approval-1',
+        toolCall,
+      }),
+    ).toEqual({
+      type: 'tool-approval-request',
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      inputSchemaInput: { value: ' trimmed ' },
+    });
+  });
+
   it('maps tool result, tool error, tool denial, and approval parts', () => {
     expect(
       toUIMessageChunk<Tools>(
@@ -496,6 +662,27 @@ describe('toUIMessageChunk', () => {
       toolMetadata,
       dynamic: true,
       preliminary: true,
+    });
+
+    expect(
+      toUIMessageChunk<Tools>(
+        {
+          type: 'tool-result',
+          toolCallId: 'call-undefined',
+          toolName: 'dynamicTool',
+          input: { value: 'input' },
+          output: undefined,
+        },
+        { tools },
+      ),
+    ).toEqual({
+      type: 'tool-output-available',
+      toolCallId: 'call-undefined',
+      // This must be `null` so that we don't lose the property when this is
+      // serialized to JSON. See the following issue for more details:
+      // https://github.com/vercel/ai/issues/15854
+      output: null,
+      dynamic: true,
     });
 
     expect(
@@ -582,12 +769,14 @@ describe('toUIMessageChunk', () => {
           toolName: 'staticTool',
           input: { value: 'input' },
         },
+        reason: 'requires operator review',
         isAutomatic: true,
       }),
     ).toEqual({
       type: 'tool-approval-request',
       approvalId: 'approval-1',
       toolCallId: 'call-5',
+      reason: 'requires operator review',
       isAutomatic: true,
     });
 

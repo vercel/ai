@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
@@ -34,8 +34,8 @@ run(async () => {
         },
       };
     },
-    onFinish: ({ runtimeContext }) => {
-      console.log('onFinish runtimeContext:', runtimeContext);
+    onEnd: ({ runtimeContext }) => {
+      console.log('onEnd runtimeContext:', runtimeContext);
     },
     prompt: 'What is the weather in San Francisco?',
   });

@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+    model: amazonBedrock('us.anthropic.claude-haiku-5-5'),
     maxOutputTokens: 512,
     messages: [
       {

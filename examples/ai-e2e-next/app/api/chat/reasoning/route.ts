@@ -16,14 +16,14 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-5-nano'),
+    model: openai('gpt-5.4-nano'),
     messages: await convertToModelMessages(messages),
     providerOptions: {
       openai: {
         reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
       } satisfies OpenAILanguageModelResponsesOptions,
     },
-    onFinish: ({ finalStep }) => {
+    onEnd: ({ finalStep }) => {
       console.dir(finalStep.request.body, { depth: null });
     },
   });

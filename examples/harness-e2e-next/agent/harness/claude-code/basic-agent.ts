@@ -4,15 +4,12 @@ import {
   createTraceTreeReporter,
 } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { getUserNameTool } from '@/lib/tools/get-user-name-tool';
 import type { InferUITools, UIMessage } from 'ai';
 
 export const claudeCodeHarnessAgent = new HarnessAgent({
   harness: claudeCode,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
+  tools: { getUserName: getUserNameTool },
   /*
    * Observability wired in code — this is a dev/testing app, so no env
    * var is required. `debug: { enabled: true }` turns on bridge log forwarding

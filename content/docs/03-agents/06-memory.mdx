@@ -40,7 +40,7 @@ const memory = anthropic.tools.memory_20250818({
 });
 
 const agent = new ToolLoopAgent({
-  model: 'anthropic/claude-haiku-4.5',
+  model: 'anthropic/claude-haiku-5.5',
   tools: { memory },
 });
 
@@ -129,7 +129,7 @@ const mem0 = createMem0({
 });
 
 const agent = new ToolLoopAgent({
-  model: mem0('gpt-4.1', { user_id: 'user-123' }),
+  model: mem0('gpt-6-astra', { user_id: 'user-123' }),
 });
 
 const { text } = await agent.generate({
@@ -240,7 +240,7 @@ const mongodbMemory = createMongoDBMemory({
 
 // Scope to a user and session per request
 const agent = new ToolLoopAgent({
-  model: openai('gpt-4.1'),
+  model: openai('gpt-6-astra'),
   tools: mongodbMemory({ userId: 'alice', sessionId: 'sess-001' }),
   stopWhen: isLoopFinished(),
 });
@@ -252,11 +252,53 @@ const result = await agent.generate({
 
 `isLoopFinished()` lets the agent keep running until the tool loop naturally finishes, which is useful when memory tools need to read and write before the final response.
 
-Session memory supports two modes: **tool-driven** (the LLM decides when to read/write — good for prototypes) and **hook-driven** (the runtime persists every turn via `prepareCall` + `onFinish` hooks — recommended for production). The other memory tiers (semantic, procedural, episodic, scratchpad) are always LLM-controlled and selective by design.
+Session memory supports two modes: **tool-driven** (the LLM decides when to read/write — good for prototypes) and **hook-driven** (the runtime persists every turn via `prepareCall` + `onEnd` hooks — recommended for production). The other memory tiers (semantic, procedural, episodic, scratchpad) are always LLM-controlled and selective by design.
 
 MongoDB memory works with any AI SDK model and embedding provider, with no vendor lock-in beyond MongoDB Atlas.
 
 **When to use memory providers**: these providers are a good fit when you want memory without building any storage infrastructure. The tradeoff is that the provider controls memory behavior, so you have less visibility into what gets stored and how it is retrieved. You also take on a dependency on an external service.
+
+### Redis Agent Memory
+
+[Redis Agent Memory](https://redis.io/agent-memory/) is a managed memory layer that combines session history with long-term memories. The [`ai-sdk-redis-agent-memory`](https://www.npmjs.com/package/ai-sdk-redis-agent-memory) package wraps a model you have already configured, restores the user's session and recalls relevant long-term memories before each call, and records the conversation afterwards. The model does not need memory tools. It also exposes memory tools for agents that should manage their own memory.
+
+```bash
+pnpm add @redis/vercel-ai-sdk
+```
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { createRedisAgentMemory } from '@redis/vercel-ai-sdk';
+import { ToolLoopAgent } from 'ai';
+
+// Create the memory factory once at module/server level
+const memory = createRedisAgentMemory({
+  serverUrl: process.env.AGENT_MEMORY_URL,
+  storeId: process.env.AGENT_MEMORY_STORE_ID,
+  apiKey: process.env.AGENT_MEMORY_API_KEY,
+  model: anthropic('claude-sonnet-4-5'),
+});
+
+// Create a new memory model for each request, scoped to a user and session
+const agent = new ToolLoopAgent({
+  model: memory.model({
+    scope: { userId: 'user-123', sessionId: 'session-456' },
+    assistantId: 'assistant',
+  }),
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+```
+
+Recalled memories and restored history are injected as bounded, untrusted context, and the user message and each text-producing step are recorded. Set `historyMode: 'application'` if your application already manages conversation history and you only want long-term recall.
+
+To let the model manage memory itself, pass `memory.tools({ scope })` as `tools` instead. This gives the model operations such as `search_memories` and `create_memories`.
+
+The package requires AI SDK 7. It accepts configured model objects, not model-name strings. Writes are best effort, so use collision-resistant session IDs tied to your authenticated user and serialize requests for the same session.
+
+See the [Redis Agent Memory provider documentation](/providers/community-providers/redis-agent-memory) for full setup and configuration.
 
 ## Custom Tool
 

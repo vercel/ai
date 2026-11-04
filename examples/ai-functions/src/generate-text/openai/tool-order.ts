@@ -29,7 +29,7 @@ const openai = createOpenAI({
         status: 'completed',
         error: null,
         incomplete_details: null,
-        model: 'gpt-4o-mini',
+        model: 'gpt-6-luna',
         output: [
           {
             id: 'msg_tool_order',
@@ -77,7 +77,7 @@ const tools = {
 
 run(async () => {
   const { text } = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     tools,
     toolOrder: ['middle'],
     prompt: 'Verify the order tools are sent to the provider.',

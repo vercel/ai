@@ -69,6 +69,13 @@ const token = await openai.experimental_realtime.getToken({
               description:
                 'The AI SDK tools to expose to the realtime model. Function and dynamic tools are converted to realtime function definitions. Provider tools are skipped.',
             },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              isOptional: true,
+              description:
+                'Per-tool context used when resolving dynamic tool descriptions.',
+            },
           ],
         },
       ],
@@ -115,3 +122,5 @@ Each returned definition contains:
   `onToolCall` and `addToolOutput` to execute tools and return results.
 - Provider tools are skipped because realtime providers expect regular function
   definitions in the session config.
+- Dynamic tool descriptions are resolved with the matching value from
+  `toolsContext` before the definitions are returned.

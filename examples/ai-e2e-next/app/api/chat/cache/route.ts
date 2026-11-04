@@ -28,9 +28,9 @@ export async function POST(req: Request) {
 
   // Call the language model:
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     messages,
-    async onFinish({ text }) {
+    async onEnd({ text }) {
       // Cache the response text:
       cache.set(key, text);
     },

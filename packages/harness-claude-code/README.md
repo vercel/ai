@@ -2,20 +2,20 @@
 
 `HarnessV1` adapter backed by [`@anthropic-ai/claude-agent-sdk`](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk), which drives the `claude` CLI. The adapter ships a bridge process that runs inside a sandbox and talks to the host over a WebSocket on a sandbox-proxied loopback port.
 
+-> **Note**: This package is experimental.
+
 ## Setup
 
 ```bash
-npm i @ai-sdk/harness-claude-code @ai-sdk/harness @ai-sdk/sandbox-vercel
+npm i ai @ai-sdk/harness-claude-code @ai-sdk/harness @ai-sdk/sandbox-vercel zod
 ```
-
-The bridge installs `@anthropic-ai/claude-agent-sdk` and `@anthropic-ai/claude-code` inside the sandbox the first time the session starts.
 
 ## Usage
 
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod/v4';
 
@@ -30,10 +30,6 @@ const agent = new HarnessAgent({
     ],
   }),
   id: 'demo',
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   tools: {
     deploy: tool({
       description: 'Deploy a service.',
@@ -42,11 +38,18 @@ const agent = new HarnessAgent({
     }),
   },
   harnessOptions: {
-    'claude-code': { thinking: 'adaptive' },
+    'claude-code': {
+      thinking: { type: 'adaptive', display: 'summarized' },
+    },
   },
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 try {
   const result = await agent.generate({
@@ -56,7 +59,8 @@ try {
   console.log(result.text);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 
-The adapter requires a `HarnessV1SandboxProvider` whose handles expose at least one port — `@ai-sdk/sandbox-vercel` is the supported choice today. The agent calls `provider.createSession()` when a session starts. Use `session.detach()` to park the bridge and sandbox, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state.
+See the [Claude Code Harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/claude-code) for more information.

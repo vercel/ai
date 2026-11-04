@@ -2,8 +2,12 @@ import type { LanguageModelV4 } from '@ai-sdk/provider';
 
 export const KNOWN_MODEL_TYPES = [
   'embedding',
+  'decision',
+  // Keep `evaluation` until Gateway migrates its model catalog to `decision`.
+  'evaluation',
   'image',
   'language',
+  'realtime',
   'reranking',
   'speech',
   'transcription',

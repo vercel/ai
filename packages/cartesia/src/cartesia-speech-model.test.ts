@@ -1,0 +1,613 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { createCartesia } from './cartesia-provider';
+import { CartesiaSpeechModel } from './cartesia-speech-model';
+
+vi.mock('./version', () => ({
+  VERSION: '0.0.0-test',
+}));
+
+const provider = createCartesia({ apiKey: 'test-api-key' });
+const model = provider.speech('sonic-3.5');
+
+const server = createTestServer({
+  'https://api.cartesia.ai/tts/bytes': {},
+});
+
+describe('CartesiaSpeechModel', () => {
+  function prepareAudioResponse({
+    headers,
+    format = 'mp3',
+  }: {
+    headers?: Record<string, string>;
+    format?: string;
+  } = {}) {
+    const audioBuffer = new Uint8Array(100); // Mock audio data
+    server.urls['https://api.cartesia.ai/tts/bytes'].response = {
+      type: 'binary',
+      headers: {
+        'content-type': `audio/${format}`,
+        ...headers,
+      },
+      body: Buffer.from(audioBuffer),
+    };
+    return audioBuffer;
+  }
+
+  describe('doGenerate', () => {
+    it('should generate speech with required parameters', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model_id: 'sonic-3.5',
+        transcript: 'Hello, world!',
+        voice: {
+          mode: 'id',
+          id: 'test-voice-id',
+        },
+        output_format: {
+          container: 'mp3',
+          sample_rate: 44100,
+          bit_rate: 128000,
+        },
+      });
+    });
+
+    it('should throw when no voice is provided', async () => {
+      prepareAudioResponse();
+
+      await expect(
+        model.doGenerate({
+          text: 'Hello, world!',
+        }),
+      ).rejects.toThrow('Cartesia speech models require a `voice` to be set.');
+    });
+
+    it('should map wav output format', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        outputFormat: 'wav',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        output_format: {
+          container: 'wav',
+          encoding: 'pcm_s16le',
+          sample_rate: 44100,
+        },
+      });
+    });
+
+    it('should map pcm output format with sample rate suffix', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        outputFormat: 'pcm_24000',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        output_format: {
+          container: 'raw',
+          encoding: 'pcm_f32le',
+          sample_rate: 24000,
+        },
+      });
+    });
+
+    it('should handle language parameter', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hola, mundo!',
+        voice: 'test-voice-id',
+        language: 'es',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        transcript: 'Hola, mundo!',
+        language: 'es',
+      });
+    });
+
+    it('should handle speed parameter', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        speed: 1.5,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        generation_config: {
+          speed: 1.5,
+        },
+      });
+    });
+
+    it('should warn and ignore an out-of-range generic speed', async () => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        speed: 2,
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'generation_config',
+      );
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Cartesia speed must be between 0.6 and 1.5. The speed option was ignored.",
+            "feature": "speed",
+            "type": "unsupported",
+          },
+        ]
+      `);
+    });
+
+    it('should send volume in generation_config', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: { cartesia: { volume: 1.5 } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).generation_config).toEqual(
+        { volume: 1.5 },
+      );
+    });
+
+    it('should send emotion in generation_config', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: { cartesia: { emotion: 'calm' } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).generation_config).toEqual(
+        { emotion: 'calm' },
+      );
+    });
+
+    it('should combine speed, volume and emotion in one generation_config', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        speed: 1.2,
+        providerOptions: { cartesia: { volume: 0.8, emotion: 'sad' } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).generation_config).toEqual(
+        { speed: 1.2, volume: 0.8, emotion: 'sad' },
+      );
+    });
+
+    it('should keep volume when an out-of-range generic speed is ignored', async () => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        speed: 2,
+        providerOptions: { cartesia: { volume: 1.5 } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).generation_config).toEqual(
+        { volume: 1.5 },
+      );
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toMatchObject({ feature: 'speed' });
+    });
+
+    it.each([
+      ['volume below the range', { volume: 0.4 }],
+      ['volume above the range', { volume: 2.1 }],
+      ['an unknown emotion', { emotion: 'banana' }],
+      ['a null volume', { volume: null }],
+      ['a null emotion', { emotion: null }],
+    ])('should reject %s before sending a request', async (_, options) => {
+      prepareAudioResponse();
+
+      await expect(
+        model.doGenerate({
+          text: 'Hello, world!',
+          voice: 'test-voice-id',
+          providerOptions: { cartesia: options },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+      });
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should warn about unsupported instructions parameter', async () => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        instructions: 'Speak slowly',
+      });
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Cartesia speech models do not support instructions. Instructions parameter was ignored.",
+            "feature": "instructions",
+            "type": "unsupported",
+          },
+        ]
+      `);
+    });
+
+    it('should pass provider-specific options', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: {
+          cartesia: {
+            container: 'raw',
+            encoding: 'pcm_s16le',
+            sampleRate: 16000,
+            speed: 0.8,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        output_format: {
+          container: 'raw',
+          encoding: 'pcm_s16le',
+          sample_rate: 16000,
+        },
+        generation_config: {
+          speed: 0.8,
+        },
+      });
+    });
+
+    it('should pass pronunciationDictionaryId as pronunciation_dict_id', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: {
+          cartesia: {
+            pronunciationDictionaryId: 'pdict_test',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        pronunciation_dict_id: 'pdict_test',
+      });
+    });
+
+    it('should reject a null pronunciationDictionaryId before sending a request', async () => {
+      prepareAudioResponse();
+
+      await expect(
+        model.doGenerate({
+          text: 'Hello, world!',
+          voice: 'test-voice-id',
+          providerOptions: {
+            cartesia: { pronunciationDictionaryId: null },
+          },
+        }),
+      ).rejects.toMatchObject({ name: 'AI_InvalidArgumentError' });
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('should not send pronunciation_dict_id by default', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'pronunciation_dict_id',
+      );
+    });
+
+    it('should ignore encoding for mp3 output', async () => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: {
+          cartesia: {
+            encoding: 'pcm_s16le',
+          },
+        },
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).output_format,
+      ).toStrictEqual({
+        container: 'mp3',
+        sample_rate: 44100,
+        bit_rate: 128000,
+      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Cartesia MP3 output does not accept an encoding. The encoding option was ignored.",
+            "feature": "providerOptions.cartesia.encoding",
+            "type": "unsupported",
+          },
+        ]
+      `);
+    });
+
+    it('should warn about an unsupported sample rate suffix', async () => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        outputFormat: 'wav_12345',
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).output_format,
+      ).toMatchObject({
+        container: 'wav',
+        sample_rate: 44100,
+      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Unsupported Cartesia sample rate in output format "wav_12345". Using 44100 Hz instead.",
+            "feature": "outputFormat",
+            "type": "unsupported",
+          },
+        ]
+      `);
+    });
+
+    it('should pass headers', async () => {
+      prepareAudioResponse();
+
+      const provider = createCartesia({
+        apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
+      });
+
+      await provider.speech('sonic-3.5').doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
+
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        authorization: 'Bearer test-api-key',
+        'cartesia-version': '2026-03-01',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
+    });
+
+    it('should include user-agent header', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+      });
+
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk-cartesia/0.0.0-test`,
+      );
+    });
+
+    it('should return audio data', async () => {
+      const audio = new Uint8Array(100);
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+      });
+
+      expect(result.audio).toStrictEqual(audio);
+    });
+
+    it('should include response data with timestamp, modelId and headers', async () => {
+      prepareAudioResponse({
+        headers: {
+          'x-request-id': 'test-request-id',
+        },
+      });
+
+      const testDate = new Date(0);
+      const customModel = new CartesiaSpeechModel('sonic-3.5', {
+        provider: 'test-provider',
+        url: () => 'https://api.cartesia.ai/tts/bytes',
+        headers: () => ({}),
+        _internal: {
+          currentDate: () => testDate,
+        },
+      });
+
+      const result = await customModel.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+      });
+
+      expect(result.response).toMatchObject({
+        timestamp: testDate,
+        modelId: 'sonic-3.5',
+        headers: {
+          'content-type': 'audio/mp3',
+          'x-request-id': 'test-request-id',
+        },
+      });
+    });
+
+    it.each(['locale', 'normalization'])(
+      'rejects a null %s before sending a request',
+      async option => {
+        await expect(
+          model.doGenerate({
+            text: 'Hello, world!',
+            voice: 'test-voice-id',
+            providerOptions: { cartesia: { [option]: null } },
+          }),
+        ).rejects.toMatchObject({ name: 'AI_InvalidArgumentError' });
+        expect(server.calls).toHaveLength(0);
+      },
+    );
+
+    it('combines locale and normalization with the other speech options', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: {
+          cartesia: {
+            locale: 'en-GB',
+            normalization: 'off',
+            pronunciationDictionaryId: 'test-dictionary',
+            volume: 1.2,
+            emotion: 'excited',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        locale: 'en-GB',
+        normalization: 'off',
+        pronunciation_dict_id: 'test-dictionary',
+        generation_config: { volume: 1.2, emotion: 'excited' },
+      });
+    });
+
+    it('rejects conflicting provider locale and language before sending a request', async () => {
+      let error: unknown;
+      try {
+        await model.doGenerate({
+          text: 'Hello, world!',
+          voice: 'test-voice-id',
+          providerOptions: { cartesia: { locale: 'en-GB', language: 'en' } },
+        });
+      } catch (cause) {
+        error = cause;
+      }
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        argument: 'providerOptions',
+        message:
+          'providerOptions.cartesia.locale cannot be combined with providerOptions.cartesia.language',
+      });
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('preserves provider language precedence over generic language', async () => {
+      prepareAudioResponse();
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        language: 'en',
+        providerOptions: { cartesia: { language: 'es' } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).language).toBe('es');
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('sends a locale alone without language or warnings', async () => {
+      prepareAudioResponse();
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: { cartesia: { locale: 'en-GB' } },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.locale).toBe('en-GB');
+      expect(body).not.toHaveProperty('language');
+      expect(body).not.toHaveProperty('normalization');
+      expect(result.warnings).toEqual([]);
+    });
+
+    it.each(['auto', 'off', 'es-MX'])(
+      'sends normalization %s independently of locale',
+      async normalization => {
+        prepareAudioResponse();
+        const result = await model.doGenerate({
+          text: 'Hello, world!',
+          voice: 'test-voice-id',
+          language: 'en',
+          providerOptions: { cartesia: { normalization } },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).toMatchObject({ language: 'en', normalization });
+        expect(body).not.toHaveProperty('locale');
+        expect(result.warnings).toEqual([]);
+      },
+    );
+
+    it('should prioritize providerOptions locale over generic language and emit a warning', async () => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        language: 'en',
+        providerOptions: {
+          cartesia: {
+            locale: 'en-GB',
+          },
+        },
+      });
+
+      const body = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        unknown
+      >;
+      expect(body.locale).toBe('en-GB');
+      expect(body.language).toBeUndefined();
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'language',
+          details:
+            'Cartesia does not support both locale and language. The language option was ignored in favor of providerOptions.cartesia.locale.',
+        },
+      ]);
+    });
+  });
+});

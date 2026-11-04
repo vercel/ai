@@ -1,4 +1,6 @@
 import {
+  resolve,
+  type Resolvable,
   createEventSourceResponseHandler,
   delay,
   getFromApi,
@@ -43,7 +45,7 @@ export function streamGoogleInteractionEvents({
 }: {
   baseURL: string;
   interactionId: string;
-  headers: Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   abortSignal?: AbortSignal;
   maxRetries?: number;
@@ -54,11 +56,6 @@ export function streamGoogleInteractionEvents({
       'google.interactions: cannot stream a background interaction without an id.',
     );
   }
-
-  const eventSourceHeaders = {
-    ...headers,
-    accept: 'text/event-stream',
-  };
 
   let lastEventId: string | undefined;
   let complete = false;
@@ -98,7 +95,8 @@ export function streamGoogleInteractionEvents({
   async function openReader() {
     const { value: stream } = await getFromApi({
       url: buildUrl(),
-      headers: eventSourceHeaders,
+      validateUrl: false,
+      headers: { ...(await resolve(headers)), accept: 'text/event-stream' },
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         googleInteractionsEventSchema,

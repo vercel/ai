@@ -1,0 +1,214 @@
+import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
+import {
+  lazySchema,
+  zodSchema,
+  combineHeaders,
+  convertBase64ToUint8Array,
+  createJsonErrorResponseHandler,
+  createJsonResponseHandler,
+  mediaTypeToExtension,
+  postFormDataToApi,
+  resolve,
+  type Resolvable,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+import type { AzureTranscriptionProviderMetadata } from './azure-transcription-provider-metadata';
+import type { AzureTranscriptionModelSpeechOptions } from './azure-speech-transcription-model-options';
+import { getMAITranscribeModel } from './azure-transcription-model-options';
+
+export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
+  readonly provider = 'azure.transcription';
+
+  constructor(
+    readonly modelId: string,
+    private readonly config: {
+      url: () => string;
+      headers: Resolvable<Record<string, string | undefined>>;
+      fetch?: FetchFunction;
+    },
+  ) {}
+
+  async doGenerate(
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+    azureOptions: AzureTranscriptionModelSpeechOptions = {},
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    const timestamp = new Date();
+    const maiModel = getMAITranscribeModel(this.modelId);
+    const warnings: SharedV4Warning[] = [];
+    let timestamps = azureOptions.timestamps;
+    if (options.timestampGranularities != null) {
+      const wantsWord = options.timestampGranularities.includes('word');
+      const wantsSegment = options.timestampGranularities.includes('segment');
+      if (
+        maiModel?.supportsTimestamps === false &&
+        (wantsWord || wantsSegment)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details: `${maiModel.name} cannot return word or segment timings.`,
+        });
+      } else if (timestamps == null) {
+        if (wantsWord) {
+          timestamps = 'word';
+        } else if (wantsSegment) {
+          timestamps = 'segment';
+        }
+      } else if (
+        (wantsWord && timestamps !== 'word') ||
+        (wantsSegment && timestamps === 'none')
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details: `providerOptions.azure.timestamps is "${timestamps}" and overrides the requested timestamp granularities.`,
+        });
+      }
+    }
+    const formData = new FormData();
+    formData.append(
+      'audio',
+      new Blob(
+        [
+          typeof options.audio === 'string'
+            ? convertBase64ToUint8Array(options.audio)
+            : (options.audio as Uint8Array<ArrayBuffer>),
+        ],
+        { type: options.mediaType },
+      ),
+      `audio.${mediaTypeToExtension(options.mediaType)}`,
+    );
+    formData.append(
+      'definition',
+      JSON.stringify({
+        enhancedMode: {
+          enabled: true,
+          model: maiModel?.name ?? this.modelId,
+          modelOptions: {
+            timestamps:
+              timestamps ??
+              (maiModel?.supportsTimestamps === false ? undefined : 'segment'),
+            transcribeStyle: azureOptions.transcribeStyle,
+          },
+        },
+        locales: azureOptions.locales,
+        diarization: azureOptions.diarization,
+        phraseList: azureOptions.phraseList,
+      }),
+    );
+
+    const { value, rawValue, responseHeaders } = await postFormDataToApi({
+      url: this.config.url(),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      formData,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+      failedResponseHandler: createJsonErrorResponseHandler({
+        errorSchema: z.union([
+          z.object({ error: z.object({ message: z.string() }) }),
+          z.object({ message: z.string() }),
+        ]),
+        errorToMessage: data =>
+          'error' in data ? data.error.message : data.message,
+      }),
+      successfulResponseHandler: createJsonResponseHandler(responseSchema),
+    });
+
+    const phrases = value.phrases ?? [];
+    // Consider every reported locale so mixed results (e.g. en + fil) are not
+    // collapsed to one language; only ISO-639-1 codes are reported.
+    const languages = new Set(
+      phrases.flatMap(phrase =>
+        phrase.locale ? [phrase.locale.split('-')[0].toLowerCase()] : [],
+      ),
+    );
+    const [language] = languages;
+    const reportedLanguage =
+      languages.size === 1 && /^[a-z]{2}$/.test(language)
+        ? language
+        : undefined;
+
+    const words = phrases.flatMap(phrase =>
+      (phrase.words ?? []).flatMap(word =>
+        word.offsetMilliseconds != null && word.durationMilliseconds != null
+          ? [
+              {
+                text: word.text,
+                startSecond: word.offsetMilliseconds / 1000,
+                endSecond:
+                  (word.offsetMilliseconds + word.durationMilliseconds) / 1000,
+              },
+            ]
+          : [],
+      ),
+    );
+
+    return {
+      text: value.combinedPhrases.map(phrase => phrase.text).join(' '),
+      ...(words.length > 0 ? { words } : {}),
+      segments: phrases.flatMap(phrase =>
+        phrase.offsetMilliseconds != null && phrase.durationMilliseconds != null
+          ? [
+              {
+                text: phrase.text,
+                startSecond: phrase.offsetMilliseconds / 1000,
+                endSecond:
+                  (phrase.offsetMilliseconds + phrase.durationMilliseconds) /
+                  1000,
+              },
+            ]
+          : [],
+      ),
+      language: reportedLanguage,
+      durationInSeconds:
+        value.durationMilliseconds != null
+          ? value.durationMilliseconds / 1000
+          : undefined,
+      warnings,
+      providerMetadata: {
+        azure: { phrases },
+      } satisfies AzureTranscriptionProviderMetadata,
+      response: {
+        timestamp,
+        modelId: this.modelId,
+        headers: responseHeaders,
+        body: rawValue,
+      },
+    };
+  }
+}
+
+const responseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      combinedPhrases: z.array(z.object({ text: z.string() })),
+      durationMilliseconds: z.number().nullish(),
+      phrases: z
+        .array(
+          z.object({
+            text: z.string(),
+            offsetMilliseconds: z.number().nullish(),
+            durationMilliseconds: z.number().nullish(),
+            locale: z.string().nullish(),
+            speaker: z.number().nullish(),
+            confidence: z.number().nullish(),
+            words: z
+              .array(
+                z.object({
+                  text: z.string(),
+                  offsetMilliseconds: z.number().nullish(),
+                  durationMilliseconds: z.number().nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);
