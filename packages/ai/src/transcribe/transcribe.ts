@@ -2,6 +2,8 @@ import type { JSONObject } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   detectMediaType,
+  getTopLevelMediaType,
+  isFullMediaType,
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
@@ -225,9 +227,7 @@ export async function transcribe({
   }
 
   const mediaType =
-    (downloadedMediaType === 'application/octet-stream'
-      ? undefined
-      : downloadedMediaType) ??
+    getAudioMediaType(downloadedMediaType) ??
     detectMediaType({
       data: audioData,
       topLevelType: 'audio',
@@ -303,6 +303,24 @@ export async function transcribe({
     await telemetryDispatcher.onError?.({ callId, error });
     throw error;
   }
+}
+
+/**
+ * Normalizes a downloaded `Content-Type` header value and returns it only
+ * when it is a full `audio/<subtype>` media type. Generic or mislabeled types
+ * (e.g. `application/octet-stream`, `binary/octet-stream`, `text/plain`)
+ * return `undefined` so that the media type is detected from the audio bytes
+ * instead.
+ */
+function getAudioMediaType(
+  contentType: string | undefined,
+): string | undefined {
+  const mediaType = contentType?.split(';')[0].trim().toLowerCase();
+  return mediaType != null &&
+    getTopLevelMediaType(mediaType) === 'audio' &&
+    isFullMediaType(mediaType)
+    ? mediaType
+    : undefined;
 }
 
 class DefaultTranscriptionResult implements TranscriptionResult {

@@ -225,8 +225,40 @@ describe('transcribe', () => {
     ]);
   });
 
-  it('should detect downloaded audio when media type is application/octet-stream', async () => {
-    const aacAudioData = new Uint8Array([0xff, 0xf1, 0x50, 0x40]);
+  it.each([
+    'application/octet-stream',
+    'application/octet-stream; charset=binary',
+    'Application/Octet-Stream',
+    'binary/octet-stream',
+    'text/plain',
+    'audio/*',
+  ])(
+    'should detect downloaded audio when media type is %s',
+    async downloadedMediaType => {
+      const aacAudioData = new Uint8Array([0xff, 0xf1, 0x50, 0x40]);
+      let capturedArgs!: Parameters<TranscriptionModelV4['doGenerate']>[0];
+
+      await transcribe({
+        model: new MockTranscriptionModelV4({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              ...sampleTranscript,
+            });
+          },
+        }),
+        audio: new URL('https://example.com/audio'),
+        download: async () => ({
+          data: aacAudioData,
+          mediaType: downloadedMediaType,
+        }),
+      });
+
+      expect(capturedArgs.mediaType).toBe('audio/aac');
+    },
+  );
+
+  it('should normalize downloaded audio media type with parameters', async () => {
     let capturedArgs!: Parameters<TranscriptionModelV4['doGenerate']>[0];
 
     await transcribe({
@@ -240,12 +272,12 @@ describe('transcribe', () => {
       }),
       audio: new URL('https://example.com/audio'),
       download: async () => ({
-        data: aacAudioData,
-        mediaType: 'application/octet-stream',
+        data: audioData,
+        mediaType: 'Audio/MPEG; charset=binary',
       }),
     });
 
-    expect(capturedArgs.mediaType).toBe('audio/aac');
+    expect(capturedArgs.mediaType).toBe('audio/mpeg');
   });
 
   it('should return warnings', async () => {
