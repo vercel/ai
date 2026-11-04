@@ -67,8 +67,10 @@ export type CursorHarnessSettings = {
 };
 
 /*
- * Tool variants, display titles, ACP kinds, and raw input projections were
- * captured from the official Cursor CLI 2026.08.11-e8db854 ACP agent.
+ * The original variants were captured from Cursor CLI 2026.08.11-e8db854.
+ * Cursor CLI 2026.10.22 reports file writes with a `Write <path>` title, an
+ * `edit` kind, and a path-only raw input. Its CLI output reference identifies
+ * the native tool as `writeToolCall`.
  * `mcpToolCall` is dynamic and `truncatedToolCall` is a transport sentinel, so
  * neither is exposed as a built-in.
  */
@@ -115,6 +117,14 @@ const CURSOR_BUILTIN_TOOLS = {
     }),
     nativeName: 'readToolCall',
     toolUseKind: 'readonly',
+  },
+  write: {
+    ...tool({
+      title: 'Write',
+      inputSchema: z.looseObject({ path: z.string() }),
+    }),
+    nativeName: 'writeToolCall',
+    toolUseKind: 'edit',
   },
   updateTodos: {
     ...tool({

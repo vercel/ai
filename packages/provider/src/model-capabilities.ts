@@ -54,6 +54,48 @@ export type ModelCapabilities = {
     readonly maskInput: ModelCapability;
     readonly maxImagesPerCall: number | undefined;
   };
+  readonly video?: {
+    readonly inputs: {
+      readonly text: ModelCapability;
+      /** The single starting image passed through the `image` option. */
+      readonly image: ModelCapability;
+      /** Role-tagged images passed through the `frameImages` option. */
+      readonly firstFrame: ModelCapability;
+      readonly lastFrame: ModelCapability;
+      /** Media passed through the `inputReferences` option. */
+      readonly referenceImage: ModelCapability;
+      readonly referenceVideo: ModelCapability;
+    };
+    readonly generateAudio: ModelCapability;
+    readonly aspectRatio: ModelCapability;
+    readonly resolution: ModelCapability;
+    readonly duration: ModelCapability;
+    readonly fps: ModelCapability;
+    readonly seed: ModelCapability;
+    /** Undefined means the catalog does not declare a fixed limit. */
+    readonly maxVideosPerCall: number | undefined;
+  };
+  readonly reranking?: {
+    /** Input support exposed by the provider, including compatibility conversions. */
+    readonly documents: {
+      readonly text: ModelCapability;
+      readonly object: ModelCapability;
+    };
+    readonly topN: ModelCapability;
+  };
+  readonly decision?: {
+    readonly questionTypes: {
+      readonly boolean: ModelCapability;
+      readonly choice: ModelCapability;
+      readonly score: ModelCapability;
+      readonly box: ModelCapability;
+    };
+    readonly inputs: {
+      readonly image: ModelCapability;
+    };
+    readonly reasoning: ModelCapability;
+    readonly maxOutputTokens: ModelCapability;
+  };
   readonly transcription?: {
     readonly transcription: ModelCapability;
     readonly streaming: ModelCapability;

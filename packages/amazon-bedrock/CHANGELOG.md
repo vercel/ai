@@ -1,5 +1,35 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.132
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/anthropic@4.0.96
+  - @ai-sdk/openai@4.0.108
+
+## 5.0.131
+
+### Patch Changes
+
+- 2cd0a97: Enable native structured output and strict tools for supported Claude 5 models on Bedrock. In automatic mode, Bedrock and Anthropic now fall back for schemas that native structured output cannot represent: recursive references, open objects, or more than ten optional properties. Anthropic uses the JSON response tool; Bedrock Converse uses the JSON tool or JSON instructions for models that reject forced tool use. The JSON-tool fallback excludes disabled and unselected application tools. Explicit `outputFormat` selection remains unchanged.
+- 62a4dcd: fix(amazon-bedrock): keep every function tool on a named tool choice for Anthropic models
+
+  Anthropic models that accept forced tool use now receive every function tool on a named tool choice, as with `@ai-sdk/anthropic`, so a forced step no longer invalidates the prompt cache. Parallel tool use is disabled on that step by default, so the model still calls only the named tool. Set `providerOptions.anthropic.disableParallelToolUse: false` to allow parallel calls. Other models, and Anthropic models that reject forced tool use, still receive only the named tool.
+
+- 4ae6986: fix(amazon-bedrock): parse JSON string tool inputs and safely serialize BigInt and cycles in tool outputs
+- Updated dependencies [2cd0a97]
+- Updated dependencies [4ae6986]
+- Updated dependencies [4ae6986]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [226b7da]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/anthropic@4.0.95
+  - @ai-sdk/openai@4.0.107
+  - @ai-sdk/provider-utils@5.0.73
+
 ## 5.0.130
 
 ### Patch Changes

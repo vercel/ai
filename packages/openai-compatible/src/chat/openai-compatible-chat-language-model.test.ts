@@ -1609,6 +1609,85 @@ describe('doGenerate', () => {
       expect(mapReasoning).not.toHaveBeenCalled();
     });
 
+    it('should send reasoningEffort null as reasoning_effort null', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { reasoningEffort: null },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+
+      expect(body).toHaveProperty('reasoning_effort', null);
+      expect(body.reasoningEffort).toBeUndefined();
+    });
+
+    it('should prefer providerOptions reasoningEffort null over top-level reasoning', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        providerOptions: {
+          'test-provider': { reasoningEffort: null },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toHaveProperty(
+        'reasoning_effort',
+        null,
+      );
+    });
+
+    it('should omit reasoning_effort when no reasoning effort is set', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'reasoning_effort',
+      );
+    });
+
+    it('should not overwrite a raw reasoning_effort provider option', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { reasoning_effort: null },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toHaveProperty(
+        'reasoning_effort',
+        null,
+      );
+    });
+
     it('should pass textVerbosity setting from providerOptions', async () => {
       prepareJsonResponse({ content: '{"value":"test"}' });
 
@@ -1663,6 +1742,50 @@ describe('doGenerate', () => {
       expect(body.verbosity).toBe('medium');
       expect(body.textVerbosity).toBeUndefined();
       expect(body.customOption).toBe('should-be-included');
+    });
+
+    it('should pass raw verbosity through when textVerbosity is not set', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { verbosity: 'low' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toHaveProperty(
+        'verbosity',
+        'low',
+      );
+    });
+
+    it('should prefer textVerbosity over raw verbosity', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { verbosity: 'low', textVerbosity: 'high' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toHaveProperty(
+        'verbosity',
+        'high',
+      );
     });
 
     it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
@@ -4106,7 +4229,6 @@ describe('doStream', () => {
           ],
           "model": "grok-3",
           "presence_penalty": undefined,
-          "reasoning_effort": undefined,
           "response_format": undefined,
           "seed": undefined,
           "stop": undefined,
@@ -4117,7 +4239,6 @@ describe('doStream', () => {
           "tools": undefined,
           "top_p": undefined,
           "user": undefined,
-          "verbosity": undefined,
         },
       }
     `);
