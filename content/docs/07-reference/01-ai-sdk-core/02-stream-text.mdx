@@ -3432,6 +3432,17 @@ retain the content their contracts require.
         'A stream with all events, including text deltas, tool calls, tool results, and errors. Well-formed mid-stream provider failures are emitted in error parts as StreamProviderError instances. You can use it as either an AsyncIterable or a ReadableStream. Only errors that stop the stream, such as network errors, are thrown.',
       properties: [
         {
+          type: 'TextStreamPingPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'ping'",
+              description:
+                'A transient provider heartbeat. It contains no generated content, does not reset model-output timeouts, and is omitted from text and UI message streams. Providers may require an explicit opt-in.',
+            },
+          ],
+        },
+        {
           type: 'TextStreamTextEndPart',
           description: 'End of a text block, including optional citations supporting that block.',
           parameters: [
