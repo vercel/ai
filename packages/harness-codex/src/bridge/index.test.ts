@@ -251,6 +251,88 @@ describe('Codex bridge config', () => {
     `);
   });
 
+  // Issue #24472 is a local configuration precedence bug: capture the real
+  // bridge's output before the app-server boundary, without calling a model.
+  test.each([
+    { model: 'gpt-5.5', gateway: false, summary: 'none', supports: undefined },
+    {
+      model: 'openai/gpt-5.5',
+      gateway: true,
+      summary: 'none',
+      supports: undefined,
+    },
+    {
+      model: 'openai/gpt-5.5',
+      gateway: true,
+      summary: 'concise',
+      supports: undefined,
+    },
+    {
+      model: '@cf/openai/gpt-oss-20b',
+      gateway: true,
+      summary: 'none',
+      supports: undefined,
+    },
+    {
+      model: '@cf/openai/gpt-oss-120b',
+      gateway: true,
+      summary: 'none',
+      supports: undefined,
+    },
+    {
+      model: '@cf/openai/gpt-oss-20b',
+      gateway: true,
+      summary: 'none',
+      supports: true,
+    },
+    {
+      model: '@cf/openai/gpt-oss-120b',
+      gateway: true,
+      summary: 'none',
+      supports: true,
+    },
+  ])(
+    'issue 24472 respects $summary for $model (support override $supports)',
+    async ({ model, gateway, summary, supports }) => {
+      state.startModel = model;
+      state.startCodexConfig = {
+        model_reasoning_summary: summary,
+        ...(supports === undefined
+          ? {}
+          : { model_supports_reasoning_summaries: supports }),
+      };
+      if (gateway) {
+        process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.test/v1';
+      }
+
+      await import('./index');
+
+      expect(state.emittedErrors).toEqual([]);
+      expect(state.appServerOptions).toHaveLength(1);
+      const actual = state.appServerOptions[0]!;
+      console.log(
+        JSON.stringify({
+          model: actual.codexModel,
+          requestedSummary: summary,
+          actualSummary: actual.codexConfig.model_reasoning_summary,
+          supportsReasoningSummaries:
+            actual.codexConfig.model_supports_reasoning_summaries ?? null,
+        }),
+      );
+      // Capability diagnostics above are secondary. Only rejected caller
+      // settings cause this regression test to fail.
+      expect(
+        actual.codexConfig.model_reasoning_summary,
+        'ISSUE_24472_CALLER_REASONING_SUMMARY_NOT_PRESERVED',
+      ).toBe(summary);
+      if (supports !== undefined) {
+        expect(actual.codexConfig.model_supports_reasoning_summaries).toBe(
+          supports,
+        );
+      }
+    },
+  );
+
   test.each(['xhigh', 'max'] as const)(
     'passes %s reasoning effort to app-server',
     async reasoningEffort => {
