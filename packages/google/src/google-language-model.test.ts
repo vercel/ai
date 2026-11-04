@@ -6718,42 +6718,79 @@ describe('doStream', () => {
       `);
     });
 
-    it('should omit usage on response-metadata when the first chunk has no usageMetadata', async () => {
+    it.each([
+      undefined,
+      { trafficType: 'ON_DEMAND' },
+      { promptTokenCount: null },
+    ])(
+      'should omit provisional usage when initial token counts are unavailable (%j)',
+      async usageMetadata => {
+        server.urls[TEST_URL_GEMINI_PRO].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              candidates: [
+                { content: { parts: [{ text: 'Hello' }], role: 'model' } },
+              ],
+              responseId: 'response-id',
+              usageMetadata,
+            })}\n\n`,
+            `data: ${JSON.stringify({
+              candidates: [
+                {
+                  content: { parts: [{ text: ' world' }], role: 'model' },
+                  finishReason: 'STOP',
+                },
+              ],
+              usageMetadata: {
+                promptTokenCount: 9,
+                candidatesTokenCount: 2,
+                totalTokenCount: 11,
+              },
+              responseId: 'response-id',
+            })}\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(
+          events.filter(event => event.type === 'response-metadata'),
+        ).toEqual([{ type: 'response-metadata', id: 'response-id' }]);
+        expect(
+          events.find(event => event.type === 'response-metadata'),
+        ).not.toHaveProperty('usage');
+      },
+    );
+
+    it('should retain known zero provisional input counts', async () => {
       server.urls[TEST_URL_GEMINI_PRO].response = {
         type: 'stream-chunks',
         chunks: [
           `data: ${JSON.stringify({
-            candidates: [
-              { content: { parts: [{ text: 'Hello' }], role: 'model' } },
-            ],
-            responseId: 'response-id',
-          })}\n\n`,
-          `data: ${JSON.stringify({
+            responseId: 'zero-input',
+            usageMetadata: {
+              promptTokenCount: 0,
+              candidatesTokenCount: 0,
+              totalTokenCount: 0,
+            },
             candidates: [
               {
-                content: { parts: [{ text: ' world' }], role: 'model' },
+                content: { parts: [{ text: 'OK' }], role: 'model' },
                 finishReason: 'STOP',
               },
             ],
-            usageMetadata: {
-              promptTokenCount: 9,
-              candidatesTokenCount: 2,
-              totalTokenCount: 11,
-            },
-            responseId: 'response-id',
           })}\n\n`,
         ],
       };
-
       const { stream } = await model.doStream({ prompt: TEST_PROMPT });
       const events = await convertReadableStreamToArray(stream);
-
-      expect(
-        events.filter(event => event.type === 'response-metadata'),
-      ).toEqual([{ type: 'response-metadata', id: 'response-id' }]);
       expect(
         events.find(event => event.type === 'response-metadata'),
-      ).not.toHaveProperty('usage');
+      ).toMatchObject({
+        usage: { inputTokens: { total: 0 }, outputTokens: { total: 0 } },
+      });
     });
 
     it('should expose the raw response headers', async () => {
@@ -8095,6 +8132,12 @@ describe('doStream', () => {
         type: 'stream-chunks',
         chunks: [
           `data: ${JSON.stringify({
+            responseId: 'initial-response',
+            usageMetadata: {
+              promptTokenCount: 10,
+              candidatesTokenCount: 1,
+              totalTokenCount: 11,
+            },
             candidates: [
               {
                 content: { parts: [{ text: 'Hello' }], role: 'model' },
@@ -8157,6 +8200,12 @@ describe('doStream', () => {
 
     const events = await convertReadableStreamToArray(stream);
 
+    const metadata = events.filter(event => event.type === 'response-metadata');
+    expect(metadata).toHaveLength(1);
+    expect(metadata[0]).toMatchObject({
+      id: 'initial-response',
+      usage: { inputTokens: { total: 10 }, outputTokens: { total: 1 } },
+    });
     expect(server.calls.length).toBe(2);
     const firstBody = (await server.calls[0].requestBodyJson) as Record<
       string,

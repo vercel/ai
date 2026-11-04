@@ -897,22 +897,6 @@ exports[`doStream > streaming-tool-call-arguments > should stream partial functi
   {
     "id": "dqHOab6xGLzWodAPkPuViA4",
     "type": "response-metadata",
-    "usage": {
-      "inputTokens": {
-        "cacheRead": 0,
-        "cacheWrite": undefined,
-        "noCache": 0,
-        "total": 0,
-      },
-      "outputTokens": {
-        "reasoning": 0,
-        "text": 0,
-        "total": 0,
-      },
-      "raw": {
-        "trafficType": "ON_DEMAND",
-      },
-    },
   },
   {
     "id": "test-id",
@@ -1121,22 +1105,6 @@ exports[`doStream > streaming-tool-call-arguments-nested > should stream nested 
   {
     "id": "tjXVaYaxFISTq8YP_MWiyAo",
     "type": "response-metadata",
-    "usage": {
-      "inputTokens": {
-        "cacheRead": 0,
-        "cacheWrite": undefined,
-        "noCache": 0,
-        "total": 0,
-      },
-      "outputTokens": {
-        "reasoning": 0,
-        "text": 0,
-        "total": 0,
-      },
-      "raw": {
-        "trafficType": "ON_DEMAND",
-      },
-    },
   },
   {
     "id": "test-id",

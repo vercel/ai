@@ -1081,7 +1081,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               controller.enqueue({
                 type: 'response-metadata',
                 id: value.responseId,
-                ...(value.usageMetadata != null
+                // Traffic metadata alone does not establish token counts.
+                ...(value.usageMetadata?.promptTokenCount != null
                   ? { usage: convertGoogleUsage(value.usageMetadata) }
                   : {}),
               });
