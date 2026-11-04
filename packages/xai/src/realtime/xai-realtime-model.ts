@@ -105,11 +105,7 @@ export class XaiRealtimeModel implements RealtimeModelV4 {
     | PromiseLike<RealtimeModelV4ServerConnection> {
     // xAI exposes only the conversational voice endpoint; fail fast instead of
     // silently downgrading unsupported intents.
-    if (options?.intent != null && options.intent !== 'conversation') {
-      throw new Error(
-        `xAI realtime does not support the '${options.intent}' session intent.`,
-      );
-    }
+    this.assertConversationIntent(options);
     const url = new URL(this.config.baseURL);
     const protocol = url.protocol === 'http:' ? 'ws:' : 'wss:';
     const base = `${protocol}//${url.host}${url.pathname.replace(/\/$/, '')}`;
@@ -119,17 +115,33 @@ export class XaiRealtimeModel implements RealtimeModelV4 {
     }));
   }
 
+  private assertConversationIntent(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): void {
+    if (options?.intent != null && options.intent !== 'conversation') {
+      throw new Error(
+        `xAI realtime does not support the '${options.intent}' session intent.`,
+      );
+    }
+  }
+
   parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent {
     return parseXaiRealtimeServerEvent(raw);
   }
 
-  serializeClientEvent(event: RealtimeModelV4ClientEvent): unknown {
+  serializeClientEvent(
+    event: RealtimeModelV4ClientEvent,
+    options?: { intent?: RealtimeModelV4SessionIntent },
+  ): unknown {
+    this.assertConversationIntent(options);
     return serializeXaiRealtimeClientEvent(event);
   }
 
   buildSessionConfig(
     config: RealtimeModelV4SessionConfig,
+    options?: { intent?: RealtimeModelV4SessionIntent },
   ): Record<string, unknown> {
+    this.assertConversationIntent(options);
     return buildXaiSessionConfig(config);
   }
 }

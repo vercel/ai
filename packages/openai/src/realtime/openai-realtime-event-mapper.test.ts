@@ -298,9 +298,9 @@ describe('buildOpenAISessionConfig', () => {
   it('does not build translation sessions until the normalized codec supports them', () => {
     expect(() =>
       buildOpenAISessionConfig({}, 'gpt-realtime-translate', {
-        intent: 'translation',
+        intent: 'translation' as never,
       }),
-    ).toThrow(/translation sessions are not supported/);
+    ).toThrow(/is not supported/);
   });
 });
 

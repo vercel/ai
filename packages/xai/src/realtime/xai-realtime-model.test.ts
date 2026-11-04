@@ -2,6 +2,17 @@ import { describe, it, expect, vi } from 'vitest';
 import { XaiRealtimeModel } from './xai-realtime-model';
 
 describe('XaiRealtimeModel', () => {
+  it('rejects unsupported intents during serialization as well as connection setup', () => {
+    const target = createModel();
+    const options = { intent: 'transcription' } as const;
+    expect(() =>
+      target.serializeClientEvent({ type: 'response-create' }, options),
+    ).toThrow(/does not support/);
+    expect(() => target.buildSessionConfig({}, options)).toThrow(
+      /does not support/,
+    );
+  });
+
   const createModel = (fetch?: typeof globalThis.fetch) =>
     new XaiRealtimeModel('grok-voice-latest', {
       provider: 'xai.realtime',
@@ -55,8 +66,8 @@ describe('XaiRealtimeModel', () => {
 
     it('rejects unsupported endpoint intents', () => {
       expect(() =>
-        createModel().getServerWebSocketConfig({ intent: 'translation' }),
-      ).toThrow("does not support the 'translation' session intent");
+        createModel().getServerWebSocketConfig({ intent: 'transcription' }),
+      ).toThrow("does not support the 'transcription' session intent");
     });
   });
 

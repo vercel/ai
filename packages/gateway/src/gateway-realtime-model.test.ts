@@ -39,6 +39,17 @@ const createTestModel = (
   });
 
 describe('GatewayRealtimeModel', () => {
+  it('rejects unsupported intents during serialization as well as connection setup', () => {
+    const target = createTestModel();
+    const options = { intent: 'transcription' } as const;
+    expect(() =>
+      target.serializeClientEvent({ type: 'response-create' }, options),
+    ).toThrow(/does not support/);
+    expect(() => target.buildSessionConfig({}, options)).toThrow(
+      /does not support/,
+    );
+  });
+
   it('exposes the v4 specification, provider, and model id', () => {
     const model = createTestModel();
     expect(model.specificationVersion).toBe('v4');
@@ -161,8 +172,8 @@ describe('GatewayRealtimeModel', () => {
 
     it('rejects unsupported endpoint intents', async () => {
       await expect(
-        createTestModel().getServerWebSocketConfig({ intent: 'translation' }),
-      ).rejects.toThrow("does not support the 'translation' session intent");
+        createTestModel().getServerWebSocketConfig({ intent: 'transcription' }),
+      ).rejects.toThrow("does not support the 'transcription' session intent");
     });
   });
 

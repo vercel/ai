@@ -159,11 +159,11 @@ function buildServerUrl(
   switch (intent) {
     case 'transcription':
       return `${base}/realtime?intent=transcription`;
-    case 'translation':
-      throw new Error(
-        'OpenAI realtime translation sessions are not supported by the normalized RealtimeModelV4 codec yet.',
-      );
-    default:
+    case 'conversation':
       return `${base}/realtime?model=${encodeURIComponent(modelId)}`;
+    default:
+      throw new Error(
+        `OpenAI realtime session intent '${intent}' is not supported.`,
+      );
   }
 }

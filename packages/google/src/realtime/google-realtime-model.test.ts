@@ -3,6 +3,21 @@ import { GoogleRealtimeModel } from './google-realtime-model';
 import type { GoogleRealtimeModelOptions } from './google-realtime-model-options';
 
 describe('GoogleRealtimeModel', () => {
+  it('rejects unsupported intents during serialization as well as connection setup', () => {
+    const target = new GoogleRealtimeModel('gemini-3.8-live', {
+      provider: 'google.realtime',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: {},
+    });
+    const options = { intent: 'transcription' } as const;
+    expect(() =>
+      target.serializeClientEvent({ type: 'response-create' }, options),
+    ).toThrow(/does not support/);
+    expect(() => target.buildSessionConfig({}, options)).toThrow(
+      /does not support/,
+    );
+  });
+
   it('isolates usage and turn state between server connections', () => {
     const model = new GoogleRealtimeModel('gemini-3.8-live', {
       provider: 'google.realtime',

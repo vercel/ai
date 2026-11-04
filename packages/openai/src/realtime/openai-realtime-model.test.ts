@@ -78,8 +78,8 @@ describe('OpenAIRealtimeModel', () => {
 
     it('rejects translation until the normalized codec supports it', () => {
       expect(() =>
-        model.getServerWebSocketConfig({ intent: 'translation' }),
-      ).toThrow(/translation sessions are not supported/);
+        model.getServerWebSocketConfig({ intent: 'translation' as never }),
+      ).toThrow(/is not supported/);
     });
 
     it('uses ws:// for an http base URL (local/proxy)', () => {

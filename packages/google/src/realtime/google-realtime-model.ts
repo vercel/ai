@@ -162,15 +162,21 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
     | PromiseLike<RealtimeModelV4ServerConnection> {
     // Gemini Live exposes only the conversational endpoint; fail fast instead
     // of silently downgrading unsupported intents.
+    this.assertConversationIntent(options);
+    return resolveWith(this.config.headers, headers => ({
+      url: getServerWebSocketURL(this.config.baseURL),
+      headers: removeUndefinedEntries(headers),
+    }));
+  }
+
+  private assertConversationIntent(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): void {
     if (options?.intent != null && options.intent !== 'conversation') {
       throw new Error(
         `Google realtime does not support the '${options.intent}' session intent.`,
       );
     }
-    return resolveWith(this.config.headers, headers => ({
-      url: getServerWebSocketURL(this.config.baseURL),
-      headers: removeUndefinedEntries(headers),
-    }));
   }
 
   parseServerEvent(
@@ -188,13 +194,17 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
 
   serializeClientEvent(
     event: RealtimeModelV4ClientEvent,
+    options?: { intent?: RealtimeModelV4SessionIntent },
   ): ReturnType<RealtimeModelV4['serializeClientEvent']> {
+    this.assertConversationIntent(options);
     return this.mapper.serializeClientEvent(event, this.modelId);
   }
 
   buildSessionConfig(
     config: RealtimeModelV4SessionConfig,
+    options?: { intent?: RealtimeModelV4SessionIntent },
   ): Record<string, unknown> {
+    this.assertConversationIntent(options);
     return buildGoogleSessionConfig(config, this.modelId);
   }
 }

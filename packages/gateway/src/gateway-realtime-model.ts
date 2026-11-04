@@ -96,16 +96,22 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
   async getServerWebSocketConfig(options?: {
     intent?: RealtimeModelV4SessionIntent;
   }): Promise<RealtimeModelV4ServerConnection> {
-    if (options?.intent != null && options.intent !== 'conversation') {
-      throw new Error(
-        `AI Gateway realtime does not support the '${options.intent}' session intent on the normalized realtime route.`,
-      );
-    }
+    this.assertConversationIntent(options);
 
     return {
       url: toGatewayRealtimeUrl(this.config.baseURL, this.modelId),
       headers: removeUndefinedEntries(await this.config.getHeaders()),
     };
+  }
+
+  private assertConversationIntent(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): void {
+    if (options?.intent != null && options.intent !== 'conversation') {
+      throw new Error(
+        `AI Gateway realtime does not support the '${options.intent}' session intent on the normalized realtime route.`,
+      );
+    }
   }
 
   parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent {
@@ -114,12 +120,20 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
     return raw as RealtimeModelV4ServerEvent;
   }
 
-  serializeClientEvent(event: RealtimeModelV4ClientEvent): unknown {
+  serializeClientEvent(
+    event: RealtimeModelV4ClientEvent,
+    options?: { intent?: RealtimeModelV4SessionIntent },
+  ): unknown {
+    this.assertConversationIntent(options);
     // The Gateway accepts normalized AI SDK realtime events directly.
     return event;
   }
 
-  buildSessionConfig(config: RealtimeModelV4SessionConfig): unknown {
+  buildSessionConfig(
+    config: RealtimeModelV4SessionConfig,
+    options?: { intent?: RealtimeModelV4SessionIntent },
+  ): unknown {
+    this.assertConversationIntent(options);
     // The session config is already normalized; the Gateway maps it to the
     // upstream provider's session payload server-side.
     return config;

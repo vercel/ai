@@ -592,9 +592,13 @@ export function buildOpenAISessionConfig(
 function assertSupportedOpenAIIntent(
   intent: RealtimeModelV4SessionIntent | undefined,
 ): void {
-  if (intent === 'translation') {
+  if (
+    intent != null &&
+    intent !== 'conversation' &&
+    intent !== 'transcription'
+  ) {
     throw new Error(
-      'OpenAI realtime translation sessions are not supported by the normalized RealtimeModelV4 codec yet.',
+      `OpenAI realtime session intent '${intent}' is not supported.`,
     );
   }
 }

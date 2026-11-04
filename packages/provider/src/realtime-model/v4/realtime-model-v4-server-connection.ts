@@ -2,15 +2,12 @@
  * The realtime endpoint variant to open.
  *
  * Most providers expose a single conversational ("conversation") voice
- * endpoint; some additionally expose dedicated transcription / translation
+ * endpoint; some additionally expose dedicated transcription
  * endpoints that live at a different URL. `intent` selects which one a
  * server-side connection should target. Providers should fail fast when an
  * intent is not supported by their endpoint and codec.
  */
-export type RealtimeModelV4SessionIntent =
-  | 'conversation'
-  | 'transcription'
-  | 'translation';
+export type RealtimeModelV4SessionIntent = 'conversation' | 'transcription';
 
 /**
  * Descriptor for a server-initiated upstream WebSocket connection: the URL to
