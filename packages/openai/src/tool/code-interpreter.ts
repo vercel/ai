@@ -67,7 +67,8 @@ type CodeInterpreterArgs = {
   /**
    * The code interpreter container.
    * Can be a container ID
-   * or an object that specifies uploaded file IDs to make available to your code.
+   * or an object that configures uploaded file IDs, the memory limit,
+   * and the network policy for a new container.
    */
   container?:
     | string
