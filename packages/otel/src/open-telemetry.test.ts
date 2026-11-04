@@ -911,6 +911,118 @@ describe('OpenTelemetry', () => {
       `);
     });
 
+    it.each([undefined, false])(
+      'redacts domain secrets in initial and observed tool definitions with recordInputs=%s',
+      recordInputs => {
+        const tools = [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'python',
+            args: {
+              container: {
+                memoryLimit: '4g',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets: [
+                    {
+                      domain: 'example.com',
+                      name: 'API_KEY',
+                      value: 'private-key',
+                    },
+                    {
+                      domain: 'example.com',
+                      name: 'TOKEN',
+                      value: 'private-token',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'terminal',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets: [
+                    {
+                      domain: 'example.com',
+                      name: 'KEY',
+                      value: 'shell-private-key',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'remote_tools',
+            args: {
+              serverLabel: 'example',
+              serverUrl: 'https://example.com/mcp',
+              authorization: 'mcp-private-token',
+              headers: { 'X-Custom-Key': 'mcp-private-key' },
+            },
+          },
+          { type: 'function', name: 'weather', description: 'Get weather' },
+        ];
+        const originalTools = structuredClone(tools);
+        integration.onStart!(makeOnStartEvent({ recordInputs }));
+        integration.onStepStart!(makeStepStartEvent());
+        integration.onLanguageModelCallStart!(
+          makeLanguageModelCallStartEvent({ tools }),
+        );
+        const initialDefinitions = getStartSpanAttributes(tracer, 2)[
+          'gen_ai.tool.definitions'
+        ];
+
+        integration.onLanguageModelCallEnd!(
+          makeLanguageModelCallEndEvent({
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tc1',
+                toolName: 'mcp.search',
+                input: {},
+                providerExecuted: true,
+                dynamic: true,
+              },
+            ],
+          }),
+        );
+        const finalDefinitions =
+          tracer.spans[2].attributes['gen_ai.tool.definitions'];
+
+        for (const definitions of [initialDefinitions, finalDefinitions]) {
+          if (recordInputs === false) {
+            expect(definitions).toBeUndefined();
+          } else {
+            expect(definitions).not.toContain('private-key');
+            expect(definitions).not.toContain('private-token');
+            expect(definitions).toContain('[redacted]');
+            expect(definitions).toContain('example.com');
+            expect(definitions).toContain('API_KEY');
+            expect(definitions).toContain('TOKEN');
+            expect(definitions).toContain('4g');
+            expect(definitions).toContain('Get weather');
+          }
+        }
+        if (recordInputs !== false) {
+          expect(finalDefinitions).toContain('mcp.search');
+        }
+        expect(tools).toEqual(originalTools);
+      },
+    );
+
     it('sets gen_ai.tool.definitions when tools provided', () => {
       const tools = [
         { type: 'function', name: 'get_weather', description: 'Get weather' },

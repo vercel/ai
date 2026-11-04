@@ -734,7 +734,21 @@ const result = await generateText({
 
 The code interpreter tool can be configured with:
 
-- **container**: Either a container ID string or an object with `fileIds` to specify uploaded files that should be available to the code interpreter
+- **container**: Either:
+  - a container ID (`string`) to reuse an existing container, or
+  - a configuration `object` to create and configure a new container.
+
+- **container configuration object**
+  - **fileIds** _string[]_ — File IDs to make available in the container at startup
+  - **memoryLimit** _'1g' | '4g' | '16g' | '64g'_ — Memory limit for the container
+
+<Note type="warning">
+  The shared `networkPolicy` container option is exposed by
+  `azure.tools.codeInterpreter`, but outbound networking availability is
+  controlled by Azure OpenAI. Check the supported options for your deployment
+  and API version in the [Azure Responses API
+  documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses).
+</Note>
 
 <Note>
   The tool must be named `code_interpreter` when using Azure OpenAI's code
