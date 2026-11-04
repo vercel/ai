@@ -2,4 +2,4 @@
 '@ai-sdk/azure': patch
 ---
 
-add apply-patch in azure tools
+Expose `azure.tools.applyPatch` for client-executed file edits through the Azure Responses API.
