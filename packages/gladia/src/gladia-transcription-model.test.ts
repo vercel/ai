@@ -602,3 +602,23 @@ it('warns about missing solaria-3 language without changing the request', async 
     },
   ]);
 });
+
+it('warns when PII configuration is set without enabling redaction', async () => {
+  prepareJsonFixtureResponse();
+  const result = await model.doGenerate({
+    audio: audioData,
+    mediaType: 'audio/mp3',
+    providerOptions: {
+      gladia: { piiRedactionConfig: { processedTextType: 'MASK' } },
+    },
+  });
+  expect(result.warnings).toEqual([
+    {
+      type: 'other',
+      message: 'piiRedactionConfig has no effect unless piiRedaction is true.',
+    },
+  ]);
+  expect((await server.calls[1].requestBodyJson).pii_redaction_config).toEqual({
+    processed_text_type: 'MASK',
+  });
+});

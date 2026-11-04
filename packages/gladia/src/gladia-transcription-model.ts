@@ -249,6 +249,12 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
       }
 
       if (gladiaOptions.piiRedactionConfig) {
+        if (gladiaOptions.piiRedaction !== true)
+          warnings.push({
+            type: 'other',
+            message:
+              'piiRedactionConfig has no effect unless piiRedaction is true.',
+          });
         body.pii_redaction_config = {
           entity_types:
             gladiaOptions.piiRedactionConfig.entityTypes ?? undefined,
