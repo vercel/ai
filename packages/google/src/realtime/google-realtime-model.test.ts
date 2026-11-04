@@ -3,6 +3,41 @@ import { GoogleRealtimeModel } from './google-realtime-model';
 import type { GoogleRealtimeModelOptions } from './google-realtime-model-options';
 
 describe('GoogleRealtimeModel', () => {
+  it('isolates usage and turn state between server connections', () => {
+    const model = new GoogleRealtimeModel('gemini-3.8-live', {
+      provider: 'google.realtime',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: {},
+    });
+    const first = model.createServerEventParser();
+    const second = model.createServerEventParser();
+    first({
+      usageMetadata: {
+        promptTokensDetails: [{ modality: 'TEXT', tokenCount: 12 }],
+      },
+    });
+    const secondDone = second({ serverContent: { turnComplete: true } });
+    expect(
+      Array.isArray(secondDone) ? secondDone : [secondDone],
+    ).toContainEqual(
+      expect.objectContaining({
+        type: 'response-done',
+        responseId: 'google-resp-0',
+      }),
+    );
+    expect(
+      Array.isArray(secondDone) ? secondDone : [secondDone],
+    ).not.toContainEqual(expect.objectContaining({ usage: expect.anything() }));
+    const firstDone = first({ serverContent: { turnComplete: true } });
+    expect(Array.isArray(firstDone) ? firstDone : [firstDone]).toContainEqual(
+      expect.objectContaining({
+        type: 'response-done',
+        responseId: 'google-resp-0',
+        usage: { inputTextTokens: 12 },
+      }),
+    );
+  });
+
   describe('doCreateClientSecret', () => {
     it('calls auth_tokens endpoint with correct payload', async () => {
       const mockFetch = vi.fn().mockResolvedValue({

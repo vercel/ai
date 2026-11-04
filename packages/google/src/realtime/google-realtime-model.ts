@@ -179,6 +179,13 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
     return this.mapper.parseServerEvent(raw);
   }
 
+  createServerEventParser(): NonNullable<
+    RealtimeModelV4['createServerEventParser']
+  > {
+    const mapper = new GoogleRealtimeEventMapper();
+    return raw => mapper.parseServerEvent(raw);
+  }
+
   serializeClientEvent(
     event: RealtimeModelV4ClientEvent,
   ): ReturnType<RealtimeModelV4['serializeClientEvent']> {
