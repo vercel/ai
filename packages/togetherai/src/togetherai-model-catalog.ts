@@ -11,6 +11,33 @@ import type {
 } from '@ai-sdk/provider';
 import type { TogetherAIImageModelOptions } from './togetherai-image-model-options';
 import type { TogetherAIRerankingModelOptions } from './reranking/togetherai-reranking-model-options';
+const imageEditingDetails: Partial<
+  Record<string, { editingDescription: string }>
+> = {
+  'black-forest-labs/FLUX.1-kontext-pro': {
+    editingDescription: 'Production quality, balanced speed',
+  },
+  'black-forest-labs/FLUX.1-kontext-max': {
+    editingDescription: 'Maximum image fidelity',
+  },
+  'black-forest-labs/FLUX.1-kontext-dev': {
+    editingDescription: 'Development and experimentation',
+  },
+  'black-forest-labs/FLUX.2-pro': {
+    editingDescription: 'High fidelity single-image editing',
+  },
+  'black-forest-labs/FLUX.2-flex': {
+    editingDescription:
+      'Single-image editing with adjustable steps and guidance',
+  },
+};
+const embeddingContextDetails: Partial<Record<string, { maxTokens: number }>> =
+  {
+    'BAAI/bge-large-en-v1.5': { maxTokens: 512 },
+    'Alibaba-NLP/gte-modernbert-base': { maxTokens: 8192 },
+    'intfloat/multilingual-e5-large-instruct': { maxTokens: 514 },
+  };
+
 const compatiblelanguageProviderOptions = {
   user: {
     description:
@@ -280,6 +307,7 @@ export function getTogetherAIImageModelEntry(modelId: string) {
         maskInput: fileInput === 'unknown' ? 'unknown' : false,
         maxImagesPerCall: 1,
         diffusion,
+        ...imageEditingDetails[modelId],
       },
     },
     providerOptions: {
@@ -307,6 +335,7 @@ export function getTogetherAIEmbeddingModelEntry(modelId: string) {
             embedding: {
               defaultDimensions: dimensions,
               customDimensions: 'unknown' as const,
+              ...embeddingContextDetails[modelId],
             },
           }
         : {}),
@@ -348,3 +377,15 @@ export const togetheraiModelCatalog = Object.fromEntries([
     id => [id, getTogetherAIRerankingModelEntry(id)] as const,
   ),
 ]);
+
+// Include documented editing IDs in the inventory even when they are accepted
+// through the open string type rather than listed in the model-ID union.
+Object.assign(
+  togetheraiModelCatalog,
+  Object.fromEntries(
+    Object.keys(imageDefinitions).map(id => [
+      id,
+      getTogetherAIImageModelEntry(id),
+    ]),
+  ),
+);
