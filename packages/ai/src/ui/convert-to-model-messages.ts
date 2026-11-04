@@ -193,6 +193,16 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
       case 'assistant': {
         if (message.parts != null) {
+          const lastStepIndex = Math.max(
+            message.parts.filter(part => part.type === 'step-start').length - 1,
+            0,
+          );
+          const deferredProviderToolResults = new Map<
+            number,
+            ToolResultPart[]
+          >();
+          let currentStepIndex = 0;
+          let hasStepStarted = false;
           let block: Array<
             | CustomContentUIPart
             | TextUIPart
@@ -205,11 +215,14 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
           > = [];
 
           async function processBlock() {
-            if (block.length === 0) {
+            const deferredResults =
+              deferredProviderToolResults.get(currentStepIndex) ?? [];
+
+            if (block.length === 0 && deferredResults.length === 0) {
               return;
             }
 
-            const content: AssistantContent = [];
+            const content: AssistantContent = [...deferredResults];
 
             for (const part of block) {
               if (isTextUIPart(part)) {
@@ -314,7 +327,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     const resultProviderMetadata =
                       part.resultProviderMetadata ?? part.callProviderMetadata;
 
-                    content.push({
+                    const toolResult: ToolResultPart = {
                       type: 'tool-result',
                       toolCallId: part.toolCallId,
                       toolName,
@@ -331,7 +344,24 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       ...(resultProviderMetadata != null
                         ? { providerOptions: resultProviderMetadata }
                         : {}),
-                    });
+                    };
+
+                    if (
+                      part.resultStepIndex != null &&
+                      part.resultStepIndex > currentStepIndex &&
+                      part.resultStepIndex <= lastStepIndex
+                    ) {
+                      const results =
+                        deferredProviderToolResults.get(part.resultStepIndex) ??
+                        [];
+                      results.push(toolResult);
+                      deferredProviderToolResults.set(
+                        part.resultStepIndex,
+                        results,
+                      );
+                    } else {
+                      content.push(toolResult);
+                    }
                   }
                 }
               } else if (isDataUIPart(part)) {
@@ -480,7 +510,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             ) {
               block.push(part as (typeof block)[number]);
             } else if (part.type === 'step-start') {
+              const blockHadParts = block.length > 0;
               await processBlock();
+              if (hasStepStarted || blockHadParts) {
+                currentStepIndex++;
+              }
+              hasStepStarted = true;
             }
           }
 

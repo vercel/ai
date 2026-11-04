@@ -1164,6 +1164,84 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should preserve the step where a deferred provider tool result arrived', async () => {
+      const assistantMessage = await recordAssistantMessageFromChunks([
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'search-call',
+          toolName: 'toolSearch',
+          input: { query: 'deferred action' },
+          providerExecuted: true,
+        },
+        { type: 'start-step' },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'search-call',
+          output: [{ type: 'tool-reference', toolName: 'deferredAction' }],
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'action-call',
+          toolName: 'deferredAction',
+          input: { value: 'done' },
+          providerExecuted: true,
+        },
+      ]);
+      const persistedMessage = JSON.parse(
+        JSON.stringify(assistantMessage),
+      ) as UIMessage;
+      const validatedMessages = await validateUIMessages({
+        messages: [persistedMessage],
+      });
+
+      expect(validatedMessages[0].parts[1]).toMatchObject({
+        type: 'tool-toolSearch',
+        resultStepIndex: 1,
+      });
+      await expect(convertToModelMessages(validatedMessages)).resolves.toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'search-call',
+              toolName: 'toolSearch',
+              input: { query: 'deferred action' },
+              providerExecuted: true,
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'search-call',
+              toolName: 'toolSearch',
+              output: {
+                type: 'json',
+                value: [
+                  {
+                    type: 'tool-reference',
+                    toolName: 'deferredAction',
+                  },
+                ],
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'action-call',
+              toolName: 'deferredAction',
+              input: { value: 'done' },
+              providerExecuted: true,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should handle assistant message with provider-executed tool output error', async () => {
       const result = await convertToModelMessages([
         {
