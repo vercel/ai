@@ -86,6 +86,39 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
 
     // Add provider-specific options
     if (gladiaOptions) {
+      const unsupportedOptions = {
+        contextPrompt: gladiaOptions.contextPrompt,
+        moderation: gladiaOptions.moderation,
+        chapterization: gladiaOptions.chapterization,
+        nameConsistency: gladiaOptions.nameConsistency,
+        structuredDataExtraction: gladiaOptions.structuredDataExtraction,
+        structuredDataExtractionConfig:
+          gladiaOptions.structuredDataExtractionConfig,
+        displayMode: gladiaOptions.displayMode,
+        'diarizationConfig.enhanced': gladiaOptions.diarizationConfig?.enhanced,
+      };
+      for (const [feature, value] of Object.entries(unsupportedOptions)) {
+        if (value != null)
+          warnings.push({
+            type: 'unsupported',
+            feature,
+            details:
+              'No longer supported by the Gladia v2 pre-recorded API; ignored.',
+          });
+      }
+      for (const setting of [
+        'language',
+        'detectLanguage',
+        'enableCodeSwitching',
+        'codeSwitchingConfig',
+      ] as const) {
+        if (gladiaOptions[setting] != null)
+          warnings.push({
+            type: 'deprecated',
+            setting,
+            message: 'Use languageConfig instead.',
+          });
+      }
       const { customVocabulary, vocabulary: customVocabularyFromArray } =
         resolveCustomVocabulary(gladiaOptions);
 

@@ -404,3 +404,60 @@ describe('doGenerate', () => {
     });
   });
 });
+
+describe('legacy option warnings', () => {
+  beforeEach(() => prepareJsonFixtureResponse());
+  it.each([
+    ['contextPrompt', { contextPrompt: 'context' }],
+    ['moderation', { moderation: true }],
+    ['chapterization', { chapterization: true }],
+    ['nameConsistency', { nameConsistency: true }],
+    ['structuredDataExtraction', { structuredDataExtraction: true }],
+    [
+      'structuredDataExtractionConfig',
+      { structuredDataExtractionConfig: { classes: ['test'] } },
+    ],
+    ['displayMode', { displayMode: false }],
+    ['diarizationConfig.enhanced', { diarizationConfig: { enhanced: true } }],
+  ] as const)('warns when %s is ignored', async (feature, options) => {
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mp3',
+      providerOptions: { gladia: options },
+    });
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature,
+        details:
+          'No longer supported by the Gladia v2 pre-recorded API; ignored.',
+      },
+    ]);
+    const body = await server.calls[1].requestBodyJson;
+    expect(body).toEqual(
+      feature === 'diarizationConfig.enhanced'
+        ? { audio_url: uploadFixture.audio_url, diarization_config: {} }
+        : { audio_url: uploadFixture.audio_url },
+    );
+  });
+  it.each([
+    ['language', { language: 'en' }],
+    ['detectLanguage', { detectLanguage: true }],
+    ['enableCodeSwitching', { enableCodeSwitching: false }],
+    ['codeSwitchingConfig', { codeSwitchingConfig: { languages: ['en'] } }],
+  ] as const)(
+    'warns when translating deprecated %s',
+    async (setting, options) => {
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mp3',
+        providerOptions: { gladia: options },
+      });
+      expect(result.warnings).toContainEqual({
+        type: 'deprecated',
+        setting,
+        message: 'Use languageConfig instead.',
+      });
+    },
+  );
+});

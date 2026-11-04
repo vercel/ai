@@ -13,7 +13,7 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
       /**
        * Optional context prompt to guide the transcription.
        *
-       * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       contextPrompt: z.string().nullish(),
 
@@ -197,7 +197,7 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
           /**
            * Whether to use enhanced diarization.
            *
-           * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+           * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
            */
           enhanced: z.boolean().nullish(),
         })
@@ -264,7 +264,7 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
       /**
        * Whether to enable content moderation.
        *
-       * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       moderation: z.boolean().nullish(),
 
@@ -276,14 +276,14 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
       /**
        * Whether to enable automatic chapter creation.
        *
-       * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       chapterization: z.boolean().nullish(),
 
       /**
        * Whether to ensure consistent naming of entities.
        *
-       * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       nameConsistency: z.boolean().nullish(),
 
@@ -307,14 +307,14 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
       /**
        * Whether to extract structured data from the transcription.
        *
-       * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       structuredDataExtraction: z.boolean().nullish(),
 
       /**
        * Configuration for structured data extraction.
        *
-       * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       structuredDataExtractionConfig: z
         .object({
@@ -385,7 +385,7 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
       /**
        * Whether to enable display mode.
        *
-       * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       displayMode: z.boolean().nullish(),
 
