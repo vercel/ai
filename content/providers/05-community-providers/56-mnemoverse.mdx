@@ -10,7 +10,7 @@ description: Learn how to use Mnemoverse persistent long-term memory with the AI
 Features include:
 
 - Persistent memory tools: agents save information users share and recall it in future conversations
-- Re-ranking feedback: rating whether recalled memories helped or misled adjusts future retrieval
+- Learns from outcomes: rating a recalled memory as helpful or misleading re-ranks what comes back next
 - Shared memory rooms: multiple users and agents can share a unified memory context
 - Full TypeScript support across AI SDK versions
 
@@ -20,7 +20,7 @@ Features include:
 
 ## Setup
 
-Sign up and obtain your API key from the [Mnemoverse dashboard](https://mnemoverse.com).
+Sign up and obtain your API key from the [Mnemoverse console](https://console.mnemoverse.com/sign-up).
 
 Set the API key in your environment:
 
@@ -81,7 +81,7 @@ const memory = await createMnemoverseTools({
 
 const agent = new ToolLoopAgent({
   model: 'openai/gpt-4o',
-  system: SERVER_INSTRUCTIONS,
+  instructions: SERVER_INSTRUCTIONS,
   tools: memory.tools,
 });
 

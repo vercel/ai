@@ -225,7 +225,7 @@ const memory = await createMnemoverseTools({
 
 const agent = new ToolLoopAgent({
   model: __MODEL__,
-  system: SERVER_INSTRUCTIONS,
+  instructions: SERVER_INSTRUCTIONS,
   tools: memory.tools,
 });
 
