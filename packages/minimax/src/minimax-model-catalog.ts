@@ -62,7 +62,7 @@ const documentedLanguageCapabilities: Record<
   string,
   NonNullable<ModelCapabilities['language']>
 > = {
-  'MiniMax-M3.1-Flash': {
+  'minimax-m3.1-flash': {
     inputs: { image: true, audio: 'unknown' },
     objectGeneration: true,
     tools: { usage: true, streaming: true },
@@ -125,7 +125,10 @@ const documentedLanguageCapabilities: Record<
     reasoning: { support: 'unknown' },
     sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
   },
-};
+} satisfies Record<
+  (typeof languageModelIds)[number],
+  NonNullable<ModelCapabilities['language']>
+>;
 const unknownLanguageCapabilities: NonNullable<ModelCapabilities['language']> =
   {
     inputs: { image: 'unknown', audio: 'unknown' },
