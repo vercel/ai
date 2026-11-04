@@ -459,17 +459,18 @@ export function ToolItem({ tool }: { tool: ToolDefinition }) {
   return (
     <div className="overflow-hidden rounded-md border border-border bg-background">
       <button
-        className="w-full flex items-center justify-between p-2.5 hover:bg-accent/50 transition-colors"
+        className="w-full flex items-center justify-start gap-2 p-2.5 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
       >
-        <span className="font-mono text-sm text-tool">{tool.name}</span>
         {hasExpandableContent && (
           <ChevronRight
-            className={`size-3 text-muted-foreground transition-transform ${
+            className={`size-3 text-muted-foreground transition-transform shrink-0 ${
               expanded ? 'rotate-90' : ''
             }`}
           />
         )}
+        <span className="font-mono text-sm text-tool">{tool.name}</span>
       </button>
       {!expanded && tool.description && (
         <div className="px-2.5 pb-2">
@@ -647,7 +648,10 @@ export function StepConfigBar({
           <span className="text-muted-foreground/30">·</span>
           <Drawer direction="right">
             <DrawerTrigger asChild>
-              <button className="inline-flex gap-1 items-center transition-colors cursor-pointer hover:text-foreground">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/50 px-2 py-1 font-medium text-foreground transition-colors hover:border-ring hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
                 <Wrench className="size-3" />
                 {toolCount} available {toolCount === 1 ? 'tool' : 'tools'}
               </button>
@@ -673,7 +677,10 @@ export function StepConfigBar({
           <span className="text-muted-foreground/30">·</span>
           <Drawer direction="right">
             <DrawerTrigger asChild>
-              <button className="inline-flex gap-1 items-center transition-colors cursor-pointer hover:text-foreground">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/50 px-2 py-1 font-medium text-foreground transition-colors hover:border-ring hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
                 <Settings className="size-3" />
                 Provider options
               </button>
@@ -695,7 +702,10 @@ export function StepConfigBar({
           <span className="text-muted-foreground/30">·</span>
           <Drawer direction="right">
             <DrawerTrigger asChild>
-              <button className="inline-flex gap-1 items-center transition-colors cursor-pointer hover:text-foreground">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/50 px-2 py-1 font-medium text-foreground transition-colors hover:border-ring hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
                 <BarChart3 className="size-3" />
                 Usage
               </button>

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ChevronRight,
-  ChevronDown,
   Wrench,
   MessageSquare,
   AlertCircle,
@@ -86,11 +85,17 @@ export function StepCard({
       >
         <CollapsibleTrigger asChild>
           <button
-            className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors hover:bg-accent/50 ${
+            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset ${
               isExpanded ? 'border-b border-border' : ''
             }`}
           >
-            <div className="flex items-center gap-3">
+            <ChevronRight
+              aria-hidden="true"
+              className={`size-4 shrink-0 text-muted-foreground transition-transform ${
+                isExpanded ? 'rotate-90' : ''
+              }`}
+            />
+            <div className="flex min-w-0 items-center gap-3">
               <span className="text-xs text-muted-foreground font-mono w-4">
                 {step.step_number}
               </span>
@@ -162,7 +167,7 @@ export function StepCard({
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="ml-auto flex shrink-0 items-center gap-4">
               {isActiveStep ? (
                 <span className="text-[11px] text-info font-medium flex items-center gap-1.5">
                   <Loader2 className="size-3 animate-spin" />
@@ -195,11 +200,6 @@ export function StepCard({
                   </TooltipContent>
                 </Tooltip>
               )}
-              <ChevronDown
-                className={`size-4 text-muted-foreground transition-transform ${
-                  isExpanded ? 'rotate-180' : ''
-                }`}
-              />
             </div>
           </button>
         </CollapsibleTrigger>
