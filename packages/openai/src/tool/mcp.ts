@@ -54,11 +54,13 @@ export const mcpArgsSchema = lazySchema(() =>
         tunnelId: z.string().optional(),
       })
       .refine(
+        v => v.serverUrl != null || v.connectorId != null || v.tunnelId != null,
+        'One of serverUrl, connectorId, or tunnelId must be provided.',
+      )
+      .refine(
         v =>
-          [v.serverUrl, v.connectorId, v.tunnelId].filter(
-            value => value != null,
-          ).length === 1,
-        'Exactly one of serverUrl, connectorId, or tunnelId must be provided.',
+          v.tunnelId == null || (v.serverUrl == null && v.connectorId == null),
+        'tunnelId cannot be combined with serverUrl or connectorId.',
       ),
   ),
 );
@@ -111,14 +113,9 @@ type McpArgs = McpCommonArgs &
   (
     | {
         /** URL for the MCP server. */
-        serverUrl: string;
-        connectorId?: never;
-        tunnelId?: never;
-      }
-    | {
+        serverUrl?: string;
         /** Identifier for a service connector. */
-        connectorId: string;
-        serverUrl?: never;
+        connectorId?: string;
         tunnelId?: never;
       }
     | {

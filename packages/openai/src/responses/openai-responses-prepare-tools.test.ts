@@ -94,7 +94,7 @@ describe('prepareResponsesTools', () => {
         });
 
       await expect(prepare({ serverLabel: 'missing-target' })).rejects.toThrow(
-        'Exactly one of serverUrl, connectorId, or tunnelId must be provided.',
+        'One of serverUrl, connectorId, or tunnelId must be provided.',
       );
       await expect(
         prepare({
@@ -103,7 +103,7 @@ describe('prepareResponsesTools', () => {
           tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
         }),
       ).rejects.toThrow(
-        'Exactly one of serverUrl, connectorId, or tunnelId must be provided.',
+        'tunnelId cannot be combined with serverUrl or connectorId.',
       );
     });
   });
