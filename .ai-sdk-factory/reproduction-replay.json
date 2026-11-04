@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 24498,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-24498.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-24498.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE-24498: adapter tests used ambient credentials to attempt OAuth refresh"
+  }
+}
