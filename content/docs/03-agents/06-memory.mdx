@@ -280,7 +280,7 @@ const result = await agent.generate({
 });
 ```
 
-A Membase key is one person's memory. In multi-user apps, call `membaseTools` inside your request handler with the current user's key. Membase works with any AI SDK provider.
+A Membase key is one person's memory. In multi-user apps, call `membaseTools` inside your request handler with the key of the signed-in user, taken from your auth session rather than from the request. Membase works with any AI SDK provider.
 
 See the [Membase provider documentation](/providers/community-providers/membase) for full setup and configuration.
 

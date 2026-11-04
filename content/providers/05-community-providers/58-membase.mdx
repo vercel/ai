@@ -72,7 +72,7 @@ const result = await agent.generate({
 
 ## Multi-User Memory
 
-A Membase key belongs to one person's account. In multi-user applications, create the tools inside your request handler with the current user's key, so each request reads and writes that user's memory only:
+A Membase key belongs to one person's account. In multi-user applications, create the tools inside your request handler with the key of the user your authentication identified, so each request reads and writes that user's memory only. Never pick the key from a user ID in the request body: anyone could send someone else's ID.
 
 ```ts
 // app/api/chat/route.ts
@@ -87,10 +87,12 @@ import { openai } from '@ai-sdk/openai';
 import { membaseTools } from '@unibaseio/membase-ai-sdk';
 
 export async function POST(req: Request) {
-  const { messages, userId } = await req.json();
-
-  // The user's own Membase developer key, stored by your application.
+  // The signed-in user, from your auth session (not from the request body).
+  const userId = await getSessionUserId(req);
+  // That user's own Membase developer key, stored by your application.
   const apiKey = await getMembaseKey(userId);
+
+  const { messages } = await req.json();
 
   const result = streamText({
     model: openai('gpt-6-astra'),
