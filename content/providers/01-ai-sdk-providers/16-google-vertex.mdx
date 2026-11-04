@@ -1755,8 +1755,8 @@ open objects, circular references, or schemas with too many optional properties,
 continue to use the JSON response tool.
 
 Google Cloud denies the feature by default through
-`constraints/vertexai.allowedPartnerModelFeatures`. Allow
-`publishers/anthropic/models/MODEL_ID:structured_outputs` for each model you use.
+`constraints/vertexai.allowedPartnerModelFeatures`. Allow the
+`structured_outputs` feature for each model you use.
 See [Google Cloud's structured output documentation](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude/structured-outputs)
 for supported models and policy configuration. Enabling the SDK setting does not
 change that policy. API errors, including policy rejections, are returned without

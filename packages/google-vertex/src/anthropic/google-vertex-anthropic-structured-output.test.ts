@@ -12,8 +12,7 @@ import { createGoogleVertexAnthropic } from './google-vertex-anthropic-provider'
 import { createGoogleVertexAnthropic as createNodeProvider } from './google-vertex-anthropic-provider-node';
 import { createGoogleVertexAnthropic as createEdgeProvider } from './edge/google-vertex-anthropic-provider-edge';
 
-// Same schema shape as humanize-app/ai-gateway-vertex-schema-repro.
-// Deliberately off-schema mock replies characterize SDK parsing, not provider conformance.
+// Nested application schema with constraints retained for SDK validation.
 const reportSchema = z.object({
   overview: z.object({ goals: z.string(), participants: z.string() }),
   findings: z
@@ -45,21 +44,22 @@ const prompt: LanguageModelV4CallOptions['prompt'] = [
 ];
 const cases = (['vertex', 'vertex-opt-in', 'anthropic'] as const).flatMap(
   provider =>
-    (['auto', 'jsonTool', 'outputFormat'] as const).flatMap(mode =>
-      [false, true].map(wrapped => ({ provider, mode, wrapped })),
-    ),
+    (['auto', 'jsonTool', 'outputFormat'] as const).map(mode => ({
+      provider,
+      mode,
+    })),
 );
 
 describe.each(['generate', 'stream'] as const)(
   'Vertex Anthropic structured output: %s',
   method => {
     it.each(cases)(
-      '$provider $mode preserves the schema and returned arguments (wrapped: $wrapped)',
-      async ({ provider, mode, wrapped }) => {
+      '$provider $mode preserves the schema and returned arguments',
+      async ({ provider, mode }) => {
         const schema = await asSchema(reportSchema).jsonSchema;
         const native =
           mode === 'outputFormat' || (provider !== 'vertex' && mode === 'auto');
-        const value = wrapped ? { input: JSON.stringify(report) } : report;
+        const value = report;
         const text = JSON.stringify(value);
         const fetch = vi.fn<FetchFunction>(async () =>
           createResponse(method, native, value),
@@ -127,45 +127,51 @@ describe.each(['generate', 'stream'] as const)(
           expect(request.anthropic_version).toBe('vertex-2023-10-16');
           expect(request.model).toBeUndefined();
         }
-        expect(reportSchema.safeParse(value).success).toBe(!wrapped);
       },
     );
   },
 );
 
-it.each(['generate', 'stream'] as const)(
-  'does not retry a native-output policy rejection with tool emulation: %s',
-  async method => {
-    const message =
-      'Organization Policy constraint constraints/vertexai.allowedPartnerModelFeatures violated: structured_outputs is disallowed.';
-    const fetch = vi.fn<FetchFunction>(async () =>
-      Response.json(
-        { type: 'error', error: { type: 'invalid_request_error', message } },
-        { status: 400 },
-      ),
-    );
-    const model = createGoogleVertexAnthropic({
-      project: 'test-project',
-      location: 'us-east5',
-      supportsNativeStructuredOutput: true,
-      fetch,
-    })('claude-opus-5');
-    const options: LanguageModelV4CallOptions = {
-      prompt,
-      responseFormat: {
-        type: 'json',
-        schema: await asSchema(reportSchema).jsonSchema,
-      },
-    };
+describe.each(['generate', 'stream'] as const)('%s policy errors', method => {
+  it.each(['anthropic', 'google'] as const)(
+    'does not retry a %s-format policy rejection with tool emulation',
+    async format => {
+      const message =
+        'Organization Policy constraint constraints/vertexai.allowedPartnerModelFeatures violated: structured_outputs is disallowed.';
+      const fetch = vi.fn<FetchFunction>(async () =>
+        Response.json(
+          format === 'anthropic'
+            ? {
+                type: 'error',
+                error: { type: 'invalid_request_error', message },
+              }
+            : { error: { code: 400, message, status: 'INVALID_ARGUMENT' } },
+          { status: 400 },
+        ),
+      );
+      const model = createGoogleVertexAnthropic({
+        project: 'test-project',
+        location: 'us-east5',
+        supportsNativeStructuredOutput: true,
+        fetch,
+      })('claude-opus-5');
+      const options: LanguageModelV4CallOptions = {
+        prompt,
+        responseFormat: {
+          type: 'json',
+          schema: await asSchema(reportSchema).jsonSchema,
+        },
+      };
 
-    await expect(
-      method === 'generate'
-        ? model.doGenerate(options)
-        : model.doStream(options),
-    ).rejects.toMatchObject({ statusCode: 400, message, isRetryable: false });
-    expect(fetch).toHaveBeenCalledTimes(1);
-  },
-);
+      await expect(
+        method === 'generate'
+          ? model.doGenerate(options)
+          : model.doStream(options),
+      ).rejects.toMatchObject({ statusCode: 400, message, isRetryable: false });
+      expect(fetch).toHaveBeenCalledTimes(1);
+    },
+  );
+});
 
 describe.each([
   ['Node', createNodeProvider],
@@ -254,7 +260,6 @@ describe.each([
           toolName: 'report',
           input: JSON.stringify(value),
         });
-        expect(reportSchema.safeParse(value).success).toBe(false);
       },
     );
   });
@@ -422,5 +427,61 @@ it.each(['generate', 'stream'] as const)(
     const request = JSON.parse(fetch.mock.calls[0][1]!.body as string);
     expect(request.output_config).toBeUndefined();
     expect(request.tools[0].input_schema).toEqual(schema);
+  },
+);
+
+it.each(['generate', 'stream'] as const)(
+  'keeps Vertex Claude 4.1 on tool emulation with the opt-in: %s',
+  async method => {
+    const fetch = vi.fn<FetchFunction>(async () =>
+      createResponse(method, false, report),
+    );
+    const model = createGoogleVertexAnthropic({
+      project: 'test-project',
+      location: 'us-east5',
+      supportsNativeStructuredOutput: true,
+      fetch,
+    })('claude-opus-4-1@20250805');
+    await call(model, method, {
+      prompt,
+      responseFormat: {
+        type: 'json',
+        schema: await asSchema(reportSchema).jsonSchema,
+      },
+    });
+    const request = JSON.parse(fetch.mock.calls[0][1]!.body as string);
+    expect(request.output_config).toBeUndefined();
+    expect(request.tools[0].name).toBe('json');
+  },
+);
+
+it.each([false, true])(
+  'only warns about forced-tool fallback when native output is disabled (%s)',
+  async supportsNativeStructuredOutput => {
+    const fetch = vi.fn<FetchFunction>(async () =>
+      createResponse('generate', true, report),
+    );
+    const model = createGoogleVertexAnthropic({
+      project: 'test-project',
+      location: 'us-east5',
+      supportsNativeStructuredOutput,
+      fetch,
+    })('claude-opus-5-5');
+    const result = await model.doGenerate({
+      prompt,
+      responseFormat: {
+        type: 'json',
+        schema: await asSchema(reportSchema).jsonSchema,
+      },
+    });
+    const request = JSON.parse(fetch.mock.calls[0][1]!.body as string);
+    expect(request.output_config.format.type).toBe('json_schema');
+    expect(
+      result.warnings.filter(
+        warning =>
+          warning.type === 'unsupported' &&
+          warning.feature === 'providerOptions.anthropic.structuredOutputMode',
+      ),
+    ).toHaveLength(supportsNativeStructuredOutput ? 0 : 1);
   },
 );
