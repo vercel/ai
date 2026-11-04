@@ -1,0 +1,120 @@
+---
+title: Liquid Inference
+description: Use the Liquid Inference OpenAI compatible API with the AI SDK.
+---
+
+# Liquid Inference Provider
+
+[Liquid Inference](https://liquidinference.ai/?utm_source=vercel-ai&utm_medium=registry) is an auction exchange for LLM inference. Sellers post standing offers. For each request, the exchange ranks the eligible offers by estimated charge, fixes a price cap before the first token, and charges for the tokens used. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a Liquid Inference API key and set it as a server-side environment variable. Keys start with `sk-liquid-`.
+
+```bash
+export LIQUID_API_KEY=your-api-key
+```
+
+The workspace needs a balance, and the key needs the `spend` scope. See the [Liquid Inference AI SDK guide](https://inference.ai.exchange/docs/connect-vercel-ai-sdk?utm_source=vercel-ai&utm_medium=registry) for details.
+
+## Provider Instance
+
+Create a Liquid Inference provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const liquid = createOpenAICompatible({
+  name: 'liquid',
+  apiKey: process.env.LIQUID_API_KEY,
+  baseURL: 'https://router.inference.ai.exchange/v1',
+  headers: { 'X-Title': 'My AI SDK app' },
+});
+```
+
+The `apiKey` setting sends your key as a Bearer token in the `Authorization` header.
+The optional `X-Title` header names your application on your receipts.
+
+## Language Models
+
+Create a language model by passing a model ID to the provider instance:
+
+```ts
+const model = liquid('liquid.auto');
+```
+
+The model ID `liquid.auto` lets the exchange choose the model for each request. It has no fixed price. You can also pass the ID of a specific model, for example `deepseek-v4.1-flash`, `glm-5.3`, or `kimi-k3`.
+
+### Generate Text
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const liquid = createOpenAICompatible({
+  name: 'liquid',
+  apiKey: process.env.LIQUID_API_KEY,
+  baseURL: 'https://router.inference.ai.exchange/v1',
+});
+
+const { text } = await generateText({
+  model: liquid('liquid.auto'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+### Stream Text
+
+Use `streamText` to stream text as it is generated. Set `includeUsage: true` on the provider to get token counts from a stream.
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const liquid = createOpenAICompatible({
+  name: 'liquid',
+  apiKey: process.env.LIQUID_API_KEY,
+  baseURL: 'https://router.inference.ai.exchange/v1',
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: liquid('liquid.auto'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Supported Models and Capabilities
+
+This integration uses the OpenAI-compatible Chat Completions endpoint for text generation and streaming. Support for tools, image input, structured output, and other features depends on the selected model. The `liquid_supported_parameters` field of each model in the models endpoint lists what it accepts.
+
+The model list changes over time. The public [`GET /v1/models`](https://router.inference.ai.exchange/v1/models) endpoint needs no API key. It lists the current model IDs and their limits.
+
+Prices come from the offers that are open when you send a request, so they vary. The exchange fixes a price cap for each request before the first token. The `x-liquid-cap-usd` request header sets your own cap:
+
+```ts
+const liquid = createOpenAICompatible({
+  name: 'liquid',
+  apiKey: process.env.LIQUID_API_KEY,
+  baseURL: 'https://router.inference.ai.exchange/v1',
+  headers: { 'x-liquid-cap-usd': '1.00' },
+});
+```
+
+## Resources
+
+- [Liquid Inference AI SDK guide](https://inference.ai.exchange/docs/connect-vercel-ai-sdk?utm_source=vercel-ai&utm_medium=registry)
+- [Liquid Inference documentation](https://inference.ai.exchange/docs?utm_source=vercel-ai&utm_medium=registry)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
