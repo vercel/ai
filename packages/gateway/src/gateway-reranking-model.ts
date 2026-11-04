@@ -1,3 +1,4 @@
+import { rejectRegionalHosting } from './gateway-regional-hosting';
 import type {
   RerankingModelV4,
   SharedV4ProviderMetadata,
@@ -43,6 +44,7 @@ export class GatewayRerankingModel implements RerankingModelV4 {
   }: Parameters<RerankingModelV4['doRerank']>[0]): Promise<
     Awaited<ReturnType<RerankingModelV4['doRerank']>>
   > {
+    rejectRegionalHosting(providerOptions);
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;

@@ -122,3 +122,13 @@ it('types structured-output in has', () => {
     NonNullable<GatewayProviderOptions['has']>[number]
   >();
 });
+
+it('types constructor regional hosting as a scalar region only', () => {
+  createGateway({ regionalHosting: 'au' });
+  createGateway({ regionalHosting: 'eu' });
+  createGateway({ regionalHosting: 'us' });
+  // @ts-expect-error Only allowlisted regions are supported.
+  createGateway({ regionalHosting: 'ap' });
+  // @ts-expect-error Constructor regional hosting does not accept an object.
+  createGateway({ regionalHosting: { region: 'eu' } });
+});

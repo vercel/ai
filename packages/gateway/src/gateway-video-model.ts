@@ -1,3 +1,4 @@
+import { rejectRegionalHosting } from './gateway-regional-hosting';
 import {
   APICallError,
   getErrorMessage,
@@ -56,6 +57,7 @@ export class GatewayVideoModel implements VideoModelV4 {
       headers: Record<string, string> | undefined;
     };
   }> {
+    rejectRegionalHosting(options.providerOptions);
     const { headers, abortSignal } = options;
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
@@ -196,6 +198,7 @@ export class GatewayVideoModel implements VideoModelV4 {
       webhookUrl?: string;
     },
   ): Promise<VideoModelV4OperationStartResult> {
+    rejectRegionalHosting(options.providerOptions);
     const { headers, abortSignal, webhookUrl } = options;
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)

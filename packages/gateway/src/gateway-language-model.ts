@@ -24,9 +24,12 @@ import type { GatewayConfig } from './gateway-config';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+import { resolveLanguageModelRegionalHosting } from './gateway-regional-hosting';
 
 export type GatewayChatConfig = GatewayConfig & {
   provider: string;
+  /** Older serialized configurations have unknown endpoint provenance. */
+  hasExplicitBaseURL?: boolean;
   o11yHeaders: Resolvable<Record<string, string>>;
 };
 
@@ -58,10 +61,25 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   }
 
   private async getArgs(options: LanguageModelV4CallOptions) {
-    const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
+    const {
+      abortSignal: _abortSignal,
+      providerOptions,
+      ...optionsWithoutSignal
+    } = options;
+    const regionalHosting = resolveLanguageModelRegionalHosting({
+      baseURL: this.config.baseURL,
+      hasExplicitBaseURL: this.config.hasExplicitBaseURL,
+      providerOptions,
+    });
 
     return {
-      args: this.maybeEncodeFileParts(optionsWithoutSignal),
+      url: `${regionalHosting.baseURL}/language-model`,
+      args: this.maybeEncodeFileParts({
+        ...optionsWithoutSignal,
+        ...(regionalHosting.providerOptions !== undefined && {
+          providerOptions: regionalHosting.providerOptions,
+        }),
+      }),
       warnings: [],
     };
   }
@@ -69,7 +87,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, url, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 
     const resolvedHeaders = this.config.headers
@@ -82,7 +100,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         value: responseBody,
         rawValue: rawResponse,
       } = await postJsonToApi({
-        url: this.getUrl(),
+        url,
         headers: combineHeaders(
           resolvedHeaders,
           options.headers,
@@ -116,7 +134,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, url, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 
     const resolvedHeaders = this.config.headers
@@ -125,7 +143,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
 
     try {
       const { value: response, responseHeaders } = await postJsonToApi({
-        url: this.getUrl(),
+        url,
         headers: combineHeaders(
           resolvedHeaders,
           options.headers,
@@ -219,10 +237,6 @@ export class GatewayLanguageModel implements LanguageModelV4 {
       }
     }
     return options;
-  }
-
-  private getUrl() {
-    return `${this.config.baseURL}/language-model`;
   }
 
   private getModelConfigHeaders(modelId: string, streaming: boolean) {

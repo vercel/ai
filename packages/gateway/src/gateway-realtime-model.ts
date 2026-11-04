@@ -1,3 +1,4 @@
+import { rejectRegionalHosting } from './gateway-regional-hosting';
 import type {
   Experimental_RealtimeModelV4 as RealtimeModelV4,
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
@@ -59,6 +60,7 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
   async doCreateClientSecret(
     options?: RealtimeModelV4ClientSecretOptions,
   ): Promise<RealtimeModelV4ClientSecretResult> {
+    rejectRegionalHosting(options?.sessionConfig?.providerOptions);
     const secret = await this.config.createClientSecret({
       modelId: this.modelId,
       ...(options?.expiresAfterSeconds != null && {
@@ -91,11 +93,17 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
   }
 
   serializeClientEvent(event: RealtimeModelV4ClientEvent): unknown {
+    if (event.type === 'session-start' || event.type === 'session-update') {
+      rejectRegionalHosting(event.config.providerOptions);
+    } else if (event.type === 'context-append') {
+      rejectRegionalHosting(event.providerOptions);
+    }
     // The Gateway accepts normalized AI SDK realtime events directly.
     return event;
   }
 
   buildSessionConfig(config: RealtimeModelV4SessionConfig): unknown {
+    rejectRegionalHosting(config.providerOptions);
     // The session config is already normalized; the Gateway maps it to the
     // upstream provider's session payload server-side.
     return config;

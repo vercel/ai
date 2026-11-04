@@ -1,3 +1,4 @@
+import { rejectRegionalHosting } from './gateway-regional-hosting';
 import {
   UnsupportedFunctionalityError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
@@ -56,6 +57,7 @@ export class GatewayDecisionModel implements DecisionModelV4 {
   }: Parameters<DecisionModelV4['doDecide']>[0]): Promise<
     Awaited<ReturnType<DecisionModelV4['doDecide']>>
   > {
+    rejectRegionalHosting(providerOptions);
     const stateParts = toGatewayDecisionState(state);
     const gatewayOptions = await parseProviderOptions({
       provider: 'gateway',

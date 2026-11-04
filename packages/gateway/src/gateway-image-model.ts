@@ -1,3 +1,4 @@
+import { rejectRegionalHosting } from './gateway-regional-hosting';
 import type {
   ImageModelV4,
   ImageModelV4File,
@@ -71,6 +72,7 @@ export class GatewayImageModel implements ImageModelV4 {
   }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
+    rejectRegionalHosting(providerOptions);
     const gatewayOptions = providerOptions?.gateway;
     const streamingImageDecoding =
       gatewayOptions?.experimental_streamingImageDecoding === true;

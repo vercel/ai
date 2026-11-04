@@ -1,3 +1,4 @@
+import { rejectRegionalHosting } from './gateway-regional-hosting';
 import type {
   Experimental_SpeechModelV4StreamOptions as SpeechModelV4StreamOptions,
   Experimental_SpeechModelV4StreamPart as SpeechModelV4StreamPart,
@@ -77,6 +78,7 @@ export class GatewaySpeechModel
   }: Parameters<SpeechModelV4['doGenerate']>[0]): Promise<
     Awaited<ReturnType<SpeechModelV4['doGenerate']>>
   > {
+    rejectRegionalHosting(providerOptions);
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
@@ -137,6 +139,7 @@ export class GatewaySpeechModel
   async doStream(
     options: SpeechModelV4StreamOptions,
   ): Promise<SpeechModelV4StreamResult> {
+    rejectRegionalHosting(options.providerOptions);
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     const headers = combineHeaders(
@@ -298,6 +301,7 @@ function createGatewaySpeechStream({
           while (true) {
             const { done, value } = await reader.read();
             if (done || finished || textStopped) break;
+            rejectRegionalHosting(value.providerOptions);
             let first = true;
             // An empty part still carries its voice or provider options.
             const pieces = splitTextDelta(value.text);

@@ -121,6 +121,14 @@ export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
   /** Entity identifier against which quota is tracked. */
   quotaEntityId?: string;
 
+  /**
+   * Language generation and streaming only: select a regional Gateway endpoint.
+   * Consumed by the client, not forwarded in the request body. Overrides the
+   * constructor default; cannot be used with an explicit baseURL. Does not pin
+   * inference location.
+   */
+  regionalHosting?: 'au' | 'eu' | 'us';
+
   /** Unified service tier intent. */
   serviceTier?: 'flex' | 'priority';
 

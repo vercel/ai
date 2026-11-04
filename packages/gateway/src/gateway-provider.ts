@@ -60,6 +60,7 @@ import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import {
+  InvalidArgumentError,
   LoadAPIKeyError,
   type EmbeddingModelV4,
   type Experimental_BatchV4 as BatchV4,
@@ -76,6 +77,7 @@ import {
   type LanguageModelV4,
 } from '@ai-sdk/provider';
 import { VERSION } from './version';
+import { getRegionalHostingBaseURL } from './gateway-regional-hosting';
 
 export interface GatewayProvider extends ProviderV4 {
   (modelId: GatewayModelId): LanguageModelV4;
@@ -307,6 +309,13 @@ export interface GatewayProviderSettings {
   baseURL?: string;
 
   /**
+   * Default Gateway endpoint region. Per-call language model regionalHosting
+   * overrides this default. Cannot be combined with baseURL.
+   * This selects an endpoint only; it does not pin inference location.
+   */
+  regionalHosting?: 'au' | 'eu' | 'us';
+
+  /**
    * API key or Vercel access token that is being sent using the `Authorization`
    * header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
    * A callback is resolved before each request and must return a non-empty key.
@@ -375,9 +384,17 @@ export function createGateway(
     options.metadataCacheRefreshMillis ?? 1000 * 60 * 5;
   let lastFetchTime = 0;
 
+  if (options.baseURL !== undefined && options.regionalHosting !== undefined) {
+    throw new InvalidArgumentError({
+      argument: 'regionalHosting',
+      message: 'regionalHosting and baseURL cannot be combined.',
+    });
+  }
   const baseURL =
-    withoutTrailingSlash(options.baseURL) ??
-    'https://ai-gateway.vercel.sh/v4/ai';
+    options.regionalHosting !== undefined
+      ? getRegionalHostingBaseURL(options.regionalHosting)
+      : (withoutTrailingSlash(options.baseURL) ??
+        'https://ai-gateway.vercel.sh/v4/ai');
 
   const createAuthHeaders = (auth: {
     token: string;
@@ -506,6 +523,7 @@ export function createGateway(
   const createLanguageModel = (modelId: GatewayModelId) => {
     return new GatewayLanguageModel(modelId, {
       provider: 'gateway',
+      hasExplicitBaseURL: options.baseURL !== undefined,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,

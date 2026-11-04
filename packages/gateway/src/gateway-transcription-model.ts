@@ -1,3 +1,4 @@
+import { rejectRegionalHosting } from './gateway-regional-hosting';
 import {
   getErrorMessage,
   type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
@@ -71,6 +72,7 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
   }: Parameters<TranscriptionModelV4['doGenerate']>[0]): Promise<
     Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>
   > {
+    rejectRegionalHosting(providerOptions);
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
@@ -158,6 +160,7 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
   async doStream(
     options: TranscriptionModelV4StreamOptions,
   ): Promise<TranscriptionModelV4StreamResult> {
+    rejectRegionalHosting(options.providerOptions);
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     const headers = combineHeaders(

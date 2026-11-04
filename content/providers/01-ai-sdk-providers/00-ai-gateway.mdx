@@ -90,6 +90,15 @@ You can use the following optional settings to customize the AI Gateway provider
 - **baseURL** _string_
 
   Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v4/ai`.
+  Cannot be combined with `regionalHosting`, either in the constructor or in
+  per-call provider options, even when the URL matches a standard Gateway endpoint.
+
+- **regionalHosting** _'au' | 'eu' | 'us'_
+
+  Select the default regional Gateway endpoint for the provider instance:
+  `https://{region}.ai-gateway.vercel.sh/v4/ai`. This selects where the SDK sends
+  Gateway requests, not where model inference runs. Cannot be combined with
+  `baseURL`. See [Regional Hosting](#regional-hosting).
 
 - **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
@@ -122,6 +131,129 @@ You can use the following optional settings to customize the AI Gateway provider
 - **metadataCacheRefreshMillis** _number_
 
   How frequently to refresh the metadata cache in milliseconds. Defaults to 5 minutes (300,000ms).
+
+## Regional Hosting
+
+<Note>
+  Draft API proposal: regional hosting requires an updated Gateway provider that
+  supports this option. Older SDK versions may forward an unknown
+  `regionalHosting` field without selecting a regional URL.
+</Note>
+
+For language model generate and stream calls, set the scalar
+`providerOptions.gateway.regionalHosting` to `'au'`, `'eu'`, or `'us'`. With the
+AI SDK's default Gateway provider, you can use a model string without creating
+an explicit provider instance:
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5',
+  prompt: 'Explain how a rainbow forms in one sentence.',
+  providerOptions: {
+    gateway: {
+      regionalHosting: 'au',
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+This call uses `https://au.ai-gateway.vercel.sh/v4/ai`. The SDK consumes and
+removes `regionalHosting` from the provider options before sending the request;
+it is not a server-side routing option.
+
+<Note type="warning">
+  Regional hosting selects the Gateway endpoint only. It does not restrict where
+  model inference runs or guarantee data residency. It does not add or change
+  `providerOptions.gateway.inferenceRegion`; an explicit `inferenceRegion`
+  option is forwarded unchanged.
+</Note>
+
+### Provider Instance Default
+
+Set `regionalHosting` when creating a Gateway provider instance to select its
+default endpoint:
+
+```ts
+import { createGateway, generateText } from 'ai';
+
+const gateway = createGateway({ regionalHosting: 'eu' });
+
+const { text } = await generateText({
+  model: gateway('openai/gpt-5'),
+  prompt: 'Explain how a rainbow forms in one sentence.',
+});
+```
+
+This instance uses `https://eu.ai-gateway.vercel.sh/v4/ai`. The selected endpoint
+is shared across the provider instance's model and helper requests. A per-call
+`providerOptions.gateway.regionalHosting` overrides this default for language
+model generate and stream calls, including calls using `gateway('openai/gpt-5')`
+directly. The instance default remains unchanged for subsequent calls.
+
+A per-call region applies only to that language model request. Instance-level
+operations such as `getAvailableModels`, `getCredits`, and reporting keep the
+configured instance endpoint. Earlier requests are not moved to another endpoint.
+
+### Streaming with a Model String
+
+Per-call regional hosting also works with `streamText` and a model string:
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-5',
+  prompt: 'Explain how a rainbow forms in one sentence.',
+  providerOptions: {
+    gateway: {
+      regionalHosting: 'us',
+    } satisfies GatewayProviderOptions,
+  },
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+Only language model generate and stream calls accept the per-call option. Other
+Gateway surfaces, including embedding, image, speech, transcription, video,
+reranking, decision, batch, and realtime operations, reject it. To choose an
+endpoint for those surfaces, configure `regionalHosting` on the provider instance
+instead.
+
+Streaming speech and transcription reject the per-call option passed to
+`doStream` before opening their WebSocket. A direct Gateway realtime token mint
+rejects it in `sessionConfig.providerOptions` before minting the token.
+Realtime session-start, session-update, and context-append events, and speech
+text-chunk provider options, reject the option before sending the affected frame.
+This frame validation cannot prevent earlier application token requests or
+WebSocket connections; a connection may already exist.
+
+### Conflicts with `baseURL`
+
+An explicit `baseURL` cannot be combined with regional hosting:
+
+- `createGateway({ baseURL, regionalHosting })` is rejected.
+- A provider created with any explicit `baseURL` rejects a language model call
+  containing `providerOptions.gateway.regionalHosting`.
+
+These conflicts are rejected before any Gateway request, even if `baseURL` is
+exactly the standard global endpoint or one of the regional Gateway endpoints.
+Separate input media downloads or application network requests are not governed
+by this validation and may happen before the model invokes the provider.
+Regional hosting selects an endpoint; it does not guarantee zero network
+activity for unrelated operations.
+
+Omit `baseURL` to use constructor or per-call regional hosting, or omit both
+regional hosting settings to use an explicit URL. For models restored from older
+serialized workflow configurations that do not record whether `baseURL` was
+explicit, recreate the provider with the updated SDK before using a per-call
+region. Calls without the per-call option retain their configured endpoint.
 
 ## Authentication
 
@@ -1673,6 +1805,15 @@ const { text } = await generateText({
 ```
 
 The following gateway provider options are available:
+
+- **regionalHosting** _'au' | 'eu' | 'us'_
+
+  Language model generate and stream calls only: select the regional Gateway
+  endpoint for this call, overriding the provider instance's default. The SDK
+  consumes this scalar option without forwarding it to the Gateway. It does not
+  restrict inference location or guarantee data residency, and it conflicts with
+  any explicit `baseURL`. Other Gateway surfaces reject this per-call option.
+  See [Regional Hosting](#regional-hosting).
 
 - **order** _string[]_
 

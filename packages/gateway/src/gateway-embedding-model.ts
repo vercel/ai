@@ -1,3 +1,4 @@
+import { rejectRegionalHosting } from './gateway-regional-hosting';
 import type {
   EmbeddingModelV4,
   SharedV4ProviderMetadata,
@@ -63,6 +64,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
   }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
+    rejectRegionalHosting(providerOptions);
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
