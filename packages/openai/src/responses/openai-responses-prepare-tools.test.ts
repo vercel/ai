@@ -5,6 +5,156 @@ import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
+  describe('MCP tools', () => {
+    it('should serialize a remote MCP server URL', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'mcp',
+            args: {
+              serverLabel: 'remote',
+              serverUrl: 'https://example.com/mcp',
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        expect.objectContaining({
+          type: 'mcp',
+          server_label: 'remote',
+          server_url: 'https://example.com/mcp',
+          tunnel_id: undefined,
+        }),
+      ]);
+    });
+
+    it('should serialize a Secure MCP tunnel and preserve MCP options', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'mcp',
+            args: {
+              serverLabel: 'secure-tunnel',
+              tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+              serverDescription: 'Private MCP server',
+              authorization: 'Bearer test-token',
+              headers: { 'X-Test': 'test-value' },
+              allowedTools: {
+                readOnly: true,
+                toolNames: ['search'],
+              },
+              requireApproval: {
+                never: { toolNames: ['search'] },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'mcp',
+          server_label: 'secure-tunnel',
+          tunnel_id: 'tunnel_0123456789abcdef0123456789abcdef',
+          server_url: undefined,
+          connector_id: undefined,
+          server_description: 'Private MCP server',
+          authorization: 'Bearer test-token',
+          headers: { 'X-Test': 'test-value' },
+          allowed_tools: {
+            read_only: true,
+            tool_names: ['search'],
+          },
+          require_approval: {
+            never: { tool_names: ['search'] },
+          },
+        },
+      ]);
+    });
+
+    it('should preserve legacy URL and connector combinations', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'mcp',
+            args: {
+              serverLabel: 'legacy',
+              serverUrl: 'https://example.com/mcp',
+              connectorId: 'connector_example',
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+      expect(result.tools).toEqual([
+        expect.objectContaining({
+          server_url: 'https://example.com/mcp',
+          connector_id: 'connector_example',
+        }),
+      ]);
+    });
+
+    it.each([
+      { serverLabel: 'missing-target' },
+      {
+        serverLabel: 'undefined-targets',
+        serverUrl: undefined,
+        connectorId: undefined,
+        tunnelId: undefined,
+      },
+    ])('should reject missing MCP targets: %j', async args => {
+      await expect(
+        prepareResponsesTools({
+          tools: [{ type: 'provider', id: 'openai.mcp', name: 'mcp', args }],
+          toolChoice: undefined,
+        }),
+      ).rejects.toThrow(
+        'One of serverUrl, connectorId, or tunnelId must be provided.',
+      );
+    });
+
+    it.each([
+      { serverUrl: 'https://example.com/mcp' },
+      { connectorId: 'connector_example' },
+      {
+        serverUrl: 'https://example.com/mcp',
+        connectorId: 'connector_example',
+      },
+    ])(
+      'should reject a tunnel combined with another target: %j',
+      async targets => {
+        await expect(
+          prepareResponsesTools({
+            tools: [
+              {
+                type: 'provider',
+                id: 'openai.mcp',
+                name: 'mcp',
+                args: {
+                  serverLabel: 'ambiguous-target',
+                  tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+                  ...targets,
+                },
+              },
+            ],
+            toolChoice: undefined,
+          }),
+        ).rejects.toThrow(
+          'tunnelId cannot be combined with serverUrl or connectorId.',
+        );
+      },
+    );
+  });
+
   describe('omitFromRequestTools', () => {
     const tools = [
       {
