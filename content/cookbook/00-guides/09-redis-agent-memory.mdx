@@ -197,7 +197,7 @@ Create `agent.ts`. Initialize `createRedisAgentMemory` once, then create tools s
 ```ts filename="agent.ts"
 import 'dotenv/config';
 import { ToolLoopAgent, isStepCount } from 'ai';
-import { createRedisAgentMemory } from 'ai-sdk-redis-agent-memory';
+import { createRedisAgentMemory } from '@redis/vercel-ai-sdk';
 import { searchRecipes } from './recipes';
 
 const memory = createRedisAgentMemory({
