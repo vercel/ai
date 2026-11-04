@@ -1,7 +1,7 @@
-import { ZodSchema } from 'zod/v3';
-import { Options } from './options';
+import type { ZodSchema } from 'zod/v3';
+import type { Options } from './options';
 import { parseDef } from './parse-def';
-import { JsonSchema7Type } from './parse-types';
+import type { JsonSchema7Type } from './parse-types';
 import { getRefs } from './refs';
 import { parseAnyDef } from './parsers/any';
 

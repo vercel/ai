@@ -34,7 +34,7 @@ describe('GatewayFetchMetadata', () => {
       output: '0.000002',
     },
     specification: {
-      specificationVersion: 'v3' as const,
+      specificationVersion: 'v4' as const,
       provider: 'test-provider',
       modelId: 'model-1',
     },
@@ -44,7 +44,7 @@ describe('GatewayFetchMetadata', () => {
     id: 'model-2',
     name: 'Model Two',
     specification: {
-      specificationVersion: 'v3' as const,
+      specificationVersion: 'v4' as const,
       provider: 'test-provider',
       modelId: 'model-2',
     },
@@ -198,27 +198,94 @@ describe('GatewayFetchMetadata', () => {
       expect(result.models[0].modelType).toBe('language');
     });
 
-    it('should reject invalid top-level modelType values', async () => {
+    it('should filter out models with unknown modelType values', async () => {
       server.urls['https://api.example.com/*'].response = {
         type: 'json-value',
         body: {
           models: [
             {
-              id: 'model-invalid-type',
-              name: 'Invalid Type Model',
+              id: 'model-unknown-type',
+              name: 'Unknown Type Model',
               specification: {
-                specificationVersion: 'v3' as const,
+                specificationVersion: 'v4' as const,
                 provider: 'test-provider',
-                modelId: 'model-invalid-type',
+                modelId: 'model-unknown-type',
               },
-              modelType: 'text',
+              modelType: 'some-future-type',
             },
           ],
         },
       };
 
       const metadata = createBasicMetadataFetcher();
-      await expect(metadata.getAvailableModels()).rejects.toThrow();
+      const result = await metadata.getAvailableModels();
+      expect(result.models).toHaveLength(0);
+    });
+
+    it('should preserve all known modelType values', async () => {
+      const knownTypes = [
+        'embedding',
+        'decision',
+        'evaluation',
+        'image',
+        'language',
+        'realtime',
+        'reranking',
+        'speech',
+        'transcription',
+        'video',
+      ];
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: knownTypes.map((type, i) => ({
+            id: `model-${type}`,
+            name: `Model ${type}`,
+            specification: {
+              specificationVersion: 'v4' as const,
+              provider: 'test-provider',
+              modelId: `model-${type}`,
+            },
+            modelType: type,
+          })),
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+      expect(result.models).toHaveLength(knownTypes.length);
+      for (let i = 0; i < knownTypes.length; i++) {
+        expect(result.models[i].modelType).toBe(knownTypes[i]);
+      }
+    });
+
+    it('should keep known models and filter unknown from mixed response', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          models: [
+            {
+              ...mockModelEntry,
+              modelType: 'language',
+            },
+            {
+              id: 'model-future',
+              name: 'Future Model',
+              specification: {
+                specificationVersion: 'v4' as const,
+                provider: 'test-provider',
+                modelId: 'model-future',
+              },
+              modelType: 'hologram',
+            },
+          ],
+        },
+      };
+
+      const metadata = createBasicMetadataFetcher();
+      const result = await metadata.getAvailableModels();
+      expect(result.models).toHaveLength(1);
+      expect(result.models[0].modelType).toBe('language');
     });
 
     it('should pass headers correctly', async () => {
@@ -335,7 +402,7 @@ describe('GatewayFetchMetadata', () => {
                 output: '0.000002',
               },
               specification: {
-                specificationVersion: 'v3',
+                specificationVersion: 'v4',
                 provider: 'test-provider',
                 modelId: 'model-1',
               },
@@ -456,7 +523,7 @@ describe('GatewayFetchMetadata', () => {
           output: '0.000010',
         },
         specification: {
-          specificationVersion: 'v3' as const,
+          specificationVersion: 'v4' as const,
           provider: 'custom-provider',
           modelId: 'custom-model-1',
         },
@@ -550,6 +617,59 @@ describe('GatewayFetchMetadata', () => {
         balance: '100.00',
         totalUsed: '50.00',
       });
+    });
+
+    it('should not add team query parameters without a team header', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: { balance: '1.00', total_used: '0.00' },
+      };
+
+      await createBasicMetadataFetcher().getCredits();
+
+      expect(server.calls[0].requestUrl).toBe(
+        'https://api.example.com/v1/credits',
+      );
+    });
+
+    it('should forward a team ID from the team header as the teamId query parameter', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: { balance: '1.00', total_used: '0.00' },
+      };
+
+      await createBasicMetadataFetcher({
+        headers: () => ({
+          Authorization: 'Bearer vca_test-token',
+          'x-vercel-ai-gateway-team': 'team_123',
+        }),
+      }).getCredits();
+
+      expect(server.calls[0].requestUrl).toBe(
+        'https://api.example.com/v1/credits?teamId=team_123',
+      );
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        'x-vercel-ai-gateway-team': 'team_123',
+      });
+    });
+
+    it('should forward a team slug from the team header as the slug query parameter', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: { balance: '1.00', total_used: '0.00' },
+      };
+
+      await createBasicMetadataFetcher({
+        headers: () => ({
+          Authorization: 'Bearer vca_test-token',
+          'X-Vercel-AI-Gateway-Team': "team-o'brien",
+        }),
+      }).getCredits();
+
+      const url = new URL(server.calls[0].requestUrl);
+      expect(url.pathname).toBe('/v1/credits');
+      expect(url.searchParams.get('slug')).toBe("team-o'brien");
+      expect(url.searchParams.has('teamId')).toBe(false);
     });
 
     it('should handle API errors for credits endpoint', async () => {

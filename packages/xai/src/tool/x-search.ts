@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -8,8 +8,8 @@ import { z } from 'zod/v4';
 export const xSearchArgsSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      allowedXHandles: z.array(z.string()).max(10).optional(),
-      excludedXHandles: z.array(z.string()).max(10).optional(),
+      allowedXHandles: z.array(z.string()).max(20).optional(),
+      excludedXHandles: z.array(z.string()).max(20).optional(),
       fromDate: z.string().optional(),
       toDate: z.string().optional(),
       enableImageUnderstanding: z.boolean().optional(),
@@ -34,8 +34,8 @@ const xSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-const xSearchToolFactory = createProviderToolFactoryWithOutputSchema<
-  Record<string, never>,
+const xSearchToolFactory = createProviderExecutedToolFactory<
+  {},
   {
     query: string;
     posts: Array<{

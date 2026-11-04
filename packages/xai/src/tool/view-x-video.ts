@@ -1,13 +1,21 @@
-import { createProviderToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
+import {
+  lazySchema,
+  zodSchema,
+  createProviderExecutedToolFactory,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-const viewXVideoOutputSchema = z.object({
-  transcript: z.string().optional().describe('transcript of the video'),
-  description: z.string().describe('description of the video content'),
-  duration: z.number().optional().describe('duration in seconds'),
-});
+const viewXVideoOutputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      transcript: z.string().optional().describe('transcript of the video'),
+      description: z.string().describe('description of the video content'),
+      duration: z.number().optional().describe('duration in seconds'),
+    }),
+  ),
+);
 
-const viewXVideoToolFactory = createProviderToolFactoryWithOutputSchema({
+const viewXVideoToolFactory = createProviderExecutedToolFactory({
   id: 'xai.view_x_video',
   inputSchema: z.object({}).describe('no input parameters'),
   outputSchema: viewXVideoOutputSchema,

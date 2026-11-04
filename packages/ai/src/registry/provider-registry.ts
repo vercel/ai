@@ -1,80 +1,168 @@
 import {
-  EmbeddingModelV3,
-  ImageModelV3,
-  LanguageModelV3,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
+  type EmbeddingModelV4,
+  type Experimental_VideoModelV3,
+  type Experimental_VideoModelV4,
+  type FilesV4,
+  type ImageModelV4,
+  type LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
-  RerankingModelV3,
-  SpeechModelV3,
-  TranscriptionModelV3,
+  type ProviderV3,
+  type ProviderV4,
+  type RerankingModelV4,
+  type SkillsV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
+import type { DecisionModel } from '../decide/decision-result';
+import type { DecisionProvider } from '../decide/decision-provider';
+import {
+  resolveDecisionModel,
+  asEvaluationModel,
+} from '../model/resolve-model';
+import { wrapImageModel } from '../middleware/wrap-image-model';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { LanguageModelMiddleware } from '../types';
+import { asProviderV4 } from '../model/as-provider-v4';
+import { asVideoModelV4 } from '../model/as-video-model-v4';
+import type { ImageModelMiddleware, LanguageModelMiddleware } from '../types';
+import type { ExtractLiteralUnion } from '../util/extract-literal-union';
 import { NoSuchProviderError } from './no-such-provider-error';
 
-type ExtractLiteralUnion<T> = T extends string
-  ? string extends T
-    ? never
-    : T
+type ProviderWithOptionalVideoModel = {
+  videoModel?: (
+    modelId: string,
+  ) => Experimental_VideoModelV3 | Experimental_VideoModelV4;
+};
+
+type RegistryModelType =
+  | 'languageModel'
+  | 'embeddingModel'
+  | 'imageModel'
+  | 'transcriptionModel'
+  | 'speechModel'
+  | 'rerankingModel'
+  | 'videoModel'
+  | 'decisionModel';
+
+type ProviderVideoModelIdentifier<PROVIDER> = PROVIDER extends {
+  videoModel: (...args: infer ARGS) => unknown;
+}
+  ? ExtractLiteralUnion<ARGS[0]>
   : never;
 
+type ProviderDecisionModelIdentifier<PROVIDER> = PROVIDER extends {
+  decisionModel: (...args: infer ARGS) => unknown;
+}
+  ? ExtractLiteralUnion<ARGS[0]>
+  : PROVIDER extends { evaluationModel: (...args: infer ARGS) => unknown }
+    ? ExtractLiteralUnion<ARGS[0]>
+    : never;
+
+/** Registry with experimental decision access, separate from the stable interface. */
+export type DecisionProviderRegistry<
+  PROVIDERS extends Record<string, ProviderV4 | ProviderV3> = Record<
+    string,
+    ProviderV4 | ProviderV3
+  >,
+  SEPARATOR extends string = ':',
+> = ProviderRegistryProvider<PROVIDERS, SEPARATOR> & {
+  decisionModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ProviderDecisionModelIdentifier<PROVIDERS[KEY]>}`
+      : never,
+  ): DecisionModelV4;
+  decisionModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ProviderDecisionModelIdentifier<PROVIDERS[KEY]>}`
+      : never,
+  ): DecisionModelV4 & { doEvaluate: DecisionModelV4['doDecide'] };
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): DecisionModelV4 & { doEvaluate: DecisionModelV4['doDecide'] };
+};
+
 export interface ProviderRegistryProvider<
-  PROVIDERS extends Record<string, ProviderV3> = Record<string, ProviderV3>,
+  PROVIDERS extends Record<string, ProviderV4 | ProviderV3> = Record<
+    string,
+    ProviderV4 | ProviderV3
+  >,
   SEPARATOR extends string = ':',
 > {
   languageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['languageModel']>>[0]>}`
       : never,
-  ): LanguageModelV3;
+  ): LanguageModelV4;
   languageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): LanguageModelV3;
+  ): LanguageModelV4;
 
   embeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['embeddingModel']>>[0]>}`
       : never,
-  ): EmbeddingModelV3;
+  ): EmbeddingModelV4;
   embeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): EmbeddingModelV3;
+  ): EmbeddingModelV4;
 
   imageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['imageModel']>>[0]>}`
       : never,
-  ): ImageModelV3;
+  ): ImageModelV4;
   imageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): ImageModelV3;
+  ): ImageModelV4;
 
   transcriptionModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['transcriptionModel']>>[0]>}`
       : never,
-  ): TranscriptionModelV3;
+  ): TranscriptionModelV4;
   transcriptionModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): TranscriptionModelV3;
+  ): TranscriptionModelV4;
 
   speechModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['speechModel']>>[0]>}`
       : never,
-  ): SpeechModelV3;
+  ): SpeechModelV4;
   speechModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): SpeechModelV3;
+  ): SpeechModelV4;
 
   rerankingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['rerankingModel']>>[0]>}`
       : never,
-  ): RerankingModelV3;
+  ): RerankingModelV4;
   rerankingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): RerankingModelV3;
+  ): RerankingModelV4;
+
+  videoModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ProviderVideoModelIdentifier<PROVIDERS[KEY]>}`
+      : never,
+  ): Experimental_VideoModelV4;
+  videoModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): Experimental_VideoModelV4;
+
+  files<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? KEY & string : never,
+  ): FilesV4;
+
+  skills<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? KEY & string : never,
+  ): SkillsV4;
 }
 
 /**
@@ -87,26 +175,30 @@ export interface ProviderRegistryProvider<
  * @param options - Configuration options for the provider registry.
  * @param options.separator - The separator used between provider ID and model ID in the combined identifier. Defaults to ':'.
  * @param options.languageModelMiddleware - Optional middleware to be applied to all language models from the registry. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
- * @returns A new ProviderRegistryProvider instance that provides access to all registered providers with optional middleware applied to language models.
+ * @param options.imageModelMiddleware - Optional middleware to be applied to all image models from the registry. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
+ * @returns A new ProviderRegistryProvider instance that provides access to all registered providers with optional middleware applied to language and image models.
  */
 export function createProviderRegistry<
-  PROVIDERS extends Record<string, ProviderV3>,
+  PROVIDERS extends Record<string, ProviderV4 | ProviderV3>,
   SEPARATOR extends string = ':',
 >(
   providers: PROVIDERS,
   {
     separator = ':' as SEPARATOR,
     languageModelMiddleware,
+    imageModelMiddleware,
   }: {
     separator?: SEPARATOR;
     languageModelMiddleware?:
       | LanguageModelMiddleware
       | LanguageModelMiddleware[];
+    imageModelMiddleware?: ImageModelMiddleware | ImageModelMiddleware[];
   } = {},
-): ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
+): DecisionProviderRegistry<PROVIDERS, SEPARATOR> {
   const registry = new DefaultProviderRegistry<PROVIDERS, SEPARATOR>({
     separator,
     languageModelMiddleware,
+    imageModelMiddleware,
   });
 
   for (const [id, provider] of Object.entries(providers)) {
@@ -125,27 +217,39 @@ export function createProviderRegistry<
 export const experimental_createProviderRegistry = createProviderRegistry;
 
 class DefaultProviderRegistry<
-  PROVIDERS extends Record<string, ProviderV3>,
+  PROVIDERS extends Record<string, ProviderV4 | ProviderV3>,
   SEPARATOR extends string,
-> implements ProviderRegistryProvider<PROVIDERS, SEPARATOR>
+>
+  implements
+    ProviderRegistryProvider<PROVIDERS, SEPARATOR>,
+    DecisionProviderRegistry<PROVIDERS, SEPARATOR>
 {
-  private providers: PROVIDERS = {} as PROVIDERS;
+  private providers: Partial<
+    Record<
+      keyof PROVIDERS,
+      ProviderV4 & ProviderWithOptionalVideoModel & DecisionProvider
+    >
+  > = Object.create(null);
   private separator: SEPARATOR;
   private languageModelMiddleware?:
     | LanguageModelMiddleware
     | LanguageModelMiddleware[];
+  private imageModelMiddleware?: ImageModelMiddleware | ImageModelMiddleware[];
 
   constructor({
     separator,
     languageModelMiddleware,
+    imageModelMiddleware,
   }: {
     separator: SEPARATOR;
     languageModelMiddleware?:
       | LanguageModelMiddleware
       | LanguageModelMiddleware[];
+    imageModelMiddleware?: ImageModelMiddleware | ImageModelMiddleware[];
   }) {
     this.separator = separator;
     this.languageModelMiddleware = languageModelMiddleware;
+    this.imageModelMiddleware = imageModelMiddleware;
   }
 
   registerProvider<K extends keyof PROVIDERS>({
@@ -155,19 +259,36 @@ class DefaultProviderRegistry<
     id: K;
     provider: PROVIDERS[K];
   }): void {
-    this.providers[id] = provider;
+    const providerV4 = asProviderV4(provider);
+    const videoModel = (
+      provider as ProviderWithOptionalVideoModel
+    ).videoModel?.bind(provider);
+
+    const decisionProvider = provider as DecisionProvider;
+    const decisionModel = (
+      decisionProvider.decisionModel ?? decisionProvider.evaluationModel
+    )?.bind(provider);
+
+    const registeredProvider =
+      videoModel == null
+        ? providerV4
+        : Object.assign(Object.create(Object.getPrototypeOf(providerV4)), {
+            ...providerV4,
+            videoModel: (modelId: string) =>
+              asVideoModelV4(videoModel(modelId)),
+          });
+
+    // Keep v4 instances intact. Adapted providers need the original decision receiver.
+    if (registeredProvider !== provider && decisionModel != null) {
+      Object.assign(registeredProvider, { decisionModel });
+    }
+    this.providers[id] = registeredProvider;
   }
 
   private getProvider(
     id: string,
-    modelType:
-      | 'languageModel'
-      | 'embeddingModel'
-      | 'imageModel'
-      | 'transcriptionModel'
-      | 'speechModel'
-      | 'rerankingModel',
-  ): ProviderV3 {
+    modelType: RegistryModelType,
+  ): ProviderV4 & ProviderWithOptionalVideoModel & DecisionProvider {
     const provider = this.providers[id as keyof PROVIDERS];
 
     if (provider == null) {
@@ -182,16 +303,7 @@ class DefaultProviderRegistry<
     return provider;
   }
 
-  private splitId(
-    id: string,
-    modelType:
-      | 'languageModel'
-      | 'embeddingModel'
-      | 'imageModel'
-      | 'transcriptionModel'
-      | 'speechModel'
-      | 'rerankingModel',
-  ): [string, string] {
+  private splitId(id: string, modelType: RegistryModelType): [string, string] {
     const index = id.indexOf(this.separator);
 
     if (index === -1) {
@@ -209,7 +321,7 @@ class DefaultProviderRegistry<
 
   languageModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): LanguageModelV3 {
+  ): LanguageModelV4 {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
     let model = this.getProvider(providerId, 'languageModel').languageModel?.(
       modelId,
@@ -231,7 +343,7 @@ class DefaultProviderRegistry<
 
   embeddingModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): EmbeddingModelV3 {
+  ): EmbeddingModelV4 {
     const [providerId, modelId] = this.splitId(id, 'embeddingModel');
     const provider = this.getProvider(providerId, 'embeddingModel');
 
@@ -249,14 +361,21 @@ class DefaultProviderRegistry<
 
   imageModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): ImageModelV3 {
+  ): ImageModelV4 {
     const [providerId, modelId] = this.splitId(id, 'imageModel');
     const provider = this.getProvider(providerId, 'imageModel');
 
-    const model = provider.imageModel?.(modelId);
+    let model = provider.imageModel?.(modelId);
 
     if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'imageModel' });
+    }
+
+    if (this.imageModelMiddleware != null) {
+      model = wrapImageModel({
+        model,
+        middleware: this.imageModelMiddleware,
+      });
     }
 
     return model;
@@ -264,7 +383,7 @@ class DefaultProviderRegistry<
 
   transcriptionModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): TranscriptionModelV3 {
+  ): TranscriptionModelV4 {
     const [providerId, modelId] = this.splitId(id, 'transcriptionModel');
     const provider = this.getProvider(providerId, 'transcriptionModel');
 
@@ -282,7 +401,7 @@ class DefaultProviderRegistry<
 
   speechModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): SpeechModelV3 {
+  ): SpeechModelV4 {
     const [providerId, modelId] = this.splitId(id, 'speechModel');
     const provider = this.getProvider(providerId, 'speechModel');
 
@@ -297,7 +416,7 @@ class DefaultProviderRegistry<
 
   rerankingModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): RerankingModelV3 {
+  ): RerankingModelV4 {
     const [providerId, modelId] = this.splitId(id, 'rerankingModel');
     const provider = this.getProvider(providerId, 'rerankingModel');
 
@@ -308,5 +427,70 @@ class DefaultProviderRegistry<
     }
 
     return model;
+  }
+
+  videoModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ): Experimental_VideoModelV4 {
+    const [providerId, modelId] = this.splitId(id, 'videoModel');
+    const provider = this.getProvider(providerId, 'videoModel');
+
+    const model = provider.videoModel?.(modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'videoModel' });
+    }
+
+    return asVideoModelV4(model);
+  }
+
+  decisionModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ): DecisionModelV4 {
+    const [providerId, modelId] = this.splitId(id, 'decisionModel');
+    const provider = this.getProvider(providerId, 'decisionModel');
+    const factory:
+      | ((modelId: string) => Exclude<DecisionModel, string>)
+      | undefined = provider.decisionModel ?? provider.evaluationModel;
+    const model = factory?.call(provider, modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'decisionModel' });
+    }
+
+    return resolveDecisionModel(model);
+  }
+
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ) {
+    return asEvaluationModel(this.decisionModel(id));
+  }
+
+  files<KEY extends keyof PROVIDERS>(id: KEY & string): FilesV4 {
+    const provider = this.getProvider(id, 'languageModel');
+    const files = provider.files?.();
+
+    if (files == null) {
+      throw new Error(
+        `The provider "${id}" does not support file uploads. Make sure it exposes a files() method.`,
+      );
+    }
+
+    return files;
+  }
+
+  skills<KEY extends keyof PROVIDERS>(id: KEY & string): SkillsV4 {
+    const provider = this.getProvider(id, 'languageModel');
+    const skills = provider.skills?.();
+
+    if (skills == null) {
+      throw new Error(
+        `The provider "${id}" does not support skills. Make sure it exposes a skills() method.`,
+      );
+    }
+
+    return skills;
   }
 }

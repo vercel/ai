@@ -1,4 +1,4 @@
-import { ZodNumberDef } from 'zod/v3';
+import type { ZodNumberDef } from 'zod/v3';
 
 export type JsonSchema7NumberType = {
   type: 'number' | 'integer';

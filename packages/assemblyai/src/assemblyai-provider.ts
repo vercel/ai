@@ -1,66 +1,76 @@
 import {
-  TranscriptionModelV3,
-  ProviderV3,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
-import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
+import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import { VERSION } from './version';
 
-export interface AssemblyAIProvider extends ProviderV3 {
+export interface AssemblyAIProvider extends ProviderV4 {
   (
-    modelId: 'best',
+    modelId: AssemblyAITranscriptionModelId,
     settings?: {},
   ): {
     transcription: AssemblyAITranscriptionModel;
   };
 
   /**
-Creates a model for transcription.
+   * Creates a model for transcription.
    */
-  transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface AssemblyAIProviderSettings {
   /**
-API key for authenticating requests.
-     */
-  apiKey?: string;
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
+   */
+  apiKey?: Resolvable<string>;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create an AssemblyAI provider instance.
+ * Create an AssemblyAI provider instance.
  */
 export function createAssemblyAI(
   options: AssemblyAIProviderSettings = {},
 ): AssemblyAIProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        authorization: loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'ASSEMBLYAI_API_KEY',
-          description: 'AssemblyAI',
-        }),
-        ...options.headers,
-      },
-      `ai-sdk/assemblyai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          authorization: loadApiKey({
+            apiKey,
+            environmentVariableName: 'ASSEMBLYAI_API_KEY',
+            description: 'AssemblyAI',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-assemblyai/${VERSION}`,
+      ),
     );
 
   const createTranscriptionModel = (modelId: AssemblyAITranscriptionModelId) =>
@@ -77,7 +87,7 @@ export function createAssemblyAI(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
@@ -92,6 +102,7 @@ export function createAssemblyAI(
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
@@ -101,6 +112,6 @@ export function createAssemblyAI(
 }
 
 /**
-Default AssemblyAI provider instance.
+ * Default AssemblyAI provider instance.
  */
 export const assemblyai = createAssemblyAI();

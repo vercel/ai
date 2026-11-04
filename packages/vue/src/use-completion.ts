@@ -1,12 +1,14 @@
-import type { CompletionRequestOptions, UseCompletionOptions } from 'ai';
-import { callCompletionApi } from 'ai';
+import {
+  callCompletionApi,
+  type CompletionRequestOptions,
+  type UseCompletionOptions,
+} from 'ai';
+import type * as SwrvModule from 'swrv';
 import swrv from 'swrv';
-import type { Ref } from 'vue';
-import { ref, unref } from 'vue';
-
+import { ref, unref, type Ref } from 'vue';
 export type { UseCompletionOptions };
 
-export type UseCompletionHelpers = {
+export type UseCompletionHelpers<BODY extends object = object> = {
   /** The current completion result */
   completion: Ref<string>;
   /** The error object of the API request */
@@ -16,7 +18,7 @@ export type UseCompletionHelpers = {
    */
   complete: (
     prompt: string,
-    options?: CompletionRequestOptions,
+    options?: CompletionRequestOptions<BODY>,
   ) => Promise<string | null | undefined>;
   /**
    * Abort the current API request but keep the generated tokens.
@@ -45,10 +47,10 @@ export type UseCompletionHelpers = {
 let uniqueId = 0;
 
 // @ts-expect-error - some issues with the default export of useSWRV
-const useSWRV = (swrv.default as (typeof import('swrv'))['default']) || swrv;
+const useSWRV = (swrv.default as (typeof SwrvModule)['default']) || swrv;
 const store: Record<string, any> = {};
 
-export function useCompletion({
+export function useCompletion<BODY extends object = object>({
   api = '/api/completion',
   id,
   initialCompletion = '',
@@ -60,14 +62,14 @@ export function useCompletion({
   onFinish,
   onError,
   fetch,
-}: UseCompletionOptions = {}): UseCompletionHelpers {
+}: UseCompletionOptions<NoInfer<BODY>> = {}): UseCompletionHelpers<BODY> {
   // Generate an unique id for the completion if not provided.
   const completionId = id || `completion-${uniqueId++}`;
 
   const key = `${api}|${completionId}`;
   const { data, mutate: originalMutate } = useSWRV<string>(
     key,
-    () => store[key] || initialCompletion,
+    () => store[key] ?? initialCompletion,
   );
 
   const { data: isLoading, mutate: mutateLoading } = useSWRV<boolean>(
@@ -78,7 +80,7 @@ export function useCompletion({
   isLoading.value ??= false;
 
   // Force the `data` to be `initialCompletion` if it's `undefined`.
-  data.value ||= initialCompletion;
+  data.value ??= initialCompletion;
 
   const mutate = (data: string) => {
     store[key] = data;
@@ -94,7 +96,7 @@ export function useCompletion({
 
   async function triggerRequest(
     prompt: string,
-    options?: CompletionRequestOptions,
+    options?: CompletionRequestOptions<BODY>,
   ) {
     return callCompletionApi({
       api,
@@ -117,13 +119,14 @@ export function useCompletion({
       setAbortController: controller => {
         abortController = controller;
       },
+      getAbortController: () => abortController,
       onFinish,
       onError,
       fetch,
     });
   }
 
-  const complete: UseCompletionHelpers['complete'] = async (
+  const complete: UseCompletionHelpers<BODY>['complete'] = async (
     prompt,
     options,
   ) => {
@@ -133,7 +136,6 @@ export function useCompletion({
   const stop = () => {
     if (abortController) {
       abortController.abort();
-      abortController = null;
     }
   };
 

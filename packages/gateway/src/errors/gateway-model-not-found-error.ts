@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import { z } from '../zod';
 import { GatewayError } from './gateway-error';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
@@ -29,13 +29,15 @@ export class GatewayModelNotFoundError extends GatewayError {
     statusCode = 404,
     modelId,
     cause,
+    generationId,
   }: {
     message?: string;
     statusCode?: number;
     modelId?: string;
     cause?: unknown;
+    generationId?: string;
   } = {}) {
-    super({ message, statusCode, cause });
+    super({ message, statusCode, cause, generationId });
     this.modelId = modelId;
   }
 

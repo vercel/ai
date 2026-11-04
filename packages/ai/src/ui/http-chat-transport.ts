@@ -1,15 +1,25 @@
 import {
-  FetchFunction,
-  Resolvable,
   normalizeHeaders,
   resolve,
-  withUserAgentSuffix,
-  getRuntimeEnvironmentUserAgent,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
-import { ChatTransport } from './chat-transport';
-import { UIMessage } from './ui-messages';
-import { VERSION } from '../version';
+import { EmptyResponseBodyError } from '@ai-sdk/provider';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { ChatTransport } from './chat-transport';
+import { createUIApiCallError } from './create-ui-api-call-error';
+import type { UIMessage } from './ui-messages';
+
+function appendPathToUrl(url: string, path: string): string {
+  const queryOrFragmentStart = url.search(/[?#]/);
+  const urlPath =
+    queryOrFragmentStart === -1 ? url : url.slice(0, queryOrFragmentStart);
+  const suffix =
+    queryOrFragmentStart === -1 ? '' : url.slice(queryOrFragmentStart);
+
+  return `${urlPath.endsWith('/') && path.startsWith('/') ? urlPath.slice(0, -1) : urlPath}${path}${suffix}`;
+}
 
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
   options: {
@@ -96,37 +106,29 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
   body?: Resolvable<object>;
 
   /**
-  Custom fetch implementation. You can use it as a middleware to intercept requests,
-  or to provide a custom fetch implementation for e.g. testing.
-      */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**
    * When a function is provided, it will be used
    * to prepare the request body for the chat API. This can be useful for
    * customizing the request body based on the messages and data in the chat.
-   *
-   * @param id The id of the chat.
-   * @param messages The current messages in the chat.
-   * @param requestBody The request body object passed in the chat request.
    */
   prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
 
   /**
    * When a function is provided, it will be used
-   * to prepare the request body for the chat API. This can be useful for
-   * customizing the request body based on the messages and data in the chat.
-   *
-   * @param id The id of the chat.
-   * @param messages The current messages in the chat.
-   * @param requestBody The request body object passed in the chat request.
+   * to prepare the reconnect request for the chat API. This can be useful for
+   * customizing the request based on the chat session.
    */
   prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 };
 
-export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
-  implements ChatTransport<UI_MESSAGE>
-{
+export abstract class HttpChatTransport<
+  UI_MESSAGE extends UIMessage,
+> implements ChatTransport<UI_MESSAGE> {
   protected api: string;
   protected credentials: HttpChatTransportInitOptions<UI_MESSAGE>['credentials'];
   protected headers: HttpChatTransportInitOptions<UI_MESSAGE>['headers'];
@@ -201,27 +203,27 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
     const response = await fetch(api, {
       method: 'POST',
-      headers: withUserAgentSuffix(
-        {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
-        `ai-sdk/${VERSION}`,
-        getRuntimeEnvironmentUserAgent(),
-      ),
+      headers: {
+        'content-type': 'application/json',
+        ...headers,
+      },
       body: JSON.stringify(body),
       credentials,
       signal: abortSignal,
     });
 
     if (!response.ok) {
-      throw new Error(
-        (await response.text()) ?? 'Failed to fetch the chat response.',
-      );
+      throw await createUIApiCallError({
+        response,
+        url: api,
+        fallbackMessage: 'Failed to fetch the chat response.',
+      });
     }
 
     if (!response.body) {
-      throw new Error('The response body is empty.');
+      throw new EmptyResponseBodyError({
+        message: 'The response body is empty.',
+      });
     }
 
     return this.processResponseStream(response.body);
@@ -248,7 +250,24 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
       requestMetadata: options.metadata,
     });
 
-    const api = preparedRequest?.api ?? `${this.api}/${options.chatId}/stream`;
+    let api = preparedRequest?.api;
+    if (api == null) {
+      // encodeURIComponent leaves dot segments unchanged, and URL parsers
+      // normalize them even when their dots are percent-encoded.
+      if (options.chatId === '.' || options.chatId === '..') {
+        throw new InvalidArgumentError({
+          parameter: 'chatId',
+          value: options.chatId,
+          message:
+            'Chat IDs must not be "." or ".." when using the default reconnect URL.',
+        });
+      }
+
+      api = appendPathToUrl(
+        this.api,
+        `/${encodeURIComponent(options.chatId)}/stream`,
+      );
+    }
     const headers =
       preparedRequest?.headers !== undefined
         ? normalizeHeaders(preparedRequest.headers)
@@ -260,12 +279,9 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
     const response = await fetch(api, {
       method: 'GET',
-      headers: withUserAgentSuffix(
-        headers,
-        `ai-sdk/${VERSION}`,
-        getRuntimeEnvironmentUserAgent(),
-      ),
+      headers,
       credentials,
+      signal: options.abortSignal,
     });
 
     // no active stream found, so we do not resume
@@ -274,13 +290,17 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     }
 
     if (!response.ok) {
-      throw new Error(
-        (await response.text()) ?? 'Failed to fetch the chat response.',
-      );
+      throw await createUIApiCallError({
+        response,
+        url: api,
+        fallbackMessage: 'Failed to fetch the chat response.',
+      });
     }
 
     if (!response.body) {
-      throw new Error('The response body is empty.');
+      throw new EmptyResponseBodyError({
+        message: 'The response body is empty.',
+      });
     }
 
     return this.processResponseStream(response.body);

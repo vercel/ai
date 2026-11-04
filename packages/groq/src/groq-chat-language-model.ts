@@ -1,42 +1,106 @@
 import {
   InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
+  type Resolvable,
+  resolve,
+  StreamingToolCallTracker,
   combineHeaders,
+  convertJsonResponseToolStream,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   generateId,
-  isParsableJson,
+  isCustomReasoning,
+  lazySchema,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  zodSchema,
+  type FetchFunction,
+  type InferSchema,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertGroqUsage } from './convert-groq-usage';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
-import { GroqChatModelId, groqProviderOptions } from './groq-chat-options';
+import {
+  groqLanguageModelChatOptions,
+  type GroqChatModelId,
+} from './groq-chat-language-model-options';
 import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
+import { getGroqLanguageModelEntry } from './groq-model-catalog';
 import { prepareTools } from './groq-prepare-tools';
 import { mapGroqFinishReason } from './map-groq-finish-reason';
 
 type GroqChatConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
 
-export class GroqChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+function createGroqStreamError(
+  error: { message: string; type: string },
+  data: unknown,
+) {
+  return createProviderStreamError({
+    message: error.message,
+    type: error.type,
+    ...getGroqStreamErrorMetadata(error.type),
+    data,
+  });
+}
+
+function getGroqStreamErrorMetadata(type: string): {
+  statusCode?: number;
+  isRetryable?: boolean;
+} {
+  switch (type) {
+    case 'rate_limit_error':
+      return { statusCode: 429, isRetryable: true };
+    case 'api_error':
+    case 'internal_server_error':
+    case 'server_error':
+      return { statusCode: 500, isRetryable: true };
+    case 'overloaded_error':
+    case 'service_unavailable':
+      return { statusCode: 503, isRetryable: true };
+    case 'timeout':
+    case 'timeout_error':
+      return { statusCode: 504, isRetryable: true };
+    case 'authentication_error':
+    case 'invalid_api_key':
+      return { statusCode: 401, isRetryable: false };
+    case 'permission_error':
+      return { statusCode: 403, isRetryable: false };
+    case 'not_found_error':
+    case 'model_not_found':
+      return { statusCode: 404, isRetryable: false };
+    case 'bad_request':
+    case 'context_length_exceeded':
+    case 'invalid_request_error':
+      return { statusCode: 400, isRetryable: false };
+    default:
+      return {};
+  }
+}
+
+export class GroqChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: GroqChatModelId;
 
@@ -45,6 +109,20 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
   };
 
   private readonly config: GroqChatConfig;
+
+  static [WORKFLOW_SERIALIZE](model: GroqChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: GroqChatModelId;
+    config: GroqChatConfig;
+  }) {
+    return new GroqChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: GroqChatModelId, config: GroqChatConfig) {
     this.modelId = modelId;
@@ -66,31 +144,58 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     stopSequences,
     responseFormat,
     seed,
-    stream,
+    reasoning,
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV3['doGenerate']>[0] & {
-    stream: boolean;
-  }) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
+    const {
+      capabilities: { language: capabilities },
+      requestConfig: { language: defaults },
+    } = getGroqLanguageModelEntry(this.modelId);
 
     const groqOptions = await parseProviderOptions({
       provider: 'groq',
       providerOptions,
-      schema: groqProviderOptions,
+      schema: groqLanguageModelChatOptions,
     });
 
-    const structuredOutputs = groqOptions?.structuredOutputs ?? true;
+    // Groq rejects JSON response formatting together with function tools.
+    let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
+    if (
+      !capabilities.structuredOutput.withFunctionTools &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      tools?.some(tool => tool.type === 'function')
+    ) {
+      let name = 'json';
+      for (let suffix = 1; tools.some(tool => tool.name === name); suffix++) {
+        name = `json_${suffix}`;
+      }
+      jsonResponseTool = {
+        type: 'function',
+        name,
+        description:
+          responseFormat.description ?? 'Respond with a JSON object.',
+        inputSchema: responseFormat.schema,
+      };
+    }
 
-    if (topK != null) {
+    const structuredOutputs =
+      groqOptions?.structuredOutputs ?? defaults.structuredOutputs;
+    const strictJsonSchema =
+      groqOptions?.strictJsonSchema ?? defaults.strictJsonSchema;
+
+    if (topK != null && capabilities.sampling.topK === false) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !structuredOutputs
+      !structuredOutputs &&
+      jsonResponseTool == null
     ) {
       warnings.push({
         type: 'unsupported',
@@ -104,7 +209,46 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
       tools: groqTools,
       toolChoice: groqToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice, modelId: this.modelId });
+    } = prepareTools({
+      tools:
+        jsonResponseTool != null ? [...(tools ?? []), jsonResponseTool] : tools,
+      toolChoice:
+        jsonResponseTool == null
+          ? toolChoice
+          : toolChoice?.type === 'tool'
+            ? toolChoice
+            : toolChoice?.type === 'none'
+              ? { type: 'tool', toolName: jsonResponseTool.name }
+              : { type: 'required' },
+      modelId: this.modelId,
+    });
+
+    let reasoningEffort = groqOptions?.reasoningEffort;
+    if (reasoningEffort == null && isCustomReasoning(reasoning)) {
+      const supportsNoneReasoning = capabilities.reasoning.disable;
+      // GPT-OSS models always reason, so reasoning 'none' maps to the lowest
+      // effort. Other models do not reason, so there is nothing to disable.
+      const alwaysReasons = capabilities.reasoning.always;
+
+      if (reasoning === 'none' && !supportsNoneReasoning && !alwaysReasons) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'reasoning',
+          details: `reasoning "${reasoning}" is not supported by this model.`,
+        });
+      } else {
+        reasoningEffort = mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: {
+            ...(supportsNoneReasoning && { none: 'none' as const }),
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+          },
+          warnings,
+        });
+      }
+    }
 
     return {
       args: {
@@ -113,7 +257,8 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
         // model specific settings:
         user: groqOptions?.user,
-        parallel_tool_calls: groqOptions?.parallelToolCalls,
+        parallel_tool_calls:
+          jsonResponseTool != null ? false : groqOptions?.parallelToolCalls,
 
         // standardized settings:
         max_tokens: maxOutputTokens,
@@ -126,12 +271,13 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
         // response format:
         response_format:
-          responseFormat?.type === 'json'
+          jsonResponseTool == null && responseFormat?.type === 'json'
             ? structuredOutputs && responseFormat.schema != null
               ? {
                   type: 'json_schema',
                   json_schema: {
                     schema: responseFormat.schema,
+                    strict: strictJsonSchema,
                     name: responseFormat.name ?? 'response',
                     description: responseFormat.description,
                   },
@@ -141,7 +287,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
         // provider options:
         reasoning_format: groqOptions?.reasoningFormat,
-        reasoning_effort: groqOptions?.reasoningEffort,
+        reasoning_effort: reasoningEffort,
         service_tier: groqOptions?.serviceTier,
 
         // messages:
@@ -152,16 +298,15 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
         tool_choice: groqToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
+      jsonResponseToolName: jsonResponseTool?.name,
     };
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
-    const { args, warnings } = await this.getArgs({
-      ...options,
-      stream: false,
-    });
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
+    const { args, warnings, jsonResponseToolName } =
+      await this.getArgs(options);
 
     const body = JSON.stringify(args);
 
@@ -174,7 +319,10 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -185,13 +333,14 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
-
-    // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text: text });
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
     }
+
+    const content: Array<LanguageModelV4Content> = [];
 
     // reasoning:
     const reasoning = choice.message.reasoning;
@@ -202,21 +351,40 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
       });
     }
 
+    // text content:
+    const text = choice.message.content;
+    if (jsonResponseToolName == null && text != null && text.length > 0) {
+      content.push({ type: 'text', text: text });
+    }
+
     // tool calls:
     if (choice.message.tool_calls != null) {
       for (const toolCall of choice.message.tool_calls) {
-        content.push({
-          type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
-          toolName: toolCall.function.name,
-          input: toolCall.function.arguments!,
-        });
+        if (toolCall.function.name === jsonResponseToolName) {
+          content.push({ type: 'text', text: toolCall.function.arguments });
+        } else {
+          content.push({
+            type: 'tool-call',
+            toolCallId: toolCall.id || generateId(),
+            toolName: toolCall.function.name,
+            input: toolCall.function.arguments!,
+          });
+        }
       }
     }
 
     return {
       content,
-      finishReason: mapGroqFinishReason(choice.finish_reason),
+      finishReason: {
+        unified:
+          jsonResponseToolName != null &&
+          content.some(part => part.type === 'text') &&
+          !content.some(part => part.type === 'tool-call') &&
+          choice.finish_reason === 'tool_calls'
+            ? 'stop'
+            : mapGroqFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
+      },
       usage: convertGroqUsage(response.usage),
       response: {
         ...getResponseMetadata(response),
@@ -229,22 +397,23 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
-    const { args, warnings } = await this.getArgs({ ...options, stream: true });
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
+    const { args, warnings, jsonResponseToolName } =
+      await this.getArgs(options);
 
-    const body = JSON.stringify({ ...args, stream: true });
+    const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...args,
-        stream: true,
-      },
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      body,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler:
         createEventSourceResponseHandler(groqChatChunkSchema),
@@ -252,17 +421,13 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const toolCalls: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-      hasFinished: boolean;
-    }> = [];
+    let toolCallTracker: StreamingToolCallTracker;
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    // A clean end without the provider's completion signal is interrupted.
+    let finishReason: LanguageModelV4FinishReason = {
+      unified: 'interrupted',
+      raw: undefined,
+    };
     let usage:
       | {
           prompt_tokens?: number | null | undefined;
@@ -273,20 +438,29 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
               }
             | null
             | undefined;
+          completion_tokens_details?:
+            | {
+                reasoning_tokens?: number | null | undefined;
+              }
+            | null
+            | undefined;
         }
       | undefined = undefined;
     let isFirstChunk = true;
     let isActiveText = false;
     let isActiveReasoning = false;
 
-    let providerMetadata: SharedV3ProviderMetadata | undefined;
-    return {
+    const result = {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof groqChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          ParseResult<InferSchema<typeof groqChatChunkSchema>>,
+          LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+              typeValidation: 'required',
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -298,7 +472,10 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = {
+                unified: 'error',
+                raw: undefined,
+              };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -307,8 +484,14 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
             // handle error chunks:
             if ('error' in value) {
-              finishReason = 'error';
-              controller.enqueue({ type: 'error', error: value.error });
+              finishReason = {
+                unified: 'error',
+                raw: undefined,
+              };
+              controller.enqueue({
+                type: 'error',
+                error: createGroqStreamError(value.error, value),
+              });
               return;
             }
 
@@ -328,7 +511,10 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapGroqFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapGroqFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
 
             if (choice?.delta == null) {
@@ -354,6 +540,15 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
             }
 
             if (delta.content != null && delta.content.length > 0) {
+              // end active reasoning block before text starts
+              if (isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = false;
+              }
+
               if (!isActiveText) {
                 controller.enqueue({ type: 'text-start', id: 'txt-0' });
                 isActiveText = true;
@@ -366,240 +561,167 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
               });
             }
 
-            if (delta.tool_calls != null) {
-              for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
-
-                if (toolCalls[index] == null) {
-                  if (toolCallDelta.type !== 'function') {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function' type.`,
-                    });
-                  }
-
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
-                    });
-                  }
-
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
-                  toolCalls[index] = {
-                    id: toolCallDelta.id,
-                    type: 'function',
-                    function: {
-                      name: toolCallDelta.function.name,
-                      arguments: toolCallDelta.function.arguments ?? '',
-                    },
-                    hasFinished: false,
-                  };
-
-                  const toolCall = toolCalls[index];
-
-                  if (
-                    toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null
-                  ) {
-                    // send delta if the argument text has already started:
-                    if (toolCall.function.arguments.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: toolCall.id,
-                        delta: toolCall.function.arguments,
-                      });
-                    }
-
-                    // check if tool call is complete
-                    // (some providers send the full tool call in one chunk):
-                    if (isParsableJson(toolCall.function.arguments)) {
-                      controller.enqueue({
-                        type: 'tool-input-end',
-                        id: toolCall.id,
-                      });
-
-                      controller.enqueue({
-                        type: 'tool-call',
-                        toolCallId: toolCall.id ?? generateId(),
-                        toolName: toolCall.function.name,
-                        input: toolCall.function.arguments,
-                      });
-                      toolCall.hasFinished = true;
-                    }
-                  }
-
-                  continue;
-                }
-
-                // existing tool call, merge if not finished
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function!.arguments +=
-                    toolCallDelta.function?.arguments ?? '';
-                }
-
-                // send delta
+            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
+              // end active reasoning block before tool calls start
+              if (isActiveReasoning) {
                 controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
+                  type: 'reasoning-end',
+                  id: 'reasoning-0',
                 });
+                isActiveReasoning = false;
+              }
 
-                // check if tool call is complete
-                if (
-                  toolCall.function?.name != null &&
-                  toolCall.function?.arguments != null &&
-                  isParsableJson(toolCall.function.arguments)
-                ) {
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.id,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.id ?? generateId(),
-                    toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
-                  });
-                  toolCall.hasFinished = true;
-                }
+              for (const toolCallDelta of delta.tool_calls) {
+                toolCallTracker.processDelta(toolCallDelta);
               }
             }
           },
 
           flush(controller) {
             if (isActiveReasoning) {
-              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: 'reasoning-0',
+              });
             }
 
             if (isActiveText) {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
 
+            toolCallTracker.flush();
+
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage: convertGroqUsage(usage),
-              ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },
         }),
       ),
-      request: { body },
+      request: { body: JSON.stringify(body) },
       response: { headers: responseHeaders },
+    };
+    return {
+      ...result,
+      stream:
+        jsonResponseToolName == null
+          ? result.stream
+          : result.stream.pipeThrough(
+              convertJsonResponseToolStream(jsonResponseToolName),
+            ),
     };
   }
 }
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const groqChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const groqChatResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      message: z.object({
-        content: z.string().nullish(),
-        reasoning: z.string().nullish(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string().nullish(),
-              type: z.literal('function'),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .nullish(),
-      }),
-      index: z.number(),
-      finish_reason: z.string().nullish(),
-    }),
-  ),
-  usage: z
-    .object({
-      prompt_tokens: z.number().nullish(),
-      completion_tokens: z.number().nullish(),
-      total_tokens: z.number().nullish(),
-      prompt_tokens_details: z
-        .object({
-          cached_tokens: z.number().nullish(),
-        })
-        .nullish(),
-    })
-    .nullish(),
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const groqChatChunkSchema = z.union([
-  z.object({
-    id: z.string().nullish(),
-    created: z.number().nullish(),
-    model: z.string().nullish(),
-    choices: z.array(
-      z.object({
-        delta: z
-          .object({
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          message: z.object({
             content: z.string().nullish(),
             reasoning: z.string().nullish(),
             tool_calls: z
               .array(
                 z.object({
-                  index: z.number(),
                   id: z.string().nullish(),
-                  type: z.literal('function').optional(),
+                  type: z.literal('function'),
                   function: z.object({
-                    name: z.string().nullish(),
-                    arguments: z.string().nullish(),
+                    name: z.string(),
+                    arguments: z.string(),
                   }),
                 }),
               )
               .nullish(),
-          })
-          .nullish(),
-        finish_reason: z.string().nullable().optional(),
-        index: z.number(),
-      }),
-    ),
-    x_groq: z
-      .object({
-        usage: z
-          .object({
-            prompt_tokens: z.number().nullish(),
-            completion_tokens: z.number().nullish(),
-            total_tokens: z.number().nullish(),
-            prompt_tokens_details: z
+          }),
+          index: z.number(),
+          finish_reason: z.string().nullish(),
+        }),
+      ),
+      usage: z
+        .object({
+          prompt_tokens: z.number().nullish(),
+          completion_tokens: z.number().nullish(),
+          total_tokens: z.number().nullish(),
+          prompt_tokens_details: z
+            .object({
+              cached_tokens: z.number().nullish(),
+            })
+            .nullish(),
+          completion_tokens_details: z
+            .object({
+              reasoning_tokens: z.number().nullish(),
+            })
+            .nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
+
+// limited version of the schema, focussed on what is needed for the implementation
+// this approach limits breakages when the API changes and increases efficiency
+const groqChatChunkSchema = lazySchema(() =>
+  zodSchema(
+    z.union([
+      z.object({
+        id: z.string().nullish(),
+        created: z.number().nullish(),
+        model: z.string().nullish(),
+        choices: z.array(
+          z.object({
+            delta: z
               .object({
-                cached_tokens: z.number().nullish(),
+                content: z.string().nullish(),
+                reasoning: z.string().nullish(),
+                tool_calls: z
+                  .array(
+                    z.object({
+                      index: z.number(),
+                      id: z.string().nullish(),
+                      type: z.literal('function').optional(),
+                      function: z.object({
+                        name: z.string().nullish(),
+                        arguments: z.string().nullish(),
+                      }),
+                    }),
+                  )
+                  .nullish(),
+              })
+              .nullish(),
+            finish_reason: z.string().nullable().optional(),
+            index: z.number(),
+          }),
+        ),
+        x_groq: z
+          .object({
+            usage: z
+              .object({
+                prompt_tokens: z.number().nullish(),
+                completion_tokens: z.number().nullish(),
+                total_tokens: z.number().nullish(),
+                prompt_tokens_details: z
+                  .object({
+                    cached_tokens: z.number().nullish(),
+                  })
+                  .nullish(),
+                completion_tokens_details: z
+                  .object({
+                    reasoning_tokens: z.number().nullish(),
+                  })
+                  .nullish(),
               })
               .nullish(),
           })
           .nullish(),
-      })
-      .nullish(),
-  }),
-  groqErrorDataSchema,
-]);
+      }),
+      groqErrorDataSchema,
+    ]),
+  ),
+);

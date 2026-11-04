@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -46,7 +46,7 @@ const webSearch_20250305InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderToolFactoryWithOutputSchema<
+const factory = createProviderExecutedToolFactory<
   {
     /**
      * The search query to execute.
@@ -126,6 +126,7 @@ const factory = createProviderToolFactoryWithOutputSchema<
   id: 'anthropic.web_search_20250305',
   inputSchema: webSearch_20250305InputSchema,
   outputSchema: webSearch_20250305OutputSchema,
+  supportsDeferredResults: true,
 });
 
 export const webSearch_20250305 = (

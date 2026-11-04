@@ -85,7 +85,21 @@ const { output } = await generateText({
       name: 'schema',
       type: 'FlexibleSchema<OBJECT>',
       description:
-        'The schema that defines the structure of the object to generate. Supports Zod schemas, Valibot schemas, or JSON schemas.',
+        'The schema that defines the structure of the object to generate. Supports Zod schemas, Standard JSON schemas, and custom JSON schemas.',
+    },
+    {
+      name: 'name',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+    },
+    {
+      name: 'description',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.',
     },
   ]}
 />
@@ -121,6 +135,8 @@ const { output } = await generateText({
       temperature: z.number(),
       condition: z.string(),
     }),
+    minItems: 2,
+    maxItems: 2,
   }),
   prompt: 'List the weather for San Francisco and Paris.',
 });
@@ -137,6 +153,34 @@ const { output } = await generateText({
       description:
         'The schema that defines the structure of each array element. Supports Zod schemas, Valibot schemas, or JSON schemas.',
     },
+    {
+      name: 'minItems',
+      type: 'number',
+      isOptional: true,
+      description:
+        'The minimum number of elements to generate. Must be a non-negative integer.',
+    },
+    {
+      name: 'maxItems',
+      type: 'number',
+      isOptional: true,
+      description:
+        'The maximum number of elements to generate. Must be a non-negative integer and greater than or equal to minItems.',
+    },
+    {
+      name: 'name',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+    },
+    {
+      name: 'description',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.',
+    },
   ]}
 />
 
@@ -145,7 +189,14 @@ const { output } = await generateText({
 An `Output<Array<ELEMENT>, Array<ELEMENT>>` specification where:
 
 - Complete output is an array with all elements validated
+- Complete output is validated against `minItems` and `maxItems`
 - Partial output contains only fully validated elements (incomplete elements are excluded)
+
+Set `minItems` and `maxItems` to the same value to require an exact number of
+elements. The bounds are included in the provider-facing schema when the
+provider supports them. The AI SDK also validates the completed output, so
+providers that ignore these schema keywords cannot return an out-of-bounds
+result.
 
 #### Streaming with `elementStream`
 
@@ -174,7 +225,10 @@ for await (const hero of elementStream) {
 
 <Note>
   Each element emitted by `elementStream` is complete and validated against your
-  element schema, ensuring type safety for each item as it is generated.
+  element schema, ensuring type safety for each item as it is generated. If the
+  model generates more than `maxItems`, `elementStream` errors before emitting
+  the first excess element. Provider generation is not aborted automatically,
+  and the final `output` promise also rejects.
 </Note>
 
 ---
@@ -189,7 +243,7 @@ import { generateText, Output } from 'ai';
 const { output } = await generateText({
   model: yourModel,
   output: Output.choice({
-    options: ['sunny', 'rainy', 'snowy'],
+    options: ['sunny', 'rainy', 'snowy'] as const,
   }),
   prompt: 'Is the weather sunny, rainy, or snowy today?',
 });
@@ -205,6 +259,20 @@ const { output } = await generateText({
       type: 'Array<CHOICE>',
       description:
         'An array of string options that the model can choose from. The output will be exactly one of these values.',
+    },
+    {
+      name: 'name',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+    },
+    {
+      name: 'description',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.',
     },
   ]}
 />
@@ -235,7 +303,24 @@ const { output } = await generateText({
 
 #### Parameters
 
-No parameters required.
+<PropertiesTable
+  content={[
+    {
+      name: 'name',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+    },
+    {
+      name: 'description',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.',
+    },
+  ]}
+/>
 
 #### Returns
 

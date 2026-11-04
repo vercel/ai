@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -52,7 +52,7 @@ const webFetch_20250910InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderToolFactoryWithOutputSchema<
+const factory = createProviderExecutedToolFactory<
   {
     /**
      * The URL to fetch.
@@ -135,6 +135,7 @@ const factory = createProviderToolFactoryWithOutputSchema<
   id: 'anthropic.web_fetch_20250910',
   inputSchema: webFetch_20250910InputSchema,
   outputSchema: webFetch_20250910OutputSchema,
+  supportsDeferredResults: true,
 });
 
 export const webFetch_20250910 = (

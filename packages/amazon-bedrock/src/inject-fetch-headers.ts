@@ -1,8 +1,8 @@
 import {
-  type FetchFunction,
   getRuntimeEnvironmentUserAgent,
   normalizeHeaders,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 
@@ -20,7 +20,7 @@ export function injectFetchHeaders(
         ...normalizeHeaders(init.headers),
         ...customHeaders,
       },
-      `ai-sdk/amazon-bedrock/${VERSION}`,
+      `ai-sdk-amazon-bedrock/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
 

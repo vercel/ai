@@ -31,21 +31,21 @@ export const tools: Tool[] = [
     tags: ['code-execution', 'sandbox'],
     apiKeyEnvName: 'VERCEL_OIDC_TOKEN',
     installCommand: {
-      pnpm: 'pnpm install ai-sdk-tool-code-execution',
+      pnpm: 'pnpm add ai-sdk-tool-code-execution',
       npm: 'npm install ai-sdk-tool-code-execution',
       yarn: 'yarn add ai-sdk-tool-code-execution',
       bun: 'bun add ai-sdk-tool-code-execution',
     },
-    codeExample: `import { gateway, generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { executeCode } from 'ai-sdk-tool-code-execution';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-5.1-codex'),
+  model: 'openai/gpt-5.1-codex',
   prompt: 'What is 5 + 5 minus 84 cubed?',
   tools: {
     executeCode: executeCode(),
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 
 console.log(text);`,
@@ -63,21 +63,21 @@ console.log(text);`,
     tags: ['search', 'web', 'extraction'],
     apiKeyEnvName: 'EXA_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @exalabs/ai-sdk',
+      pnpm: 'pnpm add @exalabs/ai-sdk',
       npm: 'npm install @exalabs/ai-sdk',
       yarn: 'yarn add @exalabs/ai-sdk',
       bun: 'bun add @exalabs/ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { webSearch } from '@exalabs/ai-sdk';
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3-pro-preview'),
+  model: 'google/gemini-3.1-pro-preview',
   prompt: 'Tell me the latest developments in AI',
   tools: {
     webSearch: webSearch(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -95,22 +95,22 @@ console.log(text);`,
     tags: ['search', 'web', 'extraction'],
     apiKeyEnvName: 'PARALLEL_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @parallel-web/ai-sdk-tools',
+      pnpm: 'pnpm add @parallel-web/ai-sdk-tools',
       npm: 'npm install @parallel-web/ai-sdk-tools',
       yarn: 'yarn add @parallel-web/ai-sdk-tools',
       bun: 'bun add @parallel-web/ai-sdk-tools',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3-pro-preview'),
+  model: 'google/gemini-3.1-pro-preview',
   prompt: 'When was Vercel Ship AI?',
   tools: {
     webSearch: searchTool,
     webExtract: extractTool,
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -127,12 +127,12 @@ console.log(text);`,
     tags: ['code-execution', 'sandbox', 'mcp', 'code-mode'],
     apiKeyEnvName: 'VERCEL_OIDC_TOKEN',
     installCommand: {
-      pnpm: 'pnpm install ctx-zip',
+      pnpm: 'pnpm add ctx-zip',
       npm: 'npm install ctx-zip',
       yarn: 'yarn add ctx-zip',
       bun: 'bun add ctx-zip',
     },
-    codeExample: `import { gateway, generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { createVercelSandboxCodeMode, SANDBOX_SYSTEM_PROMPT } from 'ctx-zip';
 
 const { tools } = await createVercelSandboxCodeMode({
@@ -152,9 +152,9 @@ const { tools } = await createVercelSandboxCodeMode({
 });
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-4.1-mini'),
+  model: 'openai/gpt-6-astra',
   tools,
-  stopWhen: stepCountIs(20),
+  stopWhen: isStepCount(20),
   system: SANDBOX_SYSTEM_PROMPT,
   messages: [
     {
@@ -180,21 +180,21 @@ console.log(text);
     tags: ['search', 'web'],
     apiKeyEnvName: 'PERPLEXITY_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @perplexity-ai/ai-sdk',
+      pnpm: 'pnpm add @perplexity-ai/ai-sdk',
       npm: 'npm install @perplexity-ai/ai-sdk',
       yarn: 'yarn add @perplexity-ai/ai-sdk',
       bun: 'bun add @perplexity-ai/ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { perplexitySearch } from '@perplexity-ai/ai-sdk';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-4o-mini'),
+  model: 'openai/gpt-6-astra',
   prompt: 'What are the latest AI developments? Use search to find current information.',
   tools: {
     search: perplexitySearch(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -212,21 +212,21 @@ console.log(text);`,
     tags: ['search', 'extract', 'crawl'],
     apiKeyEnvName: 'TAVILY_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @tavily/ai-sdk',
+      pnpm: 'pnpm add @tavily/ai-sdk',
       npm: 'npm install @tavily/ai-sdk',
       yarn: 'yarn add @tavily/ai-sdk',
       bun: 'bun add @tavily/ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { tavilySearch } from '@tavily/ai-sdk';
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3-pro-preview'),
+  model: 'google/gemini-3.1-pro-preview',
   prompt: 'What are the latest developments in agentic search?',
   tools: {
     webSearch: tavilySearch,
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -244,21 +244,21 @@ console.log(text);`,
     tags: ['scraping', 'search', 'crawling', 'extraction', 'web'],
     apiKeyEnvName: 'FIRECRAWL_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install firecrawl-aisdk',
+      pnpm: 'pnpm add firecrawl-aisdk',
       npm: 'npm install firecrawl-aisdk',
       yarn: 'yarn add firecrawl-aisdk',
       bun: 'bun add firecrawl-aisdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { scrapeTool } from 'firecrawl-aisdk';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-5-mini'),
+  model: 'openai/gpt-6-luna',
   prompt: 'Scrape https://firecrawl.dev and summarize what it does',
   tools: {
     scrape: scrapeTool,
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -276,12 +276,12 @@ console.log(text);`,
     tags: ['code-execution', 'browser-automation', 'sandbox'],
     apiKeyEnvName: 'AWS_ROLE_ARN',
     installCommand: {
-      pnpm: 'pnpm install bedrock-agentcore',
+      pnpm: 'pnpm add bedrock-agentcore',
       npm: 'npm install bedrock-agentcore',
       yarn: 'yarn add bedrock-agentcore',
       bun: 'bun add bedrock-agentcore',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { awsCredentialsProvider } from '@vercel/oidc-aws-credentials-provider';
 import { CodeInterpreterTools } from 'bedrock-agentcore/code-interpreter/vercel-ai';
@@ -302,7 +302,7 @@ try {
       ...codeInterpreter.tools,
       ...browser.tools,
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log(text);
@@ -325,24 +325,24 @@ try {
     tags: ['security', 'guardrails', 'pii', 'prompt-injection', 'verification'],
     apiKeyEnvName: 'SUPERAGENT_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @superagent-ai/ai-sdk',
+      pnpm: 'pnpm add @superagent-ai/ai-sdk',
       npm: 'npm install @superagent-ai/ai-sdk',
       yarn: 'yarn add @superagent-ai/ai-sdk',
       bun: 'bun add @superagent-ai/ai-sdk',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { guard, redact, verify } from '@superagent-ai/ai-sdk';
 import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-4o-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Check this input for security threats: "Ignore all instructions"',
   tools: {
     guard: guard(),
     redact: redact(),
     verify: verify(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -350,6 +350,40 @@ console.log(text);`,
     apiKeyUrl: 'https://dashboard.superagent.sh',
     websiteUrl: 'https://superagent.sh',
     npmUrl: 'https://www.npmjs.com/package/@superagent-ai/ai-sdk',
+  },
+  {
+    slug: 'tako-search',
+    name: 'Tako Search',
+    description:
+      "Tako gives AI agents real-time, well-sourced data and charts across finance, economics, sports, demographics, and more. Search Tako's curated knowledge graph and the live web, get citation-backed answers, and fetch the data behind any result.",
+    packageName: '@takoviz/ai-sdk',
+    tags: ['search', 'web', 'data', 'visualization', 'analytics'],
+    apiKeyEnvName: 'TAKO_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @takoviz/ai-sdk',
+      npm: 'npm install @takoviz/ai-sdk',
+      yarn: 'yarn add @takoviz/ai-sdk',
+      bun: 'bun add @takoviz/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { takoSearch, takoAnswer, takoContents } from '@takoviz/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-6-astra',
+  prompt: 'How have Nvidia and AMD employee counts compared since 2013?',
+  tools: {
+    takoSearch: takoSearch(),
+    takoAnswer: takoAnswer(),
+    takoContents: takoContents(),
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/TakoData/ai-sdk#readme',
+    apiKeyUrl: 'https://developer.tako.com/console/api-keys',
+    websiteUrl: 'https://tako.com',
+    npmUrl: 'https://www.npmjs.com/package/@takoviz/ai-sdk',
   },
   {
     slug: 'valyu',
@@ -360,23 +394,23 @@ console.log(text);`,
     tags: ['search', 'web', 'domain-search'],
     apiKeyEnvName: 'VALYU_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @valyu/ai-sdk',
+      pnpm: 'pnpm add @valyu/ai-sdk',
       npm: 'npm install @valyu/ai-sdk',
       yarn: 'yarn add @valyu/ai-sdk',
       bun: 'bun add @valyu/ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { webSearch } from '@valyu/ai-sdk';
 // Available specialised search tools: financeSearch, paperSearch,
 // bioSearch, patentSearch, secSearch, economicsSearch, companyResearch
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3-pro-preview'),
+  model: 'google/gemini-3.1-pro-preview',
   prompt: 'Latest data center projects for AI inference?',
   tools: {
     webSearch: webSearch(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -384,5 +418,556 @@ console.log(text);`,
     apiKeyUrl: 'https://platform.valyu.ai',
     websiteUrl: 'https://valyu.ai',
     npmUrl: 'https://www.npmjs.com/package/@valyu/ai-sdk',
+  },
+  {
+    slug: 'airweave',
+    name: 'Airweave',
+    description:
+      'Airweave is an open-source platform that makes any app searchable for your agent. Sync and search across 35+ data sources (Notion, Slack, Google Drive, databases, and more) with semantic search. Add unified search across all your connected data to your AI applications in just a few lines of code.',
+    packageName: '@airweave/vercel-ai-sdk',
+    tags: ['search', 'rag', 'data-sources', 'semantic-search'],
+    apiKeyEnvName: 'AIRWEAVE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @airweave/vercel-ai-sdk',
+      npm: 'npm install @airweave/vercel-ai-sdk',
+      yarn: 'yarn add @airweave/vercel-ai-sdk',
+      bun: 'bun add @airweave/vercel-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { airweaveSearch } from '@airweave/vercel-ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt: 'What were the key decisions from last week?',
+  tools: {
+    search: airweaveSearch({
+      defaultCollection: 'my-knowledge-base',
+    }),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.airweave.ai',
+    apiKeyUrl: 'https://app.airweave.ai/settings/api-keys',
+    websiteUrl: 'https://airweave.ai',
+    npmUrl: 'https://www.npmjs.com/package/@airweave/vercel-ai-sdk',
+  },
+  {
+    slug: 'bash-tool',
+    name: 'bash-tool',
+    description:
+      'Provides bash, readFile, and writeFile tools for AI agents. Supports @vercel/sandbox for full VM isolation.',
+    packageName: 'bash-tool',
+    tags: ['bash', 'file-system', 'sandbox', 'code-execution'],
+    installCommand: {
+      pnpm: 'pnpm install bash-tool',
+      npm: 'npm install bash-tool',
+      yarn: 'yarn add bash-tool',
+      bun: 'bun add bash-tool',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createBashTool } from 'bash-tool';
+
+const { tools } = await createBashTool({
+  files: { 'src/index.ts': "export const hello = 'world';" },
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt: 'List the files in src/ and show me the contents of index.ts',
+  tools,
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/vercel/bash-tool',
+    websiteUrl: 'https://github.com/vercel/bash-tool',
+    npmUrl: 'https://www.npmjs.com/package/bash-tool',
+  },
+  {
+    slug: 'browserbase',
+    name: 'Browserbase',
+    description:
+      'Browserbase provides browser automation tools for AI agents powered by Stagehand. Navigate websites, take screenshots, click buttons, fill forms, extract structured data, and execute multi-step browser tasks in cloud-hosted sessions with built-in CAPTCHA solving and anti-bot stealth mode.',
+    packageName: '@browserbasehq/ai-sdk',
+    tags: ['browser', 'browser-automation', 'web', 'extraction'],
+    apiKeyEnvName: 'BROWSERBASE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @browserbasehq/ai-sdk',
+      npm: 'npm install @browserbasehq/ai-sdk',
+      yarn: 'yarn add @browserbasehq/ai-sdk',
+      bun: 'bun add @browserbasehq/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createBrowserbaseTools } from '@browserbasehq/ai-sdk';
+
+const browserbase = createBrowserbaseTools();
+
+const { text } = await generateText({
+  model: 'google/gemini-3.1-pro-preview',
+  tools: browserbase.tools,
+  stopWhen: isStepCount(10),
+  prompt: 'Open https://news.ycombinator.com and summarize the top 3 stories.',
+});
+
+console.log(text);
+await browserbase.closeSession();`,
+    docsUrl: 'https://docs.browserbase.com',
+    apiKeyUrl: 'https://www.browserbase.com/settings',
+    websiteUrl: 'https://www.browserbase.com',
+    npmUrl: 'https://www.npmjs.com/package/@browserbasehq/ai-sdk',
+  },
+  {
+    slug: 'you-search',
+    name: 'You.com',
+    description:
+      "Real-time web search, deep research with cited sources, and webpage content extraction powered by You.com. Search current information with advanced filtering (dates, sites, file types), research topics with configurable effort (lite to exhaustive), and extract full page content in markdown or HTML. Built on You.com's enterprise search API with zero server setup.",
+    packageName: '@youdotcom-oss/ai-sdk-plugin',
+    tags: ['search', 'web', 'extraction', 'research'],
+    apiKeyEnvName: 'YDC_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @youdotcom-oss/ai-sdk-plugin',
+      npm: 'npm install @youdotcom-oss/ai-sdk-plugin',
+      yarn: 'yarn add @youdotcom-oss/ai-sdk-plugin',
+      bun: 'bun add @youdotcom-oss/ai-sdk-plugin',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt: 'Research the latest developments in quantum computing',
+  tools: {
+    search: youSearch(),
+    research: youResearch(),
+    extract: youContents(),
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/youdotcom-oss/dx-toolkit/tree/main/packages/ai-sdk-plugin#readme',
+    apiKeyUrl: 'https://you.com/platform/api-keys',
+    websiteUrl: 'https://you.com',
+    npmUrl: 'https://www.npmjs.com/package/@youdotcom-oss/ai-sdk-plugin',
+  },
+  {
+    slug: 'nitrosend',
+    name: 'Nitrosend',
+    description:
+      'Nitrosend tools for Vercel AI SDK agents — send email and SMS, manage contacts and segments, build flows, run campaigns. Backed by the Nitrosend remote MCP server.',
+    packageName: '@nitrosend/ai-sdk',
+    tags: ['email', 'sms', 'marketing', 'mcp', 'automation', 'crm'],
+    apiKeyEnvName: 'NITROSEND_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+      npm: 'npm install @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+      yarn: 'yarn add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+      bun: 'bun add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { withNitrosendTools } from '@nitrosend/ai-sdk';
+
+const result = await withNitrosendTools({}, async ({ tools }) => {
+  return generateText({
+    model: openai('gpt-6-astra'),
+    tools,
+    stopWhen: isStepCount(5),
+    prompt: 'Send a welcome email to founder@acme.com from our team.',
+  });
+});
+
+console.log(result.text);`,
+    docsUrl: 'https://docs.nitrosend.com/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://app.nitrosend.com/settings/api-keys',
+    websiteUrl: 'https://nitrosend.com',
+    npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
+  },
+  {
+    slug: 'fatstack',
+    name: 'Fatstack',
+    description:
+      'Discover pay-per-call API and MCP tools from the Fatstack marketplace and use them as an AI SDK ToolSet. Discovery is free; calls settle in real USDC on Base via x402, with required daily spend guards.',
+    packageName: '@fatstack/ai-sdk-tools',
+    tags: ['payments', 'x402', 'mcp', 'marketplace', 'tool-discovery'],
+    installCommand: {
+      pnpm: 'pnpm add @fatstack/ai-sdk-tools ai viem',
+      npm: 'npm install @fatstack/ai-sdk-tools ai viem',
+      yarn: 'yarn add @fatstack/ai-sdk-tools ai viem',
+      bun: 'bun add @fatstack/ai-sdk-tools ai viem',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { fatstackTools } from '@fatstack/ai-sdk-tools';
+import { privateKeyToAccount } from 'viem/accounts';
+
+// Discovery is free and happens once; only calling a tool costs anything.
+//
+// The public catalogue is on Base mainnet, so calls spend real USDC. The
+// required guards bound spending and cannot be raised by the model.
+const tools = await fatstackTools({
+  wallet: privateKeyToAccount(process.env.AGENT_PRIVATE_KEY as \`0x\${string}\`),
+  networks: ['base'],
+  guards: { maxPerDay: 0.5, maxPerCall: 0.01 },
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Convert 20 degrees Celsius to Fahrenheit.',
+  tools,
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://www.fatstack.net/docs/ai-sdk',
+    websiteUrl: 'https://www.fatstack.net',
+    npmUrl: 'https://www.npmjs.com/package/@fatstack/ai-sdk-tools',
+  },
+  {
+    slug: 'pushary',
+    name: 'Pushary',
+    description:
+      'Require a named person to approve selected AI SDK tool calls from their phone before local tool execution. Pushary plugs into toolApproval and fails closed when approval is denied, expires, or goes unanswered.',
+    packageName: '@pushary/ai-sdk',
+    tags: ['approval', 'human-in-the-loop', 'security', 'phone'],
+    apiKeyEnvName: 'PUSHARY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @pushary/ai-sdk ai zod',
+      npm: 'npm install @pushary/ai-sdk ai zod',
+      yarn: 'yarn add @pushary/ai-sdk ai zod',
+      bun: 'bun add @pushary/ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, isStepCount, tool } from 'ai';
+import { pusharyApproval } from '@pushary/ai-sdk';
+import { z } from 'zod';
+
+// Derive this stable ID from the authenticated user on your server.
+// Enroll the user once before running the agent; see the Pushary guide below.
+const externalId = 'user_123';
+
+const lookupOrder = tool({
+  description: 'Look up an order',
+  inputSchema: z.object({ orderId: z.string() }),
+  execute: async ({ orderId }) => ({
+    orderId,
+    total: 40,
+    refundable: true,
+  }),
+});
+
+const issueRefund = tool({
+  description: 'Refund an order',
+  inputSchema: z.object({
+    orderId: z.string(),
+    amount: z.number().positive(),
+  }),
+  execute: async ({ orderId, amount }) => ({
+    orderId,
+    amount,
+    refunded: true,
+  }),
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: { issueRefund, lookupOrder },
+  toolApproval: pusharyApproval({
+    apiKey: process.env.PUSHARY_API_KEY!,
+    externalId,
+    policy: false,
+    tools: ['issueRefund'],
+  }),
+  stopWhen: isStepCount(5),
+  prompt: 'Look up order 1234 and refund it in full.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://pushary.com/docs/agents/build/vercel-ai-sdk',
+    apiKeyUrl: 'https://pushary.com/onboarding/partner',
+    websiteUrl: 'https://pushary.com/human-in-the-loop',
+    npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
+  },
+  {
+    slug: 'pexafy',
+    name: 'Pexafy',
+    description:
+      'Pexafy adds semantic stock photo search to your agents: describe a scene in plain English and get real, free-to-use photographs from Unsplash, Pexels, Pixabay and six more libraries, each with an image URL, alt text, license and credit line.',
+    packageName: 'pexafy-ai-sdk',
+    tags: ['images', 'photos', 'search'],
+    apiKeyEnvName: 'PEXAFY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add pexafy-ai-sdk',
+      npm: 'npm install pexafy-ai-sdk',
+      yarn: 'yarn add pexafy-ai-sdk',
+      bun: 'bun add pexafy-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { pexafyTools } from 'pexafy-ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-haiku-4.5',
+  tools: pexafyTools(),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Find a header photo for a blog post about remote work, with its credit line.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.pexafy.com/ai-sdk',
+    apiKeyUrl: 'https://pexafy.com/dashboard/api-keys/create/',
+    websiteUrl: 'https://pexafy.com',
+    npmUrl: 'https://www.npmjs.com/package/pexafy-ai-sdk',
+  },
+  {
+    slug: 'agentmail',
+    name: 'AgentMail',
+    description:
+      'Give your agents real email inboxes. Create inboxes programmatically, send, receive, reply, search, and manage threaded email conversations.',
+    packageName: 'agentmail-toolkit',
+    tags: ['email', 'inbox', 'agents', 'automation'],
+    apiKeyEnvName: 'AGENTMAIL_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add agentmail-toolkit',
+      npm: 'npm install agentmail-toolkit',
+      yarn: 'yarn add agentmail-toolkit',
+      bun: 'bun add agentmail-toolkit',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { AgentMailToolkit } from 'agentmail-toolkit/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4-5',
+  tools: new AgentMailToolkit().getTools(),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Create an inbox for yourself, then check it for new messages and reply to anything urgent.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.agentmail.to/integrations/ai-sdk',
+    apiKeyUrl: 'https://console.agentmail.to',
+    websiteUrl: 'https://agentmail.to',
+    npmUrl: 'https://www.npmjs.com/package/agentmail-toolkit',
+  },
+  {
+    slug: 'agentsvc',
+    name: 'agentsvc',
+    description:
+      'More than 120 pay-per-call tools for agents in one package: web scraping to Markdown, token safety checks before a swap, smart-money and whale tracking, agent memory and inboxes, PDF and OCR, company and sanctions checks. Paid per call with a prepaid credit token or USDC via x402, no subscription.',
+    packageName: 'agentsvc',
+    tags: ['web-scraping', 'crypto', 'memory', 'x402', 'payments'],
+    apiKeyEnvName: 'AGENTSVC_CREDIT_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm add agentsvc',
+      npm: 'npm install agentsvc',
+      yarn: 'yarn add agentsvc',
+      bun: 'bun add agentsvc',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createAgentsvc } from 'agentsvc';
+import { agentsvcTools } from 'agentsvc/ai-sdk';
+
+const svc = createAgentsvc({
+  creditToken: process.env.AGENTSVC_CREDIT_TOKEN,
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-haiku-5.5',
+  tools: await agentsvcTools(svc, ['web-scrape', 'token-precheck', 'token-smart-money']),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Is BRETT (0x532f27101965dd16442E59d40670FaF5eBB142E4) on Base safe to buy, and who is buying it right now?',
+});
+
+console.log(text);`,
+    docsUrl: 'https://agentsvc.io/docs/ai-sdk',
+    apiKeyUrl: 'https://agentsvc.io/credits',
+    websiteUrl: 'https://agentsvc.io',
+    npmUrl: 'https://www.npmjs.com/package/agentsvc',
+  },
+  {
+    slug: 'specstream',
+    name: 'SpecStream',
+    description:
+      'SpecStream is the live web data engine for agents. Describe the data in plain words, such as "dental clinics in Lisbon with online booking" or "US startups that filed a $5M+ Form D this month", and get structured rows from the live web, every value linked to the page it came from. The price cap is set in your code before anything runs, the model cannot raise it, and you pay only for rows that match.',
+    packageName: '@specstream/ai-sdk',
+    tags: ['search', 'web-data', 'lists'],
+    apiKeyEnvName: 'SPECSTREAM_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @specstream/ai-sdk',
+      npm: 'npm install @specstream/ai-sdk',
+      yarn: 'yarn add @specstream/ai-sdk',
+      bun: 'bun add @specstream/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { specstreamTools } from '@specstream/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: specstreamTools({ maxPriceUsd: 5 }),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Find breweries in Portland, Oregon that host events, with their website.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://specstream.ai/docs/vercel-ai-sdk',
+    apiKeyUrl: 'https://specstream.ai/signup',
+    websiteUrl: 'https://specstream.ai',
+    npmUrl: 'https://www.npmjs.com/package/@specstream/ai-sdk',
+  },
+  {
+    slug: 'm91',
+    name: 'M91',
+    description:
+      "Human-in-the-loop approval for AI SDK agents. Gate any tool with toolApproval: before it runs, M91 rings a person's phone at full volume through silent mode and Do Not Disturb, escalating to a voice call, and the tool runs only if they approve. A rejection, timeout or M91 error denies it. Also provides m91_request_approval and m91_send_alert tools the model can call itself.",
+    packageName: '@msg91comm/m91',
+    tags: ['approval', 'human-in-the-loop', 'alerting', 'phone'],
+    apiKeyEnvName: 'M91_SEND_LINK',
+    installCommand: {
+      pnpm: 'pnpm add @msg91comm/m91 ai',
+      npm: 'npm install @msg91comm/m91 ai',
+      yarn: 'yarn add @msg91comm/m91 ai',
+      bun: 'bun add @msg91comm/m91 ai',
+    },
+    codeExample: `import { generateText, isStepCount, jsonSchema, tool } from 'ai';
+import { M91Client } from '@msg91comm/m91';
+import { createM91ToolApproval } from '@msg91comm/m91/integrations/vercel-ai';
+
+// The send link comes from a channel in the M91 app. Keep it secret.
+const client = new M91Client(process.env.M91_SEND_LINK!);
+
+const issueRefund = tool({
+  description: 'Simulate a refund approval; no payment is issued.',
+  inputSchema: jsonSchema<{ orderId: string; amount: number }>({
+    type: 'object',
+    properties: { orderId: { type: 'string' }, amount: { type: 'number' } },
+    required: ['orderId', 'amount'],
+  }),
+  // Replace this simulation with your payment API before issuing real refunds.
+  execute: async ({ orderId, amount }) => ({ simulated: true, orderId, amount }),
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: { issueRefund },
+  // issueRefund rings a phone first and runs only if a person taps Approve.
+  // A rejection, no answer within 10 minutes, or an M91 error denies it.
+  toolApproval: createM91ToolApproval(client, {
+    tools: ['issueRefund'],
+    timeoutSeconds: 600,
+  }),
+  stopWhen: isStepCount(5),
+  prompt: 'Order ORD-40122 never arrived. Refund the customer 48 USD.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/MSG91/m91-sdk#vercel-ai-sdk',
+    apiKeyUrl: 'https://m91-api.msg91.com/docs',
+    websiteUrl: 'https://m91.msg91.com',
+    npmUrl: 'https://www.npmjs.com/package/@msg91comm/m91',
+  },
+  {
+    slug: 'olostep',
+    name: 'Olostep',
+    description:
+      'Web search, scraping, crawling and cited answers for AI SDK agents. Returns structured data and page content for model use.',
+    packageName: '@olostep/ai-sdk',
+    tags: ['search', 'scraping', 'crawl', 'extraction'],
+    apiKeyEnvName: 'OLOSTEP_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @olostep/ai-sdk',
+      npm: 'npm install @olostep/ai-sdk',
+      yarn: 'yarn add @olostep/ai-sdk',
+      bun: 'bun add @olostep/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { olostepTools } from '@olostep/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Read the Next.js 15 release notes and list the breaking changes, with sources.',
+  tools: olostepTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.olostep.com/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://www.olostep.com/dashboard',
+    websiteUrl: 'https://www.olostep.com',
+    npmUrl: 'https://www.npmjs.com/package/@olostep/ai-sdk',
+  },
+  {
+    slug: 'cleave',
+    name: 'Cleave',
+    description:
+      "Swap tools for agents on Ethereum, Arbitrum, Base, BNB Chain, Polygon and Optimism. Cleave is a DEX aggregator with split routing and one-step cross-chain swaps; Cleave's fees are included in the quoted price. Plan a swap, track it, find a token or get gas. Returns unsigned calls and takes no private keys; submitting a wallet-signed gas order uses needsApproval by default. No API key needed.",
+    packageName: '@cleave-protocol/ai-sdk',
+    tags: ['defi', 'web3'],
+    installCommand: {
+      pnpm: 'pnpm add @cleave-protocol/ai-sdk',
+      npm: 'npm install @cleave-protocol/ai-sdk',
+      yarn: 'yarn add @cleave-protocol/ai-sdk',
+      bun: 'bun add @cleave-protocol/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { cleaveTools } from '@cleave-protocol/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Plan a swap of 25 USDC to WETH on Base for wallet 0x00000000000000000000000000000000000a11ce.',
+  tools: cleaveTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://cleave.fi/docs/agents/ai-sdk',
+    websiteUrl: 'https://cleave.fi',
+    npmUrl: 'https://www.npmjs.com/package/@cleave-protocol/ai-sdk',
+  },
+  {
+    slug: 'redis-agent-memory',
+    name: 'Redis Agent Memory',
+    description:
+      'Give agents persistent memory with Redis Agent Memory. Tools to search and save long-term memories, read and write session history, and recall user preferences across conversations, scoped to a user and session.',
+    packageName: '@redis/vercel-ai-sdk',
+    tags: ['memory', 'session-history', 'semantic-search', 'redis'],
+    apiKeyEnvName: 'AGENT_MEMORY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @redis/vercel-ai-sdk',
+      npm: 'npm install @redis/vercel-ai-sdk',
+      yarn: 'yarn add @redis/vercel-ai-sdk',
+      bun: 'bun add @redis/vercel-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createRedisAgentMemory, instructions } from '@redis/vercel-ai-sdk';
+
+const memory = createRedisAgentMemory({
+  serverUrl: process.env.AGENT_MEMORY_URL,
+  storeId: process.env.AGENT_MEMORY_STORE_ID,
+  apiKey: process.env.AGENT_MEMORY_API_KEY,
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  system: \`\${instructions}
+Current user and memory owner: user-123
+Current session: conversation-456
+Current assistant actor: assistant-1\`,
+  prompt: 'Remember that my favorite editor is Neovim.',
+  tools: memory.tools({
+    scope: { userId: 'user-123', sessionId: 'conversation-456' },
+  }),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/redis/vercel-ai-sdk/blob/main/TOOLS.md',
+    apiKeyUrl: 'https://cloud.redis.io/#/agent-memory',
+    websiteUrl: 'https://redis.io/agent-memory/',
+    npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
 ];

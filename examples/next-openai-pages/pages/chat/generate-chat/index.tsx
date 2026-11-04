@@ -1,4 +1,4 @@
-import { ModelMessage } from 'ai';
+import type { ModelMessage } from 'ai';
 import { useState } from 'react';
 
 export default function Page() {

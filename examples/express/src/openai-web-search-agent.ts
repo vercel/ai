@@ -1,8 +1,11 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { ToolLoopAgent } from 'ai';
 
 export const openaiWebSearchAgent = new ToolLoopAgent({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   tools: {
     web_search: openai.tools.webSearch({
       searchContextSize: 'low',
@@ -18,6 +21,6 @@ export const openaiWebSearchAgent = new ToolLoopAgent({
     openai: {
       reasoningEffort: 'medium',
       reasoningSummary: 'detailed',
-    } satisfies OpenAIResponsesProviderOptions,
+    } satisfies OpenAILanguageModelResponsesOptions,
   },
 });

@@ -5,55 +5,126 @@ description: Learn how to generate speech from text with the AI SDK.
 
 # Speech
 
-<Note type="warning">Speech is an experimental feature.</Note>
-
 The AI SDK provides the [`generateSpeech`](/docs/reference/ai-sdk-core/generate-speech)
 function to generate speech from text using a speech model.
 
 ```ts
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+const result = await generateSpeech({
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
   voice: 'alloy',
 });
 ```
 
-### Language Setting
+## Telemetry
 
-You can specify the language for speech generation (provider support varies):
+`generateSpeech` accepts the standard `telemetry` option. Registered
+integrations receive start, end, and error events with the provider and model,
+source text, generated audio byte length, media type and format, warnings,
+response metadata, provider metadata, and usage when the provider reports it.
+Raw generated audio is not included in telemetry events.
 
-```ts
-import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { lmnt } from '@ai-sdk/lmnt';
-
-const audio = await generateSpeech({
-  model: lmnt.speech('aurora'),
-  text: 'Hola, mundo!',
-  language: 'es', // Spanish
+```ts highlight="5-7"
+const result = await generateSpeech({
+  model: openai.speech('gpt-4o-mini-tts'),
+  text: 'Hello from the AI SDK!',
+  telemetry: {
+    functionId: 'speak-greeting',
+  },
 });
 ```
+
+Use `recordInputs: false` or `recordOutputs: false` when the text or output
+metadata should not be recorded by telemetry integrations.
 
 To access the generated audio:
 
 ```ts
-const audio = audio.audioData; // audio data e.g. Uint8Array
+const audioData = result.audio.uint8Array; // audio data as Uint8Array
+// or
+const audioBase64 = result.audio.base64; // audio data as base64 string
 ```
+
+## Streaming Speech
+
+<Note type="warning">Streaming speech is an experimental feature.</Note>
+
+Use `experimental_streamSpeech` when you want audio before the full text is
+synthesized, or when the text itself arrives incrementally (for example from
+`streamText`). The function uses speech models with streaming support.
+
+```ts
+import { elevenLabs } from '@ai-sdk/elevenlabs';
+import { experimental_streamSpeech as streamSpeech, streamText } from 'ai';
+
+const { textStream } = streamText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Tell me a short story.',
+});
+
+const result = streamSpeech({
+  model: elevenLabs.speech('eleven_flash_v2_5'),
+  text: textStream, // a string, or an array or stream of strings and/or text parts
+  voice: '21m00Tcm4TlvDq8ikWAM',
+  outputFormat: { type: 'audio/mpeg' },
+});
+
+for await (const chunk of result.audioStream) {
+  // chunk is a Uint8Array of audio bytes in generation order
+}
+
+console.log(await result.usage); // e.g. { inputCharacters: 512 }
+```
+
+`text` accepts a complete string or a stream of text deltas. Providers with an
+incremental text transport synthesize deltas as they arrive; others read the
+text stream to completion first. The end of the text stream ends the input.
+
+`text` can also contain text parts, `{ type: 'text', text, voice?, providerOptions? }`,
+to give parts of the text their own voice (for example for dialogue) on providers
+that support several voices per stream. Single-voice providers error the stream
+when a part's `voice` differs from the call's `voice`. A script that is known up
+front can be passed as an array:
+
+```ts
+const result = streamSpeech({
+  model,
+  text: [
+    { type: 'text', text: 'Did you hear? ', voice: alice },
+    { type: 'text', text: 'No, what?', voice: bob },
+  ],
+});
+```
+
+`error` parts from the provider are not fatal: `fullStream` includes them,
+`audioStream` skips them, and each one is also passed to `onError` (which
+defaults to `console.error`).
+
+Use `fullStream` instead of `audioStream` when you need per-chunk metadata:
+each `audio` part carries the chunk `audioFormat` (e.g.
+`{ type: 'audio/pcm', rate: 24000 }`) and optional `providerMetadata`. Audio
+chunks are not standalone files; concatenate them in order.
+
+`audioStream` and `fullStream` share one live stream, so only one of them can
+be accessed, once. Access the stream before awaiting `usage`, `warnings`,
+`responses`, or `providerMetadata`; accessing a result promise first consumes
+the stream internally.
 
 ## Settings
 
-### Provider-Specific settings
+### Provider-Specific Settings
 
 You can set model-specific settings with the `providerOptions` parameter.
 
 ```ts highlight="7-11"
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
   providerOptions: {
     openai: {
@@ -71,10 +142,10 @@ that you can use to abort the speech generation process or set a timeout.
 
 ```ts highlight="7"
 import { openai } from '@ai-sdk/openai';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
   abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
 });
@@ -87,10 +158,10 @@ that you can use to add custom headers to the speech generation request.
 
 ```ts highlight="7"
 import { openai } from '@ai-sdk/openai';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
   headers: { 'X-Custom-Header': 'custom-value' },
 });
@@ -102,10 +173,10 @@ Warnings (e.g. unsupported parameters) are available on the `warnings` property.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
 });
 
@@ -116,7 +187,7 @@ const warnings = audio.warnings;
 
 When `generateSpeech` cannot generate a valid audio, it throws a [`AI_NoSpeechGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-speech-generated-error).
 
-This error can arise for any the following reasons:
+This error can arise for any of the following reasons:
 
 - The model failed to generate a response
 - The model generated a response that could not be parsed
@@ -127,15 +198,12 @@ The error preserves the following information to help you log the issue:
 - `cause`: The cause of the error. You can use this for more detailed error handling.
 
 ```ts
-import {
-  experimental_generateSpeech as generateSpeech,
-  NoSpeechGeneratedError,
-} from 'ai';
+import { generateSpeech, NoSpeechGeneratedError } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 try {
   await generateSpeech({
-    model: openai.speech('tts-1'),
+    model: openai.speech('gpt-4o-mini-tts'),
     text: 'Hello, world!',
   });
 } catch (error) {
@@ -149,19 +217,40 @@ try {
 
 ## Speech Models
 
-| Provider                                                           | Model                    |
-| ------------------------------------------------------------------ | ------------------------ |
-| [OpenAI](/providers/ai-sdk-providers/openai#speech-models)         | `tts-1`                  |
-| [OpenAI](/providers/ai-sdk-providers/openai#speech-models)         | `tts-1-hd`               |
-| [OpenAI](/providers/ai-sdk-providers/openai#speech-models)         | `gpt-4o-mini-tts`        |
-| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_v3`              |
-| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_multilingual_v2` |
-| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_flash_v2_5`      |
-| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_flash_v2`        |
-| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_turbo_v2_5`      |
-| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_turbo_v2`        |
-| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)             | `aurora`                 |
-| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)             | `blizzard`               |
-| [Hume](/providers/ai-sdk-providers/hume#speech-models)             | `default`                |
+| Provider                                                                 | Model                               |
+| ------------------------------------------------------------------------ | ----------------------------------- |
+| [OpenAI](/providers/ai-sdk-providers/openai#speech-models)               | `tts-1`                             |
+| [OpenAI](/providers/ai-sdk-providers/openai#speech-models)               | `tts-1-hd`                          |
+| [OpenAI](/providers/ai-sdk-providers/openai#speech-models)               | `gpt-4o-mini-tts`                   |
+| [Mistral](/providers/ai-sdk-providers/mistral#speech-models)             | `voxtral-mini-tts-2603`             |
+| [Mistral](/providers/ai-sdk-providers/mistral#speech-models)             | `voxtral-mini-tts-3-0`              |
+| [Azure Speech](/providers/ai-sdk-providers/azure#mai-voice)              | `mai-voice-2.1-flash`               |
+| [Azure Speech](/providers/ai-sdk-providers/azure#mai-voice)              | `mai-voice-2.1`                     |
+| [Azure Speech](/providers/ai-sdk-providers/azure#mai-voice)              | `mai-voice-2-flash`                 |
+| [Azure Speech](/providers/ai-sdk-providers/azure#mai-voice)              | `mai-voice-2`                       |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models)       | `eleven_v3`                         |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models)       | `eleven_multilingual_v2`            |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models)       | `eleven_flash_v2_5`                 |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models)       | `eleven_flash_v2`                   |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models)       | `eleven_turbo_v2_5`                 |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models)       | `eleven_turbo_v2`                   |
+| [Hume](/providers/ai-sdk-providers/hume#speech-models)                   | `default`                           |
+| [Google](/providers/ai-sdk-providers/google#speech-models)               | `gemini-2.5-flash-preview-tts`      |
+| [Google](/providers/ai-sdk-providers/google#speech-models)               | `gemini-2.5-pro-preview-tts`        |
+| [Google](/providers/ai-sdk-providers/google#speech-models)               | `gemini-3.1-flash-tts-preview`      |
+| [Google](/providers/ai-sdk-providers/google#speech-models)               | `gemini-3.8-flash-tts`              |
+| [Google](/providers/ai-sdk-providers/google#speech-models)               | `gemini-3.8-flash-lite-tts`         |
+| [Google Vertex](/providers/ai-sdk-providers/google-vertex#speech-models) | `gemini-2.5-flash-tts`              |
+| [Google Vertex](/providers/ai-sdk-providers/google-vertex#speech-models) | `gemini-2.5-pro-tts`                |
+| [Google Vertex](/providers/ai-sdk-providers/google-vertex#speech-models) | `gemini-2.5-flash-lite-preview-tts` |
+| [Google Vertex](/providers/ai-sdk-providers/google-vertex#speech-models) | `gemini-3.1-flash-tts-preview`      |
+| [xAI](/providers/ai-sdk-providers/xai#speech-models)                     | `default`                           |
+| [Cartesia](/providers/ai-sdk-providers/cartesia#speech-models)           | `sonic-3.5`                         |
+| [Cartesia](/providers/ai-sdk-providers/cartesia#speech-models)           | `sonic-3`                           |
+| [Cartesia](/providers/ai-sdk-providers/cartesia#speech-models)           | `sonic-2`                           |
+| [Cartesia](/providers/ai-sdk-providers/cartesia#speech-models)           | `sonic-turbo`                       |
+| [Fish Audio](/providers/ai-sdk-providers/fish-audio#speech-models)       | `s1`                                |
+| [Fish Audio](/providers/ai-sdk-providers/fish-audio#speech-models)       | `s2-pro`                            |
+| [Fish Audio](/providers/ai-sdk-providers/fish-audio#speech-models)       | `s2.1-pro`                          |
 
 Above are a small subset of the speech models supported by the AI SDK providers. For more, see the respective provider documentation.

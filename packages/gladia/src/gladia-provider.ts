@@ -1,62 +1,72 @@
 import {
-  TranscriptionModelV3,
-  ProviderV3,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
 import { VERSION } from './version';
 
-export interface GladiaProvider extends ProviderV3 {
+export interface GladiaProvider extends ProviderV4 {
   (): {
     transcription: GladiaTranscriptionModel;
   };
 
   /**
-Creates a model for transcription.
+   * Creates a model for transcription.
    */
-  transcription(): TranscriptionModelV3;
+  transcription(): TranscriptionModelV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface GladiaProviderSettings {
   /**
-API key for authenticating requests.
-     */
-  apiKey?: string;
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
+   */
+  apiKey?: Resolvable<string>;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create a Gladia provider instance.
+ * Create a Gladia provider instance.
  */
 export function createGladia(
   options: GladiaProviderSettings = {},
 ): GladiaProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        'x-gladia-key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'GLADIA_API_KEY',
-          description: 'Gladia',
-        }),
-        ...options.headers,
-      },
-      `ai-sdk/gladia/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          'x-gladia-key': loadApiKey({
+            apiKey,
+            environmentVariableName: 'GLADIA_API_KEY',
+            description: 'Gladia',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-gladia/${VERSION}`,
+      ),
     );
 
   const createTranscriptionModel = () =>
@@ -73,11 +83,11 @@ export function createGladia(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  // Required ProviderV3 methods that are not supported
+  // Required ProviderV4 methods that are not supported
   provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({
       modelId,
@@ -93,6 +103,7 @@ export function createGladia(
       message: 'Gladia does not provide embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({
@@ -106,6 +117,6 @@ export function createGladia(
 }
 
 /**
-Default Gladia provider instance.
+ * Default Gladia provider instance.
  */
 export const gladia = createGladia();

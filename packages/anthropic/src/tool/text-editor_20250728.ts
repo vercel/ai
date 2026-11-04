@@ -1,6 +1,9 @@
-import { createProviderToolFactory } from '@ai-sdk/provider-utils';
+import {
+  createProviderDefinedToolFactory,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
 export const textEditor_20250728ArgsSchema = lazySchema(() =>
   zodSchema(
@@ -18,13 +21,14 @@ const textEditor_20250728InputSchema = lazySchema(() =>
       file_text: z.string().optional(),
       insert_line: z.number().int().optional(),
       new_str: z.string().optional(),
+      insert_text: z.string().optional(),
       old_str: z.string().optional(),
       view_range: z.array(z.number().int()).optional(),
     }),
   ),
 );
 
-const factory = createProviderToolFactory<
+const factory = createProviderDefinedToolFactory<
   {
     /**
      * The commands to run. Allowed options are: `view`, `create`, `str_replace`, `insert`.
@@ -48,9 +52,14 @@ const factory = createProviderToolFactory<
     insert_line?: number;
 
     /**
-     * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added). Required parameter of `insert` command containing the string to insert.
+     * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added).
      */
     new_str?: string;
+
+    /**
+     * Required parameter of `insert` command containing the text to insert.
+     */
+    insert_text?: string;
 
     /**
      * Required parameter of `str_replace` command containing the string in `path` to replace.

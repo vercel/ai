@@ -2,34 +2,32 @@
 
 The **[Cohere provider](https://ai-sdk.dev/providers/ai-sdk-providers/cohere)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the Cohere API.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Cohere (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
-The Cohere provider is available in the `@ai-sdk/cohere` module. You can install it with
-
 ```bash
-npm i @ai-sdk/cohere
+npm i ai @ai-sdk/cohere
 ```
 
-## Provider Instance
+## Skill for Coding Agents
 
-You can import the default provider instance `cohere` from `@ai-sdk/cohere`:
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
 
-```ts
-import { cohere } from '@ai-sdk/cohere';
+```shell
+npx skills add vercel/ai
 ```
 
-## Example
+## Usage
 
 ```ts
 import { cohere } from '@ai-sdk/cohere';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: cohere('command-r-plus'),
+  model: cohere('command-a-03-2025'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
-## Documentation
-
-Please check out the **[Cohere provider](https://ai-sdk.dev/providers/ai-sdk-providers/cohere)** for more information.
+See the [Cohere Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/cohere) for more information.

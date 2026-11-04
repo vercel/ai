@@ -38,10 +38,17 @@ describe('GatewayEmbeddingModel', () => {
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
     usage = { tokens: 8 },
+    warnings,
     headers,
   }: {
     embeddings?: number[][];
     usage?: { tokens: number };
+    warnings?: Array<
+      | { type: 'unsupported'; feature: string; details?: string }
+      | { type: 'compatibility'; feature: string; details?: string }
+      | { type: 'deprecated'; setting: string; message: string }
+      | { type: 'other'; message: string }
+    >;
     headers?: Record<string, string>;
   } = {}) {
     server.urls['https://api.test.com/embedding-model'].response = {
@@ -50,11 +57,39 @@ describe('GatewayEmbeddingModel', () => {
       body: {
         embeddings,
         usage,
+        ...(warnings && { warnings }),
       },
     };
   }
 
   describe('doEmbed', () => {
+    it('should forward dimensions alongside provider options for server-side resolution', async () => {
+      prepareJsonResponse();
+
+      await createTestModel().doEmbed({
+        values: testValues,
+        dimensions: 256,
+        providerOptions: { openai: { dimensions: 512 } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        values: testValues,
+        dimensions: 256,
+        providerOptions: { openai: { dimensions: 512 } },
+      });
+    });
+
+    it('should forward dimensions without provider options', async () => {
+      prepareJsonResponse();
+
+      await createTestModel().doEmbed({ values: testValues, dimensions: 256 });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        values: testValues,
+        dimensions: 256,
+      });
+    });
+
     it('should pass headers correctly', async () => {
       prepareJsonResponse();
 
@@ -67,7 +102,7 @@ describe('GatewayEmbeddingModel', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
         'custom-header': 'test-value',
-        'ai-embedding-model-specification-version': '2',
+        'ai-embedding-model-specification-version': '4',
         'ai-model-id': 'openai/text-embedding-3-small',
       });
     });
@@ -101,17 +136,40 @@ describe('GatewayEmbeddingModel', () => {
       expect(usage).toStrictEqual({ tokens: 42 });
     });
 
-    it('should send single value as string, multiple values as array', async () => {
+    it('should extract warnings', async () => {
+      const mockWarnings = [
+        {
+          type: 'deprecated' as const,
+          setting: 'dimensions',
+          message: 'Use outputDimensions instead.',
+        },
+      ];
+
+      prepareJsonResponse({ warnings: mockWarnings });
+
+      const { warnings } = await createTestModel().doEmbed({
+        values: testValues,
+      });
+
+      expect(warnings).toStrictEqual(mockWarnings);
+    });
+
+    it('should default warnings to an empty array when absent', async () => {
+      prepareJsonResponse();
+
+      const { warnings } = await createTestModel().doEmbed({
+        values: testValues,
+      });
+
+      expect(warnings).toStrictEqual([]);
+    });
+
+    it('should send value as array', async () => {
       prepareJsonResponse();
 
       await createTestModel().doEmbed({ values: testValues });
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        input: testValues,
-      });
-
-      await createTestModel().doEmbed({ values: [testValues[0]] });
-      expect(await server.calls[1].requestBodyJson).toStrictEqual({
-        input: testValues[0],
+        values: testValues,
       });
     });
 
@@ -124,7 +182,7 @@ describe('GatewayEmbeddingModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        input: testValues,
+        values: testValues,
         providerOptions: { openai: { dimensions: 64 } },
       });
     });
@@ -135,7 +193,7 @@ describe('GatewayEmbeddingModel', () => {
       await createTestModel().doEmbed({ values: testValues });
 
       const body = await server.calls[0].requestBodyJson;
-      expect(body).toStrictEqual({ input: testValues });
+      expect(body).toStrictEqual({ values: testValues });
       expect('providerOptions' in body).toBe(false);
     });
 

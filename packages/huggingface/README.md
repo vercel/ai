@@ -1,24 +1,24 @@
-# Vercel AI SDK - Hugging Face Provider
+# AI SDK - Hugging Face Provider
 
 The **[Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers/index)** for the [Vercel AI SDK](https://ai-sdk.dev/docs) contains language model support for thousands of models through multiple inference providers via the Hugging Face router API.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Hugging Face (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
-The Hugging Face provider is available in the `@ai-sdk/huggingface` module. You can install it with:
-
 ```bash
-npm i @ai-sdk/huggingface
+npm i ai @ai-sdk/huggingface
 ```
 
-## Provider Instance
+## Skill for Coding Agents
 
-You can import the default provider instance `huggingface` from `@ai-sdk/huggingface`:
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
 
-```ts
-import { huggingface } from '@ai-sdk/huggingface';
+```shell
+npx skills add vercel/ai
 ```
 
-## Example
+## Usage
 
 ```ts
 import { huggingface } from '@ai-sdk/huggingface';
@@ -30,6 +30,4 @@ const { text } = await generateText({
 });
 ```
 
-## Documentation
-
-Please check out the **[Hugging Face provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/huggingface)** for more information.
+See the [Hugging Face Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/huggingface) for more information.

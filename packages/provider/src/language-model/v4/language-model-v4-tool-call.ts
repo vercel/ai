@@ -1,0 +1,42 @@
+import type { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
+
+/**
+ * Tool calls that the model has generated.
+ */
+export type LanguageModelV4ToolCall = {
+  type: 'tool-call';
+
+  /**
+   * The identifier of the tool call. It must be unique across all tool calls.
+   */
+  toolCallId: string;
+
+  /**
+   * The name of the tool that should be called.
+   */
+  toolName: string;
+
+  /**
+   * JSON-encoded tool input. Must match the input schema of the tool.
+   * String inputs must also be JSON-encoded, even when input deltas use text
+   * encoding.
+   */
+  input: string;
+
+  /**
+   * Whether the tool call will be executed by the provider.
+   * If this flag is not set or is false, the tool call will be executed by the client.
+   */
+  providerExecuted?: boolean;
+
+  /**
+   * Whether the tool is dynamic, i.e. defined at runtime.
+   * For example, MCP (Model Context Protocol) tools that are executed by the provider.
+   */
+  dynamic?: boolean;
+
+  /**
+   * Additional provider-specific metadata for the tool call.
+   */
+  providerMetadata?: SharedV4ProviderMetadata;
+};

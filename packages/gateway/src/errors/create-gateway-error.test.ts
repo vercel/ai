@@ -6,10 +6,12 @@ import {
   GatewayRateLimitError,
   GatewayModelNotFoundError,
   GatewayInternalServerError,
+  GatewayNotFoundError,
+  GatewayFailedDependencyError,
+  GatewayForbiddenError,
   GatewayResponseError,
   type GatewayErrorResponse,
 } from './index';
-
 describe('Valid error responses', () => {
   it('should create GatewayAuthenticationError for authentication_error type', async () => {
     const response: GatewayErrorResponse = {
@@ -48,6 +50,62 @@ describe('Valid error responses', () => {
     expect(error.statusCode).toBe(400);
   });
 
+  it('should create GatewayForbiddenError for forbidden type', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'Request denied by a routing rule.',
+        type: 'forbidden',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 403,
+    });
+
+    expect(error).toBeInstanceOf(GatewayForbiddenError);
+    expect(error.message).toBe('Request denied by a routing rule.');
+    expect(error.statusCode).toBe(403);
+    expect(error.type).toBe('forbidden');
+    expect((error as GatewayForbiddenError).ruleId).toBeUndefined();
+  });
+
+  it('exposes the ruleId on GatewayForbiddenError when present in param', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'Request denied by a routing rule.',
+        type: 'forbidden',
+        param: { ruleId: 'rule_abc123' },
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 403,
+    });
+
+    expect(error).toBeInstanceOf(GatewayForbiddenError);
+    expect((error as GatewayForbiddenError).ruleId).toBe('rule_abc123');
+  });
+
+  it('leaves ruleId undefined when the forbidden param has an unexpected shape', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'Request denied by a routing rule.',
+        type: 'forbidden',
+        param: 'model',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 403,
+    });
+
+    expect(error).toBeInstanceOf(GatewayForbiddenError);
+    expect((error as GatewayForbiddenError).ruleId).toBeUndefined();
+  });
+
   it('should create GatewayRateLimitError for rate_limit_exceeded type', async () => {
     const response: GatewayErrorResponse = {
       error: {
@@ -71,7 +129,7 @@ describe('Valid error responses', () => {
       error: {
         message: 'Model not available',
         type: 'model_not_found',
-        param: { modelId: 'gpt-4-turbo' },
+        param: { modelId: 'gpt-ai-sdk-test' }, // Not a real model, just for testing.
       },
     };
 
@@ -83,7 +141,29 @@ describe('Valid error responses', () => {
     expect(error).toBeInstanceOf(GatewayModelNotFoundError);
     expect(error.message).toBe('Model not available');
     expect(error.statusCode).toBe(404);
-    expect((error as GatewayModelNotFoundError).modelId).toBe('gpt-4-turbo');
+    expect((error as GatewayModelNotFoundError).modelId).toBe(
+      'gpt-ai-sdk-test',
+    );
+  });
+
+  it('should create GatewayNotFoundError for not_found type', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'Async job not found.',
+        type: 'not_found',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 404,
+    });
+
+    expect(error).toBeInstanceOf(GatewayNotFoundError);
+    expect(error.message).toBe('Async job not found.');
+    expect(error.statusCode).toBe(404);
+    expect(error.type).toBe('not_found');
+    expect(error.isRetryable).toBe(false);
   });
 
   it('should create GatewayModelNotFoundError without modelId for invalid param', async () => {
@@ -120,6 +200,28 @@ describe('Valid error responses', () => {
     expect(error).toBeInstanceOf(GatewayInternalServerError);
     expect(error.message).toBe('Internal server error occurred');
     expect(error.statusCode).toBe(500);
+  });
+
+  it('should create GatewayFailedDependencyError for failed_dependency type', async () => {
+    const response: GatewayErrorResponse = {
+      error: {
+        message: 'A dependency required by the request was unavailable',
+        type: 'failed_dependency',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 424,
+    });
+
+    expect(error).toBeInstanceOf(GatewayFailedDependencyError);
+    expect(error.type).toBe('failed_dependency');
+    expect(error.message).toBe(
+      'A dependency required by the request was unavailable',
+    );
+    expect(error.statusCode).toBe(424);
+    expect(error.isRetryable).toBe(false);
   });
 
   it('should create GatewayInternalServerError for unknown error type', async () => {
@@ -425,6 +527,113 @@ describe('Complex scenarios', () => {
     expect(error.cause).toBe(originalCause);
     expect(error.name).toBe('GatewayRateLimitError');
     expect(error.type).toBe('rate_limit_exceeded');
+  });
+});
+
+describe('generationId support', () => {
+  it('should include generationId in error when present in response', async () => {
+    const response = {
+      error: {
+        message: 'Internal server error',
+        type: 'internal_server_error',
+      },
+      generationId: 'gen_01ABC123XYZ',
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 500,
+    });
+
+    expect(error).toBeInstanceOf(GatewayInternalServerError);
+    expect(error.generationId).toBe('gen_01ABC123XYZ');
+  });
+
+  it('should include generationId in authentication error', async () => {
+    const response = {
+      error: {
+        message: 'Invalid API key',
+        type: 'authentication_error',
+      },
+      generationId: 'gen_01AUTH456',
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 401,
+      authMethod: 'api-key',
+    });
+
+    expect(error).toBeInstanceOf(GatewayAuthenticationError);
+    expect(error.generationId).toBe('gen_01AUTH456');
+  });
+
+  it('should include generationId in rate limit error', async () => {
+    const response = {
+      error: {
+        message: 'Rate limit exceeded',
+        type: 'rate_limit_exceeded',
+      },
+      generationId: 'gen_01RATE789',
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 429,
+    });
+
+    expect(error).toBeInstanceOf(GatewayRateLimitError);
+    expect(error.generationId).toBe('gen_01RATE789');
+  });
+
+  it('should include generationId in model not found error', async () => {
+    const response = {
+      error: {
+        message: 'Model not found',
+        type: 'model_not_found',
+        param: { modelId: 'gpt-5' },
+      },
+      generationId: 'gen_01MODEL000',
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 404,
+    });
+
+    expect(error).toBeInstanceOf(GatewayModelNotFoundError);
+    expect(error.generationId).toBe('gen_01MODEL000');
+  });
+
+  it('should have undefined generationId when not present in response', async () => {
+    const response = {
+      error: {
+        message: 'Some error',
+        type: 'internal_server_error',
+      },
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 500,
+    });
+
+    expect(error.generationId).toBeUndefined();
+  });
+
+  it('should extract generationId from malformed response when possible', async () => {
+    const response = {
+      invalidField: 'value',
+      generationId: 'gen_01MALFORMED',
+    };
+
+    const error = await createGatewayErrorFromResponse({
+      response,
+      statusCode: 500,
+    });
+
+    expect(error).toBeInstanceOf(GatewayResponseError);
+    expect(error.generationId).toBe('gen_01MALFORMED');
   });
 });
 

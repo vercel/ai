@@ -1,14 +1,22 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 import { jsonSchema, tool } from '@ai-sdk/provider-utils';
 import {
   convertAsyncIterableToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { afterEach, beforeEach, describe, expect, it, vitest } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
 import { streamText } from '../generate-text';
 import * as logWarningsModule from '../logger/log-warnings';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { simulateStreamingMiddleware } from './simulate-streaming-middleware';
 
 const DEFAULT_SETTINGs = {
@@ -16,11 +24,10 @@ const DEFAULT_SETTINGs = {
   experimental_generateMessageId: mockId({ prefix: 'msg' }),
   _internal: {
     generateId: mockId({ prefix: 'id' }),
-    currentDate: () => new Date('2025-01-01'),
   },
 };
 
-const testUsage: LanguageModelV3Usage = {
+const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 5,
     noCache: 5,
@@ -38,21 +45,24 @@ describe('simulateStreamingMiddleware', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-01'));
     logWarningsSpy = vitest
       .spyOn(logWarningsModule, 'logWarnings')
       .mockImplementation(() => {});
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     logWarningsSpy.mockRestore();
   });
 
   it('should simulate streaming with text response', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -67,14 +77,17 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -94,7 +107,19 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -103,7 +128,6 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -116,14 +140,13 @@ describe('simulateStreamingMiddleware', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": 3,
               "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -135,7 +158,6 @@ describe('simulateStreamingMiddleware', () => {
                 "textTokens": 10,
               },
               "outputTokens": 10,
-              "reasoningTokens": 3,
               "totalTokens": 15,
             },
             "type": "finish",
@@ -145,7 +167,7 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should simulate streaming with reasoning as string', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [
@@ -156,7 +178,7 @@ describe('simulateStreamingMiddleware', () => {
             },
             { type: 'text', text: 'This is a test response' },
           ],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -171,14 +193,17 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -213,7 +238,26 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeBetweenOutputChunksMs": {
+                "avg": 0,
+                "max": 0,
+                "median": 0,
+                "min": 0,
+                "p10": 0,
+                "p90": 0,
+              },
+              "timeToFirstOutputMs": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-1",
@@ -222,7 +266,6 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -235,14 +278,13 @@ describe('simulateStreamingMiddleware', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": 3,
               "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -254,7 +296,6 @@ describe('simulateStreamingMiddleware', () => {
                 "textTokens": 10,
               },
               "outputTokens": 10,
-              "reasoningTokens": 3,
               "totalTokens": 15,
             },
             "type": "finish",
@@ -264,7 +305,7 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should simulate streaming with reasoning as array of text objects', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [
@@ -287,7 +328,7 @@ describe('simulateStreamingMiddleware', () => {
               },
             },
           ],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -302,14 +343,17 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -378,7 +422,26 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeBetweenOutputChunksMs": {
+                "avg": 0,
+                "max": 0,
+                "median": 0,
+                "min": 0,
+                "p10": 0,
+                "p90": 0,
+              },
+              "timeToFirstOutputMs": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-2",
@@ -387,7 +450,6 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -400,14 +462,13 @@ describe('simulateStreamingMiddleware', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": 3,
               "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -419,7 +480,6 @@ describe('simulateStreamingMiddleware', () => {
                 "textTokens": 10,
               },
               "outputTokens": 10,
-              "reasoningTokens": 3,
               "totalTokens": 15,
             },
             "type": "finish",
@@ -429,7 +489,7 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should simulate streaming with reasoning as array of mixed objects', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [
@@ -449,7 +509,7 @@ describe('simulateStreamingMiddleware', () => {
               text: 'This is a test response',
             },
           ],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -464,14 +524,17 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -525,7 +588,26 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeBetweenOutputChunksMs": {
+                "avg": 0,
+                "max": 0,
+                "median": 0,
+                "min": 0,
+                "p10": 0,
+                "p90": 0,
+              },
+              "timeToFirstOutputMs": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-3",
@@ -534,7 +616,6 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -547,14 +628,13 @@ describe('simulateStreamingMiddleware', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": 3,
               "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -566,7 +646,6 @@ describe('simulateStreamingMiddleware', () => {
                 "textTokens": 10,
               },
               "outputTokens": 10,
-              "reasoningTokens": 3,
               "totalTokens": 15,
             },
             "type": "finish",
@@ -576,7 +655,7 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should simulate streaming with tool calls', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [
@@ -599,7 +678,7 @@ describe('simulateStreamingMiddleware', () => {
               toolCallType: 'function',
             },
           ],
-          finishReason: 'tool-calls',
+          finishReason: { unified: 'tool-calls', raw: undefined },
           usage: testUsage,
           warnings: [],
         };
@@ -626,14 +705,17 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -675,7 +757,26 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "tool-calls",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeBetweenOutputChunksMs": {
+                "avg": 0,
+                "max": 0,
+                "median": 0,
+                "min": 0,
+                "p10": 0,
+                "p90": 0,
+              },
+              "timeToFirstOutputMs": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": undefined,
+            "rawFinishReason": undefined,
             "response": {
               "headers": undefined,
               "id": "id-4",
@@ -684,7 +785,6 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -697,14 +797,13 @@ describe('simulateStreamingMiddleware', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": 3,
               "totalTokens": 15,
             },
           },
           {
             "finishReason": "tool-calls",
+            "rawFinishReason": undefined,
             "totalUsage": {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -716,7 +815,6 @@ describe('simulateStreamingMiddleware', () => {
                 "textTokens": 10,
               },
               "outputTokens": 10,
-              "reasoningTokens": 3,
               "totalTokens": 15,
             },
             "type": "finish",
@@ -726,11 +824,11 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should preserve additional metadata in the response', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           providerMetadata: { custom: { key: 'value' } },
           warnings: [],
@@ -746,14 +844,17 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(await convertAsyncIterableToArray(result.fullStream))
+    expect(await convertAsyncIterableToArray(result.stream))
       .toMatchInlineSnapshot(`
         [
           {
             "type": "start",
           },
           {
-            "request": {},
+            "request": {
+              "body": undefined,
+              "messages": undefined,
+            },
             "type": "start-step",
             "warnings": [],
           },
@@ -773,11 +874,23 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "stepTimeMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": 0,
+              "toolExecutionMs": {},
+            },
             "providerMetadata": {
               "custom": {
                 "key": "value",
               },
             },
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-5",
@@ -786,7 +899,6 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -799,14 +911,13 @@ describe('simulateStreamingMiddleware', () => {
               },
               "outputTokens": 10,
               "raw": undefined,
-              "reasoningTokens": 3,
               "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": 0,
               "inputTokenDetails": {
                 "cacheReadTokens": 0,
                 "cacheWriteTokens": 0,
@@ -818,7 +929,6 @@ describe('simulateStreamingMiddleware', () => {
                 "textTokens": 10,
               },
               "outputTokens": 10,
-              "reasoningTokens": 3,
               "totalTokens": 15,
             },
             "type": "finish",
@@ -828,11 +938,11 @@ describe('simulateStreamingMiddleware', () => {
   });
 
   it('should handle empty text response', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [{ type: 'text', text: '' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -847,17 +957,15 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(
-      await convertAsyncIterableToArray(result.fullStream),
-    ).toMatchSnapshot();
+    expect(await convertAsyncIterableToArray(result.stream)).toMatchSnapshot();
   });
 
   it('should pass through warnings from the model', async () => {
-    const mockModel = new MockLanguageModelV3({
+    const mockModel = new MockLanguageModelV4({
       async doGenerate() {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [
             { type: 'other', message: 'Test warning', code: 'test_warning' },
@@ -885,5 +993,57 @@ describe('simulateStreamingMiddleware', () => {
         },
       ]
     `);
+  });
+
+  it('should preserve provider metadata from generated text', async () => {
+    const providerMetadata = {
+      testProvider: {
+        signature: 'test-signature',
+      },
+    };
+    const mockModel = new MockLanguageModelV4({
+      async doGenerate() {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: 'This is a test response',
+              providerMetadata,
+            },
+          ],
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+          warnings: [],
+        };
+      },
+    });
+
+    const result = streamText({
+      model: wrapLanguageModel({
+        model: mockModel,
+        middleware: simulateStreamingMiddleware(),
+      }),
+      ...DEFAULT_SETTINGs,
+    });
+
+    expect(await result.content).toEqual([
+      {
+        type: 'text',
+        text: 'This is a test response',
+        providerMetadata,
+      },
+    ]);
+    expect((await result.response).messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'This is a test response',
+            providerOptions: providerMetadata,
+          },
+        ],
+      },
+    ]);
   });
 });

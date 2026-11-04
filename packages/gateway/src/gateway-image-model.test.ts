@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { GatewayImageModel } from './gateway-image-model';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import type { GatewayConfig } from './gateway-config';
+import { GatewayResponseError } from './errors';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
-const TEST_MODEL_ID = 'google/imagen-4.0-generate';
+const TEST_MODEL_ID = 'openai/gpt-image-1';
 
 const createTestModel = (
   config: Partial<
@@ -34,7 +36,7 @@ describe('GatewayImageModel', () => {
 
       expect(model.modelId).toBe(TEST_MODEL_ID);
       expect(model.provider).toBe('gateway');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(Number.MAX_SAFE_INTEGER);
     });
 
@@ -66,17 +68,25 @@ describe('GatewayImageModel', () => {
   describe('doGenerate', () => {
     function prepareJsonResponse({
       images = ['base64-image-1'],
+      isRetryable,
       warnings,
       providerMetadata,
     }: {
       images?: string[];
-      warnings?: Array<{ type: 'other'; message: string }>;
+      isRetryable?: boolean;
+      warnings?: Array<
+        | { type: 'unsupported'; feature: string; details?: string }
+        | { type: 'compatibility'; feature: string; details?: string }
+        | { type: 'deprecated'; setting: string; message: string }
+        | { type: 'other'; message: string }
+      >;
       providerMetadata?: Record<string, unknown>;
     } = {}) {
       server.urls['https://api.test.com/image-model'].response = {
         type: 'json-value',
         body: {
           images,
+          ...(isRetryable != null && { isRetryable }),
           ...(warnings && { warnings }),
           ...(providerMetadata && { providerMetadata }),
         },
@@ -88,6 +98,8 @@ describe('GatewayImageModel', () => {
 
       await createTestModel().doGenerate({
         prompt: 'A beautiful sunset over mountains',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -98,7 +110,7 @@ describe('GatewayImageModel', () => {
       const headers = server.calls[0].requestHeaders;
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
-        'ai-image-model-specification-version': '2',
+        'ai-image-model-specification-version': '4',
         'ai-model-id': TEST_MODEL_ID,
       });
     });
@@ -109,6 +121,8 @@ describe('GatewayImageModel', () => {
       const prompt = 'A cat playing piano';
       await createTestModel().doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: '1024x1024',
         aspectRatio: '16:9',
@@ -135,6 +149,8 @@ describe('GatewayImageModel', () => {
       const prompt = 'A simple prompt';
       await createTestModel().doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -153,12 +169,32 @@ describe('GatewayImageModel', () => {
       expect(requestBody).not.toHaveProperty('seed');
     });
 
+    it('should pass seed when it is 0', async () => {
+      prepareJsonResponse();
+
+      await createTestModel().doGenerate({
+        prompt: 'A simple prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: 0,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toHaveProperty('seed', 0);
+    });
+
     it('should return images array correctly', async () => {
       const mockImages = ['base64-image-1', 'base64-image-2'];
       prepareJsonResponse({ images: mockImages });
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -167,6 +203,23 @@ describe('GatewayImageModel', () => {
       });
 
       expect(result.images).toEqual(mockImages);
+    });
+
+    it('should preserve response retryability', async () => {
+      prepareJsonResponse({ images: [], isRetryable: false });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.isRetryable).toBe(false);
     });
 
     it('should return provider metadata correctly', async () => {
@@ -190,6 +243,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -213,6 +268,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -236,6 +293,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -253,6 +312,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -275,10 +336,133 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
         seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual(mockWarnings);
+    });
+
+    it('should return deprecated warnings correctly', async () => {
+      const mockWarnings = [
+        {
+          type: 'deprecated' as const,
+          setting: 'size',
+          message: 'Use `aspectRatio` instead.',
+        },
+      ];
+
+      prepareJsonResponse({
+        images: ['base64-1'],
+        warnings: mockWarnings,
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual(mockWarnings);
+    });
+
+    it('should return unsupported warnings correctly', async () => {
+      const mockWarnings = [
+        {
+          type: 'unsupported' as const,
+          feature: 'size',
+          details:
+            'This model does not support the `size` option. Use `aspectRatio` instead.',
+        },
+      ];
+
+      prepareJsonResponse({
+        images: ['base64-1'],
+        warnings: mockWarnings,
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual(mockWarnings);
+    });
+
+    it('should return compatibility warnings correctly', async () => {
+      const mockWarnings = [
+        {
+          type: 'compatibility' as const,
+          feature: 'seed',
+          details: 'Seed support is approximate for this model.',
+        },
+      ];
+
+      prepareJsonResponse({
+        images: ['base64-1'],
+        warnings: mockWarnings,
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: 42,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toEqual(mockWarnings);
+    });
+
+    it('should handle mixed warning types', async () => {
+      const mockWarnings = [
+        {
+          type: 'unsupported' as const,
+          feature: 'size',
+        },
+        {
+          type: 'compatibility' as const,
+          feature: 'seed',
+          details: 'Approximate seed support.',
+        },
+        {
+          type: 'other' as const,
+          message: 'Rate limit approaching.',
+        },
+      ];
+
+      prepareJsonResponse({
+        images: ['base64-1'],
+        warnings: mockWarnings,
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: 42,
         providerOptions: {},
       });
 
@@ -292,6 +476,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -309,6 +495,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -321,11 +509,92 @@ describe('GatewayImageModel', () => {
       expect(result.response.headers).toBeDefined();
     });
 
+    it('should return usage when provided', async () => {
+      server.urls['https://api.test.com/image-model'].response = {
+        type: 'json-value',
+        body: {
+          images: ['base64-1'],
+          usage: {
+            inputTokens: 27,
+            outputTokens: 6240,
+            totalTokens: 6267,
+          },
+        },
+      };
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.usage).toEqual({
+        inputTokens: 27,
+        outputTokens: 6240,
+        totalTokens: 6267,
+      });
+    });
+
+    it('should return usage with partial token counts', async () => {
+      server.urls['https://api.test.com/image-model'].response = {
+        type: 'json-value',
+        body: {
+          images: ['base64-1'],
+          usage: {
+            inputTokens: 10,
+          },
+        },
+      };
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.usage).toEqual({
+        inputTokens: 10,
+        outputTokens: undefined,
+        totalTokens: undefined,
+      });
+    });
+
+    it('should not include usage when not provided', async () => {
+      prepareJsonResponse({
+        images: ['base64-1'],
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.usage).toBeUndefined();
+    });
+
     it('should merge custom headers with config headers', async () => {
       prepareJsonResponse();
 
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -340,7 +609,7 @@ describe('GatewayImageModel', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
         'x-custom-header': 'custom-value',
-        'ai-image-model-specification-version': '2',
+        'ai-image-model-specification-version': '4',
         'ai-model-id': TEST_MODEL_ID,
       });
     });
@@ -355,6 +624,8 @@ describe('GatewayImageModel', () => {
         },
       }).doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -375,6 +646,8 @@ describe('GatewayImageModel', () => {
       const abortController = new AbortController();
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -401,6 +674,8 @@ describe('GatewayImageModel', () => {
       await expect(
         createTestModel().doGenerate({
           prompt: 'Test prompt',
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -425,6 +700,8 @@ describe('GatewayImageModel', () => {
       await expect(
         createTestModel().doGenerate({
           prompt: 'Test prompt',
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -439,6 +716,8 @@ describe('GatewayImageModel', () => {
 
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -473,6 +752,8 @@ describe('GatewayImageModel', () => {
 
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -502,6 +783,8 @@ describe('GatewayImageModel', () => {
 
       await model.doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -543,6 +826,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -570,6 +855,421 @@ describe('GatewayImageModel', () => {
           marketCost: '0.12',
           generationId: 'gen-xyz-789',
         },
+      });
+    });
+
+    describe('file encoding', () => {
+      it('should encode Uint8Array files to base64 strings', async () => {
+        prepareJsonResponse();
+
+        const binaryData = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
+
+        await createTestModel().doGenerate({
+          prompt: 'Edit this image',
+          files: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: binaryData,
+            },
+          ],
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.files).toHaveLength(1);
+        expect(requestBody.files[0]).toEqual({
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'SGVsbG8=', // "Hello" in base64
+        });
+      });
+
+      it('should pass through files with string data unchanged', async () => {
+        prepareJsonResponse();
+
+        await createTestModel().doGenerate({
+          prompt: 'Edit this image',
+          files: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: 'already-base64-encoded',
+            },
+          ],
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.files).toHaveLength(1);
+        expect(requestBody.files[0]).toEqual({
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'already-base64-encoded',
+        });
+      });
+
+      it('should pass through URL-type files unchanged', async () => {
+        prepareJsonResponse();
+
+        await createTestModel().doGenerate({
+          prompt: 'Edit this image',
+          files: [
+            {
+              type: 'url',
+              url: 'https://example.com/image.png',
+            },
+          ],
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.files).toHaveLength(1);
+        expect(requestBody.files[0]).toEqual({
+          type: 'url',
+          url: 'https://example.com/image.png',
+        });
+      });
+
+      it('should encode Uint8Array mask to base64 string', async () => {
+        prepareJsonResponse();
+
+        const maskData = new Uint8Array([255, 0, 255, 0]); // Simple mask
+
+        await createTestModel().doGenerate({
+          prompt: 'Inpaint this area',
+          files: undefined,
+          mask: {
+            type: 'file',
+            mediaType: 'image/png',
+            data: maskData,
+          },
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.mask).toEqual({
+          type: 'file',
+          mediaType: 'image/png',
+          data: '/wD/AA==', // [255, 0, 255, 0] in base64
+        });
+      });
+
+      it('should handle mixed file types with encoding', async () => {
+        prepareJsonResponse();
+
+        const binaryData = new Uint8Array([1, 2, 3]);
+
+        await createTestModel().doGenerate({
+          prompt: 'Edit these images',
+          files: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: binaryData,
+            },
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              data: 'already-encoded',
+            },
+            {
+              type: 'url',
+              url: 'https://example.com/image.png',
+            },
+          ],
+          mask: {
+            type: 'file',
+            mediaType: 'image/png',
+            data: new Uint8Array([4, 5, 6]),
+          },
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.files).toHaveLength(3);
+        expect(requestBody.files[0]).toEqual({
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'AQID', // [1, 2, 3] in base64
+        });
+        expect(requestBody.files[1]).toEqual({
+          type: 'file',
+          mediaType: 'image/jpeg',
+          data: 'already-encoded',
+        });
+        expect(requestBody.files[2]).toEqual({
+          type: 'url',
+          url: 'https://example.com/image.png',
+        });
+        expect(requestBody.mask).toEqual({
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'BAUG', // [4, 5, 6] in base64
+        });
+      });
+
+      it('should preserve providerOptions on files during encoding', async () => {
+        prepareJsonResponse();
+
+        const binaryData = new Uint8Array([72, 101, 108, 108, 111]);
+
+        await createTestModel().doGenerate({
+          prompt: 'Edit this image',
+          files: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: binaryData,
+              providerOptions: { openai: { quality: 'hd' } },
+            },
+          ],
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.files[0]).toEqual({
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'SGVsbG8=',
+          providerOptions: { openai: { quality: 'hd' } },
+        });
+      });
+    });
+
+    describe('large images with experimental streaming decoding', () => {
+      const callOptions = {
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 2,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          gateway: { experimental_streamingImageDecoding: true },
+        },
+      };
+
+      function bytesOf(length: number, seed = 1) {
+        const bytes = new Uint8Array(length);
+        let state = seed;
+        for (let index = 0; index < length; index++) {
+          state = (state * 1103515245 + 12345) >>> 0;
+          bytes[index] = state >>> 24;
+        }
+        return bytes;
+      }
+
+      const large = bytesOf(70_000, 1);
+      const largeBase64 = convertUint8ArrayToBase64(large);
+      const small = bytesOf(1_000, 2);
+      const smallBase64 = convertUint8ArrayToBase64(small);
+
+      function respondWith(body: unknown) {
+        server.urls['https://api.test.com/image-model'].response = {
+          type: 'json-value',
+          body: body as Record<string, unknown>,
+        };
+      }
+
+      it.each([undefined, false])(
+        'should preserve base64 results when the option is %s',
+        async enabled => {
+          respondWith({ images: [largeBase64, smallBase64] });
+          const result = await createTestModel().doGenerate({
+            ...callOptions,
+            providerOptions:
+              enabled === undefined
+                ? {}
+                : { gateway: { experimental_streamingImageDecoding: enabled } },
+          });
+          expect(result.images).toEqual([largeBase64, smallBase64]);
+        },
+      );
+
+      it.each([true, false])(
+        'should remove the client option set to %s while preserving service options',
+        async enabled => {
+          respondWith({ images: [largeBase64] });
+          const providerOptions = {
+            gateway: {
+              experimental_streamingImageDecoding: enabled,
+              tags: ['images'],
+            },
+            openai: { quality: 'hd' },
+          };
+          await createTestModel().doGenerate({
+            ...callOptions,
+            providerOptions,
+          });
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.providerOptions).toEqual({
+            gateway: { tags: ['images'] },
+            openai: { quality: 'hd' },
+          });
+          expect(
+            providerOptions.gateway.experimental_streamingImageDecoding,
+          ).toBe(enabled);
+        },
+      );
+
+      it.each([true, false])(
+        'should omit providerOptions when the client option set to %s is its only entry',
+        async enabled => {
+          respondWith({ images: [smallBase64] });
+          await createTestModel().doGenerate({
+            ...callOptions,
+            providerOptions: {
+              gateway: { experimental_streamingImageDecoding: enabled },
+            },
+          });
+          expect(
+            (await server.calls[0].requestBodyJson).providerOptions,
+          ).toBeUndefined();
+        },
+      );
+
+      it.each([true, false])(
+        'should omit an empty gateway object when the client option is %s',
+        async enabled => {
+          respondWith({ images: [smallBase64] });
+          await createTestModel().doGenerate({
+            ...callOptions,
+            providerOptions: {
+              gateway: { experimental_streamingImageDecoding: enabled },
+              openai: { quality: 'hd' },
+            },
+          });
+          expect(
+            (await server.calls[0].requestBodyJson).providerOptions,
+          ).toEqual({
+            openai: { quality: 'hd' },
+          });
+        },
+      );
+
+      it('should return images of 64 KiB and more as Uint8Array', async () => {
+        respondWith({ images: [largeBase64] });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([large]);
+        expect(result.images[0]).toBeInstanceOf(Uint8Array);
+      });
+
+      it('should keep images below 64 KiB as base64 strings', async () => {
+        respondWith({ images: [smallBase64, smallBase64] });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([smallBase64, smallBase64]);
+      });
+
+      it('should return bytes for every image when large and small images are mixed', async () => {
+        respondWith({ images: [smallBase64, largeBase64, smallBase64] });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([small, large, small]);
+      });
+
+      it('should keep strings that cannot be decoded unambiguously and return all images as strings', async () => {
+        const base64Url = largeBase64.replace(/\+/g, '-').replace(/\//g, '_');
+        respondWith({ images: [base64Url, smallBase64] });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([base64Url, smallBase64]);
+      });
+
+      it('should decode large strings that are not canonical base64 like the regular path when mixed with bytes', async () => {
+        const base64Url = largeBase64.replace(/\+/g, '-').replace(/\//g, '_');
+        respondWith({ images: [base64Url, largeBase64] });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([large, large]);
+      });
+
+      it('should not change the other fields of the response', async () => {
+        respondWith({
+          images: [largeBase64],
+          warnings: [{ type: 'other', message: 'careful' }],
+          providerMetadata: { gateway: { images: [{}], cost: '0.04' } },
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        });
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([large]);
+        expect(result.warnings).toEqual([
+          { type: 'other', message: 'careful' },
+        ]);
+        expect(result.providerMetadata).toEqual({
+          gateway: { images: [{}], cost: '0.04' },
+        });
+        expect(result.usage).toEqual({
+          inputTokens: 1,
+          outputTokens: 2,
+          totalTokens: 3,
+        });
+      });
+
+      it('should read a body that arrives in small chunks', async () => {
+        const body = JSON.stringify({ images: [largeBase64, smallBase64] });
+        server.urls['https://api.test.com/image-model'].response = {
+          type: 'stream-chunks',
+          headers: { 'Content-Type': 'application/json' },
+          chunks: body.match(/[\s\S]{1,1999}/g) ?? [],
+        };
+
+        const result = await createTestModel().doGenerate(callOptions);
+
+        expect(result.images).toEqual([large, small]);
+      });
+
+      it('should reject a response whose images are not strings', async () => {
+        respondWith({ images: [largeBase64, 5] });
+
+        const error = await createTestModel()
+          .doGenerate(callOptions)
+          .then(
+            () => undefined,
+            (caught: unknown) => caught,
+          );
+
+        expect(GatewayResponseError.isInstance(error)).toBe(true);
+        // The error does not carry the image.
+        expect(String((error as Error).message).length).toBeLessThan(2000);
       });
     });
   });

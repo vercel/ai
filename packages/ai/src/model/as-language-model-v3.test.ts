@@ -1,4 +1,4 @@
-import { LanguageModelV2 } from '@ai-sdk/provider';
+import type { LanguageModelV2 } from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -13,7 +13,9 @@ describe('asLanguageModelV3', () => {
   let logWarningSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    logWarningSpy = vi.spyOn(logWarningsModule, 'logWarnings');
+    logWarningSpy = vi
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -161,10 +163,37 @@ describe('asLanguageModelV3', () => {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
       });
 
-      expect(response.content).toHaveLength(1);
-      expect(response.finishReason).toBe('stop');
-      expect(response.usage.inputTokens.total).toBe(10);
-      expect(response.usage.outputTokens.total).toBe(5);
+      expect(response).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "text": "Hello",
+              "type": "text",
+            },
+          ],
+          "finishReason": {
+            "raw": undefined,
+            "unified": "stop",
+          },
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": 10,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": 5,
+            },
+            "raw": {
+              "totalTokens": 15,
+            },
+          },
+          "warnings": [],
+        }
+      `);
     });
 
     describe('doStream', () => {
@@ -225,7 +254,10 @@ describe('asLanguageModelV3', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "type": "finish",
                 "usage": {
                   "inputTokens": {
@@ -238,6 +270,9 @@ describe('asLanguageModelV3', () => {
                     "reasoning": 2,
                     "text": undefined,
                     "total": 10,
+                  },
+                  "raw": {
+                    "totalTokens": 13,
                   },
                 },
               },
@@ -385,6 +420,7 @@ describe('asLanguageModelV3', () => {
       });
 
       expect(response.usage?.outputTokens?.reasoning).toBe(5);
+      expect(response.usage?.raw).toEqual({ totalTokens: 20 });
     });
 
     it('should handle response with cached input tokens in usage', async () => {
@@ -450,7 +486,10 @@ describe('asLanguageModelV3', () => {
           prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         });
 
-        expect(response.finishReason).toBe(finishReason);
+        expect(response.finishReason).toStrictEqual({
+          raw: undefined,
+          unified: finishReason === 'unknown' ? 'other' : finishReason,
+        });
       }
     });
 

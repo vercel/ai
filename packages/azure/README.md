@@ -2,23 +2,23 @@
 
 The **[Azure provider](https://ai-sdk.dev/providers/ai-sdk-providers/azure)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the Azure OpenAI API.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Azure OpenAI (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
-The Azure provider is available in the `@ai-sdk/azure` module. You can install it with
-
 ```bash
-npm i @ai-sdk/azure
+npm i ai @ai-sdk/azure
 ```
 
-## Provider Instance
+## Skill for Coding Agents
 
-You can import the default provider instance `azure` from `@ai-sdk/azure`:
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
 
-```ts
-import { azure } from '@ai-sdk/azure';
+```shell
+npx skills add vercel/ai
 ```
 
-## Example
+## Usage
 
 ```ts
 import { azure } from '@ai-sdk/azure';
@@ -30,6 +30,4 @@ const { text } = await generateText({
 });
 ```
 
-## Documentation
-
-Please check out the **[Azure provider](https://ai-sdk.dev/providers/ai-sdk-providers/azure)** for more information.
+See the [Azure OpenAI Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/azure) for more information.

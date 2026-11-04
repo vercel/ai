@@ -1,16 +1,16 @@
 export type ImageModelResponseMetadata = {
   /**
-Timestamp for the start of the generated response.
+   * Timestamp for the start of the generated response.
    */
   timestamp: Date;
 
   /**
-The ID of the response model that was used to generate the response.
+   * The ID of the response model that was used to generate the response.
    */
   modelId: string;
 
   /**
-Response headers.
+   * Response headers.
    */
   headers?: Record<string, string>;
 };

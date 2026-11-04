@@ -1,38 +1,67 @@
 import {
   APICallError,
-  LanguageModelV3,
-  SharedV3Warning,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3StreamPart,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   generateId,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { HuggingFaceConfig } from '../huggingface-config';
+import type { HuggingFaceConfig } from '../huggingface-config';
 import { huggingfaceFailedResponseHandler } from '../huggingface-error';
 import {
-  HuggingFaceResponsesUsage,
   convertHuggingFaceResponsesUsage,
+  type HuggingFaceResponsesUsage,
 } from './convert-huggingface-responses-usage';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';
-import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
-import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
+import { huggingfaceLanguageModelResponsesOptions } from './huggingface-responses-language-model-options';
 import { prepareResponsesTools } from './huggingface-responses-prepare-tools';
+import type { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
+import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
 
-export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: HuggingFaceResponsesModelId;
 
   private readonly config: HuggingFaceConfig;
+
+  static [WORKFLOW_SERIALIZE](model: HuggingFaceResponsesLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: HuggingFaceResponsesModelId;
+    config: HuggingFaceConfig;
+  }) {
+    return new HuggingFaceResponsesLanguageModel(
+      options.modelId,
+      options.config,
+    );
+  }
 
   constructor(modelId: HuggingFaceResponsesModelId, config: HuggingFaceConfig) {
     this.modelId = modelId;
@@ -61,8 +90,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     responseFormat,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -94,7 +123,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
     const huggingfaceOptions = await parseProviderOptions({
       provider: 'huggingface',
       providerOptions,
-      schema: huggingfaceResponsesProviderOptionsSchema,
+      schema: huggingfaceLanguageModelResponsesOptions,
     });
 
     const {
@@ -147,8 +176,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -167,11 +196,14 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: huggingfaceFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        huggingfaceResponsesResponseSchema,
+        huggingfaceResponsesResponseSchemaValidator,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -189,7 +221,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       });
     }
 
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // Process output array
     for (const part of response.output) {
@@ -303,9 +335,12 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapHuggingFaceResponsesFinishReason(
-        response.incomplete_details?.reason ?? 'stop',
-      ),
+      finishReason: {
+        unified: mapHuggingFaceResponsesFinishReason(
+          response.incomplete_details?.reason ?? 'stop',
+        ),
+        raw: response.incomplete_details?.reason ?? undefined,
+      },
       usage: convertHuggingFaceResponsesUsage(response.usage),
       request: { body },
       response: {
@@ -325,8 +360,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -339,7 +374,10 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
         path: '/responses',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: huggingfaceFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -349,15 +387,19 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    // A clean end without the provider's completion signal is interrupted.
+    let finishReason: LanguageModelV4FinishReason = {
+      unified: 'interrupted',
+      raw: undefined,
+    };
     let responseId: string | null = null;
     let usage: HuggingFaceResponsesUsage | undefined = undefined;
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof huggingfaceResponsesChunkSchema>>,
-          LanguageModelV3StreamPart
+          ParseResult<InferSchema<typeof huggingfaceResponsesChunkSchema>>,
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -365,12 +407,28 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
 
           transform(chunk, controller) {
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = {
+                unified: 'error',
+                raw: undefined,
+              };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
 
             const value = chunk.value;
+
+            const streamError = createHuggingFaceResponsesStreamError(value);
+            if (streamError != null) {
+              finishReason = {
+                unified: 'error',
+                raw:
+                  streamError.code != null
+                    ? String(streamError.code)
+                    : streamError.type,
+              };
+              controller.enqueue({ type: 'error', error: streamError });
+              return;
+            }
 
             if (isResponseCreatedChunk(value)) {
               responseId = value.response.id;
@@ -453,9 +511,12 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
 
             if (isResponseCompletedChunk(value)) {
               responseId = value.response.id;
-              finishReason = mapHuggingFaceResponsesFinishReason(
-                value.response.incomplete_details?.reason ?? 'stop',
-              );
+              finishReason = {
+                unified: mapHuggingFaceResponsesFinishReason(
+                  value.response.incomplete_details?.reason ?? 'stop',
+                ),
+                raw: value.response.incomplete_details?.reason ?? undefined,
+              };
               if (value.response.usage) {
                 usage = value.response.usage;
               }
@@ -485,7 +546,6 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
                 id: value.item_id,
                 delta: value.delta,
               });
-              return;
             }
           },
 
@@ -509,149 +569,77 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   }
 }
 
-const huggingfaceResponsesProviderOptionsSchema = z.object({
-  metadata: z.record(z.string(), z.string()).optional(),
-  instructions: z.string().optional(),
-  strictJsonSchema: z.boolean().optional(),
-  reasoningEffort: z.string().optional(),
-});
+function createHuggingFaceResponsesStreamError(
+  event: unknown,
+): ReturnType<typeof createProviderStreamError> | undefined {
+  const outer = asRecord(event);
+  if (outer?.type !== 'error' && outer?.type !== 'response.failed') {
+    return undefined;
+  }
 
-const huggingfaceResponsesOutputSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('message'),
-    id: z.string(),
-    role: z.string().optional(),
-    status: z.string().optional(),
-    content: z.array(
-      z.object({
-        type: z.literal('output_text'),
-        text: z.string(),
-        annotations: z.array(z.any()).optional(),
-      }),
-    ),
-  }),
-  z.object({
-    type: z.literal('reasoning'),
-    id: z.string(),
-    status: z.string().optional(),
-    content: z.array(
-      z.object({
-        type: z.literal('reasoning_text'),
-        text: z.string(),
-      }),
-    ),
-    summary: z
-      .array(
-        z
-          .object({
-            type: z.literal('reasoning_summary'),
-            text: z.string(),
-          })
-          .optional(),
-      )
-      .optional(),
-  }),
-  z.object({
-    type: z.literal('function_call'),
-    id: z.string(),
-    call_id: z.string(),
-    name: z.string(),
-    arguments: z.string(),
-    output: z.string().optional(),
-    status: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('mcp_call'),
-    id: z.string(),
-    name: z.string(),
-    arguments: z.string(),
-    output: z.string().optional(),
-    status: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('mcp_list_tools'),
-    id: z.string(),
-    server_label: z.string(),
-    tools: z.array(z.any()).optional(),
-    status: z.string().optional(),
-  }),
-]);
+  const details =
+    outer.type === 'response.failed'
+      ? asRecord(asRecord(outer.response)?.error)
+      : (asRecord(outer.error) ?? outer);
 
-const huggingfaceResponsesResponseSchema = z.object({
-  id: z.string(),
-  model: z.string(),
-  object: z.string(),
-  created_at: z.number(),
-  status: z.string(),
-  error: z.any().nullable(),
-  instructions: z.any().nullable(),
-  max_output_tokens: z.any().nullable(),
-  metadata: z.any().nullable(),
-  tool_choice: z.any(),
-  tools: z.array(z.any()),
-  temperature: z.number(),
-  top_p: z.number(),
-  incomplete_details: z
-    .object({
-      reason: z.string(),
-    })
-    .nullable()
-    .optional(),
-  usage: z
-    .object({
-      input_tokens: z.number(),
-      input_tokens_details: z
-        .object({
-          cached_tokens: z.number(),
-        })
-        .optional(),
-      output_tokens: z.number(),
-      output_tokens_details: z
-        .object({
-          reasoning_tokens: z.number(),
-        })
-        .optional(),
-      total_tokens: z.number(),
-    })
-    .nullable()
-    .optional(),
-  output: z.array(huggingfaceResponsesOutputSchema),
-  output_text: z.string().nullable().optional(),
-});
+  if (details == null || typeof details.message !== 'string') {
+    return undefined;
+  }
 
-const responseOutputItemAddedSchema = z.object({
-  type: z.literal('response.output_item.added'),
-  output_index: z.number(),
-  item: z.discriminatedUnion('type', [
+  const code =
+    typeof details.code === 'string' || typeof details.code === 'number'
+      ? details.code
+      : undefined;
+
+  return createProviderStreamError({
+    message: details.message,
+    type: outer.type,
+    code,
+    data: event,
+  });
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value != null
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+const huggingfaceResponsesOutputSchema = () =>
+  z.discriminatedUnion('type', [
     z.object({
       type: z.literal('message'),
       id: z.string(),
       role: z.string().optional(),
       status: z.string().optional(),
-      content: z.array(z.any()).optional(),
+      content: z.array(
+        z.object({
+          type: z.literal('output_text'),
+          text: z.string(),
+          annotations: z.array(z.any()).optional(),
+        }),
+      ),
     }),
     z.object({
       type: z.literal('reasoning'),
       id: z.string(),
       status: z.string().optional(),
-      content: z.array(z.any()).optional(),
-      summary: z.array(z.any()).optional(),
-    }),
-    z.object({
-      type: z.literal('mcp_list_tools'),
-      id: z.string(),
-      server_label: z.string(),
-      tools: z.array(z.any()).optional(),
-      error: z.string().optional(),
-    }),
-    z.object({
-      type: z.literal('mcp_call'),
-      id: z.string(),
-      server_label: z.string(),
-      name: z.string(),
-      arguments: z.string(),
-      output: z.string().optional(),
-      error: z.string().optional(),
+      content: z.array(
+        z.object({
+          type: z.literal('reasoning_text'),
+          text: z.string(),
+        }),
+      ),
+      summary: z
+        .array(
+          z
+            .object({
+              type: z.literal('reasoning_summary'),
+              text: z.string(),
+            })
+            .optional(),
+        )
+        .optional(),
     }),
     z.object({
       type: z.literal('function_call'),
@@ -660,152 +648,269 @@ const responseOutputItemAddedSchema = z.object({
       name: z.string(),
       arguments: z.string(),
       output: z.string().optional(),
-      error: z.string().optional(),
-    }),
-  ]),
-  sequence_number: z.number(),
-});
-
-const responseOutputItemDoneSchema = z.object({
-  type: z.literal('response.output_item.done'),
-  output_index: z.number(),
-  item: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('message'),
-      id: z.string(),
-      role: z.string().optional(),
       status: z.string().optional(),
-      content: z.array(z.any()).optional(),
+    }),
+    z.object({
+      type: z.literal('mcp_call'),
+      id: z.string(),
+      name: z.string(),
+      arguments: z.string(),
+      output: z.string().optional(),
+      status: z.string().optional(),
     }),
     z.object({
       type: z.literal('mcp_list_tools'),
       id: z.string(),
       server_label: z.string(),
       tools: z.array(z.any()).optional(),
-      error: z.string().optional(),
-    }),
-    z.object({
-      type: z.literal('mcp_call'),
-      id: z.string(),
-      server_label: z.string(),
-      name: z.string(),
-      arguments: z.string(),
-      output: z.string().optional(),
-      error: z.string().optional(),
-    }),
-    z.object({
-      type: z.literal('function_call'),
-      id: z.string(),
-      call_id: z.string(),
-      name: z.string(),
-      arguments: z.string(),
-      output: z.string().optional(),
-      error: z.string().optional(),
-    }),
-    z.object({
-      type: z.literal('reasoning'),
-      id: z.string(),
       status: z.string().optional(),
-      content: z.array(z.any()).optional(),
-      summary: z.array(z.any()).optional(),
     }),
-  ]),
-  sequence_number: z.number(),
-});
+  ]);
 
-const textDeltaChunkSchema = z.object({
-  type: z.literal('response.output_text.delta'),
-  item_id: z.string(),
-  output_index: z.number(),
-  content_index: z.number(),
-  delta: z.string(),
-  sequence_number: z.number(),
-});
-
-const reasoningTextDeltaChunkSchema = z.object({
-  type: z.literal('response.reasoning_text.delta'),
-  item_id: z.string(),
-  output_index: z.number(),
-  content_index: z.number(),
-  delta: z.string(),
-  sequence_number: z.number(),
-});
-
-const reasoningTextEndChunkSchema = z.object({
-  type: z.literal('response.reasoning_text.done'),
-  item_id: z.string(),
-  output_index: z.number(),
-  content_index: z.number(),
-  text: z.string(),
-  sequence_number: z.number(),
-});
-
-const responseCompletedChunkSchema = z.object({
-  type: z.literal('response.completed'),
-  response: huggingfaceResponsesResponseSchema,
-  sequence_number: z.number(),
-});
-
-const responseCreatedChunkSchema = z.object({
-  type: z.literal('response.created'),
-  response: z.object({
+const huggingfaceResponsesResponseSchema = () =>
+  z.object({
     id: z.string(),
+    model: z.string(),
     object: z.string(),
     created_at: z.number(),
     status: z.string(),
-    model: z.string(),
-  }),
-});
+    error: z.any().nullable(),
+    instructions: z.any().nullable(),
+    max_output_tokens: z.any().nullable(),
+    metadata: z.any().nullable(),
+    tool_choice: z.any(),
+    tools: z.array(z.any()),
+    temperature: z.number(),
+    top_p: z.number(),
+    incomplete_details: z
+      .object({
+        reason: z.string(),
+      })
+      .nullable()
+      .optional(),
+    usage: z
+      .object({
+        input_tokens: z.number(),
+        input_tokens_details: z
+          .object({
+            cached_tokens: z.number(),
+          })
+          .optional(),
+        output_tokens: z.number(),
+        output_tokens_details: z
+          .object({
+            reasoning_tokens: z.number(),
+          })
+          .optional(),
+        total_tokens: z.number(),
+      })
+      .nullable()
+      .optional(),
+    output: z.array(huggingfaceResponsesOutputSchema()),
+    output_text: z.string().nullable().optional(),
+  });
+const huggingfaceResponsesResponseSchemaValidator = lazySchema(() =>
+  zodSchema(huggingfaceResponsesResponseSchema()),
+);
 
-const huggingfaceResponsesChunkSchema = z.union([
-  responseOutputItemAddedSchema,
-  responseOutputItemDoneSchema,
-  reasoningTextDeltaChunkSchema,
-  reasoningTextEndChunkSchema,
-  textDeltaChunkSchema,
-  responseCompletedChunkSchema,
-  responseCreatedChunkSchema,
-  z.object({ type: z.string() }).loose(), // fallback for unknown chunks
-]);
+const responseOutputItemAddedSchema = () =>
+  z.object({
+    type: z.literal('response.output_item.added'),
+    output_index: z.number(),
+    item: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('message'),
+        id: z.string(),
+        role: z.string().optional(),
+        status: z.string().optional(),
+        content: z.array(z.any()).optional(),
+      }),
+      z.object({
+        type: z.literal('reasoning'),
+        id: z.string(),
+        status: z.string().optional(),
+        content: z.array(z.any()).optional(),
+        summary: z.array(z.any()).optional(),
+      }),
+      z.object({
+        type: z.literal('mcp_list_tools'),
+        id: z.string(),
+        server_label: z.string(),
+        tools: z.array(z.any()).optional(),
+        error: z.string().optional(),
+      }),
+      z.object({
+        type: z.literal('mcp_call'),
+        id: z.string(),
+        server_label: z.string(),
+        name: z.string(),
+        arguments: z.string(),
+        output: z.string().optional(),
+        error: z.string().optional(),
+      }),
+      z.object({
+        type: z.literal('function_call'),
+        id: z.string(),
+        call_id: z.string(),
+        name: z.string(),
+        arguments: z.string(),
+        output: z.string().optional(),
+        error: z.string().optional(),
+      }),
+    ]),
+    sequence_number: z.number(),
+  });
+
+const responseOutputItemDoneSchema = () =>
+  z.object({
+    type: z.literal('response.output_item.done'),
+    output_index: z.number(),
+    item: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('message'),
+        id: z.string(),
+        role: z.string().optional(),
+        status: z.string().optional(),
+        content: z.array(z.any()).optional(),
+      }),
+      z.object({
+        type: z.literal('mcp_list_tools'),
+        id: z.string(),
+        server_label: z.string(),
+        tools: z.array(z.any()).optional(),
+        error: z.string().optional(),
+      }),
+      z.object({
+        type: z.literal('mcp_call'),
+        id: z.string(),
+        server_label: z.string(),
+        name: z.string(),
+        arguments: z.string(),
+        output: z.string().optional(),
+        error: z.string().optional(),
+      }),
+      z.object({
+        type: z.literal('function_call'),
+        id: z.string(),
+        call_id: z.string(),
+        name: z.string(),
+        arguments: z.string(),
+        output: z.string().optional(),
+        error: z.string().optional(),
+      }),
+      z.object({
+        type: z.literal('reasoning'),
+        id: z.string(),
+        status: z.string().optional(),
+        content: z.array(z.any()).optional(),
+        summary: z.array(z.any()).optional(),
+      }),
+    ]),
+    sequence_number: z.number(),
+  });
+
+const textDeltaChunkSchema = () =>
+  z.object({
+    type: z.literal('response.output_text.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    content_index: z.number(),
+    delta: z.string(),
+    sequence_number: z.number(),
+  });
+
+const reasoningTextDeltaChunkSchema = () =>
+  z.object({
+    type: z.literal('response.reasoning_text.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    content_index: z.number(),
+    delta: z.string(),
+    sequence_number: z.number(),
+  });
+
+const reasoningTextEndChunkSchema = () =>
+  z.object({
+    type: z.literal('response.reasoning_text.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    content_index: z.number(),
+    text: z.string(),
+    sequence_number: z.number(),
+  });
+
+const responseCompletedChunkSchema = () =>
+  z.object({
+    type: z.literal('response.completed'),
+    response: huggingfaceResponsesResponseSchema(),
+    sequence_number: z.number(),
+  });
+
+const responseCreatedChunkSchema = () =>
+  z.object({
+    type: z.literal('response.created'),
+    response: z.object({
+      id: z.string(),
+      object: z.string(),
+      created_at: z.number(),
+      status: z.string(),
+      model: z.string(),
+    }),
+  });
+
+const huggingfaceResponsesChunkSchema = lazySchema(() =>
+  zodSchema(
+    z.union([
+      responseOutputItemAddedSchema(),
+      responseOutputItemDoneSchema(),
+      reasoningTextDeltaChunkSchema(),
+      reasoningTextEndChunkSchema(),
+      textDeltaChunkSchema(),
+      responseCompletedChunkSchema(),
+      responseCreatedChunkSchema(),
+      z.object({ type: z.string() }).loose(), // fallback for unknown chunks
+    ]),
+  ),
+);
 
 function isResponseOutputItemAddedChunk(
-  chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemAddedSchema> {
+  chunk: InferSchema<typeof huggingfaceResponsesChunkSchema>,
+): chunk is z.infer<ReturnType<typeof responseOutputItemAddedSchema>> {
   return chunk.type === 'response.output_item.added';
 }
 
 function isResponseOutputItemDoneChunk(
-  chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemDoneSchema> {
+  chunk: InferSchema<typeof huggingfaceResponsesChunkSchema>,
+): chunk is z.infer<ReturnType<typeof responseOutputItemDoneSchema>> {
   return chunk.type === 'response.output_item.done';
 }
 
 function isTextDeltaChunk(
-  chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
-): chunk is z.infer<typeof textDeltaChunkSchema> {
+  chunk: InferSchema<typeof huggingfaceResponsesChunkSchema>,
+): chunk is z.infer<ReturnType<typeof textDeltaChunkSchema>> {
   return chunk.type === 'response.output_text.delta';
 }
 
 function isReasoningDeltaChunk(
-  chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
-): chunk is z.infer<typeof reasoningTextDeltaChunkSchema> {
+  chunk: InferSchema<typeof huggingfaceResponsesChunkSchema>,
+): chunk is z.infer<ReturnType<typeof reasoningTextDeltaChunkSchema>> {
   return chunk.type === 'response.reasoning_text.delta';
 }
 
 function isReasoningEndChunk(
-  chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
-): chunk is z.infer<typeof reasoningTextEndChunkSchema> {
+  chunk: InferSchema<typeof huggingfaceResponsesChunkSchema>,
+): chunk is z.infer<ReturnType<typeof reasoningTextEndChunkSchema>> {
   return chunk.type === 'response.reasoning_text.done';
 }
 
 function isResponseCompletedChunk(
-  chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
-): chunk is z.infer<typeof responseCompletedChunkSchema> {
+  chunk: InferSchema<typeof huggingfaceResponsesChunkSchema>,
+): chunk is z.infer<ReturnType<typeof responseCompletedChunkSchema>> {
   return chunk.type === 'response.completed';
 }
 
 function isResponseCreatedChunk(
-  chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
-): chunk is z.infer<typeof responseCreatedChunkSchema> {
+  chunk: InferSchema<typeof huggingfaceResponsesChunkSchema>,
+): chunk is z.infer<ReturnType<typeof responseCreatedChunkSchema>> {
   return chunk.type === 'response.created';
 }

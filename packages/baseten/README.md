@@ -2,23 +2,23 @@
 
 The **[Baseten provider](https://ai-sdk.dev/providers/ai-sdk-providers/baseten)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model and embedding model support for the [Baseten](https://baseten.co) platform.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Baseten (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
-The Baseten provider is available in the `@ai-sdk/baseten` module. You can install it with
-
 ```bash
-npm i @ai-sdk/baseten
+npm i ai @ai-sdk/baseten
 ```
 
-## Provider Instance
+## Skill for Coding Agents
 
-You can import the default provider instance `baseten` from `@ai-sdk/baseten`:
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
 
-```ts
-import { baseten } from '@ai-sdk/baseten';
+```shell
+npx skills add vercel/ai
 ```
 
-## Language Model Example (Model APIs)
+## Usage
 
 ```ts
 import { baseten } from '@ai-sdk/baseten';
@@ -30,6 +30,4 @@ const { text } = await generateText({
 });
 ```
 
-## Documentation
-
-Please check out the **[Baseten provider](https://ai-sdk.dev/providers/ai-sdk-providers/baseten)** for more information.
+See the [Baseten Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/baseten) for more information.

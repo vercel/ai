@@ -5,17 +5,31 @@
  * It doesn't process or return the data from the stream; it simply ensures
  * that the entire stream is read.
  *
- * @param {ReadableStream} stream - The ReadableStream to be consumed.
- * @returns {Promise<void>} A promise that resolves when the stream is fully consumed.
+ * @param options - The options for consuming the stream.
+ * @param options.stream - The ReadableStream to be consumed.
+ * @param options.onError - Optional callback to handle errors that occur during consumption.
+ * @returns A promise that resolves when the stream is fully consumed.
  */
 export async function consumeStream({
   stream,
   onError,
+  abortSignal,
 }: {
   stream: ReadableStream;
   onError?: (error: unknown) => void;
+  abortSignal?: AbortSignal;
 }): Promise<void> {
   const reader = stream.getReader();
+  const cancelOnAbort = () => {
+    reader.cancel().catch(() => {});
+  };
+
+  if (abortSignal?.aborted) {
+    cancelOnAbort();
+  } else {
+    abortSignal?.addEventListener('abort', cancelOnAbort, { once: true });
+  }
+
   try {
     while (true) {
       const { done } = await reader.read();
@@ -24,6 +38,7 @@ export async function consumeStream({
   } catch (error) {
     onError?.(error);
   } finally {
+    abortSignal?.removeEventListener('abort', cancelOnAbort);
     reader.releaseLock();
   }
 }

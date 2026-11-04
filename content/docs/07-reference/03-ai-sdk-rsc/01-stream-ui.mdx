@@ -26,7 +26,7 @@ To see `streamUI` in action, check out [these examples](#examples).
     {
       name: 'model',
       type: 'LanguageModel',
-      description: 'The language model to use. Example: openai("gpt-4.1")',
+      description: 'The language model to use. Example: openai("gpt-6-astra")',
     },
     {
       name: 'initial',
@@ -35,10 +35,11 @@ To see `streamUI` in action, check out [these examples](#examples).
       description: 'The initial UI to render.',
     },
     {
-      name: 'system',
-      type: 'string | SystemModelMessage | SystemModelMessage[]',
+      name: 'instructions',
+      isOptional: true,
+      type: 'Instructions',
       description:
-        'The system prompt to use that specifies the behavior of the model.',
+        'Instructions to use that specify the behavior of the model.'
     },
     {
       name: 'prompt',
@@ -207,7 +208,7 @@ To see `streamUI` in action, check out [these examples](#examples).
             {
               name: 'role',
               type: "'tool'",
-              description: 'The role for the assistant message.',
+              description: 'The role for the tool message.',
             },
             {
               name: 'content',
@@ -254,6 +255,13 @@ To see `streamUI` in action, check out [these examples](#examples).
           ],
         },
       ],
+    },
+    {
+      name: 'allowSystemInMessages',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether system messages are allowed in the `prompt` or `messages` fields. Defaults to false. System messages in the `instructions` option are always allowed. Enabling this for user-controlled messages can create a prompt injection risk.',
     },
     {
       name: 'maxOutputTokens',
@@ -348,7 +356,7 @@ To see `streamUI` in action, check out [these examples](#examples).
                 'Information about the purpose of the tool including details on how and when it can be used by the model.',
             },
             {
-              name: 'parameters',
+              name: 'inputSchema',
               type: 'zod schema',
               description:
                 'The typed schema that describes the parameters of the tool that can also be used to validation and error handling.',
@@ -356,7 +364,7 @@ To see `streamUI` in action, check out [these examples](#examples).
             {
               name: 'generate',
               isOptional: true,
-              type: '(async (parameters) => ReactNode) | AsyncGenerator<ReactNode, ReactNode, void>',
+              type: '(parameters) => ReactNode | Promise<ReactNode> | Generator<ReactNode, ReactNode, void> | AsyncGenerator<ReactNode, ReactNode, void>',
               description:
                 'A function or a generator function that is called with the arguments from the tool call and yields React nodes as the UI.',
             },
@@ -428,22 +436,27 @@ To see `streamUI` in action, check out [these examples](#examples).
                         'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
                       properties: [
                         {
-                          name: 'noCacheTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of non-cached input (prompt) tokens used.',
-                        },
-                        {
-                          name: 'cacheReadTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens read.',
-                        },
-                        {
-                          name: 'cacheWriteTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens written.',
+                          type: 'LanguageModelInputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'noCacheTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of non-cached input (prompt) tokens used.',
+                            },
+                            {
+                              name: 'cacheReadTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens read.',
+                            },
+                            {
+                              name: 'cacheWriteTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens written.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -459,14 +472,19 @@ To see `streamUI` in action, check out [these examples](#examples).
                         'Detailed information about the output (completion) tokens.',
                       properties: [
                         {
-                          name: 'textTokens',
-                          type: 'number | undefined',
-                          description: 'The number of text tokens used.',
-                        },
-                        {
-                          name: 'reasoningTokens',
-                          type: 'number | undefined',
-                          description: 'The number of reasoning tokens used.',
+                          type: 'LanguageModelOutputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'textTokens',
+                              type: 'number | undefined',
+                              description: 'The number of text tokens used.',
+                            },
+                            {
+                              name: 'reasoningTokens',
+                              type: 'number | undefined',
+                              description: 'The number of reasoning tokens used.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -499,6 +517,7 @@ To see `streamUI` in action, check out [these examples](#examples).
             {
               name: 'response',
               type: 'Response',
+              isOptional: true,
               description: 'Optional response data.',
               properties: [
                 {
@@ -630,7 +649,7 @@ To see `streamUI` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'",
               description: 'The reason the model finished generating the text.',
             },
             {
@@ -654,22 +673,27 @@ To see `streamUI` in action, check out [these examples](#examples).
                         'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
                       properties: [
                         {
-                          name: 'noCacheTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of non-cached input (prompt) tokens used.',
-                        },
-                        {
-                          name: 'cacheReadTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens read.',
-                        },
-                        {
-                          name: 'cacheWriteTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens written.',
+                          type: 'LanguageModelInputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'noCacheTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of non-cached input (prompt) tokens used.',
+                            },
+                            {
+                              name: 'cacheReadTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens read.',
+                            },
+                            {
+                              name: 'cacheWriteTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens written.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -686,14 +710,20 @@ To see `streamUI` in action, check out [these examples](#examples).
                         'Detailed information about the output (completion) tokens.',
                       properties: [
                         {
-                          name: 'textTokens',
-                          type: 'number | undefined',
-                          description: 'The number of text tokens used.',
-                        },
-                        {
-                          name: 'reasoningTokens',
-                          type: 'number | undefined',
-                          description: 'The number of reasoning tokens used.',
+                          type: 'LanguageModelOutputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'textTokens',
+                              type: 'number | undefined',
+                              description: 'The number of text tokens used.',
+                            },
+                            {
+                              name: 'reasoningTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of reasoning tokens used.',
+                            },
+                          ],
                         },
                       ],
                     },

@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -29,35 +29,37 @@ export const webSearchPreviewInputSchema = lazySchema(() =>
 const webSearchPreviewOutputSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      action: z.discriminatedUnion('type', [
-        z.object({
-          type: z.literal('search'),
-          query: z.string().optional(),
-        }),
-        z.object({
-          type: z.literal('openPage'),
-          url: z.string().nullish(),
-        }),
-        z.object({
-          type: z.literal('find'),
-          url: z.string().nullish(),
-          pattern: z.string().nullish(),
-        }),
-      ]),
+      action: z
+        .discriminatedUnion('type', [
+          z.object({
+            type: z.literal('search'),
+            query: z.string().optional(),
+          }),
+          z.object({
+            type: z.literal('openPage'),
+            url: z.string().nullish(),
+          }),
+          z.object({
+            type: z.literal('findInPage'),
+            url: z.string().nullish(),
+            pattern: z.string().nullish(),
+          }),
+        ])
+        .optional(),
     }),
   ),
 );
 
-export const webSearchPreview = createProviderToolFactoryWithOutputSchema<
+export const webSearchPreview = createProviderExecutedToolFactory<
   {
     // Web search preview doesn't take input parameters - it's controlled by the prompt
   },
   {
     /**
      * An object describing the specific action taken in this web search call.
-     * Includes details on how the model used the web (search, open_page, find).
+     * Includes details on how the model used the web (search, open_page, find_in_page).
      */
-    action:
+    action?:
       | {
           /**
            * Action type "search" - Performs a web search query.
@@ -82,9 +84,9 @@ export const webSearchPreview = createProviderToolFactoryWithOutputSchema<
         }
       | {
           /**
-           * Action type "find": Searches for a pattern within a loaded page.
+           * Action type "findInPage": Searches for a pattern within a loaded page.
            */
-          type: 'find';
+          type: 'findInPage';
 
           /**
            * The URL of the page searched for the pattern.

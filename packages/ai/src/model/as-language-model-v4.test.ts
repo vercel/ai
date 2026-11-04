@@ -1,0 +1,673 @@
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as logWarningsModule from '../logger/log-warnings';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { asLanguageModelV4 } from './as-language-model-v4';
+
+describe('asLanguageModelV4', () => {
+  let logWarningSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    logWarningSpy = vi
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningSpy.mockRestore();
+  });
+
+  describe('when a language model v4 is provided', () => {
+    it('should return the same v4 model unchanged', () => {
+      const originalModel = new MockLanguageModelV4({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      });
+
+      const result = asLanguageModelV4(originalModel);
+
+      expect(result).toBe(originalModel);
+      expect(result.specificationVersion).toBe('v4');
+    });
+
+    it('should preserve all v4 model properties', () => {
+      const originalModel = new MockLanguageModelV4({
+        provider: 'test-provider-v4',
+        modelId: 'test-model-v4',
+        supportedUrls: { 'image/*': [/^https:\/\/test\.com/] },
+      });
+
+      const result = asLanguageModelV4(originalModel);
+
+      expect(result.provider).toBe('test-provider-v4');
+      expect(result.modelId).toBe('test-model-v4');
+      expect(result.specificationVersion).toBe('v4');
+    });
+  });
+
+  describe('when a language model v3 is provided', () => {
+    it('should convert v3 to v4 and change specificationVersion', () => {
+      const v3Model = new MockLanguageModelV3({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      });
+
+      const result = asLanguageModelV4(v3Model);
+
+      expect(result.specificationVersion).toBe('v4');
+      expect(result).not.toBe(v3Model);
+    });
+
+    it('should preserve provider property', () => {
+      const v3Model = new MockLanguageModelV3({
+        provider: 'test-provider-v3',
+        modelId: 'test-model-id',
+      });
+
+      const result = asLanguageModelV4(v3Model);
+
+      expect(result.provider).toBe('test-provider-v3');
+    });
+
+    it('should preserve modelId property', () => {
+      const v3Model = new MockLanguageModelV3({
+        provider: 'test-provider',
+        modelId: 'test-model-v3',
+      });
+
+      const result = asLanguageModelV4(v3Model);
+
+      expect(result.modelId).toBe('test-model-v3');
+    });
+
+    it('should make doGenerate method callable', async () => {
+      const v3Model = new MockLanguageModelV3({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+        doGenerate: async () => ({
+          content: [{ type: 'text' as const, text: 'Hello' }],
+          finishReason: {
+            unified: 'stop' as const,
+            raw: undefined,
+          },
+          usage: {
+            inputTokens: {
+              total: 10,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: 5,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+          warnings: [],
+        }),
+      });
+
+      const result = asLanguageModelV4(v3Model);
+
+      const response = await result.doGenerate({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+      });
+
+      expect(response.content).toHaveLength(1);
+      expect(response.finishReason.unified).toBe('stop');
+    });
+
+    it('should convert v4 file prompt data to v3 for doGenerate', async () => {
+      const binaryData = new Uint8Array([1, 2, 3]);
+      const base64Data = 'AQID';
+      const urlData = new URL('https://example.com/file.pdf');
+      const v3Model = new MockLanguageModelV3({
+        doGenerate: async options => {
+          expect(options.prompt).toEqual([
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'application/octet-stream',
+                  data: binaryData,
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/octet-stream',
+                  data: base64Data,
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: urlData,
+                },
+              ],
+            },
+          ]);
+
+          return {
+            content: [],
+            finishReason: { unified: 'stop', raw: undefined },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: undefined,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: undefined,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          };
+        },
+      });
+
+      await asLanguageModelV4(v3Model).doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/octet-stream',
+                data: { type: 'data', data: binaryData },
+              },
+              {
+                type: 'file',
+                mediaType: 'application/octet-stream',
+                data: { type: 'data', data: base64Data },
+              },
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: { type: 'url', url: urlData },
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('should convert v4 file tool result content to v3 for doGenerate', async () => {
+      const v3Model = new MockLanguageModelV3({
+        doGenerate: async options => {
+          expect(options.prompt).toEqual([
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'test-tool',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file-data',
+                        data: 'AQID',
+                        mediaType: 'application/octet-stream',
+                        filename: 'data.bin',
+                        providerOptions: undefined,
+                      },
+                      {
+                        type: 'file-url',
+                        url: 'https://example.com/file.pdf',
+                        providerOptions: undefined,
+                      },
+                      {
+                        type: 'file-id',
+                        fileId: { test: 'file-1' },
+                        providerOptions: undefined,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ]);
+
+          return {
+            content: [],
+            finishReason: { unified: 'stop', raw: undefined },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: undefined,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: undefined,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          };
+        },
+      });
+
+      await asLanguageModelV4(v3Model).doGenerate({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'tool-call-1',
+                toolName: 'test-tool',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'data',
+                        data: new Uint8Array([1, 2, 3]),
+                      },
+                      mediaType: 'application/octet-stream',
+                      filename: 'data.bin',
+                    },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/file.pdf'),
+                      },
+                      mediaType: 'application/pdf',
+                    },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'reference',
+                        reference: { test: 'file-1' },
+                      },
+                      mediaType: 'application/pdf',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it.each([
+      {
+        data: { type: 'reference' as const, reference: { test: 'file-1' } },
+      },
+      {
+        data: { type: 'text' as const, text: 'inline text' },
+      },
+    ])(
+      'should pass through unsupported $data.type file prompt data for v3 models',
+      async ({ data }) => {
+        const v3Model = new MockLanguageModelV3({
+          doGenerate: {
+            content: [],
+            finishReason: { unified: 'stop', raw: undefined },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: undefined,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: undefined,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          },
+        });
+
+        await asLanguageModelV4(v3Model).doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'application/octet-stream',
+                  data,
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(v3Model.doGenerateCalls[0].prompt).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/octet-stream',
+                data,
+              },
+            ],
+          },
+        ]);
+      },
+    );
+
+    it('should pass through inline text file tool results for v3 models', async () => {
+      const v3Model = new MockLanguageModelV3({
+        doGenerate: {
+          content: [],
+          finishReason: { unified: 'stop', raw: undefined },
+          usage: {
+            inputTokens: {
+              total: 1,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: 1,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+          warnings: [],
+        },
+      });
+      const data = { type: 'text' as const, text: 'inline text' };
+
+      await asLanguageModelV4(v3Model).doGenerate({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'tool-call-1',
+                toolName: 'test-tool',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      data,
+                      mediaType: 'text/plain',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(v3Model.doGenerateCalls[0].prompt).toEqual([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'tool-call-1',
+              toolName: 'test-tool',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data,
+                    mediaType: 'text/plain',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert v3 generated file data to v4', async () => {
+      const binaryData = new Uint8Array([1, 2, 3]);
+      const base64Data = 'AQID';
+      const v3Model = new MockLanguageModelV3({
+        doGenerate: {
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/octet-stream',
+              data: binaryData,
+            },
+            {
+              type: 'file',
+              mediaType: 'application/octet-stream',
+              data: base64Data,
+            },
+          ],
+          finishReason: { unified: 'stop', raw: undefined },
+          usage: {
+            inputTokens: {
+              total: 1,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: 1,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+          warnings: [],
+        },
+      });
+
+      const result = await asLanguageModelV4(v3Model).doGenerate({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'file',
+          mediaType: 'application/octet-stream',
+          data: { type: 'data', data: binaryData },
+        },
+        {
+          type: 'file',
+          mediaType: 'application/octet-stream',
+          data: { type: 'data', data: base64Data },
+        },
+      ]);
+    });
+
+    it('should make doStream method callable', async () => {
+      const v3Model = new MockLanguageModelV3({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start' as const, id: '1' },
+            { type: 'text-delta' as const, id: '1', delta: 'Hello' },
+            { type: 'text-end' as const, id: '1' },
+            {
+              type: 'finish' as const,
+              finishReason: {
+                unified: 'stop' as const,
+                raw: undefined,
+              },
+              usage: {
+                inputTokens: {
+                  total: 3,
+                  noCache: undefined,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 5,
+                  text: undefined,
+                  reasoning: undefined,
+                },
+              },
+            },
+          ]),
+        }),
+      });
+
+      const result = asLanguageModelV4(v3Model);
+
+      const { stream } = await result.doStream({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toHaveLength(4);
+      expect(parts[0].type).toBe('text-start');
+    });
+
+    it('should convert v4 file prompt data to v3 for doStream', async () => {
+      const binaryData = new Uint8Array([1, 2, 3]);
+      const base64Data = 'AQID';
+      const urlData = new URL('https://example.com/file.pdf');
+      const v3Model = new MockLanguageModelV3({
+        doStream: async options => {
+          expect(options.prompt).toEqual([
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'application/octet-stream',
+                  data: binaryData,
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/octet-stream',
+                  data: base64Data,
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: urlData,
+                },
+              ],
+            },
+          ]);
+
+          return {
+            stream: convertArrayToReadableStream([]),
+          };
+        },
+      });
+
+      const { stream } = await asLanguageModelV4(v3Model).doStream({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/octet-stream',
+                data: { type: 'data', data: binaryData },
+              },
+              {
+                type: 'file',
+                mediaType: 'application/octet-stream',
+                data: { type: 'data', data: base64Data },
+              },
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: { type: 'url', url: urlData },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([]);
+    });
+
+    it('should convert v3 streamed file data to v4', async () => {
+      const binaryData = new Uint8Array([1, 2, 3]);
+      const base64Data = 'AQID';
+      const v3Model = new MockLanguageModelV3({
+        doStream: {
+          stream: convertArrayToReadableStream([
+            {
+              type: 'file',
+              mediaType: 'application/octet-stream',
+              data: binaryData,
+            },
+            {
+              type: 'file',
+              mediaType: 'application/octet-stream',
+              data: base64Data,
+            },
+          ]),
+        },
+      });
+
+      const { stream } = await asLanguageModelV4(v3Model).doStream({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        {
+          type: 'file',
+          mediaType: 'application/octet-stream',
+          data: { type: 'data', data: binaryData },
+        },
+        {
+          type: 'file',
+          mediaType: 'application/octet-stream',
+          data: { type: 'data', data: base64Data },
+        },
+      ]);
+    });
+  });
+
+  describe('when a language model v2 is provided', () => {
+    it('should convert v2 through v3 to v4', () => {
+      const v2Model = new MockLanguageModelV2({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      });
+
+      const result = asLanguageModelV4(v2Model);
+
+      expect(result.specificationVersion).toBe('v4');
+      expect(result.provider).toBe('test-provider');
+      expect(result.modelId).toBe('test-model-id');
+    });
+
+    it('should make doGenerate method callable', async () => {
+      const v2Model = new MockLanguageModelV2({
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+        doGenerate: async () => ({
+          content: [{ type: 'text' as const, text: 'Hello' }],
+          finishReason: 'stop' as const,
+          usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+          warnings: [],
+        }),
+      });
+
+      const result = asLanguageModelV4(v2Model);
+
+      const response = await result.doGenerate({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+      });
+
+      expect(response.content).toHaveLength(1);
+    });
+  });
+});

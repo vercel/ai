@@ -43,6 +43,18 @@ describe('secureJsonParse', () => {
     expect(secureJsonParse('"X"')).toStrictEqual(JSON.parse('"X"'));
   });
 
+  it('allows constructor property with non-object value', () => {
+    expect(secureJsonParse('{ "constructor": "string value" }')).toStrictEqual({
+      constructor: 'string value',
+    });
+  });
+
+  it('allows constructor property with null value', () => {
+    expect(secureJsonParse('{ "constructor": null }')).toStrictEqual({
+      constructor: null,
+    });
+  });
+
   it('errors on constructor property', () => {
     const text =
       '{ "a": 5, "b": 6, "constructor": { "x": 7 }, "c": { "d": 0, "e": "text", "__proto__": { "y": 8 }, "f": { "g": 2 } } }';
@@ -54,6 +66,29 @@ describe('secureJsonParse', () => {
     const text =
       '{ "a": 5, "b": 6, "__proto__": { "x": 7 }, "c": { "d": 0, "e": "text", "__proto__": { "y": 8 }, "f": { "g": 2 } } }';
 
+    expect(() => secureJsonParse(text)).toThrow(SyntaxError);
+  });
+
+  it('errors on unicode-escaped __proto__ property', () => {
+    const text = '{ "\\u005f\\u005fproto__": { "isAdmin": true } }';
+    expect(() => secureJsonParse(text)).toThrow(SyntaxError);
+  });
+
+  it('errors on fully unicode-escaped __proto__ property', () => {
+    const text =
+      '{ "\\u005f\\u005f\\u0070\\u0072\\u006f\\u0074\\u006f\\u005f\\u005f": { "isAdmin": true } }';
+    expect(() => secureJsonParse(text)).toThrow(SyntaxError);
+  });
+
+  it('errors on unicode-escaped constructor property', () => {
+    const text =
+      '{ "\\u0063\\u006fnstructor": { "prototype": { "isAdmin": true } } }';
+    expect(() => secureJsonParse(text)).toThrow(SyntaxError);
+  });
+
+  it('errors on fully unicode-escaped constructor property', () => {
+    const text =
+      '{ "\\u0063\\u006f\\u006e\\u0073\\u0074\\u0072\\u0075\\u0063\\u0074\\u006f\\u0072": { "prototype": { "isAdmin": true } } }';
     expect(() => secureJsonParse(text)).toThrow(SyntaxError);
   });
 });

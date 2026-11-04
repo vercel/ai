@@ -1,4 +1,4 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import type { JSONSchema7 } from '@ai-sdk/provider';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { describe, it, expect } from 'vitest';
 

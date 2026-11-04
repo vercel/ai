@@ -1,14 +1,14 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
 
 /**
-Creates an ID generator.
-The total length of the ID is the sum of the prefix, separator, and random part length.
-Not cryptographically secure.
-
-@param alphabet - The alphabet to use for the ID. Default: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.
-@param prefix - The prefix of the ID to generate. Optional.
-@param separator - The separator between the prefix and the random part of the ID. Default: '-'.
-@param size - The size of the random part of the ID to generate. Default: 16.
+ * Creates an ID generator.
+ * The total length of the ID is the sum of the prefix, separator, and random part length.
+ * Not cryptographically secure.
+ *
+ * @param alphabet - The alphabet to use for the ID. Default: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.
+ * @param prefix - The prefix of the ID to generate. Optional.
+ * @param separator - The separator between the prefix and the random part of the ID. Default: '-'.
+ * @param size - The size of the random part of the ID to generate. Default: 16.
  */
 export const createIdGenerator = ({
   prefix,
@@ -46,12 +46,12 @@ export const createIdGenerator = ({
 };
 
 /**
-A function that generates an ID.
+ * A function that generates an ID.
  */
 export type IdGenerator = () => string;
 
 /**
-Generates a 16-character random string to use for IDs.
-Not cryptographically secure.
+ * Generates a 16-character random string to use for IDs.
+ * Not cryptographically secure.
  */
 export const generateId = createIdGenerator();

@@ -1,32 +1,56 @@
 import {
-  EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
   parseProviderOptions,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
-  GoogleVertexEmbeddingModelId,
-  googleVertexEmbeddingProviderOptions,
-} from './google-vertex-embedding-options';
-import { GoogleVertexConfig } from './google-vertex-config';
+  googleVertexEmbeddingModelOptions,
+  type GoogleVertexEmbeddingModelId,
+} from './google-vertex-embedding-model-options';
+import type { GoogleVertexConfig } from './google-vertex-config';
 
-export class GoogleVertexEmbeddingModel implements EmbeddingModelV3 {
-  readonly specificationVersion = 'v3';
+export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: GoogleVertexEmbeddingModelId;
-  readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
 
   private readonly config: GoogleVertexConfig;
 
+  static [WORKFLOW_SERIALIZE](model: GoogleVertexEmbeddingModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GoogleVertexConfig;
+  }) {
+    return new GoogleVertexEmbeddingModel(options.modelId, options.config);
+  }
+
   get provider(): string {
     return this.config.provider;
+  }
+
+  // gemini-embedding-2 models only support :embedContent (one value per call),
+  // not the :predict batch endpoint. https://github.com/vercel/ai/issues/15853
+  get maxEmbeddingsPerCall(): number {
+    return usesEmbedContentEndpoint(this.modelId) ? 1 : 250;
   }
 
   constructor(
@@ -39,19 +63,36 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV3 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
-    // Parse provider options
-    const googleOptions =
-      (await parseProviderOptions({
+    let googleOptions = await parseProviderOptions({
+      provider: 'googleVertex',
+      providerOptions,
+      schema: googleVertexEmbeddingModelOptions,
+    });
+
+    if (googleOptions == null) {
+      googleOptions = await parseProviderOptions({
+        provider: 'vertex',
+        providerOptions,
+        schema: googleVertexEmbeddingModelOptions,
+      });
+    }
+
+    if (googleOptions == null) {
+      googleOptions = await parseProviderOptions({
         provider: 'google',
         providerOptions,
-        schema: googleVertexEmbeddingProviderOptions,
-      })) ?? {};
+        schema: googleVertexEmbeddingModelOptions,
+      });
+    }
+
+    googleOptions = googleOptions ?? {};
 
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
@@ -63,9 +104,46 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV3 {
     }
 
     const mergedHeaders = combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       headers,
     );
+
+    if (usesEmbedContentEndpoint(this.modelId)) {
+      const {
+        responseHeaders,
+        value: response,
+        rawValue,
+      } = await postJsonToApi({
+        url: `${this.config.baseURL}/models/${this.modelId}:embedContent`,
+        headers: mergedHeaders,
+        body: {
+          content: { parts: [{ text: values[0] }] },
+          embedContentConfig: {
+            outputDimensionality:
+              googleOptions.outputDimensionality ?? dimensions,
+            taskType: googleOptions.taskType,
+            title: googleOptions.title,
+            autoTruncate: googleOptions.autoTruncate,
+          },
+        },
+        failedResponseHandler: googleVertexFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          googleVertexEmbedContentResponseSchema,
+        ),
+        abortSignal,
+        fetch: this.config.fetch,
+      });
+
+      return {
+        warnings: [],
+        embeddings: [response.embedding.values],
+        usage:
+          response.usageMetadata?.promptTokenCount == null
+            ? undefined
+            : { tokens: response.usageMetadata.promptTokenCount },
+        response: { headers: responseHeaders, body: rawValue },
+      };
+    }
 
     const url = `${this.config.baseURL}/models/${this.modelId}:predict`;
     const {
@@ -82,7 +160,8 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV3 {
           title: googleOptions.title,
         })),
         parameters: {
-          outputDimensionality: googleOptions.outputDimensionality,
+          outputDimensionality:
+            googleOptions.outputDimensionality ?? dimensions,
           autoTruncate: googleOptions.autoTruncate,
         },
       },
@@ -113,15 +192,40 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV3 {
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const googleVertexTextEmbeddingResponseSchema = z.object({
-  predictions: z.array(
+const googleVertexTextEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      embeddings: z.object({
-        values: z.array(z.number()),
-        statistics: z.object({
-          token_count: z.number(),
+      predictions: z.array(
+        z.object({
+          embeddings: z.object({
+            values: z.array(z.number()),
+            statistics: z.object({
+              token_count: z.number(),
+            }),
+          }),
         }),
-      }),
+      ),
     }),
   ),
-});
+);
+
+const googleVertexEmbedContentResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      embedding: z.object({
+        values: z.array(z.number()),
+      }),
+      usageMetadata: z
+        .object({
+          promptTokenCount: z.number().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
+
+function usesEmbedContentEndpoint(modelId: GoogleVertexEmbeddingModelId) {
+  return (
+    modelId === 'gemini-embedding-2' || modelId === 'gemini-embedding-2-preview'
+  );
+}

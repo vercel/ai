@@ -1,6 +1,6 @@
-import { ZodTypeDef } from 'zod/v3';
-import { getDefaultOptions, Options } from './options';
-import { JsonSchema7Type } from './parse-types';
+import type { ZodTypeDef } from 'zod/v3';
+import { getDefaultOptions, type Options } from './options';
+import type { JsonSchema7Type } from './parse-types';
 
 export type Refs = {
   seen: Map<ZodTypeDef, Seen>;

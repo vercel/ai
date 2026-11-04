@@ -1,48 +1,82 @@
-import {
-  LanguageModelV3,
-  SharedV3Warning,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3StreamPart,
+import type {
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   generateId,
   injectJsonInstructionIntoMessages,
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
-  ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  StreamingToolCallTracker,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+  type FetchFunction,
+  type ParseResult,
+  type StreamingToolCallDelta,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { MistralUsage, convertMistralUsage } from './convert-mistral-usage';
+import {
+  convertMistralUsage,
+  mistralUsageSchema,
+  type MistralUsage,
+} from './convert-mistral-usage';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
-  MistralChatModelId,
-  mistralLanguageModelOptions,
-} from './mistral-chat-options';
+  mistralLanguageModelChatOptionsValidator,
+  type MistralChatModelId,
+} from './mistral-chat-language-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 import { prepareTools } from './mistral-prepare-tools';
+import { getMistralLanguageModelEntry } from './mistral-model-catalog';
 
 type MistralChatConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId?: () => string;
 };
 
-export class MistralChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class MistralChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: MistralChatModelId;
 
   private readonly config: MistralChatConfig;
   private readonly generateId: () => string;
+
+  static [WORKFLOW_SERIALIZE](model: MistralChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: MistralChatModelId;
+    config: MistralChatConfig;
+  }) {
+    return new MistralChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: MistralChatModelId, config: MistralChatConfig) {
     this.modelId = modelId;
@@ -66,44 +100,58 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
     topK,
     frequencyPenalty,
     presencePenalty,
+    reasoning,
     stopSequences,
     responseFormat,
     seed,
     providerOptions,
     tools,
     toolChoice,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     const options =
       (await parseProviderOptions({
         provider: 'mistral',
         providerOptions,
-        schema: mistralLanguageModelOptions,
+        schema: mistralLanguageModelChatOptionsValidator,
       })) ?? {};
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    if (frequencyPenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
-    }
+    const { reasoning: reasoningCapabilities } = getMistralLanguageModelEntry(
+      this.modelId,
+    ).capabilities.language;
 
-    if (presencePenalty != null) {
-      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
-    }
-
-    if (stopSequences != null) {
-      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
+    let resolvedReasoningEffort: string | undefined;
+    if (reasoningCapabilities.support) {
+      resolvedReasoningEffort = mapReasoningToProviderEffort({
+        reasoning,
+        providerOptionsEffort: options.reasoningEffort,
+        effortMap: Object.fromEntries(
+          reasoningCapabilities.efforts.map(effort => [effort, effort]),
+        ),
+        warnings,
+      });
+    } else if (isCustomReasoning(reasoning)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'This model does not support reasoning configuration.',
+      });
     }
 
     const structuredOutputs = options.structuredOutputs ?? true;
     const strictJsonSchema = options.strictJsonSchema ?? false;
 
-    // For Mistral we need to need to instruct the model to return a JSON object.
+    // For Mistral we need to instruct the model when using JSON Object mode.
     // https://docs.mistral.ai/capabilities/structured-output/structured_output_overview/
-    if (responseFormat?.type === 'json' && !responseFormat?.schema) {
+    if (
+      responseFormat?.type === 'json' &&
+      (!structuredOutputs || responseFormat.schema == null)
+    ) {
       prompt = injectJsonInstructionIntoMessages({
         messages: prompt,
         schema: responseFormat.schema,
@@ -121,7 +169,13 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       max_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
+      ...(frequencyPenalty != null
+        ? { frequency_penalty: frequencyPenalty }
+        : {}),
+      ...(presencePenalty != null ? { presence_penalty: presencePenalty } : {}),
+      stop: stopSequences,
       random_seed: seed,
+      reasoning_effort: resolvedReasoningEffort,
 
       // response format:
       response_format:
@@ -142,6 +196,9 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       // mistral-specific provider options:
       document_image_limit: options.documentImageLimit,
       document_page_limit: options.documentPageLimit,
+      ...(options.promptCacheKey !== undefined
+        ? { prompt_cache_key: options.promptCacheKey }
+        : {}),
 
       // messages:
       messages: convertToMistralChatMessages(prompt),
@@ -170,8 +227,8 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
 
     const {
@@ -180,7 +237,10 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -191,7 +251,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // process content parts in order to preserve sequence
     if (
@@ -236,7 +296,10 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapMistralFinishReason(choice.finish_reason),
+      finishReason: {
+        unified: mapMistralFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
+      },
       usage: convertMistralUsage(response.usage),
       request: { body },
       response: {
@@ -249,14 +312,17 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
     const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -266,22 +332,30 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    // A clean end without the provider's completion signal is interrupted.
+    let finishReason: LanguageModelV4FinishReason = {
+      unified: 'interrupted',
+      raw: undefined,
+    };
     let usage: MistralUsage | undefined = undefined;
 
     let isFirstChunk = true;
     let activeText = false;
     let activeReasoningId: string | null = null;
+    let toolCallTracker: StreamingToolCallTracker<StreamingToolCallDelta>;
 
     const generateId = this.generateId;
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof mistralChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          ParseResult<InferSchema<typeof mistralChatChunkSchema>>,
+          LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -292,6 +366,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
             }
 
             if (!chunk.success) {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -367,38 +442,15 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
 
             if (delta?.tool_calls != null) {
               for (const toolCall of delta.tool_calls) {
-                const toolCallId = toolCall.id;
-                const toolName = toolCall.function.name;
-                const input = toolCall.function.arguments;
-
-                controller.enqueue({
-                  type: 'tool-input-start',
-                  id: toolCallId,
-                  toolName,
-                });
-
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCallId,
-                  delta: input,
-                });
-
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: toolCallId,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId,
-                  toolName,
-                  input,
-                });
+                toolCallTracker.processDelta(toolCall);
               }
             }
 
             if (choice.finish_reason != null) {
-              finishReason = mapMistralFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapMistralFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
           },
 
@@ -412,6 +464,8 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
             if (activeText) {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
+
+            toolCallTracker.flush();
 
             controller.enqueue({
               type: 'finish',
@@ -436,7 +490,9 @@ function extractReasoningContent(
     .join('');
 }
 
-function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
+function extractTextContent(
+  content: z.infer<ReturnType<typeof mistralContentSchema>>,
+) {
   if (typeof content === 'string') {
     return content;
   }
@@ -469,100 +525,110 @@ function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
   return textContent.length ? textContent.join('') : undefined;
 }
 
-const mistralContentSchema = z
-  .union([
-    z.string(),
-    z.array(
-      z.discriminatedUnion('type', [
-        z.object({
-          type: z.literal('text'),
-          text: z.string(),
-        }),
-        z.object({
-          type: z.literal('image_url'),
-          image_url: z.union([
-            z.string(),
-            z.object({
-              url: z.string(),
-              detail: z.string().nullable(),
-            }),
-          ]),
-        }),
-        z.object({
-          type: z.literal('reference'),
-          reference_ids: z.array(z.number()),
-        }),
-        z.object({
-          type: z.literal('thinking'),
-          thinking: z.array(
-            z.object({
-              type: z.literal('text'),
-              text: z.string(),
-            }),
-          ),
-        }),
-      ]),
-    ),
-  ])
-  .nullish();
-
-const mistralUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-});
+const mistralContentSchema = () =>
+  z
+    .union([
+      z.string(),
+      z.array(
+        z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('text'),
+            text: z.string(),
+          }),
+          z.object({
+            type: z.literal('image_url'),
+            image_url: z.union([
+              z.string(),
+              z.object({
+                url: z.string(),
+                detail: z.string().nullable(),
+              }),
+            ]),
+          }),
+          z.object({
+            type: z.literal('reference'),
+            reference_ids: z.array(z.union([z.string(), z.number()])),
+          }),
+          z.object({
+            type: z.literal('thinking'),
+            thinking: z.array(
+              z.object({
+                type: z.literal('text'),
+                text: z.string(),
+              }),
+            ),
+          }),
+        ]),
+      ),
+    ])
+    .nullish();
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const mistralChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const mistralChatResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      message: z.object({
-        role: z.literal('assistant'),
-        content: mistralContentSchema,
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string(),
-              function: z.object({ name: z.string(), arguments: z.string() }),
-            }),
-          )
-          .nullish(),
-      }),
-      index: z.number(),
-      finish_reason: z.string().nullish(),
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          message: z.object({
+            role: z.literal('assistant'),
+            content: mistralContentSchema(),
+            tool_calls: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  function: z.object({
+                    name: z.string(),
+                    arguments: z.string(),
+                  }),
+                }),
+              )
+              .nullish(),
+          }),
+          index: z.number(),
+          finish_reason: z.string().nullish(),
+        }),
+      ),
+      object: z.literal('chat.completion'),
+      usage: mistralUsageSchema,
     }),
   ),
-  object: z.literal('chat.completion'),
-  usage: mistralUsageSchema,
-});
+);
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const mistralChatChunkSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const mistralChatChunkSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      delta: z.object({
-        role: z.enum(['assistant']).optional(),
-        content: mistralContentSchema,
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string(),
-              function: z.object({ name: z.string(), arguments: z.string() }),
-            }),
-          )
-          .nullish(),
-      }),
-      finish_reason: z.string().nullish(),
-      index: z.number(),
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          delta: z.object({
+            role: z.enum(['assistant']).optional(),
+            content: mistralContentSchema(),
+            tool_calls: z
+              .array(
+                z.object({
+                  index: z.number().nullish(),
+                  id: z.string().nullish(),
+                  function: z.object({
+                    name: z.string().nullish(),
+                    arguments: z.string().nullish(),
+                  }),
+                }),
+              )
+              .nullish(),
+          }),
+          finish_reason: z.string().nullish(),
+          index: z.number(),
+        }),
+      ),
+      usage: mistralUsageSchema.nullish(),
     }),
   ),
-  usage: mistralUsageSchema.nullish(),
-});
+);

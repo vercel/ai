@@ -1,6 +1,7 @@
 import {
   generateId,
   isAbortError,
+  normalizeHeaders,
   safeValidateTypes,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -18,8 +19,7 @@ import {
   KeyedStructuredObjectStore,
   type StructuredObjectStore,
 } from './structured-object-context.svelte.js';
-
-export type Experimental_StructuredObjectOptions<
+export type StructuredObjectOptions<
   SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
 > = {
@@ -90,8 +90,8 @@ export class StructuredObject<
   RESULT = InferSchema<SCHEMA>,
   INPUT = unknown,
 > {
-  #options: Experimental_StructuredObjectOptions<SCHEMA, RESULT> =
-    {} as Experimental_StructuredObjectOptions<SCHEMA, RESULT>;
+  #options: StructuredObjectOptions<SCHEMA, RESULT> =
+    {} as StructuredObjectOptions<SCHEMA, RESULT>;
   readonly #id = $derived(this.#options.id ?? generateId());
   readonly #keyedStore = $state<KeyedStructuredObjectStore>()!;
   readonly #store = $derived(
@@ -121,7 +121,7 @@ export class StructuredObject<
     return this.#store.loading;
   }
 
-  constructor(options: Experimental_StructuredObjectOptions<SCHEMA, RESULT>) {
+  constructor(options: StructuredObjectOptions<SCHEMA, RESULT>) {
     if (hasStructuredObjectContext()) {
       this.#keyedStore = getStructuredObjectContext();
     } else {
@@ -162,7 +162,7 @@ export class StructuredObject<
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...this.#options.headers,
+          ...normalizeHeaders(this.#options.headers),
         },
         credentials: this.#options.credentials,
         signal: abortController.signal,
@@ -171,7 +171,7 @@ export class StructuredObject<
 
       if (!response.ok) {
         throw new Error(
-          (await response.text()) ?? 'Failed to fetch the response.',
+          (await response.text()) || 'Failed to fetch the response.',
         );
       }
 

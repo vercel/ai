@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactory,
+  createProviderDefinedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -43,7 +43,7 @@ const memory_20250818InputSchema = lazySchema(() =>
   ),
 );
 
-export const memory_20250818 = createProviderToolFactory<
+export const memory_20250818 = createProviderDefinedToolFactory<
   | { command: 'view'; path: string; view_range?: [number, number] }
   | { command: 'create'; path: string; file_text: string }
   | { command: 'str_replace'; path: string; old_str: string; new_str: string }

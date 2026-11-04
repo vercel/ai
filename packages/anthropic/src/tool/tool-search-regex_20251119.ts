@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -46,7 +46,7 @@ const toolSearchRegex_20251119InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderToolFactoryWithOutputSchema<
+const factory = createProviderExecutedToolFactory<
   {
     /**
      * A regex pattern to search for tools.
@@ -76,6 +76,7 @@ const factory = createProviderToolFactoryWithOutputSchema<
   id: 'anthropic.tool_search_regex_20251119',
   inputSchema: toolSearchRegex_20251119InputSchema,
   outputSchema: toolSearchRegex_20251119OutputSchema,
+  supportsDeferredResults: true,
 });
 
 /**

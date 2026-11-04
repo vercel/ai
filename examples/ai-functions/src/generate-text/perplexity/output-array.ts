@@ -1,0 +1,36 @@
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+import { run } from '../../lib/run';
+
+run(async () => {
+  const result = await generateText({
+    model: perplexity('low'),
+    prompt: 'What has happened in San Francisco recently?',
+    providerOptions: {
+      perplexity: {
+        tools: [
+          {
+            type: 'web_search',
+            filters: { search_recency_filter: 'week' },
+          },
+        ],
+      } satisfies PerplexityLanguageModelOptions,
+    },
+    output: Output.array({
+      element: z.object({
+        title: z.string(),
+        summary: z.string(),
+      }),
+    }),
+  });
+
+  console.log(result.output);
+  console.log();
+  console.log('Token usage:', result.usage);
+  console.log('Finish reason:', result.finishReason);
+  console.log('Metadata:', result.finalStep.providerMetadata);
+});

@@ -14,11 +14,18 @@ But the question is phrased: "How many 'r's are in the word 'strawberry'?" So an
       "type": "text",
     },
   ],
-  "finishReason": "stop",
+  "finishReason": {
+    "raw": "stop",
+    "unified": "stop",
+  },
   "providerMetadata": {
     "deepseek": {
+      "choiceIndex": 0,
+      "messageRole": "assistant",
       "promptCacheHitTokens": 0,
       "promptCacheMissTokens": 18,
+      "responseObject": "chat.completion",
+      "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
     },
   },
   "request": {
@@ -105,6 +112,9 @@ But the question is phrased: "How many 'r's are in the word 'strawberry'?" So an
       "prompt_cache_hit_tokens": 0,
       "prompt_cache_miss_tokens": 18,
       "prompt_tokens": 18,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+      },
       "total_tokens": 363,
     },
   },
@@ -134,11 +144,18 @@ exports[`DeepSeekChatLanguageModel > doGenerate > text > should extract text con
       "type": "text",
     },
   ],
-  "finishReason": "length",
+  "finishReason": {
+    "raw": "length",
+    "unified": "length",
+  },
   "providerMetadata": {
     "deepseek": {
+      "choiceIndex": 0,
+      "messageRole": "assistant",
       "promptCacheHitTokens": 0,
       "promptCacheMissTokens": 13,
+      "responseObject": "chat.completion",
+      "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
     },
   },
   "request": {
@@ -230,6 +247,9 @@ exports[`DeepSeekChatLanguageModel > doGenerate > text > should extract text con
       "prompt_cache_hit_tokens": 0,
       "prompt_cache_miss_tokens": 13,
       "prompt_tokens": 13,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+      },
       "total_tokens": 313,
     },
   },
@@ -253,11 +273,18 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response form
       "type": "text",
     },
   ],
-  "finishReason": "stop",
+  "finishReason": {
+    "raw": "stop",
+    "unified": "stop",
+  },
   "providerMetadata": {
     "deepseek": {
+      "choiceIndex": 0,
+      "messageRole": "assistant",
       "promptCacheHitTokens": 320,
       "promptCacheMissTokens": 175,
+      "responseObject": "chat.completion",
+      "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
     },
   },
   "request": {
@@ -375,6 +402,9 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response form
       "prompt_cache_hit_tokens": 320,
       "prompt_cache_miss_tokens": 175,
       "prompt_tokens": 495,
+      "prompt_tokens_details": {
+        "cached_tokens": 320,
+      },
       "total_tokens": 639,
     },
   },
@@ -396,11 +426,21 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
       "type": "tool-call",
     },
   ],
-  "finishReason": "tool-calls",
+  "finishReason": {
+    "raw": "tool_calls",
+    "unified": "tool-calls",
+  },
   "providerMetadata": {
     "deepseek": {
+      "choiceIndex": 0,
+      "messageRole": "assistant",
       "promptCacheHitTokens": 320,
       "promptCacheMissTokens": 19,
+      "responseObject": "chat.completion",
+      "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
+      "toolCallTypes": [
+        "function",
+      ],
     },
   },
   "request": {
@@ -519,6 +559,9 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
       "prompt_cache_hit_tokens": 320,
       "prompt_cache_miss_tokens": 19,
       "prompt_tokens": 339,
+      "prompt_tokens_details": {
+        "cached_tokens": 320,
+      },
       "total_tokens": 431,
     },
   },
@@ -1662,11 +1705,18 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "stop",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "deepseek": {
+        "choiceIndex": 0,
+        "messageRole": "assistant",
         "promptCacheHitTokens": 0,
         "promptCacheMissTokens": 18,
+        "responseObject": "chat.completion.chunk",
+        "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
       },
     },
     "type": "finish",
@@ -1690,6 +1740,9 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
         "prompt_cache_hit_tokens": 0,
         "prompt_cache_miss_tokens": 18,
         "prompt_tokens": 18,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+        },
         "total_tokens": 237,
       },
     },
@@ -3736,11 +3789,18 @@ exports[`DeepSeekChatLanguageModel > doStream > text > should stream text 1`] = 
     "type": "text-end",
   },
   {
-    "finishReason": "length",
+    "finishReason": {
+      "raw": "length",
+      "unified": "length",
+    },
     "providerMetadata": {
       "deepseek": {
+        "choiceIndex": 0,
+        "messageRole": "assistant",
         "promptCacheHitTokens": 0,
         "promptCacheMissTokens": 13,
+        "responseObject": "chat.completion.chunk",
+        "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
       },
     },
     "type": "finish",
@@ -3761,6 +3821,9 @@ exports[`DeepSeekChatLanguageModel > doStream > text > should stream text 1`] = 
         "prompt_cache_hit_tokens": 0,
         "prompt_cache_miss_tokens": 13,
         "prompt_tokens": 13,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+        },
         "total_tokens": 413,
       },
     },
@@ -4049,11 +4112,21 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_calls",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "deepseek": {
+        "choiceIndex": 0,
+        "messageRole": "assistant",
         "promptCacheHitTokens": 320,
         "promptCacheMissTokens": 19,
+        "responseObject": "chat.completion.chunk",
+        "systemFingerprint": "fp_eaab8d114b_prod0820_fp8_kvcache",
+        "toolCallTypes": [
+          "function",
+        ],
       },
     },
     "type": "finish",
@@ -4077,6 +4150,9 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
         "prompt_cache_hit_tokens": 320,
         "prompt_cache_miss_tokens": 19,
         "prompt_tokens": 339,
+        "prompt_tokens_details": {
+          "cached_tokens": 320,
+        },
         "total_tokens": 422,
       },
     },

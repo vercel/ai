@@ -1,23 +1,28 @@
 import {
-  LanguageModelV3,
+  type FilesV4,
   NoSuchModelError,
-  ProviderV3,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { DeepSeekChatModelId } from './chat/deepseek-chat-options';
+import type { DeepSeekChatModelId } from './chat/deepseek-chat-language-model-options';
 import { DeepSeekChatLanguageModel } from './chat/deepseek-chat-language-model';
+import { DeepSeekFiles } from './files/deepseek-files';
 import { VERSION } from './version';
 
 export interface DeepSeekProviderSettings {
   /**
    * DeepSeek API key.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for the API calls.
@@ -36,41 +41,53 @@ export interface DeepSeekProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface DeepSeekProvider extends ProviderV3 {
+export interface DeepSeekProvider extends ProviderV4 {
   /**
-Creates a DeepSeek model for text generation.
-*/
-  (modelId: DeepSeekChatModelId): LanguageModelV3;
+   * Creates a DeepSeek model for text generation.
+   */
+  (modelId: DeepSeekChatModelId): LanguageModelV4;
 
   /**
-Creates a DeepSeek model for text generation.
-*/
-  languageModel(modelId: DeepSeekChatModelId): LanguageModelV3;
+   * Creates a DeepSeek model for text generation.
+   */
+  languageModel(modelId: DeepSeekChatModelId): LanguageModelV4;
 
   /**
-Creates a DeepSeek chat model for text generation.
-*/
-  chat(modelId: DeepSeekChatModelId): LanguageModelV3;
+   * Creates a DeepSeek chat model for text generation.
+   */
+  chat(modelId: DeepSeekChatModelId): LanguageModelV4;
+
+  /**
+   * Creates a DeepSeek files interface for uploading images.
+   */
+  files(): FilesV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export function createDeepSeek(
   options: DeepSeekProviderSettings = {},
 ): DeepSeekProvider {
-  const baseURL = withoutTrailingSlash(
-    options.baseURL ?? 'https://api.deepseek.com',
-  );
+  const baseURL =
+    withoutTrailingSlash(options.baseURL ?? 'https://api.deepseek.com') ??
+    'https://api.deepseek.com';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'DEEPSEEK_API_KEY',
-          description: 'DeepSeek API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/deepseek/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'DEEPSEEK_API_KEY',
+            description: 'DeepSeek API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-deepseek/${VERSION}`,
+      ),
     );
 
   const createLanguageModel = (modelId: DeepSeekChatModelId) => {
@@ -79,19 +96,31 @@ export function createDeepSeek(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      supportsAssistantPrefixCompletion: baseURL.endsWith('/beta'),
+      supportsStrictToolCalls: baseURL.endsWith('/beta'),
     });
   };
+
+  const createFiles = () =>
+    new DeepSeekFiles({
+      provider: 'deepseek.files',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   const provider = (modelId: DeepSeekChatModelId) =>
     createLanguageModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
+  provider.files = createFiles;
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
@@ -99,4 +128,4 @@ export function createDeepSeek(
   return provider;
 }
 
-export const deepseek = createDeepSeek();
+export const deepSeek = createDeepSeek();

@@ -1,58 +1,65 @@
 import {
-  LanguageModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  resolveWith,
+  type Resolvable,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { HuggingFaceResponsesLanguageModel } from './responses/huggingface-responses-language-model';
-import { HuggingFaceResponsesModelId } from './responses/huggingface-responses-settings';
+import type { HuggingFaceResponsesModelId } from './responses/huggingface-responses-settings';
 
 export interface HuggingFaceProviderSettings {
   /**
-Hugging Face API key.
-*/
-  apiKey?: string;
+   * Hugging Face API key.
+   */
+  apiKey?: Resolvable<string>;
   /**
-Base URL for the API calls.
-*/
+   * Base URL for the API calls.
+   */
   baseURL?: string;
   /**
-Custom headers to include in the requests.
-*/
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-*/
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   generateId?: () => string;
 }
 
-export interface HuggingFaceProvider extends ProviderV3 {
+export interface HuggingFaceProvider extends ProviderV4 {
   /**
-Creates a Hugging Face responses model for text generation.
-*/
-  (modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+   * Creates a Hugging Face responses model for text generation.
+   */
+  (modelId: HuggingFaceResponsesModelId): LanguageModelV4;
 
   /**
-Creates a Hugging Face responses model for text generation.
-*/
-  languageModel(modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+   * Creates a Hugging Face responses model for text generation.
+   */
+  languageModel(modelId: HuggingFaceResponsesModelId): LanguageModelV4;
 
   /**
-Creates a Hugging Face responses model for text generation.
-*/
-  responses(modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+   * Creates a Hugging Face responses model for text generation.
+   */
+  responses(modelId: HuggingFaceResponsesModelId): LanguageModelV4;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 /**
-Create a Hugging Face provider instance.
+ * Create a Hugging Face provider instance.
  */
 export function createHuggingFace(
   options: HuggingFaceProviderSettings = {},
@@ -60,14 +67,15 @@ export function createHuggingFace(
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? 'https://router.huggingface.co/v1';
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'HUGGINGFACE_API_KEY',
-      description: 'Hugging Face',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    resolveWith(options.apiKey, apiKey => ({
+      Authorization: `Bearer ${loadApiKey({
+        apiKey,
+        environmentVariableName: 'HUGGINGFACE_API_KEY',
+        description: 'Hugging Face',
+      })}`,
+      ...options.headers,
+    }));
 
   const createResponsesModel = (modelId: HuggingFaceResponsesModelId) => {
     return new HuggingFaceResponsesLanguageModel(modelId, {
@@ -82,7 +90,7 @@ export function createHuggingFace(
   const provider = (modelId: HuggingFaceResponsesModelId) =>
     createResponsesModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createResponsesModel;
   provider.responses = createResponsesModel;
 
@@ -94,6 +102,7 @@ export function createHuggingFace(
         'Hugging Face Responses API does not support text embeddings. Use the Hugging Face Inference API directly for embeddings.',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({
@@ -108,6 +117,6 @@ export function createHuggingFace(
 }
 
 /**
-Default Hugging Face provider instance.
+ * Default Hugging Face provider instance.
  */
-export const huggingface = createHuggingFace();
+export const huggingFace = createHuggingFace();

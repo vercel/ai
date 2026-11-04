@@ -1,46 +1,59 @@
-import {
-  LanguageModelV3,
-  SharedV3Warning,
-  LanguageModelV3FinishReason,
-  LanguageModelV3StreamPart,
-  SharedV3ProviderMetadata,
+import type {
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
+  type Resolvable,
+  resolve,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+  type FetchFunction,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
+  createOpenAIProviderStreamError,
+  throwIfOpenAIStreamErrorBeforeOutput,
+} from '../openai-stream-error';
+import {
   convertOpenAICompletionUsage,
-  OpenAICompletionUsage,
+  type OpenAICompletionUsage,
 } from './convert-openai-completion-usage';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
-  OpenAICompletionChunk,
   openaiCompletionChunkSchema,
   openaiCompletionResponseSchema,
+  type OpenAICompletionChunk,
 } from './openai-completion-api';
 import {
-  OpenAICompletionModelId,
-  openaiCompletionProviderOptions,
-} from './openai-completion-options';
-
+  openaiLanguageModelCompletionOptions,
+  type OpenAICompletionModelId,
+} from './openai-completion-language-model-options';
 type OpenAICompletionConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  /** Model ID sent to the API. Defaults to the model's reported ID. */
+  requestModelId?: string;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
 
-export class OpenAICompletionLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAICompletionLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAICompletionModelId;
 
@@ -48,6 +61,20 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
   private get providerOptionsName(): string {
     return this.config.provider.split('.')[0].trim();
+  }
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompletionLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAICompletionModelId;
+    config: OpenAICompletionConfig;
+  }) {
+    return new OpenAICompletionLanguageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -80,20 +107,20 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
     toolChoice,
     seed,
     providerOptions,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const openaiOptions = {
       ...(await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiCompletionProviderOptions,
+        schema: openaiLanguageModelCompletionOptions,
       })),
       ...(await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
-        schema: openaiCompletionProviderOptions,
+        schema: openaiLanguageModelCompletionOptions,
       })),
     };
 
@@ -125,7 +152,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
     return {
       args: {
         // model id:
-        model: this.modelId,
+        model: this.config.requestModelId ?? this.modelId,
 
         // model specific settings:
         echo: openaiOptions.echo,
@@ -158,8 +185,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -169,9 +196,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
     } = await postJsonToApi({
       url: this.config.url({
         path: '/completions',
-        modelId: this.modelId,
+        modelId: this.config.requestModelId ?? this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -183,7 +213,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
     const choice = response.choices[0];
 
-    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
 
     if (choice.logprobs != null) {
       providerMetadata.openai.logprobs = choice.logprobs;
@@ -192,7 +222,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
     return {
       content: [{ type: 'text', text: choice.text }],
       usage: convertOpenAICompletionUsage(response.usage),
-      finishReason: mapOpenAIFinishReason(choice.finish_reason),
+      finishReason: {
+        unified: mapOpenAIFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
+      },
       request: { body: args },
       response: {
         ...getResponseMetadata(response),
@@ -205,8 +238,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -218,12 +251,17 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
       },
     };
 
+    const url = this.config.url({
+      path: '/completions',
+      modelId: this.config.requestModelId ?? this.modelId,
+    });
+
     const { responseHeaders, value: response } = await postJsonToApi({
-      url: this.config.url({
-        path: '/completions',
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      url,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -233,16 +271,29 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
+    const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
+      stream: response,
+      getError: chunk => ('error' in chunk ? chunk.error : undefined),
+      isOutputChunk: isOpenAICompletionOutputChunk,
+      url,
+      requestBodyValues: body,
+      responseHeaders,
+    });
+
+    // A clean end without the provider's completion signal is interrupted.
+    let finishReason: LanguageModelV4FinishReason = {
+      unified: 'interrupted',
+      raw: undefined,
+    };
+    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
     let usage: OpenAICompletionUsage | undefined = undefined;
     let isFirstChunk = true;
 
-    return {
-      stream: response.pipeThrough(
+    const result = {
+      stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAICompletionChunk>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -255,7 +306,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -264,8 +315,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
             // handle error chunks:
             if ('error' in value) {
-              finishReason = 'error';
-              controller.enqueue({ type: 'error', error: value.error });
+              finishReason = { unified: 'error', raw: undefined };
+              controller.enqueue({
+                type: 'error',
+                error:
+                  createOpenAIProviderStreamError(value.error) ?? value.error,
+              });
               return;
             }
 
@@ -287,7 +342,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapOpenAIFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapOpenAIFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
 
             if (choice?.logprobs != null) {
@@ -320,5 +378,13 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
       request: { body },
       response: { headers: responseHeaders },
     };
+
+    return result;
   }
+}
+
+function isOpenAICompletionOutputChunk(chunk: OpenAICompletionChunk): boolean {
+  return (
+    !('error' in chunk) && chunk.choices.some(choice => choice.text.length > 0)
+  );
 }

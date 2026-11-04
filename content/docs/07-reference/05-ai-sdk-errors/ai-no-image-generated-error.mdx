@@ -13,9 +13,10 @@ It can arise due to the following reasons:
 
 ## Properties
 
-- `message`: The error message.
-- `responses`: Metadata about the image model responses, including timestamp, model, and headers.
-- `cause`: The cause of the error. You can use this for more detailed error handling.
+- `message`: The error message (optional, defaults to `'No image generated.'`).
+- `calls`: Results from the underlying image model calls, including generated images, provider metadata, response metadata, warnings, and usage (optional).
+- `responses`: Metadata about the image model responses, including timestamp, model, and headers (optional).
+- `cause`: The cause of the error. You can use this for more detailed error handling (optional).
 
 ## Checking for this Error
 
@@ -31,6 +32,12 @@ try {
     console.log('NoImageGeneratedError');
     console.log('Cause:', error.cause);
     console.log('Responses:', error.responses);
+
+    for (const call of error.calls ?? []) {
+      console.log('Provider metadata:', call.providerMetadata);
+      console.log('Warnings:', call.warnings);
+      console.log('Usage:', call.usage);
+    }
   }
 }
 ```

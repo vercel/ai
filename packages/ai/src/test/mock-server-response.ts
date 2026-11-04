@@ -1,32 +1,52 @@
 import { EventEmitter } from 'node:events';
-import { ServerResponse } from 'node:http';
+import type { ServerResponse } from 'node:http';
 
 class MockServerResponse extends EventEmitter {
   writtenChunks: any[] = [];
-  headers = {};
+  headers: Record<string, string | string[]> = {};
   statusCode = 0;
   statusMessage = '';
   ended = false;
 
   write(chunk: any): boolean {
     this.writtenChunks.push(chunk);
-    // Return true to indicate the buffer is not full (no backpressure by default in tests)
     return true;
   }
 
   end(): void {
-    // You might want to mark the response as ended to simulate the real behavior
     this.ended = true;
+  }
+
+  setHeaders(headers: Headers): void {
+    this.headers = {};
+
+    for (const [key, value] of headers.entries()) {
+      const existingValue = this.headers[key];
+      this.headers[key] =
+        existingValue == null
+          ? value
+          : Array.isArray(existingValue)
+            ? [...existingValue, value]
+            : [existingValue, value];
+    }
   }
 
   writeHead(
     statusCode: number,
-    statusMessage: string,
-    headers: Record<string, string>,
+    arg2: string | Record<string, string>,
+    arg3?: Record<string, string>,
   ): void {
     this.statusCode = statusCode;
-    this.statusMessage = statusMessage;
-    this.headers = headers;
+
+    if (typeof arg2 === 'string') {
+      this.statusMessage = arg2;
+      if (arg3 != null) {
+        this.headers = arg3;
+      }
+    } else if (arg2 != null) {
+      this.statusMessage = '';
+      this.headers = arg2;
+    }
   }
 
   get body() {

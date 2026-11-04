@@ -2,23 +2,23 @@
 
 The **[Together.ai provider](https://ai-sdk.dev/providers/ai-sdk-providers/togetherai)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Together.ai](https://together.ai) platform.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Together.ai (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
-The Together.ai provider is available in the `@ai-sdk/togetherai` module. You can install it with
-
 ```bash
-npm i @ai-sdk/togetherai
+npm i ai @ai-sdk/togetherai
 ```
 
-## Provider Instance
+## Skill for Coding Agents
 
-You can import the default provider instance `togetherai` from `@ai-sdk/togetherai`:
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
 
-```ts
-import { togetherai } from '@ai-sdk/togetherai';
+```shell
+npx skills add vercel/ai
 ```
 
-## Example
+## Usage
 
 ```ts
 import { togetherai } from '@ai-sdk/togetherai';
@@ -30,6 +30,4 @@ const { text } = await generateText({
 });
 ```
 
-## Documentation
-
-Please check out the **[Together.ai provider](https://ai-sdk.dev/providers/ai-sdk-providers/togetherai)** for more information.
+See the [Together.ai Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/togetherai) for more information.

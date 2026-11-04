@@ -51,6 +51,10 @@ function generateDescription(name: string): string {
     return `Rewrites ${readable.replace('rewrite ', '')}`;
   }
 
+  if (name.startsWith('add-')) {
+    return `Adds ${readable.replace('add ', '')}`;
+  }
+
   return `Transforms ${readable}`;
 }
 
@@ -61,6 +65,10 @@ function categorizeCodemod(name: string): string {
 
   if (name.startsWith('v5/')) {
     return 'v5 Codemods (v4 → v5 Migration)';
+  }
+
+  if (name.startsWith('v6/')) {
+    return 'v6 Codemods (v5 → v6 Migration)';
   }
 
   return 'General Codemods';
@@ -85,6 +93,7 @@ codemodFiles.forEach(codemod => {
 const categoryOrder = [
   'v4 Codemods (v3 → v4 Migration)',
   'v5 Codemods (v4 → v5 Migration)',
+  'v6 Codemods (v5 → v6 Migration)',
   'General Codemods',
 ];
 

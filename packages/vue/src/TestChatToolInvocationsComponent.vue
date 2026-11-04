@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { isToolUIPart } from 'ai';
+import { isStaticToolUIPart } from 'ai';
 import { Chat } from './chat.vue';
 
 const chat = new Chat({});
@@ -13,7 +13,7 @@ const chat = new Chat({});
       :data-testid="`message-${idx}`"
     >
       <div
-        v-for="(toolPart, toolIdx) in m.parts.filter(isToolUIPart)"
+        v-for="(toolPart, toolIdx) in m.parts.filter(isStaticToolUIPart)"
         :key="toolPart.toolCallId"
       >
         {{ JSON.stringify(toolPart) }}

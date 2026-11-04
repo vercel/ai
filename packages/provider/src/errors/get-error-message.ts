@@ -8,7 +8,7 @@ export function getErrorMessage(error: unknown | undefined) {
   }
 
   if (error instanceof Error) {
-    return error.message;
+    return error.toString();
   }
 
   return JSON.stringify(error);

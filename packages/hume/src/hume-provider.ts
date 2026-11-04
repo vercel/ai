@@ -1,56 +1,65 @@
-import { SpeechModelV3, ProviderV3 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  NoSuchModelError,
+  type SpeechModelV4,
+  type ProviderV4,
+} from '@ai-sdk/provider';
+import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { HumeSpeechModel } from './hume-speech-model';
 import { VERSION } from './version';
 
-export interface HumeProvider extends Pick<ProviderV3, 'speechModel'> {
+export interface HumeProvider extends ProviderV4 {
   (settings?: {}): {
     speech: HumeSpeechModel;
   };
 
   /**
-Creates a model for speech synthesis.
+   * Creates a model for speech synthesis.
    */
-  speech(): SpeechModelV3;
+  speech(): SpeechModelV4;
 }
 
 export interface HumeProviderSettings {
   /**
-API key for authenticating requests.
-     */
-  apiKey?: string;
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
+   */
+  apiKey?: Resolvable<string>;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create an Hume provider instance.
+ * Create an Hume provider instance.
  */
 export function createHume(options: HumeProviderSettings = {}): HumeProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        'X-Hume-Api-Key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'HUME_API_KEY',
-          description: 'Hume',
-        }),
-        ...options.headers,
-      },
-      `ai-sdk/hume/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          'X-Hume-Api-Key': loadApiKey({
+            apiKey,
+            environmentVariableName: 'HUME_API_KEY',
+            description: 'Hume',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-hume/${VERSION}`,
+      ),
     );
 
   const createSpeechModel = () =>
@@ -67,13 +76,38 @@ export function createHume(options: HumeProviderSettings = {}): HumeProvider {
     };
   };
 
+  provider.specificationVersion = 'v4' as const;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
 
-  return provider satisfies HumeProvider;
+  provider.languageModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'languageModel',
+      message: 'Hume does not provide language models',
+    });
+  };
+
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'embeddingModel',
+      message: 'Hume does not provide embedding models',
+    });
+  };
+
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'imageModel',
+      message: 'Hume does not provide image models',
+    });
+  };
+
+  return provider as HumeProvider;
 }
 
 /**
-Default Hume provider instance.
+ * Default Hume provider instance.
  */
 export const hume = createHume();

@@ -4,16 +4,19 @@ import {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from 'ai';
+import { normalizeHeaders } from '@ai-sdk/provider-utils';
 import {
   KeyedCompletionStore,
   getCompletionContext,
   hasCompletionContext,
 } from './completion-context.svelte.js';
 
-export type CompletionOptions = Readonly<UseCompletionOptions>;
+export type CompletionOptions<BODY extends object = object> = Readonly<
+  UseCompletionOptions<BODY>
+>;
 
-export class Completion {
-  readonly #options: CompletionOptions = {};
+export class Completion<BODY extends object = object> {
+  readonly #options: CompletionOptions<BODY> = {};
   readonly #api = $derived(this.#options.api ?? '/api/completion');
   readonly #id = $derived(this.#options.id ?? generateId());
   readonly #streamProtocol = $derived(this.#options.streamProtocol ?? 'data');
@@ -44,7 +47,7 @@ export class Completion {
     return this.#store.loading;
   }
 
-  constructor(options: CompletionOptions = {}) {
+  constructor(options: CompletionOptions<NoInfer<BODY>> = {}) {
     this.#keyedStore = hasCompletionContext()
       ? getCompletionContext()
       : new KeyedCompletionStore();
@@ -63,14 +66,13 @@ export class Completion {
       // ignore
     } finally {
       this.#store.loading = false;
-      this.#abortController = undefined;
     }
   };
 
   /**
    * Send a new prompt to the API endpoint and update the completion state.
    */
-  complete = async (prompt: string, options?: CompletionRequestOptions) =>
+  complete = async (prompt: string, options?: CompletionRequestOptions<BODY>) =>
     this.#triggerRequest(prompt, options);
 
   /** Form submission handler to automatically reset input and call the completion API */
@@ -83,13 +85,16 @@ export class Completion {
 
   #triggerRequest = async (
     prompt: string,
-    options?: CompletionRequestOptions,
+    options?: CompletionRequestOptions<BODY>,
   ) => {
     return callCompletionApi({
       api: this.#api,
       prompt,
       credentials: this.#options.credentials,
-      headers: { ...this.#options.headers, ...options?.headers },
+      headers: {
+        ...normalizeHeaders(this.#options.headers),
+        ...normalizeHeaders(options?.headers),
+      },
       body: {
         ...this.#options.body,
         ...options?.body,
@@ -109,6 +114,7 @@ export class Completion {
       setAbortController: abortController => {
         this.#abortController = abortController ?? undefined;
       },
+      getAbortController: () => this.#abortController,
       onFinish: this.#options.onFinish,
       onError: this.#options.onError,
     });

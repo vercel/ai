@@ -82,8 +82,8 @@ export async function submitUserMessage(input: string) {
   'use server';
 
   const ui = await streamUI({
-    model: openai('gpt-4o'),
-    system: 'you are a flight booking assistant',
+    model: openai('gpt-6-astra'),
+    instructions: 'you are a flight booking assistant',
     prompt: input,
     text: async ({ content }) => <div>{content}</div>,
     tools: {
@@ -111,7 +111,7 @@ export async function submitUserMessage(input: string) {
       },
       lookupFlight: {
         description: 'lookup details for a flight',
-        parameters: z.object({
+        inputSchema: z.object({
           flightNumber: z.string().describe('The flight number'),
         }),
         generate: async function* ({ flightNumber }) {
@@ -219,7 +219,7 @@ This page pulls in the current UI State using the `useUIState` hook, which is th
 
 In this example, to call the next tool, the user must respond with plain text. **Given you are streaming a React component, you can add a button to trigger the next step in the conversation**.
 
-To add user interaction, you will have to convert the component into a client component and use the `useAction` hook to trigger the next step in the conversation.
+To add user interaction, you will have to convert the component into a client component and use the `useActions` hook to trigger the next step in the conversation.
 
 ```tsx filename="components/flights.tsx"
 'use client';
@@ -263,7 +263,7 @@ Now, update your `searchFlights` tool to render the new `<Flights />` component.
 ...
 searchFlights: {
   description: 'search for flights',
-  parameters: z.object({
+  inputSchema: z.object({
     source: z.string().describe('The origin of the flight'),
     destination: z.string().describe('The destination of the flight'),
     date: z.string().describe('The date of the flight'),

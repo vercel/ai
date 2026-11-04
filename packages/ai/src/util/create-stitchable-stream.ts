@@ -8,47 +8,75 @@ import { createResolvablePromise } from './create-resolvable-promise';
  */
 export function createStitchableStream<T>(): {
   stream: ReadableStream<T>;
-  addStream: (innerStream: ReadableStream<T>) => void;
+  addStream: (
+    innerStream: ReadableStream<T>,
+    callbacks?: {
+      onError?: (error: unknown) => void;
+      onCancel?: () => void;
+    },
+  ) => void;
   close: () => void;
   terminate: () => void;
 } {
-  let innerStreamReaders: ReadableStreamDefaultReader<T>[] = [];
+  let innerStreams: Array<{
+    reader: ReadableStreamDefaultReader<T>;
+    onError?: (error: unknown) => void;
+    onCancel?: () => void;
+  }> = [];
   let controller: ReadableStreamDefaultController<T> | null = null;
   let isClosed = false;
+  let isCancelled = false;
   let waitForNewStream = createResolvablePromise<void>();
 
   const terminate = () => {
+    if (isCancelled) {
+      return;
+    }
+
     isClosed = true;
     waitForNewStream.resolve();
 
-    innerStreamReaders.forEach(reader => reader.cancel());
-    innerStreamReaders = [];
+    innerStreams.forEach(({ reader, onCancel }) => {
+      onCancel?.();
+      reader.cancel();
+    });
+    innerStreams = [];
     controller?.close();
   };
 
   const processPull = async () => {
+    if (isCancelled) {
+      return;
+    }
+
     // Case 1: Outer stream is closed and no more inner streams
-    if (isClosed && innerStreamReaders.length === 0) {
+    if (isClosed && innerStreams.length === 0) {
       controller?.close();
       return;
     }
 
     // Case 2: No inner streams available, but outer stream is open
     // wait for a new inner stream to be added or the outer stream to close
-    if (innerStreamReaders.length === 0) {
+    if (innerStreams.length === 0) {
       waitForNewStream = createResolvablePromise<void>();
       await waitForNewStream.promise;
-      return processPull();
+      return await processPull();
     }
 
+    const currentStream = innerStreams[0];
+
     try {
-      const { value, done } = await innerStreamReaders[0].read();
+      const { value, done } = await currentStream.reader.read();
+
+      if (isCancelled) {
+        return;
+      }
 
       if (done) {
         // Case 3: Current inner stream is done
-        innerStreamReaders.shift(); // Remove the finished stream
+        innerStreams.shift(); // Remove the finished stream
 
-        if (innerStreamReaders.length === 0 && isClosed) {
+        if (innerStreams.length === 0 && isClosed) {
           // when closed and no more inner streams, stop pulling
           controller?.close();
         } else {
@@ -60,9 +88,14 @@ export function createStitchableStream<T>(): {
         controller?.enqueue(value);
       }
     } catch (error) {
+      if (isCancelled) {
+        return;
+      }
+
       // Case 5: Current inner stream throws an error
+      currentStream.onError?.(error);
       controller?.error(error);
-      innerStreamReaders.shift(); // Remove the errored stream
+      innerStreams.shift(); // Remove the errored stream
       terminate(); // we have errored, terminate all streams
     }
   };
@@ -74,19 +107,38 @@ export function createStitchableStream<T>(): {
       },
       pull: processPull,
       async cancel() {
-        for (const reader of innerStreamReaders) {
+        isCancelled = true;
+        isClosed = true;
+        waitForNewStream.resolve();
+
+        for (const { reader, onCancel } of innerStreams) {
+          onCancel?.();
           await reader.cancel();
         }
-        innerStreamReaders = [];
-        isClosed = true;
+        innerStreams = [];
       },
     }),
-    addStream: (innerStream: ReadableStream<T>) => {
+    addStream: (
+      innerStream: ReadableStream<T>,
+      callbacks?: {
+        onError?: (error: unknown) => void;
+        onCancel?: () => void;
+      },
+    ) => {
+      if (isCancelled) {
+        callbacks?.onCancel?.();
+        void innerStream.cancel().catch(() => {});
+        return;
+      }
+
       if (isClosed) {
         throw new Error('Cannot add inner stream: outer stream is closed');
       }
 
-      innerStreamReaders.push(innerStream.getReader());
+      innerStreams.push({
+        reader: innerStream.getReader(),
+        ...callbacks,
+      });
       waitForNewStream.resolve();
     },
 
@@ -95,10 +147,14 @@ export function createStitchableStream<T>(): {
      * finish processing and then close the outer stream.
      */
     close: () => {
+      if (isCancelled) {
+        return;
+      }
+
       isClosed = true;
       waitForNewStream.resolve();
 
-      if (innerStreamReaders.length === 0) {
+      if (innerStreams.length === 0) {
         controller?.close();
       }
     },
