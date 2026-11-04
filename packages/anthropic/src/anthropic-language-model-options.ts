@@ -159,6 +159,9 @@ export const anthropicLanguageModelOptions = lazySchema(() =>
         .enum(['outputFormat', 'jsonTool', 'auto'])
         .optional(),
 
+      /** Emit typed streaming heartbeat parts. Disabled by default. */
+      includePings: z.boolean().optional(),
+
       /**
        * Configuration for enabling Claude's extended thinking.
        *

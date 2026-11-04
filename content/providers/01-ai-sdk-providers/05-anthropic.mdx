@@ -244,9 +244,45 @@ Initial usage may be incomplete; use `result.usage` for final token counts.
 Like other custom parts, this event is included in response content and forwarded
 to UI message streams. It is ignored when replaying conversation history to Anthropic.
 
+### Streaming heartbeats
+
+To receive typed Anthropic heartbeat events, set
+`providerOptions.anthropic.includePings: true`. This option defaults to `false`
+and is handled locally; it is not sent in the Anthropic request body.
+
+```ts
+const result = streamText({
+  model: anthropic('claude-haiku-4-5'),
+  prompt: 'Explain how rainbows form.',
+  providerOptions: { anthropic: { includePings: true } },
+});
+
+for await (const part of result.stream) {
+  if (part.type === 'ping') console.log('Provider is still connected.');
+}
+```
+
+Pings are transient stream events. They do not contain generated output, change
+usage, reset model-output timeouts, or become response content. They are omitted
+from text projections and UI message streams. Raw pings remain available through
+`include.rawChunks` independently of this option. Workflow durable streams record stream parts, including
+pings, even though pings are excluded from generated content and UI messages.
+This option applies to the Anthropic Messages implementation (including wrappers
+that use it); Amazon Bedrock Converse does not emit typed Anthropic pings.
+
+Enable this option only when all normalized stream consumers support the `ping`
+part. In particular, a Gateway server must negotiate support before forwarding
+these parts to older SDK clients. This option does not add transport keepalives to
+UI responses; applications can send SSE comments at their transport boundary.
+
 ### Provider options
 
 The following optional provider options are available for Anthropic models:
+
+- `includePings` _boolean_
+
+  Optional. Defaults to `false`. Emit typed `ping` parts during streaming without
+  enabling raw chunks. See [Streaming heartbeats](#streaming-heartbeats).
 
 - `disableParallelToolUse` _boolean_
 

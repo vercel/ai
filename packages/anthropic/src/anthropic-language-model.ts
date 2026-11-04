@@ -1210,6 +1210,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         ...(anthropicOptions?.anthropicBeta ?? []),
       ]),
       usesJsonResponseTool: jsonResponseTool != null,
+      includePings: stream === true && anthropicOptions?.includePings === true,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -2004,6 +2005,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings,
       betas,
       usesJsonResponseTool,
+      includePings,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -2168,7 +2170,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
           switch (value.type) {
             case 'ping': {
-              return; // ignored
+              if (includePings) controller.enqueue({ type: 'ping' });
+              return;
             }
 
             case 'content_block_start': {
@@ -3438,8 +3441,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
       let result = await firstChunkReader.read();
 
-      // when raw chunks are enabled, the first chunk is a raw chunk, so we need to read the next chunk
-      if (result.value?.type === 'raw') {
+      // Ignore transport-only parts while checking the first provider event.
+      while (result.value?.type === 'raw' || result.value?.type === 'ping') {
         result = await firstChunkReader.read();
       }
 
