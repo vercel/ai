@@ -42,6 +42,7 @@ export function toUIMessageStream<
 > {
   let outcome: UIMessageStreamOutcome = { status: 'unknown' };
   let hasFatalFailure = false;
+  const invalidToolCallErrorText = new Map<string, string>();
 
   const setSourceOutcome = (newOutcome: UIMessageStreamOutcome) => {
     if (
@@ -120,6 +121,27 @@ export function toUIMessageStream<
       transform: async (part, controller) => {
         try {
           const messageMetadataValue = messageMetadata?.({ part });
+          let partOnError = onError;
+
+          if (
+            part.type === 'tool-call' &&
+            part.invalid &&
+            !part.providerExecuted
+          ) {
+            partOnError = error => {
+              const errorText = onError(error);
+              invalidToolCallErrorText.set(part.toolCallId, errorText);
+              return errorText;
+            };
+          } else if (
+            part.type === 'tool-error' &&
+            !part.providerExecuted &&
+            invalidToolCallErrorText.has(part.toolCallId)
+          ) {
+            const errorText = invalidToolCallErrorText.get(part.toolCallId)!;
+            invalidToolCallErrorText.delete(part.toolCallId);
+            partOnError = () => errorText;
+          }
 
           const uiMessageChunk = toUIMessageChunk(part, {
             tools,
@@ -127,7 +149,7 @@ export function toUIMessageStream<
             sendSources,
             sendStart,
             sendFinish,
-            onError,
+            onError: partOnError,
             messageMetadata: messageMetadataValue,
             responseMessageId,
           });
