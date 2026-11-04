@@ -4,6 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
+    // Replace with your Azure deployment name that supports custom tools.
     model: azure.responses('gpt-5.3-codex'),
     tools: {
       write_sql: azure.tools.customTool({

@@ -5,6 +5,7 @@ import { print } from '../../lib/print';
 
 run(async () => {
   const result = await generateText({
+    // Replace with your Azure deployment name that supports custom tools.
     model: azure.responses('gpt-5.3-codex'),
     tools: {
       write_sql: azure.tools.customTool({
