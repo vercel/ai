@@ -1366,7 +1366,7 @@ describe('message names', () => {
           },
         ],
       }),
-    ).rejects.toThrow('providerOptions');
+    ).rejects.toThrow('invalid openai provider options');
   });
 
   it('ignores names from unrelated namespaces and content parts', async () => {
