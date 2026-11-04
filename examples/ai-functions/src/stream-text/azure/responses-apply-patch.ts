@@ -2,12 +2,14 @@ import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { tmpdir } from 'node:os';
 import { createApplyPatchExecutor } from '../../lib/apply-patch-file-editor';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const workspaceRoot = path.join(__dirname, '../output');
-  await fs.mkdir(workspaceRoot, { recursive: true });
+  const workspaceRoot = await fs.mkdtemp(
+    path.join(tmpdir(), 'ai-sdk-azure-apply-patch-'),
+  );
 
   const result = await streamText({
     model: azure.responses('gpt-5.1'),
@@ -49,11 +51,15 @@ run(async () => {
   console.log('Files saved in:', workspaceRoot);
 
   // List created files
-  const files = await fs.readdir(workspaceRoot);
+  const files = await fs.readdir(workspaceRoot, {
+    recursive: true,
+    withFileTypes: true,
+  });
   for (const file of files) {
-    const filePath = path.join(workspaceRoot, file);
+    if (!file.isFile()) continue;
+    const filePath = path.join(file.parentPath, file.name);
     const content = await fs.readFile(filePath, 'utf8');
-    console.log(`\n=== ${file} ===`);
+    console.log(`\n=== ${path.relative(workspaceRoot, filePath)} ===`);
     console.log(content);
   }
 });
