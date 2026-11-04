@@ -30,6 +30,12 @@ const createTestModel = (
     baseURL,
     ...(teamIdOrSlug !== undefined && { teamIdOrSlug }),
     createClientSecret: async () => ({ token }),
+    getHeaders: async () => ({
+      Authorization: `Bearer ${token}`,
+      ...(teamIdOrSlug != null
+        ? { 'x-vercel-ai-gateway-team': teamIdOrSlug }
+        : {}),
+    }),
   });
 
 describe('GatewayRealtimeModel', () => {
@@ -135,7 +141,7 @@ describe('GatewayRealtimeModel', () => {
 
       expect(connection).toEqual({
         url: 'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
-        headers: { Authorization: 'Bearer vck_test-token' },
+        headers: { Authorization: 'Bearer vcst_test-secret' },
       });
     });
 
@@ -353,6 +359,24 @@ serverOnlyDescribe('gateway.experimental_realtime auth errors', () => {
       process.env.AI_GATEWAY_API_KEY = previousApiKey;
     }
     vi.clearAllMocks();
+  });
+
+  it('reuses HTTP auth headers for OIDC server connections', async () => {
+    vi.mocked(getVercelOidcToken).mockResolvedValue('oidc-test-token');
+    const gateway = createGateway({
+      teamIdOrSlug: 'team-example',
+      headers: { 'x-custom': 'example' },
+    });
+    const model = gateway.experimental_realtime('openai/gpt-realtime');
+    const descriptor = await model.getServerWebSocketConfig!();
+    expect(descriptor.headers).toMatchObject({
+      Authorization: 'Bearer oidc-test-token',
+      'ai-gateway-auth-method': 'oidc',
+      'ai-gateway-protocol-version': '0.0.1',
+      'x-vercel-ai-gateway-team': 'team-example',
+      'x-custom': 'example',
+    });
+    expect(descriptor.headers['user-agent']).toContain('ai-sdk-gateway/');
   });
 
   it('wraps getToken auth failures in a GatewayAuthenticationError', async () => {

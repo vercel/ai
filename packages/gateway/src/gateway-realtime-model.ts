@@ -8,13 +8,14 @@ import type {
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
   Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
-import { VERCEL_AI_GATEWAY_TEAM_HEADER } from './gateway-headers';
+import { removeUndefinedEntries } from '@ai-sdk/provider-utils';
 import { getGatewayRealtimeProtocols } from './gateway-realtime-auth';
 
 export type GatewayRealtimeModelConfig = {
   provider: string;
   baseURL: string;
   teamIdOrSlug?: string;
+  getHeaders: () => Promise<Record<string, string | undefined>>;
   /**
    * Mints a short-lived client secret (`vcst_`) for this model via the
    * Gateway's `/v1/realtime/client-secrets` endpoint. Implemented by the
@@ -101,15 +102,9 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
       );
     }
 
-    const { token } = await this.config.getAuthToken();
     return {
       url: toGatewayRealtimeUrl(this.config.baseURL, this.modelId),
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(this.config.teamIdOrSlug != null
-          ? { [VERCEL_AI_GATEWAY_TEAM_HEADER]: this.config.teamIdOrSlug }
-          : {}),
-      },
+      headers: removeUndefinedEntries(await this.config.getHeaders()),
     };
   }
 
