@@ -1,5 +1,22 @@
 # @ai-sdk/mistral
 
+## 4.0.79
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 4.0.78
+
+### Patch Changes
+
+- 4ae6986: fix(mistral): preserve string tool call arguments and safely serialize BigInt and circular structures in tool calls and outputs
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
 ## 4.0.77
 
 ### Patch Changes

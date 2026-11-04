@@ -14,6 +14,8 @@ export type MistralTranscriptionModelId =
   | 'voxtral-small-transcribe-3-0'
   | 'voxtral-small-transcribe-3'
   | 'voxtral-small-transcribe-latest'
+  | 'voxtral-mini-transcribe-realtime-3'
+  | 'voxtral-mini-transcribe-realtime-3-0'
   | (string & {});
 
 // https://docs.mistral.ai/api/endpoint/audio/transcriptions
@@ -47,7 +49,8 @@ export const mistralTranscriptionModelOptions = lazySchema(() =>
 
       /**
        * Whether to identify speakers in the transcription.
-       * Voxtral 3 requires segment timestamps when diarization is enabled.
+       * Offline Voxtral 3 requires segment timestamps when diarization is enabled.
+       * Realtime diarization cannot be combined with turn detection.
        */
       diarize: z.boolean().optional(),
 
@@ -60,6 +63,32 @@ export const mistralTranscriptionModelOptions = lazySchema(() =>
        * with the audio.
        */
       contextBias: z.array(z.string().min(1)).optional(),
+
+      /** Realtime only. Delay in milliseconds: 80–1200, or 2400. */
+      targetStreamingDelayMs: z
+        .union([z.number().int().min(80).max(1200), z.literal(2400)])
+        .optional(),
+
+      /**
+       * Realtime only. Named base64-encoded audio clips for known speakers.
+       * Requires diarize. Mistral accepts up to 8 clips of 3–15 seconds each.
+       */
+      speakerReferences: z.record(z.string(), z.string().min(1)).optional(),
+
+      /**
+       * Realtime only. Enable turn detection with an empty object for defaults.
+       * Turn events are available through includeRawChunks. Mistral validates
+       * threshold ordering and compatibility with diarization.
+       */
+      turnDetection: z
+        .object({
+          startThreshold: z.number().min(0).max(1).optional(),
+          eagerEndThreshold: z.number().min(0).max(1).optional(),
+          endThreshold: z.number().min(0).max(1).optional(),
+          minSilenceMs: z.number().int().nonnegative().optional(),
+          endTimeoutMs: z.number().int().nonnegative().optional(),
+        })
+        .optional(),
     }),
   ),
 );

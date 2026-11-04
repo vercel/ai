@@ -55,6 +55,7 @@ import {
   type ClaudeMessage,
 } from './create-emit-stream-event';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
+import { areFileToolPathsTrusted } from './permission-paths';
 import {
   resolveInactiveNativeTools,
   resolveNativeTools,
@@ -173,6 +174,7 @@ function createPermissionOptions(input: {
   approvalRequestedToolUseIds: Set<string>;
   emittedToolCallIds: Set<string>;
   approvalDecisions: Map<string, { approved: boolean; reason?: string }>;
+  toolCwds: Map<string, string>;
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
   const inactiveNativeTools = new Set(input.inactiveNativeTools);
@@ -210,10 +212,18 @@ function createPermissionOptions(input: {
     canUseTool: async (
       toolName: string,
       toolInput: Record<string, unknown>,
-      options: { toolUseID: string },
+      options: { toolUseID: string; blockedPath?: string },
     ) => {
       if (
-        !needsHostApproval({ toolName, permissionMode, inactiveNativeTools })
+        !(await needsHostApproval({
+          toolName,
+          toolInput,
+          permissionMode,
+          inactiveNativeTools,
+          cwd: input.toolCwds.get(options.toolUseID) ?? '',
+          readableSkillRoots: input.start.readableSkillRoots ?? [],
+          blockedPath: options.blockedPath,
+        }))
       ) {
         return { behavior: 'allow', updatedInput: toolInput };
       }
@@ -380,7 +390,7 @@ function createPermissionSettings(input: {
  * the id Claude Code expects (`claude-opus-5-5`) to the gateway id, which
  * stays the id sent to the gateway.
  */
-function createGatewayModelOverrides(
+function toGatewayModelOverride(
   model: string | undefined,
 ): Record<string, string> | undefined {
   if (!model?.startsWith('anthropic/')) return undefined;
@@ -390,19 +400,90 @@ function createGatewayModelOverrides(
   return id.includes('.') ? { [id.replace(/\./g, '-')]: model } : undefined;
 }
 
-function needsHostApproval(input: {
+/**
+ * The `ANTHROPIC_DEFAULT_*_MODEL` variables point Claude Code's model aliases
+ * at other ids, which it misreads the same way. `model` comes last so that its
+ * entry wins a key it shares with an alias.
+ */
+function createGatewayModelOverrides(
+  model: string | undefined,
+  env: Record<string, string | undefined>,
+): Record<string, string> | undefined {
+  const overrides = {
+    ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_OPUS_MODEL),
+    ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_SONNET_MODEL),
+    ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_HAIKU_MODEL),
+    ...toGatewayModelOverride(model),
+  };
+  return Object.keys(overrides).length > 0 ? overrides : undefined;
+}
+
+async function needsHostApproval(input: {
   toolName: string;
+  toolInput: unknown;
+  cwd: string;
+  readableSkillRoots: readonly string[];
+  blockedPath?: string;
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
   inactiveNativeTools: ReadonlySet<string>;
-}): boolean {
+}): Promise<boolean> {
   if (input.toolName.startsWith('mcp__harness-tools__')) return false;
-  return (
+  if (
     input.inactiveNativeTools.has(input.toolName) ||
     nativeToolRequiresApproval({
       nativeName: input.toolName,
       permissionMode: input.permissionMode,
     })
-  );
+  )
+    return true;
+  const args =
+    input.toolInput != null && typeof input.toolInput === 'object'
+      ? (input.toolInput as Record<string, unknown>)
+      : {};
+  let paths: unknown[];
+  let access: 'read' | 'write';
+  if (
+    input.toolName === 'Glob' &&
+    (typeof args.pattern !== 'string' ||
+      /\.\.|[{}()[\]]/.test(args.pattern) ||
+      args.pattern.includes('\\') ||
+      args.pattern.startsWith('/'))
+  )
+    return true;
+  switch (input.toolName) {
+    case 'Read':
+      paths = [args.file_path];
+      access = 'read';
+      break;
+    case 'Write':
+    case 'Edit':
+      paths = [args.file_path];
+      access = 'write';
+      break;
+    case 'NotebookEdit':
+      paths = [args.notebook_path];
+      access = 'write';
+      break;
+    case 'Glob':
+    case 'Grep':
+      paths = [args.path ?? input.cwd];
+      access = 'read';
+      break;
+    default:
+      if (input.blockedPath == null) return false;
+      paths = [];
+      access = 'read';
+  }
+  if (input.blockedPath != null) paths.push(input.blockedPath);
+  if (!paths.every((value): value is string => typeof value === 'string'))
+    return true;
+  return !(await areFileToolPathsTrusted({
+    workDir: workdir!,
+    cwd: input.cwd,
+    paths,
+    access,
+    readableSkillRoots: input.readableSkillRoots,
+  }));
 }
 
 /*
@@ -418,8 +499,11 @@ function createApprovalPreToolUseHook(input: {
   decisions: Map<string, { approved: boolean; reason?: string }>;
   deferredToolUseIds: Set<string>;
   nativeToolCallNames: Map<string, string>;
+  readableSkillRoots: readonly string[];
+  toolCwds: Map<string, string>;
 }): HookCallback {
   return async (hookInput, toolUseID): Promise<HookJSONOutput> => {
+    if (hookInput.hook_event_name !== 'PreToolUse') return {};
     const toolName = (hookInput as { tool_name?: unknown }).tool_name;
     if (
       toolUseID == null ||
@@ -428,6 +512,7 @@ function createApprovalPreToolUseHook(input: {
     ) {
       return {};
     }
+    input.toolCwds.set(toolUseID, hookInput.cwd);
     const decision = input.decisions.get(toolUseID);
     if (decision != null) {
       // A bridge that resumes another bridge's deferred call never saw its
@@ -447,11 +532,14 @@ function createApprovalPreToolUseHook(input: {
       };
     }
     if (
-      !needsHostApproval({
+      !(await needsHostApproval({
         toolName,
+        toolInput: hookInput.tool_input,
+        cwd: hookInput.cwd,
+        readableSkillRoots: input.readableSkillRoots,
         permissionMode: input.permissionMode,
         inactiveNativeTools: input.inactiveNativeTools,
-      })
+      }))
     ) {
       return {};
     }
@@ -470,6 +558,12 @@ function nativeToolRequiresApproval(input: {
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
 }): boolean {
   if (input.permissionMode === 'allow-all') return false;
+  if (
+    input.nativeName === 'EnterWorktree' ||
+    input.nativeName === 'ExitWorktree'
+  )
+    return true;
+  if (!(input.nativeName in NATIVE_TOOL_KINDS)) return true;
   const kind = NATIVE_TOOL_KINDS[input.nativeName] ?? 'edit';
   if (input.permissionMode === 'allow-edits') return kind === 'bash';
   return kind === 'edit' || kind === 'bash';
@@ -653,7 +747,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     string,
     { approved: boolean; reason?: string }
   >();
+  const toolCwds = new Map<string, string>();
   const permissionOptions = createPermissionOptions({
+    toolCwds,
     approvalDecisions,
     start,
     inactiveNativeTools,
@@ -667,9 +763,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
     emittedToolCallIds: streamEventState.emittedToolCallIds,
   });
-  const modelOverrides = createGatewayModelOverrides(start.model);
+  const sdkEnv = { ...procEnv, ...start.env };
+  const modelOverrides = createGatewayModelOverrides(start.model, sdkEnv);
   const deferredToolUseIds = new Set<string>();
   const approvalPreToolUseHook = createApprovalPreToolUseHook({
+    toolCwds,
+    readableSkillRoots: start.readableSkillRoots ?? [],
     permissionMode,
     inactiveNativeTools: new Set(inactiveNativeTools),
     decisions: approvalDecisions,
@@ -710,7 +809,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(start.forwardSubagentText !== undefined
         ? { forwardSubagentText: start.forwardSubagentText }
         : {}),
-      ...(start.env !== undefined ? { env: { ...procEnv, ...start.env } } : {}),
+      ...(start.env !== undefined ? { env: sdkEnv } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
       ...(inactiveNativeTools.length > 0

@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { z } from 'zod/v4';
+import { mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
 type QueryArgs = {
   prompt: AsyncIterable<unknown>;
@@ -20,6 +23,9 @@ const TEST_ENV_KEYS = [
   'CLAUDE_CODE_BRIDGE_INHERITED_TEST',
   'CLAUDE_CODE_BRIDGE_OVERRIDE_TEST',
   'CLAUDE_CODE_BRIDGE_CONFIGURED_TEST',
+  'ANTHROPIC_DEFAULT_OPUS_MODEL',
+  'ANTHROPIC_DEFAULT_SONNET_MODEL',
+  'ANTHROPIC_DEFAULT_HAIKU_MODEL',
 ] as const;
 
 const state = vi.hoisted(() => ({
@@ -869,6 +875,10 @@ describe('Claude Code bridge configuration', () => {
   ])(
     'preserves $permissionMode approval boundaries with skill overrides',
     async ({ permissionMode, allowedTool, gatedTool }) => {
+      const directory = await mkdtemp(
+        path.join(tmpdir(), 'claude-workspace-permissions-'),
+      );
+      process.argv[process.argv.indexOf('--workdir') + 1] = directory;
       const skillOverrides = { init: 'off' };
       state.start = {
         ...state.start,
@@ -904,7 +914,8 @@ describe('Claude Code bridge configuration', () => {
           {
             hook_event_name: 'PreToolUse',
             tool_name: allowedTool,
-            tool_input: {},
+            cwd: directory,
+            tool_input: { file_path: path.join(directory, 'file.txt') },
             tool_use_id: 'allowed-tool',
           },
           'allowed-tool',
@@ -926,6 +937,134 @@ describe('Claude Code bridge configuration', () => {
           permissionDecision: 'defer',
         },
       });
+      await rm(directory, { recursive: true, force: true });
+    },
+  );
+
+  test.each([
+    { toolName: 'Read', toolInput: { file_path: 'file.txt' }, approved: true },
+    {
+      toolName: 'Edit',
+      toolInput: { file_path: 'new/file.txt' },
+      approved: true,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: '../skill/file.txt' },
+      approved: true,
+    },
+    {
+      toolName: 'Write',
+      toolInput: { file_path: '../skill/new.txt' },
+      approved: false,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: '../other/file.txt' },
+      approved: false,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: 'escape/file.txt' },
+      approved: false,
+    },
+    {
+      toolName: 'NotebookEdit',
+      toolInput: { notebook_path: '../other/file.ipynb' },
+      approved: false,
+    },
+    { toolName: 'Glob', toolInput: { pattern: '**/*.ts' }, approved: true },
+    { toolName: 'Glob', toolInput: { pattern: '../*.ts' }, approved: false },
+    {
+      toolName: 'Glob',
+      toolInput: { pattern: '\\.\\./*.ts' },
+      approved: false,
+    },
+    {
+      toolName: 'Grep',
+      toolInput: { pattern: 'text', path: '../other' },
+      approved: false,
+    },
+    { toolName: 'Read', toolInput: {}, approved: false },
+    { toolName: 'EnterWorktree', toolInput: {}, approved: false },
+    { toolName: 'UnknownTool', toolInput: {}, approved: false },
+  ])(
+    'checks $toolName targets in both approval entry points',
+    async ({ toolName, toolInput, approved }) => {
+      const directory = await mkdtemp(
+        path.join(tmpdir(), 'claude-file-approvals-'),
+      );
+      try {
+        const workDir = path.join(directory, 'workspace');
+        const skill = path.join(directory, 'skill');
+        await mkdir(workDir);
+        await mkdir(skill);
+        await mkdir(path.join(directory, 'other'));
+        await symlink(
+          path.join(directory, 'other'),
+          path.join(workDir, 'escape'),
+        );
+        process.argv[process.argv.indexOf('--workdir') + 1] = workDir;
+        state.start = {
+          ...state.start,
+          permissionMode: 'allow-edits',
+          readableSkillRoots: [skill],
+        };
+        state.requestToolApproval = vi.fn(async () => ({ approved: false }));
+        await import('./index');
+        const options = state.queryArgs[0]!.options;
+        const hooks = options.hooks as {
+          PreToolUse: Array<{
+            matcher?: string;
+            hooks: Array<
+              (input: Record<string, unknown>, id: string) => Promise<unknown>
+            >;
+          }>;
+        };
+        const hook = hooks.PreToolUse.find(entry => entry.matcher == null)!
+          .hooks[0];
+        await expect(
+          hook(
+            {
+              hook_event_name: 'PreToolUse',
+              cwd: workDir,
+              tool_name: toolName,
+              tool_input: toolInput,
+            },
+            'file-call',
+          ),
+        ).resolves.toEqual(
+          approved
+            ? {}
+            : {
+                hookSpecificOutput: {
+                  hookEventName: 'PreToolUse',
+                  permissionDecision: 'defer',
+                },
+              },
+        );
+        const callback = options.canUseTool as (
+          name: string,
+          input: Record<string, unknown>,
+          options: { toolUseID: string; blockedPath?: string },
+        ) => Promise<{ behavior: string }>;
+        expect(
+          (await callback(toolName, toolInput, { toolUseID: 'file-call' }))
+            .behavior,
+        ).toBe(approved ? 'allow' : 'deny');
+        if (approved) {
+          expect(
+            (
+              await callback(toolName, toolInput, {
+                toolUseID: 'file-call',
+                blockedPath: path.join(directory, 'other', 'blocked.txt'),
+              })
+            ).behavior,
+          ).toBe('deny');
+        }
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
     },
   );
 
@@ -1008,6 +1147,100 @@ describe('Claude Code bridge configuration', () => {
     'sets no model overrides for %s',
     async model => {
       state.start = { ...state.start, model };
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+    },
+  );
+
+  test('maps the dotted ids of all model aliases alongside the session model', async () => {
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5',
+      env: {
+        ANTHROPIC_DEFAULT_OPUS_MODEL: 'anthropic/claude-opus-4.8',
+        ANTHROPIC_DEFAULT_SONNET_MODEL: 'anthropic/claude-sonnet-5.5',
+        ANTHROPIC_DEFAULT_HAIKU_MODEL: 'anthropic/claude-haiku-5.5',
+      },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: {
+        'claude-opus-5-5': 'anthropic/claude-opus-5.5',
+        'claude-opus-4-8': 'anthropic/claude-opus-4.8',
+        'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5',
+        'claude-haiku-5-5': 'anthropic/claude-haiku-5.5',
+      },
+    });
+  });
+
+  test('maps model aliases inherited from the bridge environment', async () => {
+    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL = 'anthropic/claude-sonnet-5.5';
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options?.settings).toEqual({
+      modelOverrides: { 'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5' },
+    });
+    expect(options).not.toHaveProperty('env');
+  });
+
+  test('prefers a configured model alias over an inherited one', async () => {
+    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL = 'anthropic/claude-sonnet-4.6';
+    state.start = {
+      ...state.start,
+      env: { ANTHROPIC_DEFAULT_SONNET_MODEL: 'anthropic/claude-sonnet-5.5' },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: { 'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5' },
+    });
+  });
+
+  test('keeps a context window suffix on a model alias id', async () => {
+    state.start = {
+      ...state.start,
+      env: {
+        ANTHROPIC_DEFAULT_SONNET_MODEL: 'anthropic/claude-sonnet-5.5[1m]',
+      },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: {
+        'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5[1m]',
+      },
+    });
+  });
+
+  test('lets the session model win a key it shares with a model alias', async () => {
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5[1m]',
+      env: { ANTHROPIC_DEFAULT_OPUS_MODEL: 'anthropic/claude-opus-5.5' },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5[1m]' },
+    });
+  });
+
+  test.each(['claude-sonnet-5-5', 'anthropic/claude-sonnet-5', 'xai/grok-4.6'])(
+    'sets no model overrides for a model alias set to %s',
+    async modelId => {
+      state.start = {
+        ...state.start,
+        env: { ANTHROPIC_DEFAULT_SONNET_MODEL: modelId },
+      };
 
       await import('./index');
 
@@ -1140,7 +1373,12 @@ describe('Claude Code bridge configuration', () => {
           PreToolUse: Array<{ matcher?: string; hooks: Hook[] }>;
         }
       ).PreToolUse.find(entry => entry.matcher == null)!.hooks[0];
-    const bash = { tool_name: 'Bash', tool_input: { command: 'pwd' } };
+    const bash = {
+      hook_event_name: 'PreToolUse',
+      cwd: '/workspace',
+      tool_name: 'Bash',
+      tool_input: { command: 'pwd' },
+    };
     const deferredResult = (id: string) => ({
       type: 'result',
       subtype: 'success',
