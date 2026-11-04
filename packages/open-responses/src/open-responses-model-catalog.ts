@@ -4,7 +4,6 @@ import type {
   ProviderOptionDefinitions,
 } from '@ai-sdk/provider';
 import type { OpenResponsesLanguageModelOptions } from './responses/open-responses-language-model-options';
-
 /** Options are declared by the adapter; support depends on the configured backend. */
 export const openResponsesProviderOptions = {
   language: {
@@ -51,3 +50,8 @@ export function getOpenResponsesModelEntry(_modelId: string) {
     },
   } satisfies ModelEntry;
 }
+
+/** An arbitrary configured model; this adapter does not own a hosted inventory. */
+export const openResponsesModelCatalog = {
+  '*': getOpenResponsesModelEntry('*'),
+};
