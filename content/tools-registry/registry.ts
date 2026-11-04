@@ -928,4 +928,34 @@ console.log(text);`,
     websiteUrl: 'https://cleave.fi',
     npmUrl: 'https://www.npmjs.com/package/@cleave-protocol/ai-sdk',
   },
+  {
+    slug: 'desearch',
+    name: 'Desearch',
+    description:
+      'Search tools for agents powered by Desearch: AI search with summarized results, web search, X (Twitter) post search, link search and page fetch. Use one tool or all of them with desearchTools().',
+    packageName: 'desearch-ai-sdk',
+    tags: ['search', 'web-search', 'x'],
+    apiKeyEnvName: 'DESEARCH_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add desearch-ai-sdk',
+      npm: 'npm install desearch-ai-sdk',
+      yarn: 'yarn add desearch-ai-sdk',
+      bun: 'bun add desearch-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { desearchTools } from 'desearch-ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Find recent news about Bittensor subnet 22 and summarize it with sources.',
+  tools: desearchTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/Desearch-ai/desearch-ai-sdk#readme',
+    apiKeyUrl: 'https://console.desearch.ai/api-keys',
+    websiteUrl: 'https://desearch.ai',
+    npmUrl: 'https://www.npmjs.com/package/desearch-ai-sdk',
+  },
 ];
