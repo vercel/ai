@@ -82,9 +82,12 @@ export const text = (): Output<string, string, never> => ({
   },
 });
 
-type ValidatedSchema<SCHEMA> = [SCHEMA] extends [FlexibleSchema]
-  ? SCHEMA
-  : never;
+// pass through explicit `any` types for backward compat
+type ValidatedSchema<SCHEMA> = 0 extends 1 & SCHEMA
+  ? never
+  : [SCHEMA] extends [FlexibleSchema]
+    ? SCHEMA
+    : never;
 
 type ObjectOptions<SCHEMA> = {
   /**

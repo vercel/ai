@@ -108,6 +108,18 @@ describe('Output.object', () => {
     >().toEqualTypeOf<A>();
   });
 
+  it('should support an explicit any type argument', () => {
+    const output = Output.object<any>({ schema: schemaA });
+
+    expectTypeOf<InferCompleteOutput<typeof output>>().toBeAny();
+  });
+
+  it('should infer the output type from the context for an any schema', () => {
+    const schema: any = schemaA;
+
+    const _output: Output.Output<A> = Output.object({ schema });
+  });
+
   it('should reject values that are not schemas', () => {
     // @ts-expect-error - not a schema
     Output.object({ schema: 'not a schema' });
@@ -175,6 +187,18 @@ describe('Output.array', () => {
     expectTypeOf<
       InferElementOutput<ReturnType<typeof Output.array<A>>>
     >().toEqualTypeOf<A>();
+  });
+
+  it('should support an explicit any type argument', () => {
+    const output = Output.array<any>({ element: schemaA });
+
+    expectTypeOf<InferElementOutput<typeof output>>().toBeAny();
+  });
+
+  it('should infer the element type from the context for an any schema', () => {
+    const element: any = schemaA;
+
+    const _output: Output.Output<A[]> = Output.array({ element });
   });
 
   it('should reject values that are not schemas', () => {
