@@ -646,15 +646,16 @@ The following option definitions are generated from the provider catalog.
 
 {/* model-capabilities:minimax-provider-options:start */}
 
-| Operation | Option               | Description                                                                                                                                             |
-| --------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| language  | `effort`             | Reasoning effort for MiniMax M3.1 and later models. Higher levels can use more reasoning tokens and increase latency. Defaults to the server's setting. |
-| language  | `thinking`           | thinking                                                                                                                                                |
-| video     | `resolution`         | Output resolution.                                                                                                                                      |
-| video     | `ratio`              | Aspect ratio of the generated video. Overrides the top-level `aspectRatio`.                                                                             |
-| video     | `referenceAudioUrls` | Reference audio URLs for reference-to-video generation.                                                                                                 |
-| video     | `aigcWatermark`      | Whether to embed an AIGC watermark in the output. Defaults to `false`.                                                                                  |
-| video     | `pollIntervalMs`     | Interval in milliseconds between task status polls. Default: 10000.                                                                                     |
-| video     | `pollTimeoutMs`      | Maximum time in milliseconds to poll before timing out. Default: 600000.                                                                                |
+| Operation | Option               | Description                                                                                                                                                             |
+| --------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| language  | `effort`             | Reasoning effort for MiniMax M3.1 and later models. Higher levels can use more reasoning tokens and increase latency. Defaults to the server's setting.                 |
+| language  | `serviceTier`        | Request admission tier (`standard` or `priority`), sent as `service_tier`. Priority admission is billed at 1.5x the standard price. Omit to use the API's default tier. |
+| language  | `thinking`           | thinking                                                                                                                                                                |
+| video     | `resolution`         | Output resolution.                                                                                                                                                      |
+| video     | `ratio`              | Aspect ratio of the generated video. Overrides the top-level `aspectRatio`.                                                                                             |
+| video     | `referenceAudioUrls` | Reference audio URLs for reference-to-video generation.                                                                                                                 |
+| video     | `aigcWatermark`      | Whether to embed an AIGC watermark in the output. Defaults to `false`.                                                                                                  |
+| video     | `pollIntervalMs`     | Interval in milliseconds between task status polls. Default: 10000.                                                                                                     |
+| video     | `pollTimeoutMs`      | Maximum time in milliseconds to poll before timing out. Default: 600000.                                                                                                |
 
 {/* model-capabilities:minimax-provider-options:end */}

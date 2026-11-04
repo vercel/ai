@@ -17,6 +17,10 @@ export const miniMaxProviderOptions = {
       description:
         "Reasoning effort for MiniMax M3.1 and later models. Higher levels can use more reasoning tokens and increase latency. Defaults to the server's setting.",
     },
+    serviceTier: {
+      description:
+        "Request admission tier (`standard` or `priority`), sent as `service_tier`. Priority admission is billed at 1.5x the standard price. Omit to use the API's default tier.",
+    },
     thinking: { description: 'thinking' },
   } satisfies Record<
     keyof MiniMaxLanguageModelChatOptions | keyof MiniMaxLanguageModelOptions,
