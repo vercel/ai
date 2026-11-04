@@ -47,7 +47,7 @@ type XaiRealtimeWireEvent = {
   arguments: string;
   message?: string;
   code?: string;
-  usage?: XaiRealtimeTranscriptionUsage;
+  usage?: XaiRealtimeTranscriptionUsage & XaiRealtimeResponseUsage;
 };
 
 export function parseXaiRealtimeServerEvent(
@@ -119,7 +119,7 @@ export function parseXaiRealtimeServerEvent(
       };
 
     case 'response.done': {
-      const usage = mapResponseUsage(event.response?.usage);
+      const usage = mapResponseUsage(event.usage ?? event.response?.usage);
       return {
         type: 'response-done',
         responseId: event.response?.id ?? event.response_id,

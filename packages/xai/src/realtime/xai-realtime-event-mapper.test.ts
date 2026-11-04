@@ -2,6 +2,27 @@ import { describe, expect, it } from 'vitest';
 import { parseXaiRealtimeServerEvent } from './xai-realtime-event-mapper';
 
 describe('parseXaiRealtimeServerEvent usage', () => {
+  it('reads top-level response.done usage even when nested usage is empty', () => {
+    const event = parseXaiRealtimeServerEvent({
+      type: 'response.done',
+      response: { id: 'response', status: 'completed', usage: {} },
+      usage: {
+        input_tokens: 4,
+        output_tokens: 37,
+        input_token_details: { text_tokens: 4, audio_tokens: 0 },
+        output_token_details: { text_tokens: 1, audio_tokens: 36 },
+      },
+    });
+    expect(event.type === 'response-done' && event.usage).toEqual({
+      inputTokens: 4,
+      outputTokens: 37,
+      inputTextTokens: 4,
+      inputAudioTokens: 0,
+      outputTextTokens: 1,
+      outputAudioTokens: 36,
+    });
+  });
+
   it('retains duration usage on transcription completions', () => {
     const event = parseXaiRealtimeServerEvent({
       type: 'conversation.item.input_audio_transcription.completed',
