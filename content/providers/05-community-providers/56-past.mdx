@@ -1,0 +1,105 @@
+---
+title: past dev
+description: Learn how to use past dev long-term memory with the AI SDK.
+---
+
+# past dev
+
+[past dev](https://past.dev) is a memory API for AI agents. The [`@pastdotdev/ai-sdk`](https://www.npmjs.com/package/@pastdotdev/ai-sdk) package gives your agents long-term memory across conversations.
+
+Features include:
+
+- Two tools: `recall` returns ranked memories with their dates and source quotations, and `ingest` adds a piece of information to memory
+- A language model middleware that recalls before each model call and keeps the added context small
+- Works with `generateText`, `streamText`, and `ToolLoopAgent`
+- Multi-user memory: your code sets the identity, never the model
+- Full TypeScript support, ESM and CommonJS, no runtime dependencies
+
+## Setup
+
+Create a project in the [past dev console](https://app.past.dev) and copy its API key. It starts with `past_sk_`. Set it as `PAST_API_KEY` in your environment.
+
+## Installation
+
+<InstallPackages packages="@pastdotdev/ai-sdk" />
+
+## Creating Tools
+
+Pass the identity of the person the memory is for, typically a user ID:
+
+```ts
+import { pastTools } from '@pastdotdev/ai-sdk';
+
+const tools = pastTools({ identity: 'user-123' });
+```
+
+The model fills only the query of `recall`, and the content of `ingest` with an optional timestamp and label. It never sees the identity, so in multi-user apps, call `pastTools` inside your request handler with the signed-in user's ID.
+
+## Basic Usage
+
+### generateText
+
+```ts
+import { pastTools } from '@pastdotdev/ai-sdk';
+import { generateText, isStepCount } from 'ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: pastTools({ identity: 'user-123' }),
+  stopWhen: isStepCount(5),
+  prompt: 'Remember that my favorite editor is Neovim.',
+});
+```
+
+### ToolLoopAgent
+
+```ts
+import { pastTools } from '@pastdotdev/ai-sdk';
+import { ToolLoopAgent } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model: 'anthropic/claude-sonnet-5.5',
+  instructions: 'You are a helpful assistant with long-term memory.',
+  tools: pastTools({ identity: 'user-123' }),
+});
+
+const result = await agent.generate({ prompt: 'Which editor do I use?' });
+```
+
+## Middleware
+
+`pastRecallMiddleware` recalls with the last user message as the query before each model call, and adds the memories to the prompt as one system message. It adds at most five memories and 4,000 characters by default, leaves out superseded memories, and adds nothing when the recall fails or finds nothing.
+
+```ts
+import { pastRecallMiddleware } from '@pastdotdev/ai-sdk';
+import { gateway, streamText, wrapLanguageModel } from 'ai';
+
+const model = wrapLanguageModel({
+  model: gateway('openai/gpt-5-mini'),
+  middleware: pastRecallMiddleware({ identity: 'user-123' }),
+});
+
+const result = streamText({
+  model,
+  prompt: 'What did we decide about the launch date?',
+});
+```
+
+## Configuration
+
+| Option                | Description                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| `identity`            | Required. The person the memory is for.                                                 |
+| `apiKey`              | The project API key. Defaults to `PAST_API_KEY`.                                        |
+| `apiHost`             | The API origin, for a deployment in your own cloud. Defaults to `https://api.past.dev`. |
+| `audience`            | The audience slug of each ingest. Omit it for memory visible to the whole project.      |
+| `metadata`            | Your JSON, stored with each ingest. The model never sees it.                            |
+| `limit`               | The maximum number of memories in a recall.                                             |
+| `level` / `maxTokens` | The evidence budget of a recall.                                                        |
+
+## More Information
+
+- [`@pastdotdev/ai-sdk` on GitHub](https://github.com/pastdotdev/ai-sdk)
+- [`@pastdotdev/ai-sdk` on npm](https://www.npmjs.com/package/@pastdotdev/ai-sdk)
+- [past dev quickstart](https://past.dev/docs/memory-api/quickstart)
+- [past dev API reference](https://past.dev/docs/memory-api/api-reference)
