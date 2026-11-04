@@ -138,6 +138,7 @@ describe('doStreamStep', () => {
     });
 
     const result = await doStreamStep(prompt, model);
+    if ('aborted' in result) throw new Error('Expected a completed model call');
 
     expect(result.raw?.responseMetadata).toEqual({
       id: 'response-1',
