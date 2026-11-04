@@ -105,6 +105,10 @@ export const cartesiaSpeechModelOptionsSchema = lazySchema(() =>
       emotion: z.enum(cartesiaSpeechEmotions).optional(),
       /** The language to generate speech in (ISO 639-1 code). */
       language: z.string().nullish(),
+      /** The regional locale code to generate speech in (e.g. 'en-GB', 'es-MX'). Supported for Sonic 3.6 and later. */
+      locale: z.string().optional(),
+      /** Controls text normalization ('auto', 'off', or a language or locale code). */
+      normalization: z.string().optional(),
       /** ID of a pronunciation dictionary created with the Cartesia API. Sonic 3 and newer. */
       pronunciationDictionaryId: z.string().optional(),
     }),

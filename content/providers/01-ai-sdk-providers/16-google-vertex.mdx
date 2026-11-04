@@ -1399,6 +1399,23 @@ rate is reported in `result.providerMetadata.google.sampleRate`.
 
 ### Transcription Models
 
+#### Gemini transcription
+
+Gemini transcription models such as `gemini-3.5-transcribe` also support
+`googleVertex.transcription()`. Request word timing with the shared
+`timestampGranularities: ['word']` setting. An explicit
+`providerOptions.googleVertex.wordTimestamp` takes precedence, including
+`false`, which disables word timestamps and produces a warning if word timing
+was requested through the shared setting.
+
+Returned words are exposed in the optional `result.words` array. For
+compatibility, `result.segments` continues to contain the same word timings.
+Gemini does not provide separate caption segments and warns if `'segment'` is
+requested. These shared timing controls currently apply to Gemini transcription;
+Chirp and telephony use their provider settings below.
+
+#### Speech-to-Text transcription
+
 You can transcribe audio with Google Cloud Speech-to-Text models using the
 `.transcription()` factory method together with
 [`transcribe()`](/docs/reference/ai-sdk-core/transcribe).

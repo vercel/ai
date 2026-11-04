@@ -1714,6 +1714,15 @@ Options that a model does not support, such as `timestamps: 'word'` with
 MAI-Transcribe-1.5, are sent unchanged, and Azure rejects the request with an
 error that names the option.
 
+For Azure Speech, the shared `timestampGranularities: ['word', 'segment']`
+setting requests word timestamps, which also include phrase timing.
+`providerOptions.azure.timestamps` takes precedence. Requests for timings that
+are disabled by that override or unsupported by the model produce a warning.
+MAI-Transcribe-2 exposes normalized word timing in `result.words` and phrase
+timing in `result.segments`, both in seconds. MAI-Transcribe-1.5 does not support
+timestamp requests. Azure OpenAI models use the OpenAI timing settings and
+precedence instead.
+
 Results include transcript text, timed segments, duration, and an ISO-639-1
 language code when the reported phrase locales identify one language. Mixed-language
 results, and languages without an ISO-639-1 code such as Filipino (`fil`) or

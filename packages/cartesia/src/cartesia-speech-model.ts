@@ -1,4 +1,8 @@
-import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  type SpeechModelV4,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
 import {
   resolve,
   combineHeaders,
@@ -206,21 +210,38 @@ export class CartesiaSpeechModel implements SpeechModelV4 {
       output_format: outputFormatObject,
     };
 
-    // Map generic language
-    if (language) {
+    // Incompatible combination check:
+    if (cartesiaOptions?.locale != null && cartesiaOptions?.language != null) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions',
+        message:
+          'providerOptions.cartesia.locale cannot be combined with providerOptions.cartesia.language',
+      });
+    }
+
+    if (cartesiaOptions?.locale != null) {
+      requestBody.locale = cartesiaOptions.locale;
+      if (language) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'language',
+          details:
+            'Cartesia does not support both locale and language. The language option was ignored in favor of providerOptions.cartesia.locale.',
+        });
+      }
+    } else if (cartesiaOptions?.language != null) {
+      requestBody.language = cartesiaOptions.language;
+    } else if (language) {
       requestBody.language = language;
     }
 
-    // Provider-specific options override the corresponding generic options.
-    if (cartesiaOptions) {
-      if (cartesiaOptions.language != null) {
-        requestBody.language = cartesiaOptions.language;
-      }
+    if (cartesiaOptions?.normalization != null) {
+      requestBody.normalization = cartesiaOptions.normalization;
+    }
 
-      if (cartesiaOptions.pronunciationDictionaryId != null) {
-        requestBody.pronunciation_dict_id =
-          cartesiaOptions.pronunciationDictionaryId;
-      }
+    if (cartesiaOptions?.pronunciationDictionaryId != null) {
+      requestBody.pronunciation_dict_id =
+        cartesiaOptions.pronunciationDictionaryId;
     }
 
     const generationConfig: NonNullable<

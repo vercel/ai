@@ -547,6 +547,40 @@ const messages = [
 ];
 ```
 
+### Showing Steering Messages in the UI
+
+`streamText` streams a `steering-message` part when a steering or queued message is added to the run. It comes before the `start-step` part of the step that received the message:
+
+```ts
+for await (const part of result.fullStream) {
+  if (part.type === 'steering-message') {
+    console.log(part.id, part.message, part.stepNumber);
+  }
+}
+```
+
+`toUIMessageStream()` sends it to the client, and `useChat` adds it to the assistant message as a `steering-message` part at that position. Render it like a user message:
+
+```tsx
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      case 'steering-message':
+        return (
+          <div key={index} className="user-message">
+            {part.parts.map(content =>
+              content.type === 'text' ? content.text : null,
+            )}
+          </div>
+        );
+      // ...
+    }
+  });
+}
+```
+
+`convertToModelMessages` turns the part back into a user message between the steps, so saved chats keep the steering messages in the order the model saw them. Pass the id of your UI message to `steer()` or `queue()` to match the part to the message that the user sent.
+
 ## Access Step Information
 
 Both `stopWhen` and `prepareStep` receive detailed information about the current execution:

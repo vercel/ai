@@ -1,4 +1,7 @@
-import type { JSONObject } from '@ai-sdk/provider';
+import type {
+  JSONObject,
+  TranscriptionModelV4TimestampGranularity,
+} from '@ai-sdk/provider';
 import {
   createIdGenerator,
   detectMediaType,
@@ -51,6 +54,7 @@ export async function transcribe({
   model,
   audio,
   providerOptions = {},
+  timestampGranularities,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -83,6 +87,16 @@ export async function transcribe({
    * ```
    */
   providerOptions?: ProviderOptions;
+
+  /**
+   * Word and segment timings to request.
+   *
+   * Supported adapters map this onto the provider's native control when the
+   * matching provider option is omitted. An explicit provider option wins.
+   * Supported adapters warn when they cannot return a requested granularity.
+   * An empty array requests no shared timing granularity; provider defaults may vary.
+   */
+  timestampGranularities?: Array<TranscriptionModelV4TimestampGranularity>;
 
   /**
    * Maximum number of retries per transcript model call. Set to 0 to disable retries.
@@ -166,6 +180,7 @@ export async function transcribe({
     maxRetries,
     headers,
     providerOptions,
+    timestampGranularities,
   });
 
   const executeWithStartEvent = async <T>({
@@ -249,6 +264,9 @@ export async function transcribe({
             headers: headersWithUserAgent,
             providerOptions,
             mediaType,
+            ...(timestampGranularities != null
+              ? { timestampGranularities }
+              : {}),
           }),
         );
 
@@ -275,6 +293,7 @@ export async function transcribe({
           },
           text: result.text,
           segments: result.segments,
+          words: result.words,
           language: result.language,
           durationInSeconds: result.durationInSeconds,
           usage: result.usage,
@@ -291,6 +310,7 @@ export async function transcribe({
         return new DefaultTranscriptionResult({
           text: result.text,
           segments: result.segments,
+          words: result.words,
           language: result.language,
           durationInSeconds: result.durationInSeconds,
           warnings: result.warnings,
@@ -330,6 +350,11 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     startSecond: number;
     endSecond: number;
   }>;
+  readonly words?: Array<{
+    text: string;
+    startSecond: number;
+    endSecond: number;
+  }>;
   readonly language: string | undefined;
   readonly durationInSeconds: number | undefined;
   readonly warnings: Array<Warning>;
@@ -343,6 +368,11 @@ class DefaultTranscriptionResult implements TranscriptionResult {
       startSecond: number;
       endSecond: number;
     }>;
+    words?: Array<{
+      text: string;
+      startSecond: number;
+      endSecond: number;
+    }>;
     language: string | undefined;
     durationInSeconds: number | undefined;
     warnings: Array<Warning>;
@@ -351,6 +381,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
   }) {
     this.text = options.text;
     this.segments = options.segments;
+    this.words = options.words;
     this.language = options.language;
     this.durationInSeconds = options.durationInSeconds;
     this.warnings = options.warnings;

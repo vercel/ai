@@ -1,3 +1,4 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { createCartesia } from './cartesia-provider';
@@ -471,6 +472,142 @@ describe('CartesiaSpeechModel', () => {
           'x-request-id': 'test-request-id',
         },
       });
+    });
+
+    it.each(['locale', 'normalization'])(
+      'rejects a null %s before sending a request',
+      async option => {
+        await expect(
+          model.doGenerate({
+            text: 'Hello, world!',
+            voice: 'test-voice-id',
+            providerOptions: { cartesia: { [option]: null } },
+          }),
+        ).rejects.toMatchObject({ name: 'AI_InvalidArgumentError' });
+        expect(server.calls).toHaveLength(0);
+      },
+    );
+
+    it('combines locale and normalization with the other speech options', async () => {
+      prepareAudioResponse();
+
+      await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: {
+          cartesia: {
+            locale: 'en-GB',
+            normalization: 'off',
+            pronunciationDictionaryId: 'test-dictionary',
+            volume: 1.2,
+            emotion: 'excited',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        locale: 'en-GB',
+        normalization: 'off',
+        pronunciation_dict_id: 'test-dictionary',
+        generation_config: { volume: 1.2, emotion: 'excited' },
+      });
+    });
+
+    it('rejects conflicting provider locale and language before sending a request', async () => {
+      let error: unknown;
+      try {
+        await model.doGenerate({
+          text: 'Hello, world!',
+          voice: 'test-voice-id',
+          providerOptions: { cartesia: { locale: 'en-GB', language: 'en' } },
+        });
+      } catch (cause) {
+        error = cause;
+      }
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        argument: 'providerOptions',
+        message:
+          'providerOptions.cartesia.locale cannot be combined with providerOptions.cartesia.language',
+      });
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('preserves provider language precedence over generic language', async () => {
+      prepareAudioResponse();
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        language: 'en',
+        providerOptions: { cartesia: { language: 'es' } },
+      });
+
+      expect((await server.calls[0].requestBodyJson).language).toBe('es');
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('sends a locale alone without language or warnings', async () => {
+      prepareAudioResponse();
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        providerOptions: { cartesia: { locale: 'en-GB' } },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.locale).toBe('en-GB');
+      expect(body).not.toHaveProperty('language');
+      expect(body).not.toHaveProperty('normalization');
+      expect(result.warnings).toEqual([]);
+    });
+
+    it.each(['auto', 'off', 'es-MX'])(
+      'sends normalization %s independently of locale',
+      async normalization => {
+        prepareAudioResponse();
+        const result = await model.doGenerate({
+          text: 'Hello, world!',
+          voice: 'test-voice-id',
+          language: 'en',
+          providerOptions: { cartesia: { normalization } },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).toMatchObject({ language: 'en', normalization });
+        expect(body).not.toHaveProperty('locale');
+        expect(result.warnings).toEqual([]);
+      },
+    );
+
+    it('should prioritize providerOptions locale over generic language and emit a warning', async () => {
+      prepareAudioResponse();
+
+      const result = await model.doGenerate({
+        text: 'Hello, world!',
+        voice: 'test-voice-id',
+        language: 'en',
+        providerOptions: {
+          cartesia: {
+            locale: 'en-GB',
+          },
+        },
+      });
+
+      const body = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        unknown
+      >;
+      expect(body.locale).toBe('en-GB');
+      expect(body.language).toBeUndefined();
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'language',
+          details:
+            'Cartesia does not support both locale and language. The language option was ignored in favor of providerOptions.cartesia.locale.',
+        },
+      ]);
     });
   });
 });

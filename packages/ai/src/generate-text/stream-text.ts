@@ -2642,11 +2642,33 @@ class DefaultStreamTextResult<
 
           // steering messages are delivered when they are in the messages that
           // are sent to the model after prepareStep:
-          currentStepSteeringMessages =
+          const deliveredSteeringMessages =
             steeringRun?.resolveTakenMessages({
               stepNumber: currentStep,
               sentMessages: stepMessages,
             }) ?? [];
+          currentStepSteeringMessages = deliveredSteeringMessages.map(
+            ({ message }) => message,
+          );
+
+          // delivered steering messages are streamed before the step output:
+          if (deliveredSteeringMessages.length > 0) {
+            self.addStream(
+              new ReadableStream<InternalTextStreamPart<TOOLS>>({
+                start(controller) {
+                  for (const { id, message } of deliveredSteeringMessages) {
+                    controller.enqueue({
+                      type: 'steering-message',
+                      id,
+                      message,
+                      stepNumber: currentStep,
+                    });
+                  }
+                  controller.close();
+                },
+              }),
+            );
+          }
           const stepInstructions =
             prepareStepResult?.instructions ??
             prepareStepResult?.system ??

@@ -529,6 +529,54 @@ describe('validateUIMessages', () => {
     });
   });
 
+  describe('steering message parts', () => {
+    it('should validate an assistant message with a steering message part', async () => {
+      const message: UIMessage = {
+        id: '1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'steering-message',
+            id: 'steer-1',
+            parts: [
+              { type: 'text', text: 'I meant Paris, Texas.' },
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                url: '',
+                providerReference: { openai: 'file-1' },
+              },
+            ],
+          },
+          { type: 'step-start' },
+        ],
+      };
+
+      expect(await validateUIMessages({ messages: [message] })).toEqual([
+        message,
+      ]);
+    });
+
+    it('should reject a steering message part without an id', async () => {
+      const result = await safeValidateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'steering-message',
+                parts: [{ type: 'text', text: 'I meant Paris, Texas.' }],
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(false);
+    });
+  });
+
   describe('file parts', () => {
     it('should validate an assistant message with a file part', async () => {
       const messages = await validateUIMessages({
