@@ -21,11 +21,11 @@ export interface GatewayGenerationInfo {
   id: string;
   /** Total cost in USD */
   totalCost: number;
-  /** Cost at undiscounted market rates in USD, excluding surcharges */
+  /** Market cost in USD, excluding surcharges. Omitted when unavailable. */
   marketCost?: number;
-  /** Total surcharges applied in USD */
+  /** Total surcharges applied in USD. Omitted when unavailable. */
   surchargeCost?: number;
-  /** Total amount debited in USD (same as totalCost) */
+  /** Total amount debited in USD. Omitted when unavailable. */
   gatewayCost?: number;
   /** Upstream inference cost in USD (BYOK only) */
   upstreamInferenceCost: number;
