@@ -808,10 +808,6 @@ const result = await generateText({
         // optional configuration:
         memoryLimit: '4g',
         fileIds: ['file-abc123'],
-        networkPolicy: {
-          type: 'allowlist',
-          allowedDomains: ['example.com'],
-        },
       },
     }),
   },
@@ -823,9 +819,6 @@ The `containerAuto` environment supports:
 
 - **fileIds** _string[]_ - File IDs to make available in the container
 - **memoryLimit** _'1g' | '4g' | '16g' | '64g'_ - Memory limit for the container
-- **networkPolicy** - Network access policy:
-  - `{ type: 'disabled' }` — no network access
-  - `{ type: 'allowlist', allowedDomains: string[], domainSecrets?: Array<{ domain, name, value }> }` — allow specific domains with optional secrets
 
 ##### Existing Container Reference
 
