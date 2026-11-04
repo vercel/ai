@@ -136,7 +136,7 @@ export type RealtimeModelV4 = {
    * Unlike `getWebSocketConfig` (browser-side, authenticates with a short-lived
    * token carried in a subprotocol), this uses the provider credential the
    * model was constructed with (header auth) and selects supported provider
-   * endpoint variants via `intent` (e.g. transcription / translation).
+   * endpoint variants via `intent` (e.g. transcription).
    *
    * May return a promise for providers whose server connection requires a
    * round-trip (e.g. minting an ephemeral connection token).
