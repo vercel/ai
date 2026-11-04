@@ -2112,6 +2112,150 @@ describe('responses', () => {
       });
     });
 
+    describe('apply patch tool', () => {
+      const tools: LanguageModelV4CallOptions['tools'] = [
+        {
+          type: 'provider',
+          id: 'openai.apply_patch',
+          name: 'apply_patch',
+          args: {},
+        },
+      ];
+      const fixture = JSON.parse(
+        fs.readFileSync(
+          '../openai/src/responses/__fixtures__/openai-apply-patch-tool.1.json',
+          'utf8',
+        ),
+      );
+      const patch = fixture.output[0];
+      const input = { callId: patch.call_id, operation: patch.operation };
+      const url = 'https://test-resource.openai.azure.com/openai/v1/responses';
+
+      it('should expose a client-executed Azure tool factory', () => {
+        expect(
+          createAzure({ resourceName: 'test-resource' }).tools.applyPatch({
+            execute: async () => ({ status: 'completed' }),
+          }),
+        ).toMatchObject({ type: 'provider', id: 'openai.apply_patch' });
+      });
+
+      it('should send the native definition and retain Azure item metadata', async () => {
+        server.urls[url].response = { type: 'json-value', body: fixture };
+        const result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          { type: 'apply_patch' },
+        ]);
+        const call = result.content.find(part => part.type === 'tool-call');
+        expect(call).toMatchObject({
+          toolCallId: patch.call_id,
+          toolName: 'apply_patch',
+          providerMetadata: { azure: { itemId: patch.id } },
+        });
+        expect(JSON.parse(call!.input)).toEqual(input);
+        expect(result.finishReason.unified).toBe('tool-calls');
+      });
+
+      it('should stream the patch input with Azure item metadata', async () => {
+        const chunks = fs
+          .readFileSync(
+            '../openai/src/responses/__fixtures__/openai-apply-patch-tool.1.chunks.txt',
+            'utf8',
+          )
+          .split('\n')
+          .filter(line => line.trim().length > 0)
+          .map(line => `data: ${line}\n\n`);
+        server.urls[url].response = {
+          type: 'stream-chunks',
+          chunks: [...chunks, 'data: [DONE]\n\n'],
+        };
+        const { stream } = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          { type: 'apply_patch' },
+        ]);
+        const events = chunks.map(chunk => JSON.parse(chunk.slice(6)));
+        const streamedPatch = events.find(
+          event => event.type === 'response.output_item.done',
+        ).item;
+        const call = parts.find(part => part.type === 'tool-call');
+        expect(call).toMatchObject({
+          toolCallId: streamedPatch.call_id,
+          toolName: 'apply_patch',
+          providerMetadata: { azure: { itemId: streamedPatch.id } },
+        });
+        expect(JSON.parse(call!.input)).toEqual({
+          callId: streamedPatch.call_id,
+          operation: streamedPatch.operation,
+        });
+      });
+
+      it.each([true, false])(
+        'should serialize patch calls and results with store=%s',
+        async store => {
+          prepareJsonFixtureResponse('azure-text.1');
+          await createModel('test-deployment').doGenerate({
+            tools,
+            providerOptions: { azure: { store } },
+            prompt: [
+              ...TEST_PROMPT,
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: patch.call_id,
+                    toolName: 'apply_patch',
+                    input,
+                    providerOptions: { azure: { itemId: patch.id } },
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolCallId: patch.call_id,
+                    toolName: 'apply_patch',
+                    output: {
+                      type: 'json',
+                      value: { status: 'completed', output: 'Created file' },
+                    },
+                  },
+                ],
+              },
+            ],
+          });
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.store).toBe(store);
+          expect(body.input.slice(1)).toEqual([
+            store
+              ? { type: 'item_reference', id: patch.id }
+              : {
+                  type: 'apply_patch_call',
+                  id: patch.id,
+                  call_id: patch.call_id,
+                  status: 'completed',
+                  operation: patch.operation,
+                },
+            {
+              type: 'apply_patch_call_output',
+              call_id: patch.call_id,
+              status: 'completed',
+              output: 'Created file',
+            },
+          ]);
+        },
+      );
+    });
+
     describe('tool search tool', () => {
       it('should expose toolSearch as an Azure tool', () => {
         expect(

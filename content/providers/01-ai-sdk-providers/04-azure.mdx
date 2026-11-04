@@ -851,6 +851,43 @@ The custom tool can be configured with:
   - **definition** _string_ - (grammar only) The grammar definition string (a regex pattern or Lark grammar).
 - **execute** _function_ (optional) - An async function that receives the raw string input and returns the tool result. Enables multi-turn tool calling.
 
+#### Apply Patch Tool
+
+Use `azure.tools.applyPatch` to configure the OpenAI apply patch tool for Azure Responses models.
+Availability depends on your model deployment, region, and API version; see the
+[Azure Responses API documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/responses).
+The apply patch tool lets the model create, update, and delete files in your codebase using structured diffs.
+Instead of just suggesting edits, the model emits patch operations that your application applies and reports back on,
+enabling iterative, multi-step code editing workflows.
+
+Register this tool with the `apply_patch` key so patch results are returned in the
+format expected by the Responses API.
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText, isStepCount } from 'ai';
+
+const result = await generateText({
+  // Use your Azure deployment name with apply-patch support.
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    apply_patch: azure.tools.applyPatch({
+      execute: async ({ callId, operation }) => {
+        // ... your implementation for applying the diffs.
+        return { status: 'completed' };
+      },
+    }),
+  },
+  prompt: 'Create a python file that calculates the factorial of a number',
+  stopWhen: isStepCount(5),
+});
+```
+
+Your execute function must return:
+
+- **status** _'completed' | 'failed'_ - Whether the patch was applied successfully
+- **output** _string_ (optional) - Human-readable log text (e.g., results or error messages)
+
 #### Tool Search Tool
 
 The Azure OpenAI provider supports [tool search](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/tool-search) through the `azure.tools.toolSearch` tool.
