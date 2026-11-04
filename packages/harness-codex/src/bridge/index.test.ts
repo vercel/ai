@@ -235,7 +235,7 @@ describe('Codex bridge config', () => {
         "features": {
           "multi_agent": false,
         },
-        "model_reasoning_summary": "detailed",
+        "model_reasoning_summary": "none",
         "model_verbosity": "low",
       }
     `);
@@ -251,8 +251,6 @@ describe('Codex bridge config', () => {
     `);
   });
 
-  // Issue #24472 is a local configuration precedence bug: capture the real
-  // bridge's output before the app-server boundary, without calling a model.
   test.each([
     { model: 'gpt-5.5', gateway: false, summary: 'none', supports: undefined },
     {
@@ -266,6 +264,18 @@ describe('Codex bridge config', () => {
       gateway: true,
       summary: 'concise',
       supports: undefined,
+    },
+    {
+      model: 'gpt-5.5',
+      gateway: true,
+      summary: 'none',
+      supports: false,
+    },
+    {
+      model: 'openai/gpt-5.5',
+      gateway: true,
+      summary: 'concise',
+      supports: false,
     },
     {
       model: '@cf/openai/gpt-oss-20b',
@@ -292,7 +302,7 @@ describe('Codex bridge config', () => {
       supports: true,
     },
   ])(
-    'issue 24472 respects $summary for $model (support override $supports)',
+    'respects caller reasoning summary $summary for $model (support override $supports)',
     async ({ model, gateway, summary, supports }) => {
       state.startModel = model;
       state.startCodexConfig = {
@@ -310,26 +320,10 @@ describe('Codex bridge config', () => {
       expect(state.emittedErrors).toEqual([]);
       expect(state.appServerOptions).toHaveLength(1);
       const actual = state.appServerOptions[0]!;
-      console.log(
-        JSON.stringify({
-          model: actual.codexModel,
-          requestedSummary: summary,
-          actualSummary: actual.codexConfig.model_reasoning_summary,
-          supportsReasoningSummaries:
-            actual.codexConfig.model_supports_reasoning_summaries ?? null,
-        }),
+      expect(actual.codexConfig.model_reasoning_summary).toBe(summary);
+      expect(actual.codexConfig.model_supports_reasoning_summaries).toBe(
+        supports ?? (gateway && model.startsWith('openai/') ? true : undefined),
       );
-      // Capability diagnostics above are secondary. Only rejected caller
-      // settings cause this regression test to fail.
-      expect(
-        actual.codexConfig.model_reasoning_summary,
-        'ISSUE_24472_CALLER_REASONING_SUMMARY_NOT_PRESERVED',
-      ).toBe(summary);
-      if (supports !== undefined) {
-        expect(actual.codexConfig.model_supports_reasoning_summaries).toBe(
-          supports,
-        );
-      }
     },
   );
 
@@ -449,7 +443,7 @@ describe('Codex bridge config', () => {
     expect(state.appServerOptions[0]?.threadId).toBe('thread-previous');
   });
 
-  test('uses the creator-qualified model and forces summaries for AI Gateway', async () => {
+  test('uses the creator-qualified model and defaults to detailed summaries for AI Gateway', async () => {
     process.env.AI_GATEWAY_API_KEY = 'gateway-key';
     process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.test/v1';
 

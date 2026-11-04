@@ -105,7 +105,8 @@ export type CodexHarnessSettings = {
   /**
    * Additional configuration passed through to Codex as-is. Codex config keys
    * typically use snake_case and must be provided in that form. Values managed
-   * by this adapter take precedence over conflicting entries.
+   * by this adapter take precedence over conflicting entries, except for
+   * reasoning-summary defaults, which callers can override.
    */
   readonly codexConfig?: Record<string, unknown>;
   /**
