@@ -763,7 +763,7 @@ enabling iterative, multi-step code editing workflows.
 
 ```ts
 import { azure } from '@ai-sdk/azure';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
   model: azure('gpt-5.1'),
@@ -775,7 +775,7 @@ const result = await generateText({
     }),
   },
   prompt: 'Create a python file that calculates the factorial of a number',
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 ```
 

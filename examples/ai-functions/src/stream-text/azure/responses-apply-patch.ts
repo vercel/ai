@@ -11,7 +11,7 @@ run(async () => {
     path.join(tmpdir(), 'ai-sdk-azure-apply-patch-'),
   );
 
-  const result = await streamText({
+  const result = streamText({
     model: azure.responses('gpt-5.1'),
     stopWhen: isStepCount(5),
     prompt: `Create a markdown file with a shopping checklist of 5 entries.`,
@@ -23,7 +23,7 @@ run(async () => {
   });
 
   process.stdout.write('\n=== Model Response (Streaming) ===\n');
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta': {
         process.stdout.write(part.text);
