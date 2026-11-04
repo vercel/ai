@@ -777,6 +777,7 @@ const result = await generateText({
     apply_patch: azure.tools.applyPatch({
       execute: async ({ callId, operation }) => {
         // ... your implementation for applying the diffs.
+        return { status: 'completed' };
       },
     }),
   },
