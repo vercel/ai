@@ -2,6 +2,51 @@ import { describe, it, expect } from 'vitest';
 import { prepareTools } from './mistral-prepare-tools';
 
 describe('prepareTools', () => {
+  const tools = [
+    {
+      type: 'function' as const,
+      name: 'weather',
+      inputSchema: { type: 'object', properties: {} },
+    },
+    {
+      type: 'function' as const,
+      name: 'attractions',
+      inputSchema: { type: 'object', properties: {} },
+    },
+  ];
+
+  it.each([
+    ['auto', 'auto'],
+    ['none', 'none'],
+    ['required', 'any'],
+  ] as const)('maps %s tool choice to %s', (type, expected) => {
+    const result = prepareTools({ tools, toolChoice: { type } });
+
+    expect(result.toolChoice).toBe(expected);
+    expect(result.tools?.map(tool => tool.function.name)).toEqual([
+      'weather',
+      'attractions',
+    ]);
+    expect(result.toolWarnings).toEqual([]);
+  });
+
+  it('selects a specific function without removing the other tools', () => {
+    const result = prepareTools({
+      tools,
+      toolChoice: { type: 'tool', toolName: 'weather' },
+    });
+
+    expect(result.toolChoice).toEqual({
+      type: 'function',
+      function: { name: 'weather' },
+    });
+    expect(result.tools?.map(tool => tool.function.name)).toEqual([
+      'weather',
+      'attractions',
+    ]);
+    expect(result.toolWarnings).toEqual([]);
+  });
+
   it('should pass through strict mode when strict is true', () => {
     const result = prepareTools({
       tools: [
