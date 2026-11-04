@@ -51,6 +51,11 @@ export type CartesiaSpeechAPITypes = {
   language?: string;
 
   /**
+   * The ID of a pronunciation dictionary to apply to the transcript.
+   */
+  pronunciation_dict_id?: string;
+
+  /**
    * The output audio format.
    */
   output_format: CartesiaSpeechOutputFormat;
