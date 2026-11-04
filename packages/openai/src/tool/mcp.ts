@@ -90,7 +90,7 @@ type McpCommonArgs = {
         readOnly?: boolean;
         toolNames?: string[];
       };
-  /** OAuth access token usable with the remote MCP server, connector, or tunnel. */
+  /** OAuth access token usable with the remote MCP server or connector (including tunneled servers). */
   authorization?: string;
   /** Optional HTTP headers to send to the MCP server. */
   headers?: Record<string, string>;

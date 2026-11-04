@@ -1056,6 +1056,9 @@ const result = await generateText({
 });
 ```
 
+When reading a tunnel ID from an environment variable, check that it is defined
+before passing it to `tunnelId`, which requires a string.
+
 The MCP tool can be configured with:
 
 - **serverLabel** _string_ (required)
@@ -1092,7 +1095,7 @@ The MCP tool can be configured with:
 
 - **authorization** _string_ (optional)
 
-  OAuth access token for authenticating with the MCP server, connector, or tunnel.
+  OAuth access token for authenticating with the MCP server or connector (including tunneled servers).
 
 - **headers** _Record&lt;string, string&gt;_ (optional)
 

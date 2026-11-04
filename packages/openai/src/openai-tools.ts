@@ -130,7 +130,7 @@ export const openaiTools = {
    *
    * @param serverLabel - Label to identify the MCP server.
    * @param allowedTools - Allowed tool names or filter object.
-   * @param authorization - OAuth access token for the MCP server, connector, or tunnel.
+   * @param authorization - OAuth access token for the MCP server or connector (including tunneled servers).
    * @param connectorId - Identifier for a service connector.
    * @param headers - Optional headers to include in MCP requests.
    * @param requireApproval - Approval policy ('always'|'never'|filter object).
