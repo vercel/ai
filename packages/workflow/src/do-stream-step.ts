@@ -420,7 +420,11 @@ async function streamModelStep(
           warnings = part.warnings;
           break;
         case 'model-call-response-metadata':
-          responseMetadata = part;
+          responseMetadata = {
+            id: part.id,
+            timestamp: part.timestamp,
+            modelId: part.modelId,
+          };
           break;
       }
 
