@@ -1,6 +1,6 @@
 /**
- * Normalized realtime token usage, reported on terminal events
- * (`response-done` and `input-transcription-completed`).
+ * Normalized realtime usage on completion events or provider custom snapshots.
+ * Snapshots without a response association must not be summed as increments.
  *
  * Counts are the provider's raw counts: the input buckets INCLUDE any cached
  * tokens, and the cached portions are reported separately in
@@ -9,7 +9,8 @@
  * without re-parsing the event's `raw` payload.
  *
  * Every field is optional: providers only populate what they actually report,
- * and the whole `usage` object is omitted when nothing is observable.
+ * and the whole `usage` object is omitted when nothing is observable. Gross
+ * totals can include modalities without a dedicated text/audio bucket.
  */
 export type RealtimeModelV4Usage = {
   /** Gross input tokens across all reported modalities; includes cached tokens. */

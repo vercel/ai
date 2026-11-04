@@ -4,4 +4,4 @@
 
 feat (provider/google): implement server-side realtime extensions
 
-`GoogleRealtimeModel` now implements `getServerWebSocketConfig()`, returning the unconstrained Gemini Live Bidi WebSocket URL with `x-goog-api-key` header auth — a trusted server holds the API key and sends the session `setup` over the socket (no ephemeral-token mint required). Unsupported endpoint intents are rejected. The event mapper now populates normalized `usage` on `response-done` from `usageMetadata`, mapping per-modality token details (audio/text), buffering standalone usage frames, and falling back to aggregate counts when details are absent.
+`GoogleRealtimeModel` supports the existing `getServerWebSocketConfig()` contract, returning the unconstrained Gemini Live endpoint with resolved credential headers. Each server connection can create its own event parser. Reported gross token totals and available modality counts are normalized without guessing missing values. Usage in a completion frame is attached to `response-done`; other snapshots use `custom` events with `rawType: 'usageMetadata'` and typed `usage`, preserving lifecycle ordering without inferring response associations.

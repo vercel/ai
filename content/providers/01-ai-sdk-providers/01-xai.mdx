@@ -209,6 +209,8 @@ docs](https://docs.x.ai/developers/advanced-api-usage/priority-processing).
 
 ## Realtime Models
 
+Trusted [server-owned connections](/docs/ai-sdk-core/realtime#server-owned-connections) use `getServerWebSocketConfig()` with resolved credential headers and the selected model in the URL. Only the conversation intent is supported. Provider-reported gross totals, available modality/cache counts and transcription duration are exposed as normalized usage when present.
+
 <Note type="warning">Realtime is an experimental feature.</Note>
 
 You can create models that call the [xAI Realtime API](https://docs.x.ai/docs/guides/realtime)

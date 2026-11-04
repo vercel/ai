@@ -5,3 +5,5 @@
 feat (provider/gateway): implement server-side realtime connection descriptors
 
 `GatewayRealtimeModel` now implements `getServerWebSocketConfig()`, returning the AI Gateway realtime WebSocket URL plus `Authorization` header auth and optional team scoping for trusted server-side clients. Unsupported endpoint intents are rejected on the normalized realtime route.
+
+Server WebSockets reuse HTTP authentication, protocol, team and custom headers, including OIDC auth-method metadata.

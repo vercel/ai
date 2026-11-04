@@ -381,7 +381,7 @@ serverOnlyDescribe('gateway.experimental_realtime auth errors', () => {
     const model = gateway.experimental_realtime('openai/gpt-realtime');
     const descriptor = await model.getServerWebSocketConfig!();
     expect(descriptor.headers).toMatchObject({
-      Authorization: 'Bearer oidc-test-token',
+      authorization: 'Bearer oidc-test-token',
       'ai-gateway-auth-method': 'oidc',
       'ai-gateway-protocol-version': '0.0.1',
       'x-vercel-ai-gateway-team': 'team-example',
