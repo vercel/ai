@@ -763,6 +763,9 @@ The apply patch tool lets the model create, update, and delete files in your cod
 Instead of just suggesting edits, the model emits patch operations that your application applies and reports back on,
 enabling iterative, multi-step code editing workflows.
 
+Register this tool with the `apply_patch` key so patch results are returned in the
+format expected by the Responses API.
+
 ```ts
 import { azure } from '@ai-sdk/azure';
 import { generateText, isStepCount } from 'ai';
