@@ -218,8 +218,18 @@ function unwrapPiToolResult(event: PiSessionEvent): never {
   return (event.result ?? event.content ?? null) as never;
 }
 
-function parseMcpToolResult(result: unknown): unknown {
-  const text = typeof result === 'string' ? result : mcpResultText(result);
+/**
+ * Pi's native MCP tools cut text results over 20 KB for the model and keep the
+ * full `CallToolResult` in `structuredContent`.
+ */
+function parseMcpToolResult(event: PiSessionEvent): unknown {
+  const fullResult =
+    event.structuredContent ??
+    (event.result as { structuredContent?: unknown } | null)?.structuredContent;
+  const result: unknown = unwrapPiToolResult(event);
+  const text =
+    mcpResultText(fullResult) ??
+    (typeof result === 'string' ? result : mcpResultText(result));
   if (text === undefined) return result;
   try {
     return secureJsonParse(text);
@@ -648,7 +658,7 @@ export function translatePiEvent(
             { type: 'tool-result' }
           >['result'])
         : dynamicKind === 'mcp'
-          ? parseMcpToolResult(unwrapPiToolResult(event))
+          ? parseMcpToolResult(event)
           : unwrapPiToolResult(event);
       state.hostToolResults.delete(event.toolCallId);
       state.pendingStepToolCallIds.delete(event.toolCallId);

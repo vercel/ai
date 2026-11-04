@@ -1147,6 +1147,127 @@ describe('translatePiEvent', () => {
     });
   });
 
+  it('streams the full MCP result when Pi truncates the model-facing text', () => {
+    const state = createPiTranslatorState();
+    emit([{ type: 'turn_start' } as PiSessionEvent], state);
+    emit(
+      [
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'mcp-call',
+          toolName: 'mcp__brand_ai__brand_check',
+          args: {},
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+    const fullText = '{"ok":false,"issues":["contrast","logo"]}';
+
+    const result = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'mcp-call',
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: '{"ok":false,"is\n\n[Warning: truncated output]\n\nlogo"]}',
+            },
+          ],
+          details: { server: 'brand_ai', tool: 'brand_check' },
+          structuredContent: { content: [{ type: 'text', text: fullText }] },
+        },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(result[0]).toMatchObject({
+      type: 'tool-result',
+      toolName: 'mcp__brand_ai__brand_check',
+      result: { ok: false, issues: ['contrast', 'logo'] },
+    });
+  });
+
+  it('streams the full MCP result from a flat tool_result event', () => {
+    const state = createPiTranslatorState();
+    emit([{ type: 'turn_start' } as PiSessionEvent], state);
+    emit(
+      [
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'mcp-call',
+          toolName: 'mcp__brand_ai__brand_check',
+          args: {},
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const result = translatePiEvent(
+      {
+        type: 'tool_result',
+        toolCallId: 'mcp-call',
+        content: [
+          {
+            type: 'text',
+            text: '{"ok":false,"is\n\n[Warning: truncated output]',
+          },
+        ],
+        details: { server: 'brand_ai', tool: 'brand_check' },
+        structuredContent: {
+          content: [{ type: 'text', text: '{"ok":false,"issues":["logo"]}' }],
+        },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(result[0]).toMatchObject({
+      type: 'tool-result',
+      result: { ok: false, issues: ['logo'] },
+    });
+  });
+
+  it('streams the Pi error text for an MCP error result without content', () => {
+    const state = createPiTranslatorState();
+    emit([{ type: 'turn_start' } as PiSessionEvent], state);
+    emit(
+      [
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'mcp-call',
+          toolName: 'mcp__brand_ai__brand_check',
+          args: {},
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const result = translatePiEvent(
+      {
+        type: 'tool_execution_end',
+        toolCallId: 'mcp-call',
+        isError: true,
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: 'MCP tool brand_ai/brand_check returned an error',
+            },
+          ],
+          details: { server: 'brand_ai', tool: 'brand_check' },
+          structuredContent: { content: [] },
+        },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(result[0]).toMatchObject({
+      type: 'tool-result',
+      result: 'MCP tool brand_ai/brand_check returned an error',
+      isError: true,
+    });
+  });
+
   it('keeps non-JSON MCP results and JSON native results as text', () => {
     const state = createPiTranslatorState({ builtinToolNames: ['read'] });
     emit([{ type: 'turn_start' } as PiSessionEvent], state);
