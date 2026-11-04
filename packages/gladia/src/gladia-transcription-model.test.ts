@@ -571,3 +571,16 @@ describe('selected model identity', () => {
     },
   );
 });
+
+it('validates PII configuration before uploading audio', async () => {
+  await expect(
+    model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mp3',
+      providerOptions: {
+        gladia: { piiRedactionConfig: { processedTextType: 'invalid' } },
+      },
+    }),
+  ).rejects.toThrow('invalid gladia provider options');
+  expect(server.calls).toHaveLength(0);
+});
