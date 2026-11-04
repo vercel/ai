@@ -1,0 +1,37 @@
+{
+  "model": "decision-models/baseten-mammoth-27b-latest",
+  "answers": {
+    "route": {
+      "type": "choice",
+      "choice": "billing",
+      "confidence": 0.9992961209902924,
+      "probabilities": {
+        "billing": 0.9996480604951462,
+        "support": 0.0003519395048537065
+      }
+    },
+    "refund": {
+      "type": "noul",
+      "noul": 0.9995931558841646
+    },
+    "urgency": {
+      "type": "score",
+      "score": 0.865083598723151,
+      "confidence": 0.3916044276276819,
+      "legend": {
+        "0": "Routine request",
+        "1": "Needs attention today",
+        "2": "Immediate emergency"
+      },
+      "probabilities": {
+        "0": 0.27025672476253054,
+        "1": 0.594402951751788,
+        "2": 0.13534032348568148
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 227,
+    "output_tokens": 3
+  }
+}
