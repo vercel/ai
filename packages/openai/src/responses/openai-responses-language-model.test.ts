@@ -5551,7 +5551,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
-    describe('mcp tool', () => {
+    describe('mcp tunnel tool', () => {
       it('should send a tunnel target without legacy target fields', async () => {
         prepareJsonFixtureResponse('openai-mcp-tool.1');
         const options = {
@@ -5581,7 +5581,9 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         ]);
       });
+    });
 
+    describe('mcp tool', () => {
       let result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
