@@ -1384,6 +1384,10 @@ The `voice` argument accepts one of Gemini's [30 prebuilt voices](https://ai.goo
 (e.g. `Kore`, `Puck`, `Zephyr`); it defaults to `Kore`. Multi-speaker dialogue is available via
 `providerOptions.googleVertex.multiSpeakerVoiceConfig`.
 
+Set `language` to a supported BCP-47 code such as `en-US` to send
+`speechConfig.languageCode` for single- or multi-speaker Gemini speech. Omit it or
+use `language: 'auto'` for automatic detection.
+
 By default the audio is returned as a playable WAV (Gemini returns raw PCM, which the provider
 wraps). Set `outputFormat: 'pcm'` for the raw signed 16-bit little-endian mono bytes; the sample
 rate is reported in `result.providerMetadata.google.sampleRate`.
