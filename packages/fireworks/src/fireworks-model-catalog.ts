@@ -452,6 +452,7 @@ export function getFireworksEmbeddingModelEntry(modelId: string) {
         ? {
             embedding: {
               defaultDimensions: 768,
+              ...{ maxTokens: 8192 },
               customDimensions: 'unknown' as const,
             },
           }
@@ -476,3 +477,21 @@ export const fireworksModelCatalog = Object.fromEntries([
     id => [id, getFireworksEmbeddingModelEntry(id)] as const,
   ),
 ]);
+
+Object.assign(
+  fireworksModelCatalog,
+  Object.fromEntries(
+    Object.keys(documentedLanguageCapabilities).map(id => [
+      id,
+      getFireworksLanguageModelEntry(id),
+    ]),
+  ),
+);
+
+export const fireworksStabilityModelCatalog = Object.fromEntries(
+  [
+    'accounts/stability/models/sd3-turbo',
+    'accounts/stability/models/sd3-medium',
+    'accounts/stability/models/sd3',
+  ].map(id => [id, getFireworksImageModelEntry(id)]),
+);
