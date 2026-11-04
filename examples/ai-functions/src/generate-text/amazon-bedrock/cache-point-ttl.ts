@@ -7,7 +7,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 run(async () => {
   const result = await generateText({
-    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
     maxOutputTokens: 512,
     messages: [
       {
@@ -27,6 +27,9 @@ run(async () => {
   console.log(result.text);
   console.log();
   console.log('Token usage:', result.usage);
-  console.log('Cache token usage:', result.providerMetadata?.bedrock?.usage);
+  console.log(
+    'Cache token usage:',
+    result.finalStep.providerMetadata?.bedrock?.usage,
+  );
   console.log('Finish reason:', result.finishReason);
 });

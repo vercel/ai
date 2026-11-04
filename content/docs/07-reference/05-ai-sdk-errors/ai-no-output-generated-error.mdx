@@ -7,6 +7,11 @@ description: Learn how to fix AI_NoOutputGeneratedError
 
 This error is thrown when no LLM output was generated, e.g. because of errors.
 
+For `generateText`, accessing `result.output` throws this error when the result
+does not contain an output. This can happen when the final step does not finish
+with a `stop` reason, for example when it finishes with `tool-calls`. The
+`output` property is a getter, so destructuring it also triggers this access.
+
 ## Properties
 
 - `message`: The error message (optional, defaults to `'No output generated.'`)

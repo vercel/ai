@@ -1,16 +1,14 @@
 # AI SDK - ElevenLabs Provider
 
 The **[ElevenLabs provider](https://ai-sdk.dev/providers/ai-sdk-providers/elevenlabs)** for the [AI SDK](https://ai-sdk.dev/docs)
-contains language model support for the ElevenLabs chat and completion APIs and embedding model support for the ElevenLabs embeddings API.
+contains speech generation plus batch and realtime transcription support for the ElevenLabs APIs.
 
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access ElevenLabs (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
 ## Setup
 
-The ElevenLabs provider is available in the `@ai-sdk/elevenlabs` module. You can install it with
-
 ```bash
-npm i @ai-sdk/elevenlabs
+npm i ai @ai-sdk/elevenlabs
 ```
 
 ## Skill for Coding Agents
@@ -21,19 +19,11 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `elevenlabs` from `@ai-sdk/elevenlabs`:
+## Usage
 
 ```ts
 import { elevenlabs } from '@ai-sdk/elevenlabs';
-```
-
-## Example
-
-```ts
-import { elevenlabs } from '@ai-sdk/elevenlabs';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 
 const { text } = await transcribe({
   model: elevenlabs.transcription('scribe_v1'),
@@ -43,6 +33,4 @@ const { text } = await transcribe({
 });
 ```
 
-## Documentation
-
-Please check out the **[ElevenLabs provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/elevenlabs)** for more information.
+See the [ElevenLabs Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/elevenlabs) for more information.

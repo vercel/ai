@@ -1,0 +1,78 @@
+import {
+  HarnessCapabilityUnsupportedError,
+  type HarnessV1NetworkSandboxSession,
+  type HarnessV1PortEndpoint,
+} from '@ai-sdk/harness';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import { randomUUID } from 'node:crypto';
+import type { Sandbox } from 'just-bash';
+import { JustBashSandboxSession } from './just-bash-sandbox-session';
+
+const JUST_BASH_PROVIDER_ID = 'just-bash-sandbox';
+
+/**
+ * `HarnessV1NetworkSandboxSession` backed by a `just-bash` `Sandbox`. It extends
+ * {@link JustBashSandboxSession} with the infra surface. Exposes no ports —
+ * there is no network namespace and no way to publish an HTTP endpoint
+ * reachable from outside the host process. Bridge-backed harness adapters that
+ * need `getPortEndpoint` will fail with `HarnessCapabilityUnsupportedError` at
+ * start.
+ *
+ * Network policy is not implementable locally either — `setNetworkPolicy` is
+ * omitted.
+ */
+export class JustBashNetworkSandboxSession
+  extends JustBashSandboxSession
+  implements HarnessV1NetworkSandboxSession
+{
+  /**
+   * Caller-supplied label or a UUID minted at construct time. just-bash has
+   * no native identifier and cannot reattach across processes.
+   */
+  readonly id: string;
+  readonly defaultWorkingDirectory: string;
+
+  constructor(input: { sandbox: Sandbox; sandboxId?: string }) {
+    super(input.sandbox);
+    this.id = input.sandboxId ?? randomUUID();
+    this.defaultWorkingDirectory = input.sandbox.bashEnvInstance.getCwd();
+  }
+
+  readonly ports: ReadonlyArray<number> = [];
+
+  restricted(): SandboxSession {
+    return new JustBashSandboxSession(this.sandbox);
+  }
+
+  getPortEndpoint = async (_options: {
+    port: number;
+    protocol?: 'http' | 'https' | 'ws';
+  }): Promise<HarnessV1PortEndpoint> => {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: JUST_BASH_PROVIDER_ID,
+      message:
+        'just-bash sandboxes run in-process and cannot expose a port URL. ' +
+        'Use a hosted sandbox (e.g. @ai-sdk/sandbox-vercel) for bridge-backed harness adapters.',
+    });
+  };
+
+  /**
+   * @deprecated Use `getPortEndpoint` instead.
+   */
+  getPortUrl = async (options: {
+    port: number;
+    protocol?: 'http' | 'https' | 'ws';
+  }): Promise<string> => {
+    return (await this.getPortEndpoint(options)).url;
+  };
+
+  stop = async (): Promise<void> => {
+    // just-bash has no explicit shutdown; the sandbox is garbage-collected
+    // along with its in-memory filesystem once references drop.
+    await this.sandbox.stop();
+  };
+
+  destroy = async (): Promise<void> => {
+    await this.stop();
+  };
+}

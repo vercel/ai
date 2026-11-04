@@ -1,5 +1,9 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import {
+  pipeUIMessageStreamToResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(
@@ -9,11 +13,14 @@ export default async function handler(
   const { messages } = await request.body;
 
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     messages,
   });
 
   // write the data stream to the response
   // Note: this is sent as a single response, not a stream
-  result.pipeUIMessageStreamToResponse(response);
+  pipeUIMessageStreamToResponse({
+    response,
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }

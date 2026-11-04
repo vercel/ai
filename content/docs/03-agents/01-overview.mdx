@@ -91,6 +91,37 @@ The ToolLoopAgent is the recommended approach for building agents with the AI SD
 
 For most use cases, start with the ToolLoopAgent. Use core functions (`generateText`, `streamText`) when you need explicit control over each step for complex structured workflows.
 
+## HarnessAgent Class
+
+Use `HarnessAgent` when you want to run a preconfigured established harness,
+such as Claude Code, Codex, or Pi, instead of building the loop yourself around
+a language model. Harnesses are a separate abstraction from providers and
+models, but stream into AI SDK-compatible result and UI primitives.
+
+Learn more in [Harnesses](/docs/ai-sdk-harnesses) and
+[HarnessAgent](/docs/ai-sdk-harnesses/harness-agent).
+
+The rest of this section focuses on `ToolLoopAgent`, which is the AI SDK agent
+class for building your own model-and-tools loop.
+
+## Terminal UI
+
+Use `@ai-sdk/tui` to run a `ToolLoopAgent` in an interactive terminal UI. It is
+useful for local agent development, demos, and internal tools where you want
+prompt input, streamed responses, tool cards, reasoning sections, scrolling, and
+tool approval prompts without building a custom interface.
+
+```ts
+import { runAgentTUI } from '@ai-sdk/tui';
+
+await runAgentTUI({
+  title: 'Weather Agent',
+  agent: weatherAgent,
+});
+```
+
+Learn more in [Terminal UI](/docs/agents/terminal-ui).
+
 ## Structured Workflows
 
 Agents are flexible and powerful, but non-deterministic. When you need reliable, repeatable outcomes with explicit control flow, use core functions with structured workflow patterns combining:
@@ -102,9 +133,17 @@ Agents are flexible and powerful, but non-deterministic. When you need reliable,
 
 [Explore workflow patterns](/docs/agents/workflows) to learn more about building structured, reliable systems.
 
+## Agent Frameworks
+
+The agent classes in this section are primitives you assemble inside your own application. When you want a production framework for durable, long-running agents — with channels, schedules, approvals, and testing included — [eve](https://eve.dev) is an open-source framework built on the AI SDK. It uses the same `tool()` shape and model settings, and runs agents durably on Vercel or self-hosted.
+
+Learn more in [eve](/docs/agents/eve).
+
 ## Next Steps
 
 - **[Building Agents](/docs/agents/building-agents)** - Guide to creating agents with the ToolLoopAgent
 - **[Runtime and Tool Context](/docs/ai-sdk-core/runtime-and-tool-context)** - How to pass shared agent state and per-tool context
 - **[Workflow Patterns](/docs/agents/workflows)** - Structured patterns using core functions for complex workflows
 - **[Loop Control](/docs/agents/loop-control)** - Execution control with stopWhen and prepareStep
+- **[Chat Platforms](/docs/agents/chat-platforms)** - Run agents in Slack, Microsoft Teams, Discord, and more with Chat SDK
+- **[eve](/docs/agents/eve)** - Build production agents for durable, long-running work

@@ -1,5 +1,6 @@
 import type { SharedV4ProviderOptions } from '../../shared';
 import type { VideoModelV4File } from './video-model-v4-file';
+import type { VideoModelV4FrameImage } from './video-model-v4-frame-image';
 
 export type VideoModelV4CallOptions = {
   /**
@@ -15,11 +16,12 @@ export type VideoModelV4CallOptions = {
 
   /**
    * Aspect ratio of the videos to generate.
-   * Must have the format `{width}:{height}`.
+   * Must have the format `{width}:{height}`, or `'adaptive'` to inherit the
+   * ratio from the input media.
    * `undefined` will use the provider's default aspect ratio.
    * Common values: '16:9', '9:16', '1:1', '21:9', '4:3'
    */
-  aspectRatio: `${number}:${number}` | undefined;
+  aspectRatio: `${number}:${number}` | 'adaptive' | undefined;
 
   /**
    * Resolution of the video to generate.
@@ -53,6 +55,27 @@ export type VideoModelV4CallOptions = {
    * The image serves as the starting frame that the model will animate.
    */
   image: VideoModelV4File | undefined;
+
+  /**
+   * Role-tagged image inputs for first-last-frame generation.
+   * Each entry declares whether it is the `first_frame` or the
+   * `last_frame` of the generated video.
+   */
+  frameImages: Array<VideoModelV4FrameImage> | undefined;
+
+  /**
+   * Reference inputs for reference-to-video generation.
+   *
+   * Each entry is an image or video file. Providers route each reference by
+   * its media type (image vs. video) and warn when a reference kind is
+   * unsupported.
+   */
+  inputReferences: Array<VideoModelV4File> | undefined;
+
+  /**
+   * Whether the model should generate audio alongside the video.
+   */
+  generateAudio: boolean | undefined;
 
   /**
    * Additional provider-specific options that are passed through to the provider

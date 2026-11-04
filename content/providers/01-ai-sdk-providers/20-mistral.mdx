@@ -1,31 +1,67 @@
 ---
 title: Mistral AI
-description: Learn how to use Mistral.
+description: Learn how to use Mistral AI with AI Gateway and the direct provider.
 ---
 
 # Mistral AI Provider
 
-The [Mistral AI](https://mistral.ai/) provider contains language model support for the Mistral chat API.
+The [Mistral AI](https://mistral.ai/) provider supports language models,
+embeddings, speech, transcription, and realtime voice agents.
+You can use Mistral AI language models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/mistral`.
 
-## Setup
+<Note>
+  Realtime voice agents require the direct `@ai-sdk/mistral` provider and are
+  not available through AI Gateway.
+</Note>
 
-The Mistral provider is available in the `@ai-sdk/mistral` module. You can install it with
+```ts provider="mistral" model="mistral/mistral-medium-3.5"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/mistral" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/mistral" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/mistral" dark />
-  </Tab>
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 
-  <Tab>
-    <Snippet text="bun add @ai-sdk/mistral" dark />
-  </Tab>
-</Tabs>
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/mistral`
+
+For direct access to Mistral AI, install `ai` and `@ai-sdk/mistral`:
+
+<InstallPackages packages="ai @ai-sdk/mistral" />
+
+Set your Mistral AI API credential in the `MISTRAL_API_KEY` environment variable:
+
+```bash
+export MISTRAL_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/mistral`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/mistral` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -53,7 +89,11 @@ You can use the following optional settings to customize the Mistral provider in
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://api.mistral.ai/v1`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
 
   API key that is being sent using the `Authorization` header.
   It defaults to the `MISTRAL_API_KEY` environment variable.
@@ -68,6 +108,11 @@ You can use the following optional settings to customize the Mistral provider in
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+
+- **webSocket** _WebSocketConstructor_
+
+  Custom WebSocket implementation for realtime transcription. Use a header-capable
+  implementation such as `ws` to send the required Authorization header.
 
 ## Language Models
 
@@ -131,6 +176,43 @@ The following optional provider options are available for Mistral models:
 
   Defaults to `true`.
 
+- **promptCacheKey** _string_
+
+  A stable identifier used to improve cache affinity for requests that share a prompt prefix.
+
+### Prompt Cache Affinity
+
+[Mistral prompt caching](https://docs.mistral.ai/studio/conversations/advanced/prompt-caching)
+reuses shared prompt prefixes. Set `promptCacheKey` to a stable workflow,
+session, or conversation identifier to improve cache affinity. The provider
+sends it as Mistral's `prompt_cache_key` request field:
+
+```ts
+import { mistral, type MistralLanguageModelChatOptions } from '@ai-sdk/mistral';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: mistral('mistral-medium-3.5'),
+  system: 'Classify each support request as account, billing, or technical.',
+  prompt: 'The dashboard shows an error when I open an invoice.',
+  providerOptions: {
+    mistral: {
+      promptCacheKey: 'support-classification-workflow-v1',
+    } satisfies MistralLanguageModelChatOptions,
+  },
+});
+
+console.log(result.usage.inputTokenDetails.cacheReadTokens);
+```
+
+Use the same key for requests with the same stable prefix. Multi-step
+`generateText` and `streamText` calls reuse their provider options for every
+step, so a single key applies across the complete tool loop. Prompt cache
+affinity is best-effort and does not guarantee a cache hit.
+
+Treat cache keys as opaque identifiers. Do not include API keys, secrets, email
+addresses, or other sensitive personal data.
+
 ### Document OCR
 
 Mistral chat models support document OCR for PDF files.
@@ -174,8 +256,8 @@ const result = await generateText({
 
 Mistral offers reasoning models that provide step-by-step thinking capabilities:
 
-- **magistral-small-2507**: Smaller reasoning model for efficient step-by-step thinking
-- **magistral-medium-2507**: More powerful reasoning model balancing performance and cost
+- **magistral-small-latest**: Smaller reasoning model for efficient step-by-step thinking
+- **magistral-medium-latest**: More powerful reasoning model balancing performance and cost
 
 These models return structured reasoning content that the AI SDK extracts automatically. The reasoning is available via the `reasoningText` property in the result:
 
@@ -184,7 +266,7 @@ import { mistral } from '@ai-sdk/mistral';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: mistral('magistral-small-2507'),
+  model: mistral('magistral-small-latest'),
   prompt: 'What is 15 * 24?',
 });
 
@@ -216,7 +298,9 @@ console.log('REASONING:', result.reasoningText);
 console.log('ANSWER:', result.text);
 ```
 
-So far, Mistral only supports `'high'` and `'none'` as effort levels.
+Most Mistral reasoning models support `'high'` and `'none'` as effort levels.
+On the Chat API, `mistral-large-4` and `mistral-large-4-0` support `'low'`, `'medium'`, and `'high'` and cannot disable reasoning. For these models, `reasoning: 'none'` maps to `'low'` with a compatibility warning; `reasoning: 'medium'` is preserved. You can also set `providerOptions.mistral.reasoningEffort: 'medium'` directly.
+GLM-5.3 models (`zai-glm-5-3`, `zai-glm-5-3-flash`, `zai-glm-5`, `zai-glm-latest`) support `'low'`, `'high'`, and `'max'` and cannot disable reasoning.
 
 ### Example
 
@@ -296,33 +380,579 @@ const result = await generateText({
   the standard structured-output APIs.
 </Note>
 
+### Conversations API
+
+Use `mistral.conversation(modelId)` to create a model that calls Mistral's
+Conversations API (`/v1/conversations`). It supports `generateText` and
+`streamText`, including Mistral's built-in web search tools.
+
+#### Web Search
+
+The provider offers two tools:
+
+- `mistral.tools.webSearch()`: searches the web.
+- `mistral.tools.webSearchPremium()`: searches the web and accesses news articles
+  through Mistral's integrated news providers.
+
+Mistral executes these tools on the server. No `execute` function is needed.
+Search calls and results are available in `result.toolCalls` and
+`result.toolResults`, and URL citations are available in `result.sources`.
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: mistral.conversation('mistral-medium-latest'),
+  tools: {
+    web_search: mistral.tools.webSearch(),
+  },
+  prompt:
+    "Use web search to find Mistral AI's official website. Cite your source.",
+});
+
+console.log(result.text);
+console.log(result.sources);
+```
+
+Replace `mistral.tools.webSearch()` with `mistral.tools.webSearchPremium()` to use
+premium search.
+
+<Note>
+  Web search requires `mistral.conversation()`. The default `mistral()` factory
+  and `mistral.chat()` use the Chat Completions API, which does not support
+  these tools. See [Mistral's web search
+  documentation](https://docs.mistral.ai/studio/agents/agent-tools/websearch).
+</Note>
+
+You can also stream the answer and access citations after the stream completes:
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: mistral.conversation('mistral-medium-latest'),
+  tools: {
+    web_search: mistral.tools.webSearch(),
+  },
+  prompt:
+    "Use web search to find Mistral AI's official website. Cite your source.",
+});
+
+for await (const text of result.textStream) {
+  process.stdout.write(text);
+}
+
+console.log(await result.sources);
+```
+
+#### Multi-Turn Conversations
+
+Pass the previous user messages and `responseMessages` into the next call.
+Keep the complete response history, including search calls and results, so
+follow-up questions can use the retrieved information. The model does not
+retain conversation history between calls.
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { generateText, type ModelMessage } from 'ai';
+
+const model = mistral.conversation('mistral-medium-latest');
+const tools = { web_search: mistral.tools.webSearch() };
+const messages: ModelMessage[] = [
+  {
+    role: 'user',
+    content: "Use web search to find Mistral AI's official website.",
+  },
+];
+
+const first = await generateText({ model, tools, messages });
+messages.push(...first.responseMessages);
+messages.push({
+  role: 'user',
+  content:
+    'Where is that company headquartered? Use web search and cite your source.',
+});
+
+const second = await generateText({ model, tools, messages });
+console.log(second.text);
+console.log(second.sources);
+```
+
+For `streamText`, consume the stream before appending
+`await result.responseMessages` to your message history.
+
 ### Model Capabilities
 
-| Model                   | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ----------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `pixtral-large-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistral-large-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistral-medium-latest` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistral-medium-2508`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistral-medium-2505`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `mistral-small-latest`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `magistral-small-2507`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `magistral-medium-2507` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `magistral-small-2506`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `magistral-medium-2506` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `ministral-3b-latest`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `ministral-8b-latest`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `pixtral-12b-2409`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `open-mistral-7b`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `open-mixtral-8x7b`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `open-mixtral-8x22b`    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+{/* model-capabilities:mistral-language:start */}
+
+| Model                     | Image Input | Tool Usage |
+| ------------------------- | ----------- | ---------- |
+| `labs-leanstral-1-5`      | <Check />   | <Check />  |
+| `magistral-medium-latest` | <Check />   | <Check />  |
+| `magistral-small-latest`  | <Check />   | <Check />  |
+| `ministral-14b-latest`    | <Check />   | <Check />  |
+| `ministral-8b-latest`     | <Check />   | <Check />  |
+| `mistral-large-latest`    | <Check />   | <Check />  |
+| `mistral-medium-latest`   | <Check />   | <Check />  |
+| `mistral-small-latest`    | <Check />   | <Check />  |
+| `voxtral-small-latest`    | <Cross />   | <Check />  |
+| `zai-glm-5-2`             | <Cross />   | <Check />  |
+
+{/* model-capabilities:mistral-language:end */}
 
 <Note>
   The table above lists popular models. Please see the [Mistral
-  docs](https://docs.mistral.ai/getting-started/models/models_overview/) for a
-  full list of available models. The table above lists popular models. You can
-  also pass any available provider model ID as a string if needed.
+  docs](https://docs.mistral.ai/models) for a full list of available models. You
+  can also pass any available provider model ID as a string if needed.
 </Note>
+
+## Transcription Models
+
+You can create models that call the
+[Mistral audio transcription API](https://docs.mistral.ai/api/endpoint/audio/transcriptions)
+using the `.transcription()` factory method:
+
+```ts
+const model = mistral.transcription('voxtral-mini-transcribe-3-0');
+```
+
+Use Mistral transcription models with [`transcribe`](/docs/reference/ai-sdk-core/transcribe):
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: mistral.transcription('voxtral-mini-transcribe-3-0'),
+  audio: await readFile('audio.mp3'),
+});
+```
+
+Mistral transcription models support additional provider options. Pass them
+through `providerOptions.mistral` and use
+`MistralTranscriptionModelOptions` for type checking:
+
+```ts highlight="9-13"
+import {
+  mistral,
+  type MistralTranscriptionModelOptions,
+} from '@ai-sdk/mistral';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: mistral.transcription('voxtral-mini-transcribe-3-0'),
+  audio: await readFile('audio.mp3'),
+  providerOptions: {
+    mistral: {
+      timestampGranularities: ['segment'],
+      diarize: true,
+      returnLanguage: true,
+      contextBias: ['Vercel', 'AI SDK', 'A discussion about TypeScript.'],
+    } satisfies MistralTranscriptionModelOptions,
+  },
+});
+```
+
+The following optional provider options are available:
+
+- **language** _string_
+
+  The language of the audio, such as `en`. Providing it can improve accuracy.
+
+- **returnLanguage** _boolean_
+
+  Return the detected language with Voxtral 3. Without this option, the response
+  language is normally absent. Cannot be `true` when `language` is provided.
+
+- **temperature** _number_
+
+  The sampling temperature for the transcription.
+
+- **timestampGranularities** _Array&lt;'segment' | 'word'&gt;_
+
+  Timestamp granularities to include in the response. Voxtral 3 supports only
+  `segment` and allows it to be combined with `language`. The SDK rejects this
+  combination for the legacy IDs `voxtral-mini-2507`, `voxtral-mini-2602`, and
+  `voxtral-mini-latest`, throwing an `InvalidArgumentError`. Other model IDs are
+  allowed to send the combination to Mistral. Model-specific timestamp and
+  diarization requirements are validated by the Mistral API.
+
+- **diarize** _boolean_
+
+  Whether to identify speakers in the transcription. Voxtral 3 requires
+  `timestampGranularities: ['segment']` for offline transcription when this option is `true`.
+
+- **contextBias** _string[]_
+
+  Words, phrases, or descriptions of the recording that guide spelling for
+  names, technical terms, or domain-specific vocabulary. Voxtral 3 accepts spaces
+  and punctuation and has no fixed entry limit; entries share the context window
+  with the audio. Earlier models require entries without commas or whitespace
+  and support up to 100 entries.
+
+The normalized result includes transcript text, language, timed segments, and
+duration when returned by Mistral. Mistral token and prompt-audio usage is
+available under `result.providerMetadata.mistral.usage`. Segment scores and
+speaker IDs from diarization are available under
+`result.providerMetadata.mistral.segments`.
+
+### Realtime Transcription
+
+Use [`experimental_streamTranscribe`](/docs/reference/ai-sdk-core/stream-transcribe)
+with `voxtral-mini-transcribe-realtime-3` or `voxtral-mini-transcribe-realtime-3-0`.
+The realtime model uses a WebSocket connection instead of the file upload endpoint.
+
+```ts
+import {
+  createMistral,
+  type MistralProviderSettings,
+  type MistralTranscriptionModelOptions,
+} from '@ai-sdk/mistral';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+import { WebSocket } from 'ws';
+
+const mistral = createMistral({
+  webSocket: WebSocket as unknown as MistralProviderSettings['webSocket'],
+});
+
+const result = streamTranscribe({
+  model: mistral.transcription('voxtral-mini-transcribe-realtime-3'),
+  audio, // ReadableStream<Uint8Array | string> from your audio source
+  inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+  providerOptions: {
+    mistral: {
+      language: 'en',
+      contextBias: ['Vercel', 'AI SDK'],
+      targetStreamingDelayMs: 480,
+    } satisfies MistralTranscriptionModelOptions,
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-delta') process.stdout.write(part.delta);
+  if (part.type === 'error') throw part.error;
+}
+
+console.log(await result.text);
+```
+
+Audio chunks must contain raw mono, signed 16-bit little-endian PCM samples,
+either as bytes or base64 strings. Do not send WAV headers or compressed audio.
+Set `inputAudioFormat.rate` to the source sample rate; it defaults to 16000 Hz.
+The provider splits large chunks, waits for session configuration before sending
+audio, and waits for the final transcript after the input stream closes. Use
+`abortSignal` to cancel a session.
+
+<Note>
+  Mistral requires an Authorization header on the WebSocket connection. Native
+  WebSocket implementations cannot send this header. On the server, pass a
+  header-capable implementation such as `ws` to `createMistral({webSocket})`.
+  Custom `fetch` does not intercept WebSocket connections. Keep the API key on
+  your server when relaying microphone audio from a browser.
+</Note>
+
+Realtime transcription accepts `language`, `contextBias`, and `diarize`, plus:
+
+- **targetStreamingDelayMs** _number_
+
+  An integer from 80 to 1200, or 2400. Lower values reduce transcription delay;
+  higher values give the model more context. Omit it to use Mistral's default.
+
+- **speakerReferences** _Record&lt;string, string&gt;_
+
+  Named, base64-encoded WAV, MP3, FLAC, or Opus reference clips. Requires
+  `diarize: true`. Mistral supports up to eight clips of 3–15 seconds each.
+  The names become speaker IDs. This provider option is supported in realtime
+  calls only.
+
+  All reference clips are sent together in one `session.update` message; the SDK
+  does not split them into chunks. When using AI Gateway, the entire serialized
+  start frame, including all provider options and base64-encoded references, must
+  fit within 256 KiB (262,144 bytes). Base64 increases file sizes by about one
+  third, leaving less than 192 KiB for the combined original reference files
+  after accounting for JSON and other options. Exceeding the frame limit can
+  close the connection. Use short, compressed reference clips and account for
+  the complete frame size; the clip count and duration limits alone do not
+  guarantee that the references fit.
+
+- **turnDetection** _object_
+
+  An empty object enables default turn detection. Optional fields are
+  `startThreshold`, `eagerEndThreshold`, and `endThreshold` (numbers from 0 to 1),
+  plus `minSilenceMs` and `endTimeoutMs` (nonnegative integer milliseconds).
+  Mistral validates threshold ordering and rejects combining turn detection
+  with diarization.
+
+`temperature`, `returnLanguage`, and `timestampGranularities` are not sent in
+realtime calls and produce unsupported-option warnings. Realtime-only options
+produce warnings when passed to `transcribe`.
+
+With `diarize: true`, incoming segments become `transcript-final` parts with
+`part.providerMetadata.mistral.speakerId`. Realtime timestamps may be absent:
+only timed segments appear in `result.segments`, while all returned segments,
+including speaker IDs, appear in `result.providerMetadata.mistral.segments`.
+Usage is available in `result.providerMetadata.mistral.usage` when returned.
+
+Set `includeRawChunks: true` to receive Mistral's `turn.start`, `turn.eager_end`,
+`turn.resume`, and `turn.end` events in `raw` parts. These are not normalized
+transcription events. **A `turn.end` event can precede trailing text deltas**;
+continue reading until the stream completes for the final transcript.
+
+See Mistral's [realtime protocol](https://docs.mistral.ai/studio/audio/speech-to-text/transcribe-in-realtime),
+[diarization](https://docs.mistral.ai/studio/audio/speech-to-text/diarize-speakers),
+and [turn detection](https://docs.mistral.ai/studio/audio/speech-to-text/turn-detection)
+documentation for the server-side constraints and event semantics.
+
+### Model Capabilities
+
+The following table covers offline models. The realtime models listed above
+support streaming transcription, diarization, context bias, and turn detection;
+realtime timestamps can be absent.
+
+{/* model-capabilities:mistral-transcription:start */}
+
+| Model                          | Timestamps | Diarization | Context Bias |
+| ------------------------------ | ---------- | ----------- | ------------ |
+| `voxtral-mini-transcribe-3-0`  | <Check />  | <Check />   | <Check />    |
+| `voxtral-small-transcribe-3-0` | <Check />  | <Check />   | <Check />    |
+| `voxtral-mini-latest`          | <Check />  | <Check />   | <Check />    |
+
+{/* model-capabilities:mistral-transcription:end */}
+
+## Speech Models
+
+You can create models that call the
+[Mistral speech API](https://docs.mistral.ai/api/endpoint/audio/speech) using
+the `.speech()` factory method:
+
+```ts
+const model = mistral.speech('voxtral-mini-tts-3-0');
+```
+
+Use a preset or saved voice ID with [`generateSpeech`](/docs/reference/ai-sdk-core/generate-speech):
+
+```ts
+import { mistral } from '@ai-sdk/mistral';
+import { generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: mistral.speech('voxtral-mini-tts-3-0'),
+  text: 'Hello from the AI SDK!',
+  voice: 'gb_jane_neutral',
+  outputFormat: 'mp3',
+});
+
+const audio = result.audio.uint8Array;
+```
+
+The Mistral speech model maps `voice` to Mistral's `voice_id`. It supports
+`mp3`, `wav`, `pcm`, `flac`, and `opus` output formats and defaults to `mp3`.
+The `instructions`, `speed`, and `language` settings are not supported and
+produce warnings when provided. Voxtral 3 style instructions are not available
+at launch. To control emotion and pace, include tags such as `[emotion=happy]`
+and `[pace=slow]` directly in `text`.
+
+Voxtral 3 supports additional delivery controls through `providerOptions.mistral`:
+
+- **expressiveness** _number_
+
+  A value from 1 to 5 controlling expressiveness. Higher values trade voice
+  similarity and stability for stronger delivery. Omit it to use the service default.
+
+- **phonemeHints** _Record&lt;string, string[]&gt;_
+
+  Map words in the input to lists of IPA phonemes. Mistral validates the supported
+  phoneme inventory. See [custom pronunciation](https://docs.mistral.ai/studio/audio/text-to-speech/custom-pronunciation).
+
+```ts
+import { mistral, type MistralSpeechModelOptions } from '@ai-sdk/mistral';
+import { generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: mistral.speech('voxtral-mini-tts-3-0'),
+  text: '[emotion=happy] I like tomato soup.',
+  voice: 'gb_jane_neutral',
+  providerOptions: {
+    mistral: {
+      expressiveness: 1.5,
+      phonemeHints: { tomato: ['t', 'ə', 'm', 'ɑ', 't', 'oʊ'] },
+    } satisfies MistralSpeechModelOptions,
+  },
+});
+```
+
+Mistral also supports one-off voice cloning with base64-encoded reference
+audio. Pass it through `providerOptions.mistral.refAudio` and use
+`MistralSpeechModelOptions` for type checking:
+
+```ts highlight="9-13"
+import { readFile } from 'node:fs/promises';
+import { mistral, type MistralSpeechModelOptions } from '@ai-sdk/mistral';
+import { generateSpeech } from 'ai';
+
+const referenceAudio = await readFile('./reference.mp3');
+
+const result = await generateSpeech({
+  model: mistral.speech('voxtral-mini-tts-3-0'),
+  text: 'Hello from the AI SDK!',
+  providerOptions: {
+    mistral: {
+      refAudio: referenceAudio.toString('base64'),
+    } satisfies MistralSpeechModelOptions,
+  },
+});
+```
+
+When `refAudio` is provided, it takes precedence over `voice`. Reference audio
+is redacted from request metadata and API call errors returned by the provider.
+
+<Note>
+  Only use reference audio with the speaker's explicit consent. Follow Mistral's
+  voice cloning usage policy and disclose AI-generated audio when required. This
+  provider integration supports non-streaming speech generation; Mistral's
+  streaming speech API is not exposed through `SpeechModelV4`.
+</Note>
+
+### Model Capabilities
+
+{/* model-capabilities:mistral-speech:start */}
+
+| Model                   | Saved Voices | Reference Audio | Non-Streaming |
+| ----------------------- | ------------ | --------------- | ------------- |
+| `voxtral-mini-tts-3-0`  | <Check />    | <Check />       | <Check />     |
+| `voxtral-mini-tts-2603` | <Check />    | <Check />       | <Check />     |
+
+{/* model-capabilities:mistral-speech:end */}
+
+## Realtime Voice Agents
+
+Realtime voice agents require the direct `@ai-sdk/mistral` provider. AI Gateway
+does not currently support Mistral voice agents.
+
+`mistral.experimental_realtime()` connects to Mistral's
+[managed voice agents](https://docs.mistral.ai/studio/audio/voice-agents/overview):
+Mistral handles transcription, response generation, speech, and interruptions.
+The provider handles the LiveKit connection internally. Your application uses the
+existing realtime hook to send microphone audio and play the response.
+
+<Note type="warning">Realtime voice agents are experimental.</Note>
+
+Install the provider, React hook, and optional `livekit-client` peer dependency
+required for browser voice connections:
+
+<InstallPackages packages="ai @ai-sdk/mistral @ai-sdk/react livekit-client" />
+
+Server-side consumers that only create and close sessions or use other Mistral
+models do not need `livekit-client`.
+
+Keep `MISTRAL_API_KEY` on your server. Create a route that starts and closes
+sessions with server-owned configuration:
+
+```ts filename="app/api/mistral-realtime/route.ts"
+import { mistral } from '@ai-sdk/mistral';
+
+export async function POST() {
+  const session = await mistral.experimental_realtime.createSession({
+    model: 'mistral-small-latest',
+    sessionConfig: {
+      instructions: 'You are a helpful voice assistant. Respond briefly.',
+      voice: 'voice_447',
+      providerOptions: {
+        mistral: {
+          stt: { model: 'voxtral-mini-transcribe-realtime-3' },
+          tts: { model: 'voxtral-mini-tts-3' },
+        },
+      },
+    },
+  });
+  return Response.json(session, {
+    headers: { 'Cache-Control': 'no-store' },
+  });
+}
+
+export async function DELETE(request: Request) {
+  const sessionId = new URL(request.url).searchParams.get('sessionId');
+  if (sessionId == null || sessionId.trim() === '') {
+    return Response.json({ error: 'sessionId is required' }, { status: 400 });
+  }
+  await mistral.experimental_realtime.closeSession({ sessionId });
+  return new Response(null, { status: 204 });
+}
+```
+
+Authenticate both routes and verify session ownership before closing a session
+in production. The browser receives session credentials, never the API key.
+
+Use `api.provider` with the same route in the browser:
+
+```tsx filename="app/mistral-realtime/page.tsx"
+'use client';
+
+import { mistral } from '@ai-sdk/mistral';
+import { experimental_useRealtime as useRealtime } from '@ai-sdk/react';
+import { useState } from 'react';
+
+const model = mistral.experimental_realtime('mistral-small-latest');
+
+export default function VoiceChat() {
+  const [error, setError] = useState('');
+  const realtime = useRealtime({
+    model,
+    api: { provider: '/api/mistral-realtime' },
+    onError: error => setError(error.message),
+  });
+
+  return (
+    <>
+      <button onClick={() => realtime.connect()}>Start conversation</button>
+      <button onClick={() => realtime.close()}>Stop</button>
+      <button onClick={() => realtime.resumePlayback()}>Enable audio</button>
+      <p>{realtime.status}</p>
+      {error && <p role="alert">{error}</p>}
+      {realtime.messages.map(message => (
+        <p key={message.id}>
+          <strong>{message.role}: </strong>
+          {message.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
+        </p>
+      ))}
+    </>
+  );
+}
+```
+
+`connect()` requests microphone permission and starts playback. Use HTTPS or
+localhost. If the browser blocks playback, call `resumePlayback()` from a user
+gesture. Await `close()` to stop the microphone, leave the room, and close the
+server-side session. Transcripts appear in `messages`; `isCapturing`, `isPlaying`,
+and `onError` expose media state and failures.
+
+Configure the session on the server with `instructions`, `voice`, and
+`providerOptions.mistral`. The latter supports `stt`, `tts`, `turn`,
+`welcomeMessage`, `agentId`, and `agentVersion`, and is typed by
+`Experimental_MistralRealtimeModelOptions`. The factory's model ID selects the
+language model; STT and TTS models are separate settings. `voice` takes precedence
+over `tts.voiceId`.
+
+This integration supports microphone conversations, transcripts, capture and
+playback controls, client tools, and session cleanup. Pass tool definitions in
+the server's `sessionConfig.tools` and handle calls with `onToolCall` or
+`addToolOutput`, as described in [Realtime tool calling](/docs/ai-sdk-core/realtime#tool-calling).
+Session updates support instructions, tools, and `providerOptions.mistral.turn`.
+
+Text messages and manual audio-buffer or response commands are unsupported.
+Audio formats are negotiated by LiveKit; omit `inputAudioFormat`,
+`outputAudioFormat`, and normalized `turnDetection`. Configure turn behavior
+through `providerOptions.mistral` instead. `getToken()` and the hook's `api.token`,
+`api.websocket`, and `api.session` paths do not connect to these managed sessions.
+
+The complete microphone-to-speaker example is at
+[`examples/ai-e2e-next/app/mistral-realtime`](https://github.com/vercel/ai/tree/main/examples/ai-e2e-next/app/mistral-realtime).
 
 ## Embedding Models
 
@@ -340,13 +970,55 @@ import { mistral } from '@ai-sdk/mistral';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: mistral.embedding('mistral-embed'),
-  value: 'sunny day at the beach',
+  model: mistral.embedding('codestral-embed-2505'),
+  value: 'function add(a: number, b: number) { return a + b; }',
 });
 ```
 
+Mistral embedding models support additional provider options through
+`providerOptions.mistral`. You can validate them with
+`MistralEmbeddingModelOptions`:
+
+```ts
+import { mistral, type MistralEmbeddingModelOptions } from '@ai-sdk/mistral';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: mistral.embedding('mistral-embed'),
+  value: 'sunny day at the beach',
+  providerOptions: {
+    mistral: {
+      metadata: { source: 'knowledge-base' },
+      outputDimension: 1024,
+      outputDtype: 'float',
+    } satisfies MistralEmbeddingModelOptions,
+  },
+});
+```
+
+The following optional provider options are available for Mistral embedding
+models:
+
+- **metadata** _Record&lt;string, unknown&gt;_
+
+  Additional metadata to attach to the embedding request.
+
+- **outputDimension** _number_
+
+  The dimension of the output embeddings when supported by the model.
+
+- **outputDtype** _string_
+
+  The data type of the output embeddings when supported by the model. Accepts
+  `'float'`, `'int8'`, `'uint8'`, `'binary'`, or `'ubinary'`.
+
 ### Model Capabilities
 
-| Model           | Default Dimensions |
-| --------------- | ------------------ |
-| `mistral-embed` | 1024               |
+{/* model-capabilities:mistral-embedding:start */}
+
+| Model             | Default Dimensions |
+| ----------------- | ------------------ |
+| `mistral-embed`   | 1024               |
+| `codestral-embed` | 1536               |
+
+{/* model-capabilities:mistral-embedding:end */}

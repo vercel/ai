@@ -12,7 +12,9 @@ import {
 import * as assert from 'node:assert';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
+  context,
   SpanStatusCode,
+  trace,
   type Attributes,
   type Span,
   type SpanOptions,
@@ -22,6 +24,8 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
+  experimental_decide,
+  experimental_evaluate,
   generateObject,
   generateText,
   isStepCount,
@@ -30,10 +34,12 @@ import {
   rerank,
   type Embedding,
   type EmbeddingModelUsage,
+  type GenerateTextEndEvent,
   type Telemetry,
 } from 'ai';
 import {
   MockEmbeddingModelV4,
+  Experimental_DecisionMockModelV4,
   MockLanguageModelV4,
   MockRerankingModelV4,
   mockValues,
@@ -163,11 +169,12 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     operationId: 'ai.generateText',
     provider: model.provider,
     modelId: model.modelId,
-    system: undefined,
+    instructions: undefined,
     messages: [{ role: 'user', content: 'Hello' }],
     tools: undefined,
     toolChoice: undefined,
     activeTools: undefined,
+    toolOrder: undefined,
     maxOutputTokens: 100,
     temperature: 0.7,
     topP: undefined,
@@ -197,11 +204,12 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     provider: model.provider,
     modelId: model.modelId,
     stepNumber: 0,
-    system: undefined,
+    instructions: undefined,
     messages: [],
     tools: undefined,
     toolChoice: undefined,
     activeTools: undefined,
+    toolOrder: undefined,
     steps: [],
     providerOptions: undefined,
     abortSignal: undefined,
@@ -242,8 +250,6 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       inputTokens: 10,
       outputTokens: 20,
       totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
       inputTokenDetails: {
         noCacheTokens: undefined,
         cacheReadTokens: undefined,
@@ -254,8 +260,18 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
         reasoningTokens: undefined,
       },
     },
+    performance: {
+      effectiveOutputTokensPerSecond: 20,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 30,
+      stepTimeMs: 1000,
+      responseTimeMs: 1000,
+      toolExecutionMs: {},
+      timeToFirstOutputMs: undefined,
+    },
     warnings: undefined,
-    request: { body: undefined },
+    request: { body: undefined, messages: [] },
     response: {
       id: 'resp-1',
       modelId: 'test-model',
@@ -269,27 +285,43 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
 }
 
 function makeFinishEvent(overrides?: Record<string, unknown>) {
-  return {
-    ...makeStepFinishEvent(),
-    steps: [],
-    totalUsage: {
-      inputTokens: 10,
-      outputTokens: 20,
-      totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
-      inputTokenDetails: {
-        noCacheTokens: undefined,
-        cacheReadTokens: undefined,
-        cacheWriteTokens: undefined,
-      },
-      outputTokenDetails: {
-        textTokens: undefined,
-        reasoningTokens: undefined,
-      },
+  const { usage, ...restOverrides } = overrides ?? {};
+  const stepOverrides = Object.fromEntries(
+    Object.entries(restOverrides).filter(([key]) =>
+      [
+        'providerMetadata',
+        'reasoning',
+        'reasoningText',
+        'request',
+        'response',
+      ].includes(key),
+    ),
+  );
+  const finalStep = makeStepFinishEvent(stepOverrides);
+  const totalUsage = (usage as GenerateTextEndEvent['usage']) ?? {
+    inputTokens: 10,
+    outputTokens: 20,
+    totalTokens: 30,
+    inputTokenDetails: {
+      noCacheTokens: undefined,
+      cacheReadTokens: undefined,
+      cacheWriteTokens: undefined,
     },
-    ...overrides,
-  } as Parameters<NonNullable<Telemetry['onFinish']>>[0];
+    outputTokenDetails: {
+      textTokens: undefined,
+      reasoningTokens: undefined,
+    },
+  };
+
+  return {
+    ...finalStep,
+    responseMessages: [],
+    steps: [finalStep],
+    finalStep,
+    usage: totalUsage,
+    totalUsage,
+    ...restOverrides,
+  } as Parameters<NonNullable<Telemetry['onEnd']>>[0];
 }
 
 function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
@@ -323,7 +355,7 @@ function makeToolCallFinishEvent(
       input: { query: 'test' },
     },
     abortSignal: undefined,
-    durationMs: 42,
+    toolExecutionMs: 42,
     ...telemetryFields(),
     messages: [],
     toolContext: {},
@@ -355,12 +387,6 @@ function makeToolCallFinishEvent(
       dynamic: false,
     },
   } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
-}
-
-function makeChunkEvent(
-  chunk: Parameters<NonNullable<Telemetry['onChunk']>>[0]['chunk'],
-) {
-  return { chunk } as Parameters<NonNullable<Telemetry['onChunk']>>[0];
 }
 
 describe('LegacyOpenTelemetry', () => {
@@ -486,6 +512,35 @@ describe('LegacyOpenTelemetry', () => {
       const attrs = getStartSpanAttributes(tracer, 1);
       expect(attrs['ai.prompt.tools']).toBeDefined();
       expect(attrs['ai.prompt.toolChoice']).toBeDefined();
+    });
+  });
+
+  describe('executeLanguageModelCall', () => {
+    it('runs the model call inside the active step span context', async () => {
+      let activeSpan: Span | undefined;
+      const contextWithSpy = vi
+        .spyOn(context, 'with')
+        .mockImplementation((nextContext, fn, thisArg, ...args) => {
+          activeSpan = trace.getSpan(nextContext) ?? undefined;
+          return fn.call(thisArg, ...args);
+        });
+
+      try {
+        otelIntegration.onStart!(makeOnStartEvent());
+        otelIntegration.onStepStart!(makeStepStartEvent());
+
+        await expect(
+          otelIntegration.executeLanguageModelCall!({
+            callId,
+            execute: async () => 'result',
+          }),
+        ).resolves.toBe('result');
+
+        const activeSpanRecord = tracer.spans.find(span => span === activeSpan);
+        expect(activeSpanRecord?.name).toBe('ai.generateText.doGenerate');
+      } finally {
+        contextWithSpy.mockRestore();
+      }
     });
   });
 
@@ -661,6 +716,18 @@ describe('LegacyOpenTelemetry', () => {
       expect(setAttrsCall['gen_ai.usage.output_tokens']).toBe(20);
     });
 
+    it('omits malformed gen_ai finish reason arrays', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+      otelIntegration.onStepFinish!(
+        makeStepFinishEvent({ finishReason: undefined }),
+      );
+
+      const stepSpan = tracer.spans[1];
+      const setAttrsCall = getSetAttributesArg(stepSpan);
+      expect('gen_ai.response.finish_reasons' in setAttrsCall).toBe(false);
+    });
+
     it('includes text in output attributes', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
@@ -773,12 +840,12 @@ describe('LegacyOpenTelemetry', () => {
     });
   });
 
-  describe('onFinish', () => {
+  describe('onEnd', () => {
     it('ends the root span', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       const rootSpan = tracer.spans[0];
       expect(rootSpan.ended).toBe(true);
@@ -788,9 +855,9 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(
+      otelIntegration.onEnd!(
         makeFinishEvent({
-          totalUsage: {
+          usage: {
             inputTokens: 50,
             outputTokens: 100,
             totalTokens: 150,
@@ -809,7 +876,7 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       const rootSpan = tracer.spans[0];
       const setAttrsCall = getSetAttributesArg(rootSpan);
@@ -820,7 +887,7 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(
+      otelIntegration.onEnd!(
         makeFinishEvent({
           files: [
             {
@@ -848,111 +915,33 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       otelIntegration.onStepStart!(makeStepStartEvent());
       expect(tracer.spans).toHaveLength(2);
     });
 
     it('does nothing without prior onStart', () => {
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       expect(tracer.spans).toHaveLength(0);
     });
   });
 
-  describe('onChunk', () => {
-    it('adds event to step span for ai.stream.firstChunk', () => {
+  describe('onStepError', () => {
+    it('records error on the step span and keeps the root span open', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
 
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFirstChunk': 42 },
-        }),
+      const error = new Error('step failed');
+      otelIntegration.onStepError!({ ...makeStepStartEvent(), error } as any);
+
+      const [rootSpan, stepSpan] = tracer.spans;
+      expect(stepSpan.recordException).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'step failed' }),
       );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).toHaveBeenCalledWith(
-        'ai.stream.firstChunk',
-        expect.objectContaining({ 'ai.stream.msToFirstChunk': 42 }),
-      );
-    });
-
-    it('adds event to step span for ai.stream.finish', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.finish',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFinish': 500 },
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).toHaveBeenCalledWith(
-        'ai.stream.finish',
-        expect.objectContaining({ 'ai.stream.msToFinish': 500 }),
-      );
-    });
-
-    it('sets attributes on step span when chunk has attributes', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFirstChunk': 42 },
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.setAttributes).toHaveBeenCalledWith(
-        expect.objectContaining({ 'ai.stream.msToFirstChunk': 42 }),
-      );
-    });
-
-    it('ignores chunks without callId in the chunk body', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'text-delta',
-          id: 'td-1',
-          text: 'hello',
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).not.toHaveBeenCalled();
-    });
-
-    it('does not set attributes when chunk attributes are empty', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: {},
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).toHaveBeenCalled();
-      expect(stepSpan.setAttributes).not.toHaveBeenCalled();
+      expect(stepSpan.end).toHaveBeenCalled();
+      expect(rootSpan.end).not.toHaveBeenCalled();
     });
   });
 
@@ -1034,6 +1023,82 @@ describe('LegacyOpenTelemetry', () => {
     });
   });
 
+  describe('onAbort', () => {
+    it('closes streamText spans when AbortController aborts the stream', async () => {
+      const abortController = new AbortController();
+      let pullCalls = 0;
+
+      const result = streamText({
+        abortSignal: abortController.signal,
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                switch (pullCalls++) {
+                  case 0:
+                    controller.enqueue({
+                      type: 'stream-start',
+                      warnings: [],
+                    });
+                    break;
+                  case 1:
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: '1',
+                    });
+                    break;
+                  case 2:
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                    break;
+                  case 3:
+                    abortController.abort();
+                    controller.error(
+                      new DOMException(
+                        'The user aborted a request.',
+                        'AbortError',
+                      ),
+                    );
+                    break;
+                }
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        telemetry: {
+          integrations: otelIntegration,
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(
+        tracer.spans.map(span => ({
+          name: span.name,
+          ended: span.ended,
+          status: span.status,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "name": "ai.streamText",
+            "status": undefined,
+          },
+          {
+            "ended": true,
+            "name": "ai.streamText.doStream",
+            "status": undefined,
+          },
+        ]
+      `);
+    });
+  });
+
   describe('telemetry disabled / recordInputs / recordOutputs', () => {
     it('does not record input attributes when recordInputs is false', () => {
       otelIntegration.onStart!(makeOnStartEvent({ recordInputs: false }));
@@ -1095,7 +1160,7 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
       otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       expect(tracer.spans).toHaveLength(3);
       expect(tracer.spans[0].name).toBe('ai.generateText');
@@ -1118,7 +1183,7 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       expect(tracer.spans).toHaveLength(4);
       expect(tracer.spans[0].name).toBe('ai.generateText');
@@ -1146,7 +1211,7 @@ describe('LegacyOpenTelemetry', () => {
       expect(tracer.spans).toHaveLength(4);
 
       otelIntegration.onStepFinish!(makeStepFinishEvent({ callId: callId1 }));
-      otelIntegration.onFinish!(makeFinishEvent({ callId: callId1 }));
+      otelIntegration.onEnd!(makeFinishEvent({ callId: callId1 }));
 
       expect(tracer.spans[0].ended).toBe(true);
       expect(tracer.spans[2].ended).toBe(true);
@@ -1155,7 +1220,7 @@ describe('LegacyOpenTelemetry', () => {
       expect(tracer.spans[3].ended).toBe(false);
 
       otelIntegration.onStepFinish!(makeStepFinishEvent({ callId: callId2 }));
-      otelIntegration.onFinish!(makeFinishEvent({ callId: callId2 }));
+      otelIntegration.onEnd!(makeFinishEvent({ callId: callId2 }));
 
       for (const span of tracer.spans) {
         expect(span.ended).toBe(true);
@@ -1167,27 +1232,21 @@ describe('LegacyOpenTelemetry', () => {
         makeOnStartEvent({ operationId: 'ai.streamText' }),
       );
       otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFirstChunk': 10 },
+      otelIntegration.onStepFinish!(
+        makeStepFinishEvent({
+          performance: {
+            effectiveOutputTokensPerSecond: 20,
+            outputTokensPerSecond: 20.2020202020202,
+            inputTokensPerSecond: 1000,
+            effectiveTotalTokensPerSecond: 30,
+            stepTimeMs: 1000,
+            responseTimeMs: 1000,
+            toolExecutionMs: {},
+            timeToFirstOutputMs: 10,
+          },
         }),
       );
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.finish',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFinish': 200 },
-        }),
-      );
-
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+      otelIntegration.onEnd!(makeFinishEvent());
 
       expect(tracer.spans).toHaveLength(2);
       expect(tracer.spans[0].name).toBe('ai.streamText');
@@ -1346,6 +1405,10 @@ describe('LegacyOpenTelemetry integration with generateText', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
+        includeRuntimeContext: {
+          test1: true,
+          test2: true,
+        },
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
     });
@@ -1465,6 +1528,52 @@ describe('LegacyOpenTelemetry integration with generateText', () => {
         },
       ]
     `);
+  });
+
+  it('should include configured runtime context on tool call spans', async () => {
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...integrationDummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+          ],
+        }),
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'result1',
+        },
+      },
+      prompt: 'test-input',
+      runtimeContext: {
+        requestId: 'request-123',
+        privateValue: 'excluded',
+      },
+      telemetry: {
+        isEnabled: true,
+        includeRuntimeContext: {
+          requestId: true,
+        },
+        integrations: new LegacyOpenTelemetry({ tracer }),
+      },
+    });
+
+    const toolCallSpan = tracer.spans.find(span => span.name === 'ai.toolCall');
+
+    expect(toolCallSpan?.attributes).toMatchObject({
+      'ai.settings.context.requestId': 'request-123',
+    });
+    expect(
+      toolCallSpan?.attributes['ai.settings.context.privateValue'],
+    ).toBeUndefined();
   });
 
   it('should record error on tool call', async () => {
@@ -1808,6 +1917,32 @@ function createStreamTestModel({
   });
 }
 
+function mockTokenStreamTextTelemetryNow() {
+  return mockValues(0, 0, 100, 500, 500);
+}
+
+function mockToolOnlyStreamTextTelemetryNow() {
+  return mockValues(0, 0, 500, 500);
+}
+
+function mockTwoStepStreamTextTelemetryNow() {
+  return mockValues(
+    0,
+    0,
+    100,
+    500,
+    500,
+    600,
+    600,
+    1000,
+    1000,
+    1000,
+    1400,
+    1400,
+    1400,
+  );
+}
+
 describe('LegacyOpenTelemetry integration with streamText', () => {
   let tracer: IntegrationMockTracer;
 
@@ -1823,7 +1958,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
       _internal: {
-        now: mockValues(0, 100, 500),
+        now: mockTokenStreamTextTelemetryNow(),
       },
     });
 
@@ -1853,9 +1988,13 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
+        includeRuntimeContext: {
+          test1: true,
+          test2: true,
+        },
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockTokenStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -1897,7 +2036,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         isEnabled: true,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockToolOnlyStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -1941,7 +2080,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         isEnabled: true,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockToolOnlyStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -2007,7 +2146,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         recordOutputs: false,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockToolOnlyStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -2052,7 +2191,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         isEnabled: true,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockTokenStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
@@ -2134,7 +2273,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
                 functionId: `sub-agent-${city.toLowerCase()}`,
                 integrations: otelIntegration,
               },
-              _internal: { now: mockValues(0, 100, 500) },
+              _internal: { now: mockTokenStreamTextTelemetryNow() },
               onError: () => {},
             });
 
@@ -2161,7 +2300,7 @@ describe('LegacyOpenTelemetry integration with streamText', () => {
         ],
       },
       _internal: {
-        now: mockValues(0, 100, 500),
+        now: mockToolOnlyStreamTextTelemetryNow(),
         generateId: mockId({ prefix: 'id' }),
         generateCallId: () => 'outer-test-call-id',
       },
@@ -2397,6 +2536,204 @@ describe('LegacyOpenTelemetry integration with rerank', () => {
   });
 });
 
+describe('LegacyOpenTelemetry integration with decide', () => {
+  it.each(['deprecated', 'current'] as const)(
+    'honors %s subclass hooks with and without super calls',
+    async hooks => {
+      for (const callSuper of [false, true]) {
+        const calls: Array<[string, string]> = [];
+        const tracer = createMockTracer();
+        class DeprecatedHooksIntegration extends LegacyOpenTelemetry {
+          override experimental_onEvaluateStart(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onEvaluateStart']
+            >[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateStart(event);
+          }
+          override experimental_onEvaluationModelCallStart(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onEvaluationModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallStart(event);
+          }
+          override experimental_onEvaluationModelCallEnd(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onEvaluationModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallEnd(event);
+          }
+          override experimental_onEvaluateEnd(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onEvaluateEnd']
+            >[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateEnd(event);
+          }
+        }
+        class CurrentHooksIntegration extends LegacyOpenTelemetry {
+          override experimental_onDecideStart(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onDecideStart']
+            >[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onDecideStart(event);
+          }
+          override experimental_onDecisionModelCallStart(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onDecisionModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallStart(event);
+          }
+          override experimental_onDecisionModelCallEnd(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onDecisionModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallEnd(event);
+          }
+          override experimental_onDecideEnd(
+            event: Parameters<
+              LegacyOpenTelemetry['experimental_onDecideEnd']
+            >[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onDecideEnd(event);
+          }
+        }
+        const Integration =
+          hooks === 'deprecated'
+            ? DeprecatedHooksIntegration
+            : CurrentHooksIntegration;
+        await experimental_decide({
+          model: new Experimental_DecisionMockModelV4({
+            doDecide: async () => ({
+              answers: { refund: { type: 'boolean', probability: 0.9 } },
+              warnings: [],
+            }),
+          }),
+          state: 'Please refund me',
+          questions: { refund: { type: 'boolean', instructions: 'Refund?' } },
+          telemetry: { integrations: new Integration({ tracer }) },
+        });
+        expect(calls).toEqual([
+          ['start', 'ai.decide'],
+          ['model-start', 'ai.decide.doDecide'],
+          ['model-end', 'ai.decide.doDecide'],
+          ['end', 'ai.decide'],
+        ]);
+        expect(tracer.spans).toHaveLength(callSuper ? 2 : 0);
+        for (const span of tracer.spans) {
+          expect(span.ended).toBe(true);
+          expect(span.end).toHaveBeenCalledOnce();
+        }
+      }
+    },
+  );
+
+  it.each([true, false])(
+    'serializes decision image bytes with recordInputs=%s',
+    async recordInputs => {
+      const tracer = new IntegrationMockTracer();
+      const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+      await experimental_decide({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { visible: { type: 'boolean', probability: 0.9 } },
+            warnings: [],
+          }),
+        }),
+        state: [{ type: 'file', mediaType: 'image/png', data: bytes }],
+        questions: {
+          visible: { type: 'boolean', instructions: 'Is the product visible?' },
+        },
+        telemetry: {
+          recordInputs,
+          integrations: new LegacyOpenTelemetry({ tracer }),
+        },
+      });
+      const attributes = tracer.jsonSpans.map(span => span.attributes);
+      expect(attributes).toHaveLength(2);
+      for (const value of attributes) {
+        expect(value['ai.decision.state']).toBe(
+          recordInputs
+            ? '[{"type":"file","mediaType":"image/png","data":"iVBOR///"}]'
+            : undefined,
+        );
+      }
+    },
+  );
+
+  it.each(['current', 'deprecated'] as const)(
+    'records decision inputs, outputs, and usage through the %s API',
+    async api => {
+      const tracer = new IntegrationMockTracer();
+
+      await (api === 'current' ? experimental_decide : experimental_evaluate)({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { refund: { type: 'boolean', probability: 0.9 } },
+            usage: { inputTokens: 12, outputTokens: 2 },
+            warnings: [],
+          }),
+        }),
+        state: { message: 'Please refund me' },
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        telemetry: {
+          integrations: new LegacyOpenTelemetry({ tracer }),
+        },
+      });
+
+      expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+      [
+        {
+          "attributes": {
+            "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.decision.state": "{"message":"Please refund me"}",
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.decide",
+            "ai.settings.maxRetries": 2,
+            "operation.name": "ai.decide",
+          },
+          "events": [],
+          "name": "ai.decide",
+        },
+        {
+          "attributes": {
+            "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.decision.state": "[{"type":"json","value":{"message":"Please refund me"}}]",
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.decide.doDecide",
+            "ai.settings.maxRetries": 2,
+            "ai.usage.inputTokens": 12,
+            "ai.usage.outputTokens": 2,
+            "operation.name": "ai.decide.doDecide",
+          },
+          "events": [],
+          "name": "ai.decide.doDecide",
+        },
+      ]
+    `);
+    },
+  );
+});
+
 // --- embed integration fixtures ---
 
 const embedDummyEmbedding = [0.1, 0.2, 0.3];
@@ -2428,8 +2765,8 @@ describe('LegacyOpenTelemetry integration with embed', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should record telemetry data when isEnabled is not explicitly set', async () => {
-    await embed({
+  it('should omit usage attributes when the provider does not return usage', async () => {
+    const result = await embed({
       model: new MockEmbeddingModelV4({
         doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding]),
       }),
@@ -2439,6 +2776,10 @@ describe('LegacyOpenTelemetry integration with embed', () => {
       },
     });
 
+    expect(result.usage.tokens).toBeNaN();
+    for (const span of tracer.jsonSpans) {
+      expect('ai.usage.tokens' in span.attributes).toBe(false);
+    }
     expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
@@ -3112,7 +3453,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps)', (
       },
       stopWhen: isStepCount(3),
       _internal: {
-        now: mockValues(0, 100, 500, 600, 1000),
+        now: mockTwoStepStreamTextTelemetryNow(),
         generateId: mockId({ prefix: 'id' }),
         generateCallId: () => 'test-telemetry-call-id',
       },
@@ -3219,7 +3560,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
       },
       stopWhen: isStepCount(3),
       _internal: {
-        now: mockValues(0, 100, 500, 600, 1000),
+        now: mockTwoStepStreamTextTelemetryNow(),
         generateId: mockId({ prefix: 'id' }),
         generateCallId: () => 'test-telemetry-call-id',
       },
@@ -3237,6 +3578,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
             "ai.prompt": "{"messages":[{"role":"user","content":"test-input"}]}",
             "ai.response.finishReason": "stop",
             "ai.response.text": "Hello, world!",
+            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
             "ai.settings.maxRetries": 2,
             "ai.usage.cachedInputTokens": 0,
             "ai.usage.inputTokenDetails.cacheReadTokens": 0,
@@ -3334,7 +3676,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
             "ai.response.id": "id-1",
             "ai.response.model": "mock-model-id",
             "ai.response.msToFinish": 400,
-            "ai.response.msToFirstChunk": 400,
+            "ai.response.msToFirstChunk": 0,
             "ai.response.text": "Hello, world!",
             "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
             "ai.settings.maxRetries": 2,
@@ -3362,7 +3704,7 @@ describe('LegacyOpenTelemetry integration with streamText stopWhen (2 steps with
           "events": [
             {
               "attributes": {
-                "ai.response.msToFirstChunk": 400,
+                "ai.response.msToFirstChunk": 0,
               },
               "name": "ai.stream.firstChunk",
             },
@@ -3455,11 +3797,105 @@ describe('LegacyOpenTelemetry integration with streamText transform', () => {
         isEnabled: true,
         integrations: new LegacyOpenTelemetry({ tracer }),
       },
-      _internal: { now: mockValues(0, 100, 500) },
+      _internal: { now: mockTokenStreamTextTelemetryNow() },
     });
 
     await result.consumeStream();
 
     expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+});
+
+describe('LegacyOpenTelemetry speech and transcription operations', () => {
+  it('honors speech input and output privacy controls', () => {
+    const tracer = createMockTracer();
+    const integration: Telemetry = new LegacyOpenTelemetry({ tracer });
+    const speechCallId = 'speech-call';
+
+    integration.onStart!({
+      callId: speechCallId,
+      operationId: 'ai.generateSpeech',
+      provider: 'openai.speech',
+      modelId: 'gpt-4o-mini-tts',
+      text: 'private text',
+      voice: 'alloy',
+      outputFormat: 'mp3',
+      instructions: undefined,
+      speed: undefined,
+      language: undefined,
+      maxRetries: 2,
+      headers: undefined,
+      providerOptions: {},
+      recordInputs: false,
+      recordOutputs: false,
+      functionId: undefined,
+    });
+    integration.onEnd!({
+      callId: speechCallId,
+      operationId: 'ai.generateSpeech',
+      provider: 'openai.speech',
+      modelId: 'gpt-4o-mini-tts',
+      text: 'private text',
+      audio: {
+        byteLength: 1234,
+        mediaType: 'audio/mpeg',
+        format: 'mp3',
+      },
+      usage: { characters: 12 },
+      warnings: [],
+      providerMetadata: undefined,
+      response: {
+        timestamp: new Date(0),
+        modelId: 'gpt-4o-mini-tts',
+      },
+      recordInputs: false,
+      recordOutputs: false,
+      functionId: undefined,
+    });
+
+    const startAttributes = getStartSpanAttributes(tracer, 0);
+    const endAttributes = getSetAttributesArg(tracer.spans[0]);
+    expect(startAttributes['ai.request.text']).toBeUndefined();
+    expect(endAttributes['ai.response.audio.size']).toBeUndefined();
+    expect(endAttributes['ai.response.audio.mediaType']).toBeUndefined();
+    expect(endAttributes['ai.response.audio.format']).toBeUndefined();
+    expect(endAttributes['ai.usage.characters']).toBe(12);
+    expect(endAttributes['ai.response.usage']).toBe(
+      JSON.stringify({ characters: 12 }),
+    );
+  });
+
+  it('records streaming transcription errors on the operation span', () => {
+    const tracer = createMockTracer();
+    const integration: Telemetry = new LegacyOpenTelemetry({ tracer });
+    const streamCallId = 'stream-call';
+    const error = new Error('stream failed');
+
+    integration.experimental_onStreamTranscriptionStart!({
+      callId: streamCallId,
+      operationId: 'ai.streamTranscribe',
+      provider: 'openai.transcription',
+      modelId: 'gpt-realtime-whisper',
+      audio: { byteLength: undefined, mediaType: 'audio/pcm' },
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      maxRetries: undefined,
+      headers: undefined,
+      providerOptions: {},
+      recordInputs: undefined,
+      recordOutputs: undefined,
+      functionId: undefined,
+    });
+    integration.onError!({ callId: streamCallId, error });
+
+    expect(tracer.spans[0].recordException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'stream failed' }),
+    );
+    expect(tracer.spans[0].setStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: SpanStatusCode.ERROR,
+        message: 'stream failed',
+      }),
+    );
+    expect(tracer.spans[0].ended).toBe(true);
   });
 });

@@ -10,22 +10,36 @@ export const webSearchArgsSchema = lazySchema(() =>
     z.object({
       allowedDomains: z.array(z.string()).max(5).optional(),
       excludedDomains: z.array(z.string()).max(5).optional(),
+      enableImageSearch: z.boolean().optional(),
       enableImageUnderstanding: z.boolean().optional(),
     }),
   ),
 );
 
-const webSearchOutputSchema = lazySchema(() =>
+export const webSearchOutputSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      query: z.string(),
-      sources: z.array(
-        z.object({
-          title: z.string(),
-          url: z.string(),
-          snippet: z.string(),
-        }),
-      ),
+      action: z
+        .discriminatedUnion('type', [
+          z.object({
+            type: z.literal('search'),
+            query: z.string().optional(),
+            queries: z.array(z.string()).optional(),
+          }),
+          z.object({
+            type: z.literal('openPage'),
+            url: z.string().nullish(),
+          }),
+          z.object({
+            type: z.literal('findInPage'),
+            url: z.string().nullish(),
+            pattern: z.string().nullish(),
+          }),
+        ])
+        .optional(),
+      sources: z
+        .array(z.object({ type: z.literal('url'), url: z.string() }))
+        .optional(),
     }),
   ),
 );
@@ -33,16 +47,27 @@ const webSearchOutputSchema = lazySchema(() =>
 const webSearchToolFactory = createProviderExecutedToolFactory<
   {},
   {
-    query: string;
-    sources: Array<{
-      title: string;
-      url: string;
-      snippet: string;
-    }>;
+    action?:
+      | {
+          type: 'search';
+          query?: string;
+          queries?: string[];
+        }
+      | {
+          type: 'openPage';
+          url?: string | null;
+        }
+      | {
+          type: 'findInPage';
+          url?: string | null;
+          pattern?: string | null;
+        };
+    sources?: Array<{ type: 'url'; url: string }>;
   },
   {
     allowedDomains?: string[];
     excludedDomains?: string[];
+    enableImageSearch?: boolean;
     enableImageUnderstanding?: boolean;
   }
 >({

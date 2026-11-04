@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { validateTypes } from '@ai-sdk/provider-utils';
 import { fileSearchArgsSchema } from '../tool/file-search';
+import { imageGenerationArgsSchema } from '../tool/image-generation';
 import { mcpServerArgsSchema } from '../tool/mcp-server';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { xSearchArgsSchema } from '../tool/x-search';
@@ -53,6 +54,7 @@ export async function prepareResponsesTools({
             type: 'web_search',
             allowed_domains: args.allowedDomains,
             excluded_domains: args.excludedDomains,
+            enable_image_search: args.enableImageSearch,
             enable_image_understanding: args.enableImageUnderstanding,
           });
           break;
@@ -93,6 +95,19 @@ export async function prepareResponsesTools({
         case 'xai.view_x_video': {
           xaiTools.push({
             type: 'view_x_video',
+          });
+          break;
+        }
+
+        case 'xai.image_generation': {
+          const args = await validateTypes({
+            value: tool.args,
+            schema: imageGenerationArgsSchema,
+          });
+
+          xaiTools.push({
+            type: 'image_generation',
+            action: args.action,
           });
           break;
         }

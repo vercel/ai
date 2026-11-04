@@ -22,6 +22,7 @@ describe('prepareResponsesTools', () => {
           "tools": [
             {
               "allowed_domains": undefined,
+              "enable_image_search": undefined,
               "enable_image_understanding": undefined,
               "excluded_domains": undefined,
               "type": "web_search",
@@ -52,6 +53,7 @@ describe('prepareResponsesTools', () => {
               "wikipedia.org",
               "example.com",
             ],
+            "enable_image_search": undefined,
             "enable_image_understanding": undefined,
             "excluded_domains": undefined,
             "type": "web_search",
@@ -78,10 +80,38 @@ describe('prepareResponsesTools', () => {
         [
           {
             "allowed_domains": undefined,
+            "enable_image_search": undefined,
             "enable_image_understanding": undefined,
             "excluded_domains": [
               "spam.com",
             ],
+            "type": "web_search",
+          },
+        ]
+      `);
+    });
+
+    it('should prepare web_search tool with image search', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.web_search',
+            name: 'web_search',
+            args: {
+              enableImageSearch: true,
+            },
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "allowed_domains": undefined,
+            "enable_image_search": true,
+            "enable_image_understanding": undefined,
+            "excluded_domains": undefined,
             "type": "web_search",
           },
         ]
@@ -106,6 +136,7 @@ describe('prepareResponsesTools', () => {
         [
           {
             "allowed_domains": undefined,
+            "enable_image_search": undefined,
             "enable_image_understanding": true,
             "excluded_domains": undefined,
             "type": "web_search",
@@ -293,6 +324,54 @@ describe('prepareResponsesTools', () => {
     });
   });
 
+  describe('image_generation', () => {
+    it('should prepare image_generation tool with no args', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.image_generation',
+            name: 'image_generation',
+            args: {},
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "action": undefined,
+            "type": "image_generation",
+          },
+        ]
+      `);
+    });
+
+    it('should prepare image_generation tool with action', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.image_generation',
+            name: 'image_generation',
+            args: {
+              action: 'generate',
+            },
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "action": "generate",
+            "type": "image_generation",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('file_search', () => {
     it('should prepare file_search tool with vector store IDs', async () => {
       const result = await prepareResponsesTools({
@@ -397,6 +476,7 @@ describe('prepareResponsesTools', () => {
                 location: { type: 'string' },
               },
               required: ['location'],
+              additionalProperties: false,
             },
           },
         ],
@@ -408,6 +488,7 @@ describe('prepareResponsesTools', () => {
             "description": "get weather information",
             "name": "weather",
             "parameters": {
+              "additionalProperties": false,
               "properties": {
                 "location": {
                   "type": "string",

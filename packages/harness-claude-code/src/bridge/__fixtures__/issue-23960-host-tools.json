@@ -1,0 +1,34 @@
+[
+  {
+    "type": "tool-call",
+    "toolCallId": "toolu_0192ZuRqHP47cyHdmhHHSMTb",
+    "toolName": "host",
+    "input": {
+      "bounded": 5,
+      "exclusive": 5,
+      "text": "sample",
+      "items": [
+        "a"
+      ]
+    },
+    "dynamic": true,
+    "invalid": true,
+    "error": {},
+    "providerExecuted": false
+  },
+  {
+    "type": "tool-error",
+    "toolCallId": "toolu_0192ZuRqHP47cyHdmhHHSMTb",
+    "toolName": "host",
+    "input": {
+      "bounded": 5,
+      "exclusive": 5,
+      "text": "sample",
+      "items": [
+        "a"
+      ]
+    },
+    "error": {},
+    "dynamic": true
+  }
+]

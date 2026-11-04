@@ -1,6 +1,8 @@
-import type {
-  LanguageModelV4Prompt,
-  LanguageModelV4FilePart,
+import {
+  APICallError,
+  type LanguageModelV4FilePart,
+  type LanguageModelV4Prompt,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -52,6 +54,30 @@ describe('GatewayLanguageModel', () => {
     });
   });
 
+  describe.each(['doGenerate', 'doStream'] as const)(
+    '%s cancellation',
+    method => {
+      it.each(['AbortError', 'TimeoutError'])(
+        'should preserve the original %s from fetch',
+        async name => {
+          const error = new DOMException('Request cancelled', name);
+          const controller = new AbortController();
+          controller.abort(error);
+          const model = createTestModel({
+            fetch: vi.fn().mockRejectedValue(error),
+          });
+
+          await expect(
+            model[method]({
+              prompt: TEST_PROMPT,
+              abortSignal: controller.signal,
+            }),
+          ).rejects.toBe(error);
+        },
+      );
+    },
+  );
+
   describe('doGenerate', () => {
     function prepareJsonResponse({
       content = { type: 'text', text: '' },
@@ -63,6 +89,15 @@ describe('GatewayLanguageModel', () => {
       id = 'test-id',
       created = 1711115037,
       model = 'test-model',
+      warnings,
+    }: {
+      content?: { type: 'text'; text: string };
+      usage?: { prompt_tokens: number; completion_tokens: number };
+      finish_reason?: string;
+      id?: string;
+      created?: number;
+      model?: string;
+      warnings?: Array<SharedV4Warning>;
     } = {}) {
       server.urls['https://api.test.com/language-model'].response = {
         type: 'json-value',
@@ -73,6 +108,7 @@ describe('GatewayLanguageModel', () => {
           content,
           finish_reason,
           usage,
+          ...(warnings && { warnings }),
         },
       };
     }
@@ -124,6 +160,37 @@ describe('GatewayLanguageModel', () => {
         prompt_tokens: 10,
         completion_tokens: 20,
       });
+    });
+
+    it('should forward warnings returned by the gateway', async () => {
+      const mockWarnings: Array<SharedV4Warning> = [
+        {
+          type: 'compatibility',
+          feature: 'maxOutputTokens',
+          details: 'lowered to 38000',
+        },
+        { type: 'other', message: 'from provider' },
+      ];
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Hello, World!' },
+        warnings: mockWarnings,
+      });
+
+      const { warnings } = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(warnings).toEqual(mockWarnings);
+    });
+
+    it('should default warnings to an empty array when absent', async () => {
+      prepareJsonResponse({ content: { type: 'text', text: 'Hello' } });
+
+      const { warnings } = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(warnings).toEqual([]);
     });
 
     it('should remove abortSignal from the request body', async () => {
@@ -306,7 +373,7 @@ describe('GatewayLanguageModel', () => {
         expect(requestBody.prompt).toEqual(TEST_PROMPT);
       });
 
-      it('should encode Uint8Array image part to base64 data URL with default mime type', async () => {
+      it('should encode Uint8Array image part to inline base64 data with default mime type', async () => {
         prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
@@ -334,13 +401,13 @@ describe('GatewayLanguageModel', () => {
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toEqual({
-          type: 'url',
-          url: `data:image/jpeg;base64,${expectedBase64}`,
+          type: 'data',
+          data: expectedBase64,
         });
         expect(imagePart.mediaType).toBe('image/jpeg');
       });
 
-      it('should encode Uint8Array image part to base64 data URL with specified mime type', async () => {
+      it('should encode Uint8Array image part to inline base64 data with specified mime type', async () => {
         prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageBytes = new Uint8Array([5, 6, 7, 8]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
@@ -368,8 +435,8 @@ describe('GatewayLanguageModel', () => {
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toEqual({
-          type: 'url',
-          url: `data:${mimeType};base64,${expectedBase64}`,
+          type: 'data',
+          data: expectedBase64,
         });
         expect(imagePart.mediaType).toBe(mimeType);
       });
@@ -441,10 +508,7 @@ describe('GatewayLanguageModel', () => {
         expect(content[0]).toEqual({ type: 'text', text: 'First text.' });
         expect(content[1]).toEqual({
           type: 'file',
-          data: {
-            type: 'url',
-            url: `data:image/gif;base64,${expectedBase64}`,
-          },
+          data: { type: 'data', data: expectedBase64 },
           mediaType: 'image/gif',
         });
         expect(content[2]).toEqual({ type: 'text', text: 'Second text.' });
@@ -527,6 +591,10 @@ describe('GatewayLanguageModel', () => {
         expect(serverError.message).toBe('Database connection failed');
         expect(serverError.statusCode).toBe(500);
         expect(serverError.type).toBe('internal_server_error');
+        expect(APICallError.isInstance(serverError.cause)).toBe(true);
+        expect((serverError.cause as APICallError).message).toContain(
+          'Database connection failed',
+        );
       }
     });
 
@@ -653,6 +721,74 @@ describe('GatewayLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    it('should forward server stream-start warnings exactly once', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'stream-start',
+            warnings: [{ type: 'other', message: 'from provider' }],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'text-delta',
+            textDelta: 'Hello',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'finish',
+            finishReason: 'stop',
+            usage: {
+              prompt_tokens: 10,
+              completion_tokens: 20,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.filter(part => part.type === 'stream-start')).toEqual([
+        {
+          type: 'stream-start',
+          warnings: [{ type: 'other', message: 'from provider' }],
+        },
+      ]);
+    });
+
+    it('should preserve explicit mid-stream provider error metadata', async () => {
+      const error = {
+        message: 'Upstream provider overloaded',
+        type: 'provider_overloaded',
+        statusCode: 503,
+        isRetryable: true,
+      };
+
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'text-delta',
+            textDelta: 'Partial output',
+          })}\n\n`,
+          `data: ${JSON.stringify({ type: 'error', error })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        { type: 'text-delta', textDelta: 'Partial output' },
+        { type: 'error', error },
+      ]);
     });
 
     it('should pass streaming headers', async () => {
@@ -865,7 +1001,7 @@ describe('GatewayLanguageModel', () => {
         expect(requestBody.prompt).toEqual(TEST_PROMPT);
       });
 
-      it('should encode Uint8Array image part to base64 data URL with default mime type', async () => {
+      it('should encode Uint8Array image part to inline base64 data with default mime type', async () => {
         prepareStreamResponse({ content: ['response'] });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
@@ -894,13 +1030,13 @@ describe('GatewayLanguageModel', () => {
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toEqual({
-          type: 'url',
-          url: `data:image/jpeg;base64,${expectedBase64}`,
+          type: 'data',
+          data: expectedBase64,
         });
         expect(imagePart.mediaType).toBe('image/jpeg');
       });
 
-      it('should encode Uint8Array image part to base64 data URL with specified mime type', async () => {
+      it('should encode Uint8Array image part to inline base64 data with specified mime type', async () => {
         prepareStreamResponse({ content: ['response'] });
         const imageBytes = new Uint8Array([5, 6, 7, 8]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
@@ -930,8 +1066,8 @@ describe('GatewayLanguageModel', () => {
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toEqual({
-          type: 'url',
-          url: `data:${mimeType};base64,${expectedBase64}`,
+          type: 'data',
+          data: expectedBase64,
         });
         expect(imagePart.mediaType).toBe(mimeType);
       });
@@ -1006,10 +1142,7 @@ describe('GatewayLanguageModel', () => {
         expect(content[0]).toEqual({ type: 'text', text: 'First text.' });
         expect(content[1]).toEqual({
           type: 'file',
-          data: {
-            type: 'url',
-            url: `data:image/gif;base64,${expectedBase64}`,
-          },
+          data: { type: 'data', data: expectedBase64 },
           mediaType: 'image/gif',
         });
         expect(content[2]).toEqual({ type: 'text', text: 'Second text.' });
@@ -1638,47 +1771,6 @@ describe('GatewayLanguageModel', () => {
       });
     });
 
-    it('should pass hipaaCompliant option', async () => {
-      prepareJsonResponse({
-        content: { type: 'text', text: 'Test response' },
-      });
-
-      await createTestModel().doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          gateway: {
-            hipaaCompliant: true,
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.providerOptions).toEqual({
-        gateway: { hipaaCompliant: true },
-      });
-    });
-
-    it('should pass both zeroDataRetention and hipaaCompliant options', async () => {
-      prepareJsonResponse({
-        content: { type: 'text', text: 'Test response' },
-      });
-
-      await createTestModel().doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          gateway: {
-            zeroDataRetention: true,
-            hipaaCompliant: true,
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.providerOptions).toEqual({
-        gateway: { zeroDataRetention: true, hipaaCompliant: true },
-      });
-    });
-
     it('should pass quotaEntityId option', async () => {
       prepareJsonResponse({
         content: { type: 'text', text: 'Test response' },
@@ -1717,6 +1809,108 @@ describe('GatewayLanguageModel', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.providerOptions).toEqual({
         gateway: { quotaEntityId: 'entity-123', user: 'user-456' },
+      });
+    });
+  });
+
+  describe('file data encoding', () => {
+    function prepareResponse() {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: {
+          id: 'test-id',
+          created: 1711115037,
+          model: 'test-model',
+          content: { type: 'text', text: '' },
+          finish_reason: 'stop',
+          usage: { prompt_tokens: 4, completion_tokens: 30 },
+        },
+      };
+    }
+
+    it('should base64-encode Uint8Array data in a reasoning-file part', async () => {
+      prepareResponse();
+      const bytes = new Uint8Array([1, 2, 3, 4]);
+      const expectedBase64 = Buffer.from(bytes).toString('base64');
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning-file',
+              data: { type: 'data', data: bytes },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ];
+
+      await createTestModel().doGenerate({ prompt });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.prompt[0].content[0].data).toEqual({
+        type: 'data',
+        data: expectedBase64,
+      });
+    });
+
+    it('should base64-encode Uint8Array data in tool-result file content', async () => {
+      prepareResponse();
+      const bytes = new Uint8Array([5, 6, 7, 8]);
+      const expectedBase64 = Buffer.from(bytes).toString('base64');
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_1',
+              toolName: 'render',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: bytes },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ];
+
+      await createTestModel().doGenerate({ prompt });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.prompt[0].content[0].output.value[0].data).toEqual({
+        type: 'data',
+        data: expectedBase64,
+      });
+    });
+
+    it('should not modify reasoning-file data that is a URL', async () => {
+      prepareResponse();
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning-file',
+              data: { type: 'url', url: new URL('https://example.com/a.png') },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ];
+
+      await createTestModel().doGenerate({ prompt });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.prompt[0].content[0].data).toEqual({
+        type: 'url',
+        url: 'https://example.com/a.png',
       });
     });
   });

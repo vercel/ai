@@ -1,3 +1,4 @@
+import { sanitizeRequestMetadata } from '../telemetry/get-request-origin';
 import type { JSONValue } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -11,11 +12,11 @@ import { extractReasoningContent } from '../generate-text/extract-reasoning-cont
 import { extractTextContent } from '../generate-text/extract-text-content';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
-import type { RequestOptions } from '../prompt/request-options';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import type { Prompt } from '../prompt/prompt';
+import type { RequestOptions } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
@@ -96,8 +97,9 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  * - 'enum': The output is an enum.
  * - 'no-schema': The output is not a schema.
  *
- * @param experimental_repairText - A function that attempts to repair the raw output of the model
+ * @param repairText - A function that attempts to repair the raw output of the model
  * to enable JSON parsing.
+ * @param experimental_repairText - Deprecated alias for `repairText`.
  *
  * @param telemetry - Optional telemetry configuration.
  *
@@ -105,9 +107,12 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  * to the provider from the AI SDK and enable provider-specific
  * functionality that can be fully encapsulated in the provider.
  *
- * @param experimental_onStart - Callback invoked when generation begins, before the LLM call.
- * @param experimental_onStepStart - Callback invoked when the model call begins.
- * @param onStepFinish - Callback invoked when the model call completes with the raw result.
+ * @param onStart - Callback invoked when generation begins, before the LLM call.
+ * @param experimental_onStart - Deprecated alias for `onStart`.
+ * @param onStepStart - Callback invoked when the model call begins.
+ * @param experimental_onStepStart - Deprecated alias for `onStepStart`.
+ * @param onStepEnd - Callback invoked when the model call completes with the raw result.
+ * @param onStepFinish - Deprecated alias for `onStepEnd`.
  * @param onFinish - Callback invoked when the entire operation completes with the parsed object.
  *
  * @returns
@@ -166,6 +171,14 @@ export async function generateObject<
        * A function that attempts to repair the raw output of the model
        * to enable JSON parsing.
        */
+      repairText?: RepairTextFunction;
+
+      /**
+       * A function that attempts to repair the raw output of the model
+       * to enable JSON parsing.
+       *
+       * @deprecated Use `repairText` instead.
+       */
       experimental_repairText?: RepairTextFunction;
 
       /**
@@ -198,17 +211,41 @@ export async function generateObject<
        * Callback that is called when the generateObject operation begins,
        * before the LLM call is made.
        */
+      onStart?: Callback<GenerateObjectStartEvent>;
+
+      /**
+       * Callback that is called when the generateObject operation begins,
+       * before the LLM call is made.
+       *
+       * @deprecated Use `onStart` instead.
+       */
       experimental_onStart?: Callback<GenerateObjectStartEvent>;
 
       /**
        * Callback that is called when the model call (step) begins,
        * before the provider is called.
        */
+      onStepStart?: Callback<GenerateObjectStepStartEvent>;
+
+      /**
+       * Callback that is called when the model call (step) begins,
+       * before the provider is called.
+       *
+       * @deprecated Use `onStepStart` instead.
+       */
       experimental_onStepStart?: Callback<GenerateObjectStepStartEvent>;
 
       /**
        * Callback that is called when the model call (step) completes,
        * with the raw result before JSON parsing.
+       */
+      onStepEnd?: Callback<GenerateObjectStepEndEvent>;
+
+      /**
+       * Callback that is called when the model call (step) completes,
+       * with the raw result before JSON parsing.
+       *
+       * @deprecated Use `onStepEnd` instead.
        */
       onStepFinish?: Callback<GenerateObjectStepEndEvent>;
 
@@ -227,9 +264,20 @@ export async function generateObject<
       };
     },
 ): Promise<GenerateObjectResult<RESULT>> {
+  logWarnings({
+    warnings: [
+      {
+        type: 'deprecated',
+        setting: 'generateObject',
+        message: 'Use generateText with an output setting instead.',
+      },
+    ],
+  });
+
   const {
     model: modelArg,
     output = 'object',
+    instructions,
     system,
     prompt,
     messages,
@@ -237,13 +285,17 @@ export async function generateObject<
     maxRetries: maxRetriesArg,
     abortSignal,
     headers,
-    experimental_repairText: repairText,
+    experimental_repairText,
+    repairText = experimental_repairText,
     experimental_telemetry,
     telemetry = experimental_telemetry,
     experimental_download: download,
     providerOptions,
-    experimental_onStart: onStart,
-    experimental_onStepStart: onStepStart,
+    onStart,
+    experimental_onStart,
+    onStepStart,
+    experimental_onStepStart,
+    onStepEnd,
     onStepFinish,
     onFinish,
     _internal: {
@@ -291,6 +343,9 @@ export async function generateObject<
   const telemetryDispatcher = createTelemetryDispatcher({
     telemetry,
   });
+  const resolvedOnStart = onStart ?? experimental_onStart;
+  const resolvedOnStepStart = onStepStart ?? experimental_onStepStart;
+  const resolvedOnStepEnd = onStepEnd ?? onStepFinish;
 
   const jsonSchema = await outputStrategy.jsonSchema();
   const callId = generateId();
@@ -301,7 +356,7 @@ export async function generateObject<
       operationId: 'ai.generateObject' as const,
       provider: model.provider,
       modelId: model.modelId,
-      system,
+      system: instructions ?? system,
       prompt,
       messages,
       maxOutputTokens: callSettings.maxOutputTokens,
@@ -319,11 +374,12 @@ export async function generateObject<
       schemaName,
       schemaDescription,
     },
-    callbacks: [onStart, telemetryDispatcher.onStart],
+    callbacks: [resolvedOnStart, telemetryDispatcher.onStart],
   });
 
   try {
     const standardizedPrompt = await standardizePrompt({
+      instructions,
       system,
       prompt,
       messages,
@@ -334,6 +390,7 @@ export async function generateObject<
       prompt: standardizedPrompt,
       supportedUrls: await model.supportedUrls,
       download,
+      abortSignal,
       provider: model.provider.split('.')[0],
     });
 
@@ -347,7 +404,7 @@ export async function generateObject<
         headers: headersWithUserAgent,
         promptMessages,
       },
-      callbacks: [onStepStart, telemetryDispatcher.onObjectStepStart],
+      callbacks: [resolvedOnStepStart, telemetryDispatcher.onObjectStepStart],
     });
 
     const generateResult = await retry(() =>
@@ -390,8 +447,10 @@ export async function generateObject<
     const usage = asLanguageModelUsage(generateResult.usage);
     const warnings = generateResult.warnings;
     const resultProviderMetadata = generateResult.providerMetadata;
-    const request: LanguageModelRequestMetadata = generateResult.request ?? {};
-    const response: LanguageModelResponseMetadata = responseData;
+    const request: Omit<LanguageModelRequestMetadata, 'messages'> =
+      sanitizeRequestMetadata(generateResult.request) ?? {};
+    const response: Omit<LanguageModelResponseMetadata, 'messages'> =
+      responseData;
 
     logWarnings({
       warnings,
@@ -417,11 +476,11 @@ export async function generateObject<
 
     await notify({
       event: stepFinishEvent,
-      callbacks: [onStepFinish, telemetryDispatcher.onObjectStepFinish],
+      callbacks: [resolvedOnStepEnd, telemetryDispatcher.onObjectStepEnd],
     });
 
     const object = await parseAndValidateObjectResultWithRepair(
-      text,
+      generateResult.structuredOutputText ?? text,
       outputStrategy,
       repairText,
       {
@@ -444,7 +503,7 @@ export async function generateObject<
         response,
         providerMetadata: resultProviderMetadata,
       },
-      callbacks: [onFinish, telemetryDispatcher.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onEnd],
     });
 
     return new DefaultGenerateObjectResult({

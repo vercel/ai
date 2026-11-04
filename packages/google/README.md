@@ -6,10 +6,8 @@ The **[Google provider](https://ai-sdk.dev/providers/ai-sdk-providers/google)** 
 
 ## Setup
 
-The Google provider is available in the `@ai-sdk/google` module. You can install it with
-
 ```bash
-npm i @ai-sdk/google
+npm i ai @ai-sdk/google
 ```
 
 ## Skill for Coding Agents
@@ -20,26 +18,16 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `google` from `@ai-sdk/google`:
-
-```ts
-import { google } from '@ai-sdk/google';
-```
-
-## Example
+## Usage
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: google('gemini-2.5-pro'),
+  model: google('gemini-3.1-pro-preview'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
-## Documentation
-
-Please check out the **[Google provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/google)** for more information.
+See the [Google Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/google) for more information.

@@ -9,8 +9,8 @@ import { z } from 'zod/v4';
 // https://ai.google.dev/api/generate-content#GroundingSupport
 // https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-search
 
-const googleSearchToolArgsBaseSchema = z
-  .object({
+export const googleSearchToolArgsBaseSchema = () =>
+  z.looseObject({
     searchTypes: z
       .object({
         webSearch: z.object({}).optional(),
@@ -24,11 +24,10 @@ const googleSearchToolArgsBaseSchema = z
         endTime: z.string(),
       })
       .optional(),
-  })
-  .passthrough();
+  });
 
 export type GoogleSearchToolArgs = z.infer<
-  typeof googleSearchToolArgsBaseSchema
+  ReturnType<typeof googleSearchToolArgsBaseSchema>
 >;
 
 export const googleSearch = createProviderExecutedToolFactory<

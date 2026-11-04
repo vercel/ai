@@ -4,6 +4,7 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   convertBase64ToUint8Array,
   convertToFormData,
@@ -18,16 +19,21 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { getOpenAIImageModelEntry } from '../openai-model-catalog';
 import { openaiImageResponseSchema } from './openai-image-api';
 import {
+  getMaxImagesPerCall,
   hasDefaultResponseFormat,
-  modelMaxImagesPerCall,
   openaiImageModelEditOptions,
   openaiImageModelGenerationOptions,
   type OpenAIImageModelEditOptions,
   type OpenAIImageModelId,
 } from './openai-image-model-options';
 interface OpenAIImageModelConfig extends OpenAIConfig {
+  imageInputCapabilities?: {
+    supportsFileInputs: boolean | undefined;
+    supportsMaskInputs: boolean | undefined;
+  };
   _internal?: {
     currentDate?: () => Date;
   };
@@ -51,7 +57,27 @@ export class OpenAIImageModel implements ImageModelV4 {
   }
 
   get maxImagesPerCall(): number {
-    return modelMaxImagesPerCall[this.modelId] ?? 1;
+    return getMaxImagesPerCall(this.modelId);
+  }
+
+  get supportsFileInputs(): boolean | undefined {
+    if (this.config.imageInputCapabilities != null) {
+      return this.config.imageInputCapabilities.supportsFileInputs;
+    }
+
+    const support = getOpenAIImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return typeof support === 'boolean' ? support : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    if (this.config.imageInputCapabilities != null) {
+      return this.config.imageInputCapabilities.supportsMaskInputs;
+    }
+
+    const support = getOpenAIImageModelEntry(this.modelId).capabilities.image
+      .maskInput;
+    return typeof support === 'boolean' ? support : undefined;
   }
 
   get provider(): string {
@@ -107,7 +133,7 @@ export class OpenAIImageModel implements ImageModelV4 {
           path: '/images/edits',
           modelId: this.modelId,
         }),
-        headers: combineHeaders(this.config.headers?.(), headers),
+        headers: combineHeaders(await resolve(this.config.headers), headers),
         formData: convertToFormData<OpenAIImageEditInput>({
           model: this.modelId,
           prompt,
@@ -126,10 +152,10 @@ export class OpenAIImageModel implements ImageModelV4 {
                     ],
                     { type: file.mediaType },
                   )
-                : downloadBlob(file.url),
+                : downloadBlob(file.url, { abortSignal }),
             ),
           ),
-          mask: mask != null ? await fileToBlob(mask) : undefined,
+          mask: mask != null ? await fileToBlob(mask, abortSignal) : undefined,
           n,
           size,
           quality: openaiOptions.quality,
@@ -197,7 +223,7 @@ export class OpenAIImageModel implements ImageModelV4 {
         path: '/images/generations',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         prompt,
@@ -312,11 +338,12 @@ type OpenAIImageEditInput = {
 
 async function fileToBlob(
   file: ImageModelV4File | undefined,
+  abortSignal: AbortSignal | undefined,
 ): Promise<Blob | undefined> {
   if (!file) return undefined;
 
   if (file.type === 'url') {
-    return downloadBlob(file.url);
+    return downloadBlob(file.url, { abortSignal });
   }
 
   const data =

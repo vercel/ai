@@ -12,7 +12,7 @@ run(async () => {
 
   let enteredReasoning = false;
   let enteredText = false;
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'reasoning-delta') {
       if (!enteredReasoning) {
         enteredReasoning = true;

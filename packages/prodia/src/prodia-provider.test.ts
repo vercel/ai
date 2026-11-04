@@ -133,7 +133,7 @@ describe('Prodia provider', () => {
       },
     });
 
-    expect(server.calls[0].requestUserAgent).toContain('ai-sdk/prodia/');
+    expect(server.calls[0].requestUserAgent).toContain('ai-sdk-prodia/');
   });
 
   it('throws NoSuchModelError for unsupported model types', () => {

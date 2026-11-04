@@ -1,6 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import type { Context } from './context';
 import type { ModelMessage } from './model-message';
+import type { SandboxSession } from './sandbox';
 import type {
   ToolExecuteFunction,
   ToolExecutionOptions,
@@ -13,6 +14,16 @@ describe('tool execute function types', () => {
       messages: ModelMessage[];
       abortSignal?: AbortSignal;
       context: { requestId: string };
+      experimental_sandbox?: SandboxSession;
+    }>();
+  });
+
+  it('should include abort signal in sandbox command options', () => {
+    expectTypeOf<Parameters<SandboxSession['run']>[0]>().toEqualTypeOf<{
+      command: string;
+      workingDirectory?: string;
+      env?: Record<string, string>;
+      abortSignal?: AbortSignal;
     }>();
   });
 

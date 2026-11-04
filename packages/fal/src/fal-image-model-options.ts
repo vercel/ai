@@ -8,7 +8,7 @@ import { z } from 'zod/v4';
 export const falImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
-      .object({
+      .looseObject({
         /** @deprecated use prompt.images instead */
         imageUrl: z.string().nullish().meta({
           deprecated: true,
@@ -47,7 +47,6 @@ export const falImageModelOptionsSchema = lazySchema(() =>
           .or(z.number().min(1).max(6))
           .nullish(),
       })
-      .passthrough()
       .transform(data => {
         const result: Record<string, unknown> = {};
         const deprecatedKeys: string[] = [];

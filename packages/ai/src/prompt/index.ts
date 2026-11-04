@@ -10,6 +10,7 @@ export type CallSettings = LanguageModelCallOptions &
 export {
   getTotalTimeoutMs,
   getStepTimeoutMs,
+  getFirstChunkTimeoutMs,
   getChunkTimeoutMs,
   getToolTimeoutMs,
 } from './request-options';
@@ -20,7 +21,7 @@ export {
   toolModelMessageSchema,
   userModelMessageSchema,
 } from './message';
-export type { Prompt } from './prompt';
+export type { Instructions, Prompt } from './prompt';
 export { convertDataContentToBase64String } from './data-content';
 
 // re-export types from provider-utils

@@ -62,26 +62,13 @@ export function readFixture(
 }
 
 /**
- * Validates the syntax of the provided code using TypeScript's compiler.
+ * Validates the syntax of the provided code using TypeScript's parser.
  *
  * @param code - The source code to validate.
  * @param extension - The file extension to determine ScriptKind.
  * @throws If the code contains syntax errors.
  */
 export function validateSyntax(code: string, extension: string): void {
-  // Add JSX namespace definition only for tsx files
-  const jsxTypes = `
-    declare namespace JSX {
-      interface IntrinsicElements {
-        [elemName: string]: any;
-      }
-    }
-  `;
-
-  // Add JSX types only for tsx files
-  const codeWithTypes = extension === '.tsx' ? jsxTypes + code : code;
-
-  // Determine the appropriate script kind based on file extension
   let scriptKind: ts.ScriptKind;
   switch (extension) {
     case '.tsx':
@@ -98,101 +85,32 @@ export function validateSyntax(code: string, extension: string): void {
       scriptKind = ts.ScriptKind.JS;
   }
 
-  const fileName = `test${extension}`;
-
-  // Create a source file
   const sourceFile = ts.createSourceFile(
-    fileName,
-    codeWithTypes,
+    `test${extension}`,
+    code,
     ts.ScriptTarget.Latest,
     true,
     scriptKind,
   );
 
-  // Create compiler options
-  const compilerOptions: ts.CompilerOptions = {
-    allowJs: true,
-    noEmit: true,
-    jsx: ts.JsxEmit.Preserve,
-    target: ts.ScriptTarget.Latest,
-    module: ts.ModuleKind.ESNext,
-    moduleResolution: ts.ModuleResolutionKind.NodeNext,
-    esModuleInterop: true,
-    strict: true,
-    noImplicitAny: false,
-    skipLibCheck: true,
-    jsxFactory: 'React.createElement',
-    jsxFragmentFactory: 'React.Fragment',
-    baseUrl: '.',
-    paths: {
-      '*': ['*'],
-    },
-    // Disable type checking for JS/JSX files
-    checkJs: extension !== '.js' && extension !== '.jsx',
-    allowSyntheticDefaultImports: true,
-    // Ignore missing libraries
-    noResolve: true,
-  };
-
-  // Create a program with the source file
-  const host = ts.createCompilerHost(compilerOptions);
-  const originalGetSourceFile = host.getSourceFile;
-  host.getSourceFile = (name: string, ...args) => {
-    if (name === fileName) {
-      return sourceFile;
+  // `parseDiagnostics` is the parser's own error list — populated by
+  // `createSourceFile` without needing a Program or lib.d.ts. Using it avoids the
+  // multi-second cold-start cost of `ts.createProgram` + `getSemanticDiagnostics`.
+  const diagnostics = (
+    sourceFile as ts.SourceFile & {
+      parseDiagnostics: ts.DiagnosticWithLocation[];
     }
-    return originalGetSourceFile.call(host, name, ...args);
-  };
+  ).parseDiagnostics;
 
-  // Override module resolution
-  host.resolveModuleNameLiterals = moduleLiterals => {
-    return moduleLiterals.map(moduleLiteral => ({
-      resolvedModule: {
-        resolvedFileName: `${moduleLiteral.text}.d.ts`,
-        extension: '.d.ts',
-        isExternalLibraryImport: true,
-        packageId: {
-          name: moduleLiteral.text,
-          subModuleName: '',
-          version: '1.0.0',
-        },
-      },
-    }));
-  };
-
-  const program = ts.createProgram([fileName], compilerOptions, host);
-
-  // Get only syntactic diagnostics for JS/JSX files
-  const diagnostics =
-    extension === '.js' || extension === '.jsx'
-      ? program.getSyntacticDiagnostics(sourceFile)
-      : [
-          ...program.getSyntacticDiagnostics(sourceFile),
-          ...program.getSemanticDiagnostics(sourceFile),
-        ];
-
-  // Filter out module resolution errors
-  const relevantDiagnostics = diagnostics.filter(diagnostic => {
-    // Ignore "Cannot find module" errors
-    if (diagnostic.code === 2307) {
-      // TypeScript error code for module not found
-      return false;
-    }
-    return true;
-  });
-
-  // If there are any errors, throw with details
-  if (relevantDiagnostics.length > 0) {
-    const errors = relevantDiagnostics
+  if (diagnostics.length > 0) {
+    const errors = diagnostics
       .map(diagnostic => {
-        if (diagnostic.file) {
-          const { line, character } =
-            diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
-          return `${line + 1}:${
-            character + 1
-          } - ${ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')}`;
-        }
-        return ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
+        const { line, character } = sourceFile.getLineAndCharacterOfPosition(
+          diagnostic.start,
+        );
+        return `${line + 1}:${
+          character + 1
+        } - ${ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')}`;
       })
       .join('\n');
 

@@ -1,0 +1,289 @@
+import {
+  commonTool,
+  type HarnessV1,
+  type HarnessV1BuiltinTool,
+} from '@ai-sdk/harness';
+import { tool } from '@ai-sdk/provider-utils';
+import type { ProviderConfig } from '@earendil-works/pi-coding-agent';
+import { z } from 'zod/v4';
+import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
+import { piResumeStateSchema, type PiResumeStateData } from './pi-resume-state';
+import type { PiSessionStorage } from './pi-session-storage';
+import {
+  createPiSession,
+  type PiCacheRetention,
+  type PiHarnessExtensionFactory,
+  type PiMcpServerConfig,
+  type PiMcpSettings,
+  type PiResources,
+  type PiThinkingLevel,
+} from './pi-session';
+import type { PiFileToolPathPolicy } from './pi-paths';
+import { VERSION } from './version';
+
+/**
+ * Value to use in User-Agent and `x-client-app` headers.
+ */
+const PI_CLIENT_APP = `ai-sdk-harness-pi/${VERSION}`;
+
+/**
+ * Configuration knobs for `createPi`. Pi runs as an in-process Node library
+ * (no bridge), so there's no `port` or `startupTimeoutMs` to set.
+ */
+export type PiHarnessSettings = {
+  /** Where Pi sources API keys / gateway credentials from. */
+  readonly auth?: PiAuthenticationMode;
+  /**
+   * Application-owned credential storage for Pi's model runtime. When set,
+   * this replaces Pi's file-backed auth.json credential storage.
+   */
+  readonly credentials?: PiCredentialStore;
+  /**
+   * Caller-provided append-only log for the Pi session (see `PiSessionStorage`).
+   * Without it, the lifecycle state holds the whole session.
+   */
+  readonly sessionStorage?: PiSessionStorage;
+  /**
+   * Whether a suspended turn may reuse its live Pi session in this process.
+   * Disable this in stateless or multi-replica applications so every request
+   * restores from persisted lifecycle state with the current settings.
+   *
+   * @default true
+   */
+  readonly reattachInProcess?: boolean;
+  /**
+   * Explicit Pi provider configurations keyed by provider id. Use this to
+   * register custom models and their API protocol without coupling model
+   * metadata to authentication environment variables.
+   */
+  readonly providers?: Readonly<Record<string, ProviderConfig>>;
+  /**
+   * Pi's extended-thinking budget level. Maps directly to the SDK's
+   * `thinkingLevel` option on `createAgentSession`.
+   */
+  readonly thinkingLevel?: PiThinkingLevel;
+  /**
+   * Default prompt cache retention for model requests. For Anthropic models,
+   * `long` uses the 1-hour cache instead of the 5-minute default. When omitted,
+   * Pi's default (`short`) applies.
+   */
+  readonly cacheRetention?: PiCacheRetention;
+  /**
+   * Directory holding Pi's global agent config (auth.json, models.json,
+   * settings.json). When omitted, native subscription auth is discovered from
+   * Pi's default agent directory while model and general settings remain
+   * isolated per session.
+   */
+  readonly agentDir?: string;
+  /**
+   * MCP servers keyed by server name. Each value is a `PiMcpServerConfig`,
+   * Pi's native MCP server configuration (stdio or streamable HTTP). Tools
+   * are named `mcp__<server>__<tool>`, with
+   * `-` in either name replaced by `_`.
+   *
+   * `exposure` defaults to `direct`, which declares the server's tools to the
+   * model. `deferred` tools stay undeclared until Pi's `tool_search` tool
+   * finds them; the model then calls them by name.
+   *
+   * The harness has no sign-in flow, so an HTTP server must carry an
+   * `Authorization` header or `auth.provider`; with the header, OAuth never
+   * runs. No `mcp.json` is read and nothing is written under Pi's agent
+   * directory.
+   */
+  readonly mcpServers?: Record<string, unknown>;
+  /**
+   * @deprecated Pi's native MCP serves `mcpServers` and has no adapter
+   * settings. It always names tools `mcp__<server>__<tool>` and always
+   * truncates results over 20 KB, writing the full text to a file in the host
+   * temp directory. `toolPrefix` other than `'mcp'` and `outputGuard: false`
+   * fail session start.
+   */
+  readonly mcpSettings?: PiMcpSettings;
+  /**
+   * Trusted inline Pi extensions loaded for each harness session.
+   *
+   * Each factory receives the Pi extension API and the harness session it
+   * runs in: the restricted sandbox session, the session work directory and
+   * a getter for the current turn's instructions. Plain Pi `ExtensionFactory`
+   * functions that take only the API keep working.
+   *
+   * Filesystem-discovered user and project extensions remain disabled.
+   */
+  readonly extensionFactories?: ReadonlyArray<PiHarnessExtensionFactory>;
+  /**
+   * Absolute sandbox paths that widen or narrow what Pi's native file tools
+   * can reach. `readableRoots` lets `read`, `ls`, `find`, and `grep` reach
+   * outside the session workspace. `writableRoots` also permits writes and
+   * edits outside the workspace and grants read access. `deniedRoots` are
+   * refused by every native file tool and take precedence, including through
+   * symlinks. Configured roots are resolved for each operation; denied roots
+   * are also resolved in the sandbox before the first native file tool runs.
+   * The `bash` tool is not restricted.
+   */
+  readonly fileToolPathPolicy?: PiFileToolPathPolicy;
+  /**
+   * Project resources for the session. Pi reads no project resources from the
+   * host or the sandbox, so project skills reach the model only through this
+   * setting, and `AGENTS.md` and `CLAUDE.md` are not read at all.
+   *
+   * `skills` are listed to the model and must already exist in the sandbox at
+   * `filePath`, because the model reads them with the `read` tool.
+   */
+  readonly resources?: PiResources;
+};
+
+const PI_BUILTIN_TOOLS = {
+  read: commonTool('read', {
+    nativeName: 'read',
+    toolUseKind: 'readonly',
+    description:
+      'Read file contents. Output is limited to 2,000 lines or 50KB. Use offset and limit to read large files in pages.',
+    inputSchema: z.object({
+      file_path: z.string(),
+      offset: z.number().int().positive().optional(),
+      limit: z.number().int().positive().optional(),
+    }),
+  }),
+  write: commonTool('write', {
+    nativeName: 'write',
+    toolUseKind: 'edit',
+    description: 'Overwrite or create a file.',
+    inputSchema: z.object({
+      file_path: z.string(),
+      content: z.string(),
+    }),
+  }),
+  edit: commonTool('edit', {
+    nativeName: 'edit',
+    toolUseKind: 'edit',
+    description: 'Edit a file by exact string replacement.',
+    inputSchema: z.object({
+      file_path: z.string(),
+      old_string: z.string(),
+      new_string: z.string(),
+    }),
+  }),
+  bash: commonTool('bash', {
+    nativeName: 'bash',
+    toolUseKind: 'bash',
+    description: 'Execute a shell command in the sandbox.',
+    inputSchema: z.object({
+      command: z.string(),
+      timeout: z.number().optional(),
+    }),
+  }),
+  grep: commonTool('grep', {
+    nativeName: 'grep',
+    toolUseKind: 'readonly',
+    description: 'Search file contents with regex.',
+    inputSchema: z.object({
+      pattern: z.string(),
+      path: z.string().optional(),
+      glob: z.string().optional(),
+      ignoreCase: z.boolean().optional(),
+      literal: z.boolean().optional(),
+      context: z.number().optional(),
+      limit: z.number().optional(),
+    }),
+  }),
+  glob: commonTool('glob', {
+    nativeName: 'find',
+    toolUseKind: 'readonly',
+    description: 'Find files matching a glob pattern.',
+    inputSchema: z.object({
+      pattern: z.string(),
+      path: z.string().optional(),
+      limit: z.number().optional(),
+    }),
+  }),
+  ls: {
+    ...tool({
+      description: 'List directory entries.',
+      inputSchema: z.object({
+        path: z.string().optional(),
+        limit: z.number().optional(),
+      }),
+      outputSchema: z.unknown(),
+    }),
+    nativeName: 'ls',
+    toolUseKind: 'readonly',
+  } as HarnessV1BuiltinTool,
+} as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
+
+export function createPi(
+  settings: PiHarnessSettings = {},
+): HarnessV1<typeof PI_BUILTIN_TOOLS> {
+  return {
+    specificationVersion: 'harness-v1',
+    harnessId: 'pi',
+    builtinTools: PI_BUILTIN_TOOLS,
+    supportsBuiltinToolApprovals: true,
+    supportsBuiltinToolFiltering: true,
+    lifecycleStateSchema: piResumeStateSchema,
+    doStart: async startOpts => {
+      const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
+      const resumeData = lifecycleState?.data as PiResumeStateData | undefined;
+
+      return createPiSession({
+        sessionId: startOpts.sessionId,
+        sandboxSession: startOpts.sandboxSession,
+        sessionWorkDir: startOpts.sessionWorkDir,
+        settings: {
+          ...(settings.auth ? { auth: settings.auth } : {}),
+          ...(settings.credentials
+            ? { credentials: settings.credentials }
+            : {}),
+          ...(settings.reattachInProcess != null
+            ? { reattachInProcess: settings.reattachInProcess }
+            : {}),
+          ...(settings.thinkingLevel
+            ? { thinkingLevel: settings.thinkingLevel }
+            : {}),
+          ...(settings.cacheRetention
+            ? { cacheRetention: settings.cacheRetention }
+            : {}),
+          ...(settings.mcpServers
+            ? {
+                mcpServers: settings.mcpServers as Readonly<
+                  Record<string, PiMcpServerConfig>
+                >,
+              }
+            : {}),
+          ...(settings.mcpSettings
+            ? { mcpSettings: settings.mcpSettings }
+            : {}),
+          ...(settings.providers ? { providers: settings.providers } : {}),
+          ...(settings.extensionFactories
+            ? { extensionFactories: settings.extensionFactories }
+            : {}),
+          ...(settings.fileToolPathPolicy
+            ? { fileToolPathPolicy: settings.fileToolPathPolicy }
+            : {}),
+          ...(settings.resources ? { resources: settings.resources } : {}),
+          ...(settings.sessionStorage
+            ? { sessionStorage: settings.sessionStorage }
+            : {}),
+          ...(startOpts.headers ? { headers: startOpts.headers } : {}),
+        },
+        clientApp: PI_CLIENT_APP,
+        isResume: lifecycleState != null,
+        ...(lifecycleState ? { resumeStateType: lifecycleState.type } : {}),
+        permissionMode: startOpts.permissionMode,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
+        ...(resumeData?.leafId
+          ? { resumeLeafId: resumeData.leafId }
+          : resumeData?.entries
+            ? { resumeEntries: resumeData.entries }
+            : {}),
+        ...((resumeData?.leafId || resumeData?.entries) &&
+        resumeData.pendingToolBatch
+          ? { resumePendingToolBatch: resumeData.pendingToolBatch }
+          : {}),
+        ...(startOpts.abortSignal
+          ? { abortSignal: startOpts.abortSignal }
+          : {}),
+        ...(settings.agentDir ? { agentDir: settings.agentDir } : {}),
+      });
+    },
+  };
+}

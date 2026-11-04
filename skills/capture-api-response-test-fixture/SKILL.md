@@ -15,12 +15,12 @@ You can use our examples under `/examples/ai-functions` to generate test fixture
 
 #### generateText (doGenerate testing)
 
-For `generateText`, log the raw response output to the console and copy it into a new test fixture.
+For `generateText`, put the script under `src/generate-text/<provider>/`, log the raw response output to the console, and copy it into a new test fixture.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
@@ -34,13 +34,13 @@ run(async () => {
 
 #### streamText (doStream testing)
 
-For `streamText`, you need to set `includeRawChunks` to `true` and use the special `saveRawChunks` helper. Run the script from the `/example/ai-functions` folder via `pnpm tsx src/stream-text/script-name.ts`. The result is then stored in the `/examples/ai-functions/output` folder. You can copy it to your fixtures folder and rename it.
+For `streamText`, you need to set `includeRawChunks` to `true` and use the special `saveRawChunks` helper. Put the script under the provider directory and run it from the `/examples/ai-functions` folder via `pnpm tsx src/stream-text/<provider>/<script-name>.ts`. The result is then stored in the `/examples/ai-functions/output` folder. You can copy it to your fixtures folder and rename it.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import { run } from '../lib/run';
-import { saveRawChunks } from '../lib/save-raw-chunks';
+import { run } from '../../lib/run';
+import { saveRawChunks } from '../../lib/save-raw-chunks';
 
 run(async () => {
   const result = streamText({

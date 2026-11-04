@@ -7,7 +7,7 @@ import { run } from '../../lib/run';
 run(async () => {
   console.log('Generating base image of an echidna...');
   const baseResult = streamText({
-    model: 'openai/gpt-5-nano',
+    model: 'openai/gpt-5.4-nano',
     prompt:
       'Generate an image of an echidna swimming across the Mozambique channel.',
     tools: {
@@ -20,7 +20,7 @@ run(async () => {
 
   let baseImageData: Uint8Array | null = null;
 
-  for await (const part of baseResult.fullStream) {
+  for await (const part of baseResult.stream) {
     if (part.type == 'tool-result' && !part.dynamic) {
       baseImageData = convertBase64ToUint8Array(part.output.result);
       await presentImages([
@@ -39,7 +39,7 @@ run(async () => {
 
   console.log('Editing image to add vibrant colors...');
   const editResult = streamText({
-    model: 'openai/gpt-5-nano',
+    model: 'openai/gpt-5.4-nano',
     prompt: [
       {
         role: 'user',
@@ -64,7 +64,7 @@ run(async () => {
     },
   });
 
-  for await (const part of editResult.fullStream) {
+  for await (const part of editResult.stream) {
     if (part.type == 'tool-result' && !part.dynamic) {
       await presentImages([
         {

@@ -2,6 +2,7 @@ import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { FireworksImageModel } from './fireworks-image-model';
+import type { FireworksImageModelOptions } from './fireworks-image-model-options';
 
 const prompt = 'A cute baby sea otter';
 
@@ -146,6 +147,37 @@ describe('FireworksImageModel', () => {
     },
   });
 
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'accounts/fireworks/models/flux-kontext-pro',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'accounts/fireworks/models/playground-v2-5-1024px-aesthetic',
+        supportsFileInputs: false,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'accounts/fireworks/models/custom-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const model = new FireworksImageModel(modelId, {
+          provider: 'fireworks',
+          baseURL: 'https://api.example.com',
+        });
+
+        expect(model.supportsFileInputs).toBe(supportsFileInputs);
+        expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+
   describe('doGenerate', () => {
     it('should pass the correct parameters including aspect ratio and seed', async () => {
       const model = createBasicModel();
@@ -158,7 +190,11 @@ describe('FireworksImageModel', () => {
         size: undefined,
         aspectRatio: '16:9',
         seed: 42,
-        providerOptions: { fireworks: { additional_param: 'value' } },
+        providerOptions: {
+          fireworks: {
+            additional_param: 'value',
+          } satisfies FireworksImageModelOptions,
+        },
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -181,7 +217,11 @@ describe('FireworksImageModel', () => {
         size: undefined,
         aspectRatio: '16:9',
         seed: 42,
-        providerOptions: { fireworks: { additional_param: 'value' } },
+        providerOptions: {
+          fireworks: {
+            additional_param: 'value',
+          } satisfies FireworksImageModelOptions,
+        },
       });
 
       expect(server.calls[0].requestMethod).toStrictEqual('POST');
@@ -296,6 +336,88 @@ describe('FireworksImageModel', () => {
         seed: 42,
         samples: 1,
       });
+    });
+
+    it('should pass typed workflow provider options to the API', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: undefined,
+        providerOptions: {
+          fireworks: {
+            guidance_scale: 4.5,
+            num_inference_steps: 8,
+          } satisfies FireworksImageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "aspect_ratio": "1:1",
+          "guidance_scale": 4.5,
+          "num_inference_steps": 8,
+          "prompt": "A cute baby sea otter",
+          "samples": 1,
+        }
+      `);
+    });
+
+    it('should pass typed image_generation provider options to the API', async () => {
+      const sizeModel = createSizeModel();
+
+      await sizeModel.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          fireworks: {
+            cfg_scale: 10,
+            steps: 30,
+          } satisfies FireworksImageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "cfg_scale": 10,
+          "height": "1024",
+          "prompt": "A cute baby sea otter",
+          "samples": 1,
+          "steps": 30,
+          "width": "1024",
+        }
+      `);
+    });
+
+    it('should reject invalid provider options', async () => {
+      const model = createBasicModel();
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {
+            fireworks: {
+              output_format: 'webp',
+            },
+          },
+        }),
+      ).rejects.toThrow('invalid fireworks provider options');
     });
 
     describe('warnings', () => {
@@ -709,7 +831,7 @@ describe('FireworksImageModel', () => {
           fireworks: {
             output_format: 'jpeg',
             safety_tolerance: 2,
-          },
+          } satisfies FireworksImageModelOptions,
         },
       });
 
@@ -761,8 +883,10 @@ describe('FireworksImageModel', () => {
         id: 'test-request-123',
       });
 
-      // Verify image download
+      // Verify image download — the result URL is on a foreign origin
+      // (example.com), so the API key must not be sent with the download.
       expect(server.calls[2].requestUrl).toBe('https://example.com/image.png');
+      expect(server.calls[2].requestHeaders['api-key']).toBeUndefined();
 
       // Verify result
       expect(result.images).toHaveLength(1);
@@ -871,17 +995,42 @@ describe('FireworksImageModel', () => {
       ).rejects.toThrow('Fireworks image generation failed with status: Error');
     });
 
-    it('should throw error when polling times out', async () => {
-      server.urls[
-        'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
-      ].response = {
-        type: 'json-value',
-        body: { id: 'test-request-123', status: 'Pending', result: null },
+    it('should enforce pollTimeoutMillis while a polling request is pending', async () => {
+      const submitUrl =
+        'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro';
+      const pollUrl = `${submitUrl}/get_result`;
+      let pollingSignal: AbortSignal | null | undefined;
+      const fetch: FetchFunction = async (input, init) => {
+        const url = input instanceof Request ? input.url : input.toString();
+
+        if (url === submitUrl) {
+          return new Response(
+            JSON.stringify({ request_id: 'test-request-123' }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        }
+
+        if (url === pollUrl) {
+          pollingSignal = init?.signal;
+          return new Promise<Response>((_resolve, reject) => {
+            pollingSignal?.addEventListener(
+              'abort',
+              () => reject(pollingSignal?.reason),
+              { once: true },
+            );
+          });
+        }
+
+        throw new Error(`Unexpected URL: ${url}`);
       };
 
       const model = createAsyncModel({
+        fetch,
         pollIntervalMillis: 10,
-        pollTimeoutMillis: 50,
+        pollTimeoutMillis: 25,
       });
 
       await expect(
@@ -895,7 +1044,9 @@ describe('FireworksImageModel', () => {
           seed: undefined,
           providerOptions: {},
         }),
-      ).rejects.toThrow('Fireworks image generation timed out after 50ms');
+      ).rejects.toThrow('Fireworks image generation timed out after 25ms');
+
+      expect(pollingSignal?.aborted).toBe(true);
     });
 
     it('should throw error when Ready but missing sample', async () => {
@@ -949,8 +1100,12 @@ describe('FireworksImageModel', () => {
         providerOptions: {
           fireworks: {
             safety_tolerance: 6,
+            output_format: 'jpeg',
+            prompt_upsampling: true,
+            webhook_url: 'https://example.com/webhook',
+            webhook_secret: 'secret',
             input_image: 'base64-image-data',
-          },
+          } satisfies FireworksImageModelOptions,
         },
       });
 
@@ -958,6 +1113,10 @@ describe('FireworksImageModel', () => {
         prompt,
         samples: 1,
         safety_tolerance: 6,
+        output_format: 'jpeg',
+        prompt_upsampling: true,
+        webhook_url: 'https://example.com/webhook',
+        webhook_secret: 'secret',
         input_image: 'base64-image-data',
       });
     });

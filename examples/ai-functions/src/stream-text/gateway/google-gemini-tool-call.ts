@@ -48,7 +48,7 @@ async function main() {
     stopWhen: isStepCount(2),
   });
 
-  for await (const chunk of turn1.fullStream) {
+  for await (const chunk of turn1.stream) {
     if (chunk.type === 'text-delta') {
       process.stdout.write(chunk.text);
     }
@@ -97,7 +97,7 @@ async function main() {
       stopWhen: isStepCount(2),
     });
 
-    for await (const chunk of scenarioA.fullStream) {
+    for await (const chunk of scenarioA.stream) {
       if (chunk.type === 'text-delta') {
         process.stdout.write(chunk.text);
       }
@@ -154,7 +154,7 @@ async function main() {
       stopWhen: isStepCount(2),
     });
 
-    for await (const chunk of scenarioB.fullStream) {
+    for await (const chunk of scenarioB.stream) {
       if (chunk.type === 'text-delta') {
         process.stdout.write(chunk.text);
       }
@@ -196,7 +196,7 @@ async function main() {
         stopWhen: isStepCount(2),
       });
 
-      for await (const chunk of scenarioC.fullStream) {
+      for await (const chunk of scenarioC.stream) {
         if (chunk.type === 'text-delta') {
           process.stdout.write(chunk.text);
         }
