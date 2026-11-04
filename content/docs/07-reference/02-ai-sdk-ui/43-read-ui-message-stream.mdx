@@ -69,10 +69,10 @@ For comprehensive examples and use cases, see [Reading UI Message Streams](/docs
 
 The SDK creates parsers lazily for JSON input. Resuming a call feeds its persisted `rawInput` once before new deltas. Parsers are disposed when input becomes available, on input errors and resets, and when the stream closes, errors, or is cancelled. `dispose` must not throw. Final `tool-input-available` input remains authoritative and is passed unchanged to tool execution.
 
-For example, an application can supply Streamfold's parser adapter. This example uses its unreleased adapter preview:
+For example, an application can supply Streamfold's parser adapter:
 
 ```sh
-pnpm add --ignore-scripts "github:assistant-ui/streamfold#b0bf65d23f705ad61a8597ef137991d69f6aed24&path:/packages/core"
+pnpm add streamfold@0.1.18
 ```
 
 ```ts
