@@ -501,6 +501,9 @@ describe('legacy vocabulary validation', () => {
             42,
             {},
             { value: 3 },
+            { value: 'Invalid intensity', intensity: 'high' },
+            { value: 'Invalid pronunciations', pronunciations: [3] },
+            { value: 'Invalid language', language: 42 },
           ],
         },
       },
@@ -519,10 +522,23 @@ describe('legacy vocabulary validation', () => {
       {
         type: 'other',
         message:
-          'Invalid customVocabulary entries were ignored; use strings or objects with a string value.',
+          'Invalid customVocabulary entries were ignored; use strings or objects with a string value and correctly typed optional fields.',
       },
     ]);
   });
+  it.each([[], [null, { value: 'Invalid', intensity: 'high' }]])(
+    'omits vocabulary configuration when no valid legacy entries remain: %j',
+    async customVocabulary => {
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mp3',
+        providerOptions: { gladia: { customVocabulary } },
+      });
+      const body = await server.calls[1].requestBodyJson;
+      expect(body).not.toHaveProperty('custom_vocabulary');
+      expect(body).not.toHaveProperty('custom_vocabulary_config');
+    },
+  );
   it('warns when an explicit vocabulary overrides the legacy array', async () => {
     const result = await model.doGenerate({
       audio: audioData,

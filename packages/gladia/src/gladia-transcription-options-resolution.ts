@@ -60,16 +60,25 @@ export function resolveCustomVocabulary(
         typeof item === 'string' ||
         (item != null &&
           typeof item === 'object' &&
-          typeof item.value === 'string'),
+          typeof item.value === 'string' &&
+          (item.intensity == null ||
+            (typeof item.intensity === 'number' &&
+              Number.isFinite(item.intensity))) &&
+          (item.pronunciations == null ||
+            (Array.isArray(item.pronunciations) &&
+              item.pronunciations.every(
+                (pronunciation: unknown) => typeof pronunciation === 'string',
+              ))) &&
+          (item.language == null || typeof item.language === 'string')),
     );
     if (vocabulary.length !== options.customVocabulary.length) {
       warnings.push({
         type: 'other',
         message:
-          'Invalid customVocabulary entries were ignored; use strings or objects with a string value.',
+          'Invalid customVocabulary entries were ignored; use strings or objects with a string value and correctly typed optional fields.',
       });
     }
-    return { customVocabulary: true, vocabulary };
+    return vocabulary.length > 0 ? { customVocabulary: true, vocabulary } : {};
   }
 
   return {
