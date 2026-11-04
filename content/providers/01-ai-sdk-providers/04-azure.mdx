@@ -756,7 +756,9 @@ The code interpreter tool can be configured with:
 
 #### Apply Patch Tool
 
-The Azure OpenAI Responses API supports the apply patch tool for GPT-5.1 models through the `azure.tools.applyPatch` tool.
+Use `azure.tools.applyPatch` to configure the OpenAI apply patch tool for Azure Responses models.
+Availability depends on your model deployment, region, and API version; see the
+[Azure Responses API documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/responses).
 The apply patch tool lets the model create, update, and delete files in your codebase using structured diffs.
 Instead of just suggesting edits, the model emits patch operations that your application applies and reports back on,
 enabling iterative, multi-step code editing workflows.
@@ -766,7 +768,8 @@ import { azure } from '@ai-sdk/azure';
 import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
-  model: azure('gpt-5.1'),
+  // Use your Azure deployment name with apply-patch support.
+  model: azure.responses('your-deployment-name'),
   tools: {
     apply_patch: azure.tools.applyPatch({
       execute: async ({ callId, operation }) => {

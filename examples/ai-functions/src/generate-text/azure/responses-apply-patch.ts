@@ -12,6 +12,7 @@ run(async () => {
   );
 
   const result = await generateText({
+    // Replace with your Azure deployment name that supports apply patch.
     model: azure.responses('gpt-5.1'),
     stopWhen: isStepCount(5),
     tools: {
