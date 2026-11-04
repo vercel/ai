@@ -8,6 +8,7 @@ import {
   translations,
   versions,
 } from '@/geistdocs';
+import { isSiteUrlConfigured, siteUrl } from './site-url';
 
 export const config = defineConfig({
   title,
@@ -18,7 +19,9 @@ export const config = defineConfig({
   versions,
   translations,
   siteId,
+  siteUrl: isSiteUrlConfigured ? siteUrl.toString() : undefined,
   github: { owner: 'vercel', repo: 'ai' },
+  navbarActiveProduct: 'ai-sdk',
   agent: {
     product: {
       name: 'AI SDK',

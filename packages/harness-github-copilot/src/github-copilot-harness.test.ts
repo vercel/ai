@@ -20,10 +20,11 @@ describe('createGitHubCopilot', () => {
     mocks.createACP.mockClear();
   });
 
-  it('configures the GitHub Copilot ACP implementation', () => {
+  it('configures the GitHub Copilot ACP agent', () => {
     createGitHubCopilot();
 
     const settings = lastSettings();
+    expect(settings.nonTextContentTypes).toEqual(['image']);
     expect({
       version: settings.version,
       harnessId: settings.harnessId,
@@ -34,6 +35,8 @@ describe('createGitHubCopilot', () => {
       forwardEnv: settings.forwardEnv,
       credentialEnv: settings.credentialEnv,
       hasCredentialBrokering: settings.credentialBrokering != null,
+      hasAuthenticationResolver:
+        settings.resolveAuthenticationEnvironment != null,
       providerAuthentication: settings.providerAuthentication,
       modelMapping: settings.modelMapping,
       skillsDirectory: settings.skillsDirectory,
@@ -64,7 +67,7 @@ describe('createGitHubCopilot', () => {
           "task",
         ],
         "clientApp": {
-          "name": "ai-sdk/harness-github-copilot",
+          "name": "ai-sdk-harness-github-copilot",
           "version": "0.0.0-test",
         },
         "credentialEnv": [
@@ -78,6 +81,7 @@ describe('createGitHubCopilot', () => {
           "GH_HOST",
         ],
         "harnessId": "github-copilot",
+        "hasAuthenticationResolver": true,
         "hasCredentialBrokering": true,
         "modelMapping": {
           "path": "model",
@@ -114,11 +118,9 @@ describe('createGitHubCopilot', () => {
     if (source.type !== 'npm-locked') {
       throw new Error('Expected a locked NPM source.');
     }
-    expect(source.packageJson).toContain('"@github/copilot": "1.0.82"');
-    expect(source.pnpmLockYaml).toContain("'@github/copilot@1.0.82':");
-    expect(source.pnpmWorkspaceYaml).toBe(
-      "allowBuilds:\n  '@github/copilot@1.0.82': true\n",
-    );
+    expect(source.packageJson).toContain('"@github/copilot": "1.0.92"');
+    expect(source.pnpmLockYaml).toContain("'@github/copilot@1.0.92':");
+    expect(source.pnpmWorkspaceYaml).toContain("'@github/copilot");
   });
 
   it('brokers GitHub credentials using their sandbox placeholders', () => {
@@ -167,6 +169,39 @@ describe('createGitHubCopilot', () => {
         },
       ]),
     );
+  });
+
+  it.each(['COPILOT_GITHUB_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN'])(
+    'formats the %s sandbox placeholder as a GitHub OAuth token',
+    async name => {
+      createGitHubCopilot();
+
+      const credential = await lastSettings().credentialForwarding?.({
+        credential: `aisdkhc_${'A'.repeat(43)}`,
+        environmentVariableName: name,
+      });
+
+      expect(credential).toMatch(/^gho_aisdkhc[0-9a-f]{29}$/);
+      expect(credential).toHaveLength(40);
+    },
+  );
+
+  it('does not format real credentials or unrelated placeholders', async () => {
+    createGitHubCopilot();
+    const credentialForwarding = lastSettings().credentialForwarding!;
+
+    expect(
+      await credentialForwarding({
+        credential: 'gho_real-credential',
+        environmentVariableName: 'COPILOT_GITHUB_TOKEN',
+      }),
+    ).toBe('gho_real-credential');
+    expect(
+      await credentialForwarding({
+        credential: `aisdkhc_${'A'.repeat(43)}`,
+        environmentVariableName: 'COPILOT_PROVIDER_API_KEY',
+      }),
+    ).toBe(`aisdkhc_${'A'.repeat(43)}`);
   });
 
   it('brokers GitHub credentials for the configured enterprise host', () => {
@@ -272,11 +307,18 @@ describe('createGitHubCopilot', () => {
     });
   });
 
-  it('forwards launch and bridge settings', () => {
-    const credentialForwarding = vi.fn();
+  it('forwards launch and bridge settings', async () => {
+    const credentialForwarding = vi.fn(
+      ({ credential }: { credential: string }) => credential,
+    );
     const mintBridgeToken = (sandboxId: string) => sandboxId;
     const mcpServers = { docs: { url: 'https://mcp.example' } };
     const portEndpoint = { url: 'wss://sandbox.example/bridge' };
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
 
     createGitHubCopilot({
       auth: 'direct',
@@ -286,19 +328,28 @@ describe('createGitHubCopilot', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mintBridgeToken,
     });
 
     const settings = lastSettings();
     expect(settings).toMatchObject({
       auth: 'direct',
-      credentialForwarding,
       args: ['--acp', '--stdio', '--no-auto-update', '--reasoning-effort=high'],
       mcpServers,
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mintBridgeToken,
+    });
+    await settings.credentialForwarding?.({
+      credential: 'real-credential',
+      environmentVariableName: 'COPILOT_GITHUB_TOKEN',
+    });
+    expect(credentialForwarding).toHaveBeenCalledExactlyOnceWith({
+      credential: 'real-credential',
+      environmentVariableName: 'COPILOT_GITHUB_TOKEN',
     });
   });
 
@@ -321,7 +372,7 @@ describe('createGitHubCopilot', () => {
     createGitHubCopilot({
       mcpServers: { docs: { command: 'docs-mcp' } },
     });
-    const isMcpToolCall = lastSettings().isMcpToolCall!;
+    const isMcpToolCall = lastSettings().isMcpToolCall;
 
     expect(
       isMcpToolCall({
@@ -372,4 +423,73 @@ function lastSettings(): ACPHarnessSettings<Record<string, any>> {
   return mocks.createACP.mock.calls.at(-1)![0] as ACPHarnessSettings<
     Record<string, any>
   >;
+}
+
+describe('resolveHostToolCall', () => {
+  const serverName = 'ai-sdk-harness-tools';
+  const toolNames = ['get_weather'];
+
+  it('resolves the captured host tool call update', () => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: {
+          toolCallId: 'call-1',
+          title: 'ai-sdk-harness-tools-get_weather',
+          kind: 'read',
+          status: 'pending',
+          rawInput: { city: 'Austin' },
+        },
+        serverName,
+        toolNames,
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "input": {
+          "city": "Austin",
+        },
+        "toolName": "get_weather",
+      }
+    `);
+  });
+
+  it('does not resolve the shortened permission request title', () => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: {
+          toolCallId: 'call-1',
+          title: 'get_weather',
+          rawInput: { city: 'Austin' },
+        },
+        serverName,
+        toolNames,
+      }),
+    ).toBeUndefined();
+  });
+
+  it.each([
+    {
+      title: 'github-mcp-server-get_weather',
+      rawInput: { city: 'Austin' },
+    },
+    {
+      title: 'ai-sdk-harness-tools-get_weather',
+      name: 'get_weather',
+      rawInput: { city: 'Austin' },
+    },
+    { title: 'ai-sdk-harness-tools-get_weather', rawInput: null },
+  ])('does not resolve a mismatched tool call: %j', toolCall => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: { toolCallId: 'call-1', ...toolCall },
+        serverName,
+        toolNames,
+      }),
+    ).toBeUndefined();
+  });
+});
+
+function resolveHostToolCall(): ACPHarnessSettings['resolveHostToolCall'] {
+  createGitHubCopilot();
+  return (mocks.createACP.mock.calls.at(-1)![0] as ACPHarnessSettings)
+    .resolveHostToolCall;
 }

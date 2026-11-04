@@ -3,10 +3,6 @@ import {
   type LanguageModelV4CallOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
-import {
-  convertJSONSchemaToOpenAPISchema,
-  isRecursiveJSONSchemaReferenceError,
-} from './convert-json-schema-to-openapi-schema';
 import type { GoogleModelId } from './google-language-model-options';
 import { getGoogleModelCapabilities } from './google-model-capabilities';
 
@@ -18,8 +14,7 @@ type FunctionTool = Extract<
 type GoogleFunctionDeclaration = {
   name: string;
   description: string;
-  parameters?: unknown;
-  parametersJsonSchema?: unknown;
+  parametersJsonSchema: unknown;
 };
 
 export function prepareTools({
@@ -317,24 +312,9 @@ export function prepareTools({
 function prepareFunctionDeclaration(
   tool: FunctionTool,
 ): GoogleFunctionDeclaration {
-  const declaration = {
+  return {
     name: tool.name,
     description: tool.description ?? '',
+    parametersJsonSchema: tool.inputSchema,
   };
-
-  try {
-    return {
-      ...declaration,
-      parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
-    };
-  } catch (error) {
-    if (!isRecursiveJSONSchemaReferenceError(error)) {
-      throw error;
-    }
-
-    return {
-      ...declaration,
-      parametersJsonSchema: tool.inputSchema,
-    };
-  }
 }

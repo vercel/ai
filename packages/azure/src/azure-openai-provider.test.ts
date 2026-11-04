@@ -1,6 +1,7 @@
 import type {
   EmbeddingModelV4Embedding,
   LanguageModelV4,
+  LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
@@ -203,7 +204,7 @@ describe('responses (default language model)', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -226,7 +227,7 @@ describe('responses (default language model)', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -322,7 +323,7 @@ describe('responses (default language model)', () => {
         {
           type: 'message',
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'Hi.' }],
+          content: 'Hi.',
         },
         {
           type: 'message',
@@ -418,7 +419,7 @@ describe('chat', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -558,6 +559,57 @@ describe('chat', () => {
 });
 
 describe('deepseek', () => {
+  describe.each(['doGenerate', 'doStream'] as const)(
+    '%s strict tools',
+    method => {
+      it.each([true, false, undefined])(
+        'should forward strict tools with companion strict=%s when endpoint support is unspecified',
+        async companionStrict => {
+          if (method === 'doGenerate') {
+            prepareJsonFixtureResponse(
+              'azure-deepseek-reasoning.1',
+              undefined,
+              'chat',
+            );
+          } else {
+            prepareChunksFixtureResponse(
+              'azure-deepseek-reasoning.1',
+              undefined,
+              'chat',
+            );
+          }
+
+          const result = await provider.deepseek('deepseek-v4-pro')[method]({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'function',
+                name: 'ready',
+                inputSchema: { type: 'object' },
+                strict: true,
+              },
+              {
+                type: 'function',
+                name: 'other',
+                inputSchema: { type: 'object' },
+                strict: companionStrict,
+              },
+            ],
+          });
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.tools[0].function.strict).toBe(true);
+          expect(body.tools[1].function.strict).toBe(companionStrict);
+
+          if ('stream' in result) {
+            const parts = await convertReadableStreamToArray(result.stream);
+            expect(parts.find(part => part.type === 'error')).toBeUndefined();
+          }
+        },
+      );
+    },
+  );
+
   it('should map top-level reasoning to Azure DeepSeek reasoning effort', async () => {
     prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
 
@@ -870,7 +922,7 @@ describe('completion', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
   });
@@ -1032,7 +1084,7 @@ describe('embedding', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
   });
@@ -1040,6 +1092,20 @@ describe('embedding', () => {
 
 describe('image', () => {
   const prompt = 'A cute baby sea otter';
+
+  describe('image editing capabilities', () => {
+    it.each(['image', 'imageModel'] as const)(
+      'leaves capabilities unknown for arbitrary deployment names created with %s',
+      factoryMethod => {
+        for (const deploymentName of ['gpt-image-production', 'dall-e-3']) {
+          const model = provider[factoryMethod](deploymentName);
+
+          expect(model.supportsFileInputs).toBeUndefined();
+          expect(model.supportsMaskInputs).toBeUndefined();
+        }
+      },
+    );
+  });
 
   describe('doGenerate', () => {
     function prepareJsonResponse() {
@@ -1137,7 +1203,7 @@ describe('image', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -1361,7 +1427,7 @@ describe('responses', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -1803,7 +1869,16 @@ describe('responses', () => {
           ],
         });
       });
-      it('should stream web search preview results include', async () => {
+      it('should retain web search preview citation sources', async () => {
+        expect(result.content).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://www.nbcnews.com/',
+            }),
+          ]),
+        );
         expect(result.content).toMatchSnapshot();
       });
     });
@@ -1845,6 +1920,117 @@ describe('responses', () => {
       });
       it('should generate with reasoning encrypted content', async () => {
         expect(result).toMatchSnapshot();
+      });
+    });
+
+    describe('tool search tool', () => {
+      it('should expose toolSearch as an Azure tool', () => {
+        expect(
+          createAzure({ resourceName: 'test-resource' }).tools.toolSearch(),
+        ).toMatchObject({
+          type: 'provider',
+          id: 'openai.tool_search',
+        });
+      });
+
+      const toolSearchTools = (
+        providerOptionsName: 'azure' | 'openai',
+      ): LanguageModelV4CallOptions['tools'] => [
+        {
+          type: 'provider',
+          id: 'openai.tool_search',
+          name: 'toolSearch',
+          args: {},
+        },
+        {
+          type: 'function',
+          name: 'get_weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+          },
+          providerOptions: {
+            [providerOptionsName]: { deferLoading: true },
+          },
+        },
+      ];
+
+      it.each(['azure', 'openai'] as const)(
+        'should defer function tools marked with providerOptions.%s',
+        async providerOptionsName => {
+          prepareJsonFixtureResponse('azure-text.1');
+
+          await createModel('test-deployment').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: toolSearchTools(providerOptionsName),
+          });
+
+          expect((await server.calls[0].requestBodyJson).tools)
+            .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "tool_search",
+              },
+              {
+                "defer_loading": true,
+                "name": "get_weather",
+                "parameters": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "location",
+                  ],
+                  "type": "object",
+                },
+                "strict": false,
+                "type": "function",
+              },
+            ]
+          `);
+        },
+      );
+
+      it('should defer function tools marked with providerOptions.azure when streaming', async () => {
+        prepareChunksFixtureResponse('azure-text.1');
+
+        const { stream } = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools: toolSearchTools('azure'),
+        });
+        await convertReadableStreamToArray(stream);
+
+        expect((await server.calls[0].requestBodyJson).tools)
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "tool_search",
+            },
+            {
+              "defer_loading": true,
+              "name": "get_weather",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "location": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "location",
+                ],
+                "type": "object",
+              },
+              "strict": false,
+              "type": "function",
+            },
+          ]
+        `);
       });
     });
 
@@ -1981,6 +2167,65 @@ describe('responses', () => {
             "warnings": [],
           },
           {
+            "citations": [
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "assistant-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "azure": {
+                      "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                      "index": 145,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+              {
+                "source": {
+                  "filename": "resource1.json",
+                  "id": "assistant-YRcoCqn3Fo2K4JgraG",
+                  "mediaType": "text/plain",
+                  "providerMetadata": {
+                    "azure": {
+                      "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                      "index": 192,
+                      "type": "file_citation",
+                    },
+                  },
+                  "sourceType": "document",
+                  "title": "resource1.json",
+                  "type": "source",
+                },
+              },
+            ],
+            "id": "msg_456",
+            "providerMetadata": {
+              "azure": {
+                "annotations": [
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
+            "type": "text-end",
+          },
+          {
             "filename": "resource1.json",
             "id": "id-0",
             "mediaType": "text/plain",
@@ -2009,29 +2254,6 @@ describe('responses', () => {
             "sourceType": "document",
             "title": "resource1.json",
             "type": "source",
-          },
-          {
-            "id": "msg_456",
-            "providerMetadata": {
-              "azure": {
-                "annotations": [
-                  {
-                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 145,
-                    "type": "file_citation",
-                  },
-                  {
-                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
-                    "filename": "resource1.json",
-                    "index": 192,
-                    "type": "file_citation",
-                  },
-                ],
-                "itemId": "msg_456",
-              },
-            },
-            "type": "text-end",
           },
           {
             "finishReason": {
@@ -2183,7 +2405,7 @@ describe('responses', () => {
     });
 
     describe('web search preview tool', () => {
-      it('should stream web search preview results include', async () => {
+      it('should retain streamed web search preview citation sources', async () => {
         prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
         const result = await createModel('test-deployment').doStream({
           prompt: TEST_PROMPT,
@@ -2196,9 +2418,18 @@ describe('responses', () => {
             },
           ],
         });
-        expect(
-          await convertReadableStreamToArray(result.stream),
-        ).toMatchSnapshot();
+        const events = await convertReadableStreamToArray(result.stream);
+
+        expect(events).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: 'source',
+              sourceType: 'url',
+              url: 'https://www.nbcnews.com/',
+            }),
+          ]),
+        );
+        expect(events).toMatchSnapshot();
       });
     });
 
@@ -2223,4 +2454,93 @@ describe('responses', () => {
       });
     });
   });
+});
+
+describe('resourceName validation', () => {
+  it.each([
+    'resource\n',
+    'resource\r',
+    'resource.example',
+    'my_resource',
+    'résource',
+    '-resource',
+    'resource-',
+    'a'.repeat(64),
+    '',
+    'user@internal:8080/#',
+    '169.254.169.254:80/x#',
+    'evil.example.com/#',
+  ])('rejects %j before sending a request', async resourceName => {
+    const fetch = vi.fn();
+    const provider = createAzure({ resourceName, apiKey: 'test-key', fetch });
+    await expect(
+      provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'resourceName',
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('accepts a DNS-label resource name', async () => {
+    const fetch = vi.fn(
+      async (_url: RequestInfo | URL, _init?: RequestInit) =>
+        new Response('{}', { status: 500 }),
+    );
+    const provider = createAzure({
+      resourceName: 'my-resource',
+      apiKey: 'test-key',
+      fetch,
+    });
+    await expect(
+      provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toBeDefined();
+    expect(String(fetch.mock.calls[0]?.[0])).toContain(
+      'https://my-resource.openai.azure.com/',
+    );
+  });
+
+  it.each(['a', 'a'.repeat(63), 'My-Resource-1'])(
+    'accepts the DNS-label boundary case %j',
+    async resourceName => {
+      const fetch = vi.fn(
+        async (_url: RequestInfo | URL, _init?: RequestInit) =>
+          new Response('{}', { status: 500 }),
+      );
+      const provider = createAzure({ resourceName, apiKey: 'test-key', fetch });
+      await expect(
+        provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toBeDefined();
+      expect(new URL(String(fetch.mock.calls[0]?.[0])).hostname).toBe(
+        `${resourceName.toLowerCase()}.openai.azure.com`,
+      );
+    },
+  );
+
+  it('rejects an invalid AZURE_RESOURCE_NAME for non-language models', async () => {
+    vi.stubEnv('AZURE_RESOURCE_NAME', 'user@internal:8080/#');
+    try {
+      const fetch = vi.fn();
+      const provider = createAzure({ apiKey: 'test-key', fetch });
+      await expect(
+        provider.embedding('test-deployment').doEmbed({ values: ['hi'] }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'resourceName',
+      });
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
+it('does not validate an unused resource name with a custom endpoint', () => {
+  expect(() =>
+    createAzure({
+      resourceName: 'not a resource',
+      baseURL: 'https://proxy.example/openai',
+      apiKey: 'test-key',
+    })('test-deployment'),
+  ).not.toThrow();
 });

@@ -1,9 +1,13 @@
+import { mapAnthropicCitation } from './map-anthropic-citation';
 import {
   InvalidArgumentError,
   InvalidResponseDataError,
   UnsupportedFunctionalityError,
   type Experimental_BatchV4 as BatchV4,
+  type Experimental_BatchV4CancelResult as BatchV4CancelResult,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
+  type Experimental_BatchV4ListOptions as BatchV4ListOptions,
+  type Experimental_BatchV4ListResult as BatchV4ListResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
@@ -41,14 +45,11 @@ import {
 } from './anthropic-api';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import {
-  AnthropicLanguageModel,
   createCitationSource,
+  AnthropicLanguageModel,
   type AnthropicLanguageModelConfig,
 } from './anthropic-language-model';
-import {
-  anthropicLanguageModelOptions,
-  type AnthropicModelId,
-} from './anthropic-language-model-options';
+import type { AnthropicModelId } from './anthropic-language-model-options';
 import type {
   AnthropicMessageMetadata,
   AnthropicUsageIteration,
@@ -58,31 +59,46 @@ import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 const anthropicBatchRequestIdPattern = /^[A-Za-z0-9_-]{1,64}$/;
 
-const anthropicBatchProviderOptionsSchema = anthropicLanguageModelOptions.pick({
-  anthropicBeta: true,
-});
+const anthropicBatchProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      anthropicBeta: z.array(z.string()).optional(),
+    }),
+  ),
+);
 
 type AnthropicBatchRequest = TextBatchV4Request<AnthropicModelId>;
 
+const anthropicBatchResponseZodSchema = () =>
+  z.object({
+    id: z.string(),
+    type: z.literal('message_batch'),
+    processing_status: z.string(),
+    request_counts: z.object({
+      processing: z.number(),
+      succeeded: z.number(),
+      errored: z.number(),
+      canceled: z.number(),
+      expired: z.number(),
+    }),
+    created_at: z.string(),
+    expires_at: z.string(),
+    archived_at: z.string().nullish(),
+    cancel_initiated_at: z.string().nullish(),
+    ended_at: z.string().nullish(),
+    results_url: z.string().nullish(),
+  });
+
 const anthropicBatchResponseSchema = lazySchema(() =>
+  zodSchema(anthropicBatchResponseZodSchema()),
+);
+
+const anthropicBatchListResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      id: z.string(),
-      type: z.literal('message_batch'),
-      processing_status: z.string(),
-      request_counts: z.object({
-        processing: z.number(),
-        succeeded: z.number(),
-        errored: z.number(),
-        canceled: z.number(),
-        expired: z.number(),
-      }),
-      created_at: z.string(),
-      expires_at: z.string(),
-      archived_at: z.string().nullish(),
-      cancel_initiated_at: z.string().nullish(),
-      ended_at: z.string().nullish(),
-      results_url: z.string().nullish(),
+      data: z.array(anthropicBatchResponseZodSchema()),
+      has_more: z.boolean(),
+      last_id: z.string().nullish(),
     }),
   ),
 );
@@ -148,6 +164,20 @@ type AnthropicBatchResultLine = InferSchema<
 
 type AnthropicResponse = InferSchema<typeof anthropicResponseSchema>;
 
+function assertTextBatchRequests(
+  requests: BatchV4StartOptions['requests'],
+): asserts requests is ReadonlyArray<AnthropicBatchRequest> {
+  for (const request of requests) {
+    const requestType = request.type;
+    if (requestType !== 'text') {
+      throw new UnsupportedFunctionalityError({
+        functionality: `batch request type: ${requestType}`,
+        message: `The Anthropic Message Batches API does not support batch requests with type "${requestType}".`,
+      });
+    }
+  }
+}
+
 export class AnthropicBatch implements BatchV4<{
   readonly text: AnthropicModelId;
 }> {
@@ -161,6 +191,7 @@ export class AnthropicBatch implements BatchV4<{
       provider: string;
       config: AnthropicLanguageModelConfig;
       supportedUrls: Record<string, RegExp[]>;
+      maxLineBytes?: number;
     },
   ) {
     this.provider = options.provider;
@@ -177,6 +208,7 @@ export class AnthropicBatch implements BatchV4<{
   }: BatchV4StartOptions<{
     text: AnthropicModelId;
   }>): Promise<BatchV4StartResult> {
+    assertTextBatchRequests(requests);
     validateRequestIds(requests);
 
     const explicitBatchBetas = new Set(
@@ -295,6 +327,56 @@ export class AnthropicBatch implements BatchV4<{
     return convertAnthropicBatchStatus(await this.retrieveBatch(options));
   }
 
+  async doCancelBatch(
+    options: BatchV4OperationOptions,
+  ): Promise<BatchV4CancelResult> {
+    await postJsonToApi({
+      url: this.getBatchUrl(`/${encodeURIComponent(options.batchId)}/cancel`),
+      headers: await this.getBatchHeaders(options.headers),
+      body: {},
+      failedResponseHandler: anthropicFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        anthropicBatchResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.options.config.fetch,
+    });
+
+    return {};
+  }
+
+  async doListBatches(options: BatchV4ListOptions): Promise<BatchV4ListResult> {
+    const url = new URL(this.getBatchUrl(''));
+    if (options.limit != null) {
+      url.searchParams.set('limit', String(options.limit));
+    }
+    if (options.cursor != null) {
+      url.searchParams.set('after_id', options.cursor);
+    }
+
+    const { value: page } = await getFromApi({
+      url: url.toString(),
+      validateUrl: false,
+      headers: await this.getBatchHeaders(options.headers),
+      failedResponseHandler: anthropicFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        anthropicBatchListResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.options.config.fetch,
+    });
+
+    return {
+      batches: page.data.map(batch => ({
+        batchId: batch.id,
+        ...convertAnthropicBatchStatus(batch),
+      })),
+      ...(page.has_more && page.last_id != null
+        ? { nextCursor: page.last_id }
+        : {}),
+    };
+  }
+
   async doGetBatchResults(
     options: BatchV4OperationOptions,
   ): Promise<ReadableStream<BatchV4ItemResult>> {
@@ -330,6 +412,7 @@ export class AnthropicBatch implements BatchV4<{
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonLinesResponseHandler(
         anthropicBatchResultLineSchema,
+        { maxLineBytes: this.options.maxLineBytes },
       ),
       abortSignal: options.abortSignal,
       fetch: this.options.config.fetch,
@@ -665,6 +748,12 @@ function convertAnthropicBatchResponse(
   > = {};
   const serverToolCalls: Record<string, string> = {};
 
+  const hasWebSearchResults = response.content.some(
+    part =>
+      part.type === 'web_search_tool_result' &&
+      Array.isArray(part.content) &&
+      part.content.length > 0,
+  );
   for (const part of response.content) {
     switch (part.type) {
       case 'text':
@@ -675,18 +764,24 @@ function convertAnthropicBatchResponse(
           text: part.text,
           ...(citations != null &&
             citations.length > 0 && {
+              citations: citations.map(citation =>
+                mapAnthropicCitation(citation, []),
+              ),
+            }),
+          ...(citations != null &&
+            citations.length > 0 && {
               providerMetadata: {
                 anthropic: { citations },
               },
             }),
         });
         for (const citation of part.citations ?? []) {
-          // Batch result retrieval does not include the original prompt's
-          // document ordering, so indexed document citations cannot be
-          // normalized safely. Preserve them above as provider metadata.
-          const source = createCitationSource(citation, [], generateId);
-          if (source != null) {
-            content.push(source);
+          if (
+            citation.type === 'web_search_result_location' &&
+            !hasWebSearchResults
+          ) {
+            const source = createCitationSource(citation, [], generateId);
+            if (source) content.push(source);
           }
         }
         break;
@@ -720,10 +815,19 @@ function convertAnthropicBatchResponse(
         });
         break;
       case 'compaction':
+        if (!part.content) {
+          break;
+        }
+
         content.push({
           type: 'text',
           text: part.content,
-          providerMetadata: { anthropic: { type: 'compaction' } },
+          providerMetadata: {
+            anthropic: {
+              type: 'compaction',
+              ...(part.signature != null && { signature: part.signature }),
+            },
+          },
         });
         break;
       case 'tool_use':
@@ -754,7 +858,7 @@ function convertAnthropicBatchResponse(
           toolName,
           input: JSON.stringify(
             isCodeExecutionAlias
-              ? { type: part.name, ...(part.input ?? {}) }
+              ? { type: part.name, ...part.input }
               : part.name === 'code_execution' &&
                   part.input != null &&
                   'code' in part.input &&
@@ -968,6 +1072,17 @@ function convertAnthropicBatchResponse(
         }
         break;
       case 'fallback':
+        content.push({
+          type: 'custom',
+          kind: 'anthropic.fallback',
+          providerMetadata: {
+            anthropic: {
+              type: 'fallback',
+              from: part.from,
+              to: part.to,
+            },
+          },
+        });
         break;
     }
   }
@@ -1016,6 +1131,12 @@ function convertAnthropicMessageMetadata(response: AnthropicResponse) {
     usage: response.usage as JSONObject,
     stopSequence: response.stop_sequence ?? null,
     ...(stopDetails != null ? { stopDetails } : {}),
+    ...(response.input_transformations != null
+      ? { inputTransformations: response.input_transformations }
+      : {}),
+    ...(response.safeguard_results != null
+      ? { safeguardResults: response.safeguard_results }
+      : {}),
     iterations: response.usage.iterations
       ? response.usage.iterations.map(
           iteration =>

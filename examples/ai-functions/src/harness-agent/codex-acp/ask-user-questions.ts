@@ -3,7 +3,7 @@ import type {
   HarnessV1QuestionsToolOutput,
 } from '@ai-sdk/harness';
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { createCodexACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
@@ -11,13 +11,14 @@ import { run } from '../../lib/run';
 run(async () => {
   const agent = new HarnessAgent({
     harness: createCodexACP(),
-    sandbox: createVercelSandbox({
-      runtime: 'node24',
-      ports: [4000],
-      timeout: 10 * 60 * 1000,
-    }),
   });
-  let session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session = await agent.createSession({ sandboxSession });
 
   try {
     const first = await agent.stream({
@@ -55,7 +56,11 @@ run(async () => {
       throw new Error('Expected serialized pending question state.');
     }
 
-    session = await agent.createSession({ sessionId, continueFrom });
+    session = await agent.createSession({
+      sandboxSession,
+      sessionId,
+      continueFrom,
+    });
     const continued = await agent.continueStream({
       session,
       toolResultContinuations: [
@@ -71,5 +76,6 @@ run(async () => {
     await printFullStream({ result: continued });
   } finally {
     await session.destroy();
+    await sandboxSession.destroy();
   }
 });

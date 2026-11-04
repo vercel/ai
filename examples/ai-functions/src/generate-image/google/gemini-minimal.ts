@@ -5,7 +5,7 @@ import { presentImages } from '../../lib/present-image';
 
 run(async () => {
   const { images } = await generateImage({
-    model: google.image('gemini-2.5-flash-image'),
+    model: google.image('gemini-3.1-flash-image-preview'),
     prompt: 'A nano banana in a fancy restaurant',
   });
 

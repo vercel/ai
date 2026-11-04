@@ -13,3 +13,4 @@ export type {
   GitHubCopilotHarnessSettings,
 } from './github-copilot-harness';
 export { VERSION } from './version';
+export type { JSONObject } from '@ai-sdk/provider';

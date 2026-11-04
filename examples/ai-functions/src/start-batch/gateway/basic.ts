@@ -8,7 +8,7 @@ import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const model = 'anthropic/claude-sonnet-5';
+  const model = 'anthropic/claude-sonnet-5.5';
 
   const batch = await startBatch({
     requests: [
@@ -42,7 +42,10 @@ run(async () => {
 
   for await (const item of getBatchResults({ batch })) {
     if (item.status === 'succeeded') {
-      print('Result:', { id: item.id, text: item.text });
+      print('Result:', {
+        id: item.id,
+        output: item.type === 'text' ? item.text : item.images,
+      });
     } else {
       print('Error:', { id: item.id, error: item.error });
     }

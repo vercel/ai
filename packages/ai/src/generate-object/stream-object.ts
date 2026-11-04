@@ -1,3 +1,4 @@
+import { sanitizeRequestMetadata } from '../telemetry/get-request-origin';
 import type {
   JSONValue,
   LanguageModelV4FinishReason,
@@ -353,6 +354,16 @@ export function streamObject<
       : never
     : never
 > {
+  logWarnings({
+    warnings: [
+      {
+        type: 'deprecated',
+        setting: 'streamObject',
+        message: 'Use streamText with an output setting instead.',
+      },
+    ],
+  });
+
   const {
     model,
     output = 'object',
@@ -612,6 +623,7 @@ class DefaultStreamObjectResult<
           prompt: standardizedPrompt,
           supportedUrls: await model.supportedUrls,
           download,
+          abortSignal,
           provider: model.provider.split('.')[0],
         }),
         providerOptions,
@@ -653,10 +665,13 @@ class DefaultStreamObjectResult<
       };
 
       const startTimestampMs = now();
-      const { stream, response, request } = await retry(() =>
-        model.doStream(callOptions),
-      );
+      const {
+        stream,
+        response,
+        request: rawRequest,
+      } = await retry(() => model.doStream(callOptions));
 
+      const request = sanitizeRequestMetadata(rawRequest);
       self._request.resolve(request ?? {});
 
       let warnings: SharedV4Warning[] | undefined;

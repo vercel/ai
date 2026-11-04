@@ -5,9 +5,57 @@ import {
   readACPBridgeEnvironment,
 } from './acp-v1-bridge-environment';
 
+const agent = {
+  command: '/home/agent/.harness-bootstrap/example-acp/home/.local/bin/agent',
+  args: ['acp'],
+  home: '/home/agent/.harness-bootstrap/example-acp/home',
+};
+
 describe('ACP bridge environment', () => {
+  it('round-trips the agent launch', async () => {
+    await expect(
+      readACPBridgeEnvironment({ env: createACPBridgeEnvironment({ agent }) }),
+    ).resolves.toEqual({ agent });
+  });
+
+  it.each([
+    { nonTextContentTypes: [] },
+    { nonTextContentTypes: ['image'] as const },
+  ])(
+    'round-trips non-text content types: %j',
+    async ({ nonTextContentTypes }) => {
+      const configuration = { agent, nonTextContentTypes };
+      await expect(
+        readACPBridgeEnvironment({
+          env: createACPBridgeEnvironment(configuration),
+        }),
+      ).resolves.toEqual(configuration);
+    },
+  );
+
+  it.each([
+    { nonTextContentTypes: ['text'] },
+    { nonTextContentTypes: ['audio'] },
+    { nonTextContentTypes: true },
+  ])(
+    'rejects invalid non-text content types: %j',
+    async ({ nonTextContentTypes }) => {
+      await expect(
+        readACPBridgeEnvironment({
+          env: {
+            [ACP_BRIDGE_CONFIGURATION_ENV]: JSON.stringify({
+              agent,
+              nonTextContentTypes,
+            }),
+          },
+        }),
+      ).rejects.toThrow('ACP bridge configuration environment is invalid.');
+    },
+  );
+
   it('round-trips fixed authentication and session configuration', async () => {
     const configuration = {
+      agent,
       authentication: {
         methodId: 'api-key',
         meta: {
@@ -45,12 +93,15 @@ describe('ACP bridge environment', () => {
     );
   });
 
-  it('returns empty configuration when the environment variable is absent', async () => {
-    await expect(readACPBridgeEnvironment({ env: {} })).resolves.toEqual({});
+  it('rejects a missing configuration environment variable', async () => {
+    await expect(readACPBridgeEnvironment({ env: {} })).rejects.toThrow(
+      'ACP bridge configuration environment is invalid.',
+    );
   });
 
   it('round-trips a Gateway launch environment', async () => {
     const configuration = {
+      agent,
       providerAuthentication: {
         type: 'ai-gateway',
         env: {
@@ -85,6 +136,7 @@ describe('ACP bridge environment', () => {
       readACPBridgeEnvironment({
         env: {
           [ACP_BRIDGE_CONFIGURATION_ENV]: JSON.stringify({
+            agent,
             providerAuthentication: {
               type: 'ai-gateway',
               env: [],

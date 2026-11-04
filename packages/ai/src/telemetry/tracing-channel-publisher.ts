@@ -66,6 +66,7 @@ function loadBuiltinModule<T>(id: string): T | undefined {
 export async function runWithTracingChannelSpan<T>(
   message: TelemetryTracingChannelMessage,
   execute: () => PromiseLike<T>,
+  recordResult = true,
 ): Promise<T> {
   const diagnosticsChannel = await loadDiagnosticsChannel();
   const tracingChannel = diagnosticsChannel?.tracingChannel?.(
@@ -102,11 +103,21 @@ export async function runWithTracingChannelSpan<T>(
       },
     );
 
-    return executePromise;
+    // tracePromise publishes its resolved value on the channel. Keep the
+    // application's result separately when content recording is disabled.
+    return recordResult
+      ? executePromise
+      : executePromise.then(
+          () => undefined,
+          () => {
+            throw new Error('AI SDK operation failed');
+          },
+        );
   };
 
   try {
-    return await tracingChannel.tracePromise(tracedExecute, message);
+    await tracingChannel.tracePromise(tracedExecute, message);
+    return executionResult as T;
   } catch {
     if (hasExecutionError) {
       throw executionError;
@@ -131,11 +142,14 @@ export async function runWithTracingChannelSpan<T>(
 export function openTelemetryChannelSpanContext({
   message,
   completion,
+  recordResult = true,
 }: {
   message: TelemetryTracingChannelMessage;
   completion: PromiseLike<unknown>;
+  recordResult?: boolean;
 }): TracingChannelContext | undefined {
   if (!isNodeRuntime()) {
+    Promise.resolve(completion).catch(() => {});
     return undefined;
   }
 
@@ -185,11 +199,13 @@ export function openTelemetryChannelSpanContext({
     asyncEndPublished = true;
 
     if (error !== undefined) {
-      context.error = error;
+      context.error = recordResult
+        ? error
+        : new Error('AI SDK operation failed');
       safePublish(() => tracingChannel.error.publish(context));
     }
 
-    if (result !== undefined) {
+    if (recordResult && result !== undefined) {
       context.result = result;
     }
 

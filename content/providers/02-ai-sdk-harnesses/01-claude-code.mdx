@@ -35,18 +35,19 @@ import { claudeCode, createClaudeCode } from '@ai-sdk/harness-claude-code';
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: claudeCode,
   model: 'claude-sonnet-4-6',
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 let exitCode = 0;
 try {
@@ -65,6 +66,7 @@ try {
   console.error(err);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
   process.exit(exitCode);
 }
 ```
@@ -103,7 +105,29 @@ Settings:
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
+- `strictMcpConfig`: only use the servers from `mcpServers` and ignore other
+  MCP configuration, such as a project `.mcp.json` or user settings.
+- `toolHints`: Claude Code hints for host tools, keyed by tool name.
+  `readOnly: true` marks a tool without side effects, so Claude Code can run
+  its calls in parallel and allows it in plan mode; calls to other host tools
+  run one at a time. `alwaysLoad: true` sends the tool's definition from the
+  first request when Claude Code's tool search is on, instead of deferring it
+  until the model looks it up.
 - `maxTurns`: maximum internal turns before yielding.
+- `skillOverrides`: per-skill visibility overrides. Values can be `on`,
+  `name-only`, `user-invocable-only`, or `off`.
+- `maxBudgetUsd`: maximum estimated spend in USD for each Claude query. When it
+  is exceeded, the query stops and the turn ends with an error.
+- `questionTimeoutMs`: maximum time in milliseconds Claude waits for an answer
+  to an `AskUserQuestion` question before the question fails. Defaults to the
+  Claude Code default.
+- `excludeDynamicSections`: moves per-session sections (working directory,
+  memory, git status) out of the Claude Code system prompt into the first user
+  message, so the system prompt can be cached across sessions.
+- `agentProgressSummaries`: enables periodic AI-generated summaries for running
+  sub-agents. Summaries are available on raw `task_progress` stream parts.
+- `forwardSubagentText`: forwards sub-agent text and thinking messages as raw
+  stream parts, in addition to the tool activity forwarded by default.
 - `env`: environment variables for the Claude Code process. Values are merged
   over the sandbox bridge process environment and take precedence.
 - `thinking`: extended-thinking configuration. `type` can be `enabled`,
@@ -112,10 +136,52 @@ Settings:
   `{ type: 'adaptive', display: 'summarized' }`.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `turnStartTimeoutMs`: maximum time from submitting a turn's start to its first
+  bridge event, defaulting to 120 seconds. If no event arrives, the turn fails
+  and the connection closes. This is not a timeout on the complete turn.
+- `reconnect`: reconnect timing after an established bridge WebSocket
+  connection drops. `maxElapsedMs` controls the total retry window, including
+  connection establishment and backoff delays, and defaults to 30 seconds.
+  `initialDelayMs` defaults to 50 milliseconds, and `maxDelayMs` defaults to
+  2 seconds. These retries use exponential backoff and are separate from
+  `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
+  bridge endpoint is permanently unavailable.
+  Pending turn starts are retried with the same identifier when the bridge
+  supports idempotent starts, so a dropped frame does not leave the turn
+  waiting forever or launch the agent twice. An older bridge that is still
+  waiting for a lost start causes the turn to fail instead of retrying unsafely.
+  A turn submitted while disconnected queues its start for first delivery on
+  reconnection; this first delivery also works with older bridges.
+- `onDebug`: callback for bridge connection lifecycle events:
+  `reconnect-attempt`, `reconnected`, and `reconnect-failed`. `reconnect-failed`
+  means the connection is closed for good, so a host that caches idle sessions
+  can detach and reattach before sending the next prompt. The `cause` of a
+  failed reconnect can contain connection details, so avoid logging it as is.
 - `mintBridgeToken`: synchronous function that receives the sandbox id and
   returns the bridge authentication token. By default, the adapter generates a
   random 32-byte token. Custom implementations must return a suitably secret
   token.
+
+### Skill Overrides
+
+Use `skillOverrides` to control how named skills are exposed to Claude Code
+without changing shared user-level configuration. Values can be `'on'`,
+`'name-only'`, `'user-invocable-only'`, or `'off'`:
+
+```ts
+const harness = createClaudeCode({
+  skillOverrides: {
+    'update-config': 'off',
+    'fewer-permission-prompts': 'off',
+    'keybindings-help': 'off',
+    init: 'off',
+  },
+});
+```
+
+Skills without an override keep their Claude Code defaults, so other bundled
+skills such as `code-review`, `simplify`, and `claude-api` remain available
+when provided by the installed Claude Code runtime.
 
 ## Structured Output
 
@@ -147,6 +213,10 @@ Supported environment variables:
 - `ANTHROPIC_AUTH_TOKEN`
 - `ANTHROPIC_BASE_URL`
 
+If no applicable credential environment variable is set, the adapter attempts
+to resolve a native subscription from the host system unless AI Gateway
+authentication is selected.
+
 Select a specific authentication mode when you do not want automatic detection:
 
 ```ts
@@ -172,9 +242,10 @@ Claude Code requires a network sandbox with at least one exposed port,
 e.g. `@ai-sdk/sandbox-vercel`:
 
 ```ts
-const sandbox = createVercelSandbox({
+const sandboxSession = await createVercelNetworkSandboxSession({
   runtime: 'node24',
   ports: [4000],
+  template: await agent.getSandboxTemplate(),
 });
 ```
 
@@ -194,7 +265,17 @@ Additional Claude Code built-ins may also appear in `agent.tools` when they do
 not fit a common tool shape.
 
 Claude Code supports built-in tool approval requests when `permissionMode` is
-`allow-reads` or `allow-edits`.
+`allow-reads` or `allow-edits`. A call waiting for approval is kept in the
+Claude Code session, so an approval answered after a resume runs that same
+call, even in a new sandbox. Claude Code waits for one approval at a time, so
+parallel calls that need approval run one after another.
+
+In these modes, file reads are automatically approved only within the session
+workdir or an active skill's directory. `allow-edits` automatically approves
+file changes only within the workdir. Paths outside those directories, including
+symlink targets, and paths that cannot be resolved require host approval.
+`allow-all` remains unrestricted. These approval rules are not a filesystem
+sandbox, and approved shell commands can access paths outside the workdir.
 
 ## Related
 

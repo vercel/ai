@@ -4,8 +4,8 @@ import {
   type RunHarnessAgentTimeSliceOptions,
 } from './run-harness-agent-time-slice';
 
-export interface RunHarnessAgentSliceOptions extends Omit<
-  RunHarnessAgentTimeSliceOptions,
+export interface RunHarnessAgentSliceOptions<OUTPUT = unknown> extends Omit<
+  RunHarnessAgentTimeSliceOptions<OUTPUT>,
   'timeSliceSeconds'
 > {
   readonly timeSliceSeconds?: number;
@@ -18,9 +18,9 @@ export interface RunHarnessAgentSliceOptions extends Omit<
 /**
  * @deprecated Use {@link runHarnessAgentTimeSlice} instead.
  */
-export async function runHarnessAgentSlice(
-  options: RunHarnessAgentSliceOptions,
-): Promise<HarnessWorkflowState> {
+export async function runHarnessAgentSlice<OUTPUT = unknown>(
+  options: RunHarnessAgentSliceOptions<OUTPUT>,
+): Promise<HarnessWorkflowState<OUTPUT>> {
   const { sliceTimeoutSeconds, timeSliceSeconds, ...timeSliceOptions } =
     options;
   const state = await runHarnessAgentTimeSlice({

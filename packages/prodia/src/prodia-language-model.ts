@@ -234,7 +234,9 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
               : '';
       formData.append(
         'input',
-        new Blob([imageBytes], { type: imageMediaType }),
+        new Blob([imageBytes as Uint8Array<ArrayBuffer>], {
+          type: imageMediaType,
+        }),
         'input' + fileExtension,
       );
     }
@@ -397,7 +399,7 @@ function createLanguageMultipartResponseHandler() {
         const jsonStr = new TextDecoder().decode(part.body);
         jobResult = await parseJSON({
           text: jsonStr,
-          schema: zodSchema(prodiaJobResultSchema),
+          schema: zodSchema(prodiaJobResultSchema()),
         });
       } else if (contentDisposition.includes('name="output"')) {
         if (

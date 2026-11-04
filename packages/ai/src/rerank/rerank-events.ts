@@ -1,5 +1,5 @@
 import type { JSONObject } from '@ai-sdk/provider';
-import type { ProviderOptions } from '@ai-sdk/provider-utils';
+import type { Context, ProviderOptions } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types';
 import type { Warning } from '../types/warning';
 
@@ -8,7 +8,10 @@ import type { Warning } from '../types/warning';
  *
  * Called when the operation begins, before the reranking model is called.
  */
-export type RerankStartEvent = {
+export type RerankStartEvent<RUNTIME_CONTEXT extends Context = Context> = {
+  /** User-defined runtime context. */
+  readonly runtimeContext: RUNTIME_CONTEXT;
+
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -43,7 +46,10 @@ export type RerankStartEvent = {
  *
  * Called when the operation completes, after the reranking model returns.
  */
-export type RerankEndEvent = {
+export type RerankEndEvent<RUNTIME_CONTEXT extends Context = Context> = {
+  /** User-defined runtime context. */
+  readonly runtimeContext: RUNTIME_CONTEXT;
+
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 

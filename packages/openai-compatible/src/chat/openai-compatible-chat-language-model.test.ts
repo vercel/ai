@@ -65,6 +65,54 @@ function prepareSseFixtureResponse(filename: string) {
   };
 }
 
+describe.each(['doGenerate', 'doStream'] as const)(
+  'file references (%s)',
+  method => {
+    it('should resolve file IDs using the provider name even with camelCase options', async () => {
+      if (method === 'doGenerate') {
+        prepareJsonFixtureResponse('xai-text');
+      } else {
+        prepareChunksFixtureResponse('xai-text');
+      }
+
+      const result = await model[method]({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: {
+                  type: 'reference',
+                  reference: {
+                    'test-provider': 'file-pdf-123',
+                    testProvider: 'file-wrong-provider',
+                  },
+                },
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+        providerOptions: { testProvider: { user: 'test-user' } },
+      });
+
+      if ('stream' in result) {
+        await convertReadableStreamToArray(result.stream);
+      }
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'file', file: { file_id: 'file-pdf-123' } }],
+          },
+        ],
+      });
+    });
+  },
+);
+
 describe('config', () => {
   it('should extract base name from provider string', () => {
     const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
@@ -194,6 +242,34 @@ describe('doGenerate', () => {
 
       expect(result).toMatchSnapshot();
     });
+  });
+
+  it('should reject a response without choices', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-empty',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'grok-3',
+        choices: [],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 4,
+          completion_tokens: 0,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toSatisfy(
+      error =>
+        InvalidResponseDataError.isInstance(error) &&
+        error.message === 'Response did not contain any choices.',
+    );
   });
 
   describe('tool call (fixture)', () => {
@@ -372,12 +448,12 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "text": "Hello, World!",
-          "type": "text",
-        },
-        {
           "text": "This is from reasoning_content",
           "type": "reasoning",
+        },
+        {
+          "text": "Hello, World!",
+          "type": "text",
         },
       ]
     `);
@@ -524,6 +600,60 @@ describe('doGenerate', () => {
             {
               type: 'video_url',
               video_url: { url: 'data:video/mp4;base64,AAECAw==' },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should pass multi-part tool content when supported', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const multiPartProvider = createOpenAICompatible({
+      baseURL: 'https://my.api.com/v1/',
+      name: 'test-provider',
+      supportsMultiPartToolContent: true,
+    });
+
+    await multiPartProvider('grok-3').doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'useImage',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'image result' },
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: 'iVBORw0KGgo=' },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'tool',
+          tool_call_id: 'call-1',
+          content: [
+            { type: 'text', text: 'image result' },
+            {
+              type: 'image_url',
+              image_url: {
+                url: 'data:image/png;base64,iVBORw0KGgo=',
+              },
             },
           ],
         },
@@ -1379,6 +1509,19 @@ describe('doGenerate', () => {
       );
     });
 
+    it('should pass top-level max reasoning as reasoning_effort', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'max',
+      );
+    });
+
     it('should pass top-level reasoning none as reasoning_effort', async () => {
       prepareJsonResponse({ content: 'test' });
 
@@ -1411,6 +1554,137 @@ describe('doGenerate', () => {
 
       expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
         'high',
+      );
+    });
+
+    it('should map top-level reasoning with mapReasoning', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        mapReasoning: ({ reasoning, warnings }) => {
+          warnings.push({ type: 'compatibility', feature: 'reasoning' });
+          return `mapped-${reasoning}`;
+        },
+      });
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'mapped-xhigh',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+      });
+    });
+
+    it('should not apply mapReasoning to providerOptions reasoningEffort', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const mapReasoning = vi.fn(() => 'mapped');
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        mapReasoning,
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'max' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'max',
+      );
+      expect(mapReasoning).not.toHaveBeenCalled();
+    });
+
+    it('should send reasoningEffort null as reasoning_effort null', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { reasoningEffort: null },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+
+      expect(body).toHaveProperty('reasoning_effort', null);
+      expect(body.reasoningEffort).toBeUndefined();
+    });
+
+    it('should prefer providerOptions reasoningEffort null over top-level reasoning', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        providerOptions: {
+          'test-provider': { reasoningEffort: null },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toHaveProperty(
+        'reasoning_effort',
+        null,
+      );
+    });
+
+    it('should omit reasoning_effort when no reasoning effort is set', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'reasoning_effort',
+      );
+    });
+
+    it('should not overwrite a raw reasoning_effort provider option', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { reasoning_effort: null },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toHaveProperty(
+        'reasoning_effort',
+        null,
       );
     });
 
@@ -1468,6 +1742,50 @@ describe('doGenerate', () => {
       expect(body.verbosity).toBe('medium');
       expect(body.textVerbosity).toBeUndefined();
       expect(body.customOption).toBe('should-be-included');
+    });
+
+    it('should pass raw verbosity through when textVerbosity is not set', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { verbosity: 'low' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toHaveProperty(
+        'verbosity',
+        'low',
+      );
+    });
+
+    it('should prefer textVerbosity over raw verbosity', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { verbosity: 'low', textVerbosity: 'high' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toHaveProperty(
+        'verbosity',
+        'high',
+      );
     });
 
     it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
@@ -2762,6 +3080,49 @@ describe('doStream', () => {
     expect(parts.at(-1)?.type).toBe('finish');
   });
 
+  it('should keep id-less tool calls distinct when the index is reused', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"type":"function",` +
+          `"function":{"name":"read_file","arguments":"{\\"path\\":\\"p0\\"}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"type":"function",` +
+          `"function":{"name":"write_file","arguments":"{\\"path\\":\\"p1\\"}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"type":"function",` +
+          `"function":{"name":"read_file","arguments":"{\\"path\\":\\"p2\\"}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":10,"total_tokens":28}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const toolCalls = parts.filter(part => part.type === 'tool-call');
+
+    expect(
+      toolCalls.map(({ toolName, input }) => ({ toolName, input })),
+    ).toEqual([
+      { toolName: 'read_file', input: '{"path":"p0"}' },
+      { toolName: 'write_file', input: '{"path":"p1"}' },
+      { toolName: 'read_file', input: '{"path":"p2"}' },
+    ]);
+    expect(
+      toolCalls.every(toolCall => toolCall.toolCallId.trim().length > 0),
+    ).toBe(true);
+    expect(new Set(toolCalls.map(toolCall => toolCall.toolCallId)).size).toBe(
+      3,
+    );
+  });
+
   it('should error when streamed tool call never receives a function.name', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
@@ -3868,7 +4229,6 @@ describe('doStream', () => {
           ],
           "model": "grok-3",
           "presence_penalty": undefined,
-          "reasoning_effort": undefined,
           "response_format": undefined,
           "seed": undefined,
           "stop": undefined,
@@ -3879,7 +4239,6 @@ describe('doStream', () => {
           "tools": undefined,
           "top_p": undefined,
           "user": undefined,
-          "verbosity": undefined,
         },
       }
     `);
@@ -4034,6 +4393,24 @@ describe('doStream', () => {
           },
         }
       `);
+    });
+  });
+
+  it('should extract response metadata after an empty placeholder chunk', async () => {
+    prepareChunksFixtureResponse('placeholder-first-chunk');
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.find(event => event.type === 'response-metadata')).toEqual({
+      type: 'response-metadata',
+      id: 'chatcmpl-123',
+      modelId: 'actual-model-name',
+      timestamp: new Date(1700000000 * 1000),
     });
   });
 });
@@ -4338,6 +4715,7 @@ describe('transformRequestBody', () => {
         model: 'grok-3',
         messages: [{ role: 'user', content: 'Hello' }],
       }),
+      [],
     );
 
     // Verify transformed body was sent
@@ -4376,6 +4754,7 @@ describe('transformRequestBody', () => {
         messages: [{ role: 'user', content: 'Hello' }],
         stream: true,
       }),
+      [],
     );
 
     // Verify transformed body was sent

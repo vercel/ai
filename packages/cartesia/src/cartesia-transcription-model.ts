@@ -7,6 +7,9 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   connectToWebSocket,
   convertBase64ToUint8Array,
@@ -104,7 +107,7 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     const fileExtension = mediaTypeToExtension(mediaType);
@@ -154,7 +157,10 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
         path: '/stt',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: cartesiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -285,7 +291,10 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
   ): Promise<string> {
     const { value } = await postJsonToApi({
       url: this.config.url({ path: '/access-token', modelId: this.modelId }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: { grants: { stt: true } },
       failedResponseHandler: cartesiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -561,24 +570,35 @@ function cartesiaEncodingFromInputAudioFormat(type: string): string {
 }
 
 function isStreamingTranscriptionModelId(modelId: string): boolean {
-  return modelId === 'ink-2' || modelId.startsWith('ink-2-');
+  // Ink Whisper (including dated snapshots such as `ink-whisper-2025-06-04`)
+  // is the known batch-only model family. Future IDs inherit the current
+  // streaming protocol regardless of their name.
+  return modelId !== 'ink-whisper' && !modelId.startsWith('ink-whisper-');
 }
 
-const cartesiaTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  language: z.string().nullish(),
-  duration: z.number().nullish(),
-  words: z
-    .array(
-      z.object({
-        word: z.string(),
-        start: z.number(),
-        end: z.number(),
-      }),
-    )
-    .nullish(),
-});
+const cartesiaTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      language: z.string().nullish(),
+      duration: z.number().nullish(),
+      words: z
+        .array(
+          z.object({
+            word: z.string(),
+            start: z.number(),
+            end: z.number(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);
 
-const cartesiaAccessTokenResponseSchema = z.object({
-  token: z.string().min(1),
-});
+const cartesiaAccessTokenResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      token: z.string().min(1),
+    }),
+  ),
+);

@@ -12,6 +12,7 @@ const urls = {
   files: 'https://api.openai.com/v1/files',
   batches: 'https://api.openai.com/v1/batches',
   batch: 'https://api.openai.com/v1/batches/batch_123',
+  cancel: 'https://api.openai.com/v1/batches/batch_123/cancel',
   output: 'https://api.openai.com/v1/files/file-output/content',
   errors: 'https://api.openai.com/v1/files/file-errors/content',
 } as const;
@@ -20,6 +21,7 @@ const server = createTestServer({
   [urls.files]: {},
   [urls.batches]: {},
   [urls.batch]: {},
+  [urls.cancel]: {},
   [urls.output]: {},
   [urls.errors]: {},
 });
@@ -123,6 +125,21 @@ function resultLine({ id, body }: { id: string; body: unknown }) {
 }
 
 describe('OpenAI batch service', () => {
+  it('rejects unsupported request types before uploading a batch input file', async () => {
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await expect(
+      batch.doStartBatch({
+        requests: [{ id: 'image-1', type: 'image' } as never],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'batch request type: image',
+    });
+
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('creates a Responses batch from prepared JSONL requests', async () => {
     prepareCreateResponse({
       status: 'validating',
@@ -396,6 +413,136 @@ describe('OpenAI batch service', () => {
     expect(mockFetch.mock.calls[1][1].signal).toBe(abortController.signal);
   });
 
+  it('cancels a batch', async () => {
+    server.urls[urls.cancel].response = {
+      type: 'json-value',
+      body: batchResponse({ status: 'cancelling' }),
+    };
+    const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
+    const abortController = new AbortController();
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+      headers: { 'Provider-Header': 'provider' },
+      fetch: mockFetch,
+    }).experimental_batch();
+
+    await expect(
+      batch.doCancelBatch!({
+        batchId: 'batch_123',
+        headers: { 'Operation-Header': 'operation' },
+        abortSignal: abortController.signal,
+      }),
+    ).resolves.toEqual({});
+
+    expect(server.calls[0].requestMethod).toBe('POST');
+    await expect(server.calls[0].requestBodyJson).resolves.toEqual({});
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      authorization: 'Bearer test-api-key',
+      'provider-header': 'provider',
+      'operation-header': 'operation',
+    });
+    expect(mockFetch.mock.calls[0][1].signal).toBe(abortController.signal);
+  });
+
+  it('lists and normalizes a page of batches', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: {
+        object: 'list',
+        data: [
+          batchResponse({
+            id: 'batch_123',
+            status: 'in_progress',
+            request_counts: { total: 3, completed: 1, failed: 0 },
+          }),
+          batchResponse({
+            id: 'batch_122',
+            status: 'completed',
+            request_counts: { total: 2, completed: 2, failed: 0 },
+          }),
+        ],
+        first_id: 'batch_123',
+        last_id: 'batch_122',
+        has_more: true,
+      },
+    };
+    const mockFetch = vi.fn().mockImplementation(globalThis.fetch);
+    const abortController = new AbortController();
+    const batch = createOpenAI({
+      apiKey: 'test-api-key',
+      headers: { 'Provider-Header': 'provider' },
+      fetch: mockFetch,
+    }).experimental_batch();
+
+    await expect(
+      batch.doListBatches!({
+        limit: 2,
+        cursor: 'batch_122',
+        headers: { 'Operation-Header': 'operation' },
+        abortSignal: abortController.signal,
+      }),
+    ).resolves.toEqual({
+      batches: [
+        {
+          batchId: 'batch_123',
+          status: 'pending',
+          rawStatus: 'in_progress',
+          requestCounts: {
+            total: 3,
+            pending: 2,
+            completed: 1,
+            failed: 0,
+          },
+          createdAt: '2023-11-14T22:13:20.000Z',
+          expiresAt: '2023-11-15T22:13:20.000Z',
+        },
+        {
+          batchId: 'batch_122',
+          status: 'completed',
+          rawStatus: 'completed',
+          requestCounts: {
+            total: 2,
+            pending: 0,
+            completed: 2,
+            failed: 0,
+          },
+          createdAt: '2023-11-14T22:13:20.000Z',
+          expiresAt: '2023-11-15T22:13:20.000Z',
+        },
+      ],
+      nextCursor: 'batch_122',
+    });
+
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      authorization: 'Bearer test-api-key',
+      'provider-header': 'provider',
+      'operation-header': 'operation',
+    });
+    expect(
+      Object.fromEntries(new URL(server.calls[0].requestUrl).searchParams),
+    ).toEqual({
+      limit: '2',
+      after: 'batch_122',
+    });
+    expect(mockFetch.mock.calls[0][1].signal).toBe(abortController.signal);
+  });
+
+  it('omits the next cursor when there are no more batches', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: {
+        object: 'list',
+        data: [],
+        first_id: null,
+        last_id: null,
+        has_more: false,
+      },
+    };
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
+
+    await expect(batch.doListBatches!({})).resolves.toEqual({ batches: [] });
+  });
+
   it.each([
     ['validating', 'pending'],
     ['in_progress', 'pending'],
@@ -477,6 +624,37 @@ describe('OpenAI batch service', () => {
       },
     });
   });
+
+  it.each([16, 4096])(
+    'applies the factory maxLineBytes setting of %s',
+    async maxLineBytes => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse({ output_file_id: 'file-output' }),
+      };
+      server.urls[urls.output].response = {
+        type: 'stream-chunks',
+        chunks: [
+          resultLine({ id: 'france', body: responsesResultBody('Paris') }) +
+            '\n',
+        ],
+      };
+      const batch = createOpenAI({
+        apiKey: 'test-api-key',
+        batchResultDownloads: { maxLineBytes },
+      }).experimental_batch();
+      const stream = await batch.doGetBatchResults({ batchId: 'batch_123' });
+      const results = convertReadableStreamToArray(stream);
+      if (maxLineBytes === 16) {
+        await expect(results).rejects.toMatchObject({
+          name: 'AI_DownloadError',
+          url: urls.output,
+        });
+      } else {
+        await expect(results).resolves.toHaveLength(1);
+      }
+    },
+  );
 
   it('incrementally parses Responses results across chunk boundaries', async () => {
     server.urls[urls.batch].response = {
@@ -762,6 +940,8 @@ describe('OpenAI batch service', () => {
     expect(batch.doStartBatch).toBeTypeOf('function');
     expect(batch.doGetBatchStatus).toBeTypeOf('function');
     expect(batch.doGetBatchResults).toBeTypeOf('function');
+    expect(batch.doCancelBatch).toBeTypeOf('function');
+    expect(batch.doListBatches).toBeTypeOf('function');
 
     expect((provider('gpt-5.6') as any).doStartBatch).toBeUndefined();
     expect((provider.responses('gpt-5.6') as any).doStartBatch).toBeUndefined();
@@ -852,6 +1032,74 @@ describe('OpenAI batch service', () => {
         message: 'OpenAI batch "batch_123" completed without batch output.',
       });
     });
+
+    describe.each([true, false])(
+      'web search status with action: %s',
+      withAction => {
+        it.each(['failed', 'incomplete', 'searching'])(
+          'preserves %s web search tool errors in successful batch responses',
+          async status => {
+            server.urls[urls.batch].response = {
+              type: 'json-value',
+              body: batchResponse({ output_file_id: 'file-output' }),
+            };
+            server.urls[urls.output].response = {
+              type: 'stream-chunks',
+              chunks: [
+                resultLine({
+                  id: 'web-search',
+                  body: {
+                    ...responsesResultBody(''),
+                    output: [
+                      {
+                        type: 'web_search_call',
+                        id: 'ws_test',
+                        status,
+                        ...(withAction
+                          ? { action: { type: 'search', query: 'AI SDK' } }
+                          : {}),
+                      },
+                    ],
+                  },
+                }),
+              ],
+            };
+            const batch = createOpenAI({
+              apiKey: 'test-api-key',
+            }).experimental_batch();
+            const stream = await batch.doGetBatchResults({
+              batchId: 'batch_123',
+            });
+            const results = await convertReadableStreamToArray(stream);
+
+            expect(results).toMatchObject([
+              {
+                id: 'web-search',
+                status: 'succeeded',
+                result: {
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'ws_test',
+                      toolName: 'web_search',
+                      input: '{}',
+                      providerExecuted: true,
+                    },
+                    {
+                      type: 'tool-result',
+                      toolCallId: 'ws_test',
+                      toolName: 'web_search',
+                      isError: true,
+                      result: { status },
+                    },
+                  ],
+                },
+              },
+            ]);
+          },
+        );
+      },
+    );
 
     it('preserves tool calls and fails unsupported items without stopping later results', async () => {
       server.urls[urls.batch].response = {

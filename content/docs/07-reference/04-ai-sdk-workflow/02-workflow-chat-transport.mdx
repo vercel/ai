@@ -13,7 +13,7 @@ Unlike [`DefaultChatTransport`](/docs/ai-sdk-ui/transport) which assumes the ful
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { WorkflowChatTransport } from '@ai-sdk/workflow';
+import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
 
 export default function Chat() {
   const { messages, sendMessage } = useChat({
@@ -30,7 +30,7 @@ export default function Chat() {
 ## Import
 
 <Snippet
-  text={`import { WorkflowChatTransport } from "@ai-sdk/workflow"`}
+  text={`import { WorkflowChatTransport } from "@ai-sdk/workflow/client"`}
   prompt={false}
 />
 
@@ -59,7 +59,7 @@ export default function Chat() {
       type: 'number',
       isOptional: true,
       description:
-        'Maximum number of consecutive errors allowed during reconnection attempts before giving up. Default: 3.',
+        'Maximum number of consecutive errors allowed during reconnection attempts before giving up. Streams that end without receiving any UI message chunks count as errors. Default: 3.',
     },
     {
       name: 'initialStartIndex',
@@ -199,7 +199,7 @@ The transport follows this flow:
 2. **Stream** the SSE response, counting chunks as they arrive.
 3. **Detect interruption**: If the stream closes without a `finish` event (e.g., function timeout, network error), the transport knows the response is incomplete.
 4. **Reconnect** via GET to `{api}/{runId}/stream?startIndex={chunkIndex}` to resume from the last received chunk.
-5. **Retry**: If the reconnection stream also interrupts, retry up to `maxConsecutiveErrors` times.
+5. **Retry**: If the reconnection stream also interrupts, resume from the updated chunk index. Streams that end without receiving any UI message chunks count toward `maxConsecutiveErrors`, as do stream parsing errors. A successfully parsed stream that receives chunks resets the consecutive error count.
 6. **Complete**: Once a `finish` event is received, call `onChatEnd` and close the stream.
 
 ### Negative Start Index
@@ -238,7 +238,7 @@ See the [WorkflowAgent guide](/docs/agents/workflow-agent) for complete endpoint
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { WorkflowChatTransport } from '@ai-sdk/workflow';
+import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
 import { useMemo } from 'react';
 
 export default function Chat() {
@@ -271,7 +271,7 @@ export default function Chat() {
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { WorkflowChatTransport } from '@ai-sdk/workflow';
+import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
 import { useMemo } from 'react';
 
 export default function Chat() {

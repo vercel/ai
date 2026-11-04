@@ -7,7 +7,7 @@ run(async () => {
   process.stdout.write('Generating video ...');
   const startTime = Date.now();
   const { videos } = await generateVideo({
-    model: klingai.video('kling-v2.6-t2v'),
+    model: klingai.video('kling-v3.0-t2v'),
     prompt: 'A chicken flying into the sunset in the style of 90s anime.',
     aspectRatio: '16:9',
     duration: 5,

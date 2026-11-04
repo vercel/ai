@@ -14,7 +14,7 @@ const provider = createOpenAICompatible({
 
 run(async () => {
   const { images } = await generateImage({
-    model: provider.imageModel('gpt-image-2'),
+    model: provider.imageModel('gpt-image-2.5-sunburst'),
     prompt: 'A luminous glass greenhouse floating over a forest at dawn',
     size: '1024x1024',
     providerOptions: {

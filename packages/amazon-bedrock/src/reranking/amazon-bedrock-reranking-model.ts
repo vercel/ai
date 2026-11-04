@@ -1,7 +1,6 @@
 import type { RerankingModelV4 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
@@ -9,7 +8,7 @@ import {
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { AmazonBedrockErrorSchema } from '../amazon-bedrock-error';
+import { amazonBedrockFailedResponseHandler } from '../amazon-bedrock-error';
 import {
   amazonBedrockRerankingResponseSchema,
   type AmazonBedrockRerankingInput,
@@ -100,10 +99,7 @@ export class AmazonBedrockRerankingModel implements RerankingModelV4 {
                 },
         })),
       } satisfies AmazonBedrockRerankingInput,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: AmazonBedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
-      }),
+      failedResponseHandler: amazonBedrockFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         amazonBedrockRerankingResponseSchema,
       ),

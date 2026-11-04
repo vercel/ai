@@ -27,10 +27,10 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: createUIMessageStream({
       execute: async ({ writer }) => {
-        const session = await resumeOrCreateSession(
-          weatherApprovalPiHarnessAgent,
+        const { session } = await resumeOrCreateSession({
+          agent: weatherApprovalPiHarnessAgent,
           chatId,
-        );
+        });
 
         const result = await weatherApprovalPiHarnessAgent.stream({
           session,
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
             stream: result.stream,
             onError: getHarnessE2EErrorMessage,
             originalMessages: body.messages,
-            onFinish: () => detachAndPersist(chatId, session),
+            onFinish: () => detachAndPersist({ chatId, session }),
           }),
         );
       },

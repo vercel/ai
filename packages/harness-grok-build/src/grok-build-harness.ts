@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { posix } from 'node:path';
 import {
   HARNESS_V1_BUILTIN_TOOLS,
   commonTool,
@@ -7,24 +9,30 @@ import {
   type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
-import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
-import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
+import {
+  createCredentialRequestTransformation,
+  resolveSandboxHomeDir,
+  shellQuote,
+  type SandboxChannelReconnectOptions,
+} from '@ai-sdk/harness/utils';
+import {
+  createACP,
+  type ACPAuthenticationMode,
+  type ACPHarnessSettings,
+  type ACPResolveHostToolCall,
+} from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
+import { parse, stringify } from '@iarna/toml';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
+import { resolveGrokBuildSubscriptionEnvironment } from './grok-build-subscription';
 import { grokBuildAskUserQuestions } from './grok-build-question-tool';
 
-declare const __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__: string;
-declare const __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
-declare const __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__: string;
+declare const __GROK_BUILD_BRIDGE_PACKAGE_JSON__: string;
+declare const __GROK_BUILD_BRIDGE_PNPM_LOCK_YAML__: string;
+declare const __GROK_BUILD_BRIDGE_PNPM_WORKSPACE_YAML__: string;
 
-const GROK_BUILD_CLIENT_APP = `ai-sdk/harness-grok-build/${VERSION}`;
-const GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON =
-  __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__;
-const GROK_BUILD_IMPLEMENTATION_PNPM_LOCK =
-  __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__;
-const GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE =
-  __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__;
+const GROK_BUILD_CLIENT_APP = `ai-sdk-harness-grok-build/${VERSION}`;
 
 export type GrokBuildAuthenticationMode = ACPAuthenticationMode;
 
@@ -66,6 +74,13 @@ export type GrokBuildHarnessSettings = {
    */
   readonly startupTimeoutMs?: number;
   /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.
    */
@@ -80,7 +95,7 @@ export type GrokBuildHarnessSettings = {
 /*
  * Tool names and inputs were captured from the model request produced by
  * @xai-official/grok 0.2.111, the version used by the pinned Grok Build ACP
- * implementation.
+ * agent.
  */
 const GROK_BUILD_BUILTIN_TOOLS = {
   askUserQuestions: HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
@@ -292,16 +307,22 @@ export function createGrokBuild(
   const clientAppSegments = GROK_BUILD_CLIENT_APP.split('/');
   const clientAppVersion = clientAppSegments.pop()!;
   return createACP({
+    nonTextContentTypes: ['image'],
     auth: settings.auth,
+    resolveAuthenticationEnvironment: resolveGrokBuildSubscriptionEnvironment,
+    prepareSandbox: prepareGrokBuildSandbox,
+    authentication: { methodId: 'xai.api_key' },
     credentialForwarding: settings.credentialForwarding,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    reconnect: settings.reconnect,
     mcpServers: settings.mcpServers,
     modelMapping: {
       type: 'session-model',
       path: 'modelId',
     },
+    resolveHostToolCall: resolveGrokBuildHostToolCall,
     isMcpToolCall: toolCall => {
       const metadata = toolCall._meta?.['x.ai/tool'];
       return isRecord(metadata) && metadata.namespace === 'mcp';
@@ -317,9 +338,9 @@ export function createGrokBuild(
     },
     source: {
       type: 'npm-locked',
-      packageJson: GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON,
-      pnpmLockYaml: GROK_BUILD_IMPLEMENTATION_PNPM_LOCK,
-      pnpmWorkspaceYaml: GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE,
+      packageJson: __GROK_BUILD_BRIDGE_PACKAGE_JSON__,
+      pnpmLockYaml: __GROK_BUILD_BRIDGE_PNPM_LOCK_YAML__,
+      pnpmWorkspaceYaml: __GROK_BUILD_BRIDGE_PNPM_WORKSPACE_YAML__,
     },
     executable: 'grok',
     args: [
@@ -328,6 +349,11 @@ export function createGrokBuild(
         ? []
         : ['--reasoning-effort', settings.reasoningEffort]),
       'stdio',
+    ],
+    forwardEnv: [
+      'GROK_XAI_API_BASE_URL',
+      'GROK_MODELS_BASE_URL',
+      'GROK_CLI_CHAT_PROXY_BASE_URL',
     ],
     credentialEnv: ['XAI_API_KEY'],
     credentialBrokering: ({ env, sandboxEnv, headers }) => {
@@ -341,6 +367,9 @@ export function createGrokBuild(
           transformHeaders: {
             ...headers,
             Authorization: `Bearer ${env.XAI_API_KEY}`,
+            ...(env.GROK_CLI_CHAT_PROXY_BASE_URL == null
+              ? {}
+              : { 'X-XAI-Token-Auth': 'xai-grok-cli' }),
           },
         }),
       ];
@@ -372,6 +401,111 @@ export function createGrokBuild(
     },
   });
 }
+
+/*
+ * Grok Build executes reads without requesting ACP permission by default.
+ * A native Read ask rule routes them through ACP so its permission controller
+ * can approve reads inside the session workspace and ask about outside reads.
+ */
+const prepareGrokBuildSandbox: NonNullable<
+  ACPHarnessSettings['prepareSandbox']
+> = async ({ sandbox, workDir, abortSignal }) => {
+  abortSignal?.throwIfAborted();
+  const home = await sandbox.run({
+    command: 'printf "%s" "${GROK_HOME:-}"',
+    workingDirectory: workDir,
+    abortSignal,
+  });
+  if (home.exitCode !== 0) {
+    throw new Error(
+      'Unable to resolve the Grok Build configuration directory.',
+    );
+  }
+  const configDir = posix.resolve(
+    workDir,
+    home.stdout ||
+      posix.join(
+        await resolveSandboxHomeDir({ sandbox, abortSignal }),
+        '.grok',
+      ),
+  );
+  const configPath = posix.join(configDir, 'config.toml');
+  const content = await sandbox.readTextFile({ path: configPath, abortSignal });
+  let config: ReturnType<typeof parse>;
+  try {
+    config = parse(content ?? '');
+  } catch {
+    throw new Error('Grok Build configuration must contain valid TOML.');
+  }
+  config.permission ??= {};
+  const permission = config.permission;
+  if (
+    typeof permission !== 'object' ||
+    Array.isArray(permission) ||
+    permission instanceof Date
+  ) {
+    throw new Error('Grok Build configuration permission must be a table.');
+  }
+  const ask = permission.ask ?? [];
+  if (!Array.isArray(ask) || ask.some(rule => typeof rule !== 'string')) {
+    throw new Error(
+      'Grok Build configuration permission.ask must be a string array.',
+    );
+  }
+  if (ask.some(rule => rule === 'Read')) return;
+  permission.ask = [...ask, 'Read'];
+  const updatedContent = stringify(config);
+  const temporaryPath = `${configPath}.${randomUUID()}.tmp`;
+  const created = await sandbox.run({
+    command:
+      `mkdir -p ${shellQuote(configDir)} && ` +
+      `(umask 077; set -C; : > ${shellQuote(temporaryPath)})`,
+    abortSignal,
+  });
+  if (created.exitCode !== 0) {
+    throw new Error('Unable to create the temporary Grok Build configuration.');
+  }
+  try {
+    await sandbox.writeTextFile({
+      path: temporaryPath,
+      content: updatedContent,
+      abortSignal,
+    });
+    const replaced = await sandbox.run({
+      command:
+        `chmod 600 ${shellQuote(temporaryPath)} && ` +
+        `mv -f ${shellQuote(temporaryPath)} ${shellQuote(configPath)}`,
+      abortSignal,
+    });
+    if (replaced.exitCode !== 0) {
+      throw new Error('Unable to replace the Grok Build configuration.');
+    }
+  } finally {
+    await Promise.resolve(sandbox.deleteFile({ path: temporaryPath })).catch(
+      () => {},
+    );
+  }
+};
+
+/**
+ * Grok Build calls MCP tools through its `use_tool` meta-tool, with a
+ * `{ tool_name, tool_input }` raw input where `tool_name` is
+ * `${serverName}__${toolName}`.
+ */
+const resolveGrokBuildHostToolCall: ACPResolveHostToolCall = ({
+  toolCall,
+  serverName,
+  toolNames,
+}) => {
+  const rawInput = toolCall.rawInput;
+  if (!isRecord(rawInput) || !isRecord(rawInput.tool_input)) return undefined;
+  const toolName = toolNames.find(
+    name => rawInput.tool_name === `${serverName}__${name}`,
+  );
+  return toolName == null
+    ? undefined
+    : { toolName, input: rawInput.tool_input };
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);

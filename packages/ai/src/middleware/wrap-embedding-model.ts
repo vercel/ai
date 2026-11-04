@@ -7,12 +7,17 @@ import type {
 import {
   asArray,
   EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+  EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER,
 } from '@ai-sdk/provider-utils';
 import { asEmbeddingModelV4 } from '../model/as-embedding-model-v4';
 import {
   getEmbeddingModelMaxInputBytesPerCall,
   type EmbeddingModelWithMaxInputBytesPerCall,
 } from '../model/get-embedding-model-max-input-bytes-per-call';
+import {
+  getEmbeddingModelProviderOptionsTransformer,
+  type EmbeddingModelWithProviderOptionsTransformer,
+} from '../model/get-embedding-model-provider-options-transformer';
 import type { EmbeddingModelMiddleware } from '../types';
 
 /**
@@ -63,7 +68,8 @@ const doWrap = ({
   middleware: EmbeddingModelMiddleware;
   modelId?: string;
   providerId?: string;
-}): EmbeddingModelWithMaxInputBytesPerCall => {
+}): EmbeddingModelWithMaxInputBytesPerCall &
+  EmbeddingModelWithProviderOptionsTransformer => {
   async function doTransform({
     params,
   }: {
@@ -80,6 +86,8 @@ const doWrap = ({
       overrideMaxEmbeddingsPerCall?.({ model }) ?? model.maxEmbeddingsPerCall,
     [EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL]:
       getEmbeddingModelMaxInputBytesPerCall(model),
+    [EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER]:
+      getEmbeddingModelProviderOptionsTransformer(model),
     supportsParallelCalls:
       overrideSupportsParallelCalls?.({ model }) ?? model.supportsParallelCalls,
     async doEmbed(

@@ -76,6 +76,14 @@ describe('resolveDeepAgentsEnv', () => {
     expect(env).toEqual({ ANTHROPIC_API_KEY: 'ambient-ant' });
   });
 
+  it('does not treat another harness native token as authentication', () => {
+    expect(
+      resolveDeepAgentsEnv({
+        processEnv: { CLAUDE_CODE_OAUTH_TOKEN: 'native-token' },
+      }),
+    ).toEqual({});
+  });
+
   it('uses a supplied authentication environment instead of ambient credentials', () => {
     const auth = { ANTHROPIC_API_KEY: 'programmatic-anthropic-key' };
 

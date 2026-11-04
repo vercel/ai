@@ -1,393 +1,402 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://docs.gladia.io/api-reference/v2/pre-recorded/init
 // Source of truth: https://api.gladia.io/openapi.json → InitTranscriptionRequest
-export const gladiaTranscriptionModelOptionsSchema = z.object({
-  /**
-   * Optional context prompt to guide the transcription.
-   *
-   * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
-   */
-  contextPrompt: z.string().nullish(),
-
-  /**
-   * Custom vocabulary to improve transcription accuracy.
-   * Can be a boolean or an array of custom terms.
-   *
-   * @deprecated Passing an array is deprecated. Use `customVocabulary: true` with `customVocabularyConfig` instead.
-   */
-  customVocabulary: z.union([z.boolean(), z.array(z.any())]).nullish(),
-
-  /**
-   * Configuration for custom vocabulary.
-   */
-  customVocabularyConfig: z
-    .object({
+export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
       /**
-       * Array of vocabulary terms or objects with pronunciation details.
-       */
-      vocabulary: z.array(
-        z.union([
-          z.string(),
-          z.object({
-            /**
-             * The vocabulary term.
-             */
-            value: z.string(),
-            /**
-             * Intensity of the term in recognition (optional).
-             */
-            intensity: z.number().nullish(),
-            /**
-             * Alternative pronunciations for the term (optional).
-             */
-            pronunciations: z.array(z.string()).nullish(),
-            /**
-             * Language of the term (optional).
-             */
-            language: z.string().nullish(),
-          }),
-        ]),
-      ),
-      /**
-       * Default intensity for all vocabulary terms.
-       */
-      defaultIntensity: z.number().nullish(),
-    })
-    .nullish(),
-
-  /**
-   * Whether to automatically detect the language of the audio.
-   *
-   * @deprecated Use `languageConfig` instead.
-   */
-  detectLanguage: z.boolean().nullish(),
-
-  /**
-   * Whether to enable code switching (multiple languages in the same audio).
-   *
-   * @deprecated Use `languageConfig.codeSwitching` instead.
-   */
-  enableCodeSwitching: z.boolean().nullish(),
-
-  /**
-   * Configuration for code switching.
-   *
-   * @deprecated Use `languageConfig` instead.
-   */
-  codeSwitchingConfig: z
-    .object({
-      /**
-       * Languages to consider for code switching.
-       */
-      languages: z.array(z.string()).nullish(),
-    })
-    .nullish(),
-
-  /**
-   * Specific language for transcription.
-   *
-   * @deprecated Use `languageConfig.languages` instead.
-   */
-  language: z.string().nullish(),
-
-  /**
-   * Language configuration for transcription.
-   */
-  languageConfig: z
-    .object({
-      /**
-       * Languages to use for transcription. If empty, language is auto-detected.
-       */
-      languages: z.array(z.string()).nullish(),
-      /**
-       * If true, language is auto-detected on each utterance.
-       */
-      codeSwitching: z.boolean().nullish(),
-    })
-    .nullish(),
-
-  /**
-   * Whether to enable callback when transcription is complete.
-   */
-  callback: z.boolean().nullish(),
-
-  /**
-   * Configuration for callback.
-   */
-  callbackConfig: z
-    .object({
-      /**
-       * URL to send the callback to.
-       */
-      url: z.string(),
-      /**
-       * HTTP method for the callback.
-       */
-      method: z.enum(['POST', 'PUT']).nullish(),
-    })
-    .nullish(),
-
-  /**
-   * Whether to generate subtitles.
-   */
-  subtitles: z.boolean().nullish(),
-
-  /**
-   * Configuration for subtitles generation.
-   */
-  subtitlesConfig: z
-    .object({
-      /**
-       * Subtitle file formats to generate.
-       */
-      formats: z.array(z.enum(['srt', 'vtt'])).nullish(),
-      /**
-       * Minimum duration for subtitle segments.
-       */
-      minimumDuration: z.number().nullish(),
-      /**
-       * Maximum duration for subtitle segments.
-       */
-      maximumDuration: z.number().nullish(),
-      /**
-       * Maximum characters per row in subtitles.
-       */
-      maximumCharactersPerRow: z.number().nullish(),
-      /**
-       * Maximum rows per caption in subtitles.
-       */
-      maximumRowsPerCaption: z.number().nullish(),
-      /**
-       * Style of subtitles.
-       */
-      style: z.enum(['default', 'compliance']).nullish(),
-    })
-    .nullish(),
-
-  /**
-   * Whether to enable speaker diarization (speaker identification).
-   */
-  diarization: z.boolean().nullish(),
-
-  /**
-   * Configuration for diarization.
-   */
-  diarizationConfig: z
-    .object({
-      /**
-       * Exact number of speakers to identify.
-       */
-      numberOfSpeakers: z.number().nullish(),
-      /**
-       * Minimum number of speakers to identify.
-       */
-      minSpeakers: z.number().nullish(),
-      /**
-       * Maximum number of speakers to identify.
-       */
-      maxSpeakers: z.number().nullish(),
-      /**
-       * Whether to use enhanced diarization.
+       * Optional context prompt to guide the transcription.
        *
        * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
        */
-      enhanced: z.boolean().nullish(),
-    })
-    .nullish(),
+      contextPrompt: z.string().nullish(),
 
-  /**
-   * Whether to translate the transcription.
-   */
-  translation: z.boolean().nullish(),
-
-  /**
-   * Configuration for translation.
-   */
-  translationConfig: z
-    .object({
       /**
-       * Target languages for translation.
+       * Custom vocabulary to improve transcription accuracy.
+       * Can be a boolean or an array of custom terms.
+       *
+       * @deprecated Passing an array is deprecated. Use `customVocabulary: true` with `customVocabularyConfig` instead.
        */
-      targetLanguages: z.array(z.string()),
+      customVocabulary: z.union([z.boolean(), z.array(z.any())]).nullish(),
+
       /**
-       * Translation model to use.
+       * Configuration for custom vocabulary.
        */
-      model: z.enum(['base', 'enhanced']).nullish(),
+      customVocabularyConfig: z
+        .object({
+          /**
+           * Array of vocabulary terms or objects with pronunciation details.
+           */
+          vocabulary: z.array(
+            z.union([
+              z.string(),
+              z.object({
+                /**
+                 * The vocabulary term.
+                 */
+                value: z.string(),
+                /**
+                 * Intensity of the term in recognition (optional).
+                 */
+                intensity: z.number().nullish(),
+                /**
+                 * Alternative pronunciations for the term (optional).
+                 */
+                pronunciations: z.array(z.string()).nullish(),
+                /**
+                 * Language of the term (optional).
+                 */
+                language: z.string().nullish(),
+              }),
+            ]),
+          ),
+          /**
+           * Default intensity for all vocabulary terms.
+           */
+          defaultIntensity: z.number().nullish(),
+        })
+        .nullish(),
+
       /**
-       * Whether to match original utterances in translation.
+       * Whether to automatically detect the language of the audio.
+       *
+       * @deprecated Use `languageConfig` instead.
        */
-      matchOriginalUtterances: z.boolean().nullish(),
+      detectLanguage: z.boolean().nullish(),
+
       /**
-       * Whether to enable lip sync for translated audio.
+       * Whether to enable code switching (multiple languages in the same audio).
+       *
+       * @deprecated Use `languageConfig.codeSwitching` instead.
        */
-      lipsync: z.boolean().nullish(),
+      enableCodeSwitching: z.boolean().nullish(),
+
       /**
-       * Whether to adapt translation to the context.
+       * Configuration for code switching.
+       *
+       * @deprecated Use `languageConfig` instead.
        */
-      contextAdaptation: z.boolean().nullish(),
+      codeSwitchingConfig: z
+        .object({
+          /**
+           * Languages to consider for code switching.
+           */
+          languages: z.array(z.string()).nullish(),
+        })
+        .nullish(),
+
       /**
-       * Context prompt for translation.
+       * Specific language for transcription.
+       *
+       * @deprecated Use `languageConfig.languages` instead.
        */
-      context: z.string().nullish(),
+      language: z.string().nullish(),
+
       /**
-       * Whether to use informal translation style.
+       * Language configuration for transcription.
        */
-      informal: z.boolean().nullish(),
-    })
-    .nullish(),
+      languageConfig: z
+        .object({
+          /**
+           * Languages to use for transcription. If empty, language is auto-detected.
+           */
+          languages: z.array(z.string()).nullish(),
+          /**
+           * If true, language is auto-detected on each utterance.
+           */
+          codeSwitching: z.boolean().nullish(),
+        })
+        .nullish(),
 
-  /**
-   * Whether to generate a summary of the transcription.
-   */
-  summarization: z.boolean().nullish(),
-
-  /**
-   * Configuration for summarization.
-   */
-  summarizationConfig: z
-    .object({
       /**
-       * Type of summary to generate.
+       * Whether to enable callback when transcription is complete.
        */
-      type: z.enum(['general', 'bullet_points', 'concise']).nullish(),
-    })
-    .nullish(),
+      callback: z.boolean().nullish(),
 
-  /**
-   * Whether to enable content moderation.
-   *
-   * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
-   */
-  moderation: z.boolean().nullish(),
-
-  /**
-   * Whether to enable named entity recognition.
-   */
-  namedEntityRecognition: z.boolean().nullish(),
-
-  /**
-   * Whether to enable automatic chapter creation.
-   *
-   * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
-   */
-  chapterization: z.boolean().nullish(),
-
-  /**
-   * Whether to ensure consistent naming of entities.
-   *
-   * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
-   */
-  nameConsistency: z.boolean().nullish(),
-
-  /**
-   * Whether to enable custom spelling.
-   */
-  customSpelling: z.boolean().nullish(),
-
-  /**
-   * Configuration for custom spelling.
-   */
-  customSpellingConfig: z
-    .object({
       /**
-       * Dictionary of custom spellings.
+       * Configuration for callback.
        */
-      spellingDictionary: z.record(z.string(), z.array(z.string())),
-    })
-    .nullish(),
+      callbackConfig: z
+        .object({
+          /**
+           * URL to send the callback to.
+           */
+          url: z.string(),
+          /**
+           * HTTP method for the callback.
+           */
+          method: z.enum(['POST', 'PUT']).nullish(),
+        })
+        .nullish(),
 
-  /**
-   * Whether to extract structured data from the transcription.
-   *
-   * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
-   */
-  structuredDataExtraction: z.boolean().nullish(),
-
-  /**
-   * Configuration for structured data extraction.
-   *
-   * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
-   */
-  structuredDataExtractionConfig: z
-    .object({
       /**
-       * Classes of data to extract.
+       * Whether to generate subtitles.
        */
-      classes: z.array(z.string()),
-    })
-    .nullish(),
+      subtitles: z.boolean().nullish(),
 
-  /**
-   * Whether to perform sentiment analysis on the transcription.
-   */
-  sentimentAnalysis: z.boolean().nullish(),
-
-  /**
-   * Whether to send audio to a language model for processing.
-   */
-  audioToLlm: z.boolean().nullish(),
-
-  /**
-   * Configuration for audio to language model processing.
-   */
-  audioToLlmConfig: z
-    .object({
       /**
-       * Prompts to send to the language model.
+       * Configuration for subtitles generation.
        */
-      prompts: z.array(z.string()),
+      subtitlesConfig: z
+        .object({
+          /**
+           * Subtitle file formats to generate.
+           */
+          formats: z.array(z.enum(['srt', 'vtt'])).nullish(),
+          /**
+           * Minimum duration for subtitle segments.
+           */
+          minimumDuration: z.number().nullish(),
+          /**
+           * Maximum duration for subtitle segments.
+           */
+          maximumDuration: z.number().nullish(),
+          /**
+           * Maximum characters per row in subtitles.
+           */
+          maximumCharactersPerRow: z.number().nullish(),
+          /**
+           * Maximum rows per caption in subtitles.
+           */
+          maximumRowsPerCaption: z.number().nullish(),
+          /**
+           * Style of subtitles.
+           */
+          style: z.enum(['default', 'compliance']).nullish(),
+        })
+        .nullish(),
+
       /**
-       * Language model to use for processing.
+       * Whether to enable speaker diarization (speaker identification).
        */
-      model: z.string().nullish(),
-    })
-    .nullish(),
+      diarization: z.boolean().nullish(),
 
-  /**
-   * Whether to enable PII redaction.
-   */
-  piiRedaction: z.boolean().nullish(),
-
-  /**
-   * Configuration for PII redaction.
-   */
-  piiRedactionConfig: z
-    .object({
       /**
-       * Entity types to redact.
+       * Configuration for diarization.
        */
-      entityTypes: z.array(z.string()).nullish(),
+      diarizationConfig: z
+        .object({
+          /**
+           * Exact number of speakers to identify.
+           */
+          numberOfSpeakers: z.number().nullish(),
+          /**
+           * Minimum number of speakers to identify.
+           */
+          minSpeakers: z.number().nullish(),
+          /**
+           * Maximum number of speakers to identify.
+           */
+          maxSpeakers: z.number().nullish(),
+          /**
+           * Whether to use enhanced diarization.
+           *
+           * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+           */
+          enhanced: z.boolean().nullish(),
+        })
+        .nullish(),
+
       /**
-       * How redacted text should be represented.
+       * Whether to translate the transcription.
        */
-      processedTextType: z.enum(['MARKER', 'MASK']).nullish(),
-    })
-    .nullish(),
+      translation: z.boolean().nullish(),
 
-  /**
-   * Custom metadata to include with the transcription.
-   */
-  customMetadata: z.record(z.string(), z.unknown()).nullish(),
+      /**
+       * Configuration for translation.
+       */
+      translationConfig: z
+        .object({
+          /**
+           * Target languages for translation.
+           */
+          targetLanguages: z.array(z.string()),
+          /**
+           * Translation model to use.
+           */
+          model: z.enum(['base', 'enhanced']).nullish(),
+          /**
+           * Whether to match original utterances in translation.
+           */
+          matchOriginalUtterances: z.boolean().nullish(),
+          /**
+           * Whether to enable lip sync for translated audio.
+           */
+          lipsync: z.boolean().nullish(),
+          /**
+           * Whether to adapt translation to the context.
+           */
+          contextAdaptation: z.boolean().nullish(),
+          /**
+           * Context prompt for translation.
+           */
+          context: z.string().nullish(),
+          /**
+           * Whether to use informal translation style.
+           */
+          informal: z.boolean().nullish(),
+        })
+        .nullish(),
 
-  /**
-   * Whether to include sentence-level segmentation.
-   */
-  sentences: z.boolean().nullish(),
+      /**
+       * Whether to generate a summary of the transcription.
+       */
+      summarization: z.boolean().nullish(),
 
-  /**
-   * Whether to enable display mode.
-   *
-   * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
-   */
-  displayMode: z.boolean().nullish(),
+      /**
+       * Configuration for summarization.
+       */
+      summarizationConfig: z
+        .object({
+          /**
+           * Type of summary to generate.
+           */
+          type: z.enum(['general', 'bullet_points', 'concise']).nullish(),
+        })
+        .nullish(),
 
-  /**
-   * Whether to enhance punctuation in the transcription.
-   */
-  punctuationEnhanced: z.boolean().nullish(),
-});
+      /**
+       * Whether to enable content moderation.
+       *
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+       */
+      moderation: z.boolean().nullish(),
 
-export type GladiaTranscriptionModelOptions = z.infer<
+      /**
+       * Whether to enable named entity recognition.
+       */
+      namedEntityRecognition: z.boolean().nullish(),
+
+      /**
+       * Whether to enable automatic chapter creation.
+       *
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+       */
+      chapterization: z.boolean().nullish(),
+
+      /**
+       * Whether to ensure consistent naming of entities.
+       *
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+       */
+      nameConsistency: z.boolean().nullish(),
+
+      /**
+       * Whether to enable custom spelling.
+       */
+      customSpelling: z.boolean().nullish(),
+
+      /**
+       * Configuration for custom spelling.
+       */
+      customSpellingConfig: z
+        .object({
+          /**
+           * Dictionary of custom spellings.
+           */
+          spellingDictionary: z.record(z.string(), z.array(z.string())),
+        })
+        .nullish(),
+
+      /**
+       * Whether to extract structured data from the transcription.
+       *
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+       */
+      structuredDataExtraction: z.boolean().nullish(),
+
+      /**
+       * Configuration for structured data extraction.
+       *
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+       */
+      structuredDataExtractionConfig: z
+        .object({
+          /**
+           * Classes of data to extract.
+           */
+          classes: z.array(z.string()),
+        })
+        .nullish(),
+
+      /**
+       * Whether to perform sentiment analysis on the transcription.
+       */
+      sentimentAnalysis: z.boolean().nullish(),
+
+      /**
+       * Whether to send audio to a language model for processing.
+       */
+      audioToLlm: z.boolean().nullish(),
+
+      /**
+       * Configuration for audio to language model processing.
+       */
+      audioToLlmConfig: z
+        .object({
+          /**
+           * Prompts to send to the language model.
+           */
+          prompts: z.array(z.string()),
+          /**
+           * Language model to use for processing.
+           */
+          model: z.string().nullish(),
+        })
+        .nullish(),
+
+      /**
+       * Whether to enable PII redaction.
+       */
+      piiRedaction: z.boolean().nullish(),
+
+      /**
+       * Configuration for PII redaction.
+       */
+      piiRedactionConfig: z
+        .object({
+          /**
+           * Entity types to redact.
+           */
+          entityTypes: z.array(z.string()).nullish(),
+          /**
+           * How redacted text should be represented.
+           */
+          processedTextType: z.enum(['MARKER', 'MASK']).nullish(),
+        })
+        .nullish(),
+
+      /**
+       * Custom metadata to include with the transcription.
+       */
+      customMetadata: z.record(z.string(), z.unknown()).nullish(),
+
+      /**
+       * Whether to include sentence-level segmentation.
+       */
+      sentences: z.boolean().nullish(),
+
+      /**
+       * Whether to enable display mode.
+       *
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored.
+       */
+      displayMode: z.boolean().nullish(),
+
+      /**
+       * Whether to enhance punctuation in the transcription.
+       */
+      punctuationEnhanced: z.boolean().nullish(),
+    }),
+  ),
+);
+
+export type GladiaTranscriptionModelOptions = InferSchema<
   typeof gladiaTranscriptionModelOptionsSchema
 >;

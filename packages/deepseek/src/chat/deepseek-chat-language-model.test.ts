@@ -1,4 +1,8 @@
-import type { JSONSchema7, LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type JSONSchema7,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { isProviderStreamError } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -80,8 +84,35 @@ describe('DeepSeekChatLanguageModel', () => {
           fs.readFileSync(`src/chat/__fixtures__/${filename}.json`, 'utf8'),
         ),
       };
-      return;
     }
+
+    it('should reject a response without choices', async () => {
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-empty',
+          object: 'chat.completion',
+          created: 0,
+          model: 'deepseek-chat',
+          choices: [],
+          usage: {
+            prompt_tokens: 1,
+            completion_tokens: 0,
+            total_tokens: 1,
+          },
+        },
+      };
+
+      await expect(
+        provider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toSatisfy(
+        error =>
+          InvalidResponseDataError.isInstance(error) &&
+          error.message === 'Response did not contain any choices.',
+      );
+    });
 
     describe('text', () => {
       beforeEach(() => {
@@ -628,21 +659,38 @@ describe('DeepSeekChatLanguageModel', () => {
         expect(requestBody.reasoning_effort).toBeUndefined();
       });
 
-      it('should map top-level reasoning xhigh to reasoning_effort max', async () => {
+      it('should map top-level reasoning xhigh to reasoning_effort high', async () => {
         const result = await provider.chat('deepseek-reasoner').doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'xhigh',
         });
 
         expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-          'max',
+          'high',
         );
         expect(result.warnings).toContainEqual({
           type: 'compatibility',
           feature: 'reasoning',
           details:
-            'reasoning "xhigh" is not directly supported by this model. mapped to effort "max".',
+            'reasoning "xhigh" is not directly supported by this model. mapped to effort "high".',
         });
+      });
+
+      it('should map top-level reasoning max directly to reasoning_effort max', async () => {
+        const result = await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+          'max',
+        );
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({
+            type: 'compatibility',
+            feature: 'reasoning',
+          }),
+        );
       });
 
       it('should map top-level reasoning low to reasoning_effort low without a compatibility warning', async () => {
@@ -662,20 +710,20 @@ describe('DeepSeekChatLanguageModel', () => {
         );
       });
 
-      it('should map top-level reasoning medium to reasoning_effort high with a compatibility warning', async () => {
+      it('should map top-level reasoning medium to reasoning_effort low with a compatibility warning', async () => {
         const result = await provider.chat('deepseek-reasoner').doGenerate({
           prompt: TEST_PROMPT,
           reasoning: 'medium',
         });
 
         expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-          'high',
+          'low',
         );
         expect(result.warnings).toContainEqual({
           type: 'compatibility',
           feature: 'reasoning',
           details:
-            'reasoning "medium" is not directly supported by this model. mapped to effort "high".',
+            'reasoning "medium" is not directly supported by this model. mapped to effort "low".',
         });
       });
 
@@ -1268,6 +1316,50 @@ describe('DeepSeekChatLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each([
+      ['missing', 'interrupted'],
+      ['unknown_reason', 'other'],
+      ['invalid-json', 'error'],
+    ] as const)(
+      'handles a stream ending with %s as %s',
+      async (ending, unified) => {
+        server.urls['https://api.deepseek.com/chat/completions'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({ id: 'response-1', object: 'chat.completion.chunk', created: 1, model: 'test-model', choices: [{ index: 0, delta: { content: 'Partial answer' }, finish_reason: null }] })}\n\n`,
+            ...(ending === 'missing'
+              ? []
+              : ending === 'invalid-json'
+                ? ['data: {invalid-json}\n\n']
+                : [
+                    `data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: ending }] })}\n\n`,
+                  ]),
+          ],
+        };
+        const { stream } = await provider
+          .chat('deepseek-chat')
+          .doStream({ prompt: TEST_PROMPT });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts).toContainEqual(
+          expect.objectContaining({
+            type: 'text-delta',
+            delta: 'Partial answer',
+          }),
+        );
+        expect(parts.filter(part => part.type === 'error')).toHaveLength(
+          ending === 'invalid-json' ? 1 : 0,
+        );
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: {
+              unified,
+              raw: ending === 'unknown_reason' ? ending : undefined,
+            },
+          }),
+        ]);
+      },
+    );
+
     function prepareChunksFixtureResponse(filename: string) {
       const chunks = fs
         .readFileSync(`src/chat/__fixtures__/${filename}.chunks.txt`, 'utf8')
@@ -1681,6 +1773,36 @@ describe('DeepSeekChatLanguageModel', () => {
         prepareChunksFixtureResponse('deepseek-reasoning');
       });
 
+      it('should keep reasoning active when deltas include empty tool calls', async () => {
+        server.urls['https://api.deepseek.com/chat/completions'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+              `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+            `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+              `"choices":[{"index":0,"delta":{"content":"","reasoning_content":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+            `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+              `"choices":[{"index":0,"delta":{"content":"Hello","reasoning_content":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const { stream } = await provider.chat('deepseek-reasoner').doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(
+          events.filter(({ type }) => type.startsWith('reasoning-')),
+        ).toStrictEqual([
+          { type: 'reasoning-start', id: 'reasoning-0' },
+          { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Think ' },
+          { type: 'reasoning-delta', id: 'reasoning-0', delta: 'more...' },
+          { type: 'reasoning-end', id: 'reasoning-0' },
+        ]);
+      });
+
       it('should map legacy thinking and generic reasoning to canonical request values', async () => {
         const result = await provider.chat('deepseek-reasoner').doStream({
           prompt: TEST_PROMPT,
@@ -1694,7 +1816,7 @@ describe('DeepSeekChatLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody.thinking).toStrictEqual({ type: 'enabled' });
-        expect(requestBody.reasoning_effort).toBe('high');
+        expect(requestBody.reasoning_effort).toBe('low');
 
         const streamParts = await convertReadableStreamToArray(result.stream);
         expect(streamParts[0]).toStrictEqual({
@@ -1710,7 +1832,7 @@ describe('DeepSeekChatLanguageModel', () => {
               type: 'compatibility',
               feature: 'reasoning',
               details:
-                'reasoning "medium" is not directly supported by this model. mapped to effort "high".',
+                'reasoning "medium" is not directly supported by this model. mapped to effort "low".',
             },
           ],
         });

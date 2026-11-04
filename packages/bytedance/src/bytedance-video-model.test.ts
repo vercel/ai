@@ -1,3 +1,4 @@
+import type { Experimental_VideoModelV4 as VideoModelV4 } from '@ai-sdk/provider';
 import { DownloadError, type FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
@@ -74,6 +75,63 @@ describe('ByteDanceVideoModel', () => {
           },
         },
       },
+    'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/abc%2F..%2F..%2Finternal':
+      {
+        response: {
+          type: 'json-value',
+          body: {
+            id: 'test-task-id-123',
+            model: 'seedance-1-0-pro-250528',
+            status: 'succeeded',
+            content: {
+              video_url: 'https://bytedance.cdn/files/video-output.mp4',
+              last_frame_url:
+                'https://bytedance.cdn/files/video-output-last-frame.png',
+            },
+            usage: {
+              completion_tokens: 100,
+            },
+          },
+        },
+      },
+    'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/%252E':
+      {
+        response: {
+          type: 'json-value',
+          body: {
+            id: 'test-task-id-123',
+            model: 'seedance-1-0-pro-250528',
+            status: 'succeeded',
+            content: {
+              video_url: 'https://bytedance.cdn/files/video-output.mp4',
+              last_frame_url:
+                'https://bytedance.cdn/files/video-output-last-frame.png',
+            },
+            usage: {
+              completion_tokens: 100,
+            },
+          },
+        },
+      },
+    'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/%252E%252E':
+      {
+        response: {
+          type: 'json-value',
+          body: {
+            id: 'test-task-id-123',
+            model: 'seedance-1-0-pro-250528',
+            status: 'succeeded',
+            content: {
+              video_url: 'https://bytedance.cdn/files/video-output.mp4',
+              last_frame_url:
+                'https://bytedance.cdn/files/video-output-last-frame.png',
+            },
+            usage: {
+              completion_tokens: 100,
+            },
+          },
+        },
+      },
   });
 
   describe('constructor', () => {
@@ -100,6 +158,55 @@ describe('ByteDanceVideoModel', () => {
       });
 
       expect(model.modelId).toBe('custom-model-id');
+    });
+  });
+
+  describe('webhooks', () => {
+    it('should leave the generic webhook hook undefined', () => {
+      const model: VideoModelV4 = createBasicModel();
+      expect(model.handleWebhookOption).toBeUndefined();
+    });
+
+    it.each([
+      {
+        name: 'explicit URL',
+        webhookUrl: 'https://example.com/webhook',
+        rawUrl: undefined,
+        expected: 'https://example.com/webhook',
+      },
+      {
+        name: 'no callback',
+        webhookUrl: undefined,
+        rawUrl: undefined,
+        expected: undefined,
+      },
+      {
+        name: 'raw passthrough',
+        webhookUrl: undefined,
+        rawUrl: 'https://example.com/raw',
+        expected: 'https://example.com/raw',
+      },
+      {
+        name: 'explicit URL overrides raw',
+        webhookUrl: 'https://example.com/webhook',
+        rawUrl: 'https://example.com/raw',
+        expected: 'https://example.com/webhook',
+      },
+    ])('should submit $name', async ({ webhookUrl, rawUrl, expected }) => {
+      await createBasicModel().doStart({
+        ...defaultOptions,
+        webhookUrl,
+        providerOptions: {
+          bytedance: rawUrl != null ? { callback_url: rawUrl } : {},
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      if (expected == null) {
+        expect(body).not.toHaveProperty('callback_url');
+      } else {
+        expect(body).toHaveProperty('callback_url', expected);
+      }
     });
   });
 
@@ -137,6 +244,26 @@ describe('ByteDanceVideoModel', () => {
           },
         ],
         seed: 42,
+      });
+    });
+
+    it('should pass seed when it is 0', async () => {
+      const model = createBasicModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        seed: 0,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        seed: 0,
       });
     });
 
@@ -895,6 +1022,46 @@ describe('ByteDanceVideoModel', () => {
       ]);
     });
 
+    it('should treat a start image as a reference image when combining it with inputReferences', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doStart({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/start.png',
+          mediaType: 'image/png',
+        },
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'https://example.com/reference.png',
+            mediaType: 'image/png',
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/start.png' },
+          role: 'reference_image',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/reference.png' },
+          role: 'reference_image',
+        },
+      ]);
+    });
+
     it('should add a reference video from inputReferences with video media type', async () => {
       const model = createBasicModel({
         modelId: 'dreamina-seedance-2-0-260128',
@@ -1095,6 +1262,44 @@ describe('ByteDanceVideoModel', () => {
         {
           type: 'image_url',
           image_url: { url: 'https://example.com/ref3.png' },
+          role: 'reference_image',
+        },
+      ]);
+    });
+
+    it('should treat a start image as a reference image when combining it with referenceImages', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doStart({
+        ...defaultOptions,
+        image: {
+          type: 'url',
+          url: 'https://example.com/start.png',
+          mediaType: 'image/png',
+        },
+        providerOptions: {
+          bytedance: {
+            referenceImages: ['https://example.com/reference.png'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/start.png' },
+          role: 'reference_image',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/reference.png' },
           role: 'reference_image',
         },
       ]);
@@ -1489,6 +1694,38 @@ describe('ByteDanceVideoModel', () => {
       );
     });
 
+    it.each([
+      {
+        name: 'structured message',
+        error: { code: 'TaskExpired', message: 'The task has expired.' },
+        expected: 'The task has expired.',
+      },
+      {
+        name: 'missing-error fallback',
+        error: undefined,
+        expected: '{"id":"test-task-id-123","status":"expired"}',
+      },
+    ])(
+      'should return an expired error with $name',
+      async ({ error, expected }) => {
+        server.urls[
+          'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
+        ].response = {
+          type: 'json-value',
+          body: { id: 'test-task-id-123', status: 'expired', error },
+        };
+
+        const result = await createBasicModel().doStatus({
+          operation: { taskId: 'test-task-id-123' },
+        });
+
+        expect(result.status).toBe('error');
+        expect(result.status === 'error' ? result.error : undefined).toBe(
+          `Video generation expired. Task ID: test-task-id-123. ${expected}`,
+        );
+      },
+    );
+
     it('should throw error when no video URL in response', async () => {
       server.urls[
         'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/test-task-id-123'
@@ -1555,6 +1792,35 @@ describe('ByteDanceVideoModel', () => {
   });
 
   describe('doStatus', () => {
+    it('should encode the task ID as a single URL path segment', async () => {
+      const model = createBasicModel();
+      const taskId = 'abc/../../internal';
+
+      await model.doStatus({ operation: { taskId } });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/${encodeURIComponent(
+          taskId,
+        )}`,
+      );
+    });
+
+    it.each([
+      { taskId: '.', encodedTaskId: '%252E' },
+      { taskId: '..', encodedTaskId: '%252E%252E' },
+    ])(
+      'should preserve the $taskId task ID as a URL path segment',
+      async ({ taskId, encodedTaskId }) => {
+        const model = createBasicModel();
+
+        await model.doStatus({ operation: { taskId } });
+
+        expect(server.calls[0].requestUrl).toBe(
+          `https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/${encodedTaskId}`,
+        );
+      },
+    );
+
     it('should return completed with video data when succeeded', async () => {
       const model = createBasicModel();
 

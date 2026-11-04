@@ -1,23 +1,31 @@
 import {
   UnsupportedFunctionalityError,
+  type JSONValue,
   type LanguageModelV4Prompt,
   type LanguageModelV4ToolResultOutput,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   isFullMediaType,
+  isUrlSupported,
   resolveFullMediaType,
   resolveProviderReference,
   secureJsonParse,
 } from '@ai-sdk/provider-utils';
-import type {
-  GoogleContent,
-  GoogleContentPart,
-  GoogleFunctionResponsePart,
-  GooglePrompt,
+import {
+  googleVideoMetadataSchema,
+  type GoogleContent,
+  type GoogleContentPart,
+  type GoogleFunctionResponsePart,
+  type GooglePrompt,
 } from './google-prompt';
+import {
+  codeExecutionInputSchema,
+  codeExecutionOutputSchema,
+} from './tool/code-execution';
 
 /**
  * Sentinel value Google documents for replaying functionCall parts whose
@@ -47,9 +55,6 @@ function parseBase64DataUrl(
 function convertUrlToolResultPart(
   url: string,
 ): GoogleFunctionResponsePart | undefined {
-  // Per https://ai.google.dev/api/caching#FunctionResponsePart, only inline data is supported.
-  // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/function-calling#functionresponsepart suggests that this
-  // may be different for Vertex, but this needs to be confirmed and further tested for both APIs.
   const parsedDataUrl = parseBase64DataUrl(url);
   if (parsedDataUrl == null) {
     return undefined;
@@ -61,6 +66,72 @@ function convertUrlToolResultPart(
       data: parsedDataUrl.data,
     },
   };
+}
+
+function containsJSONSchemaReference(
+  value: JSONValue | undefined,
+  seen: WeakSet<object> = new WeakSet(),
+): boolean {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+
+  if (seen.has(value)) {
+    return false;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.some(item => containsJSONSchemaReference(item, seen));
+  }
+
+  return Object.entries(value).some(
+    ([key, nestedValue]) =>
+      key === '$ref' || containsJSONSchemaReference(nestedValue, seen),
+  );
+}
+
+function serializeFunctionResponseContent(
+  value: JSONValue,
+): JSONValue | string {
+  // Google reserves { $ref: displayName } in structured function responses for
+  // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
+  // result to preserve it without triggering Google's reference handling.
+  if (containsJSONSchemaReference(value)) {
+    return stringifyWithBigIntAndCycles(value);
+  }
+
+  // Keep Google's structured response for ordinary JSON, but normalize values
+  // that would otherwise fail when the final request body is serialized.
+  return containsNonJsonValue(value)
+    ? secureJsonParse(stringifyWithBigIntAndCycles(value))
+    : value;
+}
+
+function containsNonJsonValue(
+  value: unknown,
+  ancestors = new Set<object>(),
+): boolean {
+  if (typeof value === 'bigint') {
+    return true;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (typeof (value as { toJSON?: unknown }).toJSON === 'function') {
+    return true;
+  }
+  if (ancestors.has(value)) {
+    return true;
+  }
+  ancestors.add(value);
+  try {
+    return Object.values(value).some(item =>
+      containsNonJsonValue(item, ancestors),
+    );
+  } finally {
+    ancestors.delete(value);
+  }
 }
 
 /*
@@ -77,6 +148,7 @@ function appendToolResultParts(
   >['value'],
   toolCallId?: string,
   includeFunctionCallIds = true,
+  supportedUrls: Record<string, RegExp[]> = {},
 ): void {
   const functionResponseParts: GoogleFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -96,12 +168,30 @@ function appendToolResultParts(
             },
           });
         } else if (contentPart.data.type === 'url') {
-          const functionResponsePart = convertUrlToolResultPart(
-            contentPart.data.url.toString(),
-          );
+          const url = contentPart.data.url.toString();
+          const convertedUrlPart = convertUrlToolResultPart(url);
+          const supportedUrl =
+            contentPart.data.url.protocol === 'gs:' &&
+            contentPart.data.originalUrl != null
+              ? contentPart.data.originalUrl
+              : url;
 
-          if (functionResponsePart != null) {
-            functionResponseParts.push(functionResponsePart);
+          if (convertedUrlPart != null) {
+            functionResponseParts.push(convertedUrlPart);
+          } else if (
+            isFullMediaType(contentPart.mediaType) &&
+            isUrlSupported({
+              url: supportedUrl,
+              mediaType: contentPart.mediaType,
+              supportedUrls,
+            })
+          ) {
+            functionResponseParts.push({
+              fileData: {
+                mimeType: contentPart.mediaType,
+                fileUri: supportedUrl,
+              },
+            });
           } else {
             responseTextParts.push(JSON.stringify(contentPart));
           }
@@ -213,6 +303,7 @@ export function convertToGoogleMessages(
     providerOptionsNames?: readonly string[];
     supportsFunctionResponseParts?: boolean;
     includeFunctionCallIds?: boolean;
+    supportedFunctionResponseUrls?: Record<string, RegExp[]>;
   },
 ): GooglePrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -226,6 +317,8 @@ export function convertToGoogleMessages(
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
   const includeFunctionCallIds = options?.includeFunctionCallIds ?? true;
+  const supportedFunctionResponseUrls =
+    options?.supportedFunctionResponseUrls ?? {};
 
   let sentinelInjected = false;
   const missingSignatureToolNames: string[] = [];
@@ -281,13 +374,24 @@ export function convertToGoogleMessages(
             }
 
             case 'file': {
+              const rawVideoMetadata = readProviderOpts(part)?.videoMetadata;
+              const videoMetadata =
+                rawVideoMetadata == null
+                  ? undefined
+                  : googleVideoMetadataSchema.parse(rawVideoMetadata);
+
               switch (part.data.type) {
                 case 'url': {
                   parts.push({
                     fileData: {
                       mimeType: resolveFullMediaType({ part }),
-                      fileUri: part.data.url.toString(),
+                      fileUri:
+                        part.data.url.protocol === 'gs:' &&
+                        part.data.originalUrl != null
+                          ? part.data.originalUrl
+                          : part.data.url.toString(),
                     },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
                   });
                   break;
                 }
@@ -306,6 +410,7 @@ export function convertToGoogleMessages(
                         provider: 'google',
                       }),
                     },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
                   });
                   break;
                 }
@@ -319,6 +424,7 @@ export function convertToGoogleMessages(
                         new TextEncoder().encode(part.data.text),
                       ),
                     },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
                   });
                   break;
                 }
@@ -328,6 +434,7 @@ export function convertToGoogleMessages(
                       mimeType: resolveFullMediaType({ part }),
                       data: convertToBase64(part.data.data),
                     },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
                   });
                   break;
                 }
@@ -359,7 +466,7 @@ export function convertToGoogleMessages(
 
               switch (part.type) {
                 case 'text': {
-                  return part.text.length === 0
+                  return part.text.length === 0 && thoughtSignature == null
                     ? undefined
                     : {
                         text: part.text,
@@ -368,7 +475,7 @@ export function convertToGoogleMessages(
                 }
 
                 case 'reasoning': {
-                  return part.text.length === 0
+                  return part.text.length === 0 && thoughtSignature == null
                     ? undefined
                     : {
                         text: part.text,
@@ -461,6 +568,19 @@ export function convertToGoogleMessages(
                 }
 
                 case 'tool-call': {
+                  if (
+                    part.providerExecuted === true &&
+                    part.toolName === 'code_execution'
+                  ) {
+                    return {
+                      executableCode: codeExecutionInputSchema.parse(
+                        typeof part.input === 'string'
+                          ? secureJsonParse(part.input)
+                          : part.input,
+                      ),
+                    };
+                  }
+
                   const serverToolCallId =
                     providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)
@@ -509,13 +629,24 @@ export function convertToGoogleMessages(
                         ? { id: part.toolCallId }
                         : {}),
                       name: part.toolName,
-                      args: part.input,
+                      args: parseToolCallInput(part.input),
                     },
                     thoughtSignature: effectiveThoughtSignature,
                   };
                 }
 
                 case 'tool-result': {
+                  if (
+                    part.toolName === 'code_execution' &&
+                    part.output.type === 'json'
+                  ) {
+                    return {
+                      codeExecutionResult: codeExecutionOutputSchema.parse(
+                        part.output.value,
+                      ),
+                    };
+                  }
+
                   const serverToolCallId =
                     providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)
@@ -600,6 +731,7 @@ export function convertToGoogleMessages(
                 output.value,
                 part.toolCallId,
                 includeFunctionCallIds,
+                supportedFunctionResponseUrls,
               );
             } else {
               appendLegacyToolResultParts(
@@ -611,6 +743,10 @@ export function convertToGoogleMessages(
               );
             }
           } else {
+            const isError =
+              output.type === 'error-text' ||
+              output.type === 'error-json' ||
+              output.type === 'execution-denied';
             parts.push({
               functionResponse: {
                 ...(includeFunctionCallIds && part.toolCallId != null
@@ -619,10 +755,16 @@ export function convertToGoogleMessages(
                 name: part.toolName,
                 response: {
                   name: part.toolName,
-                  content:
-                    output.type === 'execution-denied'
-                      ? (output.reason ?? 'Tool call execution denied.')
-                      : output.value,
+                  ...(isError
+                    ? {
+                        error:
+                          output.type === 'execution-denied'
+                            ? (output.reason ?? 'Tool call execution denied.')
+                            : serializeFunctionResponseContent(output.value),
+                      }
+                    : {
+                        content: serializeFunctionResponseContent(output.value),
+                      }),
                 },
               },
             });
@@ -675,4 +817,15 @@ export function convertToGoogleMessages(
         : undefined,
     contents,
   };
+}
+
+function parseToolCallInput(input: unknown): unknown {
+  if (typeof input !== 'string') {
+    return input;
+  }
+  try {
+    return secureJsonParse(input);
+  } catch {
+    return input;
+  }
 }

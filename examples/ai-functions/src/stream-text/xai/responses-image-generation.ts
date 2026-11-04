@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: xai.responses('grok-4.5'),
+    model: xai.responses('grok-4.7'),
     prompt: 'Generate an image of an origami fox in a paper forest',
     tools: {
       image_generation: xai.tools.imageGeneration({ action: 'generate' }),

@@ -1,6 +1,7 @@
 import type {
   JSONValue,
   SharedV4ProviderOptions,
+  Experimental_VideoModelV4 as VideoModelV4,
   Experimental_VideoModelV4File,
 } from '@ai-sdk/provider';
 import { DownloadError, type FetchFunction } from '@ai-sdk/provider-utils';
@@ -123,6 +124,9 @@ describe('MiniMaxVideoModel', () => {
     [POLL_URL]: {
       response: { type: 'json-value', body: succeededStatusResponse },
     },
+    [`${TEST_BASE_URL}/v2/query/video_generation/abc%2F..%2F..%2Finternal`]: {
+      response: { type: 'json-value', body: succeededStatusResponse },
+    },
   });
 
   describe('constructor', () => {
@@ -136,13 +140,18 @@ describe('MiniMaxVideoModel', () => {
     });
   });
 
+  it('should leave the generic webhook hook undefined', () => {
+    const model: VideoModelV4 = createModel();
+    expect(model.handleWebhookOption).toBeUndefined();
+  });
+
   describe('doStart / doStatus', () => {
     const operation = {
       taskId: TASK_ID,
       resolvedInputs: { imageCount: 0, referenceVideoIndices: [] },
     };
 
-    it('should submit once without polling or registering a webhook', async () => {
+    it('should submit once with callback_url without polling', async () => {
       const testDate = new Date('2026-01-01T00:00:00Z');
       server.urls[CREATE_URL].response = {
         type: 'json-value',
@@ -156,10 +165,10 @@ describe('MiniMaxVideoModel', () => {
         webhookUrl: 'https://example.com/callback',
       });
 
-      expect(model).not.toHaveProperty('handleWebhookOption');
       expect(server.calls).toHaveLength(1);
       expect(server.calls[0].requestMethod).toBe('POST');
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        callback_url: 'https://example.com/callback',
         model: 'MiniMax-H3',
         content: [{ type: 'text', text: prompt }],
         resolution: '2K',
@@ -173,6 +182,16 @@ describe('MiniMaxVideoModel', () => {
         modelId: 'MiniMax-H3',
         headers: { 'x-minimax-request-id': 'start-request' },
       });
+    });
+
+    it('should omit callback_url when webhookUrl is not provided', async () => {
+      const result = await createModel().doStart(defaultOptions);
+
+      expect(server.calls).toHaveLength(1);
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'callback_url',
+      );
+      expect(result.operation).toStrictEqual(operation);
     });
 
     it('should preserve normalized inputs and metadata across JSON and a fresh model', async () => {
@@ -503,6 +522,26 @@ describe('MiniMaxVideoModel', () => {
       });
     });
 
+    it.each([
+      { taskId: '.', encodedTaskId: '%252E' },
+      { taskId: '..', encodedTaskId: '%252E%252E' },
+    ])(
+      'should preserve the $taskId task ID as a URL path segment',
+      async ({ taskId, encodedTaskId }) => {
+        const calls: string[] = [];
+        const model = createModel({
+          fetch: async url => {
+            calls.push(new URL(url.toString()).pathname);
+            return Response.json(succeededStatusResponse);
+          },
+        });
+
+        await model.doStatus({ operation: { ...operation, taskId } });
+
+        expect(calls).toEqual([`/v2/query/video_generation/${encodedTaskId}`]);
+      },
+    );
+
     it('should encode the task ID and forward each abort signal to the custom fetch', async () => {
       const calls: Array<{ url: string; init?: RequestInit }> = [];
       const taskId = 'task/with?query=value#fragment';
@@ -585,6 +624,21 @@ describe('MiniMaxVideoModel', () => {
   });
 
   describe('doGenerate', () => {
+    it('should encode the task ID as a single URL path segment', async () => {
+      const model = createModel();
+
+      server.urls[CREATE_URL].response = {
+        type: 'json-value',
+        body: { task_id: 'abc/../../internal' },
+      };
+
+      await model.doGenerate({ ...defaultOptions });
+
+      expect(server.calls.map(call => call.requestUrl)).toContain(
+        `${TEST_BASE_URL}/v2/query/video_generation/abc%2F..%2F..%2Finternal`,
+      );
+    });
+
     it('should send a text-to-video request with required fields', async () => {
       const model = createModel();
 

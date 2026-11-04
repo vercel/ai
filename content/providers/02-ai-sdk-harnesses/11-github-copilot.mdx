@@ -42,18 +42,19 @@ configuration.
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { githubCopilot } from '@ai-sdk/harness-github-copilot';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: githubCopilot,
   model: 'gpt-5.5',
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 let exitCode = 0;
 try {
@@ -72,6 +73,7 @@ try {
   console.error(err);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
   process.exit(exitCode);
 }
 ```
@@ -120,6 +122,13 @@ Settings:
 - `portEndpoint`: host endpoint for the ACP bridge when the sandbox session
   cannot expose ports directly.
 - `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
+- `reconnect`: reconnect timing after an established bridge WebSocket
+  connection drops. `maxElapsedMs` controls the total retry window, including
+  connection establishment and backoff delays, and defaults to 30 seconds.
+  `initialDelayMs` defaults to 50 milliseconds, and `maxDelayMs` defaults to
+  2 seconds. These retries use exponential backoff and are separate from
+  `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
+  bridge endpoint is permanently unavailable.
 - `mintBridgeToken`: synchronous function that receives the sandbox id and
   returns the ACP bridge authentication token. By default, the adapter generates
   a random 32-byte token. Custom implementations must return a suitably secret
@@ -143,6 +152,10 @@ authentication. Set one or more of these environment variables:
 - `VERCEL_OIDC_TOKEN`
 - `AI_GATEWAY_API_KEY`
 - `AI_GATEWAY_BASE_URL`
+
+If no applicable credential environment variable is set, the adapter attempts
+to resolve a native subscription from the host system unless AI Gateway
+authentication is selected.
 
 For direct authentication, GitHub Copilot checks the three GitHub token
 variables in the listed order. Fine-grained personal access tokens require the
@@ -187,9 +200,10 @@ GitHub Copilot runs inside the sandbox through `@ai-sdk/harness-acp`. It
 requires a network sandbox with at least one exposed port:
 
 ```ts
-const sandbox = createVercelSandbox({
+const sandboxSession = await createVercelNetworkSandboxSession({
   runtime: 'node24',
   ports: [4000],
+  template: await agent.getSandboxTemplate(),
 });
 ```
 
@@ -211,6 +225,12 @@ GitHub Copilot sends a permission request. `allow-reads` approves read
 operations, `allow-edits` also approves file mutations, and `allow-all` approves
 every request. Shell execution still requires approval under `allow-edits`.
 
+Under `allow-reads` and `allow-edits`, native file operations are automatically
+approved only when every declared location resolves within the session working
+directory. Operations with external, missing, or unresolvable locations require
+host approval. Symlink targets are checked, including existing parent directories
+for new files. Use separate sandboxes when jobs require filesystem isolation.
+
 ## Known Limitations
 
 - ACP v1 does not expose a stable programmatic name for every native tool event.
@@ -223,9 +243,6 @@ every request. Shell execution still requires approval under `allow-edits`.
 - ACP v1 has no portable built-in tool filtering API. Filtering host tools is
   supported, but filtering GitHub Copilot built-ins throws an
   unsupported-capability error.
-- GitHub Copilot does not currently support built-in tool approval requests. Use
-  `permissionMode: 'allow-all'` with this adapter. Host-executed AI SDK tool
-  approvals still work.
 - GitHub Copilot ACP does not expose a structured-output metadata mapping, so
   schema-backed structured output is unsupported.
 - GitHub Copilot ACP does not expose any question tool, so `askUserQuestions`

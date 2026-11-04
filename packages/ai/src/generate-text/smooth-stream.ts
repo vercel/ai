@@ -1,8 +1,5 @@
 import { delay as originalDelay, type ToolSet } from '@ai-sdk/provider-utils';
-import {
-  InvalidArgumentError,
-  type SharedV4ProviderMetadata,
-} from '@ai-sdk/provider';
+import type { SharedV4ProviderMetadata } from '@ai-sdk/provider';
 import type { TextStreamPart } from './stream-text-result';
 
 const CHUNKING_REGEXPS = {
@@ -82,7 +79,7 @@ export function smoothStream<TOOLS extends ToolSet>({
 
       if (!buffer.startsWith(match)) {
         throw new Error(
-          `Chunking function must return a match that is a prefix of the buffer. Received: "${match}" expected to start with "${buffer}"`,
+          `Chunking function must return a match that is a prefix of the buffer. Received: "${match}" which is not a prefix of buffer "${buffer}"`,
         );
       }
 
@@ -92,16 +89,7 @@ export function smoothStream<TOOLS extends ToolSet>({
     const chunkingRegex =
       typeof chunking === 'string'
         ? CHUNKING_REGEXPS[chunking]
-        : chunking instanceof RegExp
-          ? chunking
-          : undefined;
-
-    if (chunkingRegex == null) {
-      throw new InvalidArgumentError({
-        argument: 'chunking',
-        message: `Chunking must be "word", "line", a RegExp, an Intl.Segmenter, or a ChunkDetector function. Received: ${chunking}`,
-      });
-    }
+        : (chunking as RegExp);
 
     detectChunk = buffer => {
       const lastIndex = chunkingRegex.lastIndex;
@@ -159,10 +147,20 @@ export function smoothStream<TOOLS extends ToolSet>({
           return;
         }
 
-        // Flush buffer when type or id changes
+        if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+          flushBuffer(controller);
+          controller.enqueue(chunk);
+          return;
+        }
+
+        // Flush at metadata boundaries because one output part cannot preserve
+        // metadata from multiple input deltas.
         if (
-          (chunk.type !== type || chunk.id !== id) &&
-          (buffer.length > 0 || providerMetadata != null)
+          buffer.length > 0 &&
+          (chunk.type !== type ||
+            chunk.id !== id ||
+            providerMetadata != null ||
+            chunk.providerMetadata != null)
         ) {
           flushBuffer(controller);
         }
@@ -170,19 +168,24 @@ export function smoothStream<TOOLS extends ToolSet>({
         buffer += chunk.text;
         id = chunk.id;
         type = chunk.type;
-
-        // Preserve providerMetadata (e.g., Anthropic thinking signatures)
-        if (chunk.providerMetadata != null) {
-          providerMetadata = chunk.providerMetadata;
-        }
+        providerMetadata = chunk.providerMetadata;
 
         let match;
 
         while ((match = detectChunk(buffer)) != null) {
-          controller.enqueue({ type, text: match, id });
+          controller.enqueue({
+            type,
+            text: match,
+            id,
+            ...(providerMetadata != null ? { providerMetadata } : {}),
+          });
           buffer = buffer.slice(match.length);
 
           await delay(isDocumentHidden() ? null : delayInMs);
+        }
+
+        if (buffer.length === 0) {
+          providerMetadata = undefined;
         }
       },
     });

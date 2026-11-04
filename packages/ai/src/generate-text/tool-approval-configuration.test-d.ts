@@ -93,7 +93,7 @@ describe('ToolApprovalConfiguration', () => {
         weather: async (input, { toolContext }) => {
           expectTypeOf(input).toEqualTypeOf<{ location: string }>();
           expectTypeOf(toolContext).toEqualTypeOf<{ weatherApiKey: string }>();
-          return Promise.resolve('approved' as const);
+          return 'approved' as const;
         },
       };
     });
@@ -103,7 +103,7 @@ describe('ToolApprovalConfiguration', () => {
         weather: () => undefined,
       };
       const _async: ToolApprovalConfiguration<Tools, Context> = {
-        weather: async () => Promise.resolve(undefined),
+        weather: async () => undefined,
       };
     });
 
@@ -141,7 +141,7 @@ describe('ToolApprovalConfiguration', () => {
       > = async options => {
         expectTypeOf(options.toolsContext).toEqualTypeOf<ToolSetContext>();
         expectTypeOf(options.runtimeContext).toEqualTypeOf<Context>();
-        return Promise.resolve('not-applicable' as const);
+        return 'not-applicable' as const;
       };
     });
 
@@ -166,7 +166,7 @@ describe('ToolApprovalConfiguration', () => {
     it('allows generic approval functions that return undefined (treated as not-applicable at runtime)', () => {
       const _sync: ToolApprovalConfiguration<Tools, Context> = () => undefined;
       const _async: ToolApprovalConfiguration<Tools, Context> = async () =>
-        Promise.resolve(undefined);
+        undefined;
     });
   });
 

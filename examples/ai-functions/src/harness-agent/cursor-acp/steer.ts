@@ -1,5 +1,5 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { printFullStream } from '../../lib/print-full-stream';
@@ -24,18 +24,21 @@ run(async () => {
 
   const agent = new HarnessAgent({
     harness: createCursorACP(),
-    sandbox: createVercelSandbox({
-      runtime: 'node24',
-      ports: [4000],
-      timeout: 10 * 60 * 1000,
-    }),
     tools: { weather },
   });
 
-  const session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
   let steered = false;
 
   try {
+    session = await agent.createSession({ sandboxSession });
+    const activeSession = session;
     const result = await agent.stream({
       session,
       prompt:
@@ -50,7 +53,7 @@ run(async () => {
         steered = true;
         console.log('\nSTEER: Actually, I meant Paris, Texas.');
         await agent.experimental_steer({
-          session,
+          session: activeSession,
           text: 'Actually, I meant Paris, Texas.',
         });
       },
@@ -60,6 +63,7 @@ run(async () => {
       throw new Error('Expected the weather tool call to trigger steering.');
     }
   } finally {
-    await session.destroy();
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

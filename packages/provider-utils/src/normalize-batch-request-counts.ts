@@ -31,8 +31,6 @@ export function normalizeBatchRequestCounts({
       failed,
     };
   }
-
-  return undefined;
 }
 
 function isNonNegativeSafeInteger(

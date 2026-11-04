@@ -272,6 +272,22 @@ When a manual approval status includes a reason, it is available as
 `part.approval.requestReason`. A reason supplied with
 `addToolApprovalResponse` is stored separately as `part.approval.reason`.
 
+### Schema transforms and persisted approvals
+
+Approval requests preserve the original schema input in `inputSchemaInput` when
+it differs from the input presented for approval. Keep this field when persisting
+`responseMessages` or UI messages; the UI message conversion functions preserve it
+automatically.
+
+On continuation, the SDK reconstructs the transformed input and checks that it
+matches the approved input. It never replaces the approved input with a different
+value. Older or projected histories that omit the original input are rejected as
+invalid tool input if revalidation fails or would change the approved value.
+
+The original input is included in persisted messages and UI approval streams,
+including fields removed by schema transforms. A transform that removes a field
+does not redact it from approval metadata.
+
 ## Security Considerations
 
 ### Trust model
@@ -279,6 +295,8 @@ When a manual approval status includes a reason, it is available as
 In the standard `useChat` pattern, the server rebuilds the conversation from the messages the client sends each turn. The server does not persist conversation state between requests. This means the message history is client-controlled input.
 
 Tool approvals reconstructed from this history are re-validated before execution: the tool input is checked against the tool's schema, and the approval policy is re-evaluated. However, without additional protection, a client that crafts a valid-looking approval for a schema-conforming input can bypass the human-in-the-loop step.
+
+During re-validation, `toolCall.toolMetadata` and `toolCall.dynamic` come from the current server-side tool definition. The deprecated `toolCall.title` field is also restored from that definition. A server-side policy denial prevents execution even when the client supplies an approved response with a valid signature.
 
 If your tools perform sensitive operations (modifying data, spending money, calling external APIs, accessing private resources), use `experimental_toolApprovalSecret` to cryptographically bind approvals to the server that issued them.
 
@@ -336,3 +354,4 @@ Every serverless instance that might handle a request needs the same secret, sin
 - Author approval rules as code with [Policy-Based Tool Approvals](/docs/agents/policy-tool-approvals) (`@ai-sdk/policy-opa`).
 - Use `needsApproval` only with [`WorkflowAgent`](/docs/agents/workflow-agent), where approvals suspend and resume durable workflow execution.
 - Subagent tools cannot use `toolApproval`; see [Subagents](/docs/agents/subagents#no-tool-approvals-in-subagents).
+- Chat SDK's `createChatTools` marks its write tools and `getUser` as needing approval. A `toolApproval` rule overrides those defaults; see [Chat Platforms](/docs/agents/chat-platforms#give-the-agent-chat-tools).

@@ -5,15 +5,11 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "exclude": [
-    "dist",
-    "build",
-    "node_modules",
-    "tsup.config.ts"
-  ],
+  "exclude": ["dist", "build", "node_modules", "tsdown.config.ts"],
   "references": [
     { "path": "../harness" },
-    { "path": "../harness-acp" },
+    { "path": "../mcp" },
+    { "path": "../provider" },
     { "path": "../provider-utils" }
   ]
 }

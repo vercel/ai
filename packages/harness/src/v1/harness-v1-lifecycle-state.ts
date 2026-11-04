@@ -1,5 +1,5 @@
 import type { JSONValue } from '@ai-sdk/provider';
-import type { ProviderOptions } from '@ai-sdk/provider-utils';
+import type { ProviderOptions, ToolResultPart } from '@ai-sdk/provider-utils';
 import type { HarnessV1Skill } from './harness-v1-skill';
 import type { HarnessV1ToolSpec } from './harness-v1-tool-spec';
 
@@ -18,6 +18,12 @@ export type HarnessV1PendingToolResult = {
   readonly toolName: string;
   readonly input: string;
   readonly providerOptions?: ProviderOptions;
+  /** Executed while suspending; submit on resume without running the tool again. */
+  readonly completedResult?: {
+    readonly output: unknown;
+    readonly isError?: boolean;
+    readonly toolResult?: ToolResultPart;
+  };
 };
 
 /**

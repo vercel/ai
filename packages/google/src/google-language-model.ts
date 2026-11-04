@@ -2,6 +2,7 @@ import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
+  LanguageModelV4FunctionTool,
   LanguageModelV4FinishReason,
   LanguageModelV4GenerateResult,
   LanguageModelV4Source,
@@ -13,9 +14,11 @@ import type {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertJsonResponseToolStream,
   createToolNameMapping,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createProviderStreamError,
   generateId,
   isCustomReasoning,
   lazySchema,
@@ -30,24 +33,33 @@ import {
   zodSchema,
   type FetchFunction,
   type InferSchema,
-  type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  continueGoogleStream,
+  type GoogleStreamPart,
+} from './continue-google-stream';
+import {
+  addGoogleUsageMetadata,
   convertGoogleUsage,
   type GoogleUsageMetadata,
 } from './convert-google-usage';
-import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleMessages } from './convert-to-google-messages';
+import { downloadToolResultFiles } from './download-tool-result-files';
 import { getModelPath } from './get-model-path';
-import { googleFailedResponseHandler } from './google-error';
+import {
+  getGoogleErrorSchema,
+  googleFailedResponseHandler,
+  mapGoogleErrorStatusToHttpStatusCode,
+} from './google-error';
+import { sanitizeResponseJsonSchema } from './sanitize-response-json-schema';
 import {
   googleLanguageModelOptions,
   type GoogleLanguageModelOptions,
   type GoogleModelId,
 } from './google-language-model-options';
-import { getGoogleModelCapabilities } from './google-model-capabilities';
+import { getGoogleLanguageModelEntry } from './google-model-catalog';
 import type { GoogleProviderMetadata } from './google-prompt';
 import { prepareTools } from './google-prepare-tools';
 import {
@@ -63,7 +75,13 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
 
-const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
+const googleCloudStorageFunctionResponseUrls = {
+  'image/png': [/^gs:\/\/.*$/],
+  'image/jpeg': [/^gs:\/\/.*$/],
+  'image/webp': [/^gs:\/\/.*$/],
+  'application/pdf': [/^gs:\/\/.*$/],
+  'text/plain': [/^gs:\/\/.*$/],
+} satisfies Record<string, RegExp[]>;
 
 export type GoogleLanguageModelConfig = {
   provider: string;
@@ -76,6 +94,14 @@ export type GoogleLanguageModelConfig = {
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
+
+  /**
+   * Settings for downloading remote files in tool results before conversion.
+   */
+  downloadToolResultFiles?: {
+    maxBytes: number;
+    supportsGoogleCloudStorageUrls?: boolean;
+  };
 };
 
 export class GoogleLanguageModel implements LanguageModelV4 {
@@ -132,6 +158,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       toolChoice,
       reasoning,
       providerOptions,
+      abortSignal,
     },
     isStreaming = false,
   }: {
@@ -268,9 +295,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const isGemmaModel = modelId.toLowerCase().startsWith('gemma-');
+    const entry = getGoogleLanguageModelEntry(modelId);
+    const isGemmaModel =
+      entry.requestConfig.language.systemInstruction === 'user';
     const isGemini25DeveloperApiModel =
-      !isVertexProvider && gemini25ModelPattern.test(modelId);
+      !isVertexProvider &&
+      entry.capabilities.language.sampling.penalties !== true;
 
     if (isGemini25DeveloperApiModel && frequencyPenalty != null) {
       warnings.push({
@@ -285,16 +315,34 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const { usesGemini3Features } = getGoogleModelCapabilities(modelId);
+    const usesGemini3Features =
+      entry.capabilities.language.tools.functionResponseParts;
+    const supportedFunctionResponseUrls =
+      usesGemini3Features &&
+      config.downloadToolResultFiles?.supportsGoogleCloudStorageUrls
+        ? googleCloudStorageFunctionResponseUrls
+        : undefined;
 
-    const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
-      isGemmaModel,
-      isGemini3Model: usesGemini3Features,
-      onWarning: warning => warnings.push(warning),
-      providerOptionsNames,
-      supportsFunctionResponseParts: usesGemini3Features,
-      includeFunctionCallIds: !isVertexProvider,
-    });
+    const promptWithDownloadedToolResultFiles = config.downloadToolResultFiles
+      ? await downloadToolResultFiles(prompt, {
+          abortSignal,
+          maxBytes: config.downloadToolResultFiles.maxBytes,
+          supportedUrls: supportedFunctionResponseUrls,
+        })
+      : prompt;
+
+    const { contents, systemInstruction } = convertToGoogleMessages(
+      promptWithDownloadedToolResultFiles,
+      {
+        isGemmaModel,
+        isGemini3Model: usesGemini3Features,
+        onWarning: warning => warnings.push(warning),
+        providerOptionsNames,
+        supportsFunctionResponseParts: usesGemini3Features,
+        includeFunctionCallIds: !isVertexProvider,
+        supportedFunctionResponseUrls,
+      },
+    );
 
     const {
       tools: googleTools,
@@ -313,11 +361,11 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       },
     });
 
-    const resolvedThinking = resolveThinkingConfig({
-      reasoning,
-      modelId,
-      warnings,
-    });
+    const resolvedThinking =
+      googleOptions?.thinkingConfig?.thinkingBudget != null ||
+      googleOptions?.thinkingConfig?.thinkingLevel != null
+        ? undefined
+        : resolveThinkingConfig({ reasoning, modelId, warnings });
     const thinkingConfig =
       googleOptions?.thinkingConfig || resolvedThinking
         ? { ...resolvedThinking, ...googleOptions?.thinkingConfig }
@@ -376,14 +424,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           // response format:
           responseMimeType:
             responseFormat?.type === 'json' ? 'application/json' : undefined,
-          responseSchema:
+          responseJsonSchema:
             responseFormat?.type === 'json' &&
             responseFormat.schema != null &&
-            // Google GenAI does not support all OpenAPI Schema features,
-            // so this is needed as an escape hatch:
+            // Google does not support all JSON Schema features in
+            // responseJsonSchema, so this is needed as an escape hatch:
             // TODO convert into provider option
             (googleOptions?.structuredOutputs ?? true)
-              ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
+              ? sanitizeResponseJsonSchema(responseFormat.schema)
               : undefined,
           ...(googleOptions?.audioTimestamp && {
             audioTimestamp: googleOptions.audioTimestamp,
@@ -405,6 +453,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
         serviceTier: bodyServiceTier,
+        ...(googleOptions?.continuationToken != null && {
+          continuationToken: googleOptions.continuationToken,
+        }),
       },
       warnings: [...warnings, ...toolWarnings],
       providerOptionsNames,
@@ -413,16 +464,59 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     };
   }
 
-  private getArgs(
+  private async getArgs(
     options: LanguageModelV4CallOptions,
     { isStreaming = false }: { isStreaming?: boolean } = {},
   ) {
-    return GoogleLanguageModel.prepareRequest({
+    const { responseFormat, tools, toolChoice } = options;
+    const entry = getGoogleLanguageModelEntry(this.modelId);
+    const { structuredOutput } = entry.capabilities.language;
+    let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
+    // Gemini models before Gemini 3 reject JSON response formatting together
+    // with function tools. Gemini 3 supports the combination only with automatic
+    // tool choice (AUTO). Forced tool choice (ANY) requires a JSON response tool.
+    if (
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      tools?.some(tool => tool.type === 'function') &&
+      entry.requestConfig.language.jsonResponseTool &&
+      (!structuredOutput.withFunctionTools ||
+        toolChoice?.type === 'required' ||
+        toolChoice?.type === 'tool')
+    ) {
+      let name = 'json';
+      for (let suffix = 1; tools.some(tool => tool.name === name); suffix++) {
+        name = `json_${suffix}`;
+      }
+      jsonResponseTool = {
+        type: 'function',
+        name,
+        description:
+          responseFormat.description ?? 'Respond with a JSON object.',
+        inputSchema: responseFormat.schema,
+      };
+    }
+
+    const prepared = await GoogleLanguageModel.prepareRequest({
       modelId: this.modelId,
       config: this.config,
-      options,
+      options:
+        jsonResponseTool == null
+          ? options
+          : {
+              ...options,
+              responseFormat: undefined,
+              tools: [...(tools ?? []), jsonResponseTool],
+              toolChoice:
+                toolChoice?.type === 'tool'
+                  ? toolChoice
+                  : toolChoice?.type === 'none'
+                    ? { type: 'tool', toolName: jsonResponseTool.name }
+                    : { type: 'required' },
+            },
       isStreaming,
     });
+    return { ...prepared, jsonResponseToolName: jsonResponseTool?.name };
   }
 
   static convertGenerateContentResponse({
@@ -431,12 +525,18 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     warnings,
     providerOptionsNames,
     toolNameMapping,
+    jsonResponseToolName,
+    initialPromptTokenCount,
+    groundingMetadataPerRequest,
   }: {
     config: GoogleLanguageModelConfig;
     response: InferSchema<typeof responseSchema>;
     warnings: SharedV4Warning[];
     providerOptionsNames: readonly string[];
     toolNameMapping?: ReturnType<typeof createToolNameMapping>;
+    jsonResponseToolName?: string;
+    initialPromptTokenCount?: number | null;
+    groundingMetadataPerRequest?: Array<GroundingMetadataSchema | null>;
   }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -444,10 +544,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       ) as SharedV4ProviderMetadata;
     const candidate = response.candidates?.[0];
     const promptBlockReason = response.promptFeedback?.blockReason;
+    const confirmedPromptBlockReason = isConfirmedPromptBlockReason(
+      promptBlockReason,
+    )
+      ? promptBlockReason
+      : undefined;
     const isPromptBlocked =
-      candidate?.finishReason == null && promptBlockReason != null;
+      candidate?.finishReason == null && confirmedPromptBlockReason != null;
     const rawFinishReason =
-      candidate?.finishReason ?? promptBlockReason ?? undefined;
+      candidate?.finishReason ?? confirmedPromptBlockReason;
     const content: Array<LanguageModelV4Content> = [];
 
     // map ordered parts to content:
@@ -489,6 +594,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           },
         });
       } else if ('text' in part && part.text != null) {
+        if (jsonResponseToolName != null && part.thought !== true) continue;
         const thoughtSignatureMetadata = part.thoughtSignature
           ? wrapProviderMetadata({
               thoughtSignature: part.thoughtSignature,
@@ -508,6 +614,23 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           });
         }
       } else if ('functionCall' in part && part.functionCall.name != null) {
+        if (part.functionCall.name === jsonResponseToolName) {
+          content.push({
+            type: 'text',
+            text:
+              typeof part.functionCall.args === 'string'
+                ? part.functionCall.args
+                : JSON.stringify(part.functionCall.args ?? {}),
+            ...(part.thoughtSignature
+              ? {
+                  providerMetadata: wrapProviderMetadata({
+                    thoughtSignature: part.thoughtSignature,
+                  }),
+                }
+              : {}),
+          });
+          continue;
+        }
         content.push({
           type: 'tool-call' as const,
           toolCallId: part.functionCall.id || config.generateId(),
@@ -604,11 +727,18 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       providerMetadata: wrapProviderMetadata({
         promptFeedback: response.promptFeedback ?? null,
         groundingMetadata: candidate?.groundingMetadata ?? null,
+        ...(groundingMetadataPerRequest != null
+          ? { groundingMetadataPerRequest }
+          : {}),
         urlContextMetadata: candidate?.urlContextMetadata ?? null,
         safetyRatings: candidate?.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
         finishMessage: candidate?.finishMessage ?? null,
         serviceTier: usageMetadata?.serviceTier ?? null,
+        ...(candidate?.continuationToken != null
+          ? { continuationToken: candidate.continuationToken }
+          : {}),
+        ...(initialPromptTokenCount != null ? { initialPromptTokenCount } : {}),
       } satisfies GoogleProviderMetadata),
       response: {
         // TODO timestamp, model id
@@ -626,37 +756,100 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       providerOptionsNames,
       extraHeaders,
       toolNameMapping,
+      jsonResponseToolName,
     } = await this.getArgs(options);
 
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
+    const generateContent = async (body: typeof args) =>
+      postJsonToApi({
+        url: `${this.config.baseURL}/${getModelPath(
+          this.modelId,
+        )}:generateContent`,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+          extraHeaders,
+        ),
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(responseSchema),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
 
-    const {
+    let {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
-    } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:generateContent`,
-      headers: mergedHeaders,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(responseSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    } = await generateContent(args);
 
-    const result = GoogleLanguageModel.convertGenerateContentResponse({
+    // Gemini 4 long decode: a request that reaches the per-request cap while
+    // `maxOutputTokens` budget remains finishes with `CONTINUATION`. Resend
+    // the same request with the continuation token (the server tracks the
+    // cumulative tokens) and combine the content of all requests.
+    //
+    // Usage is summed across requests (matching billing). Each request re-sends
+    // the prompt plus all output so far as input, so the first request's
+    // prompt token count is kept separately for context window checks.
+    const content: LanguageModelV4Content[] = [];
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
+    let usageMetadata: GoogleUsageMetadata | undefined;
+    const firstPromptTokenCount = response.usageMetadata?.promptTokenCount;
+    let isContinued = false;
+
+    while (true) {
+      const candidate = response.candidates?.[0];
+      groundingMetadataPerRequest.push(candidate?.groundingMetadata ?? null);
+      const continuationToken =
+        candidate?.finishReason === 'CONTINUATION'
+          ? candidate.continuationToken
+          : undefined;
+
+      usageMetadata = addGoogleUsageMetadata(
+        usageMetadata,
+        response.usageMetadata ?? undefined,
+      );
+
+      if (continuationToken == null) {
+        break;
+      }
+
+      content.push(
+        ...GoogleLanguageModel.convertGenerateContentResponse({
+          config: this.config,
+          response,
+          warnings,
+          providerOptionsNames,
+          toolNameMapping,
+          jsonResponseToolName,
+        }).content,
+      );
+
+      isContinued = true;
+      ({
+        responseHeaders,
+        value: response,
+        rawValue: rawResponse,
+      } = await generateContent({ ...args, continuationToken }));
+    }
+
+    const lastResult = GoogleLanguageModel.convertGenerateContentResponse({
       config: this.config,
-      response,
+      response: { ...response, usageMetadata },
       warnings,
       providerOptionsNames,
       toolNameMapping,
+      jsonResponseToolName,
+      initialPromptTokenCount: isContinued ? firstPromptTokenCount : undefined,
+      groundingMetadataPerRequest: isContinued
+        ? groundingMetadataPerRequest
+        : undefined,
     });
+
+    const result = {
+      ...lastResult,
+      content: [...content, ...lastResult.content],
+    };
 
     return {
       ...result,
@@ -678,38 +871,81 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       providerOptionsNames,
       extraHeaders,
       toolNameMapping,
+      jsonResponseToolName,
     } = await this.getArgs(options, { isStreaming: true });
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
         providerOptionsNames.map(name => [name, payload]),
       ) as SharedV4ProviderMetadata;
 
-    const headers = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
+    const streamGenerateContent = async (body: typeof args) =>
+      postJsonToApi({
+        url: `${this.config.baseURL}/${getModelPath(
+          this.modelId,
+        )}:streamGenerateContent?alt=sse`,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+          extraHeaders,
+        ),
+        body,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler:
+          createEventSourceResponseHandler(chunkSchema),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
 
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/${getModelPath(
-        this.modelId,
-      )}:streamGenerateContent?alt=sse`,
-      headers,
-      body: args,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(chunkSchema),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
+    const { responseHeaders, value: firstResponse } =
+      await streamGenerateContent(args);
+
+    const groundingMetadataPerRequest: Array<GroundingMetadataSchema | null> =
+      [];
+    let requestGroundingMetadata: GroundingMetadataSchema | null = null;
+
+    // Gemini 4 long decode: when a stream reaches the per-request cap while
+    // `maxOutputTokens` budget remains, its last chunk finishes with
+    // `CONTINUATION`. Resend the same request with the continuation token and
+    // append the new stream, which contains only newly generated content.
+    const response = continueGoogleStream({
+      stream: firstResponse,
+      getContinuationToken: chunk => {
+        const candidate = chunk.candidates?.[0];
+        if (candidate?.groundingMetadata != null) {
+          requestGroundingMetadata = candidate.groundingMetadata;
+        }
+        return candidate?.finishReason === 'CONTINUATION'
+          ? (candidate.continuationToken ?? undefined)
+          : undefined;
+      },
+      continueStream: async continuationToken => {
+        const { value } = await streamGenerateContent({
+          ...args,
+          continuationToken,
+        });
+        groundingMetadataPerRequest.push(requestGroundingMetadata);
+        requestGroundingMetadata = null;
+        return value;
+      },
     });
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: GoogleUsageMetadata | undefined = undefined;
-    let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
+    // Usage of the completed requests of an automatically continued response.
+    let continuedUsage: GoogleUsageMetadata | undefined = undefined;
+    // Prompt token count of the first request, for context window checks.
+    let initialPromptTokenCount: number | null | undefined = undefined;
+    let promptFeedback: PromptFeedbackSchema | null = null;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
+    let lastSafetyRatings: SafetyRatingSchema[] | null = null;
+    let lastFinishMessage: string | null = null;
+    let lastContinuationToken: string | null = null;
+    let confirmedPromptBlockReason: string | undefined;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -742,6 +978,19 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         return;
       }
 
+      // Finalized partial-argument calls also separate surrounding blocks.
+      if (currentTextBlockId !== null) {
+        controller.enqueue({ type: 'text-end', id: currentTextBlockId });
+        currentTextBlockId = null;
+      }
+      if (currentReasoningBlockId !== null) {
+        controller.enqueue({
+          type: 'reasoning-end',
+          id: currentReasoningBlockId,
+        });
+        currentReasoningBlockId = null;
+      }
+
       const { finalJSON, closingDelta } = active.accumulator.finalize();
 
       if (closingDelta.length > 0) {
@@ -770,10 +1019,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       hasToolCalls = true;
     };
 
-    return {
+    const result = {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<ChunkSchema>,
+          GoogleStreamPart<ChunkSchema>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
@@ -781,16 +1030,51 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           },
 
           transform(chunk, controller) {
+            if ('type' in chunk) {
+              // Reset in stream order, after the prior response's buffered
+              // CONTINUATION chunk, rather than when the request starts.
+              finishReason = { unified: 'interrupted', raw: undefined };
+              return;
+            }
+
             if (options.includeRawChunks) {
               controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
             }
 
             if (!chunk.success) {
+              if (finishReason.unified === 'interrupted') {
+                finishReason = { unified: 'error', raw: undefined };
+              }
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
 
             const value = chunk.value;
+
+            if (value.error != null) {
+              finishReason = { unified: 'error', raw: undefined };
+              const error = value.error;
+              const statusCode =
+                error.code ??
+                mapGoogleErrorStatusToHttpStatusCode(error.status);
+              controller.enqueue({
+                type: 'error',
+                error: createProviderStreamError({
+                  message: error.message,
+                  type: error.status,
+                  code: error.code ?? undefined,
+                  statusCode,
+                  isRetryable:
+                    statusCode != null &&
+                    (statusCode === 408 ||
+                      statusCode === 409 ||
+                      statusCode === 429 ||
+                      statusCode >= 500),
+                  data: error,
+                }),
+              });
+              return;
+            }
 
             if (!hasEmittedResponseMetadata && value.responseId != null) {
               hasEmittedResponseMetadata = true;
@@ -806,37 +1090,50 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               usage = usageMetadata;
             }
 
-            const candidate = value.candidates?.[0];
+            if (
+              value.promptFeedback != null &&
+              confirmedPromptBlockReason == null
+            ) {
+              promptFeedback = value.promptFeedback;
 
-            // sometimes the API returns an empty candidates array
-            if (candidate == null) {
-              const promptBlockReason = value.promptFeedback?.blockReason;
-              if (promptBlockReason != null) {
+              if (
+                isConfirmedPromptBlockReason(value.promptFeedback.blockReason)
+              ) {
+                confirmedPromptBlockReason = value.promptFeedback.blockReason;
                 finishReason = {
                   unified: 'content-filter',
-                  raw: promptBlockReason,
+                  raw: confirmedPromptBlockReason,
                 };
-                providerMetadata = wrapProviderMetadata({
-                  promptFeedback: value.promptFeedback ?? null,
-                  groundingMetadata: lastGroundingMetadata,
-                  urlContextMetadata: lastUrlContextMetadata,
-                  safetyRatings: null,
-                  usageMetadata: usageMetadata ?? null,
-                  finishMessage: null,
-                  serviceTier: usage?.serviceTier ?? null,
-                } satisfies GoogleProviderMetadata);
               }
+            }
+
+            const candidate = value.candidates?.[0];
+
+            if (candidate != null) {
+              if (candidate.groundingMetadata != null) {
+                lastGroundingMetadata = candidate.groundingMetadata;
+              }
+              if (candidate.urlContextMetadata != null) {
+                lastUrlContextMetadata = candidate.urlContextMetadata;
+              }
+              if (candidate.safetyRatings != null) {
+                lastSafetyRatings = candidate.safetyRatings;
+              }
+              if (candidate.finishMessage != null) {
+                lastFinishMessage = candidate.finishMessage;
+              }
+              if (candidate.continuationToken != null) {
+                lastContinuationToken = candidate.continuationToken;
+              }
+            }
+
+            // A confirmed prompt block is terminal for generated content, but
+            // later chunks can still contribute usage and provider metadata.
+            if (confirmedPromptBlockReason != null || candidate == null) {
               return;
             }
 
             const content = candidate.content;
-
-            if (candidate.groundingMetadata != null) {
-              lastGroundingMetadata = candidate.groundingMetadata;
-            }
-            if (candidate.urlContextMetadata != null) {
-              lastUrlContextMetadata = candidate.urlContextMetadata;
-            }
 
             const sources = extractSources({
               groundingMetadata: candidate.groundingMetadata,
@@ -898,16 +1195,40 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     : undefined;
 
                   if (part.text.length === 0) {
-                    if (
-                      thoughtSignatureMetadata != null &&
-                      currentTextBlockId !== null
-                    ) {
-                      controller.enqueue({
-                        type: 'text-delta',
-                        id: currentTextBlockId,
-                        delta: '',
-                        providerMetadata: thoughtSignatureMetadata,
-                      });
+                    if (thoughtSignatureMetadata != null) {
+                      if (currentTextBlockId !== null) {
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id: currentTextBlockId,
+                          delta: '',
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                      } else {
+                        if (currentReasoningBlockId !== null) {
+                          controller.enqueue({
+                            type: 'reasoning-end',
+                            id: currentReasoningBlockId,
+                          });
+                          currentReasoningBlockId = null;
+                        }
+
+                        // Keep the signature in position without merging later content.
+                        const id = String(blockCounter++);
+                        const type =
+                          part.thought === true ? 'reasoning' : 'text';
+                        controller.enqueue({
+                          type: `${type}-start`,
+                          id,
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                        controller.enqueue({
+                          type: `${type}-delta`,
+                          id,
+                          delta: '',
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                        controller.enqueue({ type: `${type}-end`, id });
+                      }
                     }
                   } else if (part.thought === true) {
                     // End any active text block before starting reasoning
@@ -1032,67 +1353,108 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     providerMetadata: serverMeta,
                   });
                   lastServerToolCallId = undefined;
-                }
-              }
+                } else if ('functionCall' in part) {
+                  const providerMeta = part.thoughtSignature
+                    ? wrapProviderMetadata({
+                        thoughtSignature: part.thoughtSignature,
+                      })
+                    : undefined;
 
-              // Handle streaming and complete function calls
-              for (const part of parts) {
-                if (!('functionCall' in part)) continue;
+                  const isStreamingChunk =
+                    part.functionCall.partialArgs != null ||
+                    (part.functionCall.name != null &&
+                      part.functionCall.willContinue === true);
+                  const isTerminalChunk =
+                    part.functionCall.name == null &&
+                    part.functionCall.args == null &&
+                    part.functionCall.partialArgs == null &&
+                    part.functionCall.willContinue == null;
+                  const isCompleteCall =
+                    part.functionCall.name != null &&
+                    part.functionCall.args != null &&
+                    part.functionCall.partialArgs == null;
+                  // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
+                  // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
+                  const isNoArgsCompleteCall =
+                    part.functionCall.name != null &&
+                    part.functionCall.args == null &&
+                    part.functionCall.partialArgs == null &&
+                    part.functionCall.willContinue !== true;
 
-                const providerMeta = part.thoughtSignature
-                  ? wrapProviderMetadata({
-                      thoughtSignature: part.thoughtSignature,
-                    })
-                  : undefined;
+                  if (
+                    !isStreamingChunk &&
+                    (isCompleteCall || isNoArgsCompleteCall)
+                  ) {
+                    if (currentTextBlockId !== null) {
+                      controller.enqueue({
+                        type: 'text-end',
+                        id: currentTextBlockId,
+                      });
+                      currentTextBlockId = null;
+                    }
+                    if (currentReasoningBlockId !== null) {
+                      controller.enqueue({
+                        type: 'reasoning-end',
+                        id: currentReasoningBlockId,
+                      });
+                      currentReasoningBlockId = null;
+                    }
+                  }
 
-                const isStreamingChunk =
-                  part.functionCall.partialArgs != null ||
-                  (part.functionCall.name != null &&
-                    part.functionCall.willContinue === true);
-                const isTerminalChunk =
-                  part.functionCall.name == null &&
-                  part.functionCall.args == null &&
-                  part.functionCall.partialArgs == null &&
-                  part.functionCall.willContinue == null;
-                const isCompleteCall =
-                  part.functionCall.name != null &&
-                  part.functionCall.args != null &&
-                  part.functionCall.partialArgs == null;
-                // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
-                // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
-                const isNoArgsCompleteCall =
-                  part.functionCall.name != null &&
-                  part.functionCall.args == null &&
-                  part.functionCall.partialArgs == null &&
-                  part.functionCall.willContinue !== true;
+                  if (isStreamingChunk) {
+                    if (part.functionCall.name != null) {
+                      const toolCallId = part.functionCall.id || generateId();
+                      const accumulator = new GoogleJSONAccumulator();
+                      activeStreamingToolCalls.push({
+                        toolCallId,
+                        toolName: part.functionCall.name,
+                        accumulator,
+                        providerMetadata: providerMeta,
+                      });
 
-                if (isStreamingChunk) {
-                  if (part.functionCall.name != null) {
-                    const toolCallId = part.functionCall.id || generateId();
-                    const accumulator = new GoogleJSONAccumulator();
-                    activeStreamingToolCalls.push({
-                      toolCallId,
-                      toolName: part.functionCall.name,
-                      accumulator,
-                      providerMetadata: providerMeta,
-                    });
+                      controller.enqueue({
+                        type: 'tool-input-start',
+                        id: toolCallId,
+                        toolName: part.functionCall.name,
+                        providerMetadata: providerMeta,
+                      });
 
-                    controller.enqueue({
-                      type: 'tool-input-start',
-                      id: toolCallId,
-                      toolName: part.functionCall.name,
-                      providerMetadata: providerMeta,
-                    });
-
-                    if (part.functionCall.partialArgs != null) {
+                      if (part.functionCall.partialArgs != null) {
+                        const partialArgs = part.functionCall
+                          .partialArgs as PartialArg[];
+                        const { textDelta } =
+                          accumulator.processPartialArgs(partialArgs);
+                        if (textDelta.length > 0) {
+                          controller.enqueue({
+                            type: 'tool-input-delta',
+                            id: toolCallId,
+                            delta: textDelta,
+                            providerMetadata: providerMeta,
+                          });
+                        }
+                        if (
+                          part.functionCall.willContinue !== true &&
+                          partialArgs.every(arg => arg.willContinue !== true)
+                        ) {
+                          finishActiveStreamingToolCall(controller);
+                        }
+                      }
+                    } else if (
+                      part.functionCall.partialArgs != null &&
+                      activeStreamingToolCalls.length > 0
+                    ) {
+                      const active =
+                        activeStreamingToolCalls[
+                          activeStreamingToolCalls.length - 1
+                        ];
                       const partialArgs = part.functionCall
                         .partialArgs as PartialArg[];
                       const { textDelta } =
-                        accumulator.processPartialArgs(partialArgs);
+                        active.accumulator.processPartialArgs(partialArgs);
                       if (textDelta.length > 0) {
                         controller.enqueue({
                           type: 'tool-input-delta',
-                          id: toolCallId,
+                          id: active.toolCallId,
                           delta: textDelta,
                           providerMetadata: providerMeta,
                         });
@@ -1105,134 +1467,102 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                       }
                     }
                   } else if (
-                    part.functionCall.partialArgs != null &&
+                    isTerminalChunk &&
                     activeStreamingToolCalls.length > 0
                   ) {
-                    const active =
-                      activeStreamingToolCalls[
-                        activeStreamingToolCalls.length - 1
-                      ];
-                    const partialArgs = part.functionCall
-                      .partialArgs as PartialArg[];
-                    const { textDelta } =
-                      active.accumulator.processPartialArgs(partialArgs);
-                    if (textDelta.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: active.toolCallId,
-                        delta: textDelta,
-                        providerMetadata: providerMeta,
-                      });
-                    }
-                    if (
-                      part.functionCall.willContinue !== true &&
-                      partialArgs.every(arg => arg.willContinue !== true)
-                    ) {
-                      finishActiveStreamingToolCall(controller);
-                    }
+                    finishActiveStreamingToolCall(controller);
+                  } else if (isCompleteCall) {
+                    const toolCallId = part.functionCall.id || generateId();
+                    const toolName = part.functionCall.name!;
+                    const args =
+                      typeof part.functionCall.args === 'string'
+                        ? part.functionCall.args
+                        : JSON.stringify(part.functionCall.args ?? {});
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallId,
+                      toolName,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: toolCallId,
+                      delta: args,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCallId,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId,
+                      toolName,
+                      input: args,
+                      providerMetadata: providerMeta,
+                    });
+
+                    hasToolCalls = true;
+                  } else if (isNoArgsCompleteCall) {
+                    const toolCallId = part.functionCall.id || generateId();
+                    const toolName = part.functionCall.name!;
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallId,
+                      toolName,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCallId,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId,
+                      toolName,
+                      input: '{}',
+                      providerMetadata: providerMeta,
+                    });
+
+                    hasToolCalls = true;
                   }
-                } else if (
-                  isTerminalChunk &&
-                  activeStreamingToolCalls.length > 0
-                ) {
-                  finishActiveStreamingToolCall(controller);
-                } else if (isCompleteCall) {
-                  const toolCallId = part.functionCall.id || generateId();
-                  const toolName = part.functionCall.name!;
-                  const args =
-                    typeof part.functionCall.args === 'string'
-                      ? part.functionCall.args
-                      : JSON.stringify(part.functionCall.args ?? {});
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallId,
-                    toolName,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: toolCallId,
-                    delta: args,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCallId,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId,
-                    toolName,
-                    input: args,
-                    providerMetadata: providerMeta,
-                  });
-
-                  hasToolCalls = true;
-                } else if (isNoArgsCompleteCall) {
-                  const toolCallId = part.functionCall.id || generateId();
-                  const toolName = part.functionCall.name!;
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallId,
-                    toolName,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCallId,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId,
-                    toolName,
-                    input: '{}',
-                    providerMetadata: providerMeta,
-                  });
-
-                  hasToolCalls = true;
                 }
               }
             }
 
-            const promptBlockReason = value.promptFeedback?.blockReason;
-            const isPromptBlocked =
-              candidate.finishReason == null && promptBlockReason != null;
-            const rawFinishReason =
-              candidate.finishReason ?? promptBlockReason ?? undefined;
+            if (candidate.finishReason === 'CONTINUATION') {
+              // Usage metadata is per request. The next request reports its
+              // own usage, so bank the usage of this one.
+              if (continuedUsage == null) {
+                initialPromptTokenCount = usage?.promptTokenCount;
+              }
+              continuedUsage = addGoogleUsageMetadata(continuedUsage, usage);
+              usage = undefined;
+            }
 
-            if (rawFinishReason != null) {
+            if (candidate.finishReason != null) {
               finishReason = {
-                unified: isPromptBlocked
-                  ? 'content-filter'
-                  : mapGoogleFinishReason({
-                      finishReason: rawFinishReason,
-                      hasToolCalls,
-                    }),
-                raw: rawFinishReason,
+                unified: mapGoogleFinishReason({
+                  finishReason: candidate.finishReason,
+                  hasToolCalls,
+                }),
+                raw: candidate.finishReason,
               };
-
-              providerMetadata = wrapProviderMetadata({
-                promptFeedback: value.promptFeedback ?? null,
-                groundingMetadata: lastGroundingMetadata,
-                urlContextMetadata: lastUrlContextMetadata,
-                safetyRatings: candidate.safetyRatings ?? null,
-                usageMetadata: usageMetadata ?? null,
-                finishMessage: candidate.finishMessage ?? null,
-                serviceTier: usage?.serviceTier ?? null,
-              } satisfies GoogleProviderMetadata);
             }
           },
 
           flush(controller) {
+            usage = addGoogleUsageMetadata(continuedUsage, usage);
+
             if (currentTextBlockId !== null) {
               controller.enqueue({
                 type: 'text-end',
@@ -1250,7 +1580,34 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertGoogleUsage(usage),
-              providerMetadata,
+              providerMetadata: wrapProviderMetadata({
+                promptFeedback,
+                groundingMetadata: lastGroundingMetadata,
+                ...(groundingMetadataPerRequest.length > 0
+                  ? {
+                      groundingMetadataPerRequest: [
+                        ...groundingMetadataPerRequest,
+                        requestGroundingMetadata,
+                      ],
+                    }
+                  : {}),
+                urlContextMetadata: lastUrlContextMetadata,
+                safetyRatings: lastSafetyRatings,
+                usageMetadata: usage ?? null,
+                finishMessage: lastFinishMessage,
+                serviceTier: usage?.serviceTier ?? null,
+                // Only surface the token when the response stopped early
+                // (budget used up, or continuing failed), not for the
+                // checkpoint tokens of a stream that finished normally.
+                ...(lastContinuationToken != null &&
+                (finishReason.raw === 'MAX_TOKENS' ||
+                  finishReason.raw === 'CONTINUATION')
+                  ? { continuationToken: lastContinuationToken }
+                  : {}),
+                ...(initialPromptTokenCount != null
+                  ? { initialPromptTokenCount }
+                  : {}),
+              } satisfies GoogleProviderMetadata),
             });
           },
         }),
@@ -1258,19 +1615,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       response: { headers: responseHeaders },
       request: { body: args },
     };
+    return {
+      ...result,
+      stream:
+        jsonResponseToolName == null
+          ? result.stream
+          : result.stream.pipeThrough(
+              convertJsonResponseToolStream(jsonResponseToolName),
+            ),
+    };
   }
-}
-
-function getMaxOutputTokensForGemini25Model(): number {
-  return 65536;
-}
-
-function getMaxThinkingTokensForGemini25Model(modelId: string): number {
-  const id = modelId.toLowerCase();
-  if (id.includes('2.5-pro') || id.includes('gemini-3-pro-image')) {
-    return 32768;
-  }
-  return 24576;
 }
 
 type GoogleThinkingConfig = NonNullable<
@@ -1291,8 +1645,8 @@ function resolveThinkingConfig({
   }
 
   if (
-    getGoogleModelCapabilities(modelId).usesGemini3Features &&
-    !modelId.includes('gemini-3-pro-image')
+    getGoogleLanguageModelEntry(modelId).requestConfig.language
+      .thinkingFormat === 'level'
   ) {
     return resolveGemini3ThinkingConfig({ reasoning, modelId, warnings });
   }
@@ -1312,21 +1666,21 @@ function resolveGemini3ThinkingConfig({
   modelId: string;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
-  const minimumThinkingLevel = getMinimumThinkingLevelForGemini3Model(modelId);
+  const minimumThinkingLevel =
+    getGoogleLanguageModelEntry(modelId).capabilities.language.reasoning
+      .efforts?.[0];
 
-  if (reasoning === 'none') {
-    // It's not possible to fully disable thinking with Gemini 3.
-    return { thinkingLevel: minimumThinkingLevel };
-  }
-
+  // It's not possible to fully disable thinking with Gemini 3, so reasoning
+  // 'none' maps to the lowest supported thinking level.
   const thinkingLevel = mapReasoningToProviderEffort({
     reasoning,
     effortMap: {
-      minimal: minimumThinkingLevel,
+      ...(minimumThinkingLevel === 'minimal' && {
+        minimal: 'minimal' as const,
+      }),
       low: 'low',
       medium: 'medium',
       high: 'high',
-      xhigh: 'high',
     },
     warnings,
   });
@@ -1336,31 +1690,6 @@ function resolveGemini3ThinkingConfig({
   }
 
   return { thinkingLevel };
-}
-
-function getMinimumThinkingLevelForGemini3Model(
-  modelId: string,
-): 'minimal' | 'low' {
-  const modelName = modelId.split('/').at(-1)?.toLowerCase();
-
-  if (modelName === 'gemini-flash-latest') {
-    return 'low';
-  }
-
-  const versionMatch = /^gemini-(\d+)\.(\d+)-flash(?:$|-(?!lite(?:-|$)))/.exec(
-    modelName ?? '',
-  );
-
-  if (versionMatch == null) {
-    return 'minimal';
-  }
-
-  const majorVersion = Number(versionMatch[1]);
-  const minorVersion = Number(versionMatch[2]);
-
-  return majorVersion > 3 || (majorVersion === 3 && minorVersion >= 7)
-    ? 'low'
-    : 'minimal';
 }
 
 function resolveGemini25ThinkingConfig({
@@ -1374,21 +1703,21 @@ function resolveGemini25ThinkingConfig({
   >;
   modelId: string;
   warnings: SharedV4Warning[];
-}): Pick<GoogleThinkingConfig, 'thinkingBudget'> | undefined {
-  if (reasoning === 'none') {
+}): Pick<GoogleThinkingConfig, 'thinkingBudget'> {
+  const entry = getGoogleLanguageModelEntry(modelId);
+  const minThinkingBudget = entry.capabilities.language.reasoning.minBudget;
+
+  if (reasoning === 'none' && minThinkingBudget === 0) {
     return { thinkingBudget: 0 };
   }
 
   const thinkingBudget = mapReasoningToProviderBudget({
     reasoning,
-    maxOutputTokens: getMaxOutputTokensForGemini25Model(),
-    maxReasoningBudget: getMaxThinkingTokensForGemini25Model(modelId),
-    minReasoningBudget: 0,
+    maxOutputTokens: entry.requestConfig.language.reasoningMaxOutputTokens,
+    maxReasoningBudget: entry.capabilities.language.reasoning.maxBudget,
+    minReasoningBudget: minThinkingBudget,
     warnings,
   });
-  if (thinkingBudget == null) {
-    return undefined;
-  }
   return { thinkingBudget };
 }
 
@@ -1528,6 +1857,18 @@ export const getGroundingMetadataSchema = () =>
               title: z.string().nullish(),
               text: z.string().nullish(),
               fileSearchStore: z.string().nullish(),
+              customMetadata: z
+                .array(
+                  z.object({
+                    key: z.string(),
+                    stringValue: z.string().nullish(),
+                    numericValue: z.number().nullish(),
+                    stringListValue: z
+                      .object({ values: z.array(z.string()).nullish() })
+                      .nullish(),
+                  }),
+                )
+                .nullish(),
             })
             .nullish(),
           maps: z
@@ -1569,14 +1910,15 @@ export const getGroundingMetadataSchema = () =>
       .nullish(),
   });
 
-const partialArgSchema = z.object({
-  jsonPath: z.string(),
-  stringValue: z.string().nullish(),
-  numberValue: z.number().nullish(),
-  boolValue: z.boolean().nullish(),
-  nullValue: z.unknown().nullish(),
-  willContinue: z.boolean().nullish(),
-});
+const partialArgSchema = () =>
+  z.object({
+    jsonPath: z.string(),
+    stringValue: z.string().nullish(),
+    numberValue: z.number().nullish(),
+    boolValue: z.boolean().nullish(),
+    nullValue: z.unknown().nullish(),
+    willContinue: z.boolean().nullish(),
+  });
 
 const getContentSchema = () =>
   z.object({
@@ -1589,7 +1931,7 @@ const getContentSchema = () =>
               id: z.string().nullish(),
               name: z.string().nullish(),
               args: z.unknown().nullish(),
-              partialArgs: z.array(partialArgSchema).nullish(),
+              partialArgs: z.array(partialArgSchema()).nullish(),
               willContinue: z.boolean().nullish(),
             }),
             thoughtSignature: z.string().nullish(),
@@ -1651,35 +1993,37 @@ const getSafetyRatingSchema = () =>
     blocked: z.boolean().nullish(),
   });
 
-const tokenDetailsSchema = z
-  .array(
-    z
-      .object({
-        modality: z.string(),
-        tokenCount: z.number(),
-      })
-      .loose(),
-  )
-  .nullish();
+const tokenDetailsSchema = () =>
+  z
+    .array(
+      z
+        .object({
+          modality: z.string(),
+          tokenCount: z.number(),
+        })
+        .loose(),
+    )
+    .nullish();
 
-const usageSchema = z
-  .object({
-    cachedContentTokenCount: z.number().nullish(),
-    thoughtsTokenCount: z.number().nullish(),
-    promptTokenCount: z.number().nullish(),
-    candidatesTokenCount: z.number().nullish(),
-    toolUsePromptTokenCount: z.number().nullish(),
-    totalTokenCount: z.number().nullish(),
-    // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
-    trafficType: z.string().nullish(),
-    serviceTier: z.string().nullish(),
-    // https://ai.google.dev/api/generate-content#Modality
-    promptTokensDetails: tokenDetailsSchema,
-    cacheTokensDetails: tokenDetailsSchema,
-    candidatesTokensDetails: tokenDetailsSchema,
-    toolUsePromptTokensDetails: tokenDetailsSchema,
-  })
-  .loose();
+const usageSchema = () =>
+  z
+    .object({
+      cachedContentTokenCount: z.number().nullish(),
+      thoughtsTokenCount: z.number().nullish(),
+      promptTokenCount: z.number().nullish(),
+      candidatesTokenCount: z.number().nullish(),
+      toolUsePromptTokenCount: z.number().nullish(),
+      totalTokenCount: z.number().nullish(),
+      // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
+      trafficType: z.string().nullish(),
+      serviceTier: z.string().nullish(),
+      // https://ai.google.dev/api/generate-content#Modality
+      promptTokensDetails: tokenDetailsSchema(),
+      cacheTokensDetails: tokenDetailsSchema(),
+      candidatesTokensDetails: tokenDetailsSchema(),
+      toolUsePromptTokensDetails: tokenDetailsSchema(),
+    })
+    .loose();
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
 export const getUrlContextMetadataSchema = () =>
@@ -1704,13 +2048,14 @@ export const responseSchema = lazySchema(() =>
             content: getContentSchema().nullish().or(z.object({}).strict()),
             finishReason: z.string().nullish(),
             finishMessage: z.string().nullish(),
+            continuationToken: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),
           }),
         )
         .nullish(),
-      usageMetadata: usageSchema.nullish(),
+      usageMetadata: usageSchema().nullish(),
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
@@ -1750,6 +2095,7 @@ export type UsageMetadataSchema = NonNullable<
 const chunkSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      error: getGoogleErrorSchema().nullish(),
       responseId: z.string().nullish(),
       candidates: z
         .array(
@@ -1757,13 +2103,14 @@ const chunkSchema = lazySchema(() =>
             content: getContentSchema().nullish(),
             finishReason: z.string().nullish(),
             finishMessage: z.string().nullish(),
+            continuationToken: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),
           }),
         )
         .nullish(),
-      usageMetadata: usageSchema.nullish(),
+      usageMetadata: usageSchema().nullish(),
       promptFeedback: z
         .object({
           blockReason: z.string().nullish(),
@@ -1775,3 +2122,14 @@ const chunkSchema = lazySchema(() =>
 );
 
 type ChunkSchema = InferSchema<typeof chunkSchema>;
+
+function isConfirmedPromptBlockReason(
+  blockReason: string | null | undefined,
+): blockReason is string {
+  return (
+    blockReason != null &&
+    blockReason !== '' &&
+    blockReason !== 'BLOCK_REASON_UNSPECIFIED' &&
+    blockReason !== 'BLOCKED_REASON_UNSPECIFIED'
+  );
+}

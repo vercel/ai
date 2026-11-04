@@ -6,6 +6,14 @@ export type ToolCallerDefinition =
   | {
       type: 'local';
       bind: (tools: ToolSet) => Tool;
+      /**
+       * Creates a provider-agnostic user message that describes the tools
+       * available through this caller. When present, the unbound caller tool
+       * remains model-visible so its definition stays stable, while the
+       * returned message is added to the conversation when its content has
+       * not already been announced.
+       */
+      prepareModelMessage?: (tools: ToolSet) => string | undefined;
     }
   | {
       type: 'provider';

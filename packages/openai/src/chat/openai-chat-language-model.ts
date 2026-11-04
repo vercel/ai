@@ -1,15 +1,18 @@
-import type {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+import {
+  InvalidResponseDataError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   StreamingToolCallTracker,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -25,11 +28,12 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import { getOpenAILanguageModelEntry } from '../openai-model-catalog';
 import {
   createOpenAIProviderStreamError,
   throwIfOpenAIStreamErrorBeforeOutput,
 } from '../openai-stream-error';
+import { resolveOpenAIReasoningEffort } from '../resolve-openai-reasoning-effort';
 import {
   convertOpenAIChatUsage,
   type OpenAIChatUsage,
@@ -47,10 +51,13 @@ import {
   type OpenAIChatModelId,
 } from './openai-chat-language-model-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 
 type OpenAIChatConfig = {
   provider: string;
-  headers?: () => Record<string, string | undefined>;
+  /** Model ID sent to the API. Defaults to the model's reported ID. */
+  requestModelId?: string;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -115,33 +122,60 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
         schema: openaiLanguageModelChatOptions,
       })) ?? {};
 
-    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+    const {
+      capabilities: { language: modelCapabilities },
+      requestConfig: { language: modelRequestConfig },
+    } = getOpenAILanguageModelEntry(this.modelId);
 
-    // AI SDK reasoning values map directly to the OpenAI reasoning values.
-    let resolvedReasoningEffort =
-      openaiOptions.reasoningEffort ??
-      (isCustomReasoning(reasoning) ? reasoning : undefined);
+    // Some models reject function tools unless reasoning is disabled, even
+    // when no reasoning effort is sent, so reasoning is set to 'none'.
+    const requiresNoReasoningEffort =
+      !modelCapabilities.endpoints.chat.functionToolsWithReasoning &&
+      openaiOptions.reasoningEffort == null &&
+      (tools?.some(tool => tool.type === 'function') ?? false);
 
     if (
-      resolvedReasoningEffort != null &&
-      modelCapabilities.supportedReasoningEfforts != null &&
-      !modelCapabilities.supportedReasoningEfforts.includes(
-        resolvedReasoningEffort,
-      )
+      requiresNoReasoningEffort &&
+      isCustomReasoning(reasoning) &&
+      reasoning !== 'none'
     ) {
       warnings.push({
-        type: 'unsupported',
-        feature: 'reasoningEffort',
-        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+        type: 'compatibility',
+        feature: 'reasoning',
+        details: `${this.modelId} does not support function tools with reasoning in the Chat Completions API. reasoning effort set to "none". Use the Responses API to combine reasoning with function tools.`,
       });
-      resolvedReasoningEffort = undefined;
     }
 
+    const resolvedReasoningEffort = requiresNoReasoningEffort
+      ? 'none'
+      : resolveOpenAIReasoningEffort({
+          providerReasoningEffort: openaiOptions.reasoningEffort,
+          reasoning,
+          // Only the Responses API supports `max`.
+          supportedReasoningEfforts:
+            modelCapabilities.reasoning.efforts?.filter(
+              effort => effort !== 'max',
+            ),
+          warnings,
+        });
+
     const isReasoningModel =
-      openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
+      openaiOptions.forceReasoning ??
+      modelCapabilities.reasoning.support === true;
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
+    }
+
+    // reasoningSummary is a Responses API option that the chat options schema strips,
+    // so check the raw provider options to avoid silently ignoring it:
+    if (providerOptions?.openai?.reasoningSummary != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningSummary',
+        details:
+          'reasoningSummary is only supported by the Responses API, not the Chat Completions API',
+      });
     }
 
     const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
@@ -151,17 +185,25 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
           openaiOptions.systemMessageMode ??
           (isReasoningModel
             ? 'developer'
-            : modelCapabilities.systemMessageMode),
+            : modelRequestConfig.systemMessageMode),
       },
     );
 
     warnings.push(...messageWarnings);
 
     const strictJsonSchema = openaiOptions.strictJsonSchema ?? true;
+    const normalizedResponseFormatSchema =
+      responseFormat?.type === 'json' && responseFormat.schema != null
+        ? normalizeOpenAIJsonSchema(responseFormat.schema)
+        : undefined;
+
+    if (normalizedResponseFormatSchema != null) {
+      warnings.push(...normalizedResponseFormatSchema.warnings);
+    }
 
     const baseArgs = {
       // model id:
-      model: this.modelId,
+      model: this.config.requestModelId ?? this.modelId,
 
       // model specific settings:
       logit_bias: openaiOptions.logitBias,
@@ -189,11 +231,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       presence_penalty: presencePenalty,
       response_format:
         responseFormat?.type === 'json'
-          ? responseFormat.schema != null
+          ? normalizedResponseFormatSchema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
-                  schema: responseFormat.schema,
+                  schema: normalizedResponseFormatSchema.schema,
                   strict: strictJsonSchema,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
@@ -223,7 +265,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     };
 
     if (
-      modelCapabilities.supportedReasoningEfforts != null &&
+      !modelCapabilities.promptCache.retention &&
       baseArgs.prompt_cache_retention != null
     ) {
       baseArgs.prompt_cache_retention = undefined;
@@ -238,11 +280,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
     if (isReasoningModel) {
-      // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
+      // supported models allow temperature, topP, and logprobs when reasoning effort is none
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
         resolvedReasoningEffort !== 'none' ||
-        !modelCapabilities.supportsNonReasoningParameters
+        modelCapabilities.reasoning.sampling !== 'reasoning-effort-none'
       ) {
         if (baseArgs.temperature != null) {
           baseArgs.temperature = undefined;
@@ -308,10 +350,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
         }
         baseArgs.max_tokens = undefined;
       }
-    } else if (
-      this.modelId.startsWith('gpt-4o-search-preview') ||
-      this.modelId.startsWith('gpt-4o-mini-search-preview')
-    ) {
+    } else if (!modelCapabilities.endpoints.chat.temperatureWithoutReasoning) {
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
@@ -326,7 +365,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     // Validate flex processing support
     if (
       openaiOptions.serviceTier === 'flex' &&
-      !modelCapabilities.supportsFlexProcessing
+      !modelCapabilities.serviceTiers.flex
     ) {
       warnings.push({
         type: 'unsupported',
@@ -341,7 +380,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     if (
       (openaiOptions.serviceTier === 'priority' ||
         openaiOptions.serviceTier === 'fast') &&
-      !modelCapabilities.supportsPriorityProcessing
+      !modelCapabilities.serviceTiers.priority
     ) {
       warnings.push({
         type: 'unsupported',
@@ -375,17 +414,21 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
+    const url = this.config.url({
+      path: '/chat/completions',
+      modelId: this.config.requestModelId ?? this.modelId,
+    });
 
     const {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
     } = await postJsonToApi({
-      url: this.config.url({
-        path: '/chat/completions',
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      url,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -396,10 +439,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     });
 
     const choice = response.choices[0];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
+    }
+
     const content: Array<LanguageModelV4Content> = [];
 
     // text content:
-    const text = choice.message.content;
+    const text =
+      choice.message.content != null && choice.message.content.length > 0
+        ? choice.message.content
+        : choice.message.audio?.transcript;
     if (text != null && text.length > 0) {
       content.push({ type: 'text', text });
     }
@@ -447,7 +500,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertOpenAIChatUsage(response.usage),
-      request: { body },
+      request: { body, url },
       response: {
         ...getResponseMetadata(response),
         headers: responseHeaders,
@@ -473,12 +526,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const url = this.config.url({
       path: '/chat/completions',
-      modelId: this.modelId,
+      modelId: this.config.requestModelId ?? this.modelId,
     });
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -499,8 +555,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     let toolCallTracker: StreamingToolCallTracker;
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: OpenAIChatUsage | undefined = undefined;
@@ -649,7 +706,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
           },
         }),
       ),
-      request: { body },
+      request: { body, url },
       response: { headers: responseHeaders },
     };
 

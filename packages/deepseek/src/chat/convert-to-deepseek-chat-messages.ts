@@ -2,10 +2,13 @@ import {
   InvalidPromptError,
   UnsupportedFunctionalityError,
   type LanguageModelV4CallOptions,
+  type LanguageModelV4FilePart,
   type LanguageModelV4Prompt,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   parseProviderOptions,
@@ -15,9 +18,11 @@ import {
 import type {
   DeepSeekChatPrompt,
   DeepSeekContentPart,
+  DeepSeekToolMessage,
 } from './deepseek-chat-api-types';
 import { deepseekFilePartProviderOptions } from './deepseek-file-part-options';
 import { deepseekAssistantMessageProviderOptions } from './deepseek-chat-language-model-options';
+import { isDeepSeekV4Model } from './is-deepseek-v4-model';
 
 const supportedImageMediaTypes = new Set([
   'image/gif',
@@ -26,6 +31,46 @@ const supportedImageMediaTypes = new Set([
   'image/png',
   'image/webp',
 ]);
+
+function resolveDeepSeekImageMediaType(part: LanguageModelV4FilePart): string {
+  const resolvedMediaType = resolveFullMediaType({ part });
+
+  if (!supportedImageMediaTypes.has(resolvedMediaType)) {
+    throw new UnsupportedFunctionalityError({
+      functionality: `DeepSeek image media type ${resolvedMediaType}`,
+      message: 'DeepSeek supports JPEG, PNG, GIF, and WebP image inputs.',
+    });
+  }
+
+  return resolvedMediaType;
+}
+
+function validateDeepSeekImageUrl({
+  url,
+  prompt,
+}: {
+  url: string;
+  prompt: LanguageModelV4Prompt;
+}): void {
+  if (url.length > 8192) {
+    throw new InvalidPromptError({
+      prompt,
+      message: 'DeepSeek image URLs must not exceed 8192 characters.',
+    });
+  }
+}
+
+function serializeDeepSeekToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input);
+}
 
 export async function convertToDeepSeekChatMessages({
   prompt,
@@ -45,7 +90,7 @@ export async function convertToDeepSeekChatMessages({
   messages: DeepSeekChatPrompt;
   warnings: Array<SharedV4Warning>;
 }> {
-  const isDeepSeekV4 = modelId.includes('deepseek-v4');
+  const isDeepSeekV4 = isDeepSeekV4Model(modelId);
   const messages: DeepSeekChatPrompt = [];
   const warnings: Array<SharedV4Warning> = [];
 
@@ -168,26 +213,12 @@ export async function convertToDeepSeekChatMessages({
                 }),
               });
             } else if (part.data.type === 'url' || part.data.type === 'data') {
-              const resolvedMediaType = resolveFullMediaType({ part });
-
-              if (!supportedImageMediaTypes.has(resolvedMediaType)) {
-                throw new UnsupportedFunctionalityError({
-                  functionality: `DeepSeek image media type ${resolvedMediaType}`,
-                  message:
-                    'DeepSeek supports JPEG, PNG, GIF, and WebP image inputs.',
-                });
-              }
+              const resolvedMediaType = resolveDeepSeekImageMediaType(part);
 
               if (part.data.type === 'url') {
                 const url = part.data.url.toString();
 
-                if (url.length > 8192) {
-                  throw new InvalidPromptError({
-                    prompt,
-                    message:
-                      'DeepSeek image URLs must not exceed 8192 characters.',
-                  });
-                }
+                validateDeepSeekImageUrl({ url, prompt });
 
                 if (filePartOptions?.fileData === true) {
                   throw new InvalidPromptError({
@@ -316,7 +347,7 @@ export async function convertToDeepSeekChatMessages({
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeDeepSeekToolCallArguments(part.input),
                 },
               });
               break;
@@ -356,7 +387,7 @@ export async function convertToDeepSeekChatMessages({
           }
           const output = toolResponse.output;
 
-          let contentValue: string;
+          let contentValue: DeepSeekToolMessage['content'];
           switch (output.type) {
             case 'text':
             case 'error-text':
@@ -365,11 +396,84 @@ export async function convertToDeepSeekChatMessages({
             case 'execution-denied':
               contentValue = output.reason ?? 'Tool call execution denied.';
               break;
-            case 'content':
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
+            case 'content': {
+              const hasImagePart = output.value.some(
+                part =>
+                  part.type === 'file' &&
+                  (part.data.type === 'reference' ||
+                    part.data.type === 'url' ||
+                    part.data.type === 'data') &&
+                  getTopLevelMediaType(part.mediaType) === 'image',
+              );
+
+              if (!hasImagePart) {
+                contentValue = stringifyWithBigIntAndCycles(output.value);
+                break;
+              }
+
+              contentValue = [];
+              for (const part of output.value) {
+                if (part.type === 'text') {
+                  contentValue.push({ type: 'text', text: part.text });
+                } else if (
+                  part.type === 'file' &&
+                  (part.data.type === 'reference' ||
+                    part.data.type === 'url' ||
+                    part.data.type === 'data') &&
+                  getTopLevelMediaType(part.mediaType) === 'image'
+                ) {
+                  if (part.data.type === 'reference') {
+                    contentValue.push({
+                      type: 'file',
+                      file_id: resolveProviderReference({
+                        reference: part.data.reference,
+                        provider: 'deepseek',
+                      }),
+                    });
+                    continue;
+                  }
+
+                  const filePartOptions = await parseProviderOptions({
+                    provider: providerOptionsName,
+                    providerOptions: part.providerOptions,
+                    schema: deepseekFilePartProviderOptions,
+                  });
+                  const resolvedMediaType = resolveDeepSeekImageMediaType(part);
+                  let url: string;
+
+                  if (part.data.type === 'url') {
+                    url = part.data.url.toString();
+                    validateDeepSeekImageUrl({ url, prompt });
+                  } else {
+                    url = `data:${
+                      resolvedMediaType === 'image/jpg'
+                        ? 'image/jpeg'
+                        : resolvedMediaType
+                    };base64,${convertToBase64(part.data.data)}`;
+                  }
+
+                  contentValue.push({
+                    type: 'image_url',
+                    image_url: {
+                      url,
+                      ...(filePartOptions?.imageDetail != null && {
+                        detail: filePartOptions.imageDetail,
+                      }),
+                    },
+                  });
+                } else {
+                  warnings.push({
+                    type: 'unsupported',
+                    feature: `tool result content part type: ${part.type}`,
+                  });
+                }
+              }
+              break;
+            }
           }
 
           messages.push({

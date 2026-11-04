@@ -1,13 +1,17 @@
-# AI SDK OpenCode Harness
+# AI SDK - OpenCode Harness
 
 The OpenCode harness connects `HarnessAgent` to OpenCode through a sandboxed
 bridge.
 
-## Native OpenCode configuration
+-> **Note**: This package is experimental.
 
-Use `openCodeConfig` to pass native OpenCode settings that do not have a
-dedicated adapter option. For example, OpenCode supports selecting a model for
-an individual agent:
+## Setup
+
+```bash
+npm i @ai-sdk/harness @ai-sdk/harness-opencode @ai-sdk/sandbox-vercel
+```
+
+## Usage
 
 ```ts
 import { createOpenCode } from '@ai-sdk/harness-opencode';
@@ -23,8 +27,4 @@ const adapter = createOpenCode({
 });
 ```
 
-Adapter-managed settings take precedence when the same key is present in
-`openCodeConfig`. Agent-local `permission` and deprecated `tools` settings are
-ignored so they cannot bypass harness permissions or built-in tool filtering.
-
-See the AI SDK documentation for usage.
+See the [OpenCode harness documentation](https://ai-sdk.dev/providers/ai-sdk-harnesses/opencode) for more information.

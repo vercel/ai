@@ -16,7 +16,7 @@ const openai = createOpenAI({
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-3.5-turbo'),
+    model: openai('gpt-6-luna'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

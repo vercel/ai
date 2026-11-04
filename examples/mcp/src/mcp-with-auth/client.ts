@@ -126,8 +126,19 @@ class InMemoryOAuthClientProvider implements OAuthClientProvider {
     // none (public client)
     params.set('client_id', clientId);
   };
-  async invalidateCredentials(scope: 'all' | 'client' | 'tokens' | 'verifier') {
-    if (scope === 'all' || scope === 'tokens') this._tokens = undefined;
+  async invalidateCredentials(
+    scope: 'all' | 'client' | 'tokens' | 'verifier',
+    context?: { tokens: OAuthTokens },
+  ) {
+    if (
+      scope === 'all' ||
+      (scope === 'tokens' &&
+        (!context ||
+          (this._tokens?.access_token === context.tokens.access_token &&
+            this._tokens?.refresh_token === context.tokens.refresh_token)))
+    ) {
+      this._tokens = undefined;
+    }
     if (scope === 'all' || scope === 'client')
       this._clientInformation = undefined;
     if (scope === 'all' || scope === 'verifier') this._codeVerifier = undefined;
@@ -201,7 +212,7 @@ async function main() {
   console.log(`Available tools: ${Object.keys(tools).join(', ')}`);
 
   const { text: answer } = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     tools,
     stopWhen: isStepCount(10),
     onStepFinish: async ({ toolResults }) => {

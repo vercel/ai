@@ -9,6 +9,8 @@ export type {
   ACPEmbeddedResource,
   ACPImageContent,
   ACPMetadata,
+  ACPResolvedHostToolCall,
+  ACPResolveHostToolCall,
   ACPResourceLink,
   ACPRole,
   ACPTextContent,
@@ -21,6 +23,8 @@ export type {
 } from './acp-tool-call';
 export type {
   ACPAskUserQuestionsSettings,
+  ACPAuthenticationFile,
+  ACPAuthenticationFiles,
   ACPCredentialBrokering,
   ACPAuthentication,
   ACPHostToolMCPTransport,
@@ -28,7 +32,6 @@ export type {
   ACPInstructionMapping,
   ACPModelMapping,
   ACPNpmLockedSource,
-  ACPNpmSimpleSource,
   ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,

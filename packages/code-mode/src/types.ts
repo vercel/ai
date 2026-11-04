@@ -160,8 +160,21 @@ export type CodeModeApprovalInterrupt =
  * Execution limits applied to each sandbox invocation.
  */
 export interface CodeModeExecutionPolicy {
-  /** @defaultValue `30_000` */
+  /**
+   * Wall-clock limit for one invocation, including time spent waiting on
+   * tools.
+   *
+   * @defaultValue `30_000`
+   */
   timeoutMs?: number;
+  /**
+   * CPU time limit for sandboxed code in one invocation. Time spent waiting on
+   * tools does not count toward it. Only takes effect when lower than
+   * `timeoutMs`. Each continuation resume starts with a fresh budget.
+   *
+   * @defaultValue `10_000`
+   */
+  cpuTimeoutMs?: number;
   /** @defaultValue `64 * 1024 * 1024` */
   memoryLimitBytes?: number;
   /** @defaultValue `2 * 1024 * 1024` */
@@ -197,6 +210,23 @@ export interface CodeModeOptions {
       request: CodeModeApprovalRequest,
     ) => Promise<ApprovalDecision> | ApprovalDecision;
   };
+}
+
+/**
+ * Options for the code-mode tool caller used with `experimental_toolCallers`.
+ */
+export interface CodeModeToolOptions extends CodeModeOptions {
+  /**
+   * Controls how host tools are presented to the model.
+   *
+   * - `'description'`: include host-tool signatures in the provider-visible
+   *   code-mode tool description.
+   * - `'conversation'`: keep the code-mode tool definition stable and announce
+   *   the current host-tool catalog in a user message.
+   *
+   * @defaultValue `'description'`
+   */
+  toolDiscovery?: 'description' | 'conversation';
 }
 
 export interface CodeModeContinuationSecurityOptions {

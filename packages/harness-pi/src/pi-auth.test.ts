@@ -9,7 +9,9 @@ import {
   registerPiProviders,
   resolvePiEnv,
   type PiAuthenticationMode,
+  type PiCredentialStore,
 } from './pi-auth';
+import { resolvePiSubscriptionAgentDir } from './pi-subscription';
 
 const authPaths: string[] = [];
 
@@ -208,7 +210,92 @@ describe('resolvePiEnv', () => {
   });
 });
 
+describe('resolvePiSubscriptionAgentDir', () => {
+  it('keeps Pi native storage available alongside environment credentials', () => {
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: 'openai',
+        env: {},
+        homeDirectory: '/home/me',
+      }),
+    ).toBe('/home/me/.pi/agent');
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: 'openai',
+        env: { OPENAI_API_KEY: 'environment-key' },
+        homeDirectory: '/home/me',
+      }),
+    ).toBe('/home/me/.pi/agent');
+  });
+
+  it('never uses native storage for explicit or resolved Gateway auth', () => {
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: 'ai-gateway',
+        env: {},
+        homeDirectory: '/home/me',
+      }),
+    ).toBeUndefined();
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: undefined,
+        env: { AI_GATEWAY_API_KEY: 'gateway-key' },
+        homeDirectory: '/home/me',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('never uses native storage for supplied auth', () => {
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: {},
+        env: {},
+        homeDirectory: '/home/me',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('honors PI_CODING_AGENT_DIR', () => {
+    expect(
+      resolvePiSubscriptionAgentDir({
+        options: undefined,
+        env: { PI_CODING_AGENT_DIR: '/custom/pi' },
+        homeDirectory: '/home/me',
+      }),
+    ).toBe('/custom/pi');
+  });
+});
+
 describe('createPiModelRuntime', () => {
+  it('forwards application-owned credential storage to Pi', async () => {
+    const credentials = {
+      read: vi.fn(),
+      list: vi.fn(),
+      modify: vi.fn(),
+      delete: vi.fn(),
+    } as unknown as PiCredentialStore;
+    const create = vi
+      .spyOn(ModelRuntime, 'create')
+      .mockResolvedValueOnce({} as ModelRuntime);
+
+    try {
+      await createPiModelRuntime({
+        auth: 'auto',
+        credentials,
+        authPath: '/unused/auth.json',
+        modelsPath: '/app/models.json',
+      });
+
+      expect(create).toHaveBeenCalledWith({
+        credentials,
+        modelsPath: '/app/models.json',
+        allowModelNetwork: false,
+      });
+    } finally {
+      create.mockRestore();
+    }
+  });
+
   it('does not use ambient credentials for an empty authentication environment override', async () => {
     clearAmbientProviderCredentials();
     vi.stubEnv('OPENAI_API_KEY', 'ambient-openai-key');
@@ -339,8 +426,8 @@ describe('registerPiProviders', () => {
         authHeader: true,
         headers: {
           'x-tenant': 'acme',
-          'User-Agent': 'ai-sdk/harness-pi/0.0.0-test',
-          'x-client-app': 'ai-sdk/harness-pi/0.0.0-test',
+          'User-Agent': 'ai-sdk-harness-pi/0.0.0-test',
+          'x-client-app': 'ai-sdk-harness-pi/0.0.0-test',
         },
       },
     );
@@ -377,8 +464,8 @@ describe('registerPiProviders', () => {
       call => call[0] === 'vercel-ai-gateway',
     );
     expect(gatewayCall?.[1].headers).toEqual({
-      'User-Agent': 'ai-sdk/harness-pi/0.0.0-test',
-      'x-client-app': 'ai-sdk/harness-pi/0.0.0-test',
+      'User-Agent': 'ai-sdk-harness-pi/0.0.0-test',
+      'x-client-app': 'ai-sdk-harness-pi/0.0.0-test',
     });
   });
 

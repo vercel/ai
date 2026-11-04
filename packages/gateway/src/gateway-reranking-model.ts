@@ -103,27 +103,28 @@ export class GatewayRerankingModel implements RerankingModelV4 {
   }
 }
 
-const gatewayRerankingWarningSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('unsupported'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('compatibility'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('deprecated'),
-    setting: z.string(),
-    message: z.string(),
-  }),
-  z.object({
-    type: z.literal('other'),
-    message: z.string(),
-  }),
-]);
+const gatewayRerankingWarningSchema = () =>
+  z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('unsupported'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('compatibility'),
+      feature: z.string(),
+      details: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal('deprecated'),
+      setting: z.string(),
+      message: z.string(),
+    }),
+    z.object({
+      type: z.literal('other'),
+      message: z.string(),
+    }),
+  ]);
 
 const gatewayRerankingResponseSchema = lazySchema(() =>
   zodSchema(
@@ -134,7 +135,7 @@ const gatewayRerankingResponseSchema = lazySchema(() =>
           relevanceScore: z.number(),
         }),
       ),
-      warnings: z.array(gatewayRerankingWarningSchema).optional(),
+      warnings: z.array(gatewayRerankingWarningSchema()).optional(),
       providerMetadata: z
         .record(z.string(), z.record(z.string(), z.unknown()))
         .optional(),

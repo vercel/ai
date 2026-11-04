@@ -25,6 +25,8 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import type { StaticToolOutputDenied } from './tool-output-denied';
+import { mapWithConcurrency } from './tool-call-concurrency';
 
 export type ToolExecutionEndStreamPart = {
   type: 'tool-execution-end';
@@ -34,6 +36,7 @@ export type ToolExecutionEndStreamPart = {
 
 export type ExecuteToolsStreamPart<TOOLS extends ToolSet = ToolSet> =
   | LanguageModelStreamPart<TOOLS>
+  | StaticToolOutputDenied<TOOLS>
   | ToolExecutionEndStreamPart
   | StreamRetryAttemptBoundaryPart;
 
@@ -61,6 +64,7 @@ export function executeToolsFromStream<
   onToolExecutionEnd,
   executeToolInTelemetryContext,
   runInTracingChannelSpan,
+  toolCallConcurrency,
 }: {
   stream: ReadableStream<ExecuteToolsInputStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
@@ -80,6 +84,7 @@ export function executeToolsFromStream<
   runInTracingChannelSpan?: NonNullable<
     TelemetryDispatcher['runInTracingChannelSpan']
   >;
+  toolCallConcurrency?: number;
 }): ReadableStream<ExecuteToolsStreamPart<TOOLS>> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
@@ -180,6 +185,11 @@ export function executeToolsFromStream<
                   reason: toolApprovalStatus.reason,
                   providerExecuted: chunk.providerExecuted,
                 });
+                controller.enqueue({
+                  type: 'tool-output-denied',
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                } as StaticToolOutputDenied<TOOLS>);
 
                 return; // don't execute tool
               }
@@ -219,8 +229,11 @@ export function executeToolsFromStream<
               return;
             }
 
-            await Promise.all(
-              toolCallsToExecute.map(async toolCall => {
+            await mapWithConcurrency({
+              items: toolCallsToExecute,
+              concurrency: toolCallConcurrency,
+              abortSignal,
+              execute: async toolCall => {
                 try {
                   // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
                   // because we want to process the next chunk as soon as possible.
@@ -256,10 +269,8 @@ export function executeToolsFromStream<
                     error,
                   });
                 }
-              }),
-            );
-
-            return;
+              },
+            });
           }
         }
       },

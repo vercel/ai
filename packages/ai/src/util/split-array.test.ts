@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { splitArray } from './split-array';
 
 it('should split an array into chunks of the specified size', () => {
@@ -36,21 +37,27 @@ it('should handle chunk size of 1 correctly', () => {
   expect(result).toEqual([[1], [2], [3]]);
 });
 
-it('should throw an error for chunk size of 0', () => {
-  const array = [1, 2, 3];
-  const size = 0;
-  expect(() => splitArray(array, size)).toThrow(
-    'chunkSize must be greater than 0',
-  );
-});
+it.each([0, -1])(
+  'should throw InvalidArgumentError for chunk size %s',
+  size => {
+    const array = [1, 2, 3];
+    let error: unknown;
 
-it('should throw an error for negative chunk size', () => {
-  const array = [1, 2, 3];
-  const size = -1;
-  expect(() => splitArray(array, size)).toThrow(
-    'chunkSize must be greater than 0',
-  );
-});
+    try {
+      splitArray(array, size);
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    expect(InvalidArgumentError.isInstance(error)).toBe(true);
+    expect(error).toMatchObject({
+      parameter: 'chunkSize',
+      value: size,
+      message:
+        'Invalid argument for parameter chunkSize: chunkSize must be greater than 0',
+    });
+  },
+);
 
 it('should handle non-integer chunk size by flooring the size', () => {
   const array = [1, 2, 3, 4, 5];

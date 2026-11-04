@@ -1,5 +1,11 @@
-import { asArray } from '@ai-sdk/provider-utils';
+import { asArray, type Context } from '@ai-sdk/provider-utils';
 import type { Callback } from '../util/callback';
+import { VERSION } from '../version';
+import {
+  filterIncludedContext,
+  filterToolContext,
+  filterToolsContext,
+} from './filter-included-context';
 import { mergeCallbacks } from '../util/merge-callbacks';
 import type {
   InferTelemetryEvent,
@@ -12,6 +18,7 @@ import {
 } from './tracing-channel-publisher';
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 import type { TelemetryOptions } from './telemetry-options';
+import { filterTelemetryEvent } from './filter-telemetry-event';
 
 /**
  * The subset of `TelemetryDispatcher` keys whose values are Callback callbacks.
@@ -41,14 +48,60 @@ function augmentEvent<EVENT>(
   event: EVENT,
   telemetry: Pick<
     TelemetryOptions,
-    'recordInputs' | 'recordOutputs' | 'functionId'
+    | 'recordInputs'
+    | 'recordOutputs'
+    | 'functionId'
+    | 'includeRuntimeContext'
+    | 'includeToolsContext'
   >,
+  filterContext = false,
 ): InferTelemetryEvent<EVENT> {
-  return Object.assign(
+  const augmentedEvent = Object.assign(
     Object.create(Object.getPrototypeOf(event)),
     event,
-    telemetry,
+    {
+      recordInputs: telemetry.recordInputs,
+      recordOutputs: telemetry.recordOutputs,
+      functionId: telemetry.functionId,
+      aiVersion: VERSION,
+    },
   );
+
+  if (
+    filterContext &&
+    event != null &&
+    typeof event === 'object' &&
+    'runtimeContext' in event
+  ) {
+    augmentedEvent.runtimeContext = filterIncludedContext({
+      context: event.runtimeContext as Context,
+      includeContext: telemetry.includeRuntimeContext,
+    });
+  }
+
+  if (filterContext && event != null && typeof event === 'object') {
+    if ('toolsContext' in event) {
+      augmentedEvent.toolsContext = filterToolsContext({
+        toolsContext: event.toolsContext as Record<string, Context>,
+        includeToolsContext: telemetry.includeToolsContext,
+      });
+    } else if (
+      'toolContext' in event &&
+      event.toolContext != null &&
+      'toolCall' in event &&
+      event.toolCall != null &&
+      typeof event.toolCall === 'object' &&
+      'toolName' in event.toolCall
+    ) {
+      augmentedEvent.toolContext = filterToolContext({
+        toolName: event.toolCall.toolName as string,
+        toolContext: event.toolContext,
+        includeToolsContext: telemetry.includeToolsContext,
+      });
+    }
+  }
+
+  return filterTelemetryEvent(augmentedEvent, telemetry);
 }
 
 /**
@@ -86,14 +139,27 @@ export function createTelemetryDispatcher({
     recordInputs: telemetry?.recordInputs,
     recordOutputs: telemetry?.recordOutputs,
     functionId: telemetry?.functionId,
+    includeRuntimeContext: telemetry?.includeRuntimeContext,
+    includeToolsContext: telemetry?.includeToolsContext,
   };
+  // Raw operation results may contain both inputs and outputs.
+  const recordResult =
+    telemetry?.recordInputs !== false && telemetry?.recordOutputs !== false;
 
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
-  ): Callback<TelemetryEvent<KEY>> => {
+    deprecatedKey?: keyof Telemetry,
+  ): Callback<TelemetryEvent<KEY>> | undefined => {
     const integrationCallbacks = (
       integrations
-        .map(integration => integration[key]?.bind(integration))
+        .map(integration => {
+          const callback =
+            integration[key] ??
+            (deprecatedKey == null ? undefined : integration[deprecatedKey]);
+          return typeof callback === 'function'
+            ? callback.bind(integration)
+            : undefined;
+        })
         .filter(Boolean) as Array<
         Callback<InferTelemetryEvent<TelemetryEvent<KEY>>>
       >
@@ -105,12 +171,19 @@ export function createTelemetryDispatcher({
         >,
     );
 
+    if (integrationCallbacks.length === 0) {
+      return undefined;
+    }
+
     const mergedIntegrationCallback = mergeCallbacks(...integrationCallbacks);
 
     return async (event: TelemetryEvent<KEY>) => {
       await mergedIntegrationCallback(event);
     };
   };
+
+  const onStepEnd = mergeTelemetryCallback('onStepEnd');
+  const onStepFinish = mergeTelemetryCallback('onStepFinish');
 
   const executeLanguageModelCallWrappers = integrations
     .map(integration => integration.executeLanguageModelCall?.bind(integration))
@@ -127,18 +200,20 @@ export function createTelemetryDispatcher({
       await runWithTracingChannelSpan(
         {
           type,
-          event: augmentEvent(event, telemetryMetadata),
+          event: augmentEvent(event, telemetryMetadata, true),
         },
         execute,
+        recordResult,
       ),
 
     startTracingChannelContext: ({ type, event, completion }) =>
       openTelemetryChannelSpanContext({
         message: {
           type,
-          event: augmentEvent(event, telemetryMetadata),
+          event: augmentEvent(event, telemetryMetadata, true),
         },
         completion,
+        recordResult,
       }),
 
     onStart: mergeTelemetryCallback('onStart'),
@@ -153,16 +228,39 @@ export function createTelemetryDispatcher({
     // deprecated `onStepFinish` callback so integrations that still implement
     // only `onStepFinish` keep receiving step-end events during the deprecation
     // window.
-    onStepEnd: mergeCallbacks(
-      mergeTelemetryCallback('onStepEnd'),
-      mergeTelemetryCallback('onStepFinish'),
-    ),
+    onStepEnd:
+      onStepEnd == null && onStepFinish == null
+        ? undefined
+        : mergeCallbacks(onStepEnd, onStepFinish),
+    onStepError: mergeTelemetryCallback('onStepError'),
     onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),
     onObjectStepEnd: mergeTelemetryCallback('onObjectStepEnd'),
     onEmbedStart: mergeTelemetryCallback('onEmbedStart'),
     onEmbedEnd: mergeTelemetryCallback('onEmbedEnd'),
     onRerankStart: mergeTelemetryCallback('onRerankStart'),
     onRerankEnd: mergeTelemetryCallback('onRerankEnd'),
+    experimental_onDecideStart: mergeTelemetryCallback(
+      'experimental_onDecideStart',
+      'experimental_onEvaluateStart',
+    ),
+    experimental_onDecisionModelCallStart: mergeTelemetryCallback(
+      'experimental_onDecisionModelCallStart',
+      'experimental_onEvaluationModelCallStart',
+    ),
+    experimental_onDecisionModelCallEnd: mergeTelemetryCallback(
+      'experimental_onDecisionModelCallEnd',
+      'experimental_onEvaluationModelCallEnd',
+    ),
+    experimental_onDecideEnd: mergeTelemetryCallback(
+      'experimental_onDecideEnd',
+      'experimental_onEvaluateEnd',
+    ),
+    experimental_onStreamTranscriptionStart: mergeTelemetryCallback(
+      'experimental_onStreamTranscriptionStart',
+    ),
+    experimental_onStreamTranscriptionEnd: mergeTelemetryCallback(
+      'experimental_onStreamTranscriptionEnd',
+    ),
     onEnd: mergeTelemetryCallback('onEnd'),
     onAbort: mergeTelemetryCallback('onAbort'),
     onError: mergeTelemetryCallback('onError'),
@@ -184,6 +282,7 @@ export function createTelemetryDispatcher({
       return await runWithTracingChannelSpan(
         { type: 'languageModelCall', event: augmentedEvent },
         wrappedExecute,
+        recordResult,
       );
     },
 

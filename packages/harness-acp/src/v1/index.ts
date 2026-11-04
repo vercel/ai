@@ -1,6 +1,8 @@
 export { createACPV1 } from './acp-v1-harness';
 export type {
   ACPAskUserQuestionsSettings,
+  ACPAuthenticationFile,
+  ACPAuthenticationFiles,
   ACPCredentialBrokering,
   ACPAuthentication,
   ACPAuthenticationMode,
@@ -9,7 +11,6 @@ export type {
   ACPInstructionMapping,
   ACPModelMapping,
   ACPNpmLockedSource,
-  ACPNpmSimpleSource,
   ACPOutputSchemaMapping,
   ACPPermissionModeMapping,
   ACPPermissionModeTarget,

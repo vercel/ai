@@ -196,6 +196,30 @@ describe('XaiResponsesLanguageModel', () => {
         expect(result.providerMetadata).toBeUndefined();
       });
 
+      it('should expose echoed request identifiers in providerMetadata', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+          prompt_cache_key: 'conversation-123',
+          safety_identifier: 'hashed-user-123',
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata).toStrictEqual({
+          xai: {
+            promptCacheKey: 'conversation-123',
+            safetyIdentifier: 'hashed-user-123',
+          },
+        });
+      });
+
       it('should extract finish reason from status', async () => {
         prepareJsonResponse({
           id: 'resp_123',
@@ -628,12 +652,12 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('none');
         });
 
-        it('reasoningSummary', async () => {
+        it('accepts deprecated reasoningSummary without sending it', async () => {
           prepareJsonResponse({
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast-non-reasoning',
+            model: 'grok-4.7',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -648,34 +672,7 @@ describe('XaiResponsesLanguageModel', () => {
           });
 
           const requestBody = await server.calls[0].requestBodyJson;
-          expect(requestBody.reasoning.summary).toBe('concise');
-        });
-
-        it('reasoningEffort and reasoningSummary together', async () => {
-          prepareJsonResponse({
-            id: 'resp_123',
-            object: 'response',
-            status: 'completed',
-            model: 'grok-4-fast-non-reasoning',
-            output: [],
-            usage: { input_tokens: 10, output_tokens: 5 },
-          });
-
-          await createModel().doGenerate({
-            prompt: TEST_PROMPT,
-            providerOptions: {
-              xai: {
-                reasoningEffort: 'high',
-                reasoningSummary: 'detailed',
-              } satisfies XaiLanguageModelResponsesOptions,
-            },
-          });
-
-          const requestBody = await server.calls[0].requestBodyJson;
-          expect(requestBody.reasoning).toStrictEqual({
-            effort: 'high',
-            summary: 'detailed',
-          });
+          expect(requestBody.reasoning).toBeUndefined();
         });
 
         it('logprobs and topLogprobs', async () => {
@@ -800,6 +797,45 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.previous_response_id).toBe('resp_456');
         });
 
+        it('additional request options', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.7',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            topK: 40,
+            providerOptions: {
+              xai: {
+                minP: 0.1,
+                maxTurns: 5,
+                parallelToolCalls: false,
+                promptCacheKey: 'conversation-123',
+                safetyIdentifier: 'hashed-user-123',
+                serviceTier: 'priority',
+                user: 'user-123',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody).toMatchObject({
+            top_k: 40,
+            min_p: 0.1,
+            max_turns: 5,
+            parallel_tool_calls: false,
+            prompt_cache_key: 'conversation-123',
+            safety_identifier: 'hashed-user-123',
+            service_tier: 'priority',
+            user: 'user-123',
+          });
+        });
+
         it('serviceTier', async () => {
           prepareJsonResponse({
             id: 'resp_123',
@@ -870,6 +906,58 @@ describe('XaiResponsesLanguageModel', () => {
           const requestBody = await server.calls[0].requestBodyJson;
           expect(requestBody.include).toStrictEqual([
             'file_search_call.results',
+          ]);
+        });
+
+        it('include with no_inline_citations', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.7',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                include: ['no_inline_citations'],
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.include).toStrictEqual(['no_inline_citations']);
+        });
+
+        it('include with server-side tool outputs', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.7',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                include: [
+                  'web_search_call.action.sources',
+                  'code_interpreter_call.outputs',
+                ],
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.include).toStrictEqual([
+            'web_search_call.action.sources',
+            'code_interpreter_call.outputs',
           ]);
         });
 
@@ -960,6 +1048,31 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('high');
         });
 
+        it('should map top-level reasoning none to the lowest effort for grok-4.7', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.7',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          const result = await createModel('grok-4.7').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('low');
+          expect(result.warnings).toContainEqual({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details:
+              'reasoning "none" is not directly supported by this model. mapped to effort "low".',
+          });
+        });
+
         it('should map top-level reasoning xhigh to reasoning effort "xhigh" for grok-4.6', async () => {
           prepareJsonResponse({
             id: 'resp_123',
@@ -977,6 +1090,31 @@ describe('XaiResponsesLanguageModel', () => {
 
           const requestBody = await server.calls[0].requestBodyJson;
           expect(requestBody.reasoning.effort).toBe('xhigh');
+        });
+
+        it('should coerce top-level reasoning max to reasoning effort "xhigh" for grok-4.6', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.6',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          const result = await createModel('grok-4.6').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'max',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('xhigh');
+          expect(result.warnings).toContainEqual({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details:
+              'reasoning "max" is not directly supported by this model. mapped to effort "xhigh".',
+          });
         });
 
         it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
@@ -1274,10 +1412,6 @@ describe('XaiResponsesLanguageModel', () => {
 
         expect(result.warnings).toMatchInlineSnapshot(`
           [
-            {
-              "feature": "topK",
-              "type": "unsupported",
-            },
             {
               "feature": "frequencyPenalty",
               "type": "unsupported",
@@ -2062,144 +2196,6 @@ describe('XaiResponsesLanguageModel', () => {
           ]
         `);
       });
-
-      it('should omit additionalProperties from serialized function tool schemas', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast-non-reasoning',
-          output: [],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
-
-        await createModel().doGenerate({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'function',
-              name: 'saveContactWithAddress',
-              description: 'Save a contact with an address.',
-              inputSchema: {
-                type: 'object',
-                properties: {
-                  address: {
-                    type: 'object',
-                    properties: {
-                      city: { type: 'string' },
-                      country: { type: 'string' },
-                    },
-                    required: ['city', 'country'],
-                    additionalProperties: false,
-                  },
-                },
-                required: ['address'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-            {
-              type: 'function',
-              name: 'saveContactWithProperties',
-              description: 'Save a contact with a properties field.',
-              inputSchema: {
-                type: 'object',
-                properties: {
-                  properties: {
-                    type: 'object',
-                    properties: {
-                      city: { type: 'string' },
-                      country: { type: 'string' },
-                    },
-                    required: ['city', 'country'],
-                    additionalProperties: false,
-                  },
-                },
-                required: ['properties'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-          ],
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "grok-4-fast-non-reasoning",
-            "tools": [
-              {
-                "description": "Save a contact with an address.",
-                "name": "saveContactWithAddress",
-                "parameters": {
-                  "$schema": "http://json-schema.org/draft-07/schema#",
-                  "properties": {
-                    "address": {
-                      "properties": {
-                        "city": {
-                          "type": "string",
-                        },
-                        "country": {
-                          "type": "string",
-                        },
-                      },
-                      "required": [
-                        "city",
-                        "country",
-                      ],
-                      "type": "object",
-                    },
-                  },
-                  "required": [
-                    "address",
-                  ],
-                  "type": "object",
-                },
-                "type": "function",
-              },
-              {
-                "description": "Save a contact with a properties field.",
-                "name": "saveContactWithProperties",
-                "parameters": {
-                  "$schema": "http://json-schema.org/draft-07/schema#",
-                  "properties": {
-                    "properties": {
-                      "properties": {
-                        "city": {
-                          "type": "string",
-                        },
-                        "country": {
-                          "type": "string",
-                        },
-                      },
-                      "required": [
-                        "city",
-                        "country",
-                      ],
-                      "type": "object",
-                    },
-                  },
-                  "required": [
-                    "properties",
-                  ],
-                  "type": "object",
-                },
-                "type": "function",
-              },
-            ],
-          }
-        `);
-      });
     });
 
     describe('citations', () => {
@@ -2545,6 +2541,65 @@ describe('XaiResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each(['missing', 'invalid-json', 'provider-error', 'empty-status'])(
+      'handles a stream ending with %s',
+      async ending => {
+        const withError =
+          ending === 'invalid-json' || ending === 'provider-error';
+        const events = fs
+          .readFileSync(
+            'src/responses/__fixtures__/xai-text-streaming.1.chunks.txt',
+            'utf8',
+          )
+          .split('\n')
+          .filter(Boolean)
+          .map(line => JSON.parse(line));
+        const firstText = events.findIndex(
+          event => event.type === 'response.output_text.delta',
+        );
+        expect(firstText).toBeGreaterThanOrEqual(0);
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            ...events
+              .slice(0, firstText + 1)
+              .map(event => `data: ${JSON.stringify(event)}\n\n`),
+            ...(ending === 'invalid-json' ? ['data: {invalid-json}\n\n'] : []),
+            ...(ending === 'provider-error'
+              ? [
+                  `data: ${JSON.stringify({ type: 'error', message: 'Stream failed', code: 'server_error' })}\n\n`,
+                ]
+              : []),
+            ...(ending === 'empty-status'
+              ? [
+                  `data: ${JSON.stringify({ type: 'response.completed', response: { ...events.find(event => event.type === 'response.completed').response, status: '' } })}\n\n`,
+                ]
+              : []),
+          ],
+        };
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+        expect(parts.filter(part => part.type === 'error')).toHaveLength(
+          withError ? 1 : 0,
+        );
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: {
+              unified: withError
+                ? 'error'
+                : ending === 'empty-status'
+                  ? 'other'
+                  : 'interrupted',
+              raw: undefined,
+            },
+          }),
+        ]);
+      },
+    );
+
     it('should warn about unsupported sampling settings', async () => {
       prepareChunksFixtureResponse('xai-text-streaming.1');
 
@@ -2560,10 +2615,6 @@ describe('XaiResponsesLanguageModel', () => {
       expect(parts.find(part => part.type === 'stream-start')?.warnings)
         .toMatchInlineSnapshot(`
         [
-          {
-            "feature": "topK",
-            "type": "unsupported",
-          },
           {
             "feature": "frequencyPenalty",
             "type": "unsupported",
@@ -4669,6 +4720,84 @@ describe('XaiResponsesLanguageModel', () => {
           title: 'example',
         });
       });
+
+      it('should not emit streamed citations again from output_item.done', async () => {
+        const annotation = {
+          type: 'url_citation',
+          url: 'https://example.com',
+          title: 'example',
+        };
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Hello',
+          }),
+          JSON.stringify({
+            type: 'response.output_text.annotation.added',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            annotation_index: 0,
+            annotation,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Hello',
+                  annotations: [annotation],
+                },
+              ],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts.filter(part => part.type === 'source')).toEqual([
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: 'id-0',
+            url: 'https://example.com',
+            title: 'example',
+          },
+        ]);
+      });
     });
 
     describe('cost_in_usd_ticks streaming', () => {
@@ -4725,6 +4854,50 @@ describe('XaiResponsesLanguageModel', () => {
           type: 'finish',
           providerMetadata: {
             xai: { costInUsdTicks: 113500 },
+          },
+        });
+      });
+
+      it('should expose echoed request identifiers in finish providerMetadata', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+              prompt_cache_key: 'conversation-123',
+              safety_identifier: 'hashed-user-123',
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const finishPart = parts.find(p => p.type === 'finish');
+
+        expect(finishPart).toMatchObject({
+          type: 'finish',
+          providerMetadata: {
+            xai: {
+              promptCacheKey: 'conversation-123',
+              safetyIdentifier: 'hashed-user-123',
+            },
           },
         });
       });
@@ -4985,6 +5158,59 @@ describe('XaiResponsesLanguageModel', () => {
           delta: 'Hi',
         }),
       );
+    });
+  });
+
+  describe('incomplete response handling (doGenerate)', () => {
+    it('should set finish reason to length for max_output_tokens', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        model: 'grok-4-fast-non-reasoning',
+        status: 'incomplete',
+        incomplete_details: { reason: 'max_output_tokens' },
+        output: [
+          {
+            type: 'message',
+            id: 'msg_456',
+            role: 'assistant',
+            status: 'incomplete',
+            content: [
+              { type: 'output_text', text: 'partial output', annotations: [] },
+            ],
+          },
+        ],
+        usage: { input_tokens: 100, output_tokens: 4096 },
+      });
+
+      const result = await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.finishReason).toStrictEqual({
+        unified: 'length',
+        raw: 'max_output_tokens',
+      });
+    });
+
+    it('should set finish reason to other when incomplete_details is missing', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        model: 'grok-4-fast-non-reasoning',
+        status: 'incomplete',
+        output: [],
+        usage: { input_tokens: 50, output_tokens: 200 },
+      });
+
+      const result = await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.finishReason).toStrictEqual({
+        unified: 'other',
+        raw: 'incomplete',
+      });
     });
   });
 

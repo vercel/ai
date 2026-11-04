@@ -401,10 +401,10 @@ function getVideoProcessingField({
       processing: {
         type: 'static',
         ...(typeof config.startOffset === 'number'
-          ? { start_offset: config.startOffset }
+          ? { start_offset: `${config.startOffset}s` }
           : {}),
         ...(typeof config.endOffset === 'number'
-          ? { end_offset: config.endOffset }
+          ? { end_offset: `${config.endOffset}s` }
           : {}),
         ...(typeof config.fps === 'number' ? { fps: config.fps } : {}),
       },

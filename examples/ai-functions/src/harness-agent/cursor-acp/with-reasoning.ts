@@ -1,5 +1,5 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { createCursorACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
@@ -7,14 +7,16 @@ import { run } from '../../lib/run';
 run(async () => {
   const agent = new HarnessAgent({
     harness: createCursorACP(),
-    sandbox: createVercelSandbox({
-      runtime: 'node24',
-      ports: [4000],
-      timeout: 10 * 60 * 1000,
-    }),
   });
-  const session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     const result = await agent.stream({
       session,
       prompt:
@@ -37,6 +39,7 @@ run(async () => {
       throw new Error('Reasoning emitted, but not displayed');
     }
   } finally {
-    await session.destroy();
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

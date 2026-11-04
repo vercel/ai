@@ -4,6 +4,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
@@ -33,9 +35,10 @@ export interface GladiaProvider extends ProviderV4 {
 
 export interface GladiaProviderSettings {
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -56,17 +59,19 @@ export function createGladia(
   options: GladiaProviderSettings = {},
 ): GladiaProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        'x-gladia-key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'GLADIA_API_KEY',
-          description: 'Gladia',
-        }),
-        'x-gladia-version': `ai-sdk/${VERSION}`,
-        ...options.headers,
-      },
-      `ai-sdk/gladia/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          'x-gladia-key': loadApiKey({
+            apiKey,
+            environmentVariableName: 'GLADIA_API_KEY',
+            description: 'Gladia',
+          }),
+          'x-gladia-version': `ai-sdk/${VERSION}`,
+          ...options.headers,
+        },
+        `ai-sdk-gladia/${VERSION}`,
+      ),
     );
 
   const createTranscriptionModel = (

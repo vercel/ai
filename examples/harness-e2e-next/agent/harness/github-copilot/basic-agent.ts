@@ -4,16 +4,11 @@ import {
   createTraceTreeReporter,
 } from '@ai-sdk/harness/agent';
 import { githubCopilot } from '@ai-sdk/harness-github-copilot';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { getUserNameTool } from '@/lib/tools/get-user-name-tool';
 import type { InferUITools, UIMessage } from 'ai';
 
 export const githubCopilotHarnessAgent = new HarnessAgent({
   harness: githubCopilot,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   tools: { getUserName: getUserNameTool },
   /*
    * Observability wired in code — this is a dev/testing app, so no env

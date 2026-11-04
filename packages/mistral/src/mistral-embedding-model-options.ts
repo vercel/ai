@@ -2,6 +2,8 @@ import { z } from 'zod/v4';
 
 export type MistralEmbeddingModelId =
   | 'mistral-embed'
+  | 'mistral-embed-2312'
+  | 'codestral-embed'
   | 'codestral-embed-2505'
   | (string & {});
 

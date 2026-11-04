@@ -9,5 +9,5 @@ export type RealtimeSetupResponse = {
   token: string;
   url: string;
   expiresAt?: number;
-  tools: RealtimeToolDefinition[];
+  tools?: RealtimeToolDefinition[];
 };

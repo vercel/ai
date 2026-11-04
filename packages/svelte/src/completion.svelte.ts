@@ -4,6 +4,7 @@ import {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from 'ai';
+import { normalizeHeaders } from '@ai-sdk/provider-utils';
 import {
   KeyedCompletionStore,
   getCompletionContext,
@@ -65,7 +66,6 @@ export class Completion<BODY extends object = object> {
       // ignore
     } finally {
       this.#store.loading = false;
-      this.#abortController = undefined;
     }
   };
 
@@ -91,7 +91,10 @@ export class Completion<BODY extends object = object> {
       api: this.#api,
       prompt,
       credentials: this.#options.credentials,
-      headers: { ...this.#options.headers, ...options?.headers },
+      headers: {
+        ...normalizeHeaders(this.#options.headers),
+        ...normalizeHeaders(options?.headers),
+      },
       body: {
         ...this.#options.body,
         ...options?.body,
@@ -111,6 +114,7 @@ export class Completion<BODY extends object = object> {
       setAbortController: abortController => {
         this.#abortController = abortController ?? undefined;
       },
+      getAbortController: () => this.#abortController,
       onFinish: this.#options.onFinish,
       onError: this.#options.onError,
     });

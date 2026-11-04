@@ -1,24 +1,24 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
 import { createFx } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const fx = createFx();
 
 run(async () => {
-  const sandbox = createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-    timeout: 10 * 60 * 1000,
-  });
   const agent = new HarnessAgent({
     harness: fx,
-    sandbox,
   });
 
-  const session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     console.log('--- turn 1: create ---');
     const first = await agent.stream({
       session,
@@ -40,6 +40,7 @@ run(async () => {
     });
     await printFullStream({ result: third });
   } finally {
-    await session.destroy();
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

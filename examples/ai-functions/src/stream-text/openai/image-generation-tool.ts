@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-5.6'),
+    model: openai('gpt-6-astra'),
     prompt:
       'Generate an image of an echidna swimming across the Mozambique channel.',
     tools: {

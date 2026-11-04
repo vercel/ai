@@ -1,15 +1,18 @@
-import type {
-  APICallError,
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  SharedV4Warning,
+import {
+  InvalidResponseDataError,
+  type APICallError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
@@ -45,10 +48,11 @@ import {
 import { prepareTools } from './deepseek-prepare-tools';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapDeepSeekFinishReason } from './map-deepseek-finish-reason';
+import { getDeepSeekLanguageModelEntry } from '../deepseek-model-catalog';
 
 export type DeepSeekChatConfig = {
   provider: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   supportsAssistantPrefixCompletion?: boolean;
@@ -246,10 +250,12 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         schema: deepseekLanguageModelChatOptions,
       })) ?? {};
 
-    const supportsStructuredOutputs =
-      this.config.supportsStructuredOutputs === true;
-    const supportsPenaltySampling =
-      this.config.supportsPenaltySampling === true;
+    const { language: capabilities } = getDeepSeekLanguageModelEntry(
+      this.modelId,
+      this.config,
+    ).capabilities;
+    const supportsStructuredOutputs = capabilities.structuredOutput.jsonSchema;
+    const supportsPenaltySampling = capabilities.sampling.penalties;
 
     const { messages, warnings } = await convertToDeepSeekChatMessages({
       prompt,
@@ -257,7 +263,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       modelId: this.modelId,
       providerOptionsName: this.providerOptionsName,
       supportsAssistantPrefixCompletion:
-        this.config.supportsAssistantPrefixCompletion,
+        capabilities.endpoints.assistantPrefixCompletion,
       supportsStructuredOutputs,
     });
     const allWarnings: SharedV4Warning[] = [...warnings];
@@ -295,7 +301,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     } = prepareTools({
       tools,
       toolChoice,
-      supportsStrictToolCalls: this.config.supportsStrictToolCalls,
+      supportsStrictToolCalls:
+        capabilities.tools.strict === 'unknown'
+          ? undefined
+          : capabilities.tools.strict,
     });
 
     const thinkingType = deepseekOptions.thinking?.type;
@@ -308,21 +317,18 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const thinking =
-      this.config.supportsThinking === false
-        ? undefined
-        : thinkingType != null
-          ? { type: thinkingType === 'adaptive' ? 'enabled' : thinkingType }
-          : isCustomReasoning(reasoning)
-            ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
-            : undefined;
+    const thinking = !capabilities.reasoning.configurable
+      ? undefined
+      : thinkingType != null
+        ? { type: thinkingType === 'adaptive' ? 'enabled' : thinkingType }
+        : isCustomReasoning(reasoning)
+          ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
+          : undefined;
 
     const isThinkingEnabled =
-      this.config.supportsThinking !== false &&
+      capabilities.reasoning.configurable &&
       thinking?.type !== 'disabled' &&
-      (thinking != null ||
-        this.modelId === 'deepseek-reasoner' ||
-        this.modelId.includes('deepseek-v4'));
+      (thinking != null || capabilities.reasoning.enabledByDefault);
 
     if (isThinkingEnabled && temperature != null) {
       allWarnings.push({
@@ -351,13 +357,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         : isCustomReasoning(reasoning) && reasoning !== 'none'
           ? mapReasoningToProviderEffort({
               reasoning,
-              effortMap: {
-                minimal: 'low',
-                low: 'low',
-                medium: 'high',
-                high: 'high',
-                xhigh: 'max',
-              },
+              effortMap: { low: 'low', high: 'high', max: 'max' },
               warnings: allWarnings,
             })
           : undefined;
@@ -422,7 +422,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -433,6 +436,13 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     });
 
     const choice = responseBody.choices[0];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
+    }
+
     const content: Array<LanguageModelV4Content> = [];
 
     // reasoning content (before text):
@@ -517,7 +527,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -529,8 +542,9 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
 
     let toolCallTracker: StreamingToolCallTracker;
 
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
     let usage: DeepSeekChatTokenUsage | undefined = undefined;
@@ -677,7 +691,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
               });
             }
 
-            if (delta.tool_calls != null) {
+            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // end reasoning when tool calls start:
               if (isActiveReasoning) {
                 controller.enqueue({

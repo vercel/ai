@@ -1,5 +1,6 @@
 import {
   APICallError,
+  InvalidArgumentError,
   InvalidResponseDataError,
   type JSONObject,
   type LanguageModelV4,
@@ -41,10 +42,13 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
+import { getAnthropicModelCapabilities } from './anthropic-model-catalog';
 import type {
   AnthropicMessageMetadata,
   AnthropicUsageIteration,
 } from './anthropic-message-metadata';
+import { mapAnthropicCitation } from './map-anthropic-citation';
+import type { AnthropicTextProviderMetadata } from './anthropic-provider-metadata';
 import {
   anthropicChunkSchema,
   anthropicResponseSchema,
@@ -66,10 +70,14 @@ import {
   convertAnthropicUsage,
   type AnthropicUsage,
 } from './convert-anthropic-usage';
-import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
+import {
+  convertToAnthropicPrompt,
+  type AnthropicMediaPartConverter,
+} from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
+import { supportsNativeStructuredOutputSchema } from './supports-native-structured-output-schema';
 
 function createAnthropicStreamError(error: {
   message: string;
@@ -129,8 +137,8 @@ export function createCitationSource(
 ): LanguageModelV4Source | undefined {
   if (citation.type === 'web_search_result_location') {
     return {
-      type: 'source' as const,
-      sourceType: 'url' as const,
+      type: 'source',
+      sourceType: 'url',
       id: generateId(),
       url: citation.url,
       title: citation.title ?? undefined,
@@ -139,7 +147,7 @@ export function createCitationSource(
           citedText: citation.cited_text,
           encryptedIndex: citation.encrypted_index,
         },
-      } satisfies SharedV4ProviderMetadata,
+      },
     };
   }
 
@@ -195,6 +203,48 @@ function getAnthropicCallerMetadata(
     : { providerMetadata: { anthropic: { caller: callerInfo } } };
 }
 
+/**
+ * Maps the custom tool names of toolset tools (e.g. the computer toolset) to
+ * the toolset name that the Anthropic API uses in `toolset_name`.
+ */
+function getAnthropicToolsetNames(
+  tools: LanguageModelV4CallOptions['tools'],
+): Record<string, string> {
+  const toolsetNames: Record<string, string> = {};
+
+  for (const tool of tools ?? []) {
+    if (
+      tool.type === 'provider' &&
+      tool.id === 'anthropic.computer_toolset_20260801'
+    ) {
+      toolsetNames[tool.name] = 'computer';
+    }
+  }
+
+  return toolsetNames;
+}
+
+/**
+ * Toolset member calls (e.g. `left_click` from the computer toolset) are
+ * exposed as a single tool call on the toolset tool. The member name is
+ * injected as the `action` property, matching the input shape of the older
+ * computer tool versions.
+ */
+function toToolsetMemberInput({
+  memberName,
+  input,
+}: {
+  memberName: string;
+  input: unknown;
+}): JSONObject {
+  return {
+    action: memberName,
+    ...(typeof input === 'object' && input !== null && !Array.isArray(input)
+      ? (input as JSONObject)
+      : {}),
+  };
+}
+
 function getProviderOptionsName(provider: string): string {
   const dotIndex = provider.indexOf('.');
   return dotIndex === -1 ? provider : provider.substring(0, dotIndex);
@@ -206,15 +256,70 @@ export type AnthropicLanguageModelConfig = {
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
+  /** Custom media conversion for compatible providers; undefined uses the default. */
+  convertMediaPart?: AnthropicMediaPartConverter;
   transformRequestBody?: (
     args: Record<string, any>,
     betas: Set<string>,
   ) => Record<string, any>;
+  transformRequestHeaders?: (
+    headers: Record<string, string | undefined>,
+    providerOptions: LanguageModelV4CallOptions['providerOptions'],
+  ) =>
+    | Record<string, string | undefined>
+    | PromiseLike<Record<string, string | undefined>>;
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
   generateId?: () => string;
   supportsNativeStructuredOutput?: boolean;
   supportsStrictTools?: boolean;
+  /** Maximum temperature for compatible providers. Defaults to 1. */
+  maxTemperature?: number;
+  /** Preserve temperature and topP with thinking for compatible providers. */
+  supportsTemperatureAndTopPWithThinking?: boolean;
+  /** Cache option namespace for compatible providers. Defaults to anthropic. */
+  cacheControlProviderOptionsName?: string;
 };
+
+const TEXT_OR_THINKING_BLOCK_TYPES = new Set<string>([
+  'redacted_thinking',
+  'text',
+  'thinking',
+]);
+
+function isContinuationStopReason(
+  stopReason: string | null | undefined,
+): boolean {
+  return stopReason === 'pause_turn' || stopReason === 'tool_use';
+}
+
+/**
+ * Text parts to return when the JSON response tool is in use: the text after
+ * the last tool call or result, and only if the tool was never called.
+ */
+function getJsonResponseToolFallbackText<
+  PART extends { type: string; name?: unknown },
+>(
+  content: ReadonlyArray<PART>,
+  stopReason: string | null | undefined,
+): Set<PART> {
+  const text = new Set<PART>();
+  if (isContinuationStopReason(stopReason)) {
+    return text;
+  }
+
+  for (const part of content) {
+    if (part.type === 'tool_use' && part.name === 'json') {
+      return new Set();
+    }
+    if (part.type === 'text') {
+      text.add(part);
+    } else if (!TEXT_OR_THINKING_BLOCK_TYPES.has(part.type)) {
+      text.clear();
+    }
+  }
+
+  return text;
+}
 
 export class AnthropicLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -299,18 +404,24 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
-    if (temperature != null && temperature > 1) {
+    const maxTemperature = config.maxTemperature ?? 1;
+    const temperatureProvider =
+      config.maxTemperature == null
+        ? 'anthropic'
+        : getProviderOptionsName(config.provider);
+
+    if (temperature != null && temperature > maxTemperature) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
-        details: `${temperature} exceeds anthropic maximum of 1.0. clamped to 1.0`,
+        details: `${temperature} exceeds ${temperatureProvider} maximum of ${maxTemperature.toFixed(1)}. clamped to ${maxTemperature.toFixed(1)}`,
       });
-      temperature = 1;
+      temperature = maxTemperature;
     } else if (temperature != null && temperature < 0) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
-        details: `${temperature} is below anthropic minimum of 0. clamped to 0`,
+        details: `${temperature} is below ${temperatureProvider} minimum of 0. clamped to 0`,
       });
       temperature = 0;
     }
@@ -362,8 +473,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       rejectsSamplingParameters,
       supportsXhighEffort,
       rejectsThinkingDisabledAboveHighEffort,
+      rejectsThinkingDisabled,
+      rejectsBudgetThinking,
+      rejectsForcedToolUse,
+      supportsBetweenToolsThinking,
       isKnownModel,
-    } = getModelCapabilities(modelId);
+    } = getAnthropicModelCapabilities(modelId);
 
     if (!isKnownModel && maxOutputTokens == null) {
       warnings.push({
@@ -409,14 +524,43 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       (config.supportsNativeStructuredOutput ?? true) &&
       modelSupportsStructuredOutput;
 
+    const supportsResponseSchema =
+      responseFormat?.type !== 'json' ||
+      responseFormat.schema == null ||
+      supportsNativeStructuredOutputSchema(responseFormat.schema);
+
     const supportsStrictTools =
       (config.supportsStrictTools ?? true) && modelSupportsStructuredOutput;
 
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ?? 'auto';
-    const useStructuredOutput =
+    let useStructuredOutput =
       structureOutputMode === 'outputFormat' ||
-      (structureOutputMode === 'auto' && supportsStructuredOutput);
+      (structureOutputMode === 'auto' &&
+        supportsStructuredOutput &&
+        supportsResponseSchema);
+
+    // The JSON response tool relies on forced tool use, which some models
+    // reject (e.g. Opus 5.5, Fable 5.1). Fall back to native structured
+    // outputs even when the provider disables them by default (Bedrock,
+    // Vertex), unless they would reject the schema or lose data from it.
+    if (
+      !useStructuredOutput &&
+      rejectsForcedToolUse &&
+      modelSupportsStructuredOutput &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      supportsNativeStructuredOutputSchema(responseFormat.schema)
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.structuredOutputMode',
+        details:
+          `structuredOutputMode 'jsonTool' is not supported by ${modelId} because it rejects forced tool use. ` +
+          `Using 'outputFormat' instead.`,
+      });
+      useStructuredOutput = true;
+    }
 
     const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
       responseFormat?.type === 'json' &&
@@ -444,9 +588,20 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     }
 
     const contextManagement = anthropicOptions?.contextManagement;
+    const compaction = anthropicOptions?.compaction;
+
+    if (contextManagement != null && compaction != null) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions',
+        message:
+          'Anthropic provider options `compaction` and `contextManagement` cannot be used together.',
+      });
+    }
 
     // Create a shared cache control validator to track breakpoints across tools and messages
-    const cacheControlValidator = new CacheControlValidator();
+    const cacheControlValidator = new CacheControlValidator(
+      config.cacheControlProviderOptionsName,
+    );
 
     const toolNameMapping = createToolNameMapping({
       tools,
@@ -456,6 +611,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         'anthropic.code_execution_20260120': 'code_execution',
         'anthropic.computer_20241022': 'computer',
         'anthropic.computer_20250124': 'computer',
+        'anthropic.computer_20251124': 'computer',
+        'anthropic.computer_toolset_20260801': 'computer',
         'anthropic.text_editor_20241022': 'str_replace_editor',
         'anthropic.text_editor_20250124': 'str_replace_editor',
         'anthropic.text_editor_20250429': 'str_replace_based_edit_tool',
@@ -465,13 +622,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         'anthropic.memory_20250818': 'memory',
         'anthropic.web_search_20250305': 'web_search',
         'anthropic.web_search_20260209': 'web_search',
+        'anthropic.web_search_20260318': 'web_search',
         'anthropic.web_fetch_20250910': 'web_fetch',
         'anthropic.web_fetch_20260209': 'web_fetch',
+        'anthropic.web_fetch_20260318': 'web_fetch',
         'anthropic.tool_search_regex_20251119': 'tool_search_tool_regex',
         'anthropic.tool_search_bm25_20251119': 'tool_search_tool_bm25',
         'anthropic.advisor_20260301': 'advisor',
       },
     });
+
+    const toolsetNames = getAnthropicToolsetNames(tools);
 
     const { prompt: messagesPrompt, betas } = await convertToAnthropicPrompt({
       prompt,
@@ -479,6 +640,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings,
       cacheControlValidator,
       toolNameMapping,
+      toolsetNames,
+      convertMediaPart: config.convertMediaPart,
     });
 
     /*
@@ -488,8 +651,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     if (isCustomReasoning(reasoning) && anthropicOptions?.effort == null) {
       const reasoningConfig = resolveAnthropicReasoningConfig({
         reasoning,
+        modelId,
         supportsAdaptiveThinking,
         supportsXhighEffort,
+        rejectsThinkingDisabled,
+        supportsBetweenToolsThinking,
         maxOutputTokensForModel,
         warnings,
       });
@@ -504,6 +670,52 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           anthropicOptions.effort = reasoningConfig.effort;
         }
       }
+    }
+
+    // Some models always run adaptive thinking and reject `disabled` thinking
+    // with a 400. Drop the unsupported setting and keep the request adaptive
+    // so it still succeeds.
+    if (rejectsThinkingDisabled && anthropicOptions?.thinking != null) {
+      const thinking = anthropicOptions.thinking;
+
+      if (thinking.type === 'disabled' && supportsBetweenToolsThinking) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'providerOptions.anthropic.thinking',
+          details:
+            `thinking cannot be disabled for ${modelId}. ` +
+            `Using 'between_tools' thinking, the lowest thinking setting, instead.`,
+        });
+        anthropicOptions.thinking = { type: 'between_tools' };
+      } else if (thinking.type === 'disabled') {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'providerOptions.anthropic.thinking',
+          details:
+            `thinking cannot be disabled for ${modelId}; it always uses adaptive thinking. ` +
+            `The thinking setting has been removed. Lower 'effort' to reduce thinking.`,
+        });
+        anthropicOptions.thinking = undefined;
+      }
+    }
+
+    // Models that only support adaptive thinking reject budget-based thinking
+    // with a 400. Use adaptive thinking instead and let `effort` control how
+    // much the model thinks.
+    if (
+      rejectsBudgetThinking &&
+      anthropicOptions?.thinking?.type === 'enabled'
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.thinking',
+        details: rejectsThinkingDisabled
+          ? `budget-based thinking is not supported by ${modelId}; it always uses adaptive thinking. ` +
+            `Using adaptive thinking instead. Use 'effort' to control how much the model thinks.`
+          : `budget-based thinking is not supported by ${modelId}. ` +
+            `Using adaptive thinking instead. Use 'effort' to control how much the model thinks.`,
+      });
+      anthropicOptions.thinking = { type: 'adaptive' };
     }
 
     // Newer models only allow disabling thinking at effort levels up to and
@@ -525,9 +737,28 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       anthropicOptions.effort = 'high';
     }
 
+    // `between_tools` thinking is only accepted at `low`, `medium`, and
+    // `high` effort. Lower the effort to `high` to keep the minimal thinking
+    // setting instead of sending a request that the API would reject.
+    if (
+      anthropicOptions?.thinking?.type === 'between_tools' &&
+      (anthropicOptions.effort === 'xhigh' || anthropicOptions.effort === 'max')
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.effort',
+        details:
+          `effort '${anthropicOptions.effort}' is not supported with 'between_tools' thinking. ` +
+          `The effort has been lowered to 'high'.`,
+      });
+      anthropicOptions.effort = 'high';
+    }
+
     const thinkingType = anthropicOptions?.thinking?.type;
     const isThinking =
-      thinkingType === 'enabled' || thinkingType === 'adaptive';
+      thinkingType === 'enabled' ||
+      thinkingType === 'adaptive' ||
+      thinkingType === 'between_tools';
     const thinkingBlockBinding =
       anthropicOptions?.thinking != null &&
       'blockBinding' in anthropicOptions.thinking
@@ -669,6 +900,25 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       system: messagesPrompt.system,
       messages: messagesPrompt.messages,
 
+      ...(anthropicOptions?.safeguards &&
+        anthropicOptions.safeguards.length > 0 && {
+          safeguards: anthropicOptions.safeguards.map(safeguard => ({
+            type: safeguard.type,
+            ...(safeguard.classifierContext !== undefined && {
+              classifier_context: safeguard.classifierContext,
+            }),
+          })),
+        }),
+
+      ...(compaction && {
+        compaction: {
+          type: compaction.type,
+          ...(compaction.instructions !== undefined && {
+            instructions: compaction.instructions,
+          }),
+        },
+      }),
+
       ...(contextManagement && {
         context_management: {
           edits: contextManagement.edits
@@ -743,7 +993,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         thinkingBudget = 1024;
       }
 
-      if (baseArgs.temperature != null) {
+      if (
+        baseArgs.temperature != null &&
+        !config.supportsTemperatureAndTopPWithThinking
+      ) {
         baseArgs.temperature = undefined;
         warnings.push({
           type: 'unsupported',
@@ -761,7 +1014,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         });
       }
 
-      if (topP != null) {
+      if (topP != null && !config.supportsTemperatureAndTopPWithThinking) {
         baseArgs.top_p = undefined;
         warnings.push({
           type: 'unsupported',
@@ -806,6 +1059,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       anthropicOptions.mcpServers.length > 0
     ) {
       betas.add('mcp-client-2025-04-04');
+    }
+
+    if (
+      anthropicOptions?.safeguards &&
+      anthropicOptions.safeguards.length > 0
+    ) {
+      betas.add('dangerous-tool-use-2026-09-03');
+    }
+
+    if (compaction) {
+      betas.add('compact-2026-09-04');
     }
 
     if (contextManagement) {
@@ -877,13 +1141,23 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     } = await prepareTools(
       jsonResponseTool != null
         ? {
-            tools: [...(tools ?? []), jsonResponseTool],
+            tools: [
+              ...(tools ?? []).filter(
+                tool =>
+                  toolChoice?.type !== 'none' &&
+                  (toolChoice?.type !== 'tool' ||
+                    tool.name === toolChoice.toolName),
+              ),
+              jsonResponseTool,
+            ],
             toolChoice: { type: 'required' },
             disableParallelToolUse: true,
             cacheControlValidator,
             supportsStructuredOutput: false,
             supportsStrictTools,
             defaultEagerInputStreaming,
+            rejectsForcedToolUse:
+              rejectsForcedToolUse || thinkingType === 'enabled',
           }
         : {
             tools: tools ?? [],
@@ -893,6 +1167,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             supportsStructuredOutput,
             supportsStrictTools,
             defaultEagerInputStreaming,
+            rejectsForcedToolUse:
+              rejectsForcedToolUse || thinkingType === 'enabled',
           },
     );
 
@@ -935,25 +1211,30 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
   private async getHeaders({
     betas,
+    configHeaders,
     headers,
+    providerOptions,
   }: {
     betas: Set<string>;
+    configHeaders: Record<string, string | undefined> | undefined;
     headers: Record<string, string | undefined> | undefined;
+    providerOptions: LanguageModelV4CallOptions['providerOptions'];
   }) {
-    return combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
+    const combinedHeaders = combineHeaders(
+      configHeaders,
       headers,
       betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
     );
+
+    return this.config.transformRequestHeaders
+      ? this.config.transformRequestHeaders(combinedHeaders, providerOptions)
+      : combinedHeaders;
   }
 
-  private async getBetasFromHeaders(
+  private getBetasFromHeaders(
+    configHeaders: Record<string, string | undefined> | undefined,
     requestHeaders: Record<string, string | undefined> | undefined,
   ) {
-    const configHeaders = this.config.headers
-      ? await resolve(this.config.headers)
-      : undefined;
-
     const configBetaHeader = configHeaders?.['anthropic-beta'] ?? '';
     const requestBetaHeader = requestHeaders?.['anthropic-beta'] ?? '';
 
@@ -1027,6 +1308,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
+    const configHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
+
     const {
       args,
       warnings,
@@ -1038,7 +1323,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     } = await this.getArgs({
       ...options,
       stream: false,
-      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+      userSuppliedBetas: this.getBetasFromHeaders(
+        configHeaders,
+        options.headers,
+      ),
     });
 
     // Extract citation documents for response processing
@@ -1046,9 +1334,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       ...this.extractCitationDocuments(options.prompt),
     ];
 
-    const markCodeExecutionDynamic = hasWebTool20260209WithoutCodeExecution(
-      args.tools,
-    );
+    const markCodeExecutionDynamic =
+      hasDynamicFilteringWebToolWithoutCodeExecution(args.tools);
 
     const {
       responseHeaders,
@@ -1056,7 +1343,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.buildRequestUrl(false),
-      headers: await this.getHeaders({ betas, headers: options.headers }),
+      headers: await this.getHeaders({
+        betas,
+        configHeaders,
+        headers: options.headers,
+        providerOptions: options.providerOptions,
+      }),
       body: this.transformRequestBody(args, betas),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -1071,31 +1363,54 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
     let isJsonResponseFromTool = false;
 
+    const hasWebSearchResults = response.content.some(
+      part =>
+        part.type === 'web_search_tool_result' &&
+        Array.isArray(part.content) &&
+        part.content.length > 0,
+    );
+    // The JSON response tool call becomes the text, so other text is dropped,
+    // unless the model never called the tool and answered in text instead.
+    const jsonResponseToolFallbackText = usesJsonResponseTool
+      ? getJsonResponseToolFallbackText(response.content, response.stop_reason)
+      : undefined;
+
     // map response content to content array
     for (const part of response.content) {
       switch (part.type) {
         case 'text': {
-          if (!usesJsonResponseTool) {
-            const webSearchCitations = part.citations?.filter(
-              citation => citation.type === 'web_search_result_location',
-            );
+          if (
+            jsonResponseToolFallbackText == null ||
+            jsonResponseToolFallbackText.has(part)
+          ) {
+            const citations = part.citations ?? [];
 
             content.push({
               type: 'text',
               text: part.text,
-              ...(webSearchCitations != null &&
-                webSearchCitations.length > 0 && {
-                  providerMetadata: {
-                    anthropic: {
-                      citations: webSearchCitations,
-                    },
+              ...(citations.length > 0 && {
+                citations: citations.map(citation =>
+                  mapAnthropicCitation(citation, citationDocuments),
+                ),
+              }),
+              ...(citations.length > 0 && {
+                providerMetadata: {
+                  anthropic: {
+                    citations,
                   },
-                }),
+                } satisfies AnthropicTextProviderMetadata,
+              }),
             });
 
             // Process citations if present
             if (part.citations) {
               for (const citation of part.citations) {
+                if (
+                  citation.type === 'web_search_result_location' &&
+                  hasWebSearchResults
+                ) {
+                  continue;
+                }
                 const source = createCitationSource(
                   citation,
                   citationDocuments,
@@ -1143,12 +1458,19 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           break;
         }
         case 'compaction': {
+          if (!part.content) {
+            break;
+          }
+
           content.push({
             type: 'text',
             text: part.content,
             providerMetadata: {
               anthropic: {
                 type: 'compaction',
+                ...(part.signature != null && {
+                  signature: part.signature,
+                }),
               },
             },
           });
@@ -1165,6 +1487,27 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             content.push({
               type: 'text',
               text: JSON.stringify(part.input),
+            });
+          } else if (part.toolset_name != null) {
+            // toolset member calls (e.g. the computer toolset) are mapped to
+            // the toolset tool with the member name as the `action`:
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: toolNameMapping.toCustomToolName(part.toolset_name),
+              input: JSON.stringify(
+                toToolsetMemberInput({
+                  memberName: part.name,
+                  input: part.input,
+                }),
+              ),
+              providerMetadata: {
+                anthropic: {
+                  toolsetName: part.toolset_name,
+                  ...getAnthropicCallerMetadata(part.caller).providerMetadata
+                    ?.anthropic,
+                },
+              },
             });
           } else {
             content.push({
@@ -1522,10 +1865,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           break;
         }
 
-        // Server-side fallback marker: the AI SDK has no content primitive for
-        // a model hop, so drop it. The hop is still observable via
-        // usage.iterations.
         case 'fallback': {
+          content.push({
+            type: 'custom',
+            kind: 'anthropic.fallback',
+            providerMetadata: {
+              anthropic: {
+                type: 'fallback',
+                from: part.from,
+                to: part.to,
+              },
+            },
+          });
           break;
         }
       }
@@ -1556,6 +1907,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           usage: response.usage as JSONObject,
           stopSequence: response.stop_sequence ?? null,
           ...(stopDetails != null ? { stopDetails } : {}),
+          ...(response.input_transformations != null
+            ? { inputTransformations: response.input_transformations }
+            : {}),
+          ...(response.safeguard_results != null
+            ? { safeguardResults: response.safeguard_results }
+            : {}),
 
           iterations: response.usage.iterations
             ? response.usage.iterations.map(
@@ -1615,6 +1972,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   ): Promise<LanguageModelV4StreamResult> {
     'use step';
 
+    const configHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
+
     const {
       args: body,
       warnings,
@@ -1626,7 +1987,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     } = await this.getArgs({
       ...options,
       stream: true,
-      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+      userSuppliedBetas: this.getBetasFromHeaders(
+        configHeaders,
+        options.headers,
+      ),
     });
 
     // Extract citation documents for response processing
@@ -1634,14 +1998,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       ...this.extractCitationDocuments(options.prompt),
     ];
 
-    const markCodeExecutionDynamic = hasWebTool20260209WithoutCodeExecution(
-      body.tools,
-    );
+    const markCodeExecutionDynamic =
+      hasDynamicFilteringWebToolWithoutCodeExecution(body.tools);
 
     const url = this.buildRequestUrl(true);
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
-      headers: await this.getHeaders({ betas, headers: options.headers }),
+      headers: await this.getHeaders({
+        betas,
+        configHeaders,
+        headers: options.headers,
+        providerOptions: options.providerOptions,
+      }),
       body: this.transformRequestBody(body, betas),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler:
@@ -1673,6 +2041,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           firstDelta: boolean;
           providerToolName?: string;
           providerToolInputType?: string;
+          /**
+           * Set for toolset member calls (e.g. the computer toolset). The raw
+           * member input is accumulated and emitted as a single delta with the
+           * member name injected as `action` when the block completes.
+           */
+          toolset?: { name: string; memberName: string };
           caller?: {
             type:
               | 'code_execution_20250825'
@@ -1693,8 +2067,32 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     let rawUsage: JSONObject | undefined = undefined;
     let stopSequence: string | null = null;
     let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
+    let inputTransformations: AnthropicMessageMetadata['inputTransformations'];
+    let safeguardResults: AnthropicMessageMetadata['safeguardResults'];
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
+    // Text held back while the JSON response tool is in use: it is only the
+    // answer if no tool block follows it and the model never calls the tool.
+    type HeldBackText = { id: string; text: string; citations: Citation[] };
+    const heldBackText: HeldBackText[] = [];
+    const heldBackTextByIndex = new Map<number, HeldBackText>();
+    const createTextEnd = (
+      id: string,
+      citations: Citation[],
+    ): LanguageModelV4StreamPart => ({
+      type: 'text-end',
+      id,
+      ...(citations.length > 0 && {
+        citations: citations.map(citation =>
+          mapAnthropicCitation(citation, citationDocuments),
+        ),
+        providerMetadata: {
+          anthropic: { citations },
+        } satisfies AnthropicTextProviderMetadata,
+      }),
+    });
+    let hasWebSearchResults = false;
+    const fallbackWebCitations: Citation[] = [];
     let isMessageOpen = false;
     let activeMessageId: string | null | undefined;
     let hasInvalidMessageSequence = false;
@@ -1753,20 +2151,40 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               const part = value.content_block;
               const contentBlockType = part.type;
 
-              // Server-side fallback marker: the AI SDK has no content
-              // primitive for a model hop, so drop it. The hop is still
-              // observable via usage.iterations.
               if (contentBlockType === 'fallback') {
+                controller.enqueue({
+                  type: 'custom',
+                  kind: 'anthropic.fallback',
+                  providerMetadata: {
+                    anthropic: {
+                      type: 'fallback',
+                      from: part.from,
+                      to: part.to,
+                    },
+                  },
+                });
                 return;
               }
 
               blockType = contentBlockType;
 
+              // text before a tool call or result is preamble, not the answer:
+              if (!TEXT_OR_THINKING_BLOCK_TYPES.has(contentBlockType)) {
+                heldBackText.length = 0;
+              }
+
               switch (contentBlockType) {
                 case 'text': {
                   // when a json response tool is used, the tool call is returned as text,
-                  // so we ignore the text content:
+                  // so the text content is held back until we know whether it was called:
                   if (usesJsonResponseTool) {
+                    const entry = {
+                      id: String(value.index),
+                      text: '',
+                      citations: [],
+                    };
+                    heldBackText.push(entry);
+                    heldBackTextByIndex.set(value.index, entry);
                     return;
                   }
 
@@ -1815,9 +2233,27 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     providerMetadata: {
                       anthropic: {
                         type: 'compaction',
+                        ...(part.signature != null && {
+                          signature: part.signature,
+                        }),
                       },
                     },
                   });
+
+                  // On-demand compaction blocks arrive complete in
+                  // content_block_start, without compaction_delta events.
+                  if (
+                    part.signature != null &&
+                    part.content != null &&
+                    part.content !== ''
+                  ) {
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: String(value.index),
+                      delta: part.content,
+                    });
+                  }
+
                   return;
                 }
 
@@ -1836,6 +2272,34 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     controller.enqueue({
                       type: 'text-start',
                       id: String(value.index),
+                    });
+                  } else if (part.toolset_name != null) {
+                    const callerInfo = getAnthropicCallerInfo(part.caller);
+                    const customToolName = toolNameMapping.toCustomToolName(
+                      part.toolset_name,
+                    );
+                    const hasNonEmptyInput =
+                      part.input && Object.keys(part.input).length > 0;
+
+                    // toolset member input is accumulated and emitted when the
+                    // block completes (see content_block_stop):
+                    contentBlocks[value.index] = {
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: customToolName,
+                      input: hasNonEmptyInput ? JSON.stringify(part.input) : '',
+                      firstDelta: true,
+                      toolset: {
+                        name: part.toolset_name,
+                        memberName: part.name,
+                      },
+                      ...(callerInfo && { caller: callerInfo }),
+                    };
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: part.id,
+                      toolName: customToolName,
                     });
                   } else {
                     const callerInfo = getAnthropicCallerInfo(part.caller);
@@ -1899,7 +2363,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     const customToolName =
                       toolNameMapping.toCustomToolName(providerToolName);
 
-                    // Tools like 'web_fetch_20260209' provide input data here.
+                    // Dynamic web tools provide input data here.
                     // Other tools like 'code_execution_20260120' provide input data via deltas.
                     // So we only use this if it's non-empty to avoid conflicts.
                     const finalInput =
@@ -2060,6 +2524,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     });
 
                     for (const result of part.content) {
+                      hasWebSearchResults = true;
                       controller.enqueue({
                         type: 'source',
                         sourceType: 'url',
@@ -2298,17 +2763,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
                 switch (contentBlock.type) {
                   case 'text': {
-                    controller.enqueue({
-                      type: 'text-end',
-                      id: String(value.index),
-                      ...(contentBlock.citations.length > 0 && {
-                        providerMetadata: {
-                          anthropic: {
-                            citations: contentBlock.citations,
-                          },
-                        },
-                      }),
-                    });
+                    controller.enqueue(
+                      createTextEnd(
+                        String(value.index),
+                        contentBlock.citations,
+                      ),
+                    );
                     break;
                   }
 
@@ -2327,6 +2787,37 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       usesJsonResponseTool && contentBlock.toolName === 'json';
 
                     if (!isJsonResponseTool) {
+                      // toolset member calls: emit the accumulated input with
+                      // the member name injected as `action` in one delta.
+                      if (contentBlock.toolset != null) {
+                        let memberInput: unknown = {};
+                        try {
+                          memberInput =
+                            contentBlock.input === ''
+                              ? {}
+                              : secureJsonParse(contentBlock.input);
+                        } catch {
+                          // ignore parse errors, fall back to the raw input
+                          memberInput = undefined;
+                        }
+
+                        contentBlock.input =
+                          memberInput === undefined
+                            ? contentBlock.input
+                            : JSON.stringify(
+                                toToolsetMemberInput({
+                                  memberName: contentBlock.toolset.memberName,
+                                  input: memberInput,
+                                }),
+                              );
+
+                        controller.enqueue({
+                          type: 'tool-input-delta',
+                          id: contentBlock.toolCallId,
+                          delta: contentBlock.input,
+                        });
+                      }
+
                       controller.enqueue({
                         type: 'tool-input-end',
                         id: contentBlock.toolCallId,
@@ -2369,10 +2860,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         contentBlock.providerToolName === 'code_execution'
                           ? { dynamic: true }
                           : {}),
-                        ...(contentBlock.caller && {
+                        ...((contentBlock.caller || contentBlock.toolset) && {
                           providerMetadata: {
                             anthropic: {
-                              caller: contentBlock.caller,
+                              ...(contentBlock.toolset && {
+                                toolsetName: contentBlock.toolset.name,
+                              }),
+                              ...(contentBlock.caller && {
+                                caller: contentBlock.caller,
+                              }),
                             },
                           },
                         }),
@@ -2395,8 +2891,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               switch (deltaType) {
                 case 'text_delta': {
                   // when a json response tool is used, the tool call is returned as text,
-                  // so we ignore the text content:
+                  // so the text content is held back until we know whether it was called:
                   if (usesJsonResponseTool) {
+                    const entry = heldBackTextByIndex.get(value.index);
+                    if (entry != null) {
+                      entry.text += value.delta.text;
+                    }
                     return; // excluding the text-start will also exclude the text-end
                   }
 
@@ -2474,6 +2974,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       return;
                     }
 
+                    // toolset member input is emitted as a single delta once
+                    // the block is complete (the member name is injected):
+                    if (contentBlock.toolset != null) {
+                      contentBlock.input += delta;
+                      return;
+                    }
+
                     // for the code execution 20250825, we need to add
                     // the type to the delta and change the tool name.
                     if (
@@ -2500,21 +3007,22 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                   const citation = value.delta.citation;
                   const contentBlock = contentBlocks[value.index];
 
-                  if (
-                    contentBlock?.type === 'text' &&
-                    citation.type === 'web_search_result_location'
-                  ) {
+                  if (contentBlock?.type === 'text') {
                     contentBlock.citations.push(citation);
                   }
+                  heldBackTextByIndex
+                    .get(value.index)
+                    ?.citations.push(citation);
 
-                  const source = createCitationSource(
-                    citation,
-                    citationDocuments,
-                    generateId,
-                  );
-
-                  if (source) {
-                    controller.enqueue(source);
+                  if (citation.type === 'web_search_result_location') {
+                    fallbackWebCitations.push(citation);
+                  } else {
+                    const source = createCitationSource(
+                      citation,
+                      citationDocuments,
+                      generateId,
+                    );
+                    if (source) controller.enqueue(source);
                   }
 
                   return;
@@ -2550,6 +3058,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
               isMessageOpen = true;
               activeMessageId = value.message.id;
+              heldBackTextByIndex.clear();
 
               usage.input_tokens = value.message.usage.input_tokens;
               usage.cache_read_input_tokens =
@@ -2560,6 +3069,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               rawUsage = {
                 ...(value.message.usage as JSONObject),
               };
+
+              if (value.message.input_transformations != null) {
+                inputTransformations = value.message.input_transformations;
+              }
 
               if (value.message.container != null) {
                 container = {
@@ -2583,6 +3096,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 type: 'response-metadata',
                 id: value.message.id ?? undefined,
                 modelId: value.message.model ?? undefined,
+              });
+
+              controller.enqueue({
+                type: 'custom',
+                kind: 'anthropic.message_start',
+                providerMetadata: {
+                  anthropic: {
+                    id: value.message.id ?? null,
+                    model: value.message.model ?? null,
+                    usage: rawUsage,
+                  },
+                },
               });
 
               // Programmatic tool calling: process pre-populated content blocks
@@ -2689,6 +3214,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 );
               }
 
+              if (value.input_transformations != null) {
+                inputTransformations = value.input_transformations;
+              }
+
+              // Earlier deltas may carry null while the classifier is still
+              // running; the last non-null value is the final verdict.
+              if (value.delta.safeguard_results != null) {
+                safeguardResults = value.delta.safeguard_results;
+              }
+
               rawUsage = {
                 ...rawUsage,
                 ...(value.usage as JSONObject),
@@ -2705,6 +3240,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,
                 ...(stopDetails != null ? { stopDetails } : {}),
+                ...(inputTransformations != null
+                  ? { inputTransformations }
+                  : {}),
+                ...(safeguardResults != null ? { safeguardResults } : {}),
                 iterations: usage.iterations
                   ? usage.iterations.map(
                       iter =>
@@ -2743,6 +3282,33 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 providerMetadata[providerOptionsName] = anthropicMetadata;
               }
 
+              if (!hasWebSearchResults) {
+                for (const citation of fallbackWebCitations) {
+                  const source = createCitationSource(
+                    citation,
+                    citationDocuments,
+                    generateId,
+                  );
+                  if (source) controller.enqueue(source);
+                }
+              }
+              fallbackWebCitations.length = 0;
+
+              // a message that hands off to a tool or continuation is not the
+              // final answer, so its held-back text is discarded:
+              if (
+                !isJsonResponseFromTool &&
+                !isContinuationStopReason(finishReason.raw)
+              ) {
+                for (const { id, text, citations } of heldBackText) {
+                  if (text.length === 0) continue;
+                  controller.enqueue({ type: 'text-start', id });
+                  controller.enqueue({ type: 'text-delta', id, delta: text });
+                  controller.enqueue(createTextEnd(id, citations));
+                }
+              }
+              heldBackText.length = 0;
+
               controller.enqueue({
                 type: 'finish',
                 finishReason,
@@ -2769,8 +3335,71 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }),
     );
 
+    let hasOutput = false;
+    let hasStreamError = false;
+    let lastFinish:
+      | Extract<LanguageModelV4StreamPart, { type: 'finish' }>
+      | undefined;
+    const streamWithFinishReason = transformedStream.pipeThrough(
+      new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>(
+        {
+          transform(chunk, controller) {
+            switch (chunk.type) {
+              case 'response-metadata':
+                hasOutput = false;
+                break;
+              case 'finish':
+                hasOutput = false;
+                lastFinish = chunk;
+                break;
+              case 'error':
+                hasStreamError = true;
+                break;
+              case 'text-delta':
+              case 'reasoning-delta':
+              case 'tool-input-delta':
+                hasOutput ||= chunk.delta.length > 0;
+                break;
+              case 'tool-call':
+                hasOutput = true;
+                break;
+            }
+            controller.enqueue(chunk);
+          },
+          flush(controller) {
+            // Preserve the existing no-output error path. Only partial output
+            // without a finish chunk receives an interrupted finish reason.
+            if (hasOutput && !hasStreamError) {
+              controller.enqueue({
+                type: 'finish',
+                finishReason: { unified: 'interrupted', raw: undefined },
+                // Keep the usage and metadata core already had before the cutoff.
+                usage: lastFinish?.usage ?? {
+                  inputTokens: {
+                    total: undefined,
+                    noCache: undefined,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: undefined,
+                    text: undefined,
+                    reasoning: undefined,
+                  },
+                },
+                ...(lastFinish?.providerMetadata != null
+                  ? { providerMetadata: lastFinish.providerMetadata }
+                  : {}),
+              });
+            }
+          },
+        },
+      ),
+    );
+
     // The first chunk needs to be pulled immediately to check if it is an error
-    const [streamForFirstChunk, streamForConsumer] = transformedStream.tee();
+    const [streamForFirstChunk, streamForConsumer] =
+      streamWithFinishReason.tee();
 
     const firstChunkReader = streamForFirstChunk.getReader();
     try {
@@ -2816,168 +3445,25 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   }
 }
 
-/**
- * Returns the capabilities of a Claude model that are used for defaults and feature selection.
- *
- * @see https://docs.claude.com/en/docs/about-claude/models/overview#model-comparison-table
- * @see https://platform.claude.com/docs/en/build-with-claude/structured-outputs
- */
-export function getModelCapabilities(modelId: string): {
-  maxOutputTokens: number;
-  supportsStructuredOutput: boolean;
-  supportsAdaptiveThinking: boolean;
-  rejectsSamplingParameters: boolean;
-  supportsXhighEffort: boolean;
-  rejectsThinkingDisabledAboveHighEffort: boolean;
-  isKnownModel: boolean;
-} {
-  if (modelId.includes('claude-opus-5')) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: true,
-      isKnownModel: true,
-    };
-  } else if (
-    modelId.includes('claude-opus-4-8') ||
-    modelId.includes('claude-opus-4-7') ||
-    modelId.includes('claude-fable-5') ||
-    modelId.includes('claude-sonnet-5')
-  ) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      isKnownModel: true,
-    };
-  } else if (
-    modelId.includes('claude-sonnet-4-6') ||
-    modelId.includes('claude-opus-4-6')
-  ) {
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      isKnownModel: true,
-    };
-  } else if (
-    modelId.includes('claude-sonnet-4-5') ||
-    modelId.includes('claude-opus-4-5') ||
-    modelId.includes('claude-haiku-4-5')
-  ) {
-    return {
-      maxOutputTokens: 64000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-opus-4-1')) {
-    return {
-      maxOutputTokens: 32000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      isKnownModel: true,
-    };
-  } else if (/claude-sonnet-4(?:-|@)/.test(modelId)) {
-    return {
-      maxOutputTokens: 64000,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      isKnownModel: true,
-    };
-  } else if (/claude-opus-4(?:-|@)/.test(modelId)) {
-    return {
-      maxOutputTokens: 32000,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      isKnownModel: true,
-    };
-  } else if (modelId.includes('claude-3-haiku')) {
-    return {
-      maxOutputTokens: 4096,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      isKnownModel: true,
-    };
-  } else if (
-    /claude-(?:instant(?:-|$)|v?2(?=$|[-.:])|3(?=$|[-.]))/.test(modelId)
-  ) {
-    return {
-      maxOutputTokens: 4096,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      isKnownModel: false,
-    };
-  } else if (modelId.includes('claude-')) {
-    // Known and legacy Claude families are handled above, so any remaining
-    // Claude ID is assumed to be newer than the known list. Keep it unknown so
-    // callers still receive the maxOutputTokens compatibility warning.
-    return {
-      maxOutputTokens: 128000,
-      supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
-      rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
-      rejectsThinkingDisabledAboveHighEffort: true,
-      isKnownModel: false,
-    };
-  } else {
-    // Non-Claude models (e.g. served through Anthropic-compatible APIs)
-    // keep conservative defaults.
-    return {
-      maxOutputTokens: 4096,
-      supportsStructuredOutput: false,
-      supportsAdaptiveThinking: false,
-      rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
-      rejectsThinkingDisabledAboveHighEffort: false,
-      isKnownModel: false,
-    };
-  }
-}
+export { getAnthropicModelCapabilities as getModelCapabilities } from './anthropic-model-catalog';
 
-export function hasWebTool20260209WithoutCodeExecution(
+export function hasDynamicFilteringWebToolWithoutCodeExecution(
   tools: AnthropicTool[] | undefined,
 ): boolean {
   if (!tools) {
     return false;
   }
-  let hasWebTool20260209 = false;
+  let hasDynamicFilteringWebTool = false;
   let hasCodeExecutionTool = false;
   for (const tool of tools) {
     if (
       'type' in tool &&
       (tool.type === 'web_fetch_20260209' ||
-        tool.type === 'web_search_20260209')
+        tool.type === 'web_fetch_20260318' ||
+        tool.type === 'web_search_20260209' ||
+        tool.type === 'web_search_20260318')
     ) {
-      hasWebTool20260209 = true;
+      hasDynamicFilteringWebTool = true;
       continue;
     }
     if (
@@ -2990,19 +3476,25 @@ export function hasWebTool20260209WithoutCodeExecution(
       break;
     }
   }
-  return hasWebTool20260209 && !hasCodeExecutionTool;
+  return hasDynamicFilteringWebTool && !hasCodeExecutionTool;
 }
 
 function resolveAnthropicReasoningConfig({
   reasoning,
+  modelId,
   supportsAdaptiveThinking,
   supportsXhighEffort,
+  rejectsThinkingDisabled,
+  supportsBetweenToolsThinking,
   maxOutputTokensForModel,
   warnings,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
+  modelId: string;
   supportsAdaptiveThinking: boolean;
   supportsXhighEffort: boolean;
+  rejectsThinkingDisabled: boolean;
+  supportsBetweenToolsThinking: boolean;
   maxOutputTokensForModel: number;
   warnings: SharedV4Warning[];
 }): Pick<AnthropicLanguageModelOptions, 'thinking' | 'effort'> | undefined {
@@ -3011,6 +3503,33 @@ function resolveAnthropicReasoningConfig({
   }
 
   if (reasoning === 'none') {
+    // `between_tools` is the lowest thinking setting on models that support
+    // it: no upfront thinking, only short progress notes between tool calls.
+    if (supportsBetweenToolsThinking) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          `reasoning 'none' is not supported by ${modelId}; thinking cannot be disabled. ` +
+          `Using 'between_tools' thinking, the lowest thinking setting, instead.`,
+      });
+      return { thinking: { type: 'between_tools' } };
+    }
+
+    // Models that always run adaptive thinking cannot disable it. Use low
+    // effort to keep thinking short instead of sending a request that the
+    // API would reject.
+    if (rejectsThinkingDisabled) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          `reasoning 'none' is not supported by ${modelId}; it always uses adaptive thinking. ` +
+          `Using effort 'low' to minimize thinking instead.`,
+      });
+      return { effort: 'low' };
+    }
+
     return { thinking: { type: 'disabled' } };
   }
 
@@ -3018,11 +3537,11 @@ function resolveAnthropicReasoningConfig({
     const effort = mapReasoningToProviderEffort({
       reasoning,
       effortMap: {
-        minimal: 'low' as const,
         low: 'low' as const,
         medium: 'medium' as const,
         high: 'high' as const,
-        xhigh: supportsXhighEffort ? ('xhigh' as const) : ('max' as const),
+        ...(supportsXhighEffort && { xhigh: 'xhigh' as const }),
+        max: 'max' as const,
       },
       warnings,
     });
@@ -3038,9 +3557,6 @@ function resolveAnthropicReasoningConfig({
     maxReasoningBudget: maxOutputTokensForModel,
     warnings,
   });
-  if (budgetTokens == null) {
-    return undefined;
-  }
   return { thinking: { type: 'enabled', budgetTokens } };
 }
 

@@ -12,6 +12,8 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
@@ -19,8 +21,6 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { XaiChatLanguageModel } from './xai-chat-language-model';
-import type { XaiChatModelId } from './xai-chat-language-model-options';
 import { XaiImageModel } from './xai-image-model';
 import type { XaiImageModelId } from './xai-image-settings';
 import { XaiBatch } from './xai-batch';
@@ -34,6 +34,7 @@ import { XaiVideoModel } from './xai-video-model';
 import type { XaiVideoModelId } from './xai-video-settings';
 import { XaiSpeechModel } from './xai-speech-model';
 import { XaiTranscriptionModel } from './xai-transcription-model';
+import type { XaiTranscriptionModelId } from './xai-transcription-model-options';
 
 export interface XaiProvider extends ProviderV4 {
   (modelId: XaiResponsesModelId): LanguageModelV4;
@@ -44,11 +45,6 @@ export interface XaiProvider extends ProviderV4 {
   languageModel(modelId: XaiResponsesModelId): LanguageModelV4;
 
   /**
-   * Creates an Xai chat model for text generation.
-   */
-  chat: (modelId: XaiChatModelId) => LanguageModelV4;
-
-  /**
    * Creates an Xai responses model for text generation.
    */
   responses: (modelId: XaiResponsesModelId) => LanguageModelV4;
@@ -56,7 +52,10 @@ export interface XaiProvider extends ProviderV4 {
   /**
    * Returns a BatchV4 interface for processing batches with xAI.
    */
-  experimental_batch(): BatchV4<{ text: XaiResponsesModelId }>;
+  experimental_batch(): BatchV4<{
+    text: XaiResponsesModelId;
+    image: XaiImageModelId;
+  }>;
 
   /**
    * Creates an Xai image model for image generation.
@@ -92,13 +91,15 @@ export interface XaiProvider extends ProviderV4 {
 
   /**
    * Creates an xAI model for speech-to-text transcription.
+   * When `modelId` is omitted, xAI's default transcription model is used.
    */
-  transcription(): TranscriptionModelV4;
+  transcription(modelId?: XaiTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * Creates an xAI model for speech-to-text transcription.
+   * When `modelId` is omitted, xAI's default transcription model is used.
    */
-  transcriptionModel(): TranscriptionModelV4;
+  transcriptionModel(modelId?: XaiTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * Returns the xAI files interface for uploading files.
@@ -124,8 +125,9 @@ export interface XaiProviderSettings {
 
   /**
    * API key for authenticating requests.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -150,27 +152,19 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     options.baseURL ?? 'https://api.x.ai/v1',
   );
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'XAI_API_KEY',
-          description: 'xAI API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/xai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'XAI_API_KEY',
+            description: 'xAI API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-xai/${VERSION}`,
+      ),
     );
-
-  const createChatLanguageModel = (modelId: XaiChatModelId) => {
-    return new XaiChatLanguageModel(modelId, {
-      provider: 'xai.chat',
-      baseURL,
-      headers: getHeaders,
-      generateId,
-      fetch: options.fetch,
-    });
-  };
 
   const createResponsesLanguageModel = (modelId: XaiResponsesModelId) => {
     return new XaiResponsesLanguageModel(modelId, {
@@ -218,8 +212,8 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const createTranscriptionModel = () => {
-    return new XaiTranscriptionModel('', {
+  const createTranscriptionModel = (modelId: XaiTranscriptionModelId = '') => {
+    return new XaiTranscriptionModel(modelId, {
       provider: 'xai.transcription',
       baseURL,
       headers: getHeaders,
@@ -272,7 +266,6 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
 
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createResponsesLanguageModel;
-  provider.chat = createChatLanguageModel;
   provider.responses = createResponsesLanguageModel;
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });

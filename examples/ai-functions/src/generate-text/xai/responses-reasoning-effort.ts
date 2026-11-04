@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-4.6'),
+    model: xai.responses('grok-4.7'),
     reasoning: 'xhigh',
     prompt: 'How many "r"s are in the word "strawberry"?',
   });

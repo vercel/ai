@@ -9,7 +9,7 @@ run(async () => {
   // Turn 1: ask about Spanish cities. The default `store: true` makes the
   // server keep the prior context so we can chain via `previousInteractionId`.
   const turn1 = await generateText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     prompt: 'What are the three largest cities in Spain?',
   });
 
@@ -30,7 +30,7 @@ run(async () => {
   // pulls the prior context from its own state — no message history needed on
   // the wire.
   const turn2 = await generateText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     prompt: 'What is the most famous landmark in the second one?',
     providerOptions: {
       google: {

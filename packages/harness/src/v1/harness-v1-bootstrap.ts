@@ -1,7 +1,7 @@
 /**
  * One file to write into the sandbox as part of an adapter's bootstrap recipe.
  * Absolute paths are used as-is. Relative paths are resolved against the
- * sandbox's default working directory. Paths should live under
+ * harness state directory (`$HOME/.ai-sdk-harness`). Paths should live under
  * {@link HarnessV1Bootstrap.bootstrapDir}.
  */
 export interface HarnessV1BootstrapFile {
@@ -33,10 +33,10 @@ export interface HarnessV1Bootstrap {
 
   /**
    * Path inside the sandbox where this recipe writes its state. Absolute paths
-   * are used as-is. Relative paths are resolved against the sandbox's default
-   * working directory. The marker file lives directly under it. Files
-   * declared in {@link files} should also use this prefix so an adapter upgrade
-   * can sweep stale state by clearing the directory.
+   * are used as-is. Relative paths are resolved against the harness state
+   * directory (`$HOME/.ai-sdk-harness`). The marker file lives directly under
+   * it. Files declared in {@link files} should also use this prefix so an
+   * adapter upgrade can sweep stale state by clearing the directory.
    */
   readonly bootstrapDir: string;
 

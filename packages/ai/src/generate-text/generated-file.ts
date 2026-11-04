@@ -1,3 +1,4 @@
+import { convertDataContentToUint8Array } from '../prompt/data-content';
 import {
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
@@ -48,13 +49,15 @@ export class DefaultGeneratedFile implements GeneratedFile {
     mediaType,
     providerMetadata,
   }: {
-    data: string | Uint8Array;
+    data: string | Uint8Array | ArrayBuffer;
     mediaType: string;
     providerMetadata?: Record<string, JSONObject>;
   }) {
-    const isUint8Array = data instanceof Uint8Array;
-    this.base64Data = isUint8Array ? undefined : data;
-    this.uint8ArrayData = isUint8Array ? data : undefined;
+    this.base64Data = typeof data === 'string' ? data : undefined;
+    this.uint8ArrayData =
+      typeof data === 'string'
+        ? undefined
+        : convertDataContentToUint8Array(data);
     this.mediaType = mediaType;
     this.providerMetadata = providerMetadata;
   }
@@ -78,12 +81,4 @@ export class DefaultGeneratedFile implements GeneratedFile {
 
 export class DefaultGeneratedFileWithType extends DefaultGeneratedFile {
   readonly type = 'file';
-
-  constructor(options: {
-    data: string | Uint8Array;
-    mediaType: string;
-    providerMetadata?: Record<string, JSONObject>;
-  }) {
-    super(options);
-  }
 }

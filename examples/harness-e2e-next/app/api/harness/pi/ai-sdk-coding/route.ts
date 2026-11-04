@@ -27,10 +27,10 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: createUIMessageStream({
       execute: async ({ writer }) => {
-        const session = await resumeOrCreateSession(
-          aiSdkCodingPiHarnessAgent,
+        const { session } = await resumeOrCreateSession({
+          agent: aiSdkCodingPiHarnessAgent,
           chatId,
-        );
+        });
 
         const result = await aiSdkCodingPiHarnessAgent.stream({
           session,
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
           toUIMessageStream({
             stream: result.stream,
             onError: getHarnessE2EErrorMessage,
-            onFinish: () => detachAndPersist(chatId, session),
+            onFinish: () => detachAndPersist({ chatId, session }),
           }),
         );
       },

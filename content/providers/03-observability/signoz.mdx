@@ -88,7 +88,7 @@ With `@ai-sdk/otel` installed and `registerTelemetry` added to your `instrumenta
 
 ```jsx
 const result = await generateText({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Write a short story about a cat.',
 });
 ```
@@ -107,7 +107,7 @@ You can provide a `functionId` to identify the function that the telemetry data 
 
 ```jsx
 const result = await generateText({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Write a short story about a cat.',
   context: {
     something: 'custom',
@@ -135,7 +135,7 @@ registerTelemetry(
 );
 
 const result = await generateText({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Write a short story about a cat.',
 });
 ```

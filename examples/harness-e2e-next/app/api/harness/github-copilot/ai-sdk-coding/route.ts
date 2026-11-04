@@ -27,10 +27,11 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: createUIMessageStream({
       execute: async ({ writer }) => {
-        const session = await resumeOrCreateSession(
-          githubCopilotAiSdkCodingHarnessAgent,
+        const { session } = await resumeOrCreateSession({
+          agent: githubCopilotAiSdkCodingHarnessAgent,
           chatId,
-        );
+          ports: [4000],
+        });
         const result = await githubCopilotAiSdkCodingHarnessAgent.stream({
           session,
           messages,
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
           toUIMessageStream({
             stream: result.stream,
             onError: getHarnessE2EErrorMessage,
-            onFinish: () => detachAndPersist(chatId, session),
+            onFinish: () => detachAndPersist({ chatId, session }),
           }),
         );
       },

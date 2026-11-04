@@ -12,39 +12,45 @@ import {
   type HarnessV1DebugConfig,
   type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PermissionMode,
-  type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1ResponseFormat,
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
-  type HarnessV1NetworkSandboxSession,
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
+  harnessStateDirectoryPath,
+  harnessSessionDataDirectoryPath,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
   classifyDiskLog,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
   createBridgeToken,
+  createBridgeWebSocketConnect,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
+  extractHarnessPromptContent,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
-  resolveSandboxDefaultWorkingDirectory,
+  resolveBridgeEndpoint,
+  resolveBridgePort,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  validateBridgeSandboxSettings,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
-  withBridgeToken,
   writeSkills,
+  type BridgeHello,
+  type SandboxChannelDebugEvent,
+  type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
-  safeParseJSON,
+  generateId,
   tool,
   type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess,
@@ -59,9 +65,12 @@ import {
   CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
   createClaudeCodeRequestTransformations,
   resolveClaudeCodeAuthenticationMode,
-  resolveClaudeCodeEnv,
   type ClaudeCodeAuthenticationMode,
 } from './claude-code-auth';
+import {
+  createClaudeCodeSubscriptionRequestTransformations,
+  resolveClaudeCodeAuthentication,
+} from './claude-code-subscription';
 import {
   outboundMessageSchema,
   type InboundMessage,
@@ -76,7 +85,7 @@ type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const CLAUDE_CODE_CLIENT_APP = `ai-sdk/harness-claude-code/${VERSION}`;
+const CLAUDE_CODE_CLIENT_APP = `ai-sdk-harness-claude-code/${VERSION}`;
 
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthenticationMode;
@@ -92,10 +101,65 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly mcpServers?: Record<string, unknown>;
   /**
+   * Claude Code hints for host tools, keyed by tool name.
+   *
+   * - `readOnly`: the tool has no side effects. Claude Code can run read-only
+   *   tool calls in parallel, and runs each call to any other host tool on
+   *   its own. It also allows read-only tools in plan mode, so mark only
+   *   tools that change nothing.
+   * - `alwaysLoad`: when Claude Code's tool search is on, it defers MCP tools
+   *   until the model looks them up; this sends the tool's definition from
+   *   the first request instead.
+   */
+  readonly toolHints?: Readonly<
+    Record<
+      string,
+      { readonly readOnly?: boolean; readonly alwaysLoad?: boolean }
+    >
+  >;
+  /**
    * Hard cap on how many internal turns the CLI can take before yielding
    * back to the caller. Unset means the CLI's default.
    */
   readonly maxTurns?: number;
+  /**
+   * Overrides how named skills are exposed to Claude Code. Unspecified skills
+   * retain their Claude Code defaults.
+   */
+  readonly skillOverrides?: Readonly<
+    Record<string, 'on' | 'name-only' | 'user-invocable-only' | 'off'>
+  >;
+  /**
+   * Maximum estimated spend in USD for each Claude query. When it is exceeded,
+   * the query stops and the turn ends with an error. Unset means no limit.
+   */
+  readonly maxBudgetUsd?: number;
+  /**
+   * Only use the MCP servers configured with `mcpServers`, and ignore any other
+   * MCP configuration such as a project `.mcp.json` or user settings.
+   */
+  readonly strictMcpConfig?: boolean;
+  /**
+   * Maximum milliseconds Claude waits for an answer to an `AskUserQuestion`
+   * question before the question fails. Unset means the Claude Code default.
+   */
+  readonly questionTimeoutMs?: number;
+  /**
+   * Moves per-session sections (working directory, memory, git status) out of
+   * the Claude Code system prompt and into the first user message, so the
+   * system prompt can be cached across sessions.
+   */
+  readonly excludeDynamicSections?: boolean;
+  /**
+   * Enables periodic AI-generated progress summaries for running subagents.
+   * The summaries are forwarded in raw `task_progress` stream parts.
+   */
+  readonly agentProgressSummaries?: boolean;
+  /**
+   * Forwards subagent text and thinking messages in addition to tool activity.
+   * Subagent messages are exposed as raw stream parts.
+   */
+  readonly forwardSubagentText?: boolean;
   /**
    * Environment variables for the Claude Code process. These values are
    * merged over the sandbox bridge process environment.
@@ -125,6 +189,23 @@ export type ClaudeCodeHarnessSettings = {
   readonly portEndpoint?: HarnessV1PortEndpoint;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /** Maximum milliseconds to wait for the first turn event. Defaults to 120000. */
+  readonly turnStartTimeoutMs?: number;
+  /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
+   * Called with bridge connection lifecycle events: reconnect attempts,
+   * successful reconnects, and `reconnect-failed` once the connection is
+   * closed for good. Hosts that cache idle sessions can use it to reattach
+   * before sending the next prompt. The `cause` of a failed reconnect can
+   * contain connection details, so avoid logging it as is.
+   */
+  readonly onDebug?: (event: SandboxChannelDebugEvent) => void;
   /**
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
@@ -380,6 +461,27 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       }),
     }),
     toolUseKind: 'bash',
+  },
+  ListAgents: {
+    ...tool({
+      description: 'List agents that can receive messages',
+      inputSchema: z.strictObject({
+        channel: z
+          .string()
+          .max(256)
+          .optional()
+          .describe('Not available in this build; leave unset.'),
+        q: z
+          .string()
+          .max(256)
+          .optional()
+          .describe('Not available in this build; leave unset.'),
+      }),
+      outputSchema: z.object({
+        listing: z.string().describe('Formatted list of reachable agents'),
+      }),
+    }),
+    toolUseKind: 'readonly',
   },
   ListMcpResources: {
     ...tool({
@@ -759,6 +861,7 @@ const claudeCodeBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
+  startId: z.string().optional(),
   sandboxId: z.string().optional(),
 });
 
@@ -818,23 +921,13 @@ export function createClaudeCode(
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
       const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
-      validateBasicSandboxSettings({
+      validateBridgeSandboxSettings({
         sandboxSession,
-        port: settings.port,
-        portEndpoint: settings.portEndpoint,
+        sandboxId,
+        portOverride: settings.port,
+        portEndpointOverride: settings.portEndpoint,
+        mintBridgeToken: settings.mintBridgeToken,
       });
-      if (settings.mintBridgeToken != null && sandboxId == null) {
-        throw new HarnessCapabilityUnsupportedError({
-          harnessId: 'claude-code',
-          message:
-            'The Claude Code harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
-        });
-      }
-      const defaultWorkingDirectory =
-        await resolveSandboxDefaultWorkingDirectory({
-          sandboxSession,
-          abortSignal: startOpts.abortSignal,
-        });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -849,7 +942,9 @@ export function createClaudeCode(
       const authenticationMode = resolveClaudeCodeAuthenticationMode(
         settings.auth,
       );
-      const resolvedAuthEnvironment = resolveClaudeCodeEnv(settings.auth);
+      const resolvedAuthEnvironment = await resolveClaudeCodeAuthentication({
+        auth: settings.auth,
+      });
       const claudeEnvironment = {
         ...resolvedAuthEnvironment,
         /*
@@ -877,22 +972,29 @@ export function createClaudeCode(
         sandboxSession.addRequestTransformations != null
       ) {
         sandboxCredentialEnvironment =
-          resumeData?.sandboxCredentialEnvironment ??
-          (await createSandboxCredentialEnvironment({
+          await resolveSandboxCredentialEnvironment({
             environment: claudeEnvironment,
             credentialEnvironmentVariables:
               CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
             credentialForwarding: settings.credentialForwarding,
-          }));
+            previousSandboxCredentialEnvironment:
+              resumeData?.sandboxCredentialEnvironment,
+          });
         sandboxClaudeEnvironment = {
           ...claudeEnvironment,
           ...sandboxCredentialEnvironment,
         };
-        const requestTransformations = createClaudeCodeRequestTransformations({
+        const transformationSources = {
           env: claudeEnvironment,
           sandboxEnv: sandboxClaudeEnvironment,
           auth: authenticationMode,
-        });
+        };
+        const requestTransformations = [
+          ...createClaudeCodeRequestTransformations(transformationSources),
+          ...createClaudeCodeSubscriptionRequestTransformations(
+            transformationSources,
+          ),
+        ];
         if (requestTransformations.length > 0) {
           await sandboxSession.addRequestTransformations(
             requestTransformations,
@@ -912,21 +1014,25 @@ export function createClaudeCode(
             CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
         });
       }
-      const bootstrapDir = posix.resolve(
-        defaultWorkingDirectory,
-        BOOTSTRAP_DIR,
-      );
+      // Harness SDK state (bootstrap, per-session runs) always lives under
+      // the sandbox's own HOME, never the working directory, so it stays
+      // out of a user-owned workspace.
+      const sandboxHomeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
+      });
+      const stateDir = harnessStateDirectoryPath({ sandboxHomeDir });
+      const bootstrapDir = posix.resolve(stateDir, BOOTSTRAP_DIR);
       // The conversation the host wants back, when it is known. Absent on
       // state written before this field existed; those resumes fall back to
       // the `continue` flag as before.
       const resumeSessionId = resumeData?.claudeSessionId;
 
       const workDir = startOpts.sessionWorkDir;
-      const sandboxHomeDir = await resolveSandboxHomeDir({
-        sandbox: toolSafeSandboxSession,
-        abortSignal: startOpts.abortSignal,
+      const sessionDataDir = harnessSessionDataDirectoryPath({
+        stateDirectory: stateDir,
+        sessionId: startOpts.sessionId,
       });
-      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
@@ -948,20 +1054,12 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
       });
       let supportsUserMessageResponses = false;
-
-      // Builds the `connect` thunk a `SandboxChannel` re-invokes on every
-      // (re)connect: open the socket, then wait for `bridge-hello` so the
-      // end-to-end link is proven live before any frame is sent.
-      const buildConnect =
-        (endpoint: HarnessV1PortEndpoint) => async (): Promise<WebSocket> => {
-          return openBridgeWebSocket({
-            endpoint,
-            timeoutMs,
-            onHello: supportsResponses => {
-              supportsUserMessageResponses = supportsResponses;
-            },
-          });
-        };
+      let bridgeHello: BridgeHello | undefined;
+      const onHello = (hello: BridgeHello) => {
+        bridgeHello = hello;
+        supportsUserMessageResponses =
+          hello.capabilities?.experimental_userMessageResponses === true;
+      };
 
       /*
        * Rung 1 — ATTACH. When lifecycle state carries live bridge coordinates,
@@ -973,32 +1071,52 @@ export function createClaudeCode(
        */
       if (coords) {
         try {
-          const endpoint = await resolveBridgeEndpoint({
+          const attachEndpoint = await resolveBridgeEndpoint({
             sandboxSession,
-            override: settings.portEndpoint,
             port: coords.port,
-          });
-          const attachEndpoint = withBridgeToken({
-            endpoint,
+            portEndpointOverride: settings.portEndpoint,
             token: coords.token,
           });
           const attachChannel: ClaudeCodeChannel = new SandboxChannel({
-            connect: buildConnect(attachEndpoint),
+            connect: createBridgeWebSocketConnect({
+              endpoint: attachEndpoint,
+              webSocketConstructor: WebSocket,
+              onHello,
+            }),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
             onBridgeError,
+            reconnect: settings.reconnect,
+            onDebug: settings.onDebug,
           });
-          await attachChannel.open(isContinue ? { resume: true } : undefined);
+          const finishListenerAttachment = isContinue
+            ? attachChannel.beginListenerAttachment()
+            : undefined;
+          try {
+            await attachChannel.open(isContinue ? { resume: true } : undefined);
+          } catch (error) {
+            finishListenerAttachment?.();
+            throw error;
+          }
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
+            startId: coords.startId,
+            finishListenerAttachment,
             ...(resumeSessionId ? { resumeSessionId } : {}),
             // The live bridge was spawned by another process; this one owns no
             // process handle. The session lifecycle method decides whether the
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
+            skillOverrides: settings.skillOverrides,
+            maxBudgetUsd: settings.maxBudgetUsd,
+            strictMcpConfig: settings.strictMcpConfig,
+            questionTimeoutMs: settings.questionTimeoutMs,
+            excludeDynamicSections: settings.excludeDynamicSections,
+            agentProgressSummaries: settings.agentProgressSummaries,
+            forwardSubagentText: settings.forwardSubagentText,
             env: sandboxClaudeEnvironment,
             thinking,
             effort: settings.effort,
@@ -1015,7 +1133,10 @@ export function createClaudeCode(
             sandbox: toolSafeSandboxSession,
             sandboxHomeDir,
             mcpServers: settings.mcpServers,
+            toolHints: settings.toolHints,
             supportsUserMessageResponses: () => supportsUserMessageResponses,
+            getBridgeHello: () => bridgeHello,
+            turnStartTimeoutMs: settings.turnStartTimeoutMs ?? 120_000,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -1048,7 +1169,7 @@ export function createClaudeCode(
 
       const port = resolveBridgePort({
         sandboxSession,
-        override: settings.port,
+        portOverride: settings.port,
       });
       const token =
         settings.mintBridgeToken == null
@@ -1121,18 +1242,26 @@ export function createClaudeCode(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await resolveBridgeEndpoint({
+      const bridgeEndpoint = await resolveBridgeEndpoint({
         sandboxSession,
-        override: settings.portEndpoint,
         port: boundPort,
+        portEndpointOverride: settings.portEndpoint,
+        token,
       });
-      const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
       const channel: ClaudeCodeChannel = new SandboxChannel({
-        connect: buildConnect(bridgeEndpoint),
+        connect: createBridgeWebSocketConnect({
+          endpoint: bridgeEndpoint,
+          webSocketConstructor: WebSocket,
+          openRetryTimeoutMs: timeoutMs,
+          startAbortSignal: startOpts.abortSignal,
+          onHello,
+        }),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
+        reconnect: settings.reconnect,
+        onDebug: settings.onDebug,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`) rather than starting empty.
@@ -1140,15 +1269,33 @@ export function createClaudeCode(
           ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
           : {}),
       });
-      await channel.open(
-        respawnStrategy === 'replay' ? { resume: true } : undefined,
-      );
+      const finishListenerAttachment =
+        respawnStrategy === 'replay'
+          ? channel.beginListenerAttachment()
+          : undefined;
+      try {
+        await channel.open(
+          respawnStrategy === 'replay' ? { resume: true } : undefined,
+        );
+      } catch (error) {
+        finishListenerAttachment?.();
+        throw error;
+      }
 
       return createSession({
         sessionId: startOpts.sessionId,
         channel,
+        finishListenerAttachment,
+        startId: respawnStrategy === 'replay' ? coords?.startId : undefined,
         proc,
         maxTurns: settings.maxTurns,
+        skillOverrides: settings.skillOverrides,
+        maxBudgetUsd: settings.maxBudgetUsd,
+        strictMcpConfig: settings.strictMcpConfig,
+        questionTimeoutMs: settings.questionTimeoutMs,
+        excludeDynamicSections: settings.excludeDynamicSections,
+        agentProgressSummaries: settings.agentProgressSummaries,
+        forwardSubagentText: settings.forwardSubagentText,
         env: sandboxClaudeEnvironment,
         thinking,
         effort: settings.effort,
@@ -1156,6 +1303,15 @@ export function createClaudeCode(
         continueOnFirstPrompt: respawnStrategy !== undefined,
         ...(resumeSessionId ? { resumeSessionId } : {}),
         rerunContinue: respawnStrategy === 'rerun',
+        ...(respawnStrategy === 'rerun'
+          ? {
+              deferredToolUseId: (
+                startOpts.continueFrom ?? startOpts.resumeFrom?.continueFrom
+              )?.pendingToolApprovals?.find(
+                approval => approval.kind === 'builtin',
+              )?.toolCallId,
+            }
+          : {}),
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
@@ -1166,75 +1322,13 @@ export function createClaudeCode(
         sandbox: toolSafeSandboxSession,
         sandboxHomeDir,
         mcpServers: settings.mcpServers,
+        toolHints: settings.toolHints,
         supportsUserMessageResponses: () => supportsUserMessageResponses,
+        getBridgeHello: () => bridgeHello,
+        turnStartTimeoutMs: settings.turnStartTimeoutMs ?? 120_000,
       });
     },
   };
-}
-
-function resolveBridgePort({
-  sandboxSession,
-  override,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: number | undefined;
-}): number {
-  if (override !== undefined) return override;
-  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
-    return sandboxSession.ports[0];
-  }
-  throw new HarnessCapabilityUnsupportedError({
-    harnessId: 'claude-code',
-    message:
-      'The claude-code harness needs a TCP port exposed by the sandbox. ' +
-      'Create the sandbox with `ports: [<port>]` or pass `createClaudeCode({ port })`.',
-  });
-}
-
-function validateBasicSandboxSettings({
-  sandboxSession,
-  port,
-  portEndpoint,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  port: number | undefined;
-  portEndpoint: HarnessV1PortEndpoint | undefined;
-}): void {
-  if ('getPortEndpoint' in sandboxSession) return;
-  if (port == null) {
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'claude-code',
-      message:
-        'The Claude Code harness requires an explicit `port` when using a basic sandbox session.',
-    });
-  }
-  if (portEndpoint == null) {
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'claude-code',
-      message:
-        'The Claude Code harness requires an explicit `portEndpoint` when using a basic sandbox session.',
-    });
-  }
-}
-
-async function resolveBridgeEndpoint({
-  sandboxSession,
-  override,
-  port,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: HarnessV1PortEndpoint | undefined;
-  port: number;
-}): Promise<HarnessV1PortEndpoint> {
-  if (override != null) return override;
-  if ('getPortEndpoint' in sandboxSession) {
-    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
-  }
-  throw new HarnessCapabilityUnsupportedError({
-    harnessId: 'claude-code',
-    message:
-      'The Claude Code harness requires an explicit `portEndpoint` when using a basic sandbox session.',
-  });
 }
 
 /**
@@ -1244,205 +1338,20 @@ async function resolveBridgeEndpoint({
  * be in place before the bridge is spawned without mutating the session
  * workdir. Each file uses the YAML-frontmatter shape the CLI expects.
  */
-/**
- * Wait for the bridge's `bridge-hello` message to arrive on the freshly
- * opened WebSocket before any other host-side code touches it.
- *
- * Some sandbox runtimes (Vercel in particular) complete the WS upgrade
- * with the host long before the connection is actually forwarded to the
- * sandbox-side bridge. Anything sent in that gap is silently dropped —
- * including the `start` message we send next. The bridge emits
- * `bridge-hello` the instant it accepts the connection, so receiving it
- * is the only reliable evidence that the end-to-end link is live.
- */
-function openWebSocketAndWaitForBridgeHello({
-  endpoint,
-  openTimeoutMs,
-  getHelloTimeoutMs,
-  onHello,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  openTimeoutMs: number;
-  getHelloTimeoutMs: () => number;
-  onHello: (supportsUserMessageResponses: boolean) => void;
-}): Promise<WebSocket> {
-  return new Promise<WebSocket>((resolve, reject) => {
-    const ws = new WebSocket(endpoint.url, {
-      headers: endpoint.headers == null ? undefined : { ...endpoint.headers },
-    });
-    let opened = false;
-    let sawBridgeHello = false;
-    let settled = false;
-    let openTimer: ReturnType<typeof setTimeout> | undefined;
-    let helloTimer: ReturnType<typeof setTimeout> | undefined;
-
-    const cleanup = ({
-      keepTerminationListeners = false,
-    }: {
-      keepTerminationListeners?: boolean;
-    } = {}) => {
-      if (openTimer) clearTimeout(openTimer);
-      if (helloTimer) clearTimeout(helloTimer);
-      ws.off('open', onOpen);
-      ws.off('message', onMessage);
-      if (!keepTerminationListeners) {
-        ws.off('close', onClose);
-        ws.off('error', onError);
-      }
-    };
-    const settle = (err?: unknown) => {
-      if (settled) return;
-      settled = true;
-      if (err) {
-        cleanup({ keepTerminationListeners: true });
-        try {
-          ws.terminate();
-        } catch {
-          cleanup();
-        }
-        reject(err);
-      } else {
-        cleanup();
-        resolve(ws);
-      }
-    };
-    const tryResolve = () => {
-      if (opened && sawBridgeHello) settle();
-    };
-    const startHelloTimer = () => {
-      if (helloTimer) return;
-      const helloTimeoutMs = getHelloTimeoutMs();
-      helloTimer = setTimeout(
-        () =>
-          settle(
-            new Error(
-              `claude-code bridge did not send bridge-hello within ${helloTimeoutMs}ms`,
-            ),
-          ),
-        helloTimeoutMs,
-      );
-      helloTimer.unref?.();
-    };
-    const onOpen = () => {
-      opened = true;
-      if (openTimer) {
-        clearTimeout(openTimer);
-        openTimer = undefined;
-      }
-      startHelloTimer();
-      tryResolve();
-    };
-    const onMessage = (raw: unknown) => {
-      void (async () => {
-        const parsed = await safeParseJSON({
-          text: webSocketMessageToString(raw),
-        });
-        if (!parsed.success || settled) return;
-        const value = parsed.value;
-        if (
-          typeof value === 'object' &&
-          value !== null &&
-          !Array.isArray(value) &&
-          (value as { type?: unknown }).type === 'bridge-hello'
-        ) {
-          const capabilities = (
-            value as {
-              capabilities?: { experimental_userMessageResponses?: unknown };
-            }
-          ).capabilities;
-          onHello(capabilities?.experimental_userMessageResponses === true);
-          sawBridgeHello = true;
-          tryResolve();
-        }
-      })();
-    };
-    const onClose = () => {
-      settle(
-        new Error('claude-code bridge closed before sending bridge-hello'),
-      );
-      cleanup();
-    };
-    const onError = (err: Error) => settle(err);
-    openTimer = setTimeout(
-      () =>
-        settle(new Error(`WebSocket open timed out after ${openTimeoutMs}ms`)),
-      openTimeoutMs,
-    );
-    openTimer.unref?.();
-    ws.on('open', onOpen);
-    ws.on('message', onMessage);
-    ws.on('close', onClose);
-    ws.on('error', onError);
-  });
-}
-
-async function openBridgeWebSocket({
-  endpoint,
-  timeoutMs,
-  onHello,
-}: {
-  endpoint: HarnessV1PortEndpoint;
-  timeoutMs: number;
-  onHello: (supportsUserMessageResponses: boolean) => void;
-}): Promise<WebSocket> {
-  const deadline = Date.now() + timeoutMs;
-  let attempt = 0;
-  let lastError: unknown;
-
-  while (Date.now() < deadline) {
-    attempt++;
-    try {
-      const remaining = Math.max(1, deadline - Date.now());
-      return await openWebSocketAndWaitForBridgeHello({
-        endpoint,
-        openTimeoutMs: Math.min(10_000, remaining),
-        getHelloTimeoutMs: () =>
-          Math.min(5_000, Math.max(1, deadline - Date.now())),
-        onHello,
-      });
-    } catch (err) {
-      lastError = err;
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) break;
-      await sleep(Math.min(250 * attempt, 1_000, remaining));
-    }
-  }
-
-  throw new Error(
-    `claude-code bridge did not complete WebSocket handshake within ${timeoutMs}ms after ${attempt} attempt(s). Last error: ${formatUnknownError(lastError)}`,
-  );
-}
-
-function webSocketMessageToString(raw: unknown): string {
-  if (typeof raw === 'string') return raw;
-  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
-  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
-  if (raw instanceof ArrayBuffer) return Buffer.from(raw).toString('utf8');
-  if (ArrayBuffer.isView(raw)) {
-    return Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength).toString(
-      'utf8',
-    );
-  }
-  return String(raw);
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => {
-    const timer = setTimeout(resolve, ms);
-    timer.unref?.();
-  });
-}
-
-function formatUnknownError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
-}
-
 function createSession({
   sessionId,
   channel,
+  startId,
+  finishListenerAttachment,
   proc,
   maxTurns,
+  skillOverrides,
+  maxBudgetUsd,
+  strictMcpConfig,
+  questionTimeoutMs,
+  excludeDynamicSections,
+  agentProgressSummaries,
+  forwardSubagentText,
   env,
   thinking,
   effort,
@@ -1450,6 +1359,7 @@ function createSession({
   continueOnFirstPrompt,
   resumeSessionId,
   rerunContinue,
+  deferredToolUseId,
   bridgePort,
   bridgeToken,
   sandboxId,
@@ -1460,13 +1370,25 @@ function createSession({
   sandbox,
   sandboxHomeDir,
   mcpServers,
+  toolHints,
   supportsUserMessageResponses,
+  getBridgeHello,
+  turnStartTimeoutMs,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
+  startId?: string;
+  finishListenerAttachment: (() => void) | undefined;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
+  skillOverrides: ClaudeCodeHarnessSettings['skillOverrides'];
+  maxBudgetUsd: number | undefined;
+  strictMcpConfig: boolean | undefined;
+  questionTimeoutMs: number | undefined;
+  excludeDynamicSections: boolean | undefined;
+  agentProgressSummaries: boolean | undefined;
+  forwardSubagentText: boolean | undefined;
   env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
@@ -1479,6 +1401,12 @@ function createSession({
    */
   resumeSessionId?: string;
   rerunContinue: boolean;
+  /**
+   * Built-in tool call the previous bridge deferred while it waited for host
+   * approval. The respawned bridge resumes it once the host answers instead
+   * of starting a new turn.
+   */
+  deferredToolUseId?: string;
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string | undefined;
@@ -1489,7 +1417,10 @@ function createSession({
   sandbox: SandboxSession;
   sandboxHomeDir: string;
   mcpServers: Record<string, unknown> | undefined;
+  toolHints: ClaudeCodeHarnessSettings['toolHints'];
   supportsUserMessageResponses: () => boolean;
+  getBridgeHello: () => BridgeHello | undefined;
+  turnStartTimeoutMs: number;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -1509,6 +1440,7 @@ function createSession({
    * stop/detach must record for exact resume.
    */
   let lastClaudeSessionId = resumeSessionId;
+  let activeStartId = startId;
 
   /*
    * Wire the channel into one turn's worth of events and return the control
@@ -1520,31 +1452,55 @@ function createSession({
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
-  }): HarnessV1PromptControl => {
+    startId?: string;
+  }): {
+    control: HarnessV1PromptControl;
+    sendStart: (message: Extract<InboundMessage, { type: 'start' }>) => void;
+  } => {
+    activeStartId = turnOpts.startId;
+    let expectedStartId = turnOpts.startId;
+    let isSettled = false;
+    const belongsToTurn = (event: { startId?: string }): boolean => {
+      if (isSettled) return false;
+      if (event.startId == null) return true;
+      if (expectedStartId == null) {
+        expectedStartId = event.startId;
+        activeStartId = event.startId;
+      }
+      return event.startId === expectedStartId;
+    };
     let pendingResolve: (() => void) | undefined;
     let pendingReject: ((err: unknown) => void) | undefined;
     const done = new Promise<void>((resolve, reject) => {
       pendingResolve = resolve;
       pendingReject = reject;
     });
-    const userMessageSubmitter = supportsUserMessageResponses()
-      ? experimental_createBridgeUserMessageSubmitter({
-          send: message => channel.send(message),
-          onResponse: listener => channel.on('user-message-response', listener),
-          onReconnect: listener => channel.onReconnect(listener),
-        })
-      : undefined;
     const unsubs: Array<() => void> = [];
-    const forward = (event: HarnessV1StreamPart) => {
+    let pendingStart: Extract<InboundMessage, { type: 'start' }> | undefined;
+    let awaitingStartSend = false;
+    let startCursor = 0;
+    let startTimer: ReturnType<typeof setTimeout> | undefined;
+    const clearPendingStart = () => {
+      pendingStart = undefined;
+      clearTimeout(startTimer);
+    };
+    const forward = (event: HarnessV1StreamPart & { startId?: string }) => {
+      clearPendingStart();
+      /*
+       * Keep the event object: the channel attaches a non-enumerable replay
+       * checkpoint that must reach the consumer for step-boundary suspension.
+       * Only the adapter's wire-level turn identifier is removed.
+       */
+      delete event.startId;
       try {
         turnOpts.emit(event);
       } catch {}
     };
 
-    let isSettled = false;
     const settleSuccess = () => {
       if (isSettled) return;
       isSettled = true;
+      clearPendingStart();
       userMessageSubmitter?.close();
       for (const u of unsubs) u();
       pendingResolve!();
@@ -1552,10 +1508,67 @@ function createSession({
     const settleError = (err: unknown) => {
       if (isSettled) return;
       isSettled = true;
+      clearPendingStart();
       userMessageSubmitter?.close(err);
       for (const u of unsubs) u();
       pendingReject!(err);
     };
+
+    const sendPendingStart = () => {
+      if (pendingStart == null) return;
+      awaitingStartSend = true;
+      try {
+        channel.send(pendingStart, {
+          onSent: () => {
+            awaitingStartSend = false;
+          },
+        });
+      } catch (error) {
+        awaitingStartSend = false;
+        throw error;
+      }
+    };
+    const failStart = (error: Error) => {
+      settleError(error);
+      channel.beginClose();
+      try {
+        channel.send({ type: 'abort' });
+      } catch {}
+      channel.close();
+    };
+    unsubs.push(
+      channel.onReconnect(() => {
+        if (pendingStart == null || isSettled || awaitingStartSend) return;
+        const hello = getBridgeHello();
+        if (hello?.capabilities?.idempotentStart === true) {
+          sendPendingStart();
+          return;
+        }
+        if (
+          hello?.state !== 'waiting' ||
+          hello.lastSeq == null ||
+          hello.lastSeq > startCursor
+        ) {
+          return;
+        }
+        failStart(
+          new Error(
+            'claude-code bridge is waiting for a start after reconnect and does not support safe start retries.',
+          ),
+        );
+      }),
+    );
+
+    // Retry the turn start before the submitter replays pending steering.
+    const userMessageSubmitter = supportsUserMessageResponses()
+      ? experimental_createBridgeUserMessageSubmitter({
+          // The submitter owns replay, after the turn start has been retried.
+          send: message =>
+            channel.send(message, { queueIfDisconnected: false }),
+          onResponse: listener => channel.on('user-message-response', listener),
+          onReconnect: listener => channel.onReconnect(listener),
+        })
+      : undefined;
 
     const eventTypes = [
       'stream-start',
@@ -1572,17 +1585,20 @@ function createSession({
       'tool-approval-request',
       'tool-result',
       'finish-step',
+      'compaction',
       'raw',
     ] as const;
     for (const type of eventTypes) {
       unsubs.push(
         channel.on(type, msg => {
+          if (!belongsToTurn(msg)) return;
           forward(msg);
         }),
       );
     }
     unsubs.push(
       channel.on('finish', msg => {
+        if (!belongsToTurn(msg)) return;
         const metadata = (
           msg as {
             harnessMetadata?: { 'claude-code'?: { sessionId?: unknown } };
@@ -1597,10 +1613,13 @@ function createSession({
     );
     unsubs.push(
       channel.on('error', msg => {
+        if (!belongsToTurn(msg)) return;
         forward(msg);
         settleError(msg.error);
       }),
     );
+    finishListenerAttachment?.();
+    finishListenerAttachment = undefined;
 
     /*
      * A `'suspended'` close is a graceful slice-boundary freeze the host
@@ -1640,7 +1659,7 @@ function createSession({
       }
     }
 
-    return {
+    const control: HarnessV1PromptControl = {
       submitToolResult: async input => {
         channel.send({
           type: 'tool-result',
@@ -1669,6 +1688,35 @@ function createSession({
           }),
       done,
     };
+    return {
+      control,
+      sendStart: message => {
+        if (isSettled) return;
+        startCursor = Math.max(
+          channel.lastSeenEventId ?? 0,
+          getBridgeHello()?.lastSeq ?? 0,
+        );
+        pendingStart = { ...message, startId: expectedStartId };
+        startTimer = setTimeout(() => {
+          if (isSettled || pendingStart == null) return;
+          failStart(
+            new Error(
+              `claude-code bridge did not emit a turn event within ${turnStartTimeoutMs}ms.`,
+            ),
+          );
+        }, turnStartTimeoutMs);
+        startTimer.unref?.();
+        try {
+          sendPendingStart();
+        } catch (error) {
+          // The caller never receives control when the initial send throws.
+          // Consume its rejection and remove the timer and turn listeners.
+          void done.catch(() => {});
+          settleError(error);
+          throw error;
+        }
+      },
+    };
   };
 
   const prepareTurn = async (turnOpts: {
@@ -1676,7 +1724,8 @@ function createSession({
     skills: ReadonlyArray<HarnessV1Skill>;
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
-  }): Promise<HarnessV1PromptControl> => {
+    startId?: string;
+  }): Promise<ReturnType<typeof wireTurn>> => {
     if (
       turnOpts.responseFormat?.type === 'json' &&
       turnOpts.responseFormat.schema == null
@@ -1702,6 +1751,7 @@ function createSession({
     return wireTurn({
       emit: turnOpts.emit,
       abortSignal: turnOpts.abortSignal,
+      startId: turnOpts.startId,
     });
   };
 
@@ -1709,7 +1759,10 @@ function createSession({
     sessionId,
     isResume,
     doPromptTurn: async promptOpts => {
-      const control = await prepareTurn(promptOpts);
+      const { control, sendStart } = await prepareTurn({
+        ...promptOpts,
+        startId: generateId(),
+      });
 
       /*
        * A signal that was already aborted has settled the turn inside
@@ -1723,7 +1776,9 @@ function createSession({
 
       const startMessage = {
         type: 'start' as const,
-        prompt: extractUserText(promptOpts.prompt),
+        prompt: extractHarnessPromptContent({
+          prompt: promptOpts.prompt,
+        }),
         tools: (promptOpts.tools ?? []).map(t => ({
           name: t.name,
           description: t.description,
@@ -1737,13 +1792,30 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
+        ...(skillOverrides !== undefined ? { skillOverrides } : {}),
+        ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+        ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
+        ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
+        ...(excludeDynamicSections !== undefined
+          ? { excludeDynamicSections }
+          : {}),
+        ...(agentProgressSummaries !== undefined
+          ? { agentProgressSummaries }
+          : {}),
+        ...(forwardSubagentText !== undefined ? { forwardSubagentText } : {}),
         ...(env !== undefined ? { env } : {}),
         thinking,
         ...(effort !== undefined ? { effort } : {}),
         ...(promptOpts.skills.length > 0
-          ? { skills: promptOpts.skills.map(skill => skill.name) }
+          ? {
+              skills: promptOpts.skills.map(skill => skill.name),
+              readableSkillRoots: promptOpts.skills.map(
+                skill => `${sandboxHomeDir}/.claude/skills/${skill.name}`,
+              ),
+            }
           : {}),
         ...(mcpServers == null ? {} : { mcpServers }),
+        ...(toolHints == null ? {} : { toolHints }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
@@ -1754,12 +1826,17 @@ function createSession({
             : {}),
       };
       pendingResumeFlag = false;
-      channel.send(startMessage);
+      // Recovery starts a native turn once. Later continuations attach to it.
+      rerunContinue = false;
+      sendStart(startMessage);
 
       return control;
     },
     doContinueTurn: async continueOpts => {
-      const control = await prepareTurn(continueOpts);
+      const { control, sendStart } = await prepareTurn({
+        ...continueOpts,
+        startId: rerunContinue ? generateId() : activeStartId,
+      });
 
       /*
        * attach / replay: the still-running (or disk-replayed) turn streams into
@@ -1777,8 +1854,9 @@ function createSession({
       // Same as `doPromptTurn`: an already-aborted signal settled the turn in
       // `wireTurn`, so don't re-drive the thread nobody is waiting on.
       if (rerunContinue && !continueOpts.abortSignal?.aborted) {
+        rerunContinue = false;
         pendingResumeFlag = false;
-        channel.send({
+        sendStart({
           type: 'start' as const,
           /*
            * A continuation nudge rather than an empty prompt: `continue: true`
@@ -1801,19 +1879,37 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
+          ...(skillOverrides !== undefined ? { skillOverrides } : {}),
+          ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+          ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
+          ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
+          ...(excludeDynamicSections !== undefined
+            ? { excludeDynamicSections }
+            : {}),
+          ...(agentProgressSummaries !== undefined
+            ? { agentProgressSummaries }
+            : {}),
+          ...(forwardSubagentText !== undefined ? { forwardSubagentText } : {}),
           ...(env !== undefined ? { env } : {}),
           thinking,
           ...(effort !== undefined ? { effort } : {}),
           ...(continueOpts.skills.length > 0
-            ? { skills: continueOpts.skills.map(skill => skill.name) }
+            ? {
+                skills: continueOpts.skills.map(skill => skill.name),
+                readableSkillRoots: continueOpts.skills.map(
+                  skill => `${sandboxHomeDir}/.claude/skills/${skill.name}`,
+                ),
+              }
             : {}),
           ...(mcpServers == null ? {} : { mcpServers }),
+          ...(toolHints == null ? {} : { toolHints }),
           ...(permissionMode ? { permissionMode } : {}),
           ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
           ...(lastClaudeSessionId
             ? { resumeSessionId: lastClaudeSessionId }
             : { continue: true }),
+          ...(deferredToolUseId != null ? { deferredToolUseId } : {}),
         });
       }
 
@@ -1853,6 +1949,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
+            ...(activeStartId == null ? {} : { startId: activeStartId }),
             ...(sandboxId == null ? {} : { sandboxId }),
           },
           ...(lastClaudeSessionId
@@ -2012,6 +2109,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
+            ...(activeStartId == null ? {} : { startId: activeStartId }),
             ...(sandboxId == null ? {} : { sandboxId }),
           },
           ...(lastClaudeSessionId
@@ -2022,28 +2120,4 @@ function createSession({
       return payload;
     },
   };
-}
-
-/*
- * Reduce a `HarnessV1Prompt` to the plain user text the bridge forwards
- * to the Claude SDK. File and image parts on the message are not yet
- * supported by the underlying runtime — throw rather than silently drop
- * them so callers learn about the gap instead of seeing mysteriously
- * truncated prompts.
- */
-function extractUserText(prompt: HarnessV1Prompt): string {
-  if (typeof prompt === 'string') return prompt;
-  const { content } = prompt;
-  if (typeof content === 'string') return content;
-  const parts: string[] = [];
-  for (const part of content) {
-    if (part.type !== 'text') {
-      throw new HarnessCapabilityUnsupportedError({
-        harnessId: 'claude-code',
-        message: `The claude-code harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
-      });
-    }
-    parts.push(part.text);
-  }
-  return parts.join('\n\n');
 }

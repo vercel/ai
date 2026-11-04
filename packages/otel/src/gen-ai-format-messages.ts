@@ -117,9 +117,13 @@ export function mapOperationName(operationId: string): string {
     'ai.streamText': 'invoke_agent',
     'ai.generateObject': 'invoke_agent',
     'ai.streamObject': 'invoke_agent',
+    'ai.workflowAgent.stream': 'invoke_agent',
     'ai.embed': 'embeddings',
     'ai.embedMany': 'embeddings',
     'ai.rerank': 'rerank',
+    'ai.generateSpeech': 'ai.generateSpeech',
+    'ai.transcribe': 'ai.transcribe',
+    'ai.streamTranscribe': 'ai.streamTranscribe',
   };
   return mapping[operationId] ?? operationId;
 }
@@ -544,7 +548,6 @@ export function extractSystemFromPrompt(
   if (systemMsg && systemMsg.role === 'system') {
     return systemMsg.content;
   }
-  return undefined;
 }
 
 /**

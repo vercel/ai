@@ -3,8 +3,11 @@ import {
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
   combineHeaders,
   createJsonResponseHandler,
+  type EmbeddingModelProviderOptionsTransformer,
+  EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
@@ -24,7 +27,7 @@ import {
 type GoogleEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -33,6 +36,28 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
   readonly modelId: GoogleEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 100;
   readonly supportsParallelCalls = true;
+  readonly [EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER]: EmbeddingModelProviderOptionsTransformer =
+    ({ providerOptions, values, startIndex, endIndex }) => {
+      const multimodalContent = providerOptions?.google?.content;
+
+      // Leave schema validation to doEmbed, after middleware transforms options.
+      if (!Array.isArray(multimodalContent)) {
+        return providerOptions;
+      }
+
+      validateMultimodalContentLength({
+        multimodalContent,
+        values,
+      });
+
+      return {
+        ...providerOptions,
+        google: {
+          ...providerOptions?.google,
+          content: multimodalContent.slice(startIndex, endIndex),
+        },
+      };
+    };
 
   private readonly config: GoogleEmbeddingConfig;
 
@@ -60,6 +85,7 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -89,14 +115,7 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
 
     const multimodalContent = googleOptions?.content;
 
-    if (
-      multimodalContent != null &&
-      multimodalContent.length !== values.length
-    ) {
-      throw new Error(
-        `The number of multimodal content entries (${multimodalContent.length}) must match the number of values (${values.length}).`,
-      );
-    }
+    validateMultimodalContentLength({ multimodalContent, values });
 
     // For single embeddings, use the single endpoint
     if (values.length === 1) {
@@ -119,7 +138,8 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
           content: {
             parts,
           },
-          outputDimensionality: googleOptions?.outputDimensionality,
+          outputDimensionality:
+            googleOptions?.outputDimensionality ?? dimensions,
           taskType: googleOptions?.taskType,
         },
         failedResponseHandler: googleFailedResponseHandler,
@@ -159,7 +179,8 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
                   ? [...textPart, ...valueParts]
                   : [{ text: value }],
             },
-            outputDimensionality: googleOptions?.outputDimensionality,
+            outputDimensionality:
+              googleOptions?.outputDimensionality ?? dimensions,
             taskType: googleOptions?.taskType,
           };
         }),
@@ -199,3 +220,17 @@ const googleGenerativeAISingleEmbeddingResponseSchema = lazySchema(() =>
     }),
   ),
 );
+
+function validateMultimodalContentLength({
+  multimodalContent,
+  values,
+}: {
+  multimodalContent: Array<unknown> | undefined;
+  values: Array<string>;
+}) {
+  if (multimodalContent != null && multimodalContent.length !== values.length) {
+    throw new Error(
+      `The number of multimodal content entries (${multimodalContent.length}) must match the number of values (${values.length}).`,
+    );
+  }
+}

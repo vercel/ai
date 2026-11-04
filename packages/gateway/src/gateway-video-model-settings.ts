@@ -22,6 +22,7 @@ export type GatewayVideoModelId =
   | 'google/veo-3.1-fast-generate-001'
   | 'google/veo-3.1-generate-001'
   | 'google/veo-3.1-lite-generate-001'
+  | 'heygen/heygen-video-1'
   | 'klingai/kling-v2.5-turbo-i2v'
   | 'klingai/kling-v2.5-turbo-t2v'
   | 'klingai/kling-v2.6-i2v'
@@ -34,5 +35,7 @@ export type GatewayVideoModelId =
   | 'minimax/minimax-h3-max'
   | 'spacexai/grok-imagine-video'
   | 'spacexai/grok-imagine-video-1.5'
-  | 'spacexai/grok-imagine-video-1.5-preview'
+  | 'spacexai/grok-imagine-video-1.5-lite'
+  | 'topaz/proteus'
+  | 'topaz/starlight-precise-2.6'
   | (string & {});

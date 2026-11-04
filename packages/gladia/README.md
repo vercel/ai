@@ -9,10 +9,8 @@ When updating this provider, sync types from [https://api.gladia.io/openapi.json
 
 ## Setup
 
-The Gladia provider is available in the `@ai-sdk/gladia` module. You can install it with
-
 ```bash
-npm i @ai-sdk/gladia
+npm i ai @ai-sdk/gladia
 ```
 
 ## Skill for Coding Agents
@@ -23,15 +21,7 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `gladia` from `@ai-sdk/gladia`:
-
-```ts
-import { gladia } from '@ai-sdk/gladia';
-```
-
-## Example
+## Usage
 
 ```ts
 import { gladia } from '@ai-sdk/gladia';
@@ -45,6 +35,4 @@ const { text } = await transcribe({
 });
 ```
 
-## Documentation
-
-Please check out the **[Gladia provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/gladia)** for more information.
+See the [Gladia Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/gladia) for more information.

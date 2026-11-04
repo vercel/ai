@@ -1,11 +1,17 @@
-import type {
-  HarnessAgentAdapter,
-  HarnessAgentSettings,
+import {
+  HarnessAgent,
+  type HarnessAgentAdapter,
+  type HarnessAgentSettings,
 } from '@ai-sdk/harness/agent';
 import type { HarnessV1QuestionsToolOutput } from '@ai-sdk/harness';
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
 import type { InferToolInput, InferToolOutput } from '@ai-sdk/provider-utils';
 import { assertType, describe, expectTypeOf, test } from 'vitest';
-import { claudeCode, createClaudeCode } from './index';
+import {
+  claudeCode,
+  createClaudeCode,
+  type ClaudeCodeHarnessSettings,
+} from './index';
 
 /*
  * Regression guard for the harness Zod compatibility contract: a concrete
@@ -36,6 +42,13 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
   });
 
   test('new built-in tool inputs retain their schema types', () => {
+    assertType<InferToolInput<typeof claudeCode.builtinTools.ListAgents>>({
+      channel: 'reviewers',
+      q: 'available',
+    });
+    assertType<InferToolOutput<typeof claudeCode.builtinTools.ListAgents>>({
+      listing: 'reviewer',
+    });
     assertType<InferToolInput<typeof claudeCode.builtinTools.CronCreate>>({
       cron: '0 9 * * *',
       prompt: 'Prepare the daily summary.',
@@ -49,6 +62,13 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
         approve: false,
         feedback: 'Add a regression test.',
       },
+    });
+  });
+
+  test('ListAgents can be disabled without a type cast', () => {
+    new HarnessAgent({
+      harness: claudeCode,
+      inactiveTools: ['ListAgents'],
     });
   });
 
@@ -79,5 +99,51 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
         credentialForwarding: async ({ credential }) => credential,
       }),
     ).toExtend<HarnessAgentAdapter<any>>();
+  });
+
+  test('createClaudeCode accepts skill overrides', () => {
+    const skillOverrides = {
+      'enabled-skill': 'on',
+      'name-only-skill': 'name-only',
+      'user-invocable-skill': 'user-invocable-only',
+      'disabled-skill': 'off',
+    } as const;
+
+    expectTypeOf(createClaudeCode({ skillOverrides })).toExtend<
+      HarnessAgentAdapter<any>
+    >();
+    // @ts-expect-error - Claude Code only accepts its supported skill override modes
+    createClaudeCode({ skillOverrides: { init: 'disabled' } });
+    // @ts-expect-error - arbitrary Claude Code settings are not part of this API
+    createClaudeCode({ settings: { skillOverrides: { init: 'off' } } });
+  });
+
+  test('createClaudeCode accepts question timeout and dynamic section settings', () => {
+    const settings: ClaudeCodeHarnessSettings = {
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    };
+    createClaudeCode(settings);
+    expectTypeOf(settings.questionTimeoutMs).toEqualTypeOf<
+      number | undefined
+    >();
+    expectTypeOf(settings.excludeDynamicSections).toEqualTypeOf<
+      boolean | undefined
+    >();
+  });
+
+  test('createClaudeCode accepts sandbox bridge reconnect settings', () => {
+    const settings: ClaudeCodeHarnessSettings = {
+      turnStartTimeoutMs: 60_000,
+      reconnect: {
+        maxElapsedMs: 120_000,
+        initialDelayMs: 100,
+        maxDelayMs: 5_000,
+      },
+    };
+    createClaudeCode(settings);
+    expectTypeOf(settings.reconnect).toEqualTypeOf<
+      SandboxChannelReconnectOptions | undefined
+    >();
   });
 });

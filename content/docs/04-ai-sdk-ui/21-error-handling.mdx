@@ -12,15 +12,17 @@ These warnings help you fix problems before they cause errors.
 
 ### When Warnings Appear
 
-Warnings are shown in the browser console when:
+Warnings use Node.js `process.emitWarning` when available and `console.warn` in
+browser/edge runtimes. They appear when:
 
 - **Unsupported features**: You use a feature or setting that is not supported by the AI model (e.g., certain options or parameters).
 - **Compatibility warnings**: A feature is used in a compatibility mode, which might work differently or less optimally than intended.
+- **Deprecations**: You use a deprecated API, option, or message format.
 - **Other warnings**: The AI model reports another type of issue, such as general problems or advisory messages.
 
 ### Warning Messages
 
-All warnings start with "AI SDK Warning:" so you can easily find them. For example:
+All warnings include "AI SDK Warning" so you can easily find them. For example:
 
 ```
 AI SDK Warning: The feature "temperature" is not supported by this model
@@ -41,13 +43,70 @@ globalThis.AI_SDK_LOG_WARNINGS = false;
 #### Custom Warning Handler
 
 You can also provide your own function to handle warnings.
-It receives provider id, model id, and a list of warnings.
+It receives a list of warnings and optional provider and model ids. Custom
+handlers receive every warning, including repeated deprecations.
 
 ```ts
 globalThis.AI_SDK_LOG_WARNINGS = ({ warnings, provider, model }) => {
   // Handle warnings your own way
 };
 ```
+
+If your application loads multiple AI SDK versions in the same runtime, they all
+share `globalThis.AI_SDK_LOG_WARNINGS`. Each version calls the logger with its own
+arguments and warning types. The merged global type declarations prevent
+TypeScript declaration conflicts, but do not convert these arguments at runtime.
+A handler typed for only one version may therefore fail when another version
+calls it.
+
+Import `LogWarningsFunction` from every installed version that can call the logger
+and accept a union of their parameter types. For example, with AI SDK 7 installed
+as `ai` and AI SDK 6 installed under the package alias `ai-v6` (`npm:ai@6`):
+
+```ts
+import type { LogWarningsFunction as LogWarningsFunctionV7 } from 'ai';
+import type { LogWarningsFunction as LogWarningsFunctionV6 } from 'ai-v6';
+
+type LoggerOptions =
+  | Parameters<LogWarningsFunctionV7>[0]
+  | Parameters<LogWarningsFunctionV6>[0];
+
+const logger = ({ warnings, provider, model }: LoggerOptions) => {
+  for (const warning of warnings) {
+    console.warn('AI SDK Warning:', warning, { provider, model });
+  }
+};
+
+globalThis.AI_SDK_LOG_WARNINGS = logger;
+```
+
+Check the argument shape and warning type before accessing version-specific
+fields. If AI SDK 5 is also installed, include its
+`Experimental_LogWarningsFunction` parameter type and use `Array.isArray` to
+handle its warning array before accessing the options object used by AI SDK 6
+and 7.
+
+### Deprecation Warnings
+
+The default logger emits each deprecation code once per loaded SDK instance.
+In Node.js, these warnings have the type `DeprecationWarning` and a stable
+`AISDK_DEP_*` code, available as `warning.code` on `process.on('warning', handler)`.
+Browser/edge console messages include the code in brackets.
+
+| Code                                     | Deprecated usage / replacement                                             |
+| ---------------------------------------- | -------------------------------------------------------------------------- |
+| `AISDK_DEP_GENERATE_OBJECT`              | Use `generateText` with `output` instead of `generateObject`.              |
+| `AISDK_DEP_STREAM_OBJECT`                | Use `streamText` with `output` instead of `streamObject`.                  |
+| `AISDK_DEP_EXPERIMENTAL_GENERATE_SPEECH` | Use `generateSpeech` instead of `experimental_generateSpeech`.             |
+| `AISDK_DEP_EXPERIMENTAL_TRANSCRIBE`      | Use `transcribe` instead of `experimental_transcribe`.                     |
+| `AISDK_DEP_TOOL_RESULT_*`                | Use `file` with tagged `data` instead of legacy tool-result content types. |
+| `AISDK_DEP_UI_MESSAGE_RAW_INPUT`         | Use `input` instead of `rawInput` in UI tool parts.                        |
+| `AISDK_DEP_IMAGE_CONTENT_PART`           | Use `file` with an image `mediaType` instead of `image` message parts.     |
+
+Run Node.js with `--throw-deprecation` to fail on deprecated usage,
+`--no-deprecation` to suppress deprecations, or `--trace-deprecation` for stack
+traces. These flags affect all `DeprecationWarning`s, rather than individual
+codes, and apply only to the default Node.js logger.
 
 ## Error Handling
 
@@ -169,8 +228,23 @@ export default function Chat() {
 Errors can be processed by passing an [`onError`](/docs/reference/ai-sdk-ui/use-chat#on-error) callback function as an option to the [`useChat`](/docs/reference/ai-sdk-ui/use-chat) or [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion) hooks.
 The callback function receives an error object as an argument.
 
-```tsx file="app/page.tsx" highlight="6-9"
+AI SDK-created client errors use exported error classes with marker-based
+`.isInstance()` guards:
+
+| Error class                                                                                         | AI SDK UI failure                                                                         |
+| --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [`APICallError`](/docs/reference/ai-sdk-errors/ai-api-call-error)                                   | A chat transport or completion request returns a non-successful HTTP response.            |
+| [`EmptyResponseBodyError`](/docs/reference/ai-sdk-errors/ai-empty-response-body-error)              | A successful chat transport or completion response has no body.                           |
+| [`UIMessageStreamError`](/docs/reference/ai-sdk-errors/ai-ui-message-stream-error)                  | A completion data stream reports an error or a UI message stream contains invalid chunks. |
+| [`InvalidArgumentError`](/docs/reference/ai-sdk-errors/ai-invalid-argument-error)                   | An invalid stream protocol or message ID is used.                                         |
+| [`UnsupportedFunctionalityError`](/docs/reference/ai-sdk-errors/ai-unsupported-functionality-error) | A `FileList` is used in an environment that does not support it.                          |
+
+Errors thrown by custom fetch implementations, callbacks, and stream parsers
+continue to propagate unchanged.
+
+```tsx file="app/page.tsx" highlight="2,9-15"
 import { useChat } from '@ai-sdk/react';
+import { APICallError, EmptyResponseBodyError } from 'ai';
 
 export default function Page() {
   const {
@@ -178,11 +252,22 @@ export default function Page() {
   } = useChat({
     // handle error:
     onError: error => {
-      console.error(error);
+      if (APICallError.isInstance(error)) {
+        console.error('Request failed with status:', error.statusCode);
+      } else if (EmptyResponseBodyError.isInstance(error)) {
+        console.error('The server returned no response body.');
+      } else {
+        console.error(error);
+      }
     },
   });
 }
 ```
+
+For AI SDK UI requests, `APICallError.requestBodyValues` is `undefined` so
+prompts and messages are not copied into client-facing error objects. The
+response text remains available as `message` and `responseBody`; display a
+generic message to users to avoid leaking server information.
 
 ### Injecting Errors for Testing
 

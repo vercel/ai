@@ -12,36 +12,63 @@ export function createToolInputWorkDirStripper({
 }: {
   sessionWorkDir: string;
 }): (part: ToolInputStreamPart) => ToolInputStreamPart[] {
-  const pendingByToolCallId = new Map<string, string>();
+  const stateByToolCallId = new Map<
+    string,
+    {
+      pending: string;
+      precedingCharacter: string | undefined;
+    }
+  >();
 
   return part => {
     if (sessionWorkDir.length === 0) return [part];
 
     if (part.type === 'tool-input-start') {
-      pendingByToolCallId.set(part.id, '');
+      stateByToolCallId.set(part.id, {
+        pending: '',
+        precedingCharacter: undefined,
+      });
       return [part];
     }
 
     if (part.type === 'tool-input-delta') {
+      const state = stateByToolCallId.get(part.id) ?? {
+        pending: '',
+        precedingCharacter: undefined,
+      };
+      const value = state.pending + part.delta;
       const stripped = stripStreamingString({
-        value: (pendingByToolCallId.get(part.id) ?? '') + part.delta,
+        value,
         workDir: sessionWorkDir,
         final: false,
+        precedingCharacter: state.precedingCharacter,
       });
-      pendingByToolCallId.set(part.id, stripped.pending);
+      const pendingStart = value.length - stripped.pending.length;
+      stateByToolCallId.set(part.id, {
+        pending: stripped.pending,
+        precedingCharacter:
+          stripped.pending.length > 0
+            ? pendingStart > 0
+              ? value[pendingStart - 1]
+              : state.precedingCharacter
+            : value.length > 0
+              ? value[value.length - 1]
+              : state.precedingCharacter,
+      });
       return stripped.output.length === 0
         ? []
         : [{ ...part, delta: stripped.output }];
     }
 
-    const pending = pendingByToolCallId.get(part.id);
-    pendingByToolCallId.delete(part.id);
-    if (pending == null || pending.length === 0) return [part];
+    const state = stateByToolCallId.get(part.id);
+    stateByToolCallId.delete(part.id);
+    if (state == null || state.pending.length === 0) return [part];
 
     const stripped = stripStreamingString({
-      value: pending,
+      value: state.pending,
       workDir: sessionWorkDir,
       final: true,
+      precedingCharacter: state.precedingCharacter,
     });
     return stripped.output.length === 0
       ? [part]
@@ -62,11 +89,10 @@ export function createToolInputWorkDirStripper({
  * operates. The absolute paths are correct but noisy in a UI, so this strips
  * the prefix for the consumer-facing projection only.
  *
- * Blanket prefix replacement (rather than rewriting known path fields) is used
- * deliberately: `tool-result` results are free-form text — command stdout, grep
- * output — where paths can appear anywhere and field-aware rewriting is
- * impossible. The prefix is long and contains the session id, so it is unique
- * enough that replacing every occurrence is safe.
+ * Boundary-aware prefix replacement (rather than rewriting known path fields)
+ * is used deliberately: `tool-result` results are free-form text — command
+ * stdout, grep output — where paths can appear anywhere and field-aware
+ * rewriting is impossible.
  */
 export function stripWorkDir(
   part: HarnessV1StreamPart,
@@ -94,6 +120,63 @@ export function stripWorkDir(
   }
 }
 
+export function stripParsedToolInputWorkDir({
+  value,
+  sessionWorkDir,
+}: {
+  value: unknown;
+  sessionWorkDir: string;
+}): unknown {
+  if (sessionWorkDir.length === 0) return value;
+
+  const projected = new WeakMap<object, unknown>();
+  const pending: Array<{
+    source: object;
+    target: Record<string, unknown> | unknown[];
+  }> = [];
+
+  const project = (item: unknown): unknown => {
+    if (typeof item === 'string') return stripString(item, sessionWorkDir);
+    if (item === null || typeof item !== 'object') return item;
+    if (
+      !Array.isArray(item) &&
+      Object.getPrototypeOf(item) !== Object.prototype &&
+      Object.getPrototypeOf(item) !== null
+    ) {
+      return item;
+    }
+    if (projected.has(item)) return projected.get(item);
+
+    const target: Record<string, unknown> | unknown[] = Array.isArray(item)
+      ? new Array(item.length)
+      : {};
+    projected.set(item, target);
+    pending.push({ source: item, target });
+    return target;
+  };
+
+  const result = project(value);
+  while (pending.length > 0) {
+    const { source, target } = pending.pop()!;
+    if (Array.isArray(source) && Array.isArray(target)) {
+      for (let index = 0; index < source.length; index++) {
+        if (index in source) target[index] = project(source[index]);
+      }
+    } else {
+      for (const [key, item] of Object.entries(source)) {
+        Object.defineProperty(target, key, {
+          value: project(item),
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
 /**
  * Replace occurrences of the working directory in a string. A reference to the
  * directory followed by a separator becomes workspace-relative
@@ -101,33 +184,60 @@ export function stripWorkDir(
  * becomes `.`.
  */
 function stripString(value: string, workDir: string): string {
-  return value.split(`${workDir}/`).join('').split(workDir).join('.');
+  return stripStreamingString({
+    value,
+    workDir,
+    final: true,
+    precedingCharacter: undefined,
+  }).output;
 }
 
 function stripStreamingString({
   value,
   workDir,
   final,
+  precedingCharacter,
 }: {
   value: string;
   workDir: string;
   final: boolean;
+  precedingCharacter: string | undefined;
 }): { output: string; pending: string } {
   let remaining = value;
   let output = '';
+  let characterBeforeRemaining = precedingCharacter;
 
   while (remaining.length > 0) {
     const matchIndex = remaining.indexOf(workDir);
     if (matchIndex >= 0) {
-      output += remaining.slice(0, matchIndex);
       const followingIndex = matchIndex + workDir.length;
-      if (followingIndex === remaining.length && !final) {
-        return { output, pending: remaining.slice(matchIndex) };
+      const hasPathBoundary = isPathBoundary(
+        remaining,
+        matchIndex,
+        characterBeforeRemaining,
+      );
+      if (hasPathBoundary && followingIndex === remaining.length && !final) {
+        return {
+          output: output + remaining.slice(0, matchIndex),
+          pending: remaining.slice(matchIndex),
+        };
       }
-      if (remaining[followingIndex] === '/') {
+
+      const isPath =
+        hasPathBoundary &&
+        (followingIndex === remaining.length ||
+          remaining[followingIndex] === '/' ||
+          isPathTerminator(remaining[followingIndex]));
+      if (!isPath) {
+        output += remaining.slice(0, followingIndex);
+        characterBeforeRemaining = remaining[followingIndex - 1];
+        remaining = remaining.slice(followingIndex);
+      } else if (remaining[followingIndex] === '/') {
+        output += remaining.slice(0, matchIndex);
+        characterBeforeRemaining = remaining[followingIndex];
         remaining = remaining.slice(followingIndex + 1);
       } else {
-        output += '.';
+        output += remaining.slice(0, matchIndex) + '.';
         remaining = remaining.slice(followingIndex);
       }
       continue;
@@ -138,7 +248,12 @@ function stripStreamingString({
     let pendingLength = Math.min(remaining.length, workDir.length - 1);
     while (
       pendingLength > 0 &&
-      !workDir.startsWith(remaining.slice(-pendingLength))
+      (!workDir.startsWith(remaining.slice(-pendingLength)) ||
+        !isPathBoundary(
+          remaining,
+          remaining.length - pendingLength,
+          characterBeforeRemaining,
+        ))
     ) {
       pendingLength -= 1;
     }
@@ -150,6 +265,19 @@ function stripStreamingString({
   }
 
   return { output, pending: '' };
+}
+
+function isPathBoundary(
+  value: string,
+  index: number,
+  precedingCharacter?: string,
+): boolean {
+  const character = index === 0 ? precedingCharacter : value[index - 1]!;
+  return character === undefined || /[\s"'`=]/.test(character);
+}
+
+function isPathTerminator(character: string | undefined): boolean {
+  return character === undefined || /[\s"'`;|&<>()]/.test(character);
 }
 
 /**

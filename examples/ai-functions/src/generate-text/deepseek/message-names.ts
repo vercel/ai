@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: deepSeek('deepseek-chat'),
+    model: deepSeek('deepseek-flash'),
     instructions: {
       role: 'system',
       content: 'Help the customer plan a short trip.',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_ACP_SKILLS_DIRECTORY,
+  resolveACPPrivateSessionDirectory,
   resolveACPSkillsDirectory,
   validateACPSkills,
 } from './acp-v1-skills';
@@ -16,6 +17,36 @@ const skill = {
     },
   ],
 } as const;
+
+describe('resolveACPPrivateSessionDirectory', () => {
+  it('keeps session state under .agent-runs/<sessionId>', () => {
+    const stateDirectory = '/home/agent/.ai-sdk-harness';
+
+    expect(
+      resolveACPPrivateSessionDirectory({
+        stateDirectory,
+        sessionId: 'session-1',
+      }),
+    ).toBe(`${stateDirectory}/.agent-runs/session-1`);
+    expect(
+      resolveACPPrivateSessionDirectory({
+        stateDirectory,
+        sessionId: 'session-2',
+      }),
+    ).toBe(`${stateDirectory}/.agent-runs/session-2`);
+  });
+
+  it('keeps session IDs containing traversal inside .agent-runs', () => {
+    expect(
+      resolveACPPrivateSessionDirectory({
+        stateDirectory: '/home/agent/.ai-sdk-harness',
+        sessionId: '../../../../work/project',
+      }),
+    ).toBe(
+      '/home/agent/.ai-sdk-harness/.agent-runs/..%2F..%2F..%2F..%2Fwork%2Fproject',
+    );
+  });
+});
 
 describe('validateACPSkills', () => {
   it('validates valid skills and files without throwing', () => {
@@ -77,15 +108,15 @@ describe('resolveACPSkillsDirectory', () => {
   it('uses the standard directory by default', () => {
     expect(
       resolveACPSkillsDirectory({
-        implementationHomeDir: '/home/agent',
+        agentHomeDir: '/home/agent',
       }),
     ).toBe(`/home/agent/${DEFAULT_ACP_SKILLS_DIRECTORY}`);
   });
 
-  it('resolves a runtime-specific directory relative to implementation home', () => {
+  it('resolves a runtime-specific directory relative to the agent home', () => {
     expect(
       resolveACPSkillsDirectory({
-        implementationHomeDir: '/home/agent',
+        agentHomeDir: '/home/agent',
         skillsDirectory: '.claude/skills',
       }),
     ).toBe('/home/agent/.claude/skills');
@@ -101,7 +132,7 @@ describe('resolveACPSkillsDirectory', () => {
   ])('rejects invalid directory %j', skillsDirectory => {
     expect(() =>
       resolveACPSkillsDirectory({
-        implementationHomeDir: '/home/agent',
+        agentHomeDir: '/home/agent',
         skillsDirectory,
       }),
     ).toThrow('must be a relative POSIX path without traversal');
