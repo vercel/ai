@@ -341,6 +341,10 @@ export function detectMediaType({
     });
   }
 
+  if (!Object.hasOwn(topLevelSignatureTables, topLevelType)) {
+    return undefined;
+  }
+
   const signatures = topLevelSignatureTables[topLevelType as TopLevelMediaType];
 
   if (signatures === undefined) {
