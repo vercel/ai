@@ -1551,6 +1551,10 @@ export async function createPiSession(
           ...(piSession?.model?.id ? { modelId: piSession.model.id } : {}),
         });
 
+        while (pendingCompactionParts.length > 0) {
+          currentEmit?.(pendingCompactionParts.shift()!);
+        }
+
         for (const [toolCallId, delivered] of turnOpts.replay
           ?.hostToolResults ?? []) {
           translatorState.hostToolResults.set(toolCallId, delivered.output);

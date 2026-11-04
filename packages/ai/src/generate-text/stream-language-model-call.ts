@@ -1,4 +1,8 @@
 import {
+  getRequestOrigin,
+  sanitizeRequestMetadata,
+} from '../telemetry/get-request-origin';
+import {
   getErrorMessage,
   type LanguageModelV4Content,
   type LanguageModelV4Prompt,
@@ -281,6 +285,8 @@ export async function streamLanguageModelCall<
   LanguageModelCallOptions): Promise<{
   stream: AsyncIterableStream<LanguageModelStreamPart<TOOLS>>;
   request?: {
+    /** Sanitized HTTP origin, when the provider reports an endpoint. */
+    url?: string;
     /**
      * Request HTTP body that was sent to the provider API.
      */
@@ -354,7 +360,7 @@ export async function streamLanguageModelCall<
   const {
     stream: languageModelStream,
     response,
-    request,
+    request: rawRequest,
   } = await executeLanguageModelCallInTelemetryContext({
     ...languageModelCallStartEvent,
     execute: async () =>
@@ -371,6 +377,8 @@ export async function streamLanguageModelCall<
       }),
   });
 
+  const request = sanitizeRequestMetadata(rawRequest);
+
   const standardizedStream = languageModelStream.pipeThrough(
     createLanguageModelV4StreamPartToLanguageModelStreamPartTransform({
       tools,
@@ -386,6 +394,7 @@ export async function streamLanguageModelCall<
       generateId,
       now,
       callStartTimestampMs,
+      request,
       onLanguageModelCallEnd,
       collectContent,
     }),
@@ -415,6 +424,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   generateId,
   now,
   callStartTimestampMs,
+  request,
   onLanguageModelCallEnd,
   collectContent,
 }: {
@@ -431,6 +441,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   generateId: IdGenerator;
   now: () => number;
   callStartTimestampMs: number;
+  request?: { url?: string };
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
   collectContent: boolean;
 }) {
@@ -662,6 +673,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               usage,
               content: modelCallContent,
               responseId,
+              ...(request?.url != null
+                ? { request: { url: getRequestOrigin(request.url) } }
+                : {}),
               ...(chunk.providerMetadata != null
                 ? { providerMetadata: chunk.providerMetadata }
                 : {}),

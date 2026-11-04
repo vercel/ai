@@ -1908,6 +1908,13 @@ To see `generateText` in action, check out [these examples](#examples).
                   type: 'LanguageModelRequestMetadata',
                   parameters: [
                     {
+                      name: 'url',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'HTTP origin reported by the provider, without URL credentials, paths, queries or fragments. Unset when unavailable.',
+                    },
+                    {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
                       isOptional: true,
@@ -2364,6 +2371,13 @@ To see `generateText` in action, check out [these examples](#examples).
                   type: 'LanguageModelRequestMetadata',
                   parameters: [
                     {
+                      name: 'url',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'HTTP origin reported by the provider, without URL credentials, paths, queries or fragments. Unset when unavailable.',
+                    },
+                    {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
                       isOptional: true,
@@ -2789,6 +2803,13 @@ To see `generateText` in action, check out [these examples](#examples).
           type: 'LanguageModelRequestMetadata',
           parameters: [
             {
+              name: 'url',
+              type: 'string',
+              isOptional: true,
+              description:
+                'HTTP origin reported by the provider, without URL credentials, paths, queries or fragments. Unset when unavailable.',
+            },
+            {
               name: 'messages',
               type: 'Array<ModelMessage>',
               isOptional: true,
@@ -3169,6 +3190,13 @@ To see `generateText` in action, check out [these examples](#examples).
                 {
                   type: 'LanguageModelRequestMetadata',
                   parameters: [
+                    {
+                      name: 'url',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'HTTP origin reported by the provider, without URL credentials, paths, queries or fragments. Unset when unavailable.',
+                    },
                     {
                       name: 'messages',
                       type: 'Array<ModelMessage>',

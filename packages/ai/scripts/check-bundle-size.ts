@@ -6,7 +6,7 @@ import { join } from 'path';
 // experimental_streamSpeech and the bundled gateway speech client add ~6 KiB.
 // Streaming image decoding also ships through the bundled Gateway image client.
 // steering message parts add ~2 KiB.
-const LIMIT = 590 * 1024;
+const LIMIT = 595 * 1024;
 
 interface BundleResult {
   size: number;
@@ -57,7 +57,7 @@ async function bundleForNode(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 292 * 1024
+          ? 295 * 1024
           : LIMIT,
   };
 }

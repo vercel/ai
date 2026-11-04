@@ -5,6 +5,10 @@ import type {
 import type { RealtimeModelV4ClientEvent } from './realtime-model-v4-client-event';
 import type { RealtimeModelV4ServerEvent } from './realtime-model-v4-server-event';
 import type { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
+import type {
+  RealtimeModelV4Transport,
+  RealtimeModelV4TransportOptions,
+} from './realtime-model-v4-transport';
 
 /**
  * Specification for a realtime model that supports bidirectional
@@ -38,12 +42,18 @@ export type RealtimeModelV4 = {
       | 'client-secret-websocket'
       | 'server-websocket'
       | 'webrtc'
+      | 'provider'
     )[];
     /** Omission preserves session-update startup. WebRTC setup may start the session. */
     startup?: 'session-start' | 'session-update';
     /** Omission preserves transport-close finalization. */
     finalization?: 'session-close' | 'transport-close';
   };
+
+  /** Create a provider-owned browser transport without opening a connection. */
+  createTransport?(
+    options: RealtimeModelV4TransportOptions,
+  ): RealtimeModelV4Transport;
 
   /** Server-only connection settings. Headers can contain long-lived credentials. */
   getServerWebSocketConfig?():

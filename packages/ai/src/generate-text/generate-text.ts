@@ -1,3 +1,7 @@
+import {
+  getRequestOrigin,
+  sanitizeRequestMetadata,
+} from '../telemetry/get-request-origin';
 import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4ToolCall,
@@ -1231,7 +1235,13 @@ async function generateTextInternal<
                   body: result.response?.body,
                 };
 
-                return { ...result, response: responseData };
+                return {
+                  ...result,
+                  ...(result.request != null
+                    ? { request: sanitizeRequestMetadata(result.request) }
+                    : {}),
+                  response: responseData,
+                };
               });
               const responseTimeMs = now() - stepStartTimestampMs;
               const stepUsage = asLanguageModelUsage(
@@ -1299,6 +1309,15 @@ async function generateTextInternal<
                   usage: stepUsage,
                   content: modelCallContent,
                   responseId: currentModelResponse.response.id,
+                  ...(currentModelResponse.request?.url != null
+                    ? {
+                        request: {
+                          url: getRequestOrigin(
+                            currentModelResponse.request.url,
+                          ),
+                        },
+                      }
+                    : {}),
                   ...(currentModelResponse.providerMetadata != null
                     ? {
                         providerMetadata: currentModelResponse.providerMetadata,

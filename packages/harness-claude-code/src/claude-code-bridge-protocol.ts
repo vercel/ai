@@ -14,7 +14,10 @@ import { z } from 'zod/v4';
  * payload, which carries Claude SDK configuration.
  */
 
-export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
+export const outboundMessageSchema = z.intersection(
+  harnessV1BridgeOutboundMessageSchema,
+  z.object({ startId: z.string().optional() }),
+);
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 const thinkingDisplaySchema = z.enum(['summarized', 'omitted']).optional();

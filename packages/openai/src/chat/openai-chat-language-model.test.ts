@@ -360,6 +360,7 @@ describe('doGenerate', () => {
           "user": undefined,
           "verbosity": undefined,
         },
+        "url": "https://api.openai.com/v1/chat/completions",
       }
     `);
   });
@@ -4005,6 +4006,7 @@ describe('doStream', () => {
           "user": undefined,
           "verbosity": undefined,
         },
+        "url": "https://api.openai.com/v1/chat/completions",
       }
     `);
   });
@@ -4641,3 +4643,41 @@ describe('doStream', () => {
     });
   });
 });
+
+it.each(['generate', 'stream'] as const)(
+  'reports the custom HTTP request URL for %s',
+  async mode => {
+    const url = 'https://model.example.test:8443/private/v1/chat/completions';
+    const fetch = vi.fn(async (_url: RequestInfo | URL) =>
+      mode === 'generate'
+        ? Response.json({
+            id: 'test',
+            object: 'chat.completion',
+            created: 1,
+            model: 'test-model',
+            choices: [
+              {
+                index: 0,
+                message: { role: 'assistant', content: 'hello' },
+                finish_reason: 'stop',
+              },
+            ],
+          })
+        : new Response('data: [DONE]\n\n', {
+            headers: { 'content-type': 'text/event-stream' },
+          }),
+    );
+    const provider = createOpenAI({
+      apiKey: 'test-only',
+      baseURL: 'https://model.example.test:8443/private/v1',
+      fetch,
+    });
+    const model = provider.chat('test-model');
+    const result =
+      mode === 'generate'
+        ? await model.doGenerate({ prompt: TEST_PROMPT })
+        : await model.doStream({ prompt: TEST_PROMPT });
+    expect(result.request?.url).toBe(url);
+    expect(fetch.mock.calls[0][0]).toBe(url);
+  },
+);
