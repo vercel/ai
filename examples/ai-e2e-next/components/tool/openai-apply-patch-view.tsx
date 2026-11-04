@@ -1,7 +1,7 @@
 'use client';
 
-import { openai } from '@ai-sdk/openai';
-import { UIToolInvocation } from 'ai';
+import type { openai } from '@ai-sdk/openai';
+import type { UIToolInvocation } from 'ai';
 import { parseDiffForVisualization } from '@/lib/apply-diff';
 
 export default function OpenAIApplyPatchView({

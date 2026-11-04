@@ -1,4 +1,4 @@
-import { type XaiVideoModelOptions, xai } from '@ai-sdk/xai';
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../../lib/present-video';
 import { run } from '../../lib/run';
@@ -10,10 +10,10 @@ import { withSpinner } from '../../lib/spinner';
 // Each reference image can be a public HTTPS URL or a base64 data URI.
 run(async () => {
   const { video } = await withSpinner(
-    'Generating xAI reference-to-video with grok-imagine-video...',
+    'Generating xAI reference-to-video with grok-imagine-video-1.5...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: xai.video('grok-imagine-video-1.5'),
         prompt:
           'The comic cat from <IMAGE_1> and the comic dog from <IMAGE_2> ' +
           'are having a playful chase through a sunlit park. ' +

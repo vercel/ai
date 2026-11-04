@@ -6,7 +6,7 @@ import { run } from '../lib/run';
 
 const myProvider = customProvider({
   languageModels: {
-    sonnet: anthropic('claude-sonnet-4-5'),
+    sonnet: anthropic('claude-sonnet-5-5'),
   },
   skills: anthropic.skills(),
 });
@@ -18,7 +18,7 @@ run(async () => {
       files: [
         {
           path: 'island-rescue/SKILL.md',
-          content: readFileSync('data/island-rescue/SKILL.md'),
+          data: readFileSync('data/island-rescue/SKILL.md'),
         },
       ],
       displayTitle: 'Island Rescue Test',

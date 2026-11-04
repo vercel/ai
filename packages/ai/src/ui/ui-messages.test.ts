@@ -3,6 +3,7 @@ import {
   getStaticToolName,
   isCustomContentUIPart,
   isDataUIPart,
+  isToolOutputErrorUIPart,
 } from './ui-messages';
 
 describe('getStaticToolName', () => {
@@ -78,6 +79,54 @@ describe('isDataUIPart', () => {
       isDataUIPart({
         type: 'text',
         text: 'some text',
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('isToolOutputErrorUIPart', () => {
+  it('should return true for a static tool output error part', () => {
+    expect(
+      isToolOutputErrorUIPart({
+        type: 'tool-weather',
+        toolCallId: 'tool1',
+        state: 'output-error',
+        input: { city: 'Berlin' },
+        errorText: 'Weather service unavailable',
+      }),
+    ).toBe(true);
+  });
+
+  it('should return true for a dynamic tool output error part', () => {
+    expect(
+      isToolOutputErrorUIPart({
+        type: 'dynamic-tool',
+        toolName: 'weather',
+        toolCallId: 'tool1',
+        state: 'output-error',
+        input: { city: 'Berlin' },
+        errorText: 'Weather service unavailable',
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false for a successful tool output part', () => {
+    expect(
+      isToolOutputErrorUIPart({
+        type: 'tool-weather',
+        toolCallId: 'tool1',
+        state: 'output-available',
+        input: { city: 'Berlin' },
+        output: { temperature: 18 },
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false for a non-tool part', () => {
+    expect(
+      isToolOutputErrorUIPart({
+        type: 'text',
+        text: 'Weather service unavailable',
       }),
     ).toBe(false);
   });

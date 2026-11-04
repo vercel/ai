@@ -1,4 +1,4 @@
-import { type XaiVideoModelOptions, xai } from '@ai-sdk/xai';
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { run } from '../../lib/run';
 import { withSpinner } from '../../lib/spinner';
@@ -7,7 +7,7 @@ import { presentVideos } from '../../lib/present-video';
 run(async () => {
   const result = await withSpinner('Generating xAI video...', () =>
     generateVideo({
-      model: xai.video('grok-imagine-video'),
+      model: xai.video('grok-imagine-video-1.5'),
       prompt: 'A cat sitting on a windowsill watching rain.',
       duration: 5,
       providerOptions: {

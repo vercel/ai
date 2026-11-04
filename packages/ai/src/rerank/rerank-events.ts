@@ -1,5 +1,5 @@
 import type { JSONObject } from '@ai-sdk/provider';
-import type { ProviderOptions } from '@ai-sdk/provider-utils';
+import type { Context, ProviderOptions } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types';
 import type { Warning } from '../types/warning';
 
@@ -8,7 +8,10 @@ import type { Warning } from '../types/warning';
  *
  * Called when the operation begins, before the reranking model is called.
  */
-export interface RerankOnStartEvent {
+export type RerankStartEvent<RUNTIME_CONTEXT extends Context = Context> = {
+  /** User-defined runtime context. */
+  readonly runtimeContext: RUNTIME_CONTEXT;
+
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -36,14 +39,17 @@ export interface RerankOnStartEvent {
 
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions | undefined;
-}
+};
 
 /**
- * Event passed to the `onFinish` callback for rerank operations.
+ * Event passed to the `onEnd` callback for rerank operations.
  *
  * Called when the operation completes, after the reranking model returns.
  */
-export interface RerankOnFinishEvent {
+export type RerankEndEvent<RUNTIME_CONTEXT extends Context = Context> = {
+  /** User-defined runtime context. */
+  readonly runtimeContext: RUNTIME_CONTEXT;
+
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -83,12 +89,12 @@ export interface RerankOnFinishEvent {
     headers?: Record<string, string>;
     body?: unknown;
   };
-}
+};
 
 /**
  * Event fired when an individual reranking model call (inner doRerank) begins.
  */
-export interface RerankStartEvent {
+export type RerankingModelCallStartEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -112,14 +118,14 @@ export interface RerankStartEvent {
 
   /** Number of top documents to return. */
   readonly topN: number | undefined;
-}
+};
 
 /**
  * Event fired when an individual reranking model call (doRerank) completes.
  *
  * Contains the ranking results from the model response.
  */
-export interface RerankFinishEvent {
+export type RerankingModelCallEndEvent = {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -137,4 +143,4 @@ export interface RerankFinishEvent {
 
   /** The ranking results from the model. */
   readonly ranking: Array<{ index: number; relevanceScore: number }>;
-}
+};

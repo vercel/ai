@@ -10,7 +10,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: 'AAECAw==',
+            data: { type: 'data' as const, data: 'AAECAw==' },
             mediaType: 'image/png',
           },
         ],
@@ -46,7 +46,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Hi' },
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data' as const, data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'image/png',
           },
         ],
@@ -201,5 +201,260 @@ describe('tool calls', () => {
         },
       ]
     `);
+  });
+
+  it('should throw for file parts with provider references', () => {
+    expect(() =>
+      convertToGroqChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'reference' as const,
+                reference: { groq: 'file-ref-123' },
+              },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).toThrow(
+      "'file parts with provider references' functionality not supported",
+    );
+  });
+});
+
+describe('top-level-only media type resolution', () => {
+  const pngBase64 = 'iVBORw0KGgo=';
+
+  it('passes full image/png through unchanged for inline data', () => {
+    const result = convertToGroqChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
+  });
+
+  it('detects image subtype from inline bytes for top-level "image"', () => {
+    const result = convertToGroqChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
+  });
+
+  it('passes through URL source for top-level-only image', () => {
+    const result = convertToGroqChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: {
+              type: 'url',
+              url: new URL('https://example.com/x.png'),
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: 'https://example.com/x.png' },
+    });
+  });
+
+  it('normalizes image/* wildcard via detection', () => {
+    const result = convertToGroqChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            mediaType: 'image/*',
+            data: { type: 'data', data: pngBase64 },
+          },
+        ],
+      },
+    ]);
+
+    expect((result[0].content as unknown[])[0]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${pngBase64}` },
+    });
+  });
+
+  describe('tool argument and output serialization resilience', () => {
+    it('preserves string tool call arguments without double-stringifying', () => {
+      const result = convertToGroqChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'search',
+              input: '{"query":"fast lpu","limit":3}',
+            },
+          ],
+        },
+      ]);
+
+      expect(result[0]).toEqual({
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'search',
+              arguments: '{"query":"fast lpu","limit":3}',
+            },
+          },
+        ],
+      });
+    });
+
+    it.each(['{"query":', 'unparseable'])(
+      'preserves malformed argument replay: %s',
+      input => {
+        const result = convertToGroqChatMessages([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                input,
+              },
+            ],
+          },
+        ]);
+
+        expect(result[0]).toEqual({
+          role: 'assistant',
+          content: '',
+          tool_calls: [
+            {
+              id: 'call-1',
+              type: 'function',
+              function: {
+                name: 'search',
+                arguments: JSON.stringify(input),
+              },
+            },
+          ],
+        });
+      },
+    );
+
+    it('safely serializes BigInt and circular structures in tool call arguments', () => {
+      const cyclicInput: any = { id: 12345678901234567890n };
+      cyclicInput.self = cyclicInput;
+
+      const result = convertToGroqChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-2',
+              toolName: 'process',
+              input: cyclicInput,
+            },
+          ],
+        },
+      ]);
+
+      const message = result[0];
+      if (message.role !== 'assistant') {
+        throw new Error('expected an assistant message');
+      }
+      const args = message.tool_calls?.[0].function.arguments;
+      expect(args).toContain('"id":"12345678901234567890"');
+      expect(args).toContain('"self":"[Circular]"');
+    });
+
+    it('safely serializes BigInt and circular structures in tool responses', () => {
+      const cyclicOutput: any = { count: 999999999999999999n };
+      cyclicOutput.self = cyclicOutput;
+
+      const result = convertToGroqChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-3',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: cyclicOutput,
+              },
+            },
+          ],
+        },
+      ]);
+
+      const content = result[0].content as string;
+      expect(content).toContain('"count":"999999999999999999"');
+      expect(content).toContain('"self":"[Circular]"');
+    });
+
+    it('preserves reused non-circular objects in tool outputs', () => {
+      const shared = { city: 'Paris' };
+
+      const result = convertToGroqChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-4',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: { first: shared, second: shared },
+              },
+            },
+          ],
+        },
+      ]);
+
+      const content = result[0].content as string;
+      expect(content).toContain('"first":{"city":"Paris"}');
+      expect(content).toContain('"second":{"city":"Paris"}');
+      expect(content).not.toContain('[Circular]');
+    });
   });
 });

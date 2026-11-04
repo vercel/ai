@@ -1,4 +1,4 @@
-import { LanguageModelV2 } from '@ai-sdk/provider';
+import type { LanguageModelV2 } from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -13,7 +13,9 @@ describe('asLanguageModelV3', () => {
   let logWarningSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    logWarningSpy = vi.spyOn(logWarningsModule, 'logWarnings');
+    logWarningSpy = vi
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -185,6 +187,9 @@ describe('asLanguageModelV3', () => {
               "text": undefined,
               "total": 5,
             },
+            "raw": {
+              "totalTokens": 15,
+            },
           },
           "warnings": [],
         }
@@ -265,6 +270,9 @@ describe('asLanguageModelV3', () => {
                     "reasoning": 2,
                     "text": undefined,
                     "total": 10,
+                  },
+                  "raw": {
+                    "totalTokens": 13,
                   },
                 },
               },
@@ -412,6 +420,7 @@ describe('asLanguageModelV3', () => {
       });
 
       expect(response.usage?.outputTokens?.reasoning).toBe(5);
+      expect(response.usage?.raw).toEqual({ totalTokens: 20 });
     });
 
     it('should handle response with cached input tokens in usage', async () => {

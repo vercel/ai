@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV2,
   LanguageModelV3,
   LanguageModelV4,
@@ -8,7 +8,7 @@ import {
 } from '@ai-sdk/provider';
 import { asArray } from '@ai-sdk/provider-utils';
 import { asLanguageModelV4 } from '../model/as-language-model-v4';
-import { LanguageModelMiddleware } from '../types';
+import type { LanguageModelMiddleware } from '../types';
 
 /**
  * Wraps a LanguageModelV4 instance with middleware functionality.

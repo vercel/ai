@@ -1,9 +1,6 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
-import type {
-  ModelMessage,
-  ProviderOptions,
-  SystemModelMessage,
-} from '@ai-sdk/provider-utils';
+import type { ModelMessage, ProviderOptions } from '@ai-sdk/provider-utils';
+import type { Instructions } from '../prompt';
 import type {
   CallWarning,
   FinishReason,
@@ -14,14 +11,14 @@ import type {
 import type { LanguageModelUsage } from '../types/usage';
 
 /**
- * Event passed to the `experimental_onStart` callback of
+ * Event passed to the `onStart` callback of
  * `generateObject` and `streamObject`.
  *
  * Called when the operation begins, before any LLM call.
  *
  * @deprecated
  */
-export interface ObjectOnStartEvent {
+export interface GenerateObjectStartEvent {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -35,11 +32,7 @@ export interface ObjectOnStartEvent {
   readonly modelId: string;
 
   /** The system message(s) provided to the model. */
-  readonly system:
-    | string
-    | SystemModelMessage
-    | Array<SystemModelMessage>
-    | undefined;
+  readonly system: Instructions | undefined;
 
   /** The prompt string or array of messages if using the prompt option. */
   readonly prompt: string | Array<ModelMessage> | undefined;
@@ -84,7 +77,7 @@ export interface ObjectOnStartEvent {
 }
 
 /**
- * Event passed to the `experimental_onStepStart` callback of
+ * Event passed to the `onStepStart` callback of
  * `generateObject` and `streamObject`.
  *
  * Called when the model call (step) begins, before the provider is called.
@@ -92,7 +85,7 @@ export interface ObjectOnStartEvent {
  *
  * @deprecated
  */
-export interface ObjectOnStepStartEvent {
+export interface GenerateObjectStepStartEvent {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -116,7 +109,7 @@ export interface ObjectOnStepStartEvent {
 }
 
 /**
- * Event passed to the `onStepFinish` callback of
+ * Event passed to the `onStepEnd` callback of
  * `generateObject` and `streamObject`.
  *
  * Called when the model call (step) completes, with the raw result
@@ -124,7 +117,7 @@ export interface ObjectOnStepStartEvent {
  *
  * @deprecated
  */
-export interface ObjectOnStepFinishEvent {
+export interface GenerateObjectStepEndEvent {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -153,12 +146,10 @@ export interface ObjectOnStepFinishEvent {
   readonly warnings: CallWarning[] | undefined;
 
   /** Additional request information. */
-  readonly request: LanguageModelRequestMetadata;
+  readonly request: Omit<LanguageModelRequestMetadata, 'messages'>;
 
   /** Additional response information. */
-  readonly response: LanguageModelResponseMetadata & {
-    body?: unknown;
-  };
+  readonly response: Omit<LanguageModelResponseMetadata, 'messages'>;
 
   /** Additional provider-specific metadata. */
   readonly providerMetadata: ProviderMetadata | undefined;
@@ -177,7 +168,7 @@ export interface ObjectOnStepFinishEvent {
  *
  * @deprecated
  */
-export interface ObjectOnFinishEvent<RESULT> {
+export interface GenerateObjectEndEvent<RESULT> {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -207,12 +198,10 @@ export interface ObjectOnFinishEvent<RESULT> {
   readonly warnings: CallWarning[] | undefined;
 
   /** Additional request information. */
-  readonly request: LanguageModelRequestMetadata;
+  readonly request: Omit<LanguageModelRequestMetadata, 'messages'>;
 
   /** Additional response information. */
-  readonly response: LanguageModelResponseMetadata & {
-    body?: unknown;
-  };
+  readonly response: Omit<LanguageModelResponseMetadata, 'messages'>;
 
   /** Additional provider-specific metadata. */
   readonly providerMetadata: ProviderMetadata | undefined;

@@ -1,28 +1,32 @@
 import {
-  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  VoyageEmbeddingModelId,
   voyageEmbeddingModelOptions,
-} from './voyage-embedding-options';
+  type VoyageEmbeddingModelId,
+} from './voyage-embedding-model-options';
 import { voyageFailedResponseHandler } from './voyage-error';
 
 type VoyageEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -60,6 +64,7 @@ export class VoyageEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -87,13 +92,13 @@ export class VoyageEmbeddingModel implements EmbeddingModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/embeddings`,
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         input: values,
         model: this.modelId,
         input_type: embeddingOptions?.inputType,
         truncation: embeddingOptions?.truncation,
-        output_dimension: embeddingOptions?.outputDimension,
+        output_dimension: embeddingOptions?.outputDimension ?? dimensions,
         output_dtype: embeddingOptions?.outputDtype,
       },
       failedResponseHandler: voyageFailedResponseHandler,
@@ -115,17 +120,21 @@ export class VoyageEmbeddingModel implements EmbeddingModelV4 {
   }
 }
 
-const voyageEmbeddingResponseSchema = z.object({
-  data: z.array(
+const voyageEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      embedding: z.array(z.number()),
-      index: z.number(),
+      data: z.array(
+        z.object({
+          embedding: z.array(z.number()),
+          index: z.number(),
+        }),
+      ),
+      model: z.string(),
+      usage: z
+        .object({
+          total_tokens: z.number(),
+        })
+        .nullish(),
     }),
   ),
-  model: z.string(),
-  usage: z
-    .object({
-      total_tokens: z.number(),
-    })
-    .nullish(),
-});
+);

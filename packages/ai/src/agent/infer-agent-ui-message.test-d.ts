@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import {
+import type {
   CustomContentUIPart,
   DataUIPart,
   DynamicToolUIPart,
@@ -8,12 +8,13 @@ import {
   ReasoningUIPart,
   SourceDocumentUIPart,
   SourceUrlUIPart,
+  SteeringMessageUIPart,
   StepStartUIPart,
   TextUIPart,
   UIMessage,
 } from '../ui/ui-messages';
 import { ToolLoopAgent } from './tool-loop-agent';
-import { InferAgentUIMessage } from './infer-agent-ui-message';
+import type { InferAgentUIMessage } from './infer-agent-ui-message';
 
 describe('InferAgentUIMessage', () => {
   it('should not contain arbitrary static tools when no tools are provided', () => {
@@ -39,6 +40,7 @@ describe('InferAgentUIMessage', () => {
       | FileUIPart
       | ReasoningFileUIPart
       | DataUIPart<never>
+      | SteeringMessageUIPart
       | StepStartUIPart
     >();
   });

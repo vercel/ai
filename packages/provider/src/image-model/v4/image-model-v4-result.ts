@@ -1,6 +1,6 @@
-import { JSONArray, JSONValue } from '../../json-value';
-import { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
-import { ImageModelV4Usage } from './image-model-v4-usage';
+import type { JSONArray, JSONValue } from '../../json-value';
+import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
+import type { ImageModelV4Usage } from './image-model-v4-usage';
 
 export type ImageModelV4ProviderMetadata = Record<
   string,
@@ -21,6 +21,12 @@ export type ImageModelV4Result = {
    * be returned as binary data.
    */
   images: Array<string> | Array<Uint8Array>;
+
+  /**
+   * Whether an unsuccessful result, such as an empty image result, can be
+   * retried. When omitted, the result is unclassified.
+   */
+  isRetryable?: boolean;
 
   /**
    * Warnings for the call, e.g. unsupported features.

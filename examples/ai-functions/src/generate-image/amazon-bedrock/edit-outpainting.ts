@@ -1,5 +1,8 @@
 import { readFileSync } from 'node:fs';
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import {
+  amazonBedrock,
+  type AmazonBedrockImageModelOptions,
+} from '@ai-sdk/amazon-bedrock';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
@@ -20,19 +23,19 @@ run(async () => {
   console.log(`PROMPT: ${prompt}`);
 
   const { images } = await generateImage({
-    model: bedrock.image('amazon.nova-canvas-v1:0'),
+    model: amazonBedrock.image('amazon.nova-canvas-v1:0'),
     prompt: {
       text: prompt,
       images: [imageBuffer],
     },
     providerOptions: {
-      bedrock: {
+      amazonBedrock: {
         taskType: 'OUTPAINTING',
         maskPrompt: 'background',
         outPaintingMode: 'DEFAULT',
         quality: 'standard',
         cfgScale: 7.0,
-      },
+      } satisfies AmazonBedrockImageModelOptions,
     },
   });
 

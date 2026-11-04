@@ -1,10 +1,10 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+    model: amazonBedrock('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
     messages: [
       {
         role: 'user',

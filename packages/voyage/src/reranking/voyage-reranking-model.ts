@@ -1,24 +1,25 @@
-import { RerankingModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { RerankingModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   combineHeaders,
   createJsonResponseHandler,
-  FetchFunction,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
   zodSchema,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { voyageFailedResponseHandler } from '../voyage-error';
 import {
-  VoyageRerankingModelId,
   voyageRerankingModelOptionsSchema,
-} from './voyage-reranking-options';
-
+  type VoyageRerankingModelId,
+} from './voyage-reranking-model-options';
 type VoyageRerankingConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -74,7 +75,7 @@ export class VoyageRerankingModel implements RerankingModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/rerank`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         query,
         documents: stringValues,

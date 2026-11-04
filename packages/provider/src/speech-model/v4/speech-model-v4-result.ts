@@ -1,6 +1,6 @@
-import { JSONObject } from '../../json-value';
-import { SharedV2Headers } from '../../shared';
-import { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
+import type { JSONObject } from '../../json-value';
+import type { SharedV2Headers } from '../../shared';
+import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 
 /**
  * The result of a speech model doGenerate call.
@@ -19,6 +19,12 @@ export type SpeechModelV4Result = {
    * Warnings for the call, e.g. unsupported settings.
    */
   warnings: Array<SharedV4Warning>;
+
+  /**
+   * Usage information reported by the provider, in the provider's native
+   * JSON-compatible shape.
+   */
+  usage?: JSONObject;
 
   /**
    * Optional request information for telemetry and debugging purposes.

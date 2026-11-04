@@ -1,23 +1,26 @@
 import {
-  TranscriptionModelV4,
-  SpeechModelV4,
-  ProviderV4,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type SpeechModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
-import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 import { DeepgramSpeechModel } from './deepgram-speech-model';
-import { DeepgramSpeechModelId } from './deepgram-speech-options';
+import type { DeepgramSpeechModelId } from './deepgram-speech-options';
 import { VERSION } from './version';
 
 export interface DeepgramProvider extends ProviderV4 {
   (
-    modelId: 'nova-3',
+    modelId: DeepgramTranscriptionModelId,
     settings?: {},
   ): {
     transcription: DeepgramTranscriptionModel;
@@ -41,9 +44,10 @@ export interface DeepgramProvider extends ProviderV4 {
 
 export interface DeepgramProviderSettings {
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -55,6 +59,9 @@ export interface DeepgramProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /** Custom WebSocket implementation for streaming transcription. */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
@@ -64,16 +71,18 @@ export function createDeepgram(
   options: DeepgramProviderSettings = {},
 ): DeepgramProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        authorization: `Token ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'DEEPGRAM_API_KEY',
-          description: 'Deepgram',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/deepgram/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          authorization: `Token ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'DEEPGRAM_API_KEY',
+            description: 'Deepgram',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-deepgram/${VERSION}`,
+      ),
     );
 
   const createTranscriptionModel = (modelId: DeepgramTranscriptionModelId) =>
@@ -82,6 +91,7 @@ export function createDeepgram(
       url: ({ path }) => `https://api.deepgram.com${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const createSpeechModel = (modelId: DeepgramSpeechModelId) =>

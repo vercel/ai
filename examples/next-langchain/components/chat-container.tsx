@@ -1,13 +1,13 @@
 'use client';
 
-import { ChatStatus } from 'ai';
+import type { ChatStatus } from 'ai';
 import { useEffect, useRef } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { ChatMessage } from './chat-message';
 import { ChatInput } from './chat-input';
 import { ThinkingIndicator } from './thinking-indicator';
 import { EmptyState } from './empty-state';
-import { type CustomDataMessage } from '../app/types';
+import type { CustomDataMessage } from '../app/types';
 
 interface ChatContainerProps {
   messages: CustomDataMessage[];

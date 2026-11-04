@@ -1,0 +1,204 @@
+---
+title: fx
+description: Learn how to use the fx harness adapter.
+---
+
+# fx Harness
+
+The fx harness adapter connects `HarnessAgent` to [fx](https://fx.sh) using
+[libfx](https://www.npmjs.com/package/libfx). The runtime runs on the host,
+while built-in filesystem and shell tools operate exclusively on the sandbox.
+No bridge process runs inside the sandbox.
+
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
+## Setup
+
+<InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-fx @ai-sdk/sandbox-vercel" />
+
+libfx is installed with the adapter. No fx executable is downloaded or
+installed inside the sandbox when a session starts.
+
+## Import
+
+```ts
+import { createFx, fx } from '@ai-sdk/harness-fx';
+```
+
+`fx` is equivalent to `createFx()` with its default configuration.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { fx } from '@ai-sdk/harness-fx';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: fx,
+  model: 'openai/gpt-5.6-luna',
+});
+
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
+
+let exitCode = 0;
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Check the test failures and fix the production code.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
+} finally {
+  await session.destroy();
+  await sandboxSession.destroy();
+  process.exit(exitCode);
+}
+```
+
+## Adapter Settings
+
+Use `createFx()` to configure the runtime:
+
+```ts
+const harness = createFx({
+  auth: 'ai-gateway',
+  effort: 'low',
+  serviceTier: 'default',
+});
+```
+
+Settings:
+
+- `auth`: selects `auto`, `direct`, or `ai-gateway` authentication, or accepts
+  an authentication environment for programmatically resolved credentials.
+  `auto` prefers Gateway credentials, `direct` prefers subscription credentials
+  with Gateway fallback, and `ai-gateway` uses Gateway only.
+- `mcpServers`: MCP server definitions keyed by server name. Supports HTTP and
+  SSE servers, with `url`, optional `type`, `headers`, and `disabled` fields.
+  Connections run on the host; command/stdio servers are unsupported.
+- `headers`: extra headers sent with AI Gateway requests from the host.
+- `effort`: reasoning effort for models that support it.
+- `serviceTier`: selects `default`, `fast`, or `ultrafast`. `default` is
+  equivalent to omitting the setting and leaves libfx's defaults unchanged.
+  Fast and Ultra require a model that supports the selected tier.
+- `backend`: libfx runtime backend (`auto`, `native`, or `wasm`). The default
+  is `auto`, which prefers the native backend. The WASM backend requires
+  JavaScript Promise Integration (JSPI) support.
+
+## Authentication
+
+fx supports [Vercel AI Gateway authentication](https://fx.sh/docs/getting-started/authentication)
+and Codex or Grok subscriptions. For Gateway authentication, set one of these
+environment variables:
+
+- `VERCEL_OIDC_TOKEN`
+- `AI_GATEWAY_API_KEY`
+
+The adapter prefers `AI_GATEWAY_API_KEY` when both are available.
+`AI_GATEWAY_BASE_URL` optionally overrides the Gateway endpoint. Credentials
+are used on the host, not forwarded into the sandbox.
+
+When Gateway credentials are absent, `auto` discovers subscription credentials
+in this order:
+
+1. fx Codex: `~/.fx/chatgpt-auth.json`.
+2. fx Grok: `~/.fx/grok-auth.json`.
+3. Native Codex: the credential store under `CODEX_HOME` or `~/.codex`,
+   respecting `cli_auth_credentials_store` and the native keyring settings.
+4. Native Grok: the xAI OAuth record in `GROK_HOME/auth.json` or `~/.grok/auth.json`.
+
+libfx refreshes subscription tokens near expiry and after an authentication
+rejection. The adapter saves rotated credentials back to the selected store.
+Failures after selection do not silently switch subscriptions or fall back to
+Gateway. Credentials are never included in persisted lifecycle state.
+
+Pass an authentication environment when the host resolves credentials at
+runtime instead of exposing them through `process.env`:
+
+```ts
+const gatewayHarness = createFx({
+  auth: {
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. The adapter does not add its credentials to `process.env` or include
+their values in persisted lifecycle state.
+
+Use `direct` to try subscriptions before Gateway, or `ai-gateway` to disable
+subscription discovery:
+
+```ts
+const directHarness = createFx({ auth: 'direct' });
+const gatewayHarness = createFx({ auth: 'ai-gateway' });
+```
+
+An explicit authentication environment does not inspect ambient subscription
+stores. Resumed sessions keep their original provider and require compatible
+credentials for that provider.
+
+## Sandbox
+
+fx runs on the host and accepts either a restricted sandbox session or a
+network sandbox session. No exposed sandbox ports are required:
+
+```ts
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  template: await agent.getSandboxTemplate(),
+});
+```
+
+The host needs network access for AI Gateway and configured MCP servers.
+The sandbox does not need network access for model requests. Built-in tools
+use the sandbox's file and command-execution APIs; the sandbox must provide
+Bash and GNU command-line utilities such as `find`, `grep`, `realpath`,
+and `base64`.
+
+## Built-in Tools
+
+The adapter exposes `read`, `write`, `edit`, `bash`, `grep`, `glob`, `ls`, and
+`askUserQuestions`. Filesystem and shell operations run in the session sandbox.
+The adapter does not expose the fx CLI's other built-in tools.
+
+Built-in tool filtering is supported through `activeTools` and `inactiveTools`.
+With `permissionMode: 'allow-reads'`, file edits and shell commands require
+approval. With `allow-edits`, only shell commands require approval.
+`allow-all` runs these tools without approval requests.
+
+## Session Lifecycle
+
+The adapter stores its libfx checkpoint and unfinished-turn replay records in
+`$HOME/.ai-sdk-harness/.agent-runs/<encoded-sessionId>/fx/state.json`.
+Here, `$HOME` belongs to the sandbox, and the file is outside `sessionWorkDir`.
+A future process restores this state after the caller reattaches the sandbox
+and supplies the saved lifecycle state.
+
+## Known Limitations
+
+- Manual compaction is unsupported by stable libfx and throws
+  `HarnessCapabilityUnsupportedError`.
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)

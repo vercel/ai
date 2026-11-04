@@ -1,9 +1,9 @@
-import { JSONSchema7 } from 'json-schema';
-import { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
-import { LanguageModelV4FunctionTool } from './language-model-v4-function-tool';
-import { LanguageModelV4Prompt } from './language-model-v4-prompt';
-import { LanguageModelV4ProviderTool } from './language-model-v4-provider-tool';
-import { LanguageModelV4ToolChoice } from './language-model-v4-tool-choice';
+import type { JSONSchema7 } from 'json-schema';
+import type { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
+import type { LanguageModelV4FunctionTool } from './language-model-v4-function-tool';
+import type { LanguageModelV4Prompt } from './language-model-v4-prompt';
+import type { LanguageModelV4ProviderTool } from './language-model-v4-provider-tool';
+import type { LanguageModelV4ToolChoice } from './language-model-v4-tool-choice';
 
 export type LanguageModelV4CallOptions = {
   /**
@@ -127,7 +127,8 @@ export type LanguageModelV4CallOptions = {
     | 'low'
     | 'medium'
     | 'high'
-    | 'xhigh';
+    | 'xhigh'
+    | 'max';
 
   /**
    * Additional provider-specific options. They are passed through

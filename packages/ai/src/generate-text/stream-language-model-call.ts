@@ -1,41 +1,64 @@
 import {
-  getErrorMessage,
-  LanguageModelV4Prompt,
-  LanguageModelV4StreamPart,
-  SharedV4Headers,
-} from '@ai-sdk/provider';
-import type { ToolSet } from '@ai-sdk/provider-utils';
+  getRequestOrigin,
+  sanitizeRequestMetadata,
+} from '../telemetry/get-request-origin';
 import {
-  ModelMessage,
-  ProviderOptions,
-  SystemModelMessage,
+  getErrorMessage,
+  type LanguageModelV4Content,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4ToolChoice,
+  type SharedV4Headers,
+} from '@ai-sdk/provider';
+import {
+  createIdGenerator,
+  type Arrayable,
+  type Experimental_SandboxSession as SandboxSession,
+  type IdGenerator,
+  type InferToolSetContext,
+  type ModelMessage,
+  type ProviderOptions,
+  type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
-import { Prompt } from '../prompt';
+import { getOwn } from '../util/get-own';
+import type { Instructions, Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { normalizeStreamProviderError } from '../prompt/normalize-stream-provider-error';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import { standardizePrompt } from '../prompt/standardize-prompt';
-import {
+import type { Telemetry } from '../telemetry/telemetry';
+import type {
   CallWarning,
   FinishReason,
   LanguageModel,
   ToolChoice,
 } from '../types/language-model';
-import { ProviderMetadata } from '../types/provider-metadata';
-import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import type { ProviderMetadata } from '../types/provider-metadata';
+import { asLanguageModelUsage, type LanguageModelUsage } from '../types/usage';
 import {
-  AsyncIterableStream,
   createAsyncIterableStream,
+  type AsyncIterableStream,
 } from '../util/async-iterable-stream';
-import { DownloadFunction } from '../util/download/download-function';
+import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
+import { now as originalNow } from '../util/now';
+import { ToolChoiceViolationError } from '../error';
+import { calculateTokensPerSecond } from './calculate-tokens-per-second';
+import type { ContentPart } from './content-part';
 import { DefaultGeneratedFileWithType } from './generated-file';
-import { Output } from './output';
+import type { OutputChunkTimingStats } from './step-result';
+import type {
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from './language-model-events';
+import type { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
-import {
+import { resolveGeneratedFileData } from './resolve-generated-file-data';
+import type {
   TextStreamFilePart,
   TextStreamPart,
   TextStreamReasoningDeltaPart,
@@ -47,10 +70,23 @@ import {
   TextStreamToolErrorPart,
   TextStreamToolResultPart,
 } from './stream-text-result';
-import { TypedToolCall } from './tool-call';
-import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { TypedToolError } from './tool-error';
-import { TypedToolResult } from './tool-result';
+import { sumTokenCounts } from './sum-token-counts';
+import type { TypedToolCall } from './tool-call';
+import type { ToolCallRepairFunction } from './tool-call-repair-function';
+import type { TypedToolError } from './tool-error';
+import type { ToolInputRefinement } from './tool-input-refinement';
+import type { ToolOrder } from './tool-order';
+import type { TypedToolResult } from './tool-result';
+
+const originalGenerateId = createIdGenerator({
+  prefix: 'aitxt',
+  size: 24,
+});
+
+const originalGenerateCallId = createIdGenerator({
+  prefix: 'call',
+  size: 24,
+});
 
 export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
   | Exclude<
@@ -62,6 +98,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
           | 'tool-output-denied'
           | 'start-step'
           | 'finish-step'
+          | 'steering-message'
           | 'start'
           | 'abort';
       }
@@ -81,6 +118,15 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
       rawFinishReason: string | undefined;
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
+      performance: {
+        responseTimeMs: number;
+        effectiveOutputTokensPerSecond: number;
+        outputTokensPerSecond: number | undefined;
+        inputTokensPerSecond: number | undefined;
+        effectiveTotalTokensPerSecond: number;
+        timeToFirstOutputMs: number | undefined;
+        timeBetweenOutputChunksMs?: OutputChunkTimingStats;
+      };
     }
   | {
       type: 'model-call-start';
@@ -119,6 +165,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
  * @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+ * @param allowSystemInMessages - Whether system messages are allowed in the `prompt` or `messages` fields. Default: false.
  *
  * @param maxOutputTokens - Maximum number of tokens to generate.
  * @param temperature - Temperature setting.
@@ -148,6 +195,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
  * @param includeRawChunks - Whether to include raw provider stream chunks in the model stream.
  * @param providerOptions - Additional provider-specific options.
  * @param repairToolCall - A function that can repair invalid tool calls before they are emitted.
+ * @param refineToolInput - Optional mapping of tool names to functions that refine parsed tool inputs before they are emitted, used for telemetry, or executed.
  * @param onStart - A callback that receives the fully converted prompt before the model call starts.
  *
  * @returns A stream of model call parts together with request and response metadata when available.
@@ -158,22 +206,40 @@ export async function streamLanguageModelCall<
 >({
   model,
   tools,
+  toolOrder,
   output,
   toolChoice,
   prompt,
   system,
+  instructions,
   messages,
+  allowSystemInMessages,
   download,
   abortSignal,
   headers,
   includeRawChunks,
   providerOptions,
   repairToolCall,
+  refineToolInput,
+  executeLanguageModelCallInTelemetryContext = async ({ execute }) =>
+    await execute(),
+  callId,
+  toolsContext,
+  experimental_sandbox: sandbox,
+  _internal: {
+    generateId = originalGenerateId,
+    generateCallId = originalGenerateCallId,
+    now = originalNow,
+    collectContent = true,
+  } = {},
   onStart,
+  onLanguageModelCallStart,
+  onLanguageModelCallEnd,
   ...callSettings
 }: {
   model: LanguageModel;
   tools?: TOOLS;
+  toolOrder?: ToolOrder<TOOLS>;
   output?: OUTPUT;
   toolChoice?: ToolChoice<TOOLS>;
   download?: DownloadFunction;
@@ -182,6 +248,27 @@ export async function streamLanguageModelCall<
   includeRawChunks?: boolean;
   providerOptions?: ProviderOptions;
   repairToolCall?: ToolCallRepairFunction<TOOLS> | undefined;
+  refineToolInput?: ToolInputRefinement<TOOLS> | undefined;
+  executeLanguageModelCallInTelemetryContext?: Telemetry['executeLanguageModelCall'];
+  callId?: string;
+  /**
+   * Tool context used to resolve per-call tool metadata such as function
+   * descriptions before sending tools to the model.
+   */
+  toolsContext?: InferToolSetContext<TOOLS>;
+  /**
+   * Sandbox session passed through for resolving tool descriptions that depend on it.
+   */
+  experimental_sandbox?: SandboxSession;
+  _internal?: {
+    generateId?: IdGenerator;
+    generateCallId?: IdGenerator;
+    now?: () => number;
+    /** Internal: content is only needed by collectors and full-content callbacks. */
+    collectContent?: boolean;
+  };
+  onLanguageModelCallStart?: Arrayable<OnLanguageModelCallStartCallback>;
+  onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
 
   // onStart is currently required because the telemetry callbacks need
   // LanguageModelV4Prompt and we only want download URLs at most once.
@@ -198,6 +285,8 @@ export async function streamLanguageModelCall<
   LanguageModelCallOptions): Promise<{
   stream: AsyncIterableStream<LanguageModelStreamPart<TOOLS>>;
   request?: {
+    /** Sanitized HTTP origin, when the provider reports an endpoint. */
+    url?: string;
     /**
      * Request HTTP body that was sent to the provider API.
      */
@@ -211,25 +300,32 @@ export async function streamLanguageModelCall<
   };
 }> {
   const resolvedModel = resolveLanguageModel(model);
+  const effectiveCallId = callId ?? generateCallId();
 
   const standardizedPrompt = await standardizePrompt({
+    instructions,
     system,
     prompt,
     messages,
+    allowSystemInMessages,
   } as Prompt);
 
   const promptMessages = await convertToLanguageModelPrompt({
     prompt: {
-      system: standardizedPrompt.system,
+      instructions: standardizedPrompt.instructions,
       messages: standardizedPrompt.messages,
     },
     supportedUrls: await resolvedModel.supportedUrls,
     download,
+    abortSignal,
     provider: resolvedModel.provider.split('.')[0],
   });
 
   const stepTools = await prepareTools({
     tools,
+    toolOrder,
+    toolsContext,
+    experimental_sandbox: sandbox,
   });
 
   const stepToolChoice = prepareToolChoice({
@@ -241,28 +337,66 @@ export async function streamLanguageModelCall<
     callbacks: onStart,
   });
 
+  const languageModelCallContext = {
+    provider: resolvedModel.provider,
+    modelId: resolvedModel.modelId,
+    instructions: standardizedPrompt.instructions,
+    messages: standardizedPrompt.messages,
+    tools: stepTools,
+    ...callSettings,
+  };
+  const languageModelCallStartEvent = {
+    callId: effectiveCallId,
+    ...languageModelCallContext,
+  };
+
+  await notify({
+    event: languageModelCallStartEvent,
+    callbacks: onLanguageModelCallStart,
+  });
+
+  const callStartTimestampMs = now();
+
   const {
     stream: languageModelStream,
     response,
-    request,
-  } = await resolvedModel.doStream({
-    ...callSettings,
-    tools: stepTools,
-    toolChoice: stepToolChoice,
-    responseFormat: await output?.responseFormat,
-    prompt: promptMessages,
-    providerOptions,
-    abortSignal,
-    headers,
-    includeRawChunks,
+    request: rawRequest,
+  } = await executeLanguageModelCallInTelemetryContext({
+    ...languageModelCallStartEvent,
+    execute: async () =>
+      await resolvedModel.doStream({
+        ...callSettings,
+        tools: stepTools,
+        toolChoice: stepToolChoice,
+        responseFormat: await output?.responseFormat,
+        prompt: promptMessages,
+        providerOptions,
+        abortSignal,
+        headers,
+        includeRawChunks,
+      }),
   });
+
+  const request = sanitizeRequestMetadata(rawRequest);
 
   const standardizedStream = languageModelStream.pipeThrough(
     createLanguageModelV4StreamPartToLanguageModelStreamPartTransform({
       tools,
-      system: standardizedPrompt.system,
+      instructions: standardizedPrompt.instructions,
       messages: standardizedPrompt.messages,
       repairToolCall,
+      refineToolInput,
+      abortSignal,
+      callId: effectiveCallId,
+      provider: resolvedModel.provider,
+      modelId: resolvedModel.modelId,
+      toolChoice: stepToolChoice,
+      generateId,
+      now,
+      callStartTimestampMs,
+      request,
+      onLanguageModelCallEnd,
+      collectContent,
     }),
   );
 
@@ -278,26 +412,122 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   TOOLS extends ToolSet,
 >({
   tools,
-  system,
+  instructions,
   messages,
   repairToolCall,
+  refineToolInput,
+  abortSignal,
+  callId,
+  provider,
+  modelId,
+  toolChoice,
+  generateId,
+  now,
+  callStartTimestampMs,
+  request,
+  onLanguageModelCallEnd,
+  collectContent,
 }: {
   tools: TOOLS | undefined;
-  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
+  instructions: Instructions | undefined;
   messages: ModelMessage[];
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+  refineToolInput: ToolInputRefinement<TOOLS> | undefined;
+  abortSignal: AbortSignal | undefined;
+  callId: string;
+  provider: string;
+  modelId: string;
+  toolChoice: LanguageModelV4ToolChoice;
+  generateId: IdGenerator;
+  now: () => number;
+  callStartTimestampMs: number;
+  request?: { url?: string };
+  onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
+  collectContent: boolean;
 }) {
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   // keep track of tool inputs for provider-side tool results
   const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
+  const modelCallContent: Array<ContentPart<TOOLS>> = [];
+  const rawModelCallContent: Array<LanguageModelV4Content> = [];
+  const textPartIndexes = new Map<string, number>();
+  const reasoningPartIndexes = new Map<string, number>();
+  const rawTextPartIndexes = new Map<string, number>();
+  const rawReasoningPartIndexes = new Map<string, number>();
+  let responseId = generateId();
+  let responseModelId = modelId;
+  let timeToFirstOutputMs: number | undefined;
+  let previousOutputChunkTimestampMs: number | undefined;
+  const timeBetweenOutputChunksMs: number[] = [];
+
+  // Tool choice none rejects tool calls when the model call finishes.
+  // Withhold tool parts so that consumers (e.g. client-side tools) cannot
+  // act on them before the rejection, and skip user callbacks that would
+  // repair or refine them.
+  const withholdToolParts = toolChoice.type === 'none';
 
   return new TransformStream<
     LanguageModelV4StreamPart,
     LanguageModelStreamPart<TOOLS>
   >({
     async transform(chunk, controller) {
+      if (isOutputChunk(chunk)) {
+        const outputChunkTimestampMs = now();
+
+        if (timeToFirstOutputMs == null) {
+          timeToFirstOutputMs = outputChunkTimestampMs - callStartTimestampMs;
+        } else if (previousOutputChunkTimestampMs != null) {
+          timeBetweenOutputChunksMs.push(
+            outputChunkTimestampMs - previousOutputChunkTimestampMs,
+          );
+        }
+
+        previousOutputChunkTimestampMs = outputChunkTimestampMs;
+      }
+
+      if (
+        withholdToolParts &&
+        (chunk.type === 'tool-input-start' ||
+          chunk.type === 'tool-input-delta' ||
+          chunk.type === 'tool-input-end')
+      ) {
+        return;
+      }
+
       switch (chunk.type) {
+        case 'error':
+          controller.enqueue({
+            type: 'error',
+            error: normalizeStreamProviderError(chunk.error),
+          });
+          break;
+
+        case 'text-start':
+          upsertTextContentPart({
+            enabled: collectContent,
+            content: modelCallContent,
+            rawContent: rawModelCallContent,
+            partIndexes: textPartIndexes,
+            rawPartIndexes: rawTextPartIndexes,
+            id: chunk.id,
+            type: 'text',
+            providerMetadata: chunk.providerMetadata,
+          });
+          controller.enqueue(chunk);
+          break;
+
         case 'text-delta':
+          upsertTextContentPart({
+            enabled: collectContent,
+            content: modelCallContent,
+            rawContent: rawModelCallContent,
+            partIndexes: textPartIndexes,
+            rawPartIndexes: rawTextPartIndexes,
+            id: chunk.id,
+            type: 'text',
+            textDelta: chunk.delta,
+            providerMetadata: chunk.providerMetadata,
+          });
           controller.enqueue({
             type: 'text-delta',
             id: chunk.id,
@@ -306,7 +536,48 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           });
           break;
 
+        case 'text-end':
+          upsertTextContentPart({
+            enabled: collectContent,
+            content: modelCallContent,
+            rawContent: rawModelCallContent,
+            partIndexes: textPartIndexes,
+            rawPartIndexes: rawTextPartIndexes,
+            id: chunk.id,
+            type: 'text',
+            providerMetadata: chunk.providerMetadata,
+          });
+          textPartIndexes.delete(chunk.id);
+          rawTextPartIndexes.delete(chunk.id);
+          controller.enqueue(chunk);
+          break;
+
+        case 'reasoning-start':
+          upsertTextContentPart({
+            enabled: collectContent,
+            content: modelCallContent,
+            rawContent: rawModelCallContent,
+            partIndexes: reasoningPartIndexes,
+            rawPartIndexes: rawReasoningPartIndexes,
+            id: chunk.id,
+            type: 'reasoning',
+            providerMetadata: chunk.providerMetadata,
+          });
+          controller.enqueue(chunk);
+          break;
+
         case 'reasoning-delta':
+          upsertTextContentPart({
+            enabled: collectContent,
+            content: modelCallContent,
+            rawContent: rawModelCallContent,
+            partIndexes: reasoningPartIndexes,
+            rawPartIndexes: rawReasoningPartIndexes,
+            id: chunk.id,
+            type: 'reasoning',
+            textDelta: chunk.delta,
+            providerMetadata: chunk.providerMetadata,
+          });
           controller.enqueue({
             type: 'reasoning-delta',
             id: chunk.id,
@@ -315,53 +586,190 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           });
           break;
 
+        case 'reasoning-end':
+          upsertTextContentPart({
+            enabled: collectContent,
+            content: modelCallContent,
+            rawContent: rawModelCallContent,
+            partIndexes: reasoningPartIndexes,
+            rawPartIndexes: rawReasoningPartIndexes,
+            id: chunk.id,
+            type: 'reasoning',
+            providerMetadata: chunk.providerMetadata,
+          });
+          reasoningPartIndexes.delete(chunk.id);
+          rawReasoningPartIndexes.delete(chunk.id);
+          controller.enqueue(chunk);
+          break;
+
         case 'file':
         case 'reasoning-file': {
+          const file = new DefaultGeneratedFileWithType({
+            data: await resolveGeneratedFileData({
+              data: chunk.data,
+              abortSignal,
+            }),
+            mediaType: chunk.mediaType,
+          });
+
+          if (collectContent)
+            modelCallContent.push({
+              type: chunk.type,
+              file,
+              ...(chunk.providerMetadata != null
+                ? { providerMetadata: chunk.providerMetadata }
+                : {}),
+            });
+          if (collectContent) rawModelCallContent.push(chunk);
+
           controller.enqueue({
             type: chunk.type,
-            file: new DefaultGeneratedFileWithType({
-              data: chunk.data,
-              mediaType: chunk.mediaType,
-            }),
+            file,
             providerMetadata: chunk.providerMetadata,
           });
           break;
         }
 
         case 'finish': {
+          const usage = asLanguageModelUsage(chunk.usage);
+          const responseTimeMs = now() - callStartTimestampMs;
+          const performance = {
+            responseTimeMs,
+            effectiveOutputTokensPerSecond: calculateTokensPerSecond({
+              tokens: usage.outputTokens,
+              durationMs: responseTimeMs,
+            }),
+            outputTokensPerSecond:
+              timeToFirstOutputMs == null
+                ? undefined
+                : calculateTokensPerSecond({
+                    tokens: usage.outputTokens,
+                    durationMs: responseTimeMs - timeToFirstOutputMs,
+                  }),
+            inputTokensPerSecond:
+              timeToFirstOutputMs == null
+                ? undefined
+                : calculateTokensPerSecond({
+                    tokens: usage.inputTokens,
+                    durationMs: timeToFirstOutputMs,
+                  }),
+            effectiveTotalTokensPerSecond: calculateTokensPerSecond({
+              tokens: sumTokenCounts(usage.inputTokens, usage.outputTokens),
+              durationMs: responseTimeMs,
+            }),
+            timeToFirstOutputMs,
+            timeBetweenOutputChunksMs:
+              timeBetweenOutputChunksMs.length > 0
+                ? calculateOutputChunkTimingStats(timeBetweenOutputChunksMs)
+                : undefined,
+          };
+
+          await notify({
+            event: {
+              callId,
+              provider,
+              modelId: responseModelId,
+              finishReason: chunk.finishReason.unified,
+              usage,
+              content: modelCallContent,
+              responseId,
+              ...(request?.url != null
+                ? { request: { url: getRequestOrigin(request.url) } }
+                : {}),
+              ...(chunk.providerMetadata != null
+                ? { providerMetadata: chunk.providerMetadata }
+                : {}),
+              performance,
+            },
+            callbacks: onLanguageModelCallEnd,
+          });
+
+          const enforcedToolChoice =
+            toolChoice.type === 'auto' ? undefined : toolChoice;
+
+          const toolChoiceViolationError =
+            enforcedToolChoice != null &&
+            (enforcedToolChoice.type === 'none'
+              ? toolCallsByToolCallId.size > 0
+              : chunk.finishReason.unified !== 'interrupted' &&
+                ![...toolCallsByToolCallId.values()].some(
+                  toolCall =>
+                    enforcedToolChoice.type === 'required' ||
+                    toolCall.toolName === enforcedToolChoice.toolName,
+                ))
+              ? new ToolChoiceViolationError({
+                  toolChoice: enforcedToolChoice,
+                  finishReason: chunk.finishReason.unified,
+                  provider,
+                  modelId,
+                  content: rawModelCallContent,
+                })
+              : undefined;
+
+          // Preserve the completed model call's usage, metadata, and
+          // performance even when response validation below surfaces a
+          // semantic error. Prevent invalid tool calls from being executed
+          // when the model-call-end event reaches the tool executor.
           controller.enqueue({
             type: 'model-call-end',
-            finishReason: chunk.finishReason.unified,
+            finishReason:
+              toolChoiceViolationError == null
+                ? chunk.finishReason.unified
+                : 'error',
             rawFinishReason: chunk.finishReason.raw,
-            usage: asLanguageModelUsage(chunk.usage),
+            usage,
             providerMetadata: chunk.providerMetadata,
+            performance,
           });
+
+          if (toolChoiceViolationError != null) {
+            controller.enqueue({
+              type: 'error',
+              error: toolChoiceViolationError,
+            });
+            break;
+          }
           break;
         }
 
         case 'tool-call': {
+          if (collectContent) rawModelCallContent.push(chunk);
+
           try {
             const toolCall = await parseToolCall({
               toolCall: chunk,
               tools,
-              repairToolCall,
-              system,
+              repairToolCall: withholdToolParts ? undefined : repairToolCall,
+              refineToolInput: withholdToolParts ? undefined : refineToolInput,
+              instructions,
               messages,
+              abortSignal,
             });
 
             toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
+            if (collectContent) modelCallContent.push(toolCall);
+
+            if (withholdToolParts) {
+              break;
+            }
+
             controller.enqueue(toolCall);
 
             if (toolCall.invalid) {
-              controller.enqueue({
-                type: 'tool-error',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                error: getErrorMessage(toolCall.error!),
-                dynamic: true,
-                title: toolCall.title,
-              });
+              if (!toolCall.providerExecuted) {
+                controller.enqueue({
+                  type: 'tool-error',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  input: toolCall.input,
+                  error: getErrorMessage(toolCall.error!),
+                  dynamic: true,
+                  title: toolCall.title,
+                  ...(toolCall.toolMetadata != null
+                    ? { toolMetadata: toolCall.toolMetadata }
+                    : {}),
+                });
+              }
               break;
             }
           } catch (error) {
@@ -372,6 +780,12 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         case 'tool-approval-request': {
+          if (collectContent) rawModelCallContent.push(chunk);
+
+          if (withholdToolParts) {
+            break;
+          }
+
           const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
 
           if (toolCall == null) {
@@ -385,55 +799,69 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             break;
           }
 
-          controller.enqueue({
+          const toolApprovalRequest = {
             type: 'tool-approval-request',
             approvalId: chunk.approvalId,
             toolCall,
-          });
+          } as const;
+
+          controller.enqueue(toolApprovalRequest);
+          if (collectContent) modelCallContent.push(toolApprovalRequest);
           break;
         }
 
         case 'tool-result': {
-          const toolName = chunk.toolName as keyof TOOLS & string;
+          if (collectContent) rawModelCallContent.push(chunk);
 
-          controller.enqueue(
-            chunk.isError
-              ? ({
-                  type: 'tool-error',
-                  toolCallId: chunk.toolCallId,
-                  toolName,
-                  input: toolCallsByToolCallId.get(chunk.toolCallId)?.input,
-                  providerExecuted: true,
-                  error: chunk.result,
-                  dynamic: chunk.dynamic,
-                  ...(chunk.providerMetadata != null
-                    ? { providerMetadata: chunk.providerMetadata }
-                    : {}),
-                } as TypedToolError<TOOLS>)
-              : ({
-                  type: 'tool-result',
-                  toolCallId: chunk.toolCallId,
-                  toolName,
-                  input: toolCallsByToolCallId.get(chunk.toolCallId)?.input,
-                  output: chunk.result,
-                  providerExecuted: true,
-                  dynamic: chunk.dynamic,
-                  ...(chunk.providerMetadata != null
-                    ? { providerMetadata: chunk.providerMetadata }
-                    : {}),
-                } as TypedToolResult<TOOLS>),
-          );
+          const toolName = chunk.toolName as keyof TOOLS & string;
+          const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
+
+          const toolResultPart = chunk.isError
+            ? ({
+                type: 'tool-error',
+                toolCallId: chunk.toolCallId,
+                toolName,
+                input: toolCall?.input,
+                providerExecuted: true,
+                error: chunk.result,
+                dynamic: chunk.dynamic,
+                ...(chunk.providerMetadata != null
+                  ? { providerMetadata: chunk.providerMetadata }
+                  : {}),
+                ...(toolCall?.toolMetadata != null
+                  ? { toolMetadata: toolCall.toolMetadata }
+                  : {}),
+              } as TypedToolError<TOOLS>)
+            : ({
+                type: 'tool-result',
+                toolCallId: chunk.toolCallId,
+                toolName,
+                input: toolCall?.input,
+                output: chunk.result,
+                providerExecuted: true,
+                dynamic: chunk.dynamic,
+                ...(chunk.providerMetadata != null
+                  ? { providerMetadata: chunk.providerMetadata }
+                  : {}),
+                ...(toolCall?.toolMetadata != null
+                  ? { toolMetadata: toolCall.toolMetadata }
+                  : {}),
+              } as TypedToolResult<TOOLS>);
+
+          if (!withholdToolParts) controller.enqueue(toolResultPart);
+          if (collectContent) modelCallContent.push(toolResultPart);
 
           break;
         }
 
         case 'tool-input-start': {
-          const tool = tools?.[chunk.toolName];
+          const tool = getOwn(tools, chunk.toolName);
 
           controller.enqueue({
             ...chunk,
             dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
             title: tool?.title,
+            ...(tool?.metadata != null ? { toolMetadata: tool.metadata } : {}),
           });
           break;
         }
@@ -447,6 +875,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         case 'response-metadata': {
+          responseId = chunk.id ?? responseId;
+          responseModelId = chunk.modelId ?? responseModelId;
+
           controller.enqueue({
             type: 'model-call-response-metadata',
             id: chunk.id,
@@ -457,9 +888,122 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         default:
+          if (chunk.type === 'custom' || chunk.type === 'source') {
+            if (collectContent) modelCallContent.push(chunk);
+            if (collectContent) rawModelCallContent.push(chunk);
+          }
+
           controller.enqueue(chunk);
           break;
       }
     },
   });
+}
+
+/**
+ * Returns true for chunks that contain generated model output.
+ * Used to measure time-to-first-output for text, reasoning, generated files,
+ * and tool calls.
+ */
+function isOutputChunk(chunk: LanguageModelV4StreamPart): boolean {
+  return (
+    (chunk.type === 'text-delta' && chunk.delta.length > 0) ||
+    (chunk.type === 'reasoning-delta' && chunk.delta.length > 0) ||
+    (chunk.type === 'tool-input-delta' && chunk.delta.length > 0) ||
+    chunk.type === 'file' ||
+    chunk.type === 'reasoning-file' ||
+    chunk.type === 'tool-call'
+  );
+}
+
+function calculateOutputChunkTimingStats(
+  timingsMs: number[],
+): OutputChunkTimingStats {
+  const sortedTimingsMs = [...timingsMs].sort((a, b) => a - b);
+  const sum = timingsMs.reduce((sum, timingMs) => sum + timingMs, 0);
+
+  return {
+    min: sortedTimingsMs[0],
+    p10: calculateNearestRankPercentile(sortedTimingsMs, 0.1),
+    median: calculateNearestRankPercentile(sortedTimingsMs, 0.5),
+    avg: sum / timingsMs.length,
+    p90: calculateNearestRankPercentile(sortedTimingsMs, 0.9),
+    max: sortedTimingsMs[sortedTimingsMs.length - 1],
+  };
+}
+
+function calculateNearestRankPercentile(
+  sortedValues: number[],
+  percentile: number,
+): number {
+  return sortedValues[Math.ceil(percentile * sortedValues.length) - 1];
+}
+
+/**
+ * Appends a text or reasoning content part into the content array and updates the part indexes.
+ */
+function upsertTextContentPart<TOOLS extends ToolSet>({
+  enabled,
+  content,
+  rawContent,
+  partIndexes,
+  rawPartIndexes,
+  id,
+  type,
+  textDelta,
+  providerMetadata,
+}: {
+  enabled: boolean;
+  content: Array<ContentPart<TOOLS>>;
+  rawContent: Array<LanguageModelV4Content>;
+  partIndexes: Map<string, number>;
+  rawPartIndexes: Map<string, number>;
+  id: string;
+  type: 'text' | 'reasoning';
+  textDelta?: string;
+  providerMetadata?: ProviderMetadata;
+}) {
+  if (!enabled) return;
+  let partIndex = partIndexes.get(id);
+
+  if (partIndex == null) {
+    partIndex =
+      content.push({
+        type,
+        text: '',
+        ...(providerMetadata != null ? { providerMetadata } : {}),
+      }) - 1;
+    partIndexes.set(id, partIndex);
+  }
+
+  let rawPartIndex = rawPartIndexes.get(id);
+
+  if (rawPartIndex == null) {
+    rawPartIndex =
+      rawContent.push({
+        type,
+        text: '',
+        ...(providerMetadata != null ? { providerMetadata } : {}),
+      }) - 1;
+    rawPartIndexes.set(id, rawPartIndex);
+  }
+
+  const part = content[partIndex] as {
+    text: string;
+    providerMetadata?: ProviderMetadata;
+  };
+  const rawPart = rawContent[rawPartIndex] as {
+    text: string;
+    providerMetadata?: ProviderMetadata;
+  };
+
+  if (textDelta != null) {
+    part.text += textDelta;
+    rawPart.text += textDelta;
+  }
+
+  if (providerMetadata != null) {
+    part.providerMetadata = providerMetadata;
+    rawPart.providerMetadata = providerMetadata;
+  }
 }

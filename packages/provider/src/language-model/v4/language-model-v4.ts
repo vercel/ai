@@ -1,6 +1,6 @@
-import { LanguageModelV4CallOptions } from './language-model-v4-call-options';
-import { LanguageModelV4GenerateResult } from './language-model-v4-generate-result';
-import { LanguageModelV4StreamResult } from './language-model-v4-stream-result';
+import type { LanguageModelV4CallOptions } from './language-model-v4-call-options';
+import type { LanguageModelV4GenerateResult } from './language-model-v4-generate-result';
+import type { LanguageModelV4StreamResult } from './language-model-v4-stream-result';
 
 /**
  * Specification for a language model that implements the language model interface version 4.

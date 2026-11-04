@@ -1,0 +1,110 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+
+export type OpenAITranscriptionModelId =
+  | 'whisper-1'
+  | 'gpt-4o-mini-transcribe'
+  | 'gpt-4o-mini-transcribe-2025-03-20'
+  | 'gpt-4o-mini-transcribe-2025-12-15'
+  | 'gpt-4o-transcribe'
+  | 'gpt-4o-transcribe-diarize'
+  | 'gpt-live-transcribe'
+  | 'gpt-realtime-whisper'
+  | 'gpt-transcribe'
+  | (string & {});
+
+// https://platform.openai.com/docs/api-reference/audio/createTranscription
+export const openAITranscriptionModelOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
+       * Additional information to include in the transcription response.
+       */
+
+      include: z.array(z.string()).optional(),
+
+      /**
+       * The language of the input audio in ISO-639-1 format.
+       */
+      language: z.string().optional(),
+
+      /**
+       * Expected languages for REST transcription, e.g. with gpt-transcribe.
+       * Use this instead of language. The API validates model support.
+       */
+      languages: z.array(z.string()).optional(),
+
+      /**
+       * Vocabulary hints for REST transcription, e.g. names or technical terms.
+       * The API validates model support.
+       */
+      keywords: z.array(z.string()).optional(),
+
+      /**
+       * An optional text to guide the model's style or continue a previous audio segment.
+       */
+      prompt: z.string().optional(),
+
+      /**
+       * The sampling temperature, between 0 and 1.
+       * @default 0
+       */
+      temperature: z.number().min(0).max(1).default(0).optional(),
+
+      /**
+       * The timestamp granularities to populate for this transcription.
+       * Defaults to ['segment'] when the response format is verbose_json.
+       */
+      timestampGranularities: z.array(z.enum(['word', 'segment'])).optional(),
+
+      /**
+       * The format of the transcription response.
+       */
+      responseFormat: z
+        .enum(['json', 'verbose_json', 'diarized_json'])
+        .optional(),
+
+      /**
+       * Controls how the audio is split into chunks before transcription.
+       */
+      chunkingStrategy: z
+        .union([
+          z.literal('auto'),
+          z.object({
+            type: z.literal('server_vad'),
+            threshold: z.number().min(0).max(1).optional(),
+            prefixPaddingMs: z.number().int().min(0).optional(),
+            silenceDurationMs: z.number().int().min(0).optional(),
+          }),
+        ])
+        .optional(),
+
+      /**
+       * Options for streaming transcription models such as `gpt-live-transcribe`.
+       */
+      streaming: z
+        .object({
+          /**
+           * Latency/accuracy tradeoff for realtime transcription.
+           */
+          delay: z
+            .enum(['minimal', 'low', 'medium', 'high', 'xhigh'])
+            .optional(),
+
+          /**
+           * Additional fields to include in realtime transcription events.
+           */
+          include: z.array(z.string()).optional(),
+        })
+        .optional(),
+    }),
+  ),
+);
+
+export type OpenAITranscriptionModelOptions = InferSchema<
+  typeof openAITranscriptionModelOptions
+>;

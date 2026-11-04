@@ -1,4 +1,4 @@
-import { ElicitationResponse } from './types';
+import type { ElicitationResponse } from './types';
 
 // Use globalThis to ensure the Map is shared across all Next.js API routes
 // This prevents issues with module reloading in development

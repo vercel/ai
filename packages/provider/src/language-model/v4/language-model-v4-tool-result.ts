@@ -1,5 +1,5 @@
-import { JSONValue } from '../../json-value';
-import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
+import type { JSONValue } from '../../json-value';
+import type { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 
 /**
  * Result of a tool call that has been executed by the provider.

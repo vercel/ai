@@ -3,7 +3,7 @@
 import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { SourcesChatMessage } from '@/app/api/chat/sources/route';
+import type { SourcesChatMessage } from '@/app/api/chat/sources/route';
 
 export default function Chat() {
   const { error, status, sendMessage, messages, regenerate, stop } =

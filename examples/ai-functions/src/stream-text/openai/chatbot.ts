@@ -1,5 +1,14 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { isStepCount, ModelMessage, streamText, tool, APICallError } from 'ai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import {
+  isStepCount,
+  streamText,
+  tool,
+  APICallError,
+  type ModelMessage,
+} from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -20,7 +29,7 @@ run(async () => {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: openai('gpt-4o'), // gpt-5-mini
+      model: openai('gpt-6-astra'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',
@@ -55,7 +64,7 @@ run(async () => {
     });
 
     process.stdout.write('\nAssistant: ');
-    for await (const chunk of result.fullStream) {
+    for await (const chunk of result.stream) {
       switch (chunk.type) {
         case 'raw':
           console.log(JSON.stringify(chunk.rawValue, null, 2));

@@ -1,4 +1,4 @@
-import { type KlingAIVideoModelOptions, klingai } from '@ai-sdk/klingai';
+import { klingai, type KlingAIVideoModelOptions } from '@ai-sdk/klingai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../../lib/present-video';
 import { run } from '../../lib/run';
@@ -9,7 +9,7 @@ run(async () => {
     'Generating KlingAI motion control video (pro mode)...',
     () =>
       generateVideo({
-        model: klingai.video('kling-v2.6-motion-control'),
+        model: klingai.video('kling-v3.0-motion-control'),
         prompt: {
           image:
             'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',

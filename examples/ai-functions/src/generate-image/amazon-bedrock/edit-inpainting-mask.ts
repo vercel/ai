@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
@@ -22,7 +22,7 @@ run(async () => {
   console.log(`PROMPT: ${prompt}`);
 
   const { images } = await generateImage({
-    model: bedrock.image('amazon.nova-canvas-v1:0'),
+    model: amazonBedrock.image('amazon.nova-canvas-v1:0'),
     prompt: {
       text: prompt,
       images: [image],

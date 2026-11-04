@@ -1,11 +1,11 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   console.log('Low temperature (0.1) - More focused:');
   const lowTemp = await generateText({
-    model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
+    model: huggingFace('meta-llama/Llama-3.1-8B-Instruct'),
     prompt: 'Write a creative story about a robot learning to paint.',
     temperature: 0.1,
   });

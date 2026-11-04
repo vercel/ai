@@ -1,11 +1,11 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod/v4';
 import { run } from '../../lib/run';
 
 run(async () => {
   const { text, usage, toolCalls, toolResults } = await generateText({
-    model: huggingface.responses('deepseek-ai/DeepSeek-V3-0324'),
+    model: huggingFace.responses('deepseek-ai/DeepSeek-V3-0324'),
     stopWhen: isStepCount(3),
     tools: {
       getWeather: tool({

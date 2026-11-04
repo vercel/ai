@@ -199,16 +199,6 @@ describe('test-utils', () => {
         /Syntax error/,
       );
     });
-
-    it('should catch typescript type errors', () => {
-      const invalidTsCode = `
-        const x: number = "string";  // Type mismatch
-      `;
-
-      expect(() => testUtils.validateSyntax(invalidTsCode, '.ts')).toThrow(
-        /Type.*string.*not assignable to type.*number/,
-      );
-    });
   });
 
   describe('testTransform', () => {

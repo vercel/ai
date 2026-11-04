@@ -90,10 +90,12 @@ describe('mapOperationName', () => {
     expect({
       generateText: mapOperationName('ai.generateText'),
       streamText: mapOperationName('ai.streamText'),
+      workflowAgent: mapOperationName('ai.workflowAgent.stream'),
     }).toMatchInlineSnapshot(`
       {
         "generateText": "invoke_agent",
         "streamText": "invoke_agent",
+        "workflowAgent": "invoke_agent",
       }
     `);
   });
@@ -195,12 +197,16 @@ describe('formatInputMessages', () => {
     `);
   });
 
-  it('should exclude system messages', () => {
+  it('should preserve system messages in prompt order', () => {
     const prompt: LanguageModelV4Prompt = [
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'First' }],
+      },
       { role: 'system', content: 'Be helpful' },
       {
         role: 'user',
-        content: [{ type: 'text', text: 'Hello' }],
+        content: [{ type: 'text', text: 'Second' }],
       },
     ];
     expect(formatInputMessages(prompt)).toMatchInlineSnapshot(`
@@ -208,7 +214,25 @@ describe('formatInputMessages', () => {
         {
           "parts": [
             {
-              "content": "Hello",
+              "content": "First",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "parts": [
+            {
+              "content": "Be helpful",
+              "type": "text",
+            },
+          ],
+          "role": "system",
+        },
+        {
+          "parts": [
+            {
+              "content": "Second",
               "type": "text",
             },
           ],
@@ -288,7 +312,7 @@ describe('formatInputMessages', () => {
         content: [
           {
             type: 'file',
-            data: 'base64data',
+            data: { type: 'data' as const, data: 'base64data' },
             mediaType: 'image/png',
           },
         ],
@@ -318,7 +342,10 @@ describe('formatInputMessages', () => {
         content: [
           {
             type: 'file',
-            data: 'https://example.com/image.png',
+            data: {
+              type: 'url' as const,
+              url: new URL('https://example.com/image.png'),
+            },
             mediaType: 'image/png',
           },
         ],
@@ -443,6 +470,36 @@ describe('formatOutputMessages', () => {
               "id": "call_abc",
               "name": "get_weather",
               "type": "tool_call",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
+
+  it('should format output with tool results', () => {
+    expect(
+      formatOutputMessages({
+        toolResults: [
+          {
+            toolCallId: 'call_abc',
+            output: { temperature: 21 },
+          },
+        ],
+        finishReason: 'stop',
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "finish_reason": "stop",
+          "parts": [
+            {
+              "id": "call_abc",
+              "response": {
+                "temperature": 21,
+              },
+              "type": "tool_call_response",
             },
           ],
           "role": "assistant",
@@ -632,13 +689,14 @@ describe('formatModelMessages', () => {
     `);
   });
 
-  it('should exclude system messages', () => {
+  it('should preserve system messages in message order', () => {
     expect(
       formatModelMessages({
         prompt: undefined,
         messages: [
+          { role: 'user', content: 'First' },
           { role: 'system', content: 'Be helpful' },
-          { role: 'user', content: 'Hello' },
+          { role: 'user', content: 'Second' },
         ],
       }),
     ).toMatchInlineSnapshot(`
@@ -646,7 +704,25 @@ describe('formatModelMessages', () => {
         {
           "parts": [
             {
-              "content": "Hello",
+              "content": "First",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "parts": [
+            {
+              "content": "Be helpful",
+              "type": "text",
+            },
+          ],
+          "role": "system",
+        },
+        {
+          "parts": [
+            {
+              "content": "Second",
               "type": "text",
             },
           ],

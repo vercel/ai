@@ -1,13 +1,13 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { registerTelemetry, streamText } from 'ai';
 import { z } from 'zod';
-import { OpenTelemetry, GenAIOpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry, OpenTelemetry } from '@ai-sdk/otel';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../../lib/run';
 
-registerTelemetry(new OpenTelemetry(), DevToolsTelemetry());
+registerTelemetry(new LegacyOpenTelemetry(), DevToolsTelemetry());
 
 const sdk = new NodeSDK({
   spanProcessors: [new LangfuseSpanProcessor()],
@@ -17,7 +17,7 @@ sdk.start();
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-sonnet-4-5'),
+    model: anthropic('claude-sonnet-5-5'),
     prompt: 'Cook me a lasagna.',
     tools: {
       cookRecipe: {
@@ -41,7 +41,7 @@ run(async () => {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'tool-input-start':
         console.log(`\n[tool-input-start] ${part.toolName} (${part.id})`);

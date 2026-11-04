@@ -1,4 +1,4 @@
-import { FetchPDFUIToolInvocation } from '@/tool/fetch-pdf-tool';
+import type { FetchPDFUIToolInvocation } from '@/tool/fetch-pdf-tool';
 
 export default function FetchPDFView({
   invocation,

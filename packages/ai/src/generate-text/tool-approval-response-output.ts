@@ -1,4 +1,4 @@
-import { TypedToolCall } from './tool-call';
+import type { TypedToolCall } from './tool-call';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**

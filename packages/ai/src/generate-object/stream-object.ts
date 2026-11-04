@@ -1,4 +1,5 @@
-import {
+import { sanitizeRequestMetadata } from '../telemetry/get-request-origin';
+import type {
   JSONValue,
   LanguageModelV4FinishReason,
   LanguageModelV4StreamPart,
@@ -9,61 +10,70 @@ import {
 import {
   createIdGenerator,
   DelayedPromise,
-  FlexibleSchema,
-  ProviderOptions,
   type InferSchema,
+  type FlexibleSchema,
+  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { ServerResponse } from 'http';
+import type { ServerResponse } from 'http';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
-import { RequestOptions } from '../prompt/request-options';
+import type { RequestOptions } from '../prompt/request-options';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { Prompt } from '../prompt/prompt';
+import type { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
-import {
+import type {
   CallWarning,
   FinishReason,
   LanguageModel,
 } from '../types/language-model';
-import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderMetadata } from '../types/provider-metadata';
+import type { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import type { ProviderMetadata } from '../types/provider-metadata';
 import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
-  LanguageModelUsage,
+  type LanguageModelUsage,
 } from '../types/usage';
-import { DeepPartial, isDeepEqualData, parsePartialJson } from '../util';
+import { isDeepEqualData, parsePartialJson, type DeepPartial } from '../util';
 import {
-  AsyncIterableStream,
   createAsyncIterableStream,
+  type AsyncIterableStream,
 } from '../util/async-iterable-stream';
 import type { Callback } from '../util/callback';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { DownloadFunction } from '../util/download/download-function';
+import type { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import type {
-  ObjectOnFinishEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepFinishEvent,
-  ObjectOnStepStartEvent,
+  GenerateObjectEndEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepEndEvent,
+  GenerateObjectStepStartEvent,
 } from './structured-output-events';
-import { getOutputStrategy, OutputStrategy } from './output-strategy';
+import { getOutputStrategy, type OutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
-import { RepairTextFunction } from './repair-text';
-import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
+import type { RepairTextFunction } from './repair-text';
+import type {
+  ObjectStreamPart,
+  StreamObjectResult,
+} from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
+
+async function markPromiseAsHandled<T>(promise: Promise<T>): Promise<void> {
+  try {
+    await promise;
+  } catch {}
+}
 
 /**
  * Callback that is set using the `onError` option.
@@ -123,6 +133,7 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  * @param system - A system message that will be part of the prompt.
  * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
  * @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+ * @param allowSystemInMessages - Whether system messages are allowed in the `prompt` or `messages` fields. Default: false.
  *
  * @param maxOutputTokens - Maximum number of tokens to generate.
  * @param temperature - Temperature setting.
@@ -163,6 +174,10 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  * - 'array': The output is an array.
  * - 'enum': The output is an enum.
  * - 'no-schema': The output is not a schema.
+ *
+ * @param repairText - A function that attempts to repair the raw output of the model
+ * to enable JSON parsing.
+ * @param experimental_repairText - Deprecated alias for `repairText`.
  *
  * @param telemetry - Optional telemetry configuration.
  *
@@ -227,6 +242,14 @@ export function streamObject<
        * A function that attempts to repair the raw output of the model
        * to enable JSON parsing.
        */
+      repairText?: RepairTextFunction;
+
+      /**
+       * A function that attempts to repair the raw output of the model
+       * to enable JSON parsing.
+       *
+       * @deprecated Use `repairText` instead.
+       */
       experimental_repairText?: RepairTextFunction;
 
       /**
@@ -259,19 +282,43 @@ export function streamObject<
        * Callback that is called when the streamObject operation begins,
        * before the LLM call is made.
        */
-      experimental_onStart?: Callback<ObjectOnStartEvent>;
+      onStart?: Callback<GenerateObjectStartEvent>;
+
+      /**
+       * Callback that is called when the streamObject operation begins,
+       * before the LLM call is made.
+       *
+       * @deprecated Use `onStart` instead.
+       */
+      experimental_onStart?: Callback<GenerateObjectStartEvent>;
 
       /**
        * Callback that is called when the model call (step) begins,
        * before the provider is called.
        */
-      experimental_onStepStart?: Callback<ObjectOnStepStartEvent>;
+      onStepStart?: Callback<GenerateObjectStepStartEvent>;
+
+      /**
+       * Callback that is called when the model call (step) begins,
+       * before the provider is called.
+       *
+       * @deprecated Use `onStepStart` instead.
+       */
+      experimental_onStepStart?: Callback<GenerateObjectStepStartEvent>;
 
       /**
        * Callback that is called when the model streaming step completes,
        * with the raw accumulated text before final schema validation.
        */
-      onStepFinish?: Callback<ObjectOnStepFinishEvent>;
+      onStepEnd?: Callback<GenerateObjectStepEndEvent>;
+
+      /**
+       * Callback that is called when the model streaming step completes,
+       * with the raw accumulated text before final schema validation.
+       *
+       * @deprecated Use `onStepEnd` instead.
+       */
+      onStepFinish?: Callback<GenerateObjectStepEndEvent>;
 
       /**
        * Callback that is invoked when an error occurs during streaming.
@@ -283,7 +330,7 @@ export function streamObject<
       /**
        * Callback that is called when the LLM response and the final object validation are finished.
        */
-      onFinish?: Callback<ObjectOnFinishEvent<RESULT>>;
+      onFinish?: Callback<GenerateObjectEndEvent<RESULT>>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -307,22 +354,38 @@ export function streamObject<
       : never
     : never
 > {
+  logWarnings({
+    warnings: [
+      {
+        type: 'deprecated',
+        setting: 'streamObject',
+        message: 'Use streamText with an output setting instead.',
+      },
+    ],
+  });
+
   const {
     model,
     output = 'object',
+    instructions,
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     maxRetries,
     abortSignal,
     headers,
-    experimental_repairText: repairText,
+    experimental_repairText,
+    repairText = experimental_repairText,
     experimental_telemetry,
     telemetry = experimental_telemetry,
     experimental_download: download,
     providerOptions,
-    experimental_onStart: onStart,
-    experimental_onStepStart: onStepStart,
+    onStart,
+    experimental_onStart,
+    onStepStart,
+    experimental_onStepStart,
+    onStepEnd,
     onStepFinish,
     onError = ({ error }: { error: unknown }) => {
       console.error(error);
@@ -367,16 +430,18 @@ export function streamObject<
     maxRetries,
     abortSignal,
     outputStrategy,
+    instructions,
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     schemaName,
     schemaDescription,
     providerOptions,
     repairText,
-    onStart,
-    onStepStart,
-    onStepFinish,
+    onStart: onStart ?? experimental_onStart,
+    onStepStart: onStepStart ?? experimental_onStepStart,
+    onStepFinish: onStepEnd ?? onStepFinish,
     onError,
     onFinish,
     download,
@@ -397,10 +462,12 @@ class DefaultStreamObjectResult<
     ProviderMetadata | undefined
   >();
   private readonly _warnings = new DelayedPromise<CallWarning[] | undefined>();
-  private readonly _request =
-    new DelayedPromise<LanguageModelRequestMetadata>();
-  private readonly _response =
-    new DelayedPromise<LanguageModelResponseMetadata>();
+  private readonly _request = new DelayedPromise<
+    Omit<LanguageModelRequestMetadata, 'messages'>
+  >();
+  private readonly _response = new DelayedPromise<
+    Omit<LanguageModelResponseMetadata, 'messages'>
+  >();
   private readonly _finishReason = new DelayedPromise<FinishReason>();
 
   private readonly baseStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
@@ -419,9 +486,11 @@ class DefaultStreamObjectResult<
     maxRetries: maxRetriesArg,
     abortSignal,
     outputStrategy,
+    instructions,
     system,
     prompt,
     messages,
+    allowSystemInMessages,
     schemaName,
     schemaDescription,
     providerOptions,
@@ -443,18 +512,20 @@ class DefaultStreamObjectResult<
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
+    instructions: Prompt['instructions'];
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
+    allowSystemInMessages: Prompt['allowSystemInMessages'];
     schemaName: string | undefined;
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
     repairText: RepairTextFunction | undefined;
-    onStart: Callback<ObjectOnStartEvent> | undefined;
-    onStepStart: Callback<ObjectOnStepStartEvent> | undefined;
-    onStepFinish: Callback<ObjectOnStepFinishEvent> | undefined;
+    onStart: Callback<GenerateObjectStartEvent> | undefined;
+    onStepStart: Callback<GenerateObjectStepStartEvent> | undefined;
+    onStepFinish: Callback<GenerateObjectStepEndEvent> | undefined;
     onError: StreamObjectOnErrorCallback;
-    onFinish: Callback<ObjectOnFinishEvent<RESULT>> | undefined;
+    onFinish: Callback<GenerateObjectEndEvent<RESULT>> | undefined;
     download: DownloadFunction | undefined;
     generateId: () => string;
     currentDate: () => Date;
@@ -486,7 +557,10 @@ class DefaultStreamObjectResult<
         controller.enqueue(chunk);
 
         if (chunk.type === 'error') {
-          onError({ error: wrapGatewayError(chunk.error) });
+          void notify({
+            event: { error: wrapGatewayError(chunk.error) },
+            callbacks: onError,
+          });
         }
       },
     });
@@ -504,7 +578,7 @@ class DefaultStreamObjectResult<
           operationId: 'ai.streamObject' as const,
           provider: model.provider,
           modelId: model.modelId,
-          system,
+          system: instructions ?? system,
           prompt,
           messages,
           maxOutputTokens: callSettings.maxOutputTokens,
@@ -530,9 +604,11 @@ class DefaultStreamObjectResult<
       });
 
       const standardizedPrompt = await standardizePrompt({
+        instructions,
         system,
         prompt,
         messages,
+        allowSystemInMessages,
       } as Prompt);
 
       const callOptions = {
@@ -547,6 +623,7 @@ class DefaultStreamObjectResult<
           prompt: standardizedPrompt,
           supportedUrls: await model.supportedUrls,
           download,
+          abortSignal,
           provider: model.provider.split('.')[0],
         }),
         providerOptions,
@@ -588,10 +665,13 @@ class DefaultStreamObjectResult<
       };
 
       const startTimestampMs = now();
-      const { stream, response, request } = await retry(() =>
-        model.doStream(callOptions),
-      );
+      const {
+        stream,
+        response,
+        request: rawRequest,
+      } = await retry(() => model.doStream(callOptions));
 
+      const request = sanitizeRequestMetadata(rawRequest);
       self._request.resolve(request ?? {});
 
       let warnings: SharedV4Warning[] | undefined;
@@ -600,6 +680,7 @@ class DefaultStreamObjectResult<
       let providerMetadata: ProviderMetadata | undefined;
       let object: RESULT | undefined;
       let error: unknown | undefined;
+      let terminalError: { error: unknown } | undefined;
       let msToFirstChunk: number | undefined = undefined;
 
       let accumulatedText = '';
@@ -695,19 +776,35 @@ class DefaultStreamObjectResult<
                   break;
                 }
 
+                case 'error': {
+                  if (terminalError === undefined) {
+                    const wrappedError = wrapGatewayError(chunk.error);
+                    terminalError = { error: wrappedError };
+                    error = wrappedError;
+                    finishReason = 'error';
+                    self.rejectResultPromises(wrappedError);
+                  }
+
+                  controller.enqueue(chunk);
+                  break;
+                }
+
                 case 'finish': {
                   if (textDelta !== '') {
                     controller.enqueue({ type: 'text-delta', textDelta });
                   }
 
-                  finishReason = chunk.finishReason.unified;
+                  finishReason =
+                    terminalError === undefined
+                      ? chunk.finishReason.unified
+                      : 'error';
 
                   usage = asLanguageModelUsage(chunk.usage);
                   providerMetadata = chunk.providerMetadata;
 
                   controller.enqueue({
                     ...chunk,
-                    finishReason: chunk.finishReason.unified,
+                    finishReason,
                     usage,
                     response: fullResponse,
                   });
@@ -717,6 +814,10 @@ class DefaultStreamObjectResult<
                     provider: model.provider,
                     model: model.modelId,
                   });
+
+                  if (terminalError !== undefined) {
+                    break;
+                  }
 
                   self._usage.resolve(usage);
                   self._providerMetadata.resolve(providerMetadata);
@@ -782,7 +883,7 @@ class DefaultStreamObjectResult<
                   },
                   callbacks: [
                     onStepFinish,
-                    telemetryDispatcher.onObjectStepFinish,
+                    telemetryDispatcher.onObjectStepEnd,
                   ],
                 });
 
@@ -802,7 +903,7 @@ class DefaultStreamObjectResult<
                     },
                     providerMetadata,
                   },
-                  callbacks: [onFinish, telemetryDispatcher.onFinish],
+                  callbacks: [onFinish, telemetryDispatcher.onEnd],
                 });
               } catch (error) {
                 controller.enqueue({ type: 'error', error });
@@ -811,9 +912,19 @@ class DefaultStreamObjectResult<
           }),
         );
 
-      stitchableStream.addStream(transformedStream);
+      stitchableStream.addStream(transformedStream, {
+        onError(error) {
+          const wrappedError = wrapGatewayError(error);
+          self.rejectResultPromises(wrappedError);
+          void notify({
+            event: { error: wrappedError },
+            callbacks: onError,
+          });
+        },
+      });
     })()
       .catch(async error => {
+        self.rejectResultPromises(error);
         await telemetryDispatcher.onError?.({ callId, error });
 
         stitchableStream.addStream(
@@ -830,6 +941,29 @@ class DefaultStreamObjectResult<
       });
 
     this.outputStrategy = outputStrategy;
+  }
+
+  private rejectResultPromises(error: unknown) {
+    this.rejectResultPromise({ delayedPromise: this._object, error });
+    this.rejectResultPromise({ delayedPromise: this._usage, error });
+    this.rejectResultPromise({ delayedPromise: this._providerMetadata, error });
+    this.rejectResultPromise({ delayedPromise: this._warnings, error });
+    this.rejectResultPromise({ delayedPromise: this._request, error });
+    this.rejectResultPromise({ delayedPromise: this._response, error });
+    this.rejectResultPromise({ delayedPromise: this._finishReason, error });
+  }
+
+  private rejectResultPromise<T>({
+    delayedPromise,
+    error,
+  }: {
+    delayedPromise: DelayedPromise<T>;
+    error: unknown;
+  }) {
+    if (delayedPromise.isPending()) {
+      delayedPromise.reject(error);
+      markPromiseAsHandled(delayedPromise.promise);
+    }
   }
 
   get object() {
@@ -921,16 +1055,16 @@ class DefaultStreamObjectResult<
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
-    pipeTextStreamToResponse({
+    return pipeTextStreamToResponse({
       response,
-      textStream: this.textStream,
+      stream: this.textStream,
       ...init,
     });
   }
 
   toTextStreamResponse(init?: ResponseInit): Response {
     return createTextStreamResponse({
-      textStream: this.textStream,
+      stream: this.textStream,
       ...init,
     });
   }

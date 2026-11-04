@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV4Usage,
   JSONObject,
   LanguageModelV4Usage,
@@ -59,16 +59,6 @@ export type LanguageModelUsage = {
   totalTokens: number | undefined;
 
   /**
-   * @deprecated Use outputTokenDetails.reasoningTokens instead.
-   */
-  reasoningTokens?: number | undefined;
-
-  /**
-   * @deprecated Use inputTokenDetails.cacheReadTokens instead.
-   */
-  cachedInputTokens?: number | undefined;
-
-  /**
    * Raw usage information from the provider.
    *
    * This is the usage information in the shape that the provider returns.
@@ -108,8 +98,6 @@ export function asLanguageModelUsage(
       usage.outputTokens.total,
     ),
     raw: usage.raw,
-    reasoningTokens: usage.outputTokens.reasoning,
-    cachedInputTokens: usage.inputTokens.cacheRead,
   };
 }
 
@@ -135,6 +123,12 @@ export function addLanguageModelUsage(
   usage1: LanguageModelUsage,
   usage2: LanguageModelUsage,
 ): LanguageModelUsage {
+  const raw = isNullLanguageModelUsage(usage1)
+    ? usage2.raw
+    : isNullLanguageModelUsage(usage2)
+      ? usage1.raw
+      : undefined;
+
   return {
     inputTokens: addTokenCounts(usage1.inputTokens, usage2.inputTokens),
     inputTokenDetails: {
@@ -163,15 +157,22 @@ export function addLanguageModelUsage(
       ),
     },
     totalTokens: addTokenCounts(usage1.totalTokens, usage2.totalTokens),
-    reasoningTokens: addTokenCounts(
-      usage1.reasoningTokens,
-      usage2.reasoningTokens,
-    ),
-    cachedInputTokens: addTokenCounts(
-      usage1.cachedInputTokens,
-      usage2.cachedInputTokens,
-    ),
+    ...(raw == null ? {} : { raw }),
   };
+}
+
+function isNullLanguageModelUsage(usage: LanguageModelUsage): boolean {
+  return (
+    usage.inputTokens == null &&
+    usage.inputTokenDetails?.noCacheTokens == null &&
+    usage.inputTokenDetails?.cacheReadTokens == null &&
+    usage.inputTokenDetails?.cacheWriteTokens == null &&
+    usage.outputTokens == null &&
+    usage.outputTokenDetails?.textTokens == null &&
+    usage.outputTokenDetails?.reasoningTokens == null &&
+    usage.totalTokens == null &&
+    usage.raw == null
+  );
 }
 
 function addTokenCounts(

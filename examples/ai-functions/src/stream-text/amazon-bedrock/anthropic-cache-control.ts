@@ -1,12 +1,12 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { type AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import type { AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import 'dotenv/config';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
     messages: [
       {
         role: 'system',

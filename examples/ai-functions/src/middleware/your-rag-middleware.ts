@@ -1,4 +1,4 @@
-import { LanguageModelMiddleware } from 'ai';
+import type { LanguageModelMiddleware } from 'ai';
 import { addToLastUserMessage } from './add-to-last-user-message';
 import { getLastUserMessageText } from './get-last-user-message-text';
 

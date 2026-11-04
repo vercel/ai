@@ -1,5 +1,5 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
-import { LanguageModelCallOptions } from './language-model-call-options';
+import type { LanguageModelCallOptions } from './language-model-call-options';
 
 /**
  * Validates model call options and returns a new object with normalized values.
@@ -29,56 +29,6 @@ export function prepareLanguageModelCallOptions({
         parameter: 'maxOutputTokens',
         value: maxOutputTokens,
         message: 'maxOutputTokens must be >= 1',
-      });
-    }
-  }
-
-  if (temperature != null) {
-    if (typeof temperature !== 'number') {
-      throw new InvalidArgumentError({
-        parameter: 'temperature',
-        value: temperature,
-        message: 'temperature must be a number',
-      });
-    }
-  }
-
-  if (topP != null) {
-    if (typeof topP !== 'number') {
-      throw new InvalidArgumentError({
-        parameter: 'topP',
-        value: topP,
-        message: 'topP must be a number',
-      });
-    }
-  }
-
-  if (topK != null) {
-    if (typeof topK !== 'number') {
-      throw new InvalidArgumentError({
-        parameter: 'topK',
-        value: topK,
-        message: 'topK must be a number',
-      });
-    }
-  }
-
-  if (presencePenalty != null) {
-    if (typeof presencePenalty !== 'number') {
-      throw new InvalidArgumentError({
-        parameter: 'presencePenalty',
-        value: presencePenalty,
-        message: 'presencePenalty must be a number',
-      });
-    }
-  }
-
-  if (frequencyPenalty != null) {
-    if (typeof frequencyPenalty !== 'number') {
-      throw new InvalidArgumentError({
-        parameter: 'frequencyPenalty',
-        value: frequencyPenalty,
-        message: 'frequencyPenalty must be a number',
       });
     }
   }

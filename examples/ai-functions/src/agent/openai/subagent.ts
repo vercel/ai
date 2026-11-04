@@ -3,7 +3,7 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { ToolLoopAgent, tool, isStepCount, registerTelemetry } from 'ai';
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -13,11 +13,11 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(new LegacyOpenTelemetry());
 
 run(async () => {
   const childAgent = new ToolLoopAgent({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     instructions:
       'You are a helpful child agent. Call the simple_tool twice, then provide a summary.',
     tools: {
@@ -42,7 +42,7 @@ run(async () => {
   });
 
   const parentAgent = new ToolLoopAgent({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     instructions:
       'You are the main agent. Delegate the task to the child agent using call_child tool.',
     tools: {

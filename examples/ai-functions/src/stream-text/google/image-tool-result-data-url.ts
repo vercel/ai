@@ -33,9 +33,9 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'file-url',
-            url: output.imageUrl,
+            type: 'file',
             mediaType: 'image/png',
+            data: { type: 'url', url: new URL(output.imageUrl) },
           },
         ],
       };
@@ -43,7 +43,7 @@ run(async () => {
   });
 
   const result = streamText({
-    model: google('gemini-3-flash-preview'),
+    model: google('gemini-3.8-flash'),
     prompt:
       'Please read the image using the tool provided and return the summary of that image',
     tools: {
@@ -52,7 +52,7 @@ run(async () => {
     stopWhen: isStepCount(4),
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta':
         process.stdout.write(part.text);

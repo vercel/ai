@@ -21,8 +21,9 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'file-url',
-            url: output.pdfUrl,
+            type: 'file',
+            mediaType: 'application/pdf',
+            data: { type: 'url', url: new URL(output.pdfUrl) },
           },
         ],
       };
@@ -30,7 +31,7 @@ run(async () => {
   });
 
   const result = await generateText({
-    model: openai.responses('gpt-4.1-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt:
       'Please read the PDF document using the tool provided and return a summary of it.',
     tools: {

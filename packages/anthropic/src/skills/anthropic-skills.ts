@@ -1,13 +1,14 @@
-import { SkillsV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { SkillsV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertBase64ToUint8Array,
+  convertInlineFileDataToUint8Array,
   createJsonResponseHandler,
-  FetchFunction,
+  encodePathSegment,
   getFromApi,
   postFormDataToApi,
-  Resolvable,
   resolve,
+  type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from '../anthropic-error';
 import {
@@ -40,15 +41,14 @@ export class AnthropicSkills implements SkillsV4 {
   private async fetchVersionMetadata({
     skillId,
     version,
-    headers,
   }: {
     skillId: string;
     version: string;
-    headers: Record<string, string | undefined>;
   }): Promise<{ name?: string; description?: string }> {
     const { value: versionResponse } = await getFromApi({
-      url: `${this.config.baseURL}/skills/${skillId}/versions/${version}`,
-      headers,
+      url: `${this.config.baseURL}/skills/${encodePathSegment(skillId)}/versions/${encodePathSegment(version)}`,
+      validateUrl: false,
+      headers: await this.getHeaders(),
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         anthropicSkillVersionResponseSchema,
@@ -76,19 +76,17 @@ export class AnthropicSkills implements SkillsV4 {
     }
 
     for (const file of params.files) {
-      const content =
-        typeof file.content === 'string'
-          ? convertBase64ToUint8Array(file.content)
-          : file.content;
-
-      formData.append('files[]', new Blob([content]), file.path);
+      const content = convertInlineFileDataToUint8Array(file.data);
+      formData.append(
+        'files[]',
+        new Blob([content as Uint8Array<ArrayBuffer>]),
+        file.path,
+      );
     }
-
-    const headers = await this.getHeaders();
 
     const { value: response } = await postFormDataToApi({
       url: `${this.config.baseURL}/skills`,
-      headers,
+      headers: await this.getHeaders(),
       formData,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -102,7 +100,6 @@ export class AnthropicSkills implements SkillsV4 {
         ? await this.fetchVersionMetadata({
             skillId: response.id,
             version: response.latest_version,
-            headers,
           })
         : {};
 

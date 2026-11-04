@@ -1,12 +1,13 @@
 import { groq } from '@ai-sdk/groq';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
     model: groq.transcription('whisper-large-v3-turbo'),
+    // Groq fetches this URL directly, avoiding a local download and file upload.
     audio: new URL(
-      'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-functions/data/galileo.mp3',
+      'https://raw.githubusercontent.com/vercel/ai/main/examples/ai-functions/data/galileo.mp3',
     ),
   });
 

@@ -1,17 +1,39 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import {
   createStreamingUIMessageState,
   processUIMessageStream,
-  StreamingUIMessageState,
+  type StreamingUIMessageState,
+  type UIMessageStreamWriteOptions,
 } from './process-ui-message-stream';
-import { InferUIMessageData, UIMessage } from './ui-messages';
-import { beforeEach, describe, it, expect, vi } from 'vitest';
+import {
+  isToolUIPart,
+  type InferUIMessageData,
+  type UIMessage,
+} from './ui-messages';
+import { validateUIMessages } from './validate-ui-messages';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import { z } from 'zod/v4';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);
+}
+
+type ObjectPrototypeState = {
+  input?: unknown;
+  providerMetadata?: unknown;
+  state?: unknown;
+  text?: unknown;
+};
+
+function clearObjectPrototypeState() {
+  const objectPrototype = Object.prototype as ObjectPrototypeState;
+  delete objectPrototype.input;
+  delete objectPrototype.providerMetadata;
+  delete objectPrototype.state;
+  delete objectPrototype.text;
 }
 
 describe('processUIMessageStream', () => {
@@ -21,12 +43,17 @@ describe('processUIMessageStream', () => {
   beforeEach(() => {
     writeCalls = [];
     state = undefined;
+    globalThis.AI_SDK_LOG_WARNINGS = false;
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_LOG_WARNINGS;
   });
 
   const runUpdateMessageJob = async (
     job: (options: {
       state: StreamingUIMessageState<UIMessage>;
-      write: () => void;
+      write: (options?: UIMessageStreamWriteOptions) => void;
     }) => Promise<void>,
   ) => {
     await job({
@@ -36,6 +63,293 @@ describe('processUIMessageStream', () => {
       },
     });
   };
+
+  describe('replay start', () => {
+    it.each(['msg-123', undefined])(
+      'resets existing state only on the first start with message ID %s',
+      async messageId => {
+        state = createStreamingUIMessageState({
+          messageId: 'msg-123',
+          lastMessage: {
+            id: 'msg-123',
+            role: 'assistant',
+            metadata: { stale: true },
+            parts: [{ type: 'text', text: 'old text', state: 'streaming' }],
+          },
+        });
+        state.activeTextParts.old = { type: 'text', text: 'old text' };
+        state.activeReasoningParts.old = {
+          type: 'reasoning',
+          text: 'old reasoning',
+        };
+        state.partialToolCalls.old = { text: '{', index: 0, toolName: 'old' };
+        state.finishReason = 'length';
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream: createUIMessageStream([
+              { type: 'start', messageId },
+              { type: 'start-step' },
+              { type: 'text-start', id: 'text-1' },
+              { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+              // Merged streams can emit another start for the same message.
+              { type: 'start', messageId, messageMetadata: { fresh: true } },
+              { type: 'text-delta', id: 'text-1', delta: ' world!' },
+              { type: 'text-end', id: 'text-1' },
+            ]),
+            resetStateOnFirstMessageStart: true,
+            resetStateOnMessageIdChange: true,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+
+        expect(writeCalls[0].message).toEqual({
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: undefined,
+          parts: [],
+        });
+        expect(state.message).toEqual({
+          id: 'msg-123',
+          role: 'assistant',
+          metadata: { fresh: true },
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Hello world!',
+              state: 'done',
+              providerMetadata: undefined,
+            },
+          ],
+        });
+        expect(state.activeTextParts).toEqual({});
+        expect(state.activeReasoningParts).toEqual({});
+        expect(state.partialToolCalls).toEqual({});
+        expect(state.finishReason).toBeUndefined();
+      },
+    );
+  });
+
+  describe('finish-step', () => {
+    it('preserves active text and reasoning parts across interleaved step boundaries', async () => {
+      const stream = createUIMessageStream([
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'first ' },
+        { type: 'reasoning-start', id: 'reasoning-1' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: 'thinking ',
+        },
+        { type: 'start-step' },
+        { type: 'finish-step' },
+        { type: 'text-delta', id: 'text-1', delta: 'second' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: 'continued',
+        },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'reasoning-end', id: 'reasoning-1' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toEqual([
+        {
+          type: 'text',
+          text: 'first second',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+        {
+          type: 'reasoning',
+          id: 'reasoning-1',
+          text: 'thinking continued',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+        { type: 'step-start' },
+      ]);
+      expect(state.activeTextParts).toEqual({});
+      expect(state.activeReasoningParts).toEqual({});
+    });
+  });
+
+  describe('reset-step', () => {
+    it('removes parts from the current step and accepts retried parts', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start-step' },
+        { type: 'text-start', id: 'completed-text' },
+        {
+          type: 'text-delta',
+          id: 'completed-text',
+          delta: 'Completed step',
+        },
+        { type: 'text-end', id: 'completed-text' },
+        { type: 'finish-step' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'stale-tool',
+          toolName: 'deleteFile',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'stale-tool',
+          inputTextDelta: '{"path":"partial',
+        },
+        { type: 'reset-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'retried-tool',
+          toolName: 'deleteFile',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'retried-tool',
+          inputTextDelta: '{"path":"target"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'retried-tool',
+          toolName: 'deleteFile',
+          input: { path: 'target' },
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toEqual([
+        { type: 'step-start' },
+        {
+          type: 'text',
+          text: 'Completed step',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+        { type: 'step-start' },
+        {
+          type: 'tool-deleteFile',
+          toolCallId: 'retried-tool',
+          state: 'input-available',
+          input: { path: 'target' },
+          providerExecuted: undefined,
+          callProviderMetadata: undefined,
+          title: undefined,
+          toolMetadata: undefined,
+        },
+      ]);
+      expect(
+        state.message.parts.some(
+          part => isToolUIPart(part) && part.toolCallId === 'stale-tool',
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe('steering-message', () => {
+    it('adds steering messages before the step that received them and keeps them when the step is reset', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start-step' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'It is sunny.' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        {
+          type: 'steering-message',
+          id: 'steer-1',
+          parts: [{ type: 'text', text: 'I meant Paris, Texas.' }],
+        },
+        { type: 'start-step' },
+        { type: 'text-start', id: 'stale-text' },
+        { type: 'text-delta', id: 'stale-text', delta: 'It is' },
+        { type: 'reset-step' },
+        { type: 'text-start', id: 'text-2' },
+        { type: 'text-delta', id: 'text-2', delta: 'It is hot in Texas.' },
+        { type: 'text-end', id: 'text-2' },
+        { type: 'finish-step' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "It is sunny.",
+            "type": "text",
+          },
+          {
+            "id": "steer-1",
+            "parts": [
+              {
+                "text": "I meant Paris, Texas.",
+                "type": "text",
+              },
+            ],
+            "type": "steering-message",
+          },
+          {
+            "type": "step-start",
+          },
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "It is hot in Texas.",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+  });
 
   describe('text', () => {
     beforeEach(async () => {
@@ -225,6 +539,62 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('data part schemas', () => {
+    const dataPartSchemas = { weather: z.object({ city: z.string() }) };
+
+    beforeEach(() => {
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+    });
+
+    it('should reject a data part that does not match its schema', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'data-weather', id: 'w1', data: { city: 42 } },
+      ]);
+
+      await expect(
+        consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            dataPartSchemas,
+            runUpdateMessageJob,
+            onError: () => {},
+          }),
+          onError: error => {
+            throw error;
+          },
+        }),
+      ).rejects.toThrow(
+        'Type validation failed for message.parts[0].data (data-weather, id: "w1")',
+      );
+
+      expect(state!.message.parts).toEqual([]);
+    });
+
+    it('should accept a data part that matches its schema', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'data-weather', id: 'w1', data: { city: 'Berlin' } },
+      ]);
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          dataPartSchemas,
+          runUpdateMessageJob,
+          onError: () => {},
+        }),
+      });
+
+      expect(state!.message.parts).toEqual([
+        { type: 'data-weather', id: 'w1', data: { city: 'Berlin' } },
+      ]);
+    });
+  });
+
   describe('malformed stream errors', () => {
     it('should throw descriptive error when text-delta is received without text-start', async () => {
       const stream = createUIMessageStream([
@@ -321,6 +691,130 @@ describe('processUIMessageStream', () => {
         'Received tool-input-delta for missing tool call with ID "tool-1". ' +
           'Ensure a "tool-input-start" chunk is sent before any "tool-input-delta" chunks.',
       );
+    });
+
+    it('should not read Object.prototype for missing text part ids', async () => {
+      clearObjectPrototypeState();
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'text-delta', id: '__proto__', delta: 'Hello' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      try {
+        await expect(
+          consumeStream({
+            stream: processUIMessageStream({
+              stream,
+              runUpdateMessageJob,
+              onError: error => {
+                throw error;
+              },
+            }),
+            onError: error => {
+              throw error;
+            },
+          }),
+        ).rejects.toThrow(
+          'Received text-delta for missing text part with ID "__proto__". ' +
+            'Ensure a "text-start" chunk is sent before any "text-delta" chunks.',
+        );
+
+        expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
+      } finally {
+        clearObjectPrototypeState();
+      }
+    });
+
+    it('should not read Object.prototype for missing reasoning part ids', async () => {
+      clearObjectPrototypeState();
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'reasoning-delta', id: '__proto__', delta: 'Thinking...' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      try {
+        await expect(
+          consumeStream({
+            stream: processUIMessageStream({
+              stream,
+              runUpdateMessageJob,
+              onError: error => {
+                throw error;
+              },
+            }),
+            onError: error => {
+              throw error;
+            },
+          }),
+        ).rejects.toThrow(
+          'Received reasoning-delta for missing reasoning part with ID "__proto__". ' +
+            'Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.',
+        );
+
+        expect(Object.hasOwn(Object.prototype, 'providerMetadata')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
+      } finally {
+        clearObjectPrototypeState();
+      }
+    });
+
+    it('should not read Object.prototype for missing partial tool call ids', async () => {
+      clearObjectPrototypeState();
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-delta',
+          toolCallId: '__proto__',
+          inputTextDelta: '{"key":',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      try {
+        await expect(
+          consumeStream({
+            stream: processUIMessageStream({
+              stream,
+              runUpdateMessageJob,
+              onError: error => {
+                throw error;
+              },
+            }),
+            onError: error => {
+              throw error;
+            },
+          }),
+        ).rejects.toThrow(
+          'Received tool-input-delta for missing tool call with ID "__proto__". ' +
+            'Ensure a "tool-input-start" chunk is sent before any "tool-input-delta" chunks.',
+        );
+
+        expect(Object.hasOwn(Object.prototype, 'input')).toBe(false);
+        expect(Object.hasOwn(Object.prototype, 'text')).toBe(false);
+      } finally {
+        clearObjectPrototypeState();
+      }
     });
 
     it('should throw descriptive error when text-end is received without text-start', async () => {
@@ -1587,6 +2081,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -1605,6 +2100,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1627,6 +2123,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1649,6 +2146,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1671,6 +2169,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1707,6 +2206,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1745,6 +2245,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1774,6 +2275,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -1792,6 +2294,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1821,6 +2324,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -1843,6 +2347,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1872,6 +2377,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -1894,6 +2400,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1923,6 +2430,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -1951,6 +2459,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -1980,6 +2489,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -2008,6 +2518,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -2037,6 +2548,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -2070,6 +2582,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "id": "reasoning-1",
               "providerMetadata": {
                 "testProvider": {
                   "signature": "1234567890",
@@ -2099,6 +2612,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "id": "reasoning-2",
               "providerMetadata": {
                 "testProvider": {
                   "signature": "abc123",
@@ -3036,7 +3550,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{"testArg":"t",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-0",
@@ -3062,7 +3576,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{"testArg":"test-value"}}",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-0",
@@ -3155,6 +3669,58 @@ describe('processUIMessageStream', () => {
           "role": "assistant",
         }
       `);
+    });
+  });
+
+  describe('static tool name changes', () => {
+    it('uses the completed input tool name for an existing streamed part', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-0',
+          toolName: 'originalTool',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: '{"value":"test"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'renamedTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'tool-approval-request',
+          toolCallId: 'tool-call-0',
+          approvalId: 'approval-0',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts[1]).toMatchObject({
+        type: 'tool-renamedTool',
+        toolCallId: 'tool-call-0',
+        state: 'approval-requested',
+        input: { value: 'test' },
+        approval: { id: 'approval-0' },
+      });
     });
   });
 
@@ -3364,6 +3930,14 @@ describe('processUIMessageStream', () => {
       });
     });
 
+    it('should preserve reasoning part ids', () => {
+      expect(
+        state!.message.parts
+          .filter(part => part.type === 'reasoning')
+          .map(part => part.id),
+      ).toEqual(['reasoning-1', 'reasoning-2', 'reasoning-3']);
+    });
+
     it('should call the update function with the correct arguments', async () => {
       expect(writeCalls).toMatchInlineSnapshot(`
         [
@@ -3384,6 +3958,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -3402,6 +3977,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "I will open the conversation",
@@ -3420,6 +3996,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3442,6 +4019,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3464,6 +4042,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3474,6 +4053,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -3492,6 +4072,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3502,6 +4083,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3524,6 +4106,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3534,6 +4117,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3556,6 +4140,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3566,6 +4151,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3576,6 +4162,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -3594,6 +4181,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3604,6 +4192,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3614,6 +4203,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Once the user has relaxed,",
@@ -3632,6 +4222,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3642,6 +4233,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3652,6 +4244,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -3674,6 +4267,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3684,6 +4278,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3694,6 +4289,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -3716,6 +4312,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3726,6 +4323,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3736,6 +4334,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -3764,6 +4363,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3774,6 +4374,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3784,6 +4385,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -3812,6 +4414,7 @@ describe('processUIMessageStream', () => {
                   "type": "step-start",
                 },
                 {
+                  "id": "reasoning-1",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "1234567890",
@@ -3822,6 +4425,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-2",
                   "providerMetadata": {
                     "testProvider": {
                       "isRedacted": true,
@@ -3832,6 +4436,7 @@ describe('processUIMessageStream', () => {
                   "type": "reasoning",
                 },
                 {
+                  "id": "reasoning-3",
                   "providerMetadata": {
                     "testProvider": {
                       "signature": "abc123",
@@ -3865,6 +4470,7 @@ describe('processUIMessageStream', () => {
               "type": "step-start",
             },
             {
+              "id": "reasoning-1",
               "providerMetadata": {
                 "testProvider": {
                   "signature": "1234567890",
@@ -3875,6 +4481,7 @@ describe('processUIMessageStream', () => {
               "type": "reasoning",
             },
             {
+              "id": "reasoning-2",
               "providerMetadata": {
                 "testProvider": {
                   "isRedacted": true,
@@ -3885,6 +4492,7 @@ describe('processUIMessageStream', () => {
               "type": "reasoning",
             },
             {
+              "id": "reasoning-3",
               "providerMetadata": {
                 "testProvider": {
                   "signature": "abc123",
@@ -5059,7 +5667,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": true,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -5431,7 +6039,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": true,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -5682,6 +6290,178 @@ describe('processUIMessageStream', () => {
         testProvider: { itemId: 'result-item' },
       });
     });
+
+    it('should preserve tool metadata on dynamic tool parts', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+          dynamic: true,
+          toolMetadata: { clientName: 'MyMCPClient' },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'tool-call-1',
+          output: { result: 'provider-result' },
+          dynamic: true,
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const toolPart = state!.message.parts.find(
+        (part: any) => part.toolCallId === 'tool-call-1',
+      ) as any;
+
+      expect(toolPart).toMatchInlineSnapshot(`
+        {
+          "errorText": undefined,
+          "input": {
+            "query": "test",
+          },
+          "output": {
+            "result": "provider-result",
+          },
+          "preliminary": undefined,
+          "providerExecuted": undefined,
+          "rawInput": undefined,
+          "state": "output-available",
+          "title": undefined,
+          "toolCallId": "tool-call-1",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "tool-name",
+          "type": "dynamic-tool",
+        }
+      `);
+    });
+  });
+
+  it('should apply output chunk tool metadata to static and dynamic tool parts', async () => {
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'dynamic-success',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'dynamic-success',
+        output: { result: 'provider-result' },
+        dynamic: true,
+        toolMetadata: { phase: 'dynamic-output-available' },
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'dynamic-error',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+        dynamic: true,
+        toolMetadata: { phase: 'dynamic-input' },
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'dynamic-error',
+        errorText: 'error-text',
+        dynamic: true,
+        toolMetadata: { phase: 'dynamic-output-error' },
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'static-success',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'static-success',
+        output: { result: 'provider-result' },
+        toolMetadata: { phase: 'static-output-available' },
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'static-error',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+        toolMetadata: { phase: 'static-input' },
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'static-error',
+        errorText: 'error-text',
+        toolMetadata: { phase: 'static-output-error' },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(
+      state.message.parts.filter(isToolUIPart).map(part => ({
+        toolCallId: part.toolCallId,
+        state: part.state,
+        toolMetadata: part.toolMetadata,
+      })),
+    ).toEqual([
+      {
+        toolCallId: 'dynamic-success',
+        state: 'output-available',
+        toolMetadata: { phase: 'dynamic-output-available' },
+      },
+      {
+        toolCallId: 'dynamic-error',
+        state: 'output-error',
+        toolMetadata: { phase: 'dynamic-output-error' },
+      },
+      {
+        toolCallId: 'static-success',
+        state: 'output-available',
+        toolMetadata: { phase: 'static-output-available' },
+      },
+      {
+        toolCallId: 'static-error',
+        state: 'output-error',
+        toolMetadata: { phase: 'static-output-error' },
+      },
+    ]);
   });
 
   it('should call onToolCall for client-executed tools', async () => {
@@ -5867,7 +6647,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -6422,7 +7202,12 @@ describe('processUIMessageStream', () => {
   });
 
   describe('tool input error', () => {
+    const warningLogger = vi.fn();
+
     beforeEach(async () => {
+      warningLogger.mockClear();
+      globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
       const stream = createUIMessageStream([
         {
           type: 'start',
@@ -6476,6 +7261,10 @@ describe('processUIMessageStream', () => {
       });
     });
 
+    it('should not warn when creating a static output-error part', () => {
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
     it('should call the update function with the correct arguments', async () => {
       expect(writeCalls).toMatchInlineSnapshot(`
         [
@@ -6519,7 +7308,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{ "cities": "San Francisco" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "call-1",
@@ -6539,11 +7328,11 @@ describe('processUIMessageStream', () => {
                 },
                 {
                   "errorText": "Invalid input for tool cityAttractions",
-                  "input": undefined,
+                  "input": "{ "cities": "San Francisco" }",
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": "{ "cities": "San Francisco" }",
+                  "rawInput": undefined,
                   "state": "output-error",
                   "title": undefined,
                   "toolCallId": "call-1",
@@ -6563,11 +7352,11 @@ describe('processUIMessageStream', () => {
                 },
                 {
                   "errorText": "Invalid input for tool cityAttractions",
-                  "input": undefined,
+                  "input": "{ "cities": "San Francisco" }",
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": "{ "cities": "San Francisco" }",
+                  "rawInput": undefined,
                   "state": "output-error",
                   "title": undefined,
                   "toolCallId": "call-1",
@@ -6589,11 +7378,11 @@ describe('processUIMessageStream', () => {
           },
           {
             "errorText": "Invalid input for tool cityAttractions",
-            "input": undefined,
+            "input": "{ "cities": "San Francisco" }",
             "output": undefined,
             "preliminary": undefined,
             "providerExecuted": undefined,
-            "rawInput": "{ "cities": "San Francisco" }",
+            "rawInput": undefined,
             "state": "output-error",
             "title": undefined,
             "toolCallId": "call-1",
@@ -6602,6 +7391,90 @@ describe('processUIMessageStream', () => {
         ]
       `);
     });
+  });
+
+  describe('dynamic tool errors after input streaming', () => {
+    const terminalChunks: Array<{
+      name: string;
+      chunk: UIMessageChunk;
+    }> = [
+      {
+        name: 'tool input error',
+        chunk: {
+          type: 'tool-input-error',
+          toolCallId: 'call-1',
+          toolName: 'cityAttractions',
+          input: { cities: ['San Francisco'] },
+          errorText: 'Invalid input for tool cityAttractions',
+          dynamic: true,
+        },
+      },
+      {
+        name: 'tool output error',
+        chunk: {
+          type: 'tool-output-error',
+          toolCallId: 'call-1',
+          errorText: 'Tool execution failed',
+          dynamic: true,
+        },
+      },
+    ];
+
+    it.each(terminalChunks)(
+      'clears raw input on $name',
+      async ({ chunk: terminalChunk }) => {
+        const warningLogger = vi.fn();
+        globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
+        const stream = createUIMessageStream([
+          { type: 'start' },
+          { type: 'start-step' },
+          {
+            type: 'tool-input-start',
+            toolCallId: 'call-1',
+            toolName: 'cityAttractions',
+            dynamic: true,
+          },
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'call-1',
+            inputTextDelta: '{ "cities": ["San Francisco"] }',
+          },
+          terminalChunk,
+          { type: 'finish-step' },
+          { type: 'finish' },
+        ]);
+
+        state = createStreamingUIMessageState({
+          messageId: 'msg-123',
+          lastMessage: undefined,
+        });
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+
+        const toolPart = state.message.parts.find(
+          (part: any) => part.toolCallId === 'call-1',
+        );
+
+        expect(toolPart).toMatchObject({
+          type: 'dynamic-tool',
+          state: 'output-error',
+        });
+        expect((toolPart as any).rawInput).toBeUndefined();
+
+        await validateUIMessages({ messages: [state.message] });
+
+        expect(warningLogger).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('tool input error with dynamic flag mismatch', () => {
@@ -6691,11 +7564,11 @@ describe('processUIMessageStream', () => {
           },
           {
             "errorText": "Model tried to call unavailable tool 'nonExistentTool'.",
-            "input": undefined,
+            "input": "{ "foo": "bar" }",
             "output": undefined,
             "preliminary": undefined,
             "providerExecuted": undefined,
-            "rawInput": "{ "foo": "bar" }",
+            "rawInput": undefined,
             "state": "output-error",
             "title": undefined,
             "toolCallId": "call-1",
@@ -7431,6 +8304,315 @@ describe('processUIMessageStream', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('tool approval request with signature', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        {
+          type: 'start',
+        },
+        {
+          type: 'start-step',
+        },
+        {
+          input: {
+            value: 'value',
+          },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-input-available',
+        },
+        {
+          approvalId: 'id-1',
+          toolCallId: 'call-1',
+          type: 'tool-approval-request',
+          reason: 'requires operator review',
+          signature: 'test-sig',
+        },
+        {
+          type: 'finish-step',
+        },
+        {
+          type: 'finish',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should propagate request details into the approval object', async () => {
+      const toolPart = state!.message.parts.find(
+        part => part.type === 'tool-tool1',
+      ) as any;
+
+      expect(toolPart.state).toBe('approval-requested');
+      expect(toolPart.approval).toEqual({
+        id: 'id-1',
+        requestReason: 'requires operator review',
+        signature: 'test-sig',
+      });
+    });
+  });
+
+  describe('tool approval response with signature', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        {
+          type: 'start',
+        },
+        {
+          type: 'start-step',
+        },
+        {
+          input: {
+            value: 'value',
+          },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-input-available',
+        },
+        {
+          approvalId: 'id-1',
+          toolCallId: 'call-1',
+          type: 'tool-approval-request',
+          reason: 'requires operator review',
+          signature: 'test-sig',
+        },
+        {
+          approvalId: 'id-1',
+          approved: true,
+          reason: 'approved by operator',
+          type: 'tool-approval-response',
+        },
+        {
+          type: 'finish-step',
+        },
+        {
+          type: 'finish',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('preserves request details separately from the response reason', async () => {
+      const toolPart = state!.message.parts.find(
+        part => part.type === 'tool-tool1',
+      ) as any;
+
+      expect(toolPart.state).toBe('approval-responded');
+      expect(toolPart.approval).toEqual({
+        id: 'id-1',
+        approved: true,
+        requestReason: 'requires operator review',
+        reason: 'approved by operator',
+        signature: 'test-sig',
+      });
+    });
+  });
+
+  it('preserves approval descriptors through request and response states', async () => {
+    const descriptor = {
+      action: 'deleteAccount',
+      permissions: ['account:delete'],
+      risk: 'high',
+    };
+    const stream = createUIMessageStream([
+      {
+        input: { userId: 'user-123' },
+        toolCallId: 'call-1',
+        toolName: 'deleteAccount',
+        type: 'tool-input-available',
+      },
+      {
+        approvalDescriptor: descriptor,
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+        type: 'tool-approval-request',
+      },
+      {
+        approvalId: 'approval-1',
+        approved: true,
+        type: 'tool-approval-response',
+      },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(
+      writeCalls
+        .map(call => call.message.parts.find(isToolUIPart)?.approval)
+        .filter(approval => approval != null),
+    ).toEqual([
+      {
+        id: 'approval-1',
+        descriptor,
+      },
+      {
+        id: 'approval-1',
+        approved: true,
+        descriptor,
+      },
+    ]);
+  });
+
+  // The approval is requested on one connection and answered on another, so the
+  // descriptor has to survive being restored from `lastMessage`.
+  it('preserves an approval descriptor restored from a persisted message', async () => {
+    const descriptor = {
+      action: 'deleteAccount',
+      permissions: ['account:delete'],
+      risk: 'high',
+    };
+    const stream = createUIMessageStream([
+      {
+        approvalId: 'approval-1',
+        approved: true,
+        type: 'tool-approval-response',
+      },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: {
+        role: 'assistant',
+        id: 'msg-123',
+        metadata: undefined,
+        parts: [
+          {
+            type: 'tool-deleteAccount',
+            toolCallId: 'call-1',
+            state: 'approval-requested',
+            input: { userId: 'user-123' },
+            approval: {
+              id: 'approval-1',
+              descriptor,
+            },
+          },
+        ],
+      },
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(
+      writeCalls
+        .map(call => call.message.parts.find(isToolUIPart)?.approval)
+        .filter(approval => approval != null),
+    ).toEqual([
+      {
+        id: 'approval-1',
+        approved: true,
+        descriptor,
+      },
+    ]);
+  });
+
+  describe('tool approval request without signature', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        {
+          type: 'start',
+        },
+        {
+          type: 'start-step',
+        },
+        {
+          input: {
+            value: 'value',
+          },
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          type: 'tool-input-available',
+        },
+        {
+          approvalId: 'id-1',
+          toolCallId: 'call-1',
+          type: 'tool-approval-request',
+        },
+        {
+          type: 'finish-step',
+        },
+        {
+          type: 'finish',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should not include signature in the approval object', async () => {
+      const toolPart = state!.message.parts.find(
+        part => part.type === 'tool-tool1',
+      ) as any;
+
+      expect(toolPart.state).toBe('approval-requested');
+      expect(toolPart.approval).toEqual({
+        id: 'id-1',
+      });
+      expect(toolPart.approval).not.toHaveProperty('signature');
     });
   });
 

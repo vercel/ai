@@ -2,45 +2,59 @@ import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
-import {
+import type {
   EmbeddingModelV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type Resolvable,
+  resolveWith,
   loadApiKey,
+  mapReasoningToProviderEffort,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { FireworksChatModelId } from './fireworks-chat-options';
-import { FireworksCompletionModelId } from './fireworks-completion-options';
-import { FireworksEmbeddingModelId } from './fireworks-embedding-options';
+import type { FireworksChatModelId } from './fireworks-chat-options';
+import type { FireworksCompletionModelId } from './fireworks-completion-options';
+import type { FireworksEmbeddingModelId } from './fireworks-embedding-options';
 import { FireworksImageModel } from './fireworks-image-model';
-import { FireworksImageModelId } from './fireworks-image-options';
+import type { FireworksImageModelId } from './fireworks-image-options';
 import { VERSION } from './version';
 
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
 const fireworksErrorSchema = z.object({
-  error: z.string(),
+  error: z.union([
+    z.string(),
+    z.object({
+      message: z.string(),
+      object: z.string().nullish(),
+      type: z.string().nullish(),
+      param: z.any().nullish(),
+      code: z.union([z.string(), z.number()]).nullish(),
+    }),
+  ]),
 });
 
 const fireworksErrorStructure: ProviderErrorStructure<FireworksErrorData> = {
   errorSchema: fireworksErrorSchema,
-  errorToMessage: data => data.error,
+  errorToMessage: data =>
+    typeof data.error === 'string' ? data.error : data.error.message,
 };
 
 export interface FireworksProviderSettings {
   /**
    * Fireworks API key. Default value is taken from the `FIREWORKS_API_KEY`
    * environment variable.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -105,22 +119,24 @@ export function createFireworks(
 ): FireworksProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'FIREWORKS_API_KEY',
-          description: 'Fireworks API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/fireworks/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'FIREWORKS_API_KEY',
+            description: 'Fireworks API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-fireworks/${VERSION}`,
+      ),
     );
 
   interface CommonModelConfig {
     provider: string;
     url: ({ path }: { path: string }) => string;
-    headers: () => Record<string, string>;
+    headers: Resolvable<Record<string, string>>;
     fetch?: FetchFunction;
   }
 
@@ -134,30 +150,38 @@ export function createFireworks(
   const createChatModel = (modelId: FireworksChatModelId) => {
     return new OpenAICompatibleChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
+      includeUsage: true,
       errorStructure: fireworksErrorStructure,
+      supportsStructuredOutputs: true,
+      mapReasoning: ({ reasoning, warnings }) =>
+        mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: getFireworksReasoningEffortMap(modelId),
+          warnings,
+        }),
       transformRequestBody: args => {
         const thinking = args.thinking as
           | { type?: string; budgetTokens?: number }
           | undefined;
         const reasoningHistory = args.reasoningHistory as string | undefined;
+        const promptCacheKey = args.promptCacheKey as string | undefined;
+        const serviceTier = args.serviceTier as string | undefined;
 
         const {
           thinking: _,
           reasoningHistory: __,
-          reasoning_effort,
+          promptCacheKey: ___,
+          serviceTier: ____,
           ...rest
         } = args;
 
         return {
           ...rest,
-          ...(reasoning_effort != null && {
-            // Workaround since OpenAI spec allows for 5 reasoning levels, but Fireworks only supports 3 of them.
-            reasoning_effort:
-              reasoning_effort === 'minimal'
-                ? 'low'
-                : reasoning_effort === 'xhigh'
-                  ? 'high'
-                  : reasoning_effort,
+          ...(promptCacheKey !== undefined && {
+            prompt_cache_key: promptCacheKey,
+          }),
+          ...(serviceTier !== undefined && {
+            service_tier: serviceTier,
           }),
           ...(thinking && {
             thinking: {
@@ -178,6 +202,7 @@ export function createFireworks(
   const createCompletionModel = (modelId: FireworksCompletionModelId) =>
     new OpenAICompatibleCompletionLanguageModel(modelId, {
       ...getCommonModelConfig('completion'),
+      includeUsage: true,
       errorStructure: fireworksErrorStructure,
     });
 
@@ -207,3 +232,31 @@ export function createFireworks(
 }
 
 export const fireworks = createFireworks();
+
+// Model families that always reason and reject reasoning effort 'none'.
+const modelsWithoutNoneReasoningEffort = /^(?:gpt-oss|glm-5p3|muse-spark)/;
+
+// Model families that reject reasoning effort 'minimal'.
+const modelsWithoutMinimalReasoningEffort = /^(?:nemotron|inkling)/;
+
+/**
+ * Fireworks accepts every reasoning effort for most models, so reasoning
+ * values are sent directly, except to model families known to reject them.
+ */
+function getFireworksReasoningEffortMap(modelId: string) {
+  const modelName = modelId.slice(modelId.lastIndexOf('/') + 1);
+
+  return {
+    ...(!modelsWithoutNoneReasoningEffort.test(modelName) && {
+      none: 'none' as const,
+    }),
+    ...(!modelsWithoutMinimalReasoningEffort.test(modelName) && {
+      minimal: 'minimal' as const,
+    }),
+    low: 'low' as const,
+    medium: 'medium' as const,
+    high: 'high' as const,
+    xhigh: 'xhigh' as const,
+    max: 'max' as const,
+  };
+}

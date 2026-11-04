@@ -1,12 +1,17 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { isStepCount, streamText, ToolCallPart, ToolResultPart } from 'ai';
+import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
+import {
+  isStepCount,
+  streamText,
+  type ToolCallPart,
+  type ToolResultPart,
+} from 'ai';
 import { z } from 'zod';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+    model: amazonBedrock('us.anthropic.claude-haiku-5-5'),
     tools: {
       weather: weatherTool,
       cityAttractions: {
@@ -22,7 +27,7 @@ run(async () => {
   const toolCalls: ToolCallPart[] = [];
   const toolResponses: ToolResultPart[] = [];
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'reasoning-delta': {
         if (!enteredReasoning) {

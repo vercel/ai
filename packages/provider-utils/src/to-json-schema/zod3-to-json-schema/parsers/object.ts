@@ -1,7 +1,7 @@
-import { ZodObjectDef, ZodTypeAny } from 'zod/v3';
+import type { ZodObjectDef, ZodTypeAny } from 'zod/v3';
 import { parseDef } from '../parse-def';
-import { JsonSchema7Type } from '../parse-types';
-import { Refs } from '../refs';
+import type { JsonSchema7Type } from '../parse-types';
+import type { Refs } from '../refs';
 
 export type JsonSchema7ObjectType = {
   type: 'object';

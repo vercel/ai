@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
+    model: vertexAnthropic('claude-sonnet-5-5'),
     maxOutputTokens: 512,
     messages: [
       {
@@ -12,9 +12,9 @@ run(async () => {
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
           {
-            type: 'image',
-            image:
-              'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+            type: 'file',
+            mediaType: 'image',
+            data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
           },
         ],
       },

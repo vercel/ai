@@ -1,4 +1,4 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import { googleVertex } from '@ai-sdk/google-vertex';
 import { streamText } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -6,7 +6,7 @@ import { saveRawChunks } from '../../lib/save-raw-chunks';
 
 run(async () => {
   const result = streamText({
-    model: vertex('gemini-3.1-pro-preview'),
+    model: googleVertex('gemini-3.1-pro-preview'),
     prompt: 'What is the weather in Boston and San Francisco?',
     tools: {
       getWeather: {
@@ -21,10 +21,12 @@ run(async () => {
         streamFunctionCallArguments: true,
       },
     },
-    includeRawChunks: true,
+    include: {
+      rawChunks: true,
+    },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'tool-input-start':
         console.log(`\n[tool-input-start] ${part.toolName} (${part.id})`);

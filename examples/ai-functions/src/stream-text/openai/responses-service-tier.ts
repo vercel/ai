@@ -1,14 +1,14 @@
 import {
   openai,
   type OpenAILanguageModelResponsesOptions,
-  OpenaiResponsesProviderMetadata,
+  type OpenaiResponsesProviderMetadata,
 } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-5-nano'),
+    model: openai('gpt-5.4-nano'),
     prompt: 'What color is the sky in one word?',
     providerOptions: {
       openai: {
@@ -18,9 +18,9 @@ run(async () => {
   });
 
   await result.consumeStream();
-  const providerMetadata = await (result.providerMetadata as Promise<
-    OpenaiResponsesProviderMetadata | undefined
-  >);
+  const providerMetadata = (await result.finalStep).providerMetadata as
+    | OpenaiResponsesProviderMetadata
+    | undefined;
 
   if (!providerMetadata) return;
   const {

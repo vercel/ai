@@ -5,13 +5,17 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.8-flash'),
     messages: [
       {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
-          { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: fs.readFileSync('./data/comic-cat.png'),
+          },
         ],
       },
     ],

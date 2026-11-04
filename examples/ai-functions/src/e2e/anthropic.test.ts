@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { expect } from 'vitest';
 import { anthropic as provider } from '@ai-sdk/anthropic';
-import { APICallError } from 'ai';
+import type { APICallError } from 'ai';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,
@@ -17,6 +17,7 @@ createFeatureTestSuite({
     languageModels: [
       createChatModel('claude-sonnet-4-20250514'),
       createChatModel('claude-haiku-4-5-20251001'),
+      createChatModel('claude-haiku-5-5'),
     ],
   },
   timeout: 30000,

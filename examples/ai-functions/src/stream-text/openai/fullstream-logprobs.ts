@@ -1,14 +1,14 @@
 import {
   openai,
   type OpenAILanguageModelChatOptions,
-  OpenaiResponsesProviderMetadata,
+  type OpenaiResponsesProviderMetadata,
 } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-3.5-turbo'),
+    model: openai('gpt-4.1'),
     maxOutputTokens: 512,
     temperature: 0.3,
     maxRetries: 5,
@@ -20,7 +20,7 @@ run(async () => {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta': {
         console.log('Text:', part.text);

@@ -1,22 +1,24 @@
 import {
-  LanguageModelV4,
   NoSuchModelError,
-  ProviderV4,
+  type LanguageModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  resolveWith,
+  type Resolvable,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { HuggingFaceResponsesLanguageModel } from './responses/huggingface-responses-language-model';
-import { HuggingFaceResponsesModelId } from './responses/huggingface-responses-settings';
+import type { HuggingFaceResponsesModelId } from './responses/huggingface-responses-settings';
 
 export interface HuggingFaceProviderSettings {
   /**
    * Hugging Face API key.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -65,14 +67,15 @@ export function createHuggingFace(
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? 'https://router.huggingface.co/v1';
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'HUGGINGFACE_API_KEY',
-      description: 'Hugging Face',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    resolveWith(options.apiKey, apiKey => ({
+      Authorization: `Bearer ${loadApiKey({
+        apiKey,
+        environmentVariableName: 'HUGGINGFACE_API_KEY',
+        description: 'Hugging Face',
+      })}`,
+      ...options.headers,
+    }));
 
   const createResponsesModel = (modelId: HuggingFaceResponsesModelId) => {
     return new HuggingFaceResponsesLanguageModel(modelId, {
@@ -116,4 +119,4 @@ export function createHuggingFace(
 /**
  * Default Hugging Face provider instance.
  */
-export const huggingface = createHuggingFace();
+export const huggingFace = createHuggingFace();

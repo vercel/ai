@@ -1,4 +1,4 @@
-import {
+import type {
   ImageModelV2,
   ImageModelV3,
   ImageModelV4,
@@ -7,7 +7,7 @@ import {
 } from '@ai-sdk/provider';
 import { asArray } from '@ai-sdk/provider-utils';
 import { asImageModelV4 } from '../model/as-image-model-v4';
-import { ImageModelMiddleware } from '../types';
+import type { ImageModelMiddleware } from '../types';
 
 /**
  * Wraps an ImageModelV4 instance with middleware functionality.
@@ -48,6 +48,8 @@ const doWrap = ({
     overrideProvider,
     overrideModelId,
     overrideMaxImagesPerCall,
+    overrideSupportsFileInputs,
+    overrideSupportsMaskInputs,
   },
   modelId,
   providerId,
@@ -71,11 +73,22 @@ const doWrap = ({
       ? maxImagesPerCallRaw.bind(model)
       : maxImagesPerCallRaw;
 
+  const supportsFileInputs =
+    overrideSupportsFileInputs !== undefined
+      ? overrideSupportsFileInputs({ model })
+      : model.supportsFileInputs;
+  const supportsMaskInputs =
+    overrideSupportsMaskInputs !== undefined
+      ? overrideSupportsMaskInputs({ model })
+      : model.supportsMaskInputs;
+
   return {
     specificationVersion: 'v4',
     provider: providerId ?? overrideProvider?.({ model }) ?? model.provider,
     modelId: modelId ?? overrideModelId?.({ model }) ?? model.modelId,
     maxImagesPerCall,
+    supportsFileInputs,
+    supportsMaskInputs,
     async doGenerate(
       params: ImageModelV4CallOptions,
     ): Promise<ImageModelV4Result> {

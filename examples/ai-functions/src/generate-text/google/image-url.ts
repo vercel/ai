@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.8-flash'),
     maxOutputTokens: 512,
     messages: [
       {
@@ -12,9 +12,9 @@ run(async () => {
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
           {
-            type: 'image',
-            image:
-              'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+            type: 'file',
+            mediaType: 'image',
+            data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
           },
         ],
       },

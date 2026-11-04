@@ -1,2 +1,8 @@
-export { GenAIOpenTelemetry } from './gen-ai-open-telemetry';
+export { OpenTelemetryIdGenerator } from './durable-span-ids';
 export { OpenTelemetry } from './open-telemetry';
+export type {
+  EnrichSpan,
+  OpenTelemetryOptions,
+  OpenTelemetrySpanType,
+} from './open-telemetry';
+export { LegacyOpenTelemetry } from './legacy-open-telemetry';

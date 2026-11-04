@@ -1,4 +1,8 @@
-import { NextFetchEvent, NextRequest, NextResponse } from 'next/server';
+import {
+  NextResponse,
+  type NextFetchEvent,
+  type NextRequest,
+} from 'next/server';
 import { ipAddress } from '@vercel/functions';
 
 // You can get this endpoint name from the application details on the Kasada Portal.

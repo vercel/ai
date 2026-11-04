@@ -1,14 +1,14 @@
-import { createVertex } from '@ai-sdk/google-vertex';
+import { createGoogleVertex } from '@ai-sdk/google-vertex';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const vertex = createVertex({
+  const vertex = createGoogleVertex({
     apiKey: process.env.GOOGLE_VERTEX_API_KEY,
   });
 
   const result = streamText({
-    model: vertex('gemini-2.0-flash'),
+    model: vertex('gemini-3.8-flash'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

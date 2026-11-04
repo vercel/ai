@@ -1,4 +1,4 @@
-import { GeneratedAudioFile } from 'ai';
+import type { GeneratedAudioFile } from 'ai';
 import fs from 'node:fs';
 import path from 'node:path';
 

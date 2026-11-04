@@ -1,5 +1,8 @@
-import { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
@@ -12,29 +15,10 @@ import {
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { FalConfig } from './fal-config';
+import type { FalConfig } from './fal-config';
 import { falFailedResponseHandler } from './fal-error';
-import { FAL_EMOTIONS, FAL_LANGUAGE_BOOSTS } from './fal-api-types';
-import { FalSpeechModelId } from './fal-speech-settings';
-
-const falSpeechModelOptionsSchema = z.looseObject({
-  voice_setting: z
-    .object({
-      speed: z.number().nullish(),
-      vol: z.number().nullish(),
-      voice_id: z.string().nullish(),
-      pitch: z.number().nullish(),
-      english_normalization: z.boolean().nullish(),
-      emotion: z.enum(FAL_EMOTIONS).nullish(),
-    })
-    .partial()
-    .nullish(),
-  audio_setting: z.record(z.string(), z.unknown()).nullish(),
-  language_boost: z.enum(FAL_LANGUAGE_BOOSTS).nullish(),
-  pronunciation_dict: z.record(z.string(), z.string()).nullish(),
-});
-
-export type FalSpeechModelOptions = z.infer<typeof falSpeechModelOptionsSchema>;
+import { falSpeechModelOptionsSchema } from './fal-speech-model-options';
+import type { FalSpeechModelId } from './fal-speech-settings';
 
 interface FalSpeechModelConfig extends FalConfig {
   _internal?: {
@@ -120,16 +104,21 @@ export class FalSpeechModel implements SpeechModelV4 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 
+    const requestUrl = this.config.url({
+      path: `https://fal.run/${this.modelId}`,
+      modelId: this.modelId,
+    });
+
     const {
       value: json,
       responseHeaders,
       rawValue,
     } = await postJsonToApi({
-      url: this.config.url({
-        path: `https://fal.run/${this.modelId}`,
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      url: requestUrl,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: requestBody,
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -142,6 +131,9 @@ export class FalSpeechModel implements SpeechModelV4 {
     const audioUrl = json.audio.url;
     const { value: audio } = await getFromApi({
       url: audioUrl,
+      // audioUrl comes from the provider response body; validate it.
+      validateUrl: true,
+      trustedOrigin: requestUrl,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
       abortSignal: options.abortSignal,
@@ -164,8 +156,12 @@ export class FalSpeechModel implements SpeechModelV4 {
   }
 }
 
-const falSpeechResponseSchema = z.object({
-  audio: z.object({ url: z.string() }),
-  duration_ms: z.number().optional(),
-  request_id: z.string().optional(),
-});
+const falSpeechResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio: z.object({ url: z.string() }),
+      duration_ms: z.number().optional(),
+      request_id: z.string().optional(),
+    }),
+  ),
+);

@@ -5,9 +5,10 @@ import {
   createUIMessageStream,
   convertToModelMessages,
   isStepCount,
+  toUIMessageStream,
 } from 'ai';
 import { createMCPClient, ElicitationRequestSchema } from '@ai-sdk/mcp';
-import { MCPElicitationUIMessage } from './types';
+import type { MCPElicitationUIMessage } from './types';
 import { createPendingElicitation } from './elicitation-store';
 
 // Allow streaming responses up to 30 seconds
@@ -81,7 +82,7 @@ async function processMessages(
     const tools = await mcpClient.tools();
 
     const result = streamText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools,
       stopWhen: isStepCount(10),
       onStepFinish: async ({ toolResults }) => {
@@ -89,15 +90,17 @@ async function processMessages(
           console.log('TOOL RESULTS:', JSON.stringify(toolResults, null, 2));
         }
       },
-      system:
+      instructions:
         'You are a helpful assistant. When asked to register a user, use the register_user tool.',
       messages: await convertToModelMessages(messages),
-      onFinish: async () => {
+      onEnd: async () => {
         await mcpClient.close();
       },
     });
 
-    writer.merge(result.toUIMessageStream({ originalMessages: messages }));
+    writer.merge(
+      toUIMessageStream({ stream: result.stream, originalMessages: messages }),
+    );
   } catch (error) {
     console.error('Error processing messages:', error);
     await mcpClient.close();

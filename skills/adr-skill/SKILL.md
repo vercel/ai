@@ -59,7 +59,6 @@ Every ADR goes through four phases. Do not skip phases.
 Before asking any questions, gather context from the repo:
 
 1. **Find existing ADRs.** Check `contributing/decisions/`, `docs/decisions/`, `adr/`, `docs/adr/`, `decisions/` for existing records. Read them. Note:
-
    - Existing conventions (directory, naming, template style)
    - Decisions that relate to or constrain the current one
    - Any ADRs this new decision might supersede
@@ -118,17 +117,14 @@ Do NOT proceed to Phase 2 until the human confirms the summary.
 ### Phase 2: Draft the ADR
 
 1. **Choose the ADR directory.**
-
    - If one exists (found in Phase 0), use it.
    - If none exists, create `contributing/decisions/` (if `contributing/` exists), `docs/decisions/` (MADR default), or `adr/` (simpler repos).
 
 2. **Choose a filename strategy.**
-
    - If existing ADRs use date prefixes (`YYYY-MM-DD-...`), continue that.
    - Otherwise use slug-only filenames (`choose-database.md`).
 
 3. **Choose a template.**
-
    - Use `assets/templates/adr-simple.md` for straightforward decisions (one clear winner, minimal tradeoffs).
    - Use `assets/templates/adr-madr.md` when you need to document multiple options with structured pros/cons/drivers.
    - See `references/template-variants.md` for guidance.
@@ -230,7 +226,6 @@ Keep these lightweight — one comment at the entry point, not on every line. Th
 ### Update an Existing ADR
 
 1. Identify the intent:
-
    - **Accept / reject**: change status, add any final context.
    - **Deprecate**: status → `deprecated`, explain replacement path.
    - **Supersede**: create a new ADR, link both ways (old → new, new → old).

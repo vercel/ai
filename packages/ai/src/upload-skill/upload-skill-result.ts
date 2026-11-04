@@ -1,6 +1,6 @@
-import { SkillsV4UploadSkillResult } from '@ai-sdk/provider';
-import { ProviderReference } from '../types/provider-reference';
-import { Warning } from '../types/warning';
+import type { SkillsV4UploadSkillResult } from '@ai-sdk/provider';
+import type { ProviderReference } from '../types/provider-reference';
+import type { Warning } from '../types/warning';
 
 export type UploadSkillResult = Omit<
   SkillsV4UploadSkillResult,

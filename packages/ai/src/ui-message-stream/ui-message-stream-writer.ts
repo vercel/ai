@@ -1,6 +1,7 @@
-import { UIMessage } from '../ui';
-import { ErrorHandler } from '../util/error-handler';
-import { InferUIMessageChunk } from './ui-message-chunks';
+import type { UIMessage } from '../ui';
+import type { ErrorHandler } from '../util/error-handler';
+import type { InferUIMessageChunk } from './ui-message-chunks';
+import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 
 export interface UIMessageStreamWriter<
   UI_MESSAGE extends UIMessage = UIMessage,
@@ -21,4 +22,18 @@ export interface UIMessageStreamWriter<
    * to prevent duplicated error masking.
    */
   onError: ErrorHandler | undefined;
+}
+
+export interface UIMessageStreamWriterWithOutcome<
+  UI_MESSAGE extends UIMessage = UIMessage,
+> extends UIMessageStreamWriter<UI_MESSAGE> {
+  /**
+   * Declares the operation-level outcome of the composed stream.
+   *
+   * The first outcome declared through this method is retained. Fatal
+   * execution, merge, error-handling, or downstream processing failures
+   * override declared outcomes. Declaring an outcome does not write a chunk or
+   * close the stream.
+   */
+  setOutcome(outcome: UIMessageStreamOutcome): void;
 }

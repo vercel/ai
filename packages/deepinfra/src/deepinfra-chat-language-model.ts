@@ -1,21 +1,22 @@
-import {
+import type {
   LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  FetchFunction,
+  type Resolvable,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-
 type DeepInfraChatConfig = {
   provider: string;
   url: (options: { path: string; modelId?: string }) => string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
+  supportsStructuredOutputs?: boolean;
 };
 
 export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageModel {
@@ -31,10 +32,6 @@ export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageMode
     config: DeepInfraChatConfig;
   }) {
     return new DeepInfraChatLanguageModel(options.modelId, options.config);
-  }
-
-  constructor(modelId: string, config: DeepInfraChatConfig) {
-    super(modelId, config);
   }
 
   /**

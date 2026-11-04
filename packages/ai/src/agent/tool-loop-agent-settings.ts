@@ -1,62 +1,52 @@
 import type {
   Arrayable,
   Context,
+  FlexibleSchema,
   IdGenerator,
   InferToolSetContext,
-  ToolSet,
-} from '@ai-sdk/provider-utils';
-import {
-  FlexibleSchema,
   MaybePromiseLike,
   ProviderOptions,
-  SystemModelMessage,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
+import type { ActiveTools } from '../generate-text/active-tools';
 import type {
-  OnFinishEvent,
-  OnStartEvent,
-  OnStepFinishEvent,
-  OnStepStartEvent,
-} from '../generate-text/core-events';
-import { Output } from '../generate-text/output';
-import { PrepareStepFunction } from '../generate-text/prepare-step';
-import { StopCondition } from '../generate-text/stop-condition';
-import { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
-import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
-import {
+  GenerateTextOnEndCallback,
+  GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
+  GenerateTextOnStepErrorCallback,
+  GenerateTextOnStepFinishCallback,
+  GenerateTextOnStepStartCallback,
+} from '../generate-text/generate-text-events';
+import type { GenerateTextInclude } from '../generate-text/generate-text';
+import type {
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from '../generate-text/language-model-events';
+import type { Output } from '../generate-text/output';
+import type { PrepareStepFunction } from '../generate-text/prepare-step';
+import type { StopCondition } from '../generate-text/stop-condition';
+import type {
+  StreamTextInclude,
+  StreamTextOnAbortCallback,
+  StreamTextOnErrorCallback,
+} from '../generate-text/stream-text';
+import type { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
+import type { Experimental_ToolCallers } from '../generate-text/tool-caller-configuration';
+import type { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
+import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from '../generate-text/tool-execution-events';
-import { ToolsContextParameter } from '../generate-text/tools-context-parameter';
-import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
-import { Prompt } from '../prompt/prompt';
-import { RequestOptions } from '../prompt/request-options';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
-import { LanguageModel, ToolChoice } from '../types/language-model';
-import type { Callback } from '../util/callback';
-import { DownloadFunction } from '../util/download/download-function';
-import { AgentCallParameters } from './agent';
-
-export type ToolLoopAgentOnStartCallback<
-  TOOLS extends ToolSet = ToolSet,
-  RUNTIME_CONTEXT extends Context = Context,
-  OUTPUT extends Output = Output,
-> = Callback<OnStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
-
-export type ToolLoopAgentOnStepStartCallback<
-  TOOLS extends ToolSet = ToolSet,
-  RUNTIME_CONTEXT extends Context = Context,
-  OUTPUT extends Output = Output,
-> = Callback<OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
-
-export type ToolLoopAgentOnStepFinishCallback<
-  TOOLS extends ToolSet = ToolSet,
-  RUNTIME_CONTEXT extends Context = Context,
-> = Callback<OnStepFinishEvent<TOOLS, RUNTIME_CONTEXT>>;
-
-export type ToolLoopAgentOnFinishCallback<
-  TOOLS extends ToolSet = ToolSet,
-  RUNTIME_CONTEXT extends Context = Context,
-> = Callback<OnFinishEvent<TOOLS, RUNTIME_CONTEXT>>;
+import type { ToolInputRefinement } from '../generate-text/tool-input-refinement';
+import type { ToolOrder } from '../generate-text/tool-order';
+import type { ToolsContextParameter } from '../generate-text/tools-context-parameter';
+import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import type { Instructions, Prompt } from '../prompt/prompt';
+import type { RequestOptions } from '../prompt/request-options';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { LanguageModel, ToolChoice } from '../types/language-model';
+import type { DownloadFunction } from '../util/download/download-function';
+import type { AgentCallParameters } from './agent';
 
 /**
  * Configuration options for an agent.
@@ -79,7 +69,17 @@ export type ToolLoopAgentSettings<
      *
      * It can be a string, or, if you need to pass additional provider options (e.g. for caching), a `SystemModelMessage`.
      */
-    instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
+    instructions?: Instructions;
+
+    /**
+     * Whether system messages are allowed in the `prompt` or `messages` fields.
+     *
+     * When disabled, system messages must be provided through the `instructions`
+     * option.
+     *
+     * @default false
+     */
+    allowSystemInMessages?: boolean;
 
     /**
      * The language model to use.
@@ -102,20 +102,37 @@ export type ToolLoopAgentSettings<
     /**
      * Optional telemetry configuration.
      */
-    telemetry?: TelemetryOptions;
+    telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Optional telemetry configuration.
      *
      * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
-    experimental_telemetry?: TelemetryOptions;
+    experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT, NoInfer<TOOLS>>;
 
     /**
      * Limits the tools that are available for the model to call without
      * changing the tool call and result types in the result.
      */
-    activeTools?: Array<keyof NoInfer<TOOLS>>;
+    activeTools?: ActiveTools<NoInfer<TOOLS>>;
+
+    /**
+     * Controls the order in which tools are sent to the provider.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically. This can improve provider-side
+     * caching by keeping tool definitions in a stable order.
+     */
+    toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+
+    /**
+     * Maximum number of tool calls that may execute concurrently within a step.
+     *
+     * Set to `1` to execute tool calls sequentially in the order they were
+     * generated. By default, all tool calls execute concurrently.
+     */
+    toolCallConcurrency?: number;
 
     /**
      * Optional specification for generating structured outputs.
@@ -133,7 +150,19 @@ export type ToolLoopAgentSettings<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolApproval?: ToolApprovalConfiguration<NoInfer<TOOLS>>;
+    toolApproval?: ToolApprovalConfiguration<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
+
+    /**
+     * Configures which caller tools may invoke each tool.
+     */
+    experimental_toolCallers?: Experimental_ToolCallers<NoInfer<TOOLS>>;
+
+    /**
+     * Secret for HMAC-signing tool approval requests. When set, the server
+     * signs each approval request at issuance and verifies the signature when
+     * the approval is replayed, preventing client-forged approvals.
+     */
+    experimental_toolApprovalSecret?: string | Uint8Array;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -143,12 +172,38 @@ export type ToolLoopAgentSettings<
     /**
      * A function that attempts to repair a tool call that failed to parse.
      */
+    repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+
+    /**
+     * A function that attempts to repair a tool call that failed to parse.
+     *
+     * @deprecated Use `repairToolCall` instead.
+     */
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
+
+    /**
+     * Optional mapping of tool names to functions that refine parsed tool inputs.
+     *
+     * The refined input must have the same type shape as the tool input. Refined
+     * inputs are used for tool execution, outputs, callbacks, and telemetry.
+     */
+    experimental_refineToolInput?: ToolInputRefinement<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.
      */
-    experimental_onStart?: ToolLoopAgentOnStartCallback<
+    onStart?: GenerateTextOnStartCallback<
+      NoInfer<TOOLS>,
+      RUNTIME_CONTEXT,
+      NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called when the agent operation begins, before any LLM calls.
+     *
+     * @deprecated Use `onStart` instead.
+     */
+    experimental_onStart?: GenerateTextOnStartCallback<
       NoInfer<TOOLS>,
       RUNTIME_CONTEXT,
       NoInfer<OUTPUT>
@@ -157,30 +212,89 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called when a step (LLM call) begins, before the provider is called.
      */
-    experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<
+    onStepStart?: GenerateTextOnStepStartCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
     >;
 
     /**
+     * Callback that is called when a step (LLM call) begins, before the provider is called.
+     *
+     * @deprecated Use `onStepStart` instead.
+     */
+    experimental_onStepStart?: GenerateTextOnStepStartCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called immediately before the provider model call begins.
+     */
+    onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+
+    /**
+     * Callback that is called after the model response has been normalized and parsed,
+     * but before any client-side tool execution begins.
+     */
+    onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
+
+    /**
      * Callback that is called before each tool execution begins.
      */
-    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<
-      NoInfer<TOOLS>
-    >;
+    onToolExecutionStart?: OnToolExecutionStartCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called after each tool execution completes.
      */
-    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<
-      NoInfer<TOOLS>
+    onToolExecutionEnd?: OnToolExecutionEndCallback<NoInfer<TOOLS>>;
+
+    /**
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     */
+    onStepEnd?: GenerateTextOnStepEndCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
     >;
 
     /**
-     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     * Callback that is called when a step that started fails before it
+     * produces a step result. `onStepEnd` is not called for such a step.
+     *
+     * Unlike `onStepStart` and `onStepEnd`, it can only be set here and not
+     * per call, because the per-call callbacks are shared with other `Agent`
+     * implementations that do not report step errors.
      */
-    onStepFinish?: ToolLoopAgentOnStepFinishCallback<
+    onStepError?: GenerateTextOnStepErrorCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>,
+      NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called when an error occurs. For `stream()` it receives
+     * the errors of the stream, for `generate()` it receives the error before
+     * it is thrown. Aborts and timeouts are not reported.
+     */
+    onError?: StreamTextOnErrorCallback;
+
+    /**
+     * Callback that is called when `stream()` is aborted or times out.
+     * `generate()` does not call it: an aborted or timed out `generate()` call
+     * rejects, and its step ends with `onStepError`.
+     */
+    onAbort?: StreamTextOnAbortCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
+
+    /**
+     * Callback that is called when each step (LLM call) ends, including intermediate steps.
+     *
+     * @deprecated Use `onStepEnd` instead.
+     */
+    onStepFinish?: GenerateTextOnStepFinishCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;
@@ -188,7 +302,14 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: ToolLoopAgentOnFinishCallback<
+    onEnd?: GenerateTextOnEndCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     *
+     * @deprecated Use `onEnd` instead.
+     */
+    onFinish?: GenerateTextOnEndCallback<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>
     >;
@@ -208,6 +329,16 @@ export type ToolLoopAgentSettings<
     experimental_download?: DownloadFunction | undefined;
 
     /**
+     * Settings for controlling what data is included in step results.
+     * Disabling inclusion can help reduce memory usage when processing
+     * large payloads like images.
+     *
+     * By default, request and response bodies are included, and request
+     * messages are excluded.
+     */
+    include?: GenerateTextInclude & StreamTextInclude;
+
+    /**
      * Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -224,6 +355,16 @@ export type ToolLoopAgentSettings<
      * Prepare the parameters for the generateText or streamText call.
      *
      * You can use this to have templates based on call options.
+     *
+     * The design requires you to pass call parameters as follows to
+     * allow for the removal of parameters from the original settings
+     * by setting them to `undefined`:
+     *
+     * ```
+     *   prepareCall: ({ options, ...rest }) => ({
+     *     ...rest,
+     *   }),
+     * ```
      */
     prepareCall?: (
       options: Omit<
@@ -232,7 +373,18 @@ export type ToolLoopAgentSettings<
           NoInfer<TOOLS>,
           NoInfer<RUNTIME_CONTEXT>
         >,
-        'onStepFinish'
+        | 'abortSignal'
+        | 'timeout'
+        | 'onStart'
+        | 'experimental_onStart'
+        | 'onStepStart'
+        | 'experimental_onStepStart'
+        | 'onToolExecutionStart'
+        | 'onToolExecutionEnd'
+        | 'onStepEnd'
+        | 'onStepFinish'
+        | 'onEnd'
+        | 'onFinish'
       > &
         Pick<
           ToolLoopAgentSettings<
@@ -243,6 +395,8 @@ export type ToolLoopAgentSettings<
           >,
           | 'model'
           | 'tools'
+          | 'toolChoice'
+          | 'maxRetries'
           | 'maxOutputTokens'
           | 'temperature'
           | 'topP'
@@ -251,15 +405,26 @@ export type ToolLoopAgentSettings<
           | 'frequencyPenalty'
           | 'stopSequences'
           | 'seed'
+          | 'reasoning'
           | 'headers'
           | 'instructions'
+          | 'allowSystemInMessages'
           | 'stopWhen'
           | 'telemetry'
           | 'experimental_telemetry'
           | 'activeTools'
+          | 'toolOrder'
+          | 'toolCallConcurrency'
           | 'toolApproval'
+          | 'experimental_toolCallers'
+          | 'experimental_toolApprovalSecret'
+          | 'prepareStep'
+          | 'repairToolCall'
+          | 'experimental_repairToolCall'
           | 'providerOptions'
           | 'experimental_download'
+          | 'experimental_refineToolInput'
+          | 'include'
           | 'runtimeContext'
           | '_internal'
         > & { toolsContext: InferToolSetContext<TOOLS> },
@@ -273,6 +438,8 @@ export type ToolLoopAgentSettings<
         >,
         | 'model'
         | 'tools'
+        | 'toolChoice'
+        | 'maxRetries'
         | 'maxOutputTokens'
         | 'temperature'
         | 'topP'
@@ -281,15 +448,26 @@ export type ToolLoopAgentSettings<
         | 'frequencyPenalty'
         | 'stopSequences'
         | 'seed'
+        | 'reasoning'
         | 'headers'
         | 'instructions'
+        | 'allowSystemInMessages'
         | 'stopWhen'
         | 'telemetry'
         | 'experimental_telemetry'
         | 'activeTools'
+        | 'toolOrder'
+        | 'toolCallConcurrency'
         | 'toolApproval'
+        | 'experimental_toolCallers'
+        | 'experimental_toolApprovalSecret'
+        | 'prepareStep'
+        | 'repairToolCall'
+        | 'experimental_repairToolCall'
         | 'providerOptions'
         | 'experimental_download'
+        | 'experimental_refineToolInput'
+        | 'include'
         | 'runtimeContext'
         | '_internal'
       > &

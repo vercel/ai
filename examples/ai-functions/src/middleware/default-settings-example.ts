@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 run(async () => {
   const result = await generateText({
     model: wrapLanguageModel({
-      model: openai.responses('gpt-4o'),
+      model: openai.responses('gpt-4.1'),
       middleware: defaultSettingsMiddleware({
         settings: {
           temperature: 0.5,

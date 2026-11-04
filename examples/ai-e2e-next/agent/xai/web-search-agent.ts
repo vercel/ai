@@ -1,6 +1,5 @@
 import { xai } from '@ai-sdk/xai';
-import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
-
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 export const xaiWebSearchAgent = new ToolLoopAgent({
   model: xai.responses('grok-4-fast-reasoning'),
   tools: {
@@ -11,7 +10,7 @@ export const xaiWebSearchAgent = new ToolLoopAgent({
       enableImageUnderstanding: true,
     }),
   },
-  experimental_onStepStart: ({ messages }) => {
+  onStepStart: ({ messages }) => {
     console.log('Messages:', JSON.stringify(messages, null, 2));
   },
   onStepFinish: ({ response }) => {

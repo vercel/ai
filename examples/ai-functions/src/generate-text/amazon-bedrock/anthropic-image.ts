@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
     messages: [
       {
         role: 'user',
@@ -16,8 +16,9 @@ run(async () => {
             text: 'Describe the image in detail.',
           },
           {
-            type: 'image',
-            image: fs.readFileSync('./data/comic-cat.png'),
+            type: 'file',
+            mediaType: 'image',
+            data: fs.readFileSync('./data/comic-cat.png'),
           },
         ],
       },

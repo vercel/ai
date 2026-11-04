@@ -5,7 +5,7 @@ import { LangSmithDeploymentTransport } from '@ai-sdk/langchain';
 import { useState, useMemo } from 'react';
 import { ChatContainer } from '../../components/chat-container';
 import { LangsmithConfigPanel } from '../../components/langsmith-config-panel';
-import { type CustomDataMessage } from '../types';
+import type { CustomDataMessage } from '../types';
 
 const LOCAL_DEV_URL = 'http://localhost:2024';
 

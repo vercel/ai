@@ -1,7 +1,6 @@
-import { Embedding } from '../types';
-import { EmbeddingModelUsage } from '../types/usage';
-import { ProviderMetadata } from '../types';
-import { Warning } from '../types/warning';
+import type { Embedding, ProviderMetadata } from '../types';
+import type { EmbeddingModelUsage } from '../types/usage';
+import type { Warning } from '../types/warning';
 
 /**
  * The result of an `embed` call.

@@ -4,16 +4,16 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     messages: [
       {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
           {
-            type: 'image',
-            image:
-              'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
+            type: 'file',
+            mediaType: 'image',
+            data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
 
             // OpenAI specific option - image detail:
             providerOptions: {

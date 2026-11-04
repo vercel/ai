@@ -1,6 +1,6 @@
-import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
-import { SharedV4ProviderReference } from '../../shared/v4/shared-v4-provider-reference';
-import { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
+import type { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
+import type { SharedV4ProviderReference } from '../../shared/v4/shared-v4-provider-reference';
+import type { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 
 export interface SkillsV4UploadSkillResult {
   /**

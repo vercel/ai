@@ -15,6 +15,20 @@ describe('isUrlSupported', () => {
   });
 
   describe('when the model supports specific media types and URLs', () => {
+    it.each([
+      'image/png-not-supported',
+      'image/png+invalid',
+      'image/png;invalid',
+    ])('should not match image/png against %s', mediaType => {
+      expect(
+        isUrlSupported({
+          mediaType,
+          url: 'gs://example-bucket/image',
+          supportedUrls: { 'image/png': [/^gs:\/\//] },
+        }),
+      ).toBe(false);
+    });
+
     it('should return true for exact media type and exact URL match', async () => {
       expect(
         isUrlSupported({
@@ -186,6 +200,20 @@ describe('isUrlSupported', () => {
   });
 
   describe('case sensitivity', () => {
+    it('should preserve case-sensitive URL paths when matching provider patterns', () => {
+      const url = 'https://assets.example/Images/Photo.PNG';
+      const pattern = /^https:\/\/assets\.example\/Images\/Photo\.PNG$/;
+
+      expect(pattern.test(url)).toBe(true);
+      expect(
+        isUrlSupported({
+          url,
+          mediaType: 'image/png',
+          supportedUrls: { 'image/*': [pattern] },
+        }),
+      ).toBe(true);
+    });
+
     it('should be case-insensitive for media types', async () => {
       expect(
         isUrlSupported({
@@ -196,24 +224,38 @@ describe('isUrlSupported', () => {
       ).toBe(true);
     });
 
+    it('should preserve case-sensitive URL query values', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'image/png',
+          url: 'https://assets.example/photo.png?token=AbC123',
+          supportedUrls: {
+            'image/*': [
+              /^https:\/\/assets\.example\/photo\.png\?token=AbC123$/,
+            ],
+          },
+        }),
+      ).toBe(true);
+    });
+
     it('should handle case-insensitive regex for URLs if specified', async () => {
       expect(
         isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://EXAMPLE.com/path', // Uppercase domain
-          supportedUrls: { 'text/plain': [/https:\/\/example\.com\/path/] },
+          supportedUrls: { 'text/plain': [/https:\/\/example\.com\/path/i] },
         }),
       ).toBe(true);
     });
 
-    it('should be case-insensitive for URL paths by default regex', async () => {
+    it('should be case-sensitive for URL paths unless the regex specifies otherwise', async () => {
       expect(
         isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://example.com/PATH', // Uppercase path
           supportedUrls: { 'text/plain': [/https:\/\/example\.com\/path/] }, // Lowercase path in regex
         }),
-      ).toBe(true);
+      ).toBe(false);
     });
   });
 
@@ -239,6 +281,48 @@ describe('isUrlSupported', () => {
           },
         }),
       ).toBe(true);
+    });
+  });
+
+  describe('top-level-only media types', () => {
+    it('should match a `type/*` key for a top-level-only media type', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'image',
+          url: 'https://example.com/cat.png',
+          supportedUrls: { 'image/*': [/https:\/\/example\.com\/.+/] },
+        }),
+      ).toBe(true);
+    });
+
+    it('should match the wildcard `*` key for a top-level-only media type', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'image',
+          url: 'https://example.com',
+          supportedUrls: { '*': [/https:\/\/example\.com/] },
+        }),
+      ).toBe(true);
+    });
+
+    it('should NOT match a specific `type/subtype` key for a top-level-only media type', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'image',
+          url: 'https://example.com/cat.png',
+          supportedUrls: { 'image/png': [/https:\/\/example\.com\/.+/] },
+        }),
+      ).toBe(false);
+    });
+
+    it('should NOT match a different top-level `type/*` key', () => {
+      expect(
+        isUrlSupported({
+          mediaType: 'image',
+          url: 'https://example.com/audio.mp3',
+          supportedUrls: { 'audio/*': [/https:\/\/example\.com\/.+/] },
+        }),
+      ).toBe(false);
     });
   });
 
@@ -277,6 +361,108 @@ describe('isUrlSupported', () => {
           },
         }),
       ).toBe(false);
+    });
+  });
+
+  describe('stateful regular expressions', () => {
+    const url = 'https://example.com/asset';
+
+    it('returns the same result for repeated global-regexp checks', () => {
+      const pattern = /https:\/\/example\.com\/asset/g;
+      const supportedUrls = { 'image/*': [pattern] };
+
+      expect(
+        Array.from({ length: 4 }, () =>
+          isUrlSupported({ mediaType: 'image/png', url, supportedUrls }),
+        ),
+      ).toEqual([true, true, true, true]);
+      expect(pattern.lastIndex).toBe(0);
+    });
+
+    it('returns the same result for repeated sticky-regexp checks', () => {
+      const pattern = /https:\/\/example\.com\/asset/y;
+      const supportedUrls = { 'image/*': [pattern] };
+
+      expect(
+        Array.from({ length: 4 }, () =>
+          isUrlSupported({ mediaType: 'image/png', url, supportedUrls }),
+        ),
+      ).toEqual([true, true, true, true]);
+      expect(pattern.lastIndex).toBe(0);
+    });
+
+    it('does not depend on or mutate caller-owned lastIndex', () => {
+      const globalPattern = /https:\/\/example\.com\/asset/g;
+      const stickyPattern = /https:\/\/example\.com\/asset/y;
+      globalPattern.lastIndex = 7;
+      stickyPattern.lastIndex = 11;
+
+      expect(
+        isUrlSupported({
+          mediaType: 'image/png',
+          url,
+          supportedUrls: { 'image/*': [globalPattern, stickyPattern] },
+        }),
+      ).toBe(true);
+      expect(globalPattern.lastIndex).toBe(7);
+      expect(stickyPattern.lastIndex).toBe(11);
+
+      expect(
+        isUrlSupported({
+          mediaType: 'image/png',
+          url,
+          supportedUrls: { 'image/*': [stickyPattern] },
+        }),
+      ).toBe(true);
+      expect(globalPattern.lastIndex).toBe(7);
+      expect(stickyPattern.lastIndex).toBe(11);
+    });
+
+    it('preserves state for non-matching patterns', () => {
+      const pattern = /https:\/\/other\.example\/asset/g;
+      pattern.lastIndex = 5;
+
+      expect(
+        isUrlSupported({
+          mediaType: 'image/png',
+          url,
+          supportedUrls: { 'image/*': [pattern] },
+        }),
+      ).toBe(false);
+      expect(pattern.lastIndex).toBe(5);
+    });
+
+    it('restores caller-owned state when evaluation throws', () => {
+      const pattern = /https:\/\/example\.com\/asset/g;
+      pattern.lastIndex = 5;
+      pattern.exec = () => {
+        pattern.lastIndex = 12;
+        throw new Error('test error');
+      };
+
+      expect(() =>
+        isUrlSupported({
+          mediaType: 'image/png',
+          url,
+          supportedUrls: { 'image/*': [pattern] },
+        }),
+      ).toThrow('test error');
+      expect(pattern.lastIndex).toBe(5);
+    });
+
+    it('preserves frozen non-stateful regexp behavior', () => {
+      const pattern = /https:\/\/example\.com\/asset/;
+      pattern.lastIndex = 5;
+      Object.freeze(pattern);
+
+      expect(
+        isUrlSupported({
+          mediaType: 'image/png',
+          url,
+          supportedUrls: { 'image/*': [pattern] },
+        }),
+      ).toBe(true);
+      expect(pattern.lastIndex).toBe(5);
     });
   });
 });

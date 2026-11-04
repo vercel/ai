@@ -5,10 +5,9 @@ import {
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
-import { LanguageModelV4, EmbeddingModelV4 } from '@ai-sdk/provider';
+import type { LanguageModelV4, EmbeddingModelV4 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
-
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 // Add type assertion for the mocked class
 const DeepInfraChatLanguageModelMock =
   DeepInfraChatLanguageModel as unknown as Mock;
@@ -112,6 +111,14 @@ describe('DeepInfraProvider', () => {
           provider: 'deepinfra.chat',
         }),
       );
+    });
+
+    it('should set supportsStructuredOutputs so response_format json_schema is forwarded', () => {
+      const provider = createDeepInfra();
+      provider.chatModel('test-model');
+
+      const config = DeepInfraChatLanguageModelMock.mock.calls[0][1];
+      expect(config.supportsStructuredOutputs).toBe(true);
     });
   });
 

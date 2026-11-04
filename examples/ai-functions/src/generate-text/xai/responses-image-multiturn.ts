@@ -18,7 +18,7 @@ async function main() {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe this image briefly.' },
-          { type: 'image', image: imageUrl },
+          { type: 'file', mediaType: 'image', data: imageUrl },
         ],
       },
     ],
@@ -34,7 +34,7 @@ async function main() {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe this image briefly.' },
-          { type: 'image', image: imageUrl },
+          { type: 'file', mediaType: 'image', data: imageUrl },
         ],
       },
       {

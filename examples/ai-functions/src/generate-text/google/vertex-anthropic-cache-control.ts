@@ -1,4 +1,4 @@
-import { type AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import type { AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 import fs from 'node:fs';
@@ -8,7 +8,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 run(async () => {
   const result = await generateText({
-    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
+    model: vertexAnthropic('claude-sonnet-5-5'),
     messages: [
       {
         role: 'user',

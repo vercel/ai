@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
     stopWhen: isStepCount(20),
     output: Output.array({
       element: z.object({
@@ -32,7 +32,7 @@ run(async () => {
     prompt: 'What is the weather in New York, Los Angeles, and Chicago?',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta':
         process.stdout.write(part.text);

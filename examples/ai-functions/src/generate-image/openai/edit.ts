@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAIImageModelEditOptions } from '@ai-sdk/openai';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
@@ -21,10 +21,13 @@ run(async () => {
   console.log(`PROMPT: ${prompt}`);
 
   const { images } = await generateImage({
-    model: openai.image('gpt-image-1'),
+    model: openai.image('gpt-image-2.5-sunburst'),
     prompt: {
       text: prompt,
       images: [imageBuffer],
+    },
+    providerOptions: {
+      openai: { moderation: 'low' } satisfies OpenAIImageModelEditOptions,
     },
   });
 

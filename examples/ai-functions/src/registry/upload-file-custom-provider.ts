@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 const myProvider = customProvider({
   languageModels: {
-    'gpt-4o-mini': openai.responses('gpt-4o-mini'),
+    'gpt-6-luna': openai.responses('gpt-6-luna'),
   },
   files: openai.files(),
 });
@@ -22,13 +22,13 @@ run(async () => {
   console.log('Filename:', filename);
 
   const result = await generateText({
-    model: myProvider.languageModel('gpt-4o-mini'),
+    model: myProvider.languageModel('gpt-6-luna'),
     messages: [
       {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe what you see in this image.' },
-          { type: 'image', image: providerReference },
+          { type: 'file', mediaType: 'image', data: providerReference },
         ],
       },
     ],

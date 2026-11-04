@@ -1,18 +1,40 @@
 import {
-  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
+  type JSONValue,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ToolResultOutput,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  stringifyWithBigIntAndCycles,
   convertToBase64,
-  isProviderReference,
+  getTopLevelMediaType,
+  isFullMediaType,
+  isUrlSupported,
+  resolveFullMediaType,
   resolveProviderReference,
+  secureJsonParse,
 } from '@ai-sdk/provider-utils';
 import {
-  GoogleContent,
-  GoogleContentPart,
-  GoogleFunctionResponsePart,
-  GooglePrompt,
+  googleVideoMetadataSchema,
+  type GoogleContent,
+  type GoogleContentPart,
+  type GoogleFunctionResponsePart,
+  type GooglePrompt,
 } from './google-prompt';
+import {
+  codeExecutionInputSchema,
+  codeExecutionOutputSchema,
+} from './tool/code-execution';
+
+/**
+ * Sentinel value Google documents for replaying functionCall parts whose
+ * original thoughtSignature is not available to the client.
+ *
+ * See https://ai.google.dev/gemini-api/docs/thought-signatures.
+ */
+export const SKIP_THOUGHT_SIGNATURE_VALIDATOR =
+  'skip_thought_signature_validator';
 
 const dataUrlRegex = /^data:([^;,]+);base64,(.+)$/s;
 
@@ -33,9 +55,6 @@ function parseBase64DataUrl(
 function convertUrlToolResultPart(
   url: string,
 ): GoogleFunctionResponsePart | undefined {
-  // Per https://ai.google.dev/api/caching#FunctionResponsePart, only inline data is supported.
-  // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/function-calling#functionresponsepart suggests that this
-  // may be different for Vertex, but this needs to be confirmed and further tested for both APIs.
   const parsedDataUrl = parseBase64DataUrl(url);
   if (parsedDataUrl == null) {
     return undefined;
@@ -49,6 +68,72 @@ function convertUrlToolResultPart(
   };
 }
 
+function containsJSONSchemaReference(
+  value: JSONValue | undefined,
+  seen: WeakSet<object> = new WeakSet(),
+): boolean {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+
+  if (seen.has(value)) {
+    return false;
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.some(item => containsJSONSchemaReference(item, seen));
+  }
+
+  return Object.entries(value).some(
+    ([key, nestedValue]) =>
+      key === '$ref' || containsJSONSchemaReference(nestedValue, seen),
+  );
+}
+
+function serializeFunctionResponseContent(
+  value: JSONValue,
+): JSONValue | string {
+  // Google reserves { $ref: displayName } in structured function responses for
+  // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
+  // result to preserve it without triggering Google's reference handling.
+  if (containsJSONSchemaReference(value)) {
+    return stringifyWithBigIntAndCycles(value);
+  }
+
+  // Keep Google's structured response for ordinary JSON, but normalize values
+  // that would otherwise fail when the final request body is serialized.
+  return containsNonJsonValue(value)
+    ? secureJsonParse(stringifyWithBigIntAndCycles(value))
+    : value;
+}
+
+function containsNonJsonValue(
+  value: unknown,
+  ancestors = new Set<object>(),
+): boolean {
+  if (typeof value === 'bigint') {
+    return true;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (typeof (value as { toJSON?: unknown }).toJSON === 'function') {
+    return true;
+  }
+  if (ancestors.has(value)) {
+    return true;
+  }
+  ancestors.add(value);
+  try {
+    return Object.values(value).some(item =>
+      containsNonJsonValue(item, ancestors),
+    );
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
 /*
  * Appends tool result content parts to the message using the functionResponse
  * format with support for multimodal parts (e.g. inline images/files alongside
@@ -57,10 +142,13 @@ function convertUrlToolResultPart(
 function appendToolResultParts(
   parts: GoogleContentPart[],
   toolName: string,
-  outputValue: Array<{
-    type: string;
-    [key: string]: unknown;
-  }>,
+  outputValue: Extract<
+    LanguageModelV4ToolResultOutput,
+    { type: 'content' }
+  >['value'],
+  toolCallId?: string,
+  includeFunctionCallIds = true,
+  supportedUrls: Record<string, RegExp[]> = {},
 ): void {
   const functionResponseParts: GoogleFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -68,25 +156,45 @@ function appendToolResultParts(
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
       case 'text': {
-        responseTextParts.push(contentPart.text as string);
+        responseTextParts.push(contentPart.text);
         break;
       }
-      case 'file-data': {
-        functionResponseParts.push({
-          inlineData: {
-            mimeType: contentPart.mediaType as string,
-            data: contentPart.data as string,
-          },
-        });
-        break;
-      }
-      case 'file-url': {
-        const functionResponsePart = convertUrlToolResultPart(
-          contentPart.url as string,
-        );
+      case 'file': {
+        if (contentPart.data.type === 'data') {
+          functionResponseParts.push({
+            inlineData: {
+              mimeType: resolveFullMediaType({ part: contentPart }),
+              data: convertToBase64(contentPart.data.data),
+            },
+          });
+        } else if (contentPart.data.type === 'url') {
+          const url = contentPart.data.url.toString();
+          const convertedUrlPart = convertUrlToolResultPart(url);
+          const supportedUrl =
+            contentPart.data.url.protocol === 'gs:' &&
+            contentPart.data.originalUrl != null
+              ? contentPart.data.originalUrl
+              : url;
 
-        if (functionResponsePart != null) {
-          functionResponseParts.push(functionResponsePart);
+          if (convertedUrlPart != null) {
+            functionResponseParts.push(convertedUrlPart);
+          } else if (
+            isFullMediaType(contentPart.mediaType) &&
+            isUrlSupported({
+              url: supportedUrl,
+              mediaType: contentPart.mediaType,
+              supportedUrls,
+            })
+          ) {
+            functionResponseParts.push({
+              fileData: {
+                mimeType: contentPart.mediaType,
+                fileUri: supportedUrl,
+              },
+            });
+          } else {
+            responseTextParts.push(JSON.stringify(contentPart));
+          }
         } else {
           responseTextParts.push(JSON.stringify(contentPart));
         }
@@ -101,6 +209,9 @@ function appendToolResultParts(
 
   parts.push({
     functionResponse: {
+      ...(includeFunctionCallIds && toolCallId != null
+        ? { id: toolCallId }
+        : {}),
       name: toolName,
       response: {
         name: toolName,
@@ -124,16 +235,21 @@ function appendToolResultParts(
 function appendLegacyToolResultParts(
   parts: GoogleContentPart[],
   toolName: string,
-  outputValue: Array<{
-    type: string;
-    [key: string]: unknown;
-  }>,
+  outputValue: Extract<
+    LanguageModelV4ToolResultOutput,
+    { type: 'content' }
+  >['value'],
+  toolCallId?: string,
+  includeFunctionCallIds = true,
 ): void {
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
       case 'text':
         parts.push({
           functionResponse: {
+            ...(includeFunctionCallIds && toolCallId != null
+              ? { id: toolCallId }
+              : {}),
             name: toolName,
             response: {
               name: toolName,
@@ -142,23 +258,29 @@ function appendLegacyToolResultParts(
           },
         });
         break;
-      case 'file-data':
-        if ((contentPart.mediaType as string).startsWith('image/')) {
+      case 'file': {
+        if (contentPart.data.type === 'data') {
+          const topLevelMediaType = getTopLevelMediaType(contentPart.mediaType);
+
           parts.push(
             {
               inlineData: {
-                mimeType: contentPart.mediaType as string,
-                data: contentPart.data as string,
+                mimeType: resolveFullMediaType({ part: contentPart }),
+                data: convertToBase64(contentPart.data.data),
               },
             },
             {
-              text: 'Tool executed successfully and returned this image as a response',
+              text:
+                `Tool executed successfully and returned this ` +
+                `${topLevelMediaType === 'image' ? 'image' : 'file'} ` +
+                `as a response`,
             },
           );
         } else {
           parts.push({ text: JSON.stringify(contentPart) });
         }
         break;
+      }
       default:
         parts.push({ text: JSON.stringify(contentPart) });
         break;
@@ -170,17 +292,60 @@ export function convertToGoogleMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
     isGemmaModel?: boolean;
-    providerOptionsName?: string;
+    isGemini3Model?: boolean;
+    onWarning?: (warning: SharedV4Warning) => void;
+    /**
+     * Names to look up under `providerOptions` when reading per-part metadata
+     * (e.g. thought signatures). Tried in order; first match wins. For the
+     * Vertex provider this is `['googleVertex', 'vertex']` (new key first,
+     * legacy key as fallback) and for the Google provider it is `['google']`.
+     */
+    providerOptionsNames?: readonly string[];
     supportsFunctionResponseParts?: boolean;
+    includeFunctionCallIds?: boolean;
+    supportedFunctionResponseUrls?: Record<string, RegExp[]>;
   },
 ): GooglePrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
   const contents: Array<GoogleContent> = [];
   let systemMessagesAllowed = true;
   const isGemmaModel = options?.isGemmaModel ?? false;
-  const providerOptionsName = options?.providerOptionsName ?? 'google';
+  const isGemini3Model = options?.isGemini3Model ?? false;
+  const onWarning = options?.onWarning;
+  const providerOptionsNames = options?.providerOptionsNames ?? ['google'];
+  const isVertexLike = !providerOptionsNames.includes('google');
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
+  const includeFunctionCallIds = options?.includeFunctionCallIds ?? true;
+  const supportedFunctionResponseUrls =
+    options?.supportedFunctionResponseUrls ?? {};
+
+  let sentinelInjected = false;
+  const missingSignatureToolNames: string[] = [];
+  const injectSkipSignature = (toolName: string) => {
+    missingSignatureToolNames.push(toolName);
+    sentinelInjected = true;
+    return SKIP_THOUGHT_SIGNATURE_VALIDATOR;
+  };
+
+  const readProviderOpts = (part: {
+    providerOptions?: Record<string, unknown> | undefined;
+  }): Record<string, unknown> | undefined => {
+    for (const name of providerOptionsNames) {
+      const v = part.providerOptions?.[name];
+      if (v != null) return v as Record<string, unknown>;
+    }
+    // Cross-namespace fallback (gateway interop): Vertex providers may receive
+    // metadata under `google`, and the Google provider may receive metadata
+    // under `googleVertex`/`vertex`.
+    if (isVertexLike) {
+      return part.providerOptions?.google as
+        | Record<string, unknown>
+        | undefined;
+    }
+    return (part.providerOptions?.googleVertex ??
+      part.providerOptions?.vertex) as Record<string, unknown> | undefined;
+  };
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -209,39 +374,70 @@ export function convertToGoogleMessages(
             }
 
             case 'file': {
-              const mediaType =
-                part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
+              const rawVideoMetadata = readProviderOpts(part)?.videoMetadata;
+              const videoMetadata =
+                rawVideoMetadata == null
+                  ? undefined
+                  : googleVideoMetadataSchema.parse(rawVideoMetadata);
 
-              if (part.data instanceof URL) {
-                parts.push({
-                  fileData: {
-                    mimeType: mediaType,
-                    fileUri: part.data.toString(),
-                  },
-                });
-              } else if (isProviderReference(part.data)) {
-                if (providerOptionsName === 'vertex') {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'file parts with provider references',
+              switch (part.data.type) {
+                case 'url': {
+                  parts.push({
+                    fileData: {
+                      mimeType: resolveFullMediaType({ part }),
+                      fileUri:
+                        part.data.url.protocol === 'gs:' &&
+                        part.data.originalUrl != null
+                          ? part.data.originalUrl
+                          : part.data.url.toString(),
+                    },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
                   });
+                  break;
                 }
+                case 'reference': {
+                  if (isVertexLike) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
 
-                parts.push({
-                  fileData: {
-                    mimeType: mediaType,
-                    fileUri: resolveProviderReference({
-                      reference: part.data,
-                      provider: 'google',
-                    }),
-                  },
-                });
-              } else {
-                parts.push({
-                  inlineData: {
-                    mimeType: mediaType,
-                    data: convertToBase64(part.data),
-                  },
-                });
+                  parts.push({
+                    fileData: {
+                      mimeType: resolveFullMediaType({ part }),
+                      fileUri: resolveProviderReference({
+                        reference: part.data.reference,
+                        provider: 'google',
+                      }),
+                    },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
+                  });
+                  break;
+                }
+                case 'text': {
+                  parts.push({
+                    inlineData: {
+                      mimeType: isFullMediaType(part.mediaType)
+                        ? part.mediaType
+                        : 'text/plain',
+                      data: convertToBase64(
+                        new TextEncoder().encode(part.data.text),
+                      ),
+                    },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
+                  });
+                  break;
+                }
+                case 'data': {
+                  parts.push({
+                    inlineData: {
+                      mimeType: resolveFullMediaType({ part }),
+                      data: convertToBase64(part.data.data),
+                    },
+                    ...(videoMetadata != null ? { videoMetadata } : {}),
+                  });
+                  break;
+                }
               }
 
               break;
@@ -256,15 +452,13 @@ export function convertToGoogleMessages(
       case 'assistant': {
         systemMessagesAllowed = false;
 
+        let modelResponseHasSignedFunctionCall = false;
+
         contents.push({
           role: 'model',
           parts: content
             .map(part => {
-              const providerOpts =
-                part.providerOptions?.[providerOptionsName] ??
-                (providerOptionsName !== 'google'
-                  ? part.providerOptions?.google
-                  : part.providerOptions?.vertex);
+              const providerOpts = readProviderOpts(part);
               const thoughtSignature =
                 providerOpts?.thoughtSignature != null
                   ? String(providerOpts.thoughtSignature)
@@ -272,7 +466,7 @@ export function convertToGoogleMessages(
 
               switch (part.type) {
                 case 'text': {
-                  return part.text.length === 0
+                  return part.text.length === 0 && thoughtSignature == null
                     ? undefined
                     : {
                         text: part.text,
@@ -281,7 +475,7 @@ export function convertToGoogleMessages(
                 }
 
                 case 'reasoning': {
-                  return part.text.length === 0
+                  return part.text.length === 0 && thoughtSignature == null
                     ? undefined
                     : {
                         text: part.text,
@@ -291,66 +485,102 @@ export function convertToGoogleMessages(
                 }
 
                 case 'reasoning-file': {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality:
-                        'File data URLs in assistant messages are not supported',
-                    });
+                  switch (part.data.type) {
+                    case 'url': {
+                      throw new UnsupportedFunctionalityError({
+                        functionality:
+                          'File data URLs in assistant messages are not supported',
+                      });
+                    }
+                    case 'data': {
+                      return {
+                        inlineData: {
+                          mimeType: part.mediaType,
+                          data: convertToBase64(part.data.data),
+                        },
+                        thought: true,
+                        thoughtSignature,
+                      };
+                    }
                   }
-
-                  return {
-                    inlineData: {
-                      mimeType: part.mediaType,
-                      data: convertToBase64(part.data),
-                    },
-                    thought: true,
-                    thoughtSignature,
-                  };
+                  break;
                 }
 
                 case 'file': {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality:
-                        'File data URLs in assistant messages are not supported',
-                    });
-                  }
-
-                  if (isProviderReference(part.data)) {
-                    if (providerOptionsName === 'vertex') {
+                  switch (part.data.type) {
+                    case 'url': {
                       throw new UnsupportedFunctionalityError({
-                        functionality: 'file parts with provider references',
+                        functionality:
+                          'File data URLs in assistant messages are not supported',
                       });
                     }
+                    case 'reference': {
+                      if (isVertexLike) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'file parts with provider references',
+                        });
+                      }
 
-                    return {
-                      fileData: {
-                        mimeType: part.mediaType,
-                        fileUri: resolveProviderReference({
-                          reference: part.data,
-                          provider: 'google',
-                        }),
-                      },
-                      ...(providerOpts?.thought === true
-                        ? { thought: true }
-                        : {}),
-                      thoughtSignature,
-                    };
+                      return {
+                        fileData: {
+                          mimeType: part.mediaType,
+                          fileUri: resolveProviderReference({
+                            reference: part.data.reference,
+                            provider: 'google',
+                          }),
+                        },
+                        ...(providerOpts?.thought === true
+                          ? { thought: true }
+                          : {}),
+                        thoughtSignature,
+                      };
+                    }
+                    case 'text': {
+                      return {
+                        inlineData: {
+                          mimeType: isFullMediaType(part.mediaType)
+                            ? part.mediaType
+                            : 'text/plain',
+                          data: convertToBase64(
+                            new TextEncoder().encode(part.data.text),
+                          ),
+                        },
+                        ...(providerOpts?.thought === true
+                          ? { thought: true }
+                          : {}),
+                        thoughtSignature,
+                      };
+                    }
+                    case 'data': {
+                      return {
+                        inlineData: {
+                          mimeType: part.mediaType,
+                          data: convertToBase64(part.data.data),
+                        },
+                        ...(providerOpts?.thought === true
+                          ? { thought: true }
+                          : {}),
+                        thoughtSignature,
+                      };
+                    }
                   }
-
-                  return {
-                    inlineData: {
-                      mimeType: part.mediaType,
-                      data: convertToBase64(part.data),
-                    },
-                    ...(providerOpts?.thought === true
-                      ? { thought: true }
-                      : {}),
-                    thoughtSignature,
-                  };
+                  break;
                 }
 
                 case 'tool-call': {
+                  if (
+                    part.providerExecuted === true &&
+                    part.toolName === 'code_execution'
+                  ) {
+                    return {
+                      executableCode: codeExecutionInputSchema.parse(
+                        typeof part.input === 'string'
+                          ? secureJsonParse(part.input)
+                          : part.input,
+                      ),
+                    };
+                  }
+
                   const serverToolCallId =
                     providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)
@@ -359,31 +589,64 @@ export function convertToGoogleMessages(
                     providerOpts?.serverToolType != null
                       ? String(providerOpts.serverToolType)
                       : undefined;
+                  const isServerToolCall =
+                    serverToolCallId != null && serverToolType != null;
+                  const shouldSkipMissingSignatureMitigation =
+                    // Gemini 3 returns a single signature for a parallel
+                    // function-call response on the first standard function
+                    // call. Subsequent standard function calls in the same
+                    // model response legitimately have no signature.
+                    !isServerToolCall &&
+                    thoughtSignature == null &&
+                    modelResponseHasSignedFunctionCall;
+                  const effectiveThoughtSignature =
+                    thoughtSignature ??
+                    (isGemini3Model && !shouldSkipMissingSignatureMitigation
+                      ? injectSkipSignature(part.toolName)
+                      : undefined);
 
-                  if (serverToolCallId && serverToolType) {
+                  if (!isServerToolCall && thoughtSignature != null) {
+                    modelResponseHasSignedFunctionCall = true;
+                  }
+
+                  if (isServerToolCall) {
                     return {
                       toolCall: {
                         toolType: serverToolType,
                         args:
                           typeof part.input === 'string'
-                            ? JSON.parse(part.input)
+                            ? secureJsonParse(part.input)
                             : part.input,
                         id: serverToolCallId,
                       },
-                      thoughtSignature,
+                      thoughtSignature: effectiveThoughtSignature,
                     };
                   }
 
                   return {
                     functionCall: {
+                      ...(includeFunctionCallIds && part.toolCallId != null
+                        ? { id: part.toolCallId }
+                        : {}),
                       name: part.toolName,
-                      args: part.input,
+                      args: parseToolCallInput(part.input),
                     },
-                    thoughtSignature,
+                    thoughtSignature: effectiveThoughtSignature,
                   };
                 }
 
                 case 'tool-result': {
+                  if (
+                    part.toolName === 'code_execution' &&
+                    part.output.type === 'json'
+                  ) {
+                    return {
+                      codeExecutionResult: codeExecutionOutputSchema.parse(
+                        part.output.value,
+                      ),
+                    };
+                  }
+
                   const serverToolCallId =
                     providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)
@@ -425,11 +688,7 @@ export function convertToGoogleMessages(
             continue;
           }
 
-          const partProviderOpts =
-            part.providerOptions?.[providerOptionsName] ??
-            (providerOptionsName !== 'google'
-              ? part.providerOptions?.google
-              : part.providerOptions?.vertex);
+          const partProviderOpts = readProviderOpts(part);
           const serverToolCallId =
             partProviderOpts?.serverToolCallId != null
               ? String(partProviderOpts.serverToolCallId)
@@ -466,20 +725,46 @@ export function convertToGoogleMessages(
 
           if (output.type === 'content') {
             if (supportsFunctionResponseParts) {
-              appendToolResultParts(parts, part.toolName, output.value);
+              appendToolResultParts(
+                parts,
+                part.toolName,
+                output.value,
+                part.toolCallId,
+                includeFunctionCallIds,
+                supportedFunctionResponseUrls,
+              );
             } else {
-              appendLegacyToolResultParts(parts, part.toolName, output.value);
+              appendLegacyToolResultParts(
+                parts,
+                part.toolName,
+                output.value,
+                part.toolCallId,
+                includeFunctionCallIds,
+              );
             }
           } else {
+            const isError =
+              output.type === 'error-text' ||
+              output.type === 'error-json' ||
+              output.type === 'execution-denied';
             parts.push({
               functionResponse: {
+                ...(includeFunctionCallIds && part.toolCallId != null
+                  ? { id: part.toolCallId }
+                  : {}),
                 name: part.toolName,
                 response: {
                   name: part.toolName,
-                  content:
-                    output.type === 'execution-denied'
-                      ? (output.reason ?? 'Tool call execution denied.')
-                      : output.value,
+                  ...(isError
+                    ? {
+                        error:
+                          output.type === 'execution-denied'
+                            ? (output.reason ?? 'Tool call execution denied.')
+                            : serializeFunctionResponseContent(output.value),
+                      }
+                    : {
+                        content: serializeFunctionResponseContent(output.value),
+                      }),
                 },
               },
             });
@@ -508,6 +793,23 @@ export function convertToGoogleMessages(
     contents[0].parts.unshift({ text: systemText + '\n\n' });
   }
 
+  if (sentinelInjected && onWarning != null) {
+    const uniqueToolNames = Array.from(new Set(missingSignatureToolNames));
+    onWarning({
+      type: 'other',
+      message:
+        `Replayed ${missingSignatureToolNames.length} \`functionCall\` part(s) ` +
+        `for a Gemini 3 model without a \`thoughtSignature\` ` +
+        `(tools: ${uniqueToolNames.map(name => `\`${name}\``).join(', ')}). ` +
+        `Injected the documented \`skip_thought_signature_validator\` sentinel ` +
+        `to keep the request from failing with HTTP 400. ` +
+        `The likely cause is application code that drops ` +
+        '`providerOptions.google.thoughtSignature` when persisting or ' +
+        'serializing assistant tool-call messages. ' +
+        'See https://ai.google.dev/gemini-api/docs/thought-signatures.',
+    });
+  }
+
   return {
     systemInstruction:
       systemInstructionParts.length > 0 && !isGemmaModel
@@ -515,4 +817,15 @@ export function convertToGoogleMessages(
         : undefined,
     contents,
   };
+}
+
+function parseToolCallInput(input: unknown): unknown {
+  if (typeof input !== 'string') {
+    return input;
+  }
+  try {
+    return secureJsonParse(input);
+  } catch {
+    return input;
+  }
 }

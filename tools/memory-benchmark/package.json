@@ -1,0 +1,13 @@
+{
+  "name": "memory-benchmark",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "ai-sdk-memory-benchmark": "src/cli.mjs"
+  },
+  "scripts": {
+    "benchmark": "node src/cli.mjs",
+    "smoke": "node src/cli.mjs smoke"
+  }
+}

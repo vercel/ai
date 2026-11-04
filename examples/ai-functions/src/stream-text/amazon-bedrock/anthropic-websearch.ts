@@ -1,12 +1,17 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { isStepCount, streamText, ToolCallPart, ToolResultPart } from 'ai';
+import {
+  isStepCount,
+  streamText,
+  type ToolCallPart,
+  type ToolResultPart,
+} from 'ai';
 import 'dotenv/config';
 import { run } from '../../lib/run';
 
 // Note: web_search may not be supported on Amazon Bedrock
 run(async () => {
   const result = streamText({
-    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
     prompt:
       'What are the latest news about climate change and renewable energy? Please provide current information and cite your sources.',
     tools: {
@@ -29,7 +34,7 @@ run(async () => {
   const toolCalls: ToolCallPart[] = [];
   const toolResponses: ToolResultPart[] = [];
 
-  for await (const delta of result.fullStream) {
+  for await (const delta of result.stream) {
     switch (delta.type) {
       case 'text-delta': {
         fullResponse += delta.text;

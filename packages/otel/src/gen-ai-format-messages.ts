@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4CustomPart,
   LanguageModelV4FilePart,
   LanguageModelV4Message,
@@ -117,9 +117,13 @@ export function mapOperationName(operationId: string): string {
     'ai.streamText': 'invoke_agent',
     'ai.generateObject': 'invoke_agent',
     'ai.streamObject': 'invoke_agent',
+    'ai.workflowAgent.stream': 'invoke_agent',
     'ai.embed': 'embeddings',
     'ai.embedMany': 'embeddings',
     'ai.rerank': 'rerank',
+    'ai.generateSpeech': 'ai.generateSpeech',
+    'ai.transcribe': 'ai.transcribe',
+    'ai.streamTranscribe': 'ai.streamTranscribe',
   };
   return mapping[operationId] ?? operationId;
 }
@@ -184,7 +188,39 @@ function convertMessagePartToSemConv(
     }
 
     case 'file': {
-      const data = part.data;
+      const rawData = part.data as
+        | string
+        | Uint8Array
+        | URL
+        | ArrayBuffer
+        | { type: 'data'; data: string | Uint8Array | ArrayBuffer }
+        | { type: 'url'; url: URL }
+        | { type: 'reference'; reference: Record<string, string> }
+        | { type: 'text'; text: string };
+
+      const data: string | Uint8Array | URL | ArrayBuffer = (() => {
+        if (
+          typeof rawData === 'object' &&
+          rawData !== null &&
+          !(rawData instanceof URL) &&
+          !(rawData instanceof Uint8Array) &&
+          !(rawData instanceof ArrayBuffer) &&
+          'type' in rawData
+        ) {
+          switch (rawData.type) {
+            case 'data':
+              return rawData.data;
+            case 'url':
+              return rawData.url;
+            case 'text':
+              return rawData.text;
+            default:
+              return '';
+          }
+        }
+        return rawData as string | Uint8Array | URL | ArrayBuffer;
+      })();
+
       let content: string;
       if (data instanceof Uint8Array) {
         content = convertDataContentToBase64String(data);
@@ -198,6 +234,13 @@ function convertMessagePartToSemConv(
           };
         }
         content = data;
+      } else if (data instanceof URL) {
+        return {
+          type: 'uri',
+          modality: getModality(part.mediaType),
+          mime_type: part.mediaType ?? null,
+          uri: data.toString(),
+        };
       } else {
         content = String(data);
       }
@@ -240,30 +283,27 @@ function getModality(mediaType: string | undefined): string {
 
 /**
  * Converts a LanguageModelV4Prompt to the gen_ai.input.messages SemConv format.
- * System messages are excluded (they go into gen_ai.system_instructions).
+ * Messages are preserved in the order they were sent to the model.
  */
 export function formatInputMessages(
   prompt: LanguageModelV4Prompt,
 ): SemConvInputMessage[] {
-  return prompt
-    .filter(msg => msg.role !== 'system')
-    .map((message: LanguageModelV4Message) => {
-      if (message.role === 'system') {
-        return {
-          role: 'system',
-          parts: [{ type: 'text', content: message.content }],
-        };
-      }
+  return prompt.map((message: LanguageModelV4Message) => {
+    if (message.role === 'system') {
+      return {
+        role: 'system',
+        parts: [{ type: 'text', content: message.content }],
+      };
+    }
 
-      const parts = message.content.map(convertMessagePartToSemConv);
-      return { role: message.role, parts };
-    });
+    const parts = message.content.map(convertMessagePartToSemConv);
+    return { role: message.role, parts };
+  });
 }
 
 /**
  * Converts user-facing ModelMessage[] (and optional prompt string) to the
- * gen_ai.input.messages SemConv format. System messages are excluded
- * (they belong in gen_ai.system_instructions).
+ * gen_ai.input.messages SemConv format while preserving message order.
  */
 export function formatModelMessages({
   prompt,
@@ -296,10 +336,13 @@ export function formatModelMessages({
   return result;
 }
 
-function convertModelMessageToSemConv(
-  msg: ModelMessage,
-): SemConvInputMessage | undefined {
-  if (msg.role === 'system') return undefined;
+function convertModelMessageToSemConv(msg: ModelMessage): SemConvInputMessage {
+  if (msg.role === 'system') {
+    return {
+      role: 'system',
+      parts: [{ type: 'text', content: msg.content }],
+    };
+  }
 
   if (msg.role === 'user') {
     if (typeof msg.content === 'string') {
@@ -346,7 +389,39 @@ function convertModelMessageToSemConv(
           };
         }
         case 'file': {
-          const data = part.data;
+          const rawData = part.data as
+            | string
+            | Uint8Array
+            | URL
+            | ArrayBuffer
+            | { type: 'data'; data: string | Uint8Array | ArrayBuffer }
+            | { type: 'url'; url: URL }
+            | { type: 'reference'; reference: Record<string, string> }
+            | { type: 'text'; text: string };
+
+          const data: string | Uint8Array | URL | ArrayBuffer = (() => {
+            if (
+              typeof rawData === 'object' &&
+              rawData !== null &&
+              !(rawData instanceof URL) &&
+              !(rawData instanceof Uint8Array) &&
+              !(rawData instanceof ArrayBuffer) &&
+              'type' in rawData
+            ) {
+              switch (rawData.type) {
+                case 'data':
+                  return rawData.data;
+                case 'url':
+                  return rawData.url;
+                case 'text':
+                  return rawData.text;
+                default:
+                  return '';
+              }
+            }
+            return rawData as string | Uint8Array | URL | ArrayBuffer;
+          })();
+
           if (data instanceof URL) {
             return {
               type: 'uri' as const,
@@ -459,7 +534,8 @@ function convertModelMessageToSemConv(
     return { role: 'tool', parts };
   }
 
-  return undefined;
+  const _exhaustive: never = msg;
+  return _exhaustive;
 }
 
 /**
@@ -472,7 +548,6 @@ export function extractSystemFromPrompt(
   if (systemMsg && systemMsg.role === 'system') {
     return systemMsg.content;
   }
-  return undefined;
 }
 
 /**
@@ -482,6 +557,7 @@ export function formatOutputMessages({
   text,
   reasoning,
   toolCalls,
+  toolResults,
   files,
   finishReason,
 }: {
@@ -491,6 +567,10 @@ export function formatOutputMessages({
     toolCallId: string;
     toolName: string;
     input: unknown;
+  }>;
+  toolResults?: ReadonlyArray<{
+    toolCallId: string;
+    output: unknown;
   }>;
   files?: ReadonlyArray<{ mediaType: string; base64: string }>;
   finishReason: string;
@@ -516,6 +596,16 @@ export function formatOutputMessages({
         id: tc.toolCallId,
         name: tc.toolName,
         arguments: tc.input,
+      });
+    }
+  }
+
+  if (toolResults) {
+    for (const toolResult of toolResults) {
+      parts.push({
+        type: 'tool_call_response',
+        id: toolResult.toolCallId,
+        response: toolResult.output,
       });
     }
   }

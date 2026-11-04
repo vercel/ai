@@ -1,16 +1,10 @@
-import {
-  ZodFirstPartyTypeKind,
-  ZodMapDef,
-  ZodRecordDef,
-  ZodTypeAny,
-} from 'zod/v3';
+import type { ZodMapDef, ZodRecordDef, ZodTypeAny } from 'zod/v3';
 import { parseDef } from '../parse-def';
-import { JsonSchema7Type } from '../parse-types';
-import { Refs } from '../refs';
+import type { JsonSchema7Type } from '../parse-types';
+import type { Refs } from '../refs';
 import { parseBrandedDef } from './branded';
-import { JsonSchema7EnumType } from './enum';
-import { JsonSchema7StringType, parseStringDef } from './string';
-
+import type { JsonSchema7EnumType } from './enum';
+import { parseStringDef, type JsonSchema7StringType } from './string';
 type JsonSchema7RecordPropertyNamesType =
   | Omit<JsonSchema7StringType, 'type'>
   | Omit<JsonSchema7EnumType, 'type'>;
@@ -35,7 +29,7 @@ export function parseRecordDef(
   };
 
   if (
-    def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodString &&
+    def.keyType?._def.typeName === 'ZodString' &&
     def.keyType._def.checks?.length
   ) {
     const { type: _type, ...keyType } = parseStringDef(def.keyType._def, refs);
@@ -44,7 +38,7 @@ export function parseRecordDef(
       ...schema,
       propertyNames: keyType,
     };
-  } else if (def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodEnum) {
+  } else if (def.keyType?._def.typeName === 'ZodEnum') {
     return {
       ...schema,
       propertyNames: {
@@ -52,8 +46,8 @@ export function parseRecordDef(
       },
     };
   } else if (
-    def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodBranded &&
-    def.keyType._def.type._def.typeName === ZodFirstPartyTypeKind.ZodString &&
+    def.keyType?._def.typeName === 'ZodBranded' &&
+    def.keyType._def.type._def.typeName === 'ZodString' &&
     def.keyType._def.type._def.checks?.length
   ) {
     const { type: _type, ...keyType } = parseBrandedDef(

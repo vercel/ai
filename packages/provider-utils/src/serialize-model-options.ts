@@ -1,6 +1,7 @@
-import { JSONObject } from '@ai-sdk/provider';
+import type { JSONObject } from '@ai-sdk/provider';
 import { isJSONSerializable } from './is-json-serializable';
-import { Resolvable } from './resolve';
+import type { Resolvable } from './resolve';
+import { SerializationError } from './serialization-error';
 
 /**
  * Serializes a model instance for workflow step boundaries.
@@ -53,10 +54,10 @@ function resolveSync<T>(value: Resolvable<T>): T {
     next = (value as () => unknown)();
   }
 
-  // the serialization for workflows currently only supports synchronous values
-  // TODO introduce SerializationError
   if (next instanceof Promise) {
-    throw new Error('Promise returned from resolveSync');
+    throw new SerializationError({
+      message: 'Cannot serialize asynchronous model options.',
+    });
   }
 
   return next as T;

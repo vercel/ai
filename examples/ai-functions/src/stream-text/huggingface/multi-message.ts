@@ -1,10 +1,10 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
+    model: huggingFace('meta-llama/Llama-3.1-8B-Instruct'),
     messages: [
       {
         role: 'user',

@@ -1,44 +1,48 @@
-import {
-  getResponseMetadata,
-  mapOpenAICompatibleFinishReason,
-  prepareTools,
-} from '@ai-sdk/openai-compatible/internal';
-import {
-  type LanguageModelV4,
-  type LanguageModelV4CallOptions,
-  type LanguageModelV4Content,
-  type LanguageModelV4FinishReason,
-  type LanguageModelV4GenerateResult,
-  type LanguageModelV4StreamPart,
-  type LanguageModelV4StreamResult,
-  type SharedV4Warning,
+import type {
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createLanguageModelResponseMetadata as getResponseMetadata,
   generateId,
-  type InferSchema,
+  injectJsonInstructionIntoMessages,
   isCustomReasoning,
   mapReasoningToProviderBudget,
   parseProviderOptions,
   postJsonToApi,
-  type ParseResult,
   serializeModelOptions,
   StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type InferSchema,
+  type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  alibabaLanguageModelOptions,
+  alibabaLanguageModelChatOptions,
   type AlibabaChatModelId,
-} from './alibaba-chat-options';
+} from './alibaba-chat-language-model-options';
 import type { AlibabaConfig } from './alibaba-config';
-import { alibabaFailedResponseHandler } from './alibaba-provider';
+import { alibabaFailedResponseHandler } from './alibaba-error';
+import { prepareTools } from './alibaba-prepare-tools';
 import { convertAlibabaUsage } from './convert-alibaba-usage';
 import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages';
 import { CacheControlValidator } from './get-cache-control';
+import { mapAlibabaFinishReason } from './map-alibaba-finish-reason';
+import { supportsJsonSchemaOutput } from './supports-json-schema-output';
+import { supportsPreservedThinking } from './supports-preserved-thinking';
 
 /**
  * Alibaba language model implementation.
@@ -49,13 +53,13 @@ import { CacheControlValidator } from './get-cache-control';
  * - Thinking budget control (thinking_budget)
  * - Prompt caching (cached_tokens tracking)
  */
-export class AlibabaLanguageModel implements LanguageModelV4 {
+export class AlibabaChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: AlibabaChatModelId;
 
   private readonly config: AlibabaConfig;
 
-  static [WORKFLOW_SERIALIZE](model: AlibabaLanguageModel) {
+  static [WORKFLOW_SERIALIZE](model: AlibabaChatLanguageModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -66,7 +70,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
     modelId: AlibabaChatModelId;
     config: AlibabaConfig;
   }) {
-    return new AlibabaLanguageModel(options.modelId, options.config);
+    return new AlibabaChatLanguageModel(options.modelId, options.config);
   }
 
   constructor(modelId: AlibabaChatModelId, config: AlibabaConfig) {
@@ -109,13 +113,44 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
     const alibabaOptions = await parseProviderOptions({
       provider: 'alibaba',
       providerOptions,
-      schema: alibabaLanguageModelOptions,
+      schema: alibabaLanguageModelChatOptions,
     });
 
     // Warn about unsupported features
     if (frequencyPenalty != null) {
       warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
+
+    // Preserved thinking defaults to on for models that support it; an
+    // explicit option always passes through. Unsupported models without an
+    // explicit option omit the wire field entirely.
+    const preserveThinking =
+      alibabaOptions?.preserveThinking ??
+      (supportsPreservedThinking(this.modelId) ? true : undefined);
+
+    const useJsonSchema =
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      supportsJsonSchemaOutput(this.modelId);
+
+    const useJsonObject = responseFormat?.type === 'json' && !useJsonSchema;
+
+    if (useJsonObject && responseFormat.schema != null) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'responseFormat JSON schema',
+        details:
+          `Alibaba does not support JSON Schema output for model ${this.modelId}. ` +
+          'JSON Object mode is used instead. The schema was injected into the system message and will only be validated locally.',
+      });
+    }
+
+    const resolvedPrompt = useJsonObject
+      ? injectJsonInstructionIntoMessages({
+          messages: prompt,
+          schema: responseFormat.schema,
+        })
+      : prompt;
 
     // Build base request arguments
     const baseArgs = {
@@ -129,7 +164,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
       seed,
       response_format:
         responseFormat?.type === 'json'
-          ? responseFormat.schema != null
+          ? useJsonSchema
             ? {
                 type: 'json_schema',
                 json_schema: {
@@ -147,10 +182,15 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
         warnings,
       }),
 
+      ...(preserveThinking != null
+        ? { preserve_thinking: preserveThinking }
+        : {}),
+
       // Convert messages with cache control support
       messages: convertToAlibabaChatMessages({
-        prompt,
+        prompt: resolvedPrompt,
         cacheControlValidator,
+        preserveThinking: preserveThinking ?? false,
       }),
     };
 
@@ -188,7 +228,10 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: alibabaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -201,12 +244,6 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
     const choice = response.choices[0];
     const content: Array<LanguageModelV4Content> = [];
 
-    // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
-    }
-
     // reasoning content (Alibaba uses 'reasoning_content' field):
     const reasoning = choice.message.reasoning_content;
     if (reasoning != null && reasoning.length > 0) {
@@ -216,12 +253,18 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
       });
     }
 
+    // text content:
+    const text = choice.message.content;
+    if (text != null && text.length > 0) {
+      content.push({ type: 'text', text });
+    }
+
     // tool calls:
     if (choice.message.tool_calls != null) {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id ?? generateId(),
+          toolCallId: toolCall.id || generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
         });
@@ -231,7 +274,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
     return {
       content,
       finishReason: {
-        unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
+        unified: mapAlibabaFinishReason(choice.finish_reason),
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertAlibabaUsage(response.usage),
@@ -259,7 +302,10 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: alibabaFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -270,25 +316,30 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
     });
 
     // Track state across chunks
+    // A clean end without the provider's completion signal is interrupted.
     let finishReason: LanguageModelV4FinishReason = {
-      unified: 'other',
+      unified: 'interrupted',
       raw: undefined,
     };
-    let usage: z.infer<typeof alibabaUsageSchema> | undefined = undefined;
+    let usage: z.infer<ReturnType<typeof alibabaUsageSchema>> | undefined =
+      undefined;
 
     let isFirstChunk = true;
     let activeText = false;
     let activeReasoningId: string | null = null;
 
-    const toolCallTracker = new StreamingToolCallTracker({ generateId });
+    let toolCallTracker: StreamingToolCallTracker;
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof alibabaChatChunkSchema>>,
+          ParseResult<InferSchema<typeof alibabaChatChunkSchema>>,
           LanguageModelV4StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -300,6 +351,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
 
             // Handle parse errors
             if (!chunk.success) {
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -378,7 +430,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
             }
 
             // Handle tool call streaming
-            if (delta.tool_calls != null) {
+            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // End any active reasoning or text before tool calls
               if (activeReasoningId != null) {
                 controller.enqueue({
@@ -393,17 +445,14 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                toolCallTracker.processDelta(
-                  toolCallDelta,
-                  controller.enqueue.bind(controller),
-                );
+                toolCallTracker.processDelta(toolCallDelta);
               }
             }
 
             // Track finish reason
             if (choice.finish_reason != null) {
               finishReason = {
-                unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
+                unified: mapAlibabaFinishReason(choice.finish_reason),
                 raw: choice.finish_reason,
               };
             }
@@ -421,7 +470,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
 
-            toolCallTracker.flush(controller.enqueue.bind(controller));
+            toolCallTracker.flush();
 
             controller.enqueue({
               type: 'finish',
@@ -443,7 +492,9 @@ function resolveAlibabaThinking({
   warnings,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
-  alibabaOptions: InferSchema<typeof alibabaLanguageModelOptions> | undefined;
+  alibabaOptions:
+    | InferSchema<typeof alibabaLanguageModelChatOptions>
+    | undefined;
   warnings: SharedV4Warning[];
 }): { enable_thinking?: boolean; thinking_budget?: number } {
   if (
@@ -477,7 +528,7 @@ function resolveAlibabaThinking({
 
   return {
     enable_thinking: true,
-    ...(thinkingBudget != null ? { thinking_budget: thinkingBudget } : {}),
+    thinking_budget: thinkingBudget,
   };
 }
 
@@ -485,82 +536,92 @@ function resolveAlibabaThinking({
  * Reference for schemas below:
  * https://www.alibabacloud.com/help/en/model-studio/qwen-api-via-openai-chat-completions
  */
-const alibabaUsageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-  prompt_tokens_details: z
-    .object({
-      cached_tokens: z.number().nullish(),
-      cache_creation_input_tokens: z.number().nullish(),
-    })
-    .nullish(),
-  completion_tokens_details: z
-    .object({
-      reasoning_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+const alibabaUsageSchema = () =>
+  z.looseObject({
+    prompt_tokens: z.number(),
+    completion_tokens: z.number(),
+    total_tokens: z.number(),
+    prompt_tokens_details: z
+      .looseObject({
+        cached_tokens: z.number().nullish(),
+        cache_creation_input_tokens: z.number().nullish(),
+        cache_type: z.string().nullish(),
+      })
+      .nullish(),
+    completion_tokens_details: z
+      .looseObject({
+        reasoning_tokens: z.number().nullish(),
+      })
+      .nullish(),
+  });
 
-const alibabaChatResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const alibabaChatResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      message: z.object({
-        role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
-        reasoning_content: z.string().nullish(), // Alibaba thinking mode
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string(),
-              type: z.literal('function'),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-            }),
-          )
-          .nullish(),
-      }),
-      finish_reason: z.string().nullish(),
-      index: z.number(),
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          message: z.object({
+            role: z.literal('assistant').nullish(),
+            content: z.string().nullish(),
+            reasoning_content: z.string().nullish(), // Alibaba thinking mode
+            tool_calls: z
+              .array(
+                z.object({
+                  id: z.string(),
+                  type: z.literal('function'),
+                  function: z.object({
+                    name: z.string(),
+                    arguments: z.string(),
+                  }),
+                }),
+              )
+              .nullish(),
+          }),
+          finish_reason: z.string().nullish(),
+          index: z.number(),
+        }),
+      ),
+      usage: alibabaUsageSchema().nullish(),
     }),
   ),
-  usage: alibabaUsageSchema.nullish(),
-});
+);
 
-const alibabaChatChunkSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
+const alibabaChatChunkSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      delta: z.object({
-        role: z.enum(['assistant']).nullish(),
-        content: z.string().nullish(),
-        reasoning_content: z.string().nullish(), // Alibaba thinking mode delta
-        tool_calls: z
-          .array(
-            z.object({
-              index: z.number().nullish(), // Index for accumulating tool calls
-              id: z.string().nullish(),
-              type: z.literal('function').nullish(),
-              function: z
-                .object({
-                  name: z.string().nullish(),
-                  arguments: z.string().nullish(),
-                })
-                .nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-      finish_reason: z.string().nullish(),
-      index: z.number(),
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          delta: z.object({
+            role: z.enum(['assistant']).nullish(),
+            content: z.string().nullish(),
+            reasoning_content: z.string().nullish(), // Alibaba thinking mode delta
+            tool_calls: z
+              .array(
+                z.object({
+                  index: z.number().nullish(), // Index for accumulating tool calls
+                  id: z.string().nullish(),
+                  type: z.literal('function').nullish(),
+                  function: z
+                    .object({
+                      name: z.string().nullish(),
+                      arguments: z.string().nullish(),
+                    })
+                    .nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+          finish_reason: z.string().nullish(),
+          index: z.number(),
+        }),
+      ),
+      usage: alibabaUsageSchema().nullish(), // Usage only appears in final chunk
     }),
   ),
-  usage: alibabaUsageSchema.nullish(), // Usage only appears in final chunk
-});
+);

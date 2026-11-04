@@ -1,10 +1,17 @@
-import { SharedV4Headers, SharedV4ProviderOptions } from '../../shared';
+import type { SharedV4Headers, SharedV4ProviderOptions } from '../../shared';
 
 export type EmbeddingModelV4CallOptions = {
   /**
    * List of text values to generate embeddings for.
    */
   values: Array<string>;
+
+  /**
+   * The requested number of dimensions for the output embeddings.
+   * Must be a positive integer. Support and allowed values depend on the model
+   * and provider implementation.
+   */
+  dimensions?: number;
 
   /**
    * Abort signal for cancelling the operation.

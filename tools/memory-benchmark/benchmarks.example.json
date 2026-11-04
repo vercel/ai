@@ -1,0 +1,31 @@
+{
+  "defaults": {
+    "iterations": 5,
+    "sampleIntervalMs": 100,
+    "timeoutMs": 600000
+  },
+  "benchmarks": [
+    {
+      "name": "neovate-code",
+      "cwd": "${AI_SDK_BENCH_ROOT}/neovate-code",
+      "command": [
+        "bun",
+        "./src/cli.ts",
+        "--quiet",
+        "--output-format",
+        "json",
+        "--model",
+        "anthropic/claude-sonnet-4-6",
+        "--approval-mode",
+        "default",
+        "--tools",
+        "{\"read\":true,\"glob\":true,\"grep\":true,\"ls\":true,\"bash\":false,\"bash_output\":false,\"kill_bash\":false,\"write\":false,\"edit\":false,\"task\":false,\"skill\":false,\"todoWrite\":false,\"AskUserQuestion\":false,\"ExitPlanMode\":false}",
+        "--cwd",
+        "${AI_SDK_BENCH_FIXTURE}",
+        "Inspect package.json and summarize its scripts. Do not modify files."
+      ],
+      "tags": ["cli", "coding-agent", "middleware", "workspace-ai-sdk"],
+      "notes": "Runs a fixed read-only prompt against the included fixture project."
+    }
+  ]
+}

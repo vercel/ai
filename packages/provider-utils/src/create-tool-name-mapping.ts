@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4FunctionTool,
   LanguageModelV4ProviderTool,
 } from '@ai-sdk/provider';

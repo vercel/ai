@@ -1,5 +1,5 @@
-import { SharedV4ProviderOptions } from '../../shared';
-import { ImageModelV4File } from './image-model-v4-file';
+import type { SharedV4ProviderOptions } from '../../shared';
+import type { ImageModelV4File } from './image-model-v4-file';
 
 export type ImageModelV4CallOptions = {
   /**

@@ -1,11 +1,11 @@
-import { huggingface } from '@ai-sdk/huggingface';
+import { huggingFace } from '@ai-sdk/huggingface';
 import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod/v4';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: huggingface.responses('deepseek-ai/DeepSeek-V3-0324'),
+    model: huggingFace.responses('deepseek-ai/DeepSeek-V3-0324'),
     stopWhen: isStepCount(5),
     toolChoice: 'required',
     tools: {
@@ -51,7 +51,7 @@ run(async () => {
     prompt: 'What is the weather like in my current location?',
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

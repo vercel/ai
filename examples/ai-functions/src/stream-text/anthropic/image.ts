@@ -5,13 +5,17 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-3-5-sonnet-20240620'),
+    model: anthropic('claude-sonnet-5-5'),
     messages: [
       {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
-          { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
+          {
+            type: 'file',
+            mediaType: 'image',
+            data: fs.readFileSync('./data/comic-cat.png'),
+          },
         ],
       },
     ],

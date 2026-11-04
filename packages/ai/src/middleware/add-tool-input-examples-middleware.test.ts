@@ -1,4 +1,4 @@
-import { JSONObject, LanguageModelV4CallOptions } from '@ai-sdk/provider';
+import type { JSONObject, LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { addToolInputExamplesMiddleware } from './add-tool-input-examples-middleware';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { describe, it, expect } from 'vitest';

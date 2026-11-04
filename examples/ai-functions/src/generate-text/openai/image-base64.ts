@@ -5,7 +5,8 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
+    reasoning: 'none',
     maxOutputTokens: 512,
     messages: [
       {
@@ -13,8 +14,9 @@ run(async () => {
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
           {
-            type: 'image',
-            image: fs.readFileSync('./data/comic-cat.png').toString('base64'),
+            type: 'file',
+            mediaType: 'image',
+            data: fs.readFileSync('./data/comic-cat.png').toString('base64'),
           },
         ],
       },

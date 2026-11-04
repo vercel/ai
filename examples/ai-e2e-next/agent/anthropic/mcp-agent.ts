@@ -2,10 +2,9 @@ import {
   anthropic,
   type AnthropicLanguageModelOptions,
 } from '@ai-sdk/anthropic';
-import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
-
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 export const anthropicMcpAgent = new ToolLoopAgent({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5-5'),
   providerOptions: {
     anthropic: {
       mcpServers: [

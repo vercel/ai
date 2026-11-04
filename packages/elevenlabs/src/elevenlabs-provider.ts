@@ -1,23 +1,26 @@
 import {
-  TranscriptionModelV4,
-  SpeechModelV4,
-  ProviderV4,
   NoSuchModelError,
+  type TranscriptionModelV4,
+  type SpeechModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
+  type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
-import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+import type { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
 import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
-import { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
+import type { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
 import { VERSION } from './version';
 
 export interface ElevenLabsProvider extends ProviderV4 {
   (
-    modelId: 'scribe_v1',
+    modelId: ElevenLabsTranscriptionModelId,
     settings?: {},
   ): {
     transcription: ElevenLabsTranscriptionModel;
@@ -41,9 +44,10 @@ export interface ElevenLabsProvider extends ProviderV4 {
 
 export interface ElevenLabsProviderSettings {
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -55,6 +59,13 @@ export interface ElevenLabsProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation. Required in runtimes whose native
+   * WebSocket constructor does not support headers, for realtime
+   * transcription and streaming speech.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
@@ -64,16 +75,18 @@ export function createElevenLabs(
   options: ElevenLabsProviderSettings = {},
 ): ElevenLabsProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        'xi-api-key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'ELEVENLABS_API_KEY',
-          description: 'ElevenLabs',
-        }),
-        ...options.headers,
-      },
-      `ai-sdk/elevenlabs/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          'xi-api-key': loadApiKey({
+            apiKey,
+            environmentVariableName: 'ELEVENLABS_API_KEY',
+            description: 'ElevenLabs',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-elevenlabs/${VERSION}`,
+      ),
     );
 
   const createTranscriptionModel = (modelId: ElevenLabsTranscriptionModelId) =>
@@ -82,6 +95,7 @@ export function createElevenLabs(
       url: ({ path }) => `https://api.elevenlabs.io${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const createSpeechModel = (modelId: ElevenLabsSpeechModelId) =>
@@ -90,6 +104,7 @@ export function createElevenLabs(
       url: ({ path }) => `https://api.elevenlabs.io${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const provider = function (modelId: ElevenLabsTranscriptionModelId) {
@@ -135,4 +150,4 @@ export function createElevenLabs(
 /**
  * Default ElevenLabs provider instance.
  */
-export const elevenlabs = createElevenLabs();
+export const elevenLabs = createElevenLabs();

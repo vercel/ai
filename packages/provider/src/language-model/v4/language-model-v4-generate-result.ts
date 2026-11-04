@@ -1,9 +1,9 @@
-import { SharedV4Headers, SharedV4Warning } from '../../shared';
-import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
-import { LanguageModelV4Content } from './language-model-v4-content';
-import { LanguageModelV4FinishReason } from './language-model-v4-finish-reason';
-import { LanguageModelV4ResponseMetadata } from './language-model-v4-response-metadata';
-import { LanguageModelV4Usage } from './language-model-v4-usage';
+import type { SharedV4Headers, SharedV4Warning } from '../../shared';
+import type { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
+import type { LanguageModelV4Content } from './language-model-v4-content';
+import type { LanguageModelV4FinishReason } from './language-model-v4-finish-reason';
+import type { LanguageModelV4ResponseMetadata } from './language-model-v4-response-metadata';
+import type { LanguageModelV4Usage } from './language-model-v4-usage';
 
 /**
  * The result of a language model doGenerate call.
@@ -13,6 +13,16 @@ export type LanguageModelV4GenerateResult = {
    * Ordered content that the model has generated.
    */
   content: Array<LanguageModelV4Content>;
+
+  /**
+   * Text to parse for structured JSON output when it differs from the
+   * concatenation of all text parts in `content` (e.g. drafts followed by a
+   * final answer). This does not replace or remove any generated content.
+   *
+   * When omitted, consumers concatenate all text parts. An empty string is
+   * an explicit selection and must not fall back to the other text parts.
+   */
+  structuredOutputText?: string;
 
   /**
    * The finish reason.
@@ -35,6 +45,9 @@ export type LanguageModelV4GenerateResult = {
    * Optional request information for telemetry and debugging purposes.
    */
   request?: {
+    /** The actual HTTP endpoint used for this request, when known. */
+    url?: string;
+
     /**
      * Request HTTP body that was sent to the provider API.
      */

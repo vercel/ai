@@ -1,19 +1,20 @@
 import {
-  EmbeddingModelV4,
   NoSuchModelError,
-  RerankingModelV4,
-  ProviderV4,
+  type EmbeddingModelV4,
+  type RerankingModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
-
 import {
-  FetchFunction,
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VoyageEmbeddingModel } from './voyage-embedding-model';
-import { VoyageEmbeddingModelId } from './voyage-embedding-options';
-import { VoyageRerankingModelId } from './reranking/voyage-reranking-options';
+import type { VoyageEmbeddingModelId } from './voyage-embedding-model-options';
+import type { VoyageRerankingModelId } from './reranking/voyage-reranking-model-options';
 import { VoyageRerankingModel } from './reranking/voyage-reranking-model';
 import { VERSION } from './version';
 
@@ -28,7 +29,7 @@ export interface VoyageProvider extends ProviderV4 {
 
 export interface VoyageProviderSettings {
   baseURL?: string;
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   headers?: Record<string, string>;
   fetch?: FetchFunction;
 }
@@ -40,16 +41,18 @@ export function createVoyage(
     withoutTrailingSlash(options.baseURL) ?? 'https://api.voyageai.com/v1';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'VOYAGE_API_KEY',
-          description: 'Voyage',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/voyage/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'VOYAGE_API_KEY',
+            description: 'Voyage',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-voyage/${VERSION}`,
+      ),
     );
 
   const createEmbeddingModel = (modelId: VoyageEmbeddingModelId) =>

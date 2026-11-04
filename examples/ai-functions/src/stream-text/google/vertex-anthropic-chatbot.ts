@@ -1,5 +1,5 @@
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { isStepCount, ModelMessage, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool, type ModelMessage } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -18,7 +18,7 @@ run(async () => {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
+      model: vertexAnthropic('claude-sonnet-5-5'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',

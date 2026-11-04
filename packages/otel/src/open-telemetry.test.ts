@@ -1,61 +1,52 @@
-import {
-  EmbeddingModelV4,
-  LanguageModelV4StreamPart,
-  LanguageModelV4Usage,
-} from '@ai-sdk/provider';
-import { tool } from '@ai-sdk/provider-utils';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
-  mockId,
 } from '@ai-sdk/provider-utils/test';
-import * as assert from 'node:assert';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  Attributes,
-  Span,
-  SpanOptions,
+  context,
+  createTraceState,
+  metrics,
+  SpanKind,
   SpanStatusCode,
-  Tracer,
+  trace,
+  type Attributes,
+  type Span,
+  type SpanOptions,
+  type Tracer,
 } from '@opentelemetry/api';
+import {
+  BasicTracerProvider,
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
+import {
+  AggregationTemporality,
+  DataPointType,
+  InMemoryMetricExporter,
+  MeterProvider,
+  PeriodicExportingMetricReader,
+} from '@opentelemetry/sdk-metrics';
 import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
+  experimental_decide,
+  experimental_evaluate,
   generateObject,
   generateText,
-  isStepCount,
   streamObject,
   streamText,
-  rerank,
+  type GenerateTextEndEvent,
+  type Telemetry,
 } from 'ai';
-import type { Embedding, EmbeddingModelUsage, Telemetry } from 'ai';
 import {
+  Experimental_DecisionMockModelV4,
   MockEmbeddingModelV4,
   MockLanguageModelV4,
-  MockRerankingModelV4,
-  mockValues,
 } from 'ai/test';
-import { MockTracer as IntegrationMockTracer } from './mock-tracer';
-import { OpenTelemetry } from './open-telemetry';
-
-export function createResolvablePromise<T = any>(): {
-  promise: Promise<T>;
-  resolve: (value: T) => void;
-  reject: (error: unknown) => void;
-} {
-  let resolve: (value: T) => void;
-  let reject: (error: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return {
-    promise,
-    resolve: resolve!,
-    reject: reject!,
-  };
-}
+import { OpenTelemetryIdGenerator } from './durable-span-ids';
+import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
 type MockSpan = Span & {
   name: string;
@@ -126,6 +117,24 @@ function createMockTracer(): MockTracer {
   return tracer;
 }
 
+function createSdkTracer() {
+  const exporter = new InMemorySpanExporter();
+  const provider = new BasicTracerProvider({
+    spanProcessors: [new SimpleSpanProcessor(exporter)],
+  });
+
+  return {
+    exporter,
+    tracer: provider.getTracer('test-tracer'),
+  };
+}
+
+function getExportedSpan(exporter: InMemorySpanExporter, name: string) {
+  const span = exporter.getFinishedSpans().find(span => span.name === name);
+  expect(span).toBeDefined();
+  return span!;
+}
+
 function getStartSpanAttributes(
   tracer: MockTracer,
   callIndex: number,
@@ -136,10 +145,49 @@ function getStartSpanAttributes(
   );
 }
 
-function getSetAttributesArg(span: MockSpan, callIndex = 0): Attributes {
-  return (span.setAttributes as ReturnType<typeof vi.fn>).mock.calls[
-    callIndex
-  ][0] as Attributes;
+function getSpanStartAttributes(
+  tracer: MockTracer,
+  span: MockSpan,
+): Attributes {
+  return getStartSpanAttributes(tracer, tracer.spans.indexOf(span));
+}
+
+function serializeSpan(span: MockSpan, tracer: MockTracer) {
+  const spanIndex = tracer.spans.indexOf(span);
+  const initAttributes =
+    spanIndex >= 0 ? getStartSpanAttributes(tracer, spanIndex) : {};
+
+  return {
+    name: span.name,
+    ended: span.ended,
+    ...(span.status ? { status: span.status } : {}),
+    initAttributes,
+    runtimeAttributes: span.attributes,
+    ...(span.events.length > 0 ? { events: span.events } : {}),
+    ...(span.exceptions.length > 0 ? { exceptions: span.exceptions } : {}),
+  };
+}
+
+function serializeTrace(tracer: MockTracer) {
+  return tracer.spans.map(span => serializeSpan(span, tracer));
+}
+
+function parseJsonAttributes(
+  attrs: Attributes,
+  ...keys: string[]
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key of keys) {
+    const value = attrs[key];
+    if (typeof value === 'string') {
+      try {
+        result[key] = JSON.parse(value);
+      } catch {
+        result[key] = value;
+      }
+    }
+  }
+  return result;
 }
 
 let callId: string;
@@ -153,7 +201,7 @@ function telemetryFields() {
   };
 }
 
-const model = { provider: 'test-provider', modelId: 'test-model' };
+const model = { provider: 'openai.chat', modelId: 'gpt-4' };
 
 function makeOnStartEvent(overrides?: Record<string, unknown>) {
   return {
@@ -161,12 +209,12 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     operationId: 'ai.generateText',
     provider: model.provider,
     modelId: model.modelId,
-    system: undefined,
-    prompt: 'Hello',
-    messages: undefined,
+    instructions: undefined,
+    messages: [{ role: 'user', content: 'Hello' }],
     tools: undefined,
     toolChoice: undefined,
     activeTools: undefined,
+    toolOrder: undefined,
     maxOutputTokens: 100,
     temperature: 0.7,
     topP: undefined,
@@ -183,37 +231,86 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     output: undefined,
     abortSignal: undefined,
     include: undefined,
+    toolsContext: {},
     ...telemetryFields(),
     runtimeContext: {},
-    toolsContext: {},
     ...overrides,
-  } as Parameters<NonNullable<Telemetry['onStart']>>[0];
+  } as Parameters<
+    NonNullable<Telemetry['experimental_durable']>['captureContext']
+  >[0];
 }
 
 function makeStepStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
-    stepNumber: 0,
     provider: model.provider,
     modelId: model.modelId,
-    system: undefined,
+    stepNumber: 0,
+    instructions: undefined,
     messages: [],
     tools: undefined,
     toolChoice: undefined,
     activeTools: undefined,
+    toolOrder: undefined,
     steps: [],
     providerOptions: undefined,
     abortSignal: undefined,
-    output: undefined,
     include: undefined,
-    ...telemetryFields(),
+    output: undefined,
     runtimeContext: {},
+    ...telemetryFields(),
+    toolsContext: {},
     promptMessages: undefined,
     stepTools: undefined,
     stepToolChoice: undefined,
-    toolsContext: {},
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onStepStart']>>[0];
+}
+
+function makeLanguageModelCallStartEvent(overrides?: Record<string, unknown>) {
+  return {
+    callId,
+    provider: model.provider,
+    modelId: model.modelId,
+    instructions: undefined,
+    messages: [],
+    tools: undefined,
+    ...overrides,
+  } as Parameters<NonNullable<Telemetry['onLanguageModelCallStart']>>[0];
+}
+
+function makeLanguageModelCallEndEvent(overrides?: Record<string, unknown>) {
+  return {
+    callId,
+    provider: model.provider,
+    modelId: model.modelId,
+    finishReason: 'stop' as const,
+    usage: {
+      inputTokens: 10,
+      outputTokens: 20,
+      totalTokens: 30,
+      inputTokenDetails: {
+        noCacheTokens: undefined,
+        cacheReadTokens: undefined,
+        cacheWriteTokens: undefined,
+      },
+      outputTokenDetails: {
+        textTokens: undefined,
+        reasoningTokens: undefined,
+      },
+    },
+    content: [{ type: 'text', text: 'Hello world' }],
+    responseId: 'test-response-id',
+    performance: {
+      responseTimeMs: 1000,
+      effectiveOutputTokensPerSecond: 20,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 30,
+      timeToFirstOutputMs: undefined,
+    },
+    ...overrides,
+  } as Parameters<NonNullable<Telemetry['onLanguageModelCallEnd']>>[0];
 }
 
 function makeStepFinishEvent(overrides?: Record<string, unknown>) {
@@ -221,8 +318,6 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     callId,
     stepNumber: 0,
     model,
-    ...telemetryFields(),
-    runtimeContext: {},
     content: [{ type: 'text' as const, text: 'Hello world' }],
     text: 'Hello world',
     reasoning: [],
@@ -241,8 +336,6 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       inputTokens: 10,
       outputTokens: 20,
       totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
       inputTokenDetails: {
         noCacheTokens: undefined,
         cacheReadTokens: undefined,
@@ -253,42 +346,70 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
         reasoningTokens: undefined,
       },
     },
+    performance: {
+      effectiveOutputTokensPerSecond: 20,
+      outputTokensPerSecond: undefined,
+      inputTokensPerSecond: undefined,
+      effectiveTotalTokensPerSecond: 30,
+      stepTimeMs: 1000,
+      responseTimeMs: 1000,
+      toolExecutionMs: {},
+      timeToFirstOutputMs: undefined,
+    },
     warnings: undefined,
-    request: { body: undefined },
+    request: { body: undefined, messages: [] },
     response: {
       id: 'resp-1',
-      modelId: 'test-model',
+      modelId: 'gpt-4-0613',
       timestamp: new Date('2025-01-01T00:00:00Z'),
       messages: [],
     },
     providerMetadata: undefined,
+    ...telemetryFields(),
+    runtimeContext: {},
     toolsContext: {},
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onStepFinish']>>[0];
 }
 
 function makeFinishEvent(overrides?: Record<string, unknown>) {
-  return {
-    ...makeStepFinishEvent(),
-    steps: [],
-    totalUsage: {
-      inputTokens: 10,
-      outputTokens: 20,
-      totalTokens: 30,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
-      inputTokenDetails: {
-        noCacheTokens: undefined,
-        cacheReadTokens: undefined,
-        cacheWriteTokens: undefined,
-      },
-      outputTokenDetails: {
-        textTokens: undefined,
-        reasoningTokens: undefined,
-      },
+  const { usage, ...restOverrides } = overrides ?? {};
+  const stepOverrides = Object.fromEntries(
+    Object.entries(restOverrides).filter(([key]) =>
+      [
+        'providerMetadata',
+        'reasoning',
+        'reasoningText',
+        'request',
+        'response',
+      ].includes(key),
+    ),
+  );
+  const finalStep = makeStepFinishEvent(stepOverrides);
+  const totalUsage = (usage as GenerateTextEndEvent['usage']) ?? {
+    inputTokens: 10,
+    outputTokens: 20,
+    totalTokens: 30,
+    inputTokenDetails: {
+      noCacheTokens: undefined,
+      cacheReadTokens: undefined,
+      cacheWriteTokens: undefined,
     },
-    ...overrides,
-  } as Parameters<NonNullable<Telemetry['onFinish']>>[0];
+    outputTokenDetails: {
+      textTokens: undefined,
+      reasoningTokens: undefined,
+    },
+  };
+
+  return {
+    ...finalStep,
+    responseMessages: [],
+    steps: [finalStep],
+    finalStep,
+    usage: totalUsage,
+    totalUsage,
+    ...restOverrides,
+  } as Parameters<NonNullable<Telemetry['onEnd']>>[0];
 }
 
 function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
@@ -302,7 +423,8 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
     },
     abortSignal: undefined,
     ...telemetryFields(),
-    context: {},
+    messages: [],
+    toolContext: {},
     toolsContext: {},
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onToolExecutionStart']>>[0];
@@ -321,9 +443,10 @@ function makeToolCallFinishEvent(
       input: { query: 'test' },
     },
     abortSignal: undefined,
-    durationMs: 42,
+    toolExecutionMs: 42,
     ...telemetryFields(),
-    context: {},
+    messages: [],
+    toolContext: {},
     toolsContext: {},
     ...overrides,
   };
@@ -331,3120 +454,3645 @@ function makeToolCallFinishEvent(
   if (success) {
     return {
       ...base,
-      success: true as const,
-      output: { result: 'ok' },
+      toolOutput: {
+        type: 'tool-result' as const,
+        toolCallId: 'tool-call-1',
+        toolName: 'myTool',
+        input: { query: 'test' },
+        output: { result: 'ok' },
+        dynamic: false,
+      },
     } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
   }
   return {
     ...base,
-    success: false as const,
-    error: new Error('tool failed'),
+    toolOutput: {
+      type: 'tool-error' as const,
+      toolCallId: 'tool-call-1',
+      toolName: 'myTool',
+      input: { query: 'test' },
+      error: new Error('tool failed'),
+      dynamic: false,
+    },
   } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
-}
-
-function makeChunkEvent(
-  chunk: Parameters<NonNullable<Telemetry['onChunk']>>[0]['chunk'],
-) {
-  return { chunk } as Parameters<NonNullable<Telemetry['onChunk']>>[0];
 }
 
 describe('OpenTelemetry', () => {
   let tracer: MockTracer;
-  let otelIntegration: Telemetry;
+  let integration: Telemetry;
+  let meterProvider: MeterProvider | undefined;
 
   beforeEach(() => {
     tracer = createMockTracer();
     callId = `test-call-${++callIdCounter}`;
-    otelIntegration = new OpenTelemetry({ tracer });
+    integration = new OpenTelemetry({ tracer });
   });
 
-  describe('onStart', () => {
-    it('creates a root span', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
+  afterEach(async () => {
+    if (meterProvider != null) {
+      metrics.disable();
+      await meterProvider.shutdown();
+      meterProvider = undefined;
+    }
+    vi.restoreAllMocks();
+  });
+
+  function createMetricReader() {
+    const reader = new PeriodicExportingMetricReader({
+      exporter: new InMemoryMetricExporter(AggregationTemporality.CUMULATIVE),
+      exportIntervalMillis: 60_000,
+    });
+    meterProvider = new MeterProvider({ readers: [reader] });
+    metrics.setGlobalMeterProvider(meterProvider);
+    return reader;
+  }
+
+  async function collectInferenceDuration(
+    reader: PeriodicExportingMetricReader,
+  ) {
+    const { resourceMetrics, errors } = await reader.collect();
+    expect(errors).toEqual([]);
+    const metric = resourceMetrics.scopeMetrics
+      .flatMap(scope => scope.metrics)
+      .find(
+        metric => metric.descriptor.name === 'gen_ai.client.inference.duration',
+      );
+    expect(metric?.dataPointType).toBe(DataPointType.HISTOGRAM);
+    if (metric?.dataPointType !== DataPointType.HISTOGRAM) {
+      throw new Error('Missing inference duration histogram');
+    }
+    return metric;
+  }
+
+  describe('provider endpoint attributes', () => {
+    it.each(['generate', 'stream', 'generateObject', 'streamObject'] as const)(
+      'records the endpoint reported by a %s call without URL secrets',
+      async mode => {
+        const request = {
+          url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+        };
+        const usage = {
+          inputTokens: { total: 2, noCache: 2, cacheRead: 0, cacheWrite: 0 },
+          outputTokens: { total: 1, text: 1, reasoning: 0 },
+        };
+        const finishReason = { unified: 'stop' as const, raw: 'stop' };
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: '{"value":"hello"}' }],
+            finishReason,
+            usage,
+            warnings: [],
+            request,
+          }),
+          doStream: async () => ({
+            request,
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              { type: 'text-start', id: 'text' },
+              { type: 'text-delta', id: 'text', delta: '{"value":"hello"}' },
+              { type: 'text-end', id: 'text' },
+              { type: 'finish', finishReason, usage },
+            ]),
+          }),
+        });
+        const onLanguageModelCallEnd = vi.fn();
+        const options = {
+          model,
+          prompt: 'hello',
+          onLanguageModelCallEnd,
+          telemetry: {
+            integrations: integration,
+            recordInputs: false,
+            recordOutputs: false,
+          },
+        };
+        if (mode === 'generate') await generateText(options);
+        else if (mode === 'stream') await streamText(options).consumeStream();
+        else if (mode === 'generateObject')
+          await generateObject({
+            ...options,
+            schema: z.object({ value: z.string() }),
+          });
+        else
+          await convertAsyncIterableToArray(
+            streamObject({
+              ...options,
+              schema: z.object({ value: z.string() }),
+            }).partialObjectStream,
+          );
+
+        const span = tracer.spans.find(
+          span => span.name === 'chat mock-model-id',
+        );
+        expect(span?.attributes).toMatchObject({
+          'server.address': 'model.example.test',
+          'server.port': 8443,
+        });
+        expect(JSON.stringify(span?.attributes)).not.toMatch(
+          /password|private|secret|fragment/,
+        );
+        if (mode === 'generate' || mode === 'stream') {
+          expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+            expect.objectContaining({
+              request: { url: 'https://model.example.test:8443' },
+            }),
+          );
+        }
+      },
+    );
+
+    it('does not guess an endpoint from a provider name', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      const span = tracer.spans.find(span => span.name === 'chat gpt-4');
+      expect(span?.attributes).not.toHaveProperty('server.address');
+      expect(span?.attributes).not.toHaveProperty('server.port');
+    });
+  });
+
+  describe('inference duration metrics', () => {
+    it('exports seconds and model attributes with a meter registered after initialization', async () => {
+      metrics.disable();
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+
+      const reader = createMetricReader();
+      const endEvent = makeLanguageModelCallEndEvent({
+        modelId: 'response-model',
+      });
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!({
+        ...endEvent,
+        performance: { ...endEvent.performance, responseTimeMs: 1234 },
+      });
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onEnd!(makeFinishEvent());
+
+      const histogram = await collectInferenceDuration(reader);
+      expect(histogram.descriptor.unit).toBe('s');
+      expect(histogram.dataPoints).toMatchObject([
+        {
+          attributes: {
+            'gen_ai.operation.name': 'chat',
+            'gen_ai.provider.name': 'openai',
+            'gen_ai.request.model': 'gpt-4',
+            'gen_ai.response.model': 'response-model',
+          },
+          value: {
+            count: 1,
+            sum: 1.234,
+            buckets: {
+              boundaries: [
+                0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12,
+                10.24, 20.48, 40.96, 81.92,
+              ],
+            },
+          },
+        },
+      ]);
+      expect(histogram.dataPoints[0].attributes).not.toHaveProperty(
+        'error.type',
+      );
+    });
+
+    it('records the full streamed response duration once', async () => {
+      let now = 0;
+      vi.spyOn(performance, 'now').mockImplementation(() => now);
+      const reader = createMetricReader();
+      let finish!: () => void;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              start(controller) {
+                now += 200;
+                controller.enqueue({ type: 'text-start', id: '0' });
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: '0',
+                  delta: 'hello',
+                });
+                finish = () => {
+                  now += 1400;
+                  controller.enqueue({ type: 'text-end', id: '0' });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: {
+                      inputTokens: {
+                        total: 2,
+                        noCache: 2,
+                        cacheRead: 0,
+                        cacheWrite: 0,
+                      },
+                      outputTokens: { total: 1, text: 1, reasoning: 0 },
+                    },
+                  });
+                  controller.close();
+                };
+              },
+            }),
+          }),
+        }),
+        prompt: 'hello',
+        telemetry: { integrations: integration },
+      });
+      const streamReader = result.stream.getReader();
+      while ((await streamReader.read()).value?.type !== 'text-delta') {}
+      expect((await reader.collect()).resourceMetrics.scopeMetrics).toEqual([]);
+      finish();
+      while (!(await streamReader.read()).done) {}
+      streamReader.releaseLock();
+
+      expect(
+        (await collectInferenceDuration(reader)).dataPoints[0].value,
+      ).toMatchObject({
+        count: 1,
+        sum: 1.6,
+      });
+    });
+  });
+
+  describe('onStart (generateText)', () => {
+    it('creates root span with correct attributes', () => {
+      integration.onStart!(makeOnStartEvent());
 
       expect(tracer.startSpan).toHaveBeenCalledTimes(1);
-      expect(tracer.spans).toHaveLength(1);
-      expect(tracer.spans[0].name).toBe('ai.generateText');
+      expect(serializeSpan(tracer.spans[0], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": false,
+          "initAttributes": {
+            "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+            "gen_ai.operation.name": "invoke_agent",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          "name": "invoke_agent gpt-4",
+          "runtimeAttributes": {},
+        }
+      `);
     });
 
-    it('sets model attributes on the root span', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
+    it('sets system_instructions when instructions are provided', () => {
+      integration.onStart!(
+        makeOnStartEvent({ instructions: 'You are helpful' }),
+      );
 
       const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['ai.model.provider']).toBe('test-provider');
-      expect(attrs['ai.model.id']).toBe('test-model');
+      expect(parseJsonAttributes(attrs, 'gen_ai.system_instructions'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.system_instructions": [
+            {
+              "content": "You are helpful",
+              "type": "text",
+            },
+          ],
+        }
+      `);
     });
 
-    it('sets prompt as input attribute', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
+    it('preserves functionId as gen_ai.agent.name', () => {
+      integration.onStart!(
+        makeOnStartEvent({
+          functionId: 'my-agent',
+        }),
+      );
 
       const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['ai.prompt']).toContain('Hello');
+      expect({
+        agentName: attrs['gen_ai.agent.name'],
+      }).toMatchInlineSnapshot(`
+        {
+          "agentName": "my-agent",
+        }
+      `);
     });
+  });
 
-    it('sets operation name attributes', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
+  describe('agentSpanName', () => {
+    describe.each(['ai.generateText', 'ai.generateObject'])(
+      '%s',
+      operationId => {
+        it.each([
+          {
+            agentSpanName: undefined,
+            functionId: 'my-agent',
+            expectedName: 'invoke_agent gpt-4',
+          },
+          {
+            agentSpanName: 'modelId' as const,
+            functionId: 'my-agent',
+            expectedName: 'invoke_agent gpt-4',
+          },
+          {
+            agentSpanName: 'functionId' as const,
+            functionId: 'my-agent',
+            expectedName: 'invoke_agent my-agent',
+          },
+          {
+            agentSpanName: 'functionId' as const,
+            functionId: undefined,
+            expectedName: 'invoke_agent gpt-4',
+          },
+        ])(
+          'uses $expectedName with agentSpanName=$agentSpanName and functionId=$functionId',
+          ({ agentSpanName, functionId, expectedName }) => {
+            integration = new OpenTelemetry({ tracer, agentSpanName });
 
-      const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['ai.operationId']).toBe('ai.generateText');
-      expect(attrs['operation.name']).toBe('ai.generateText');
-    });
+            integration.onStart!(makeOnStartEvent({ operationId, functionId }));
 
-    it('uses a tracer configured for the call id', () => {
-      const configuredTracer = createMockTracer();
-      const configuredIntegration = new OpenTelemetry({
-        tracer: configuredTracer,
-      });
-
-      configuredIntegration.onStart!(makeOnStartEvent());
-
-      expect(configuredTracer.startSpan).toHaveBeenCalledTimes(1);
-    });
+            expect(tracer.spans[0].name).toBe(expectedName);
+            expect(getStartSpanAttributes(tracer, 0)).toMatchObject({
+              'gen_ai.operation.name': 'invoke_agent',
+              'gen_ai.request.model': 'gpt-4',
+            });
+            expect(getStartSpanAttributes(tracer, 0)['gen_ai.agent.name']).toBe(
+              functionId,
+            );
+          },
+        );
+      },
+    );
   });
 
   describe('onStepStart', () => {
-    it('creates a step span as child of root span', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
+    it('creates agent_step and chat spans with correct attributes', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
 
-      expect(tracer.startSpan).toHaveBeenCalledTimes(2);
-      expect(tracer.spans).toHaveLength(2);
-      expect(tracer.spans[1].name).toBe('ai.generateText.doGenerate');
+      expect(tracer.startSpan).toHaveBeenCalledTimes(3);
+      expect(serializeSpan(tracer.spans[1], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": false,
+          "initAttributes": {
+            "gen_ai.operation.name": "agent_step",
+          },
+          "name": "step 1",
+          "runtimeAttributes": {},
+        }
+      `);
+      expect(serializeSpan(tracer.spans[2], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": false,
+          "initAttributes": {
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          "name": "chat gpt-4",
+          "runtimeAttributes": {},
+        }
+      `);
     });
 
-    it('uses ai.streamText.doStream for streamText operations', () => {
-      otelIntegration.onStart!(
-        makeOnStartEvent({ operationId: 'ai.streamText' }),
-      );
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      expect(tracer.spans[1].name).toBe('ai.streamText.doStream');
-    });
-
-    it('sets gen_ai attributes on step span', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      const attrs = getStartSpanAttributes(tracer, 1);
-      expect(attrs['gen_ai.system']).toBe('test-provider');
-      expect(attrs['gen_ai.request.model']).toBe('test-model');
-    });
-
-    it('does not create step span without prior onStart', () => {
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      expect(tracer.startSpan).not.toHaveBeenCalled();
-    });
-
-    it('does not create step span for unknown callId', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(
-        makeStepStartEvent({ callId: 'unknown-id' }),
-      );
-
-      expect(tracer.spans).toHaveLength(1);
-    });
-
-    it('includes prompt messages when provided', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(
-        makeStepStartEvent({
-          promptMessages: [
-            { role: 'user', content: [{ type: 'text', text: 'Hi' }] },
+    it('sets gen_ai.input.messages when messages are provided', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
+          messages: [
+            {
+              role: 'user',
+              content: 'Hello',
+            },
           ],
         }),
       );
 
-      const attrs = getStartSpanAttributes(tracer, 1);
-      expect(attrs['ai.prompt.messages']).toBeDefined();
+      const attrs = getStartSpanAttributes(tracer, 2);
+      expect(parseJsonAttributes(attrs, 'gen_ai.input.messages'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.input.messages": [
+            {
+              "parts": [
+                {
+                  "content": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+        }
+      `);
     });
 
-    it('includes tool choice and tools when provided', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(
-        makeStepStartEvent({
-          stepTools: [{ type: 'function', name: 'myTool' }],
-          stepToolChoice: { type: 'auto' },
+    it('sets gen_ai.system_instructions when instructions are provided', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
+          instructions: 'You are helpful',
         }),
       );
 
-      const attrs = getStartSpanAttributes(tracer, 1);
-      expect(attrs['ai.prompt.tools']).toBeDefined();
-      expect(attrs['ai.prompt.toolChoice']).toBeDefined();
+      const attrs = getStartSpanAttributes(tracer, 2);
+      expect(parseJsonAttributes(attrs, 'gen_ai.system_instructions'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.system_instructions": [
+            {
+              "content": "You are helpful",
+              "type": "text",
+            },
+          ],
+        }
+      `);
+    });
+
+    it.each([undefined, false])(
+      'redacts domain secrets in initial and observed tool definitions with recordInputs=%s',
+      recordInputs => {
+        const tools = [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'python',
+            args: {
+              container: {
+                memoryLimit: '4g',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets: [
+                    {
+                      domain: 'example.com',
+                      name: 'API_KEY',
+                      value: 'private-key',
+                    },
+                    {
+                      domain: 'example.com',
+                      name: 'TOKEN',
+                      value: 'private-token',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'terminal',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets: [
+                    {
+                      domain: 'example.com',
+                      name: 'KEY',
+                      value: 'shell-private-key',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'remote_tools',
+            args: {
+              serverLabel: 'example',
+              serverUrl: 'https://example.com/mcp',
+              authorization: 'mcp-private-token',
+              headers: { 'X-Custom-Key': 'mcp-private-key' },
+            },
+          },
+          { type: 'function', name: 'weather', description: 'Get weather' },
+        ];
+        const originalTools = structuredClone(tools);
+        integration.onStart!(makeOnStartEvent({ recordInputs }));
+        integration.onStepStart!(makeStepStartEvent());
+        integration.onLanguageModelCallStart!(
+          makeLanguageModelCallStartEvent({ tools }),
+        );
+        const initialDefinitions = getStartSpanAttributes(tracer, 2)[
+          'gen_ai.tool.definitions'
+        ];
+
+        integration.onLanguageModelCallEnd!(
+          makeLanguageModelCallEndEvent({
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tc1',
+                toolName: 'mcp.search',
+                input: {},
+                providerExecuted: true,
+                dynamic: true,
+              },
+            ],
+          }),
+        );
+        const finalDefinitions =
+          tracer.spans[2].attributes['gen_ai.tool.definitions'];
+
+        for (const definitions of [initialDefinitions, finalDefinitions]) {
+          if (recordInputs === false) {
+            expect(definitions).toBeUndefined();
+          } else {
+            expect(definitions).not.toContain('private-key');
+            expect(definitions).not.toContain('private-token');
+            expect(definitions).toContain('[redacted]');
+            expect(definitions).toContain('example.com');
+            expect(definitions).toContain('API_KEY');
+            expect(definitions).toContain('TOKEN');
+            expect(definitions).toContain('4g');
+            expect(definitions).toContain('Get weather');
+          }
+        }
+        if (recordInputs !== false) {
+          expect(finalDefinitions).toContain('mcp.search');
+        }
+        expect(tools).toEqual(originalTools);
+      },
+    );
+
+    it('sets gen_ai.tool.definitions when tools provided', () => {
+      const tools = [
+        { type: 'function', name: 'get_weather', description: 'Get weather' },
+      ];
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({ tools }),
+      );
+
+      const attrs = getStartSpanAttributes(tracer, 2);
+      expect(parseJsonAttributes(attrs, 'gen_ai.tool.definitions'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.tool.definitions": [
+            {
+              "description": "Get weather",
+              "name": "get_weather",
+              "type": "function",
+            },
+          ],
+        }
+      `);
     });
   });
 
-  describe('onToolExecutionStart', () => {
-    it('creates a tool span as child of step span', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
+  describe('executeLanguageModelCall', () => {
+    it('runs the model call inside the active chat span context', async () => {
+      let activeSpan: Span | undefined;
+      const contextWithSpy = vi
+        .spyOn(context, 'with')
+        .mockImplementation((nextContext, fn, thisArg, ...args) => {
+          activeSpan = trace.getSpan(nextContext) ?? undefined;
+          return fn.call(thisArg, ...args);
+        });
 
-      expect(tracer.startSpan).toHaveBeenCalledTimes(3);
-      expect(tracer.spans).toHaveLength(3);
-      expect(tracer.spans[2].name).toBe('ai.toolCall');
-    });
+      try {
+        integration.onStart!(makeOnStartEvent());
+        integration.onStepStart!(makeStepStartEvent());
+        integration.onLanguageModelCallStart!(
+          makeLanguageModelCallStartEvent(),
+        );
 
-    it('sets tool call attributes', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
+        await expect(
+          integration.executeLanguageModelCall!({
+            callId,
+            execute: async () => 'result',
+          }),
+        ).resolves.toBe('result');
 
-      const attrs = getStartSpanAttributes(tracer, 2);
-      expect(attrs['ai.toolCall.name']).toBe('myTool');
-      expect(attrs['ai.toolCall.id']).toBe('tool-call-1');
-    });
-
-    it('sets tool call args as output attribute', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
-
-      const attrs = getStartSpanAttributes(tracer, 2);
-      expect(attrs['ai.toolCall.args']).toBe(JSON.stringify({ query: 'test' }));
-    });
-
-    it('does not create tool span without prior step span', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
-
-      expect(tracer.spans).toHaveLength(1);
-    });
-
-    it('creates multiple tool spans for concurrent tool calls', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onToolExecutionStart!(
-        makeToolCallStartEvent({
-          toolCall: {
-            toolCallId: 'tool-1',
-            toolName: 'toolA',
-            input: {},
-          },
-        }),
-      );
-      otelIntegration.onToolExecutionStart!(
-        makeToolCallStartEvent({
-          toolCall: {
-            toolCallId: 'tool-2',
-            toolName: 'toolB',
-            input: {},
-          },
-        }),
-      );
-
-      expect(tracer.spans).toHaveLength(4);
-      expect(tracer.spans[2].name).toBe('ai.toolCall');
-      expect(tracer.spans[3].name).toBe('ai.toolCall');
-    });
-  });
-
-  describe('onToolExecutionEnd', () => {
-    it('ends the tool span on success', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
-      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
-
-      const toolSpan = tracer.spans[2];
-      expect(toolSpan.ended).toBe(true);
-    });
-
-    it('sets result attribute on successful tool call', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
-      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
-
-      const toolSpan = tracer.spans[2];
-      expect(toolSpan.setAttributes).toHaveBeenCalled();
-    });
-
-    it('records error on failed tool call', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
-      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(false));
-
-      const toolSpan = tracer.spans[2];
-      expect(toolSpan.ended).toBe(true);
-      expect(toolSpan.recordException).toHaveBeenCalled();
-      expect(toolSpan.setStatus).toHaveBeenCalledWith(
-        expect.objectContaining({ code: SpanStatusCode.ERROR }),
-      );
-    });
-
-    it('does nothing for unknown tool call id', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
-
-      otelIntegration.onToolExecutionEnd!(
-        makeToolCallFinishEvent(true, {
-          toolCall: {
-            toolCallId: 'unknown-tool',
-            toolName: 'myTool',
-            input: {},
-          },
-        }),
-      );
-
-      const toolSpan = tracer.spans[2];
-      expect(toolSpan.ended).toBe(false);
-    });
-
-    it('removes tool span from state after finishing', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
-      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
-
-      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
-
-      expect(tracer.spans[2].end).toHaveBeenCalledTimes(1);
+        const activeSpanRecord = tracer.spans.find(span => span === activeSpan);
+        expect(activeSpanRecord?.name).toBe('chat gpt-4');
+      } finally {
+        contextWithSpy.mockRestore();
+      }
     });
   });
 
   describe('onStepFinish', () => {
-    it('ends the step span', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.ended).toBe(true);
-    });
-
-    it('sets response attributes on step span', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.setAttributes).toHaveBeenCalled();
-
-      const setAttrsCall = getSetAttributesArg(stepSpan);
-      expect(setAttrsCall['ai.response.finishReason']).toBe('stop');
-      expect(setAttrsCall['ai.usage.inputTokens']).toBe(10);
-      expect(setAttrsCall['ai.usage.outputTokens']).toBe(20);
-      expect(setAttrsCall['ai.response.id']).toBe('resp-1');
-      expect(setAttrsCall['ai.response.model']).toBe('test-model');
-    });
-
-    it('sets gen_ai response attributes', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
-
-      const stepSpan = tracer.spans[1];
-      const setAttrsCall = getSetAttributesArg(stepSpan);
-      expect(setAttrsCall['gen_ai.response.finish_reasons']).toEqual(['stop']);
-      expect(setAttrsCall['gen_ai.response.id']).toBe('resp-1');
-      expect(setAttrsCall['gen_ai.response.model']).toBe('test-model');
-      expect(setAttrsCall['gen_ai.usage.input_tokens']).toBe(10);
-      expect(setAttrsCall['gen_ai.usage.output_tokens']).toBe(20);
-    });
-
-    it('includes text in output attributes', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(
-        makeStepFinishEvent({ text: 'Generated text' }),
+    it('sets response attributes and token usage on the chat span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({ modelId: 'response-model' }),
       );
+      integration.onStepFinish!(makeStepFinishEvent());
 
-      const stepSpan = tracer.spans[1];
-      const setAttrsCall = getSetAttributesArg(stepSpan);
-      expect(setAttrsCall['ai.response.text']).toBe('Generated text');
-    });
-
-    it('includes reasoning when present', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(
-        makeStepFinishEvent({
-          reasoning: [
-            { type: 'reasoning', text: 'Step 1' },
-            { type: 'reasoning', text: 'Step 2' },
-          ],
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      const setAttrsCall = getSetAttributesArg(stepSpan);
-      expect(setAttrsCall['ai.response.reasoning']).toBe('Step 1\nStep 2');
-    });
-
-    it('includes tool calls when present', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(
-        makeStepFinishEvent({
-          toolCalls: [
-            {
-              toolCallId: 'tc-1',
-              toolName: 'myTool',
-              input: { q: 'test' },
-            },
-          ],
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      const setAttrsCall = getSetAttributesArg(stepSpan);
-      expect(setAttrsCall['ai.response.toolCalls']).toBeDefined();
-      const parsed = JSON.parse(
-        setAttrsCall['ai.response.toolCalls'] as string,
-      );
-      expect(parsed[0].toolName).toBe('myTool');
-    });
-
-    it('includes files when present', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(
-        makeStepFinishEvent({
-          files: [
-            {
-              mediaType: 'image/png',
-              base64: 'iVBORw0KGgo=',
-            },
-          ],
-        }),
-      );
-
-      const stepSpan = tracer.spans[1];
-      const setAttrsCall = getSetAttributesArg(stepSpan);
-      expect(setAttrsCall['ai.response.files']).toBeDefined();
-      const parsed = JSON.parse(setAttrsCall['ai.response.files'] as string);
-      expect(parsed).toEqual([
+      expect(serializeSpan(tracer.spans[2], tracer)).toMatchInlineSnapshot(`
         {
-          type: 'file',
-          mediaType: 'image/png',
-          data: 'iVBORw0KGgo=',
-        },
-      ]);
+          "ended": true,
+          "initAttributes": {
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          "name": "chat gpt-4",
+          "runtimeAttributes": {
+            "gen_ai.client.operation.duration": 1,
+            "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.response.finish_reasons": [
+              "stop",
+            ],
+            "gen_ai.response.id": "test-response-id",
+            "gen_ai.response.model": "response-model",
+            "gen_ai.usage.input_tokens": 10,
+            "gen_ai.usage.output_tokens": 20,
+          },
+        }
+      `);
     });
 
-    it('does not include files when empty', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(makeStepFinishEvent({ files: [] }));
+    it('updates provider attribution when the response provider differs', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          provider: 'anthropic.messages',
+          modelId: 'fallback-model',
+        }),
+      );
 
-      const stepSpan = tracer.spans[1];
-      const setAttrsCall = getSetAttributesArg(stepSpan);
-      expect(setAttrsCall['ai.response.files']).toBeUndefined();
+      expect(tracer.spans[2].attributes).toMatchObject({
+        'gen_ai.provider.name': 'anthropic',
+        'gen_ai.response.model': 'fallback-model',
+      });
     });
 
-    it('does nothing without prior step span', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
+    it('omits malformed finish reason arrays on the chat span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({ finishReason: undefined }),
+      );
 
-      expect(tracer.spans).toHaveLength(1);
+      expect(
+        'gen_ai.response.finish_reasons' in tracer.spans[2].attributes,
+      ).toBe(false);
     });
 
-    it('allows a new step span after finishing a step', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 0 }));
-      otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 0 }));
-
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
-      otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
-
-      expect(tracer.spans).toHaveLength(3);
-      expect(tracer.spans[1].ended).toBe(true);
-      expect(tracer.spans[2].ended).toBe(true);
-    });
-  });
-
-  describe('onFinish', () => {
-    it('ends the root span', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
-
-      const rootSpan = tracer.spans[0];
-      expect(rootSpan.ended).toBe(true);
-    });
-
-    it('sets aggregated usage attributes on root span', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(
-        makeFinishEvent({
-          totalUsage: {
-            inputTokens: 50,
-            outputTokens: 100,
-            totalTokens: 150,
+    it('sets GenAI client performance attributes on the chat span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          performance: {
+            responseTimeMs: 1234,
+            effectiveOutputTokensPerSecond: 20,
+            outputTokensPerSecond: 25,
+            inputTokensPerSecond: 10,
+            effectiveTotalTokensPerSecond: 30,
+            timeToFirstOutputMs: 345,
+            timeBetweenOutputChunksMs: {
+              min: 10,
+              p10: 20,
+              median: 50,
+              avg: 67,
+              p90: 90,
+              max: 100,
+            },
           },
         }),
       );
 
-      const rootSpan = tracer.spans[0];
-      const setAttrsCall = getSetAttributesArg(rootSpan);
-      expect(setAttrsCall['ai.usage.inputTokens']).toBe(50);
-      expect(setAttrsCall['ai.usage.outputTokens']).toBe(100);
-      expect(setAttrsCall['ai.usage.totalTokens']).toBe(150);
+      expect({
+        duration:
+          tracer.spans[2].attributes['gen_ai.client.operation.duration'],
+        timeToFirstChunk:
+          tracer.spans[2].attributes[
+            'gen_ai.client.operation.time_to_first_chunk'
+          ],
+        timePerOutputChunk:
+          tracer.spans[2].attributes[
+            'gen_ai.client.operation.time_per_output_chunk'
+          ],
+      }).toMatchInlineSnapshot(`
+        {
+          "duration": 1.234,
+          "timePerOutputChunk": 0.067,
+          "timeToFirstChunk": 0.345,
+        }
+      `);
     });
 
-    it('sets finish reason on root span', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+    it('formats output messages in SemConv format', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      integration.onStepFinish!(makeStepFinishEvent());
 
-      const rootSpan = tracer.spans[0];
-      const setAttrsCall = getSetAttributesArg(rootSpan);
-      expect(setAttrsCall['ai.response.finishReason']).toBe('stop');
-    });
-
-    it('includes files in root span when present', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(
-        makeFinishEvent({
-          files: [
+      const chatSpan = tracer.spans[2];
+      expect(parseJsonAttributes(chatSpan.attributes, 'gen_ai.output.messages'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.output.messages": [
             {
-              mediaType: 'image/png',
-              base64: 'iVBORw0KGgo=',
+              "finish_reason": "stop",
+              "parts": [
+                {
+                  "content": "Hello world",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('includes tool calls in output messages', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tc1',
+              toolName: 'search',
+              input: { q: 'test' },
+            },
+          ],
+          finishReason: 'tool-calls',
+        }),
+      );
+      integration.onStepFinish!(
+        makeStepFinishEvent({
+          text: undefined,
+          toolCalls: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tc1',
+              toolName: 'search',
+              input: { q: 'test' },
+            },
+          ],
+          finishReason: 'tool-calls',
+        }),
+      );
+
+      const chatSpan = tracer.spans[2];
+      expect(parseJsonAttributes(chatSpan.attributes, 'gen_ai.output.messages'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.output.messages": [
+            {
+              "finish_reason": "tool_call",
+              "parts": [
+                {
+                  "arguments": {
+                    "q": "test",
+                  },
+                  "id": "tc1",
+                  "name": "search",
+                  "type": "tool_call",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('records provider-executed tool results and observed definitions', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
+          tools: [{ type: 'provider', name: 'mcp', id: 'openai.mcp' }],
+        }),
+      );
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tc1',
+              toolName: 'mcp.ask_question',
+              input: { question: 'What is this repository?' },
+              providerExecuted: true,
+              dynamic: true,
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'tc1',
+              toolName: 'mcp.ask_question',
+              input: { question: 'What is this repository?' },
+              output: { answer: 'An AI SDK repository.' },
+              providerExecuted: true,
+              dynamic: true,
             },
           ],
         }),
       );
 
-      const rootSpan = tracer.spans[0];
-      const setAttrsCall = getSetAttributesArg(rootSpan);
-      expect(setAttrsCall['ai.response.files']).toBeDefined();
-      const parsed = JSON.parse(setAttrsCall['ai.response.files'] as string);
-      expect(parsed).toEqual([
+      const chatSpan = tracer.spans[2];
+      expect({
+        ...parseJsonAttributes(chatSpan.attributes, 'gen_ai.output.messages'),
+        ...parseJsonAttributes(chatSpan.attributes, 'gen_ai.tool.definitions'),
+      }).toMatchInlineSnapshot(`
         {
-          type: 'file',
-          mediaType: 'image/png',
-          data: 'iVBORw0KGgo=',
+          "gen_ai.output.messages": [
+            {
+              "finish_reason": "stop",
+              "parts": [
+                {
+                  "arguments": {
+                    "question": "What is this repository?",
+                  },
+                  "id": "tc1",
+                  "name": "mcp.ask_question",
+                  "type": "tool_call",
+                },
+                {
+                  "id": "tc1",
+                  "response": {
+                    "answer": "An AI SDK repository.",
+                  },
+                  "type": "tool_call_response",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "gen_ai.tool.definitions": [
+            {
+              "id": "openai.mcp",
+              "name": "mcp",
+              "type": "provider",
+            },
+            {
+              "name": "mcp.ask_question",
+              "type": "extension",
+            },
+          ],
+        }
+      `);
+
+      expect(serializeSpan(tracer.spans[3], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": true,
+          "initAttributes": {
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.call.arguments": "{"question":"What is this repository?"}",
+            "gen_ai.tool.call.id": "tc1",
+            "gen_ai.tool.name": "mcp.ask_question",
+            "gen_ai.tool.type": "extension",
+          },
+          "name": "execute_tool mcp.ask_question",
+          "runtimeAttributes": {
+            "gen_ai.tool.call.result": "{"answer":"An AI SDK repository."}",
+          },
+        }
+      `);
+      const mock = tracer.startSpan as ReturnType<typeof vi.fn>;
+      expect(trace.getSpan(mock.mock.calls[3][2])).toBe(chatSpan);
+    });
+
+    it('records only the final provider-executed tool result', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tc1',
+              toolName: 'code_execution',
+              input: { code: '1 + 1' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'tc1',
+              toolName: 'code_execution',
+              input: { code: '1 + 1' },
+              output: { value: 'running' },
+              providerExecuted: true,
+              preliminary: true,
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'tc1',
+              toolName: 'code_execution',
+              input: { code: '1 + 1' },
+              output: { value: 2 },
+              providerExecuted: true,
+            },
+          ],
+        }),
+      );
+
+      expect(tracer.spans[3].attributes['gen_ai.tool.call.result']).toBe(
+        '{"value":2}',
+      );
+    });
+
+    it('records provider-executed tool errors on the observed span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      const error = new Error('provider tool failed');
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tc1',
+              toolName: 'web_search',
+              input: { query: 'AI SDK' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-error' as const,
+              toolCallId: 'tc1',
+              toolName: 'web_search',
+              input: { query: 'AI SDK' },
+              error,
+              providerExecuted: true,
+              dynamic: true,
+            },
+          ],
+        }),
+      );
+
+      const toolSpan = tracer.spans[3];
+      expect(toolSpan.status).toEqual({
+        code: SpanStatusCode.ERROR,
+        message: 'provider tool failed',
+      });
+      expect(toolSpan.exceptions).toHaveLength(1);
+      expect(toolSpan.attributes['gen_ai.tool.call.result']).toBeUndefined();
+    });
+
+    it('keeps deferred provider tool calls visible before their result arrives', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tc1',
+              toolName: 'code_execution',
+              input: { code: '1 + 1' },
+              providerExecuted: true,
+            },
+          ],
+        }),
+      );
+
+      const toolSpan = tracer.spans[3];
+      expect(toolSpan.name).toBe('execute_tool code_execution');
+      expect(toolSpan.ended).toBe(true);
+      expect(toolSpan.attributes['gen_ai.tool.call.result']).toBeUndefined();
+
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'tc1',
+              toolName: 'code_execution',
+              input: { code: '1 + 1' },
+              output: { value: 2 },
+              providerExecuted: true,
+            },
+          ],
+        }),
+      );
+
+      expect(
+        tracer.spans.filter(span => span.name.startsWith('execute_tool')),
+      ).toHaveLength(1);
+      expect(
+        parseJsonAttributes(
+          tracer.spans[5].attributes,
+          'gen_ai.output.messages',
+        ),
+      ).toMatchInlineSnapshot(`
+        {
+          "gen_ai.output.messages": [
+            {
+              "finish_reason": "stop",
+              "parts": [
+                {
+                  "id": "tc1",
+                  "response": {
+                    "value": 2,
+                  },
+                  "type": "tool_call_response",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('sets cache token attributes when available', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          usage: {
+            inputTokens: 100,
+            outputTokens: 50,
+            totalTokens: 150,
+            inputTokenDetails: {
+              noCacheTokens: 70,
+              cacheReadTokens: 20,
+              cacheWriteTokens: 10,
+            },
+            outputTokenDetails: {
+              textTokens: 40,
+              reasoningTokens: 10,
+            },
+          },
+        }),
+      );
+      integration.onStepFinish!(
+        makeStepFinishEvent({
+          usage: {
+            inputTokens: 100,
+            outputTokens: 50,
+            totalTokens: 150,
+            inputTokenDetails: {
+              noCacheTokens: 70,
+              cacheReadTokens: 20,
+              cacheWriteTokens: 10,
+            },
+            outputTokenDetails: {
+              textTokens: 40,
+              reasoningTokens: 10,
+            },
+          },
+        }),
+      );
+
+      const chatSpan = tracer.spans[2];
+      expect({
+        inputTokens: chatSpan.attributes['gen_ai.usage.input_tokens'],
+        outputTokens: chatSpan.attributes['gen_ai.usage.output_tokens'],
+        cacheRead: chatSpan.attributes['gen_ai.usage.cache_read.input_tokens'],
+        cacheCreation:
+          chatSpan.attributes['gen_ai.usage.cache_creation.input_tokens'],
+      }).toMatchInlineSnapshot(`
+        {
+          "cacheCreation": 10,
+          "cacheRead": 20,
+          "inputTokens": 100,
+          "outputTokens": 50,
+        }
+      `);
+    });
+  });
+
+  describe('onToolExecutionStart / onToolExecutionEnd', () => {
+    it('creates an execute_tool span with correct attributes', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+
+      expect(tracer.spans).toHaveLength(4);
+      expect(serializeSpan(tracer.spans[3], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": false,
+          "initAttributes": {
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.call.arguments": "{"query":"test"}",
+            "gen_ai.tool.call.id": "tool-call-1",
+            "gen_ai.tool.name": "myTool",
+            "gen_ai.tool.type": "function",
+          },
+          "name": "execute_tool myTool",
+          "runtimeAttributes": {},
+        }
+      `);
+    });
+
+    it('uses extension type for provider-executed tools', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onToolExecutionStart!(
+        makeToolCallStartEvent({
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: 'tool-call-1',
+            toolName: 'mcp.ask_question',
+            input: { question: 'What is this repository?' },
+            providerExecuted: true,
+            dynamic: true,
+          },
+        }),
+      );
+
+      expect(
+        getSpanStartAttributes(tracer, tracer.spans[2])['gen_ai.tool.type'],
+      ).toBe('extension');
+    });
+
+    it('parents chat and execute_tool spans under the same step span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+
+      const mock = tracer.startSpan as ReturnType<typeof vi.fn>;
+      expect(mock.mock.calls[2][2]).toBe(mock.mock.calls[3][2]);
+    });
+
+    it('parents execute_tool under the root span before a step starts', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+
+      const mock = tracer.startSpan as ReturnType<typeof vi.fn>;
+      const toolParentContext = mock.mock.calls[1][2];
+
+      expect(trace.getSpan(toolParentContext)).toBe(tracer.spans[0]);
+    });
+
+    it('sets gen_ai.tool.call.result on success', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
+
+      expect(serializeSpan(tracer.spans[3], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": true,
+          "initAttributes": {
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.call.arguments": "{"query":"test"}",
+            "gen_ai.tool.call.id": "tool-call-1",
+            "gen_ai.tool.name": "myTool",
+            "gen_ai.tool.type": "function",
+          },
+          "name": "execute_tool myTool",
+          "runtimeAttributes": {
+            "gen_ai.execute_tool.duration": 0.042,
+            "gen_ai.tool.call.result": "{"result":"ok"}",
+          },
+        }
+      `);
+    });
+
+    it('sets GenAI execute_tool duration on the tool span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(
+        makeToolCallFinishEvent(true, { toolExecutionMs: 123 }),
+      );
+
+      expect(tracer.spans[3].attributes['gen_ai.execute_tool.duration']).toBe(
+        0.123,
+      );
+    });
+
+    it('records error on tool failure', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(false));
+
+      const toolSpan = tracer.spans[3];
+      expect({
+        status: toolSpan.status,
+        ended: toolSpan.ended,
+      }).toMatchInlineSnapshot(`
+        {
+          "ended": true,
+          "status": {
+            "code": 2,
+            "message": "tool failed",
+          },
+        }
+      `);
+    });
+  });
+
+  describe('onEnd (generateText)', () => {
+    it('sets total usage and output on root span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onEnd!(makeFinishEvent());
+
+      expect(serializeSpan(tracer.spans[0], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": true,
+          "initAttributes": {
+            "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+            "gen_ai.operation.name": "invoke_agent",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          "name": "invoke_agent gpt-4",
+          "runtimeAttributes": {
+            "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+            "gen_ai.response.finish_reasons": [
+              "stop",
+            ],
+            "gen_ai.usage.input_tokens": 10,
+            "gen_ai.usage.output_tokens": 20,
+          },
+        }
+      `);
+    });
+
+    it('formats output messages on root span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onEnd!(makeFinishEvent());
+
+      const rootSpan = tracer.spans[0];
+      expect(parseJsonAttributes(rootSpan.attributes, 'gen_ai.output.messages'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.output.messages": [
+            {
+              "finish_reason": "stop",
+              "parts": [
+                {
+                  "content": "Hello world",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
+  describe('onStart (generateObject)', () => {
+    it('creates a root span with output.type json', () => {
+      integration.onStart!(
+        makeOnStartEvent({
+          operationId: 'ai.generateObject',
+          schema: { type: 'object' },
+          schemaName: 'TestSchema',
+          schemaDescription: 'A test schema',
+          output: 'object',
+        }),
+      );
+
+      const attrs = getStartSpanAttributes(tracer, 0);
+      expect({
+        operationName: attrs['gen_ai.operation.name'],
+        outputType: attrs['gen_ai.output.type'],
+      }).toMatchInlineSnapshot(`
+        {
+          "operationName": "invoke_agent",
+          "outputType": "json",
+        }
+      `);
+    });
+  });
+
+  describe('onStart (embed)', () => {
+    it('creates an embeddings operation span', () => {
+      integration.onStart!(
+        makeOnStartEvent({
+          operationId: 'ai.embed',
+          value: 'test text',
+        }),
+      );
+
+      expect(serializeSpan(tracer.spans[0], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": false,
+          "initAttributes": {
+            "gen_ai.operation.name": "embeddings",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.model": "gpt-4",
+          },
+          "name": "embeddings gpt-4",
+          "runtimeAttributes": {},
+        }
+      `);
+    });
+  });
+
+  describe('onStart (rerank)', () => {
+    it('creates a rerank span', () => {
+      integration.onStart!(
+        makeOnStartEvent({
+          operationId: 'ai.rerank',
+          documents: [{ text: 'doc1' }],
+        }),
+      );
+
+      expect(serializeSpan(tracer.spans[0], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": false,
+          "initAttributes": {
+            "gen_ai.operation.name": "rerank",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.model": "gpt-4",
+          },
+          "name": "rerank gpt-4",
+          "runtimeAttributes": {},
+        }
+      `);
+    });
+  });
+
+  describe.each([
+    { recordInputs: undefined, recordOutputs: undefined },
+    { recordInputs: false, recordOutputs: undefined },
+    { recordInputs: undefined, recordOutputs: false },
+    { recordInputs: false, recordOutputs: false },
+  ])(
+    'speech and transcription (recordInputs=$recordInputs, recordOutputs=$recordOutputs)',
+    ({ recordInputs, recordOutputs }) => {
+      it.each(['Hello', ''])(
+        'records speech input %j and output metadata',
+        text => {
+          integration.onStart!({
+            callId,
+            operationId: 'ai.generateSpeech',
+            provider: 'openai.speech',
+            modelId: 'gpt-4o-mini-tts',
+            text,
+            voice: 'alloy',
+            outputFormat: 'mp3',
+            instructions: undefined,
+            speed: undefined,
+            language: undefined,
+            maxRetries: 2,
+            headers: undefined,
+            providerOptions: {},
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onStart']>>[0]);
+          integration.onEnd!({
+            callId,
+            operationId: 'ai.generateSpeech',
+            provider: 'openai.speech',
+            modelId: 'gpt-4o-mini-tts',
+            text,
+            audio: {
+              byteLength: 1234,
+              mediaType: 'audio/mpeg',
+              format: 'mp3',
+            },
+            usage: { characters: 5 },
+            warnings: [],
+            providerMetadata: undefined,
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-4o-mini-tts',
+            },
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onEnd']>>[0]);
+
+          expect(tracer.startSpan).toHaveBeenCalledTimes(1);
+          expect(tracer.startSpan).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kind: SpanKind.CLIENT }),
+          );
+          expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
+            name: 'ai.generateSpeech gpt-4o-mini-tts',
+            ended: true,
+            initAttributes: {
+              'gen_ai.operation.name': 'ai.generateSpeech',
+              'gen_ai.provider.name': 'openai',
+              'gen_ai.request.model': 'gpt-4o-mini-tts',
+              'gen_ai.output.type': 'speech',
+              'gen_ai.request.stream': false,
+              ...(recordInputs === false ? {} : { 'ai.request.text': text }),
+            },
+            runtimeAttributes: {
+              ...(recordOutputs === false
+                ? {}
+                : {
+                    'ai.response.audio.size': 1234,
+                    'ai.response.audio.media_type': 'audio/mpeg',
+                    'ai.response.audio.format': 'mp3',
+                  }),
+              'gen_ai.usage.characters': 5,
+            },
+          });
+          const attributes = {
+            ...getStartSpanAttributes(tracer, 0),
+            ...tracer.spans[0].attributes,
+          };
+          expect(attributes['gen_ai.input.messages']).toBe(
+            recordInputs === false
+              ? undefined
+              : JSON.stringify([
+                  { role: 'user', parts: [{ type: 'text', content: text }] },
+                ]),
+          );
+          expect(attributes['gen_ai.output.messages']).toBeUndefined();
+          expect(attributes['ai.request.text']).toBe(
+            recordInputs === false ? undefined : text,
+          );
+          expect(attributes['ai.response.audio.size']).toBe(
+            recordOutputs === false ? undefined : 1234,
+          );
+        },
+      );
+
+      it.each(['Hello', ''])(
+        'records transcription audio metadata and transcript %j',
+        text => {
+          integration.onStart!({
+            callId,
+            operationId: 'ai.transcribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-4o-transcribe',
+            audio: { byteLength: 4321, mediaType: 'audio/mpeg' },
+            inputAudioFormat: undefined,
+            maxRetries: 2,
+            headers: undefined,
+            providerOptions: {},
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onStart']>>[0]);
+          integration.onEnd!({
+            callId,
+            operationId: 'ai.transcribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-4o-transcribe',
+            audio: { byteLength: 4321, mediaType: 'audio/mpeg' },
+            text,
+            segments: [],
+            language: 'en',
+            durationInSeconds: 1,
+            usage: { seconds: 1 },
+            warnings: [],
+            providerMetadata: undefined,
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-4o-transcribe',
+            },
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onEnd']>>[0]);
+
+          expect(tracer.startSpan).toHaveBeenCalledTimes(1);
+          expect(tracer.startSpan).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kind: SpanKind.CLIENT }),
+          );
+          expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
+            name: 'ai.transcribe gpt-4o-transcribe',
+            ended: true,
+            initAttributes: {
+              'gen_ai.output.type': 'text',
+              'gen_ai.request.stream': false,
+              ...(recordInputs === false
+                ? {}
+                : {
+                    'ai.request.audio.size': 4321,
+                    'ai.request.audio.media_type': 'audio/mpeg',
+                  }),
+            },
+            runtimeAttributes: {
+              ...(recordOutputs === false ? {} : { 'ai.response.text': text }),
+              'gen_ai.usage.seconds': 1,
+            },
+          });
+          const attributes = {
+            ...getStartSpanAttributes(tracer, 0),
+            ...tracer.spans[0].attributes,
+          };
+          expect(attributes['gen_ai.output.messages']).toBe(
+            recordOutputs === false
+              ? undefined
+              : JSON.stringify([
+                  {
+                    role: 'assistant',
+                    parts: [{ type: 'text', content: text }],
+                  },
+                ]),
+          );
+          expect(attributes['gen_ai.input.messages']).toBeUndefined();
+          expect(attributes['ai.response.text']).toBe(
+            recordOutputs === false ? undefined : text,
+          );
+        },
+      );
+
+      it.each(['Hello', ''])(
+        'records streaming transcript %j through isolated callbacks',
+        text => {
+          integration.experimental_onStreamTranscriptionStart!({
+            callId,
+            operationId: 'ai.streamTranscribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-realtime-whisper',
+            audio: { byteLength: undefined, mediaType: 'audio/pcm' },
+            inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+            maxRetries: undefined,
+            headers: undefined,
+            providerOptions: {},
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          });
+          integration.experimental_onStreamTranscriptionEnd!({
+            callId,
+            operationId: 'ai.streamTranscribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-realtime-whisper',
+            audio: { byteLength: 2048, mediaType: 'audio/pcm' },
+            text,
+            segments: [],
+            language: 'en',
+            durationInSeconds: 1,
+            usage: { inputTokens: 3 },
+            warnings: [],
+            providerMetadata: undefined,
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-realtime-whisper',
+            },
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          });
+
+          expect(tracer.startSpan).toHaveBeenCalledTimes(1);
+          expect(tracer.startSpan).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kind: SpanKind.CLIENT }),
+          );
+          expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
+            name: 'ai.streamTranscribe gpt-realtime-whisper',
+            ended: true,
+            initAttributes: {
+              'gen_ai.output.type': 'text',
+              'gen_ai.request.stream': true,
+              ...(recordInputs === false
+                ? {}
+                : { 'ai.request.audio.media_type': 'audio/pcm' }),
+            },
+            runtimeAttributes: {
+              ...(recordInputs === false
+                ? {}
+                : { 'ai.request.audio.size': 2048 }),
+              ...(recordOutputs === false ? {} : { 'ai.response.text': text }),
+              'gen_ai.usage.input_tokens': 3,
+            },
+          });
+          const attributes = {
+            ...getStartSpanAttributes(tracer, 0),
+            ...tracer.spans[0].attributes,
+          };
+          expect(attributes['gen_ai.output.messages']).toBe(
+            recordOutputs === false
+              ? undefined
+              : JSON.stringify([
+                  {
+                    role: 'assistant',
+                    parts: [{ type: 'text', content: text }],
+                  },
+                ]),
+          );
+          expect(attributes['gen_ai.input.messages']).toBeUndefined();
+          expect(attributes['ai.response.text']).toBe(
+            recordOutputs === false ? undefined : text,
+          );
+        },
+      );
+    },
+  );
+
+  describe('enrichSpan', () => {
+    it('adds custom attributes to created spans', () => {
+      const enrichSpan = vi.fn<EnrichSpan>(({ spanType, runtimeContext }) => {
+        const userId = runtimeContext?.userId;
+
+        return {
+          'custom.span_type': spanType,
+          ...(typeof userId === 'string' ? { 'custom.user_id': userId } : {}),
+          'gen_ai.operation.name': 'custom_operation',
+        };
+      });
+
+      integration = new OpenTelemetry({
+        tracer,
+        enrichSpan,
+      });
+
+      integration.onStart!(
+        makeOnStartEvent({
+          runtimeContext: { userId: 'root-user' },
+        }),
+      );
+      integration.onStepStart!(
+        makeStepStartEvent({
+          runtimeContext: { userId: 'step-user' },
+        }),
+      );
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+
+      expect(tracer.spans.map(span => getSpanStartAttributes(tracer, span)))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "custom.span_type": "operation",
+            "custom.user_id": "root-user",
+            "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+            "gen_ai.operation.name": "invoke_agent",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          {
+            "custom.span_type": "step",
+            "custom.user_id": "step-user",
+            "gen_ai.operation.name": "agent_step",
+          },
+          {
+            "custom.span_type": "languageModel",
+            "custom.user_id": "step-user",
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          {
+            "custom.span_type": "tool",
+            "custom.user_id": "step-user",
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.call.arguments": "{"query":"test"}",
+            "gen_ai.tool.call.id": "tool-call-1",
+            "gen_ai.tool.name": "myTool",
+            "gen_ai.tool.type": "function",
+          },
+        ]
+      `);
+
+      expect(enrichSpan.mock.calls.map(([args]) => args)).toEqual([
+        {
+          callId,
+          operationId: 'ai.generateText',
+          runtimeContext: { userId: 'root-user' },
+          spanType: 'operation',
+        },
+        {
+          callId,
+          operationId: 'ai.generateText',
+          runtimeContext: { userId: 'step-user' },
+          spanType: 'step',
+        },
+        {
+          callId,
+          operationId: 'ai.generateText',
+          runtimeContext: { userId: 'step-user' },
+          spanType: 'languageModel',
+        },
+        {
+          callId,
+          operationId: 'ai.generateText',
+          runtimeContext: { userId: 'step-user' },
+          spanType: 'tool',
         },
       ]);
     });
 
-    it('cleans up call state after finishing', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+    it('ignores enrichment callback errors', () => {
+      integration = new OpenTelemetry({
+        tracer,
+        enrichSpan: () => {
+          throw new Error('custom attribute failure');
+        },
+      });
 
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      expect(tracer.spans).toHaveLength(2);
-    });
+      integration.onStart!(makeOnStartEvent());
 
-    it('does nothing without prior onStart', () => {
-      otelIntegration.onFinish!(makeFinishEvent());
-
-      expect(tracer.spans).toHaveLength(0);
+      expect(getStartSpanAttributes(tracer, 0)).toMatchInlineSnapshot(`
+        {
+          "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+          "gen_ai.operation.name": "invoke_agent",
+          "gen_ai.provider.name": "openai",
+          "gen_ai.request.max_tokens": 100,
+          "gen_ai.request.model": "gpt-4",
+          "gen_ai.request.temperature": 0.7,
+        }
+      `);
     });
   });
 
-  describe('onChunk', () => {
-    it('adds event to step span for ai.stream.firstChunk', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
+  describe('supplemental attributes', () => {
+    it('exports flat runtime context attribute keys', () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({
+        tracer: sdkTrace.tracer,
+        runtimeContext: true,
+      });
 
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFirstChunk': 42 },
+      integration.onStart!(
+        makeOnStartEvent({
+          runtimeContext: { 'foo.bar': 'baz' },
         }),
       );
+      integration.onEnd!(makeFinishEvent());
 
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).toHaveBeenCalledWith(
-        'ai.stream.firstChunk',
-        expect.objectContaining({ 'ai.stream.msToFirstChunk': 42 }),
-      );
+      const rootSpan = getExportedSpan(sdkTrace.exporter, 'invoke_agent gpt-4');
+      expect({
+        'ai.settings.context.foo.bar':
+          rootSpan.attributes['ai.settings.context.foo.bar'],
+      }).toMatchInlineSnapshot(`
+        {
+          "ai.settings.context.foo.bar": "baz",
+        }
+      `);
     });
 
-    it('adds event to step span for ai.stream.finish', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
+    it('exports nested runtime context attributes', () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({
+        tracer: sdkTrace.tracer,
+        runtimeContext: true,
+      });
 
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.finish',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFinish': 500 },
+      integration.onStart!(
+        makeOnStartEvent({
+          runtimeContext: { foo: { bar: 'baz' } },
         }),
       );
+      integration.onEnd!(makeFinishEvent());
 
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).toHaveBeenCalledWith(
-        'ai.stream.finish',
-        expect.objectContaining({ 'ai.stream.msToFinish': 500 }),
-      );
+      const rootSpan = getExportedSpan(sdkTrace.exporter, 'invoke_agent gpt-4');
+      expect({
+        'ai.settings.context.foo.bar':
+          rootSpan.attributes['ai.settings.context.foo.bar'],
+      }).toMatchInlineSnapshot(`
+        {
+          "ai.settings.context.foo.bar": "baz",
+        }
+      `);
     });
 
-    it('sets attributes on step span when chunk has attributes', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
+    it('emits supplemental AI SDK attributes on existing spans when enabled', () => {
+      integration = new OpenTelemetry({
+        tracer,
+        usage: true,
+        providerMetadata: true,
+        embedding: true,
+        reranking: true,
+        runtimeContext: true,
+        headers: true,
+        toolChoice: true,
+        schema: true,
+      });
 
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFirstChunk': 42 },
+      const detailedUsage = {
+        inputTokens: 10,
+        outputTokens: 20,
+        totalTokens: 30,
+        inputTokenDetails: {
+          noCacheTokens: 7,
+          cacheReadTokens: 2,
+          cacheWriteTokens: 1,
+        },
+        outputTokenDetails: {
+          textTokens: 15,
+          reasoningTokens: 5,
+        },
+      };
+
+      integration.onStart!(
+        makeOnStartEvent({
+          headers: { 'x-request-id': 'request-123' },
+          runtimeContext: { userId: 'user-123' },
+        }),
+      );
+      integration.onStepStart!(
+        makeStepStartEvent({
+          stepToolChoice: { type: 'auto' },
+        }),
+      );
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          usage: detailedUsage,
+          providerMetadata: { openai: { response: 'metadata' } },
+        }),
+      );
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
+      integration.onStepFinish!(
+        makeStepFinishEvent({
+          usage: detailedUsage,
+          providerMetadata: { openai: { response: 'metadata' } },
+        }),
+      );
+      integration.onEnd!(
+        makeFinishEvent({
+          usage: detailedUsage,
+          providerMetadata: { openai: { response: 'metadata' } },
         }),
       );
 
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.setAttributes).toHaveBeenCalledWith(
-        expect.objectContaining({ 'ai.stream.msToFirstChunk': 42 }),
-      );
+      expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.request.headers.x-request-id": "request-123",
+              "ai.settings.context.userId": "user-123",
+              "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+              "gen_ai.operation.name": "invoke_agent",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "invoke_agent gpt-4",
+            "runtimeAttributes": {
+              "ai.response.providerMetadata": "{"openai":{"response":"metadata"}}",
+              "ai.usage.inputTokenDetails.noCacheTokens": 7,
+              "ai.usage.outputTokenDetails.reasoningTokens": 5,
+              "ai.usage.outputTokenDetails.textTokens": 15,
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.usage.cache_creation.input_tokens": 1,
+              "gen_ai.usage.cache_read.input_tokens": 2,
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.prompt.toolChoice": "{"type":"auto"}",
+              "ai.request.headers.x-request-id": "request-123",
+              "ai.settings.context.userId": "user-123",
+              "gen_ai.operation.name": "agent_step",
+            },
+            "name": "step 1",
+            "runtimeAttributes": {
+              "ai.response.providerMetadata": "{"openai":{"response":"metadata"}}",
+              "ai.usage.inputTokenDetails.noCacheTokens": 7,
+              "ai.usage.outputTokenDetails.reasoningTokens": 5,
+              "ai.usage.outputTokenDetails.textTokens": 15,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "chat",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "chat gpt-4",
+            "runtimeAttributes": {
+              "ai.response.providerMetadata": "{"openai":{"response":"metadata"}}",
+              "ai.usage.inputTokenDetails.noCacheTokens": 7,
+              "ai.usage.outputTokenDetails.reasoningTokens": 5,
+              "ai.usage.outputTokenDetails.textTokens": 15,
+              "gen_ai.client.operation.duration": 1,
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "gpt-4",
+              "gen_ai.usage.cache_creation.input_tokens": 1,
+              "gen_ai.usage.cache_read.input_tokens": 2,
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "execute_tool",
+              "gen_ai.tool.call.arguments": "{"query":"test"}",
+              "gen_ai.tool.call.id": "tool-call-1",
+              "gen_ai.tool.name": "myTool",
+              "gen_ai.tool.type": "function",
+            },
+            "name": "execute_tool myTool",
+            "runtimeAttributes": {
+              "gen_ai.execute_tool.duration": 0.042,
+              "gen_ai.tool.call.result": "{"result":"ok"}",
+            },
+          },
+        ]
+      `);
     });
 
-    it('ignores chunks without callId in the chunk body', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
+    it('only emits explicitly enabled supplemental attributes', () => {
+      integration = new OpenTelemetry({
+        tracer,
+        runtimeContext: true,
+        providerMetadata: true,
+        usage: true,
+      });
 
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'text-delta',
-          id: 'td-1',
-          text: 'hello',
+      integration.onStart!(
+        makeOnStartEvent({
+          headers: { authorization: 'secret' },
+          runtimeContext: { userId: 'user-123' },
         }),
       );
+      integration.onStepStart!(
+        makeStepStartEvent({
+          promptMessages: [
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+        }),
+      );
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).not.toHaveBeenCalled();
+      expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.settings.context.userId": "user-123",
+              "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+              "gen_ai.operation.name": "invoke_agent",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "invoke_agent gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.settings.context.userId": "user-123",
+              "gen_ai.operation.name": "agent_step",
+            },
+            "name": "step 1",
+            "runtimeAttributes": {},
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "chat",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "chat gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.client.operation.duration": 1,
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "gpt-4",
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "execute_tool",
+              "gen_ai.tool.call.arguments": "{"query":"test"}",
+              "gen_ai.tool.call.id": "tool-call-1",
+              "gen_ai.tool.name": "myTool",
+              "gen_ai.tool.type": "function",
+            },
+            "name": "execute_tool myTool",
+            "runtimeAttributes": {
+              "gen_ai.execute_tool.duration": 0.042,
+              "gen_ai.tool.call.result": "{"result":"ok"}",
+            },
+          },
+        ]
+      `);
     });
 
-    it('does not set attributes when chunk attributes are empty', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
+    it('does not emit disabled supplemental attributes', () => {
+      integration = new OpenTelemetry({
+        tracer,
+        usage: true,
+      });
 
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: {},
-        }),
-      );
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.addEvent).toHaveBeenCalled();
-      expect(stepSpan.setAttributes).not.toHaveBeenCalled();
+      expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+              "gen_ai.operation.name": "invoke_agent",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "invoke_agent gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "agent_step",
+            },
+            "name": "step 1",
+            "runtimeAttributes": {},
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "execute_tool",
+              "gen_ai.tool.call.arguments": "{"query":"test"}",
+              "gen_ai.tool.call.id": "tool-call-1",
+              "gen_ai.tool.name": "myTool",
+              "gen_ai.tool.type": "function",
+            },
+            "name": "execute_tool myTool",
+            "runtimeAttributes": {
+              "gen_ai.execute_tool.duration": 0.042,
+              "gen_ai.tool.call.result": "{"result":"ok"}",
+            },
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('onStepError', () => {
+    it('records error on step and chat spans and keeps the root span open for onEnd', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+
+      integration.onStepError!({
+        ...makeStepStartEvent(),
+        error: new Error('step failed'),
+      } as any);
+
+      expect(
+        tracer.spans.map(s => ({
+          name: s.name,
+          status: s.status,
+          ended: s.ended,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": false,
+            "name": "invoke_agent gpt-4",
+            "status": undefined,
+          },
+          {
+            "ended": true,
+            "name": "step 1",
+            "status": {
+              "code": 2,
+              "message": "step failed",
+            },
+          },
+          {
+            "ended": true,
+            "name": "chat gpt-4",
+            "status": {
+              "code": 2,
+              "message": "step failed",
+            },
+          },
+        ]
+      `);
+
+      integration.onEnd!(makeFinishEvent());
+
+      expect(tracer.spans[0].ended).toBe(true);
+      expect(tracer.spans[0].status).toBeUndefined();
     });
   });
 
   describe('onError', () => {
-    it('records error on root span and ends it', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
+    it('records error on root, step, and chat spans', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
 
-      const error = new Error('something went wrong');
-      otelIntegration.onError!({ callId, error });
-
-      const rootSpan = tracer.spans[0];
-      expect(rootSpan.recordException).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'Error',
-          message: 'something went wrong',
-        }),
-      );
-      expect(rootSpan.setStatus).toHaveBeenCalledWith(
-        expect.objectContaining({
-          code: SpanStatusCode.ERROR,
-          message: 'something went wrong',
-        }),
-      );
-      expect(rootSpan.ended).toBe(true);
-    });
-
-    it('records error on step span and ends it when active', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      const error = new Error('step error');
-      otelIntegration.onError!({ callId, error });
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.recordException).toHaveBeenCalled();
-      expect(stepSpan.ended).toBe(true);
-    });
-
-    it('handles non-Error objects', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-
-      otelIntegration.onError!({ callId, error: 'string error' });
-
-      const rootSpan = tracer.spans[0];
-      expect(rootSpan.setStatus).toHaveBeenCalledWith(
-        expect.objectContaining({ code: SpanStatusCode.ERROR }),
-      );
-      expect(rootSpan.ended).toBe(true);
-    });
-
-    it('does nothing without callId', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-
-      otelIntegration.onError!({ error: new Error('no callId') });
-
-      const rootSpan = tracer.spans[0];
-      expect(rootSpan.ended).toBe(false);
-    });
-
-    it('does nothing for unknown callId', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-
-      otelIntegration.onError!({
-        callId: 'unknown',
-        error: new Error('unknown'),
+      integration.onError!({
+        callId,
+        error: new Error('something went wrong'),
       });
 
-      const rootSpan = tracer.spans[0];
-      expect(rootSpan.ended).toBe(false);
-    });
-
-    it('cleans up call state after error', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onError!({ callId, error: new Error('fail') });
-
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      expect(tracer.spans).toHaveLength(1);
+      expect(
+        tracer.spans.map(s => ({
+          name: s.name,
+          status: s.status,
+          ended: s.ended,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "name": "invoke_agent gpt-4",
+            "status": {
+              "code": 2,
+              "message": "something went wrong",
+            },
+          },
+          {
+            "ended": true,
+            "name": "step 1",
+            "status": {
+              "code": 2,
+              "message": "something went wrong",
+            },
+          },
+          {
+            "ended": true,
+            "name": "chat gpt-4",
+            "status": {
+              "code": 2,
+              "message": "something went wrong",
+            },
+          },
+        ]
+      `);
     });
   });
 
-  describe('telemetry disabled / recordInputs / recordOutputs', () => {
-    it('does not record input attributes when recordInputs is false', () => {
-      otelIntegration.onStart!(makeOnStartEvent({ recordInputs: false }));
+  describe('generateText integration', () => {
+    it('records system instructions on the chat span', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
 
-      const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['ai.prompt']).toBeUndefined();
+      await generateText({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doGenerate: {
+            content: [{ type: 'text', text: 'Hello' }],
+            finishReason: { raw: undefined, unified: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 2,
+                noCache: 2,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          },
+        }),
+        system: 'You are helpful',
+        prompt: 'Hello',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat gpt-4');
+      expect(
+        parseJsonAttributes(
+          chatSpan.attributes,
+          'gen_ai.system_instructions',
+          'gen_ai.input.messages',
+        ),
+      ).toMatchInlineSnapshot(`
+        {
+          "gen_ai.input.messages": [
+            {
+              "parts": [
+                {
+                  "content": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "gen_ai.system_instructions": [
+            {
+              "content": "You are helpful",
+              "type": "text",
+            },
+          ],
+        }
+      `);
     });
 
-    it('does not record output attributes when recordOutputs is false', () => {
-      otelIntegration.onStart!(makeOnStartEvent({ recordOutputs: false }));
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onStepFinish!(
-        makeStepFinishEvent({ text: 'secret output' }),
-      );
+    it('preserves allowed system messages in chat history order', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
 
-      const stepSpan = tracer.spans[1];
-      const setAttrsCall = getSetAttributesArg(stepSpan);
-      expect(setAttrsCall['ai.response.text']).toBeUndefined();
+      await generateText({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doGenerate: {
+            content: [{ type: 'text', text: 'Hello' }],
+            finishReason: { raw: undefined, unified: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 2,
+                noCache: 2,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          },
+        }),
+        messages: [
+          { role: 'user', content: 'First' },
+          { role: 'system', content: 'Apply this to the next request' },
+          { role: 'user', content: 'Second' },
+        ],
+        allowSystemInMessages: true,
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat gpt-4');
+      expect(
+        parseJsonAttributes(
+          chatSpan.attributes,
+          'gen_ai.system_instructions',
+          'gen_ai.input.messages',
+        ),
+      ).toMatchInlineSnapshot(`
+        {
+          "gen_ai.input.messages": [
+            {
+              "parts": [
+                {
+                  "content": "First",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+            {
+              "parts": [
+                {
+                  "content": "Apply this to the next request",
+                  "type": "text",
+                },
+              ],
+              "role": "system",
+            },
+            {
+              "parts": [
+                {
+                  "content": "Second",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
+  describe('embed integration', () => {
+    it('reports usage only on the provider request span', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await embed({
+        model: new MockEmbeddingModelV4({
+          provider: 'openai',
+          modelId: 'text-embedding-model',
+          doEmbed: {
+            embeddings: [[0.1, 0.2, 0.3]],
+            usage: { tokens: 14 },
+            warnings: [],
+          },
+        }),
+        value: 'sunny day at the beach',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      expect(
+        sdkTrace.exporter.getFinishedSpans().map(span => ({
+          name: span.name,
+          operation: span.attributes['gen_ai.operation.name'],
+          inputTokens: span.attributes['gen_ai.usage.input_tokens'],
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "inputTokens": 14,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+          {
+            "inputTokens": undefined,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+        ]
+      `);
     });
 
-    it('records non-input/output attributes even when recordInputs is false', () => {
-      otelIntegration.onStart!(makeOnStartEvent({ recordInputs: false }));
+    it('reports batched usage only on provider request spans', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
 
-      const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['ai.model.provider']).toBe('test-provider');
-      expect(attrs['ai.model.id']).toBe('test-model');
+      await embedMany({
+        model: new MockEmbeddingModelV4({
+          provider: 'openai',
+          modelId: 'text-embedding-model',
+          maxEmbeddingsPerCall: 2,
+          doEmbed: async ({ values }) => ({
+            embeddings: values.map(() => [0.1, 0.2, 0.3]),
+            usage: { tokens: values.length * 14 },
+            warnings: [],
+          }),
+        }),
+        values: ['sunny', 'day', 'beach'],
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      expect(
+        sdkTrace.exporter.getFinishedSpans().map(span => ({
+          name: span.name,
+          operation: span.attributes['gen_ai.operation.name'],
+          inputTokens: span.attributes['gen_ai.usage.input_tokens'],
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "inputTokens": 28,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+          {
+            "inputTokens": 14,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+          {
+            "inputTokens": undefined,
+            "name": "embeddings text-embedding-model",
+            "operation": "embeddings",
+          },
+        ]
+      `);
     });
 
-    it('does not record tool call args when recordOutputs is false', () => {
-      otelIntegration.onStart!(makeOnStartEvent({ recordOutputs: false }));
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
+    it('omits usage attributes when the provider does not return usage', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
 
-      const attrs = getStartSpanAttributes(tracer, 2);
-      expect(attrs['ai.toolCall.args']).toBeUndefined();
-    });
+      const result = await embed({
+        model: new MockEmbeddingModelV4({
+          provider: 'openai',
+          modelId: 'text-embedding-model',
+          doEmbed: {
+            embeddings: [[0.1, 0.2, 0.3]],
+            warnings: [],
+          },
+        }),
+        value: 'sunny day at the beach',
+        telemetry: {
+          integrations: integration,
+        },
+      });
 
-    it('does not record tool call result when recordOutputs is false', () => {
-      otelIntegration.onStart!(makeOnStartEvent({ recordOutputs: false }));
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
-      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
+      expect(result.usage.tokens).toBeNaN();
+      expect(sdkTrace.exporter.getFinishedSpans()).toHaveLength(2);
 
-      const toolSpan = tracer.spans[2];
-      const setAttrsCalls = (toolSpan.setAttributes as ReturnType<typeof vi.fn>)
-        .mock.calls;
-      if (setAttrsCalls.length > 0) {
-        expect(
-          (setAttrsCalls[0][0] as Attributes)['ai.toolCall.result'],
-        ).toBeUndefined();
+      for (const span of sdkTrace.exporter.getFinishedSpans()) {
+        expect('gen_ai.usage.input_tokens' in span.attributes).toBe(false);
       }
+    });
+  });
+
+  describe('object generation integrations', () => {
+    it('records generateObject instructions on the chat span', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await generateObject({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doGenerate: {
+            content: [{ type: 'text', text: '{"answer":"Hello"}' }],
+            finishReason: { raw: undefined, unified: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 2,
+                noCache: 2,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          },
+        }),
+        instructions: 'Return a greeting',
+        prompt: 'Hello',
+        schema: z.object({ answer: z.string() }),
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat gpt-4');
+      expect(
+        parseJsonAttributes(
+          chatSpan.attributes,
+          'gen_ai.system_instructions',
+          'gen_ai.input.messages',
+        ),
+      ).toMatchInlineSnapshot(`
+        {
+          "gen_ai.input.messages": [
+            {
+              "parts": [
+                {
+                  "content": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "gen_ai.system_instructions": [
+            {
+              "content": "Return a greeting",
+              "type": "text",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('records streamObject instructions on the chat span', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      const result = streamObject({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doStream: {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              { type: 'text-start', id: '1' },
+              {
+                type: 'text-delta',
+                id: '1',
+                delta: '{"answer":"Hello"}',
+              },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { raw: undefined, unified: 'stop' },
+                usage: {
+                  inputTokens: {
+                    total: 2,
+                    noCache: 2,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 1,
+                    text: 1,
+                    reasoning: undefined,
+                  },
+                },
+              },
+            ]),
+          },
+        }),
+        instructions: 'Return a greeting',
+        prompt: 'Hello',
+        schema: z.object({ answer: z.string() }),
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat gpt-4');
+      expect(
+        parseJsonAttributes(
+          chatSpan.attributes,
+          'gen_ai.system_instructions',
+          'gen_ai.input.messages',
+        ),
+      ).toMatchInlineSnapshot(`
+        {
+          "gen_ai.input.messages": [
+            {
+              "parts": [
+                {
+                  "content": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "gen_ai.system_instructions": [
+            {
+              "content": "Return a greeting",
+              "type": "text",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
+  describe('abort', () => {
+    it('closes streamText spans when AbortController aborts the stream', async () => {
+      const reader = createMetricReader();
+      const abortController = new AbortController();
+      let pullCalls = 0;
+
+      const result = streamText({
+        abortSignal: abortController.signal,
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                switch (pullCalls++) {
+                  case 0:
+                    controller.enqueue({
+                      type: 'stream-start',
+                      warnings: [],
+                    });
+                    break;
+                  case 1:
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: '1',
+                    });
+                    break;
+                  case 2:
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                    break;
+                  case 3:
+                    abortController.abort();
+                    controller.error(
+                      new DOMException(
+                        'The user aborted a request.',
+                        'AbortError',
+                      ),
+                    );
+                    break;
+                }
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(
+        tracer.spans.map(span => ({
+          name: span.name,
+          ended: span.ended,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "name": "invoke_agent mock-model-id",
+          },
+          {
+            "ended": true,
+            "name": "step 1",
+          },
+          {
+            "ended": true,
+            "name": "chat mock-model-id",
+          },
+        ]
+      `);
+      expect((await collectInferenceDuration(reader)).dataPoints).toMatchObject(
+        [
+          {
+            attributes: { 'error.type': 'AbortError' },
+            value: { count: 1 },
+          },
+        ],
+      );
+    });
+  });
+
+  describe('stream errors', () => {
+    it.each([0, 1])(
+      'records failed stream attempts when streamRetries is %i',
+      async streamRetries => {
+        let now = 0;
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        const reader = createMetricReader();
+        const model = new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'test-model',
+          doStream: async () => ({
+            stream: new ReadableStream({
+              start(controller) {
+                const failed = model.doStreamCalls.length === 1;
+                now += failed ? 500 : 750;
+                if (failed) {
+                  controller.enqueue({
+                    type: 'error',
+                    error: new Error('provider failed'),
+                  });
+                } else {
+                  controller.enqueue({ type: 'text-start', id: '0' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '0',
+                    delta: 'recovered',
+                  });
+                  controller.enqueue({ type: 'text-end', id: '0' });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: {
+                      inputTokens: {
+                        total: 2,
+                        noCache: 2,
+                        cacheRead: 0,
+                        cacheWrite: 0,
+                      },
+                      outputTokens: { total: 1, text: 1, reasoning: 0 },
+                    },
+                  });
+                }
+                controller.close();
+              },
+            }),
+          }),
+        });
+        const result = streamText({
+          model,
+          prompt: 'hello',
+          maxRetries: 0,
+          streamRetries,
+          onError: () => {},
+          telemetry: { integrations: integration },
+        });
+        await result.consumeStream();
+
+        expect(model.doStreamCalls).toHaveLength(streamRetries + 1);
+        const histogram = await collectInferenceDuration(reader);
+        expect(histogram.dataPoints).toHaveLength(streamRetries + 1);
+        const failure = histogram.dataPoints.find(
+          point => point.attributes['error.type'] === '_OTHER',
+        );
+        expect(failure?.value).toMatchObject({ count: 1, sum: 0.5 });
+        if (streamRetries === 1) {
+          expect(await result.text).toBe('recovered');
+          const success = histogram.dataPoints.find(
+            point => point.attributes['error.type'] == null,
+          );
+          expect(success?.value).toMatchObject({ count: 1, sum: 0.75 });
+        }
+      },
+    );
+
+    it('records and exports streamText spans when the provider stream errors', async () => {
+      const reader = createMetricReader();
+      const sdkTrace = createSdkTracer();
+      const sdkIntegration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+      let pullCalls = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                switch (pullCalls++) {
+                  case 0:
+                    controller.enqueue({
+                      type: 'stream-start',
+                      warnings: [],
+                    });
+                    break;
+                  case 1:
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: '1',
+                    });
+                    break;
+                  case 2:
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                    break;
+                  case 3:
+                    controller.error(new Error('socket closed'));
+                    break;
+                }
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        telemetry: {
+          integrations: sdkIntegration,
+        },
+      });
+
+      await result.consumeStream();
+
+      const rootSpan = getExportedSpan(
+        sdkTrace.exporter,
+        'invoke_agent mock-model-id',
+      );
+      const stepSpan = getExportedSpan(sdkTrace.exporter, 'step 1');
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat mock-model-id');
+
+      for (const span of [rootSpan, stepSpan, chatSpan]) {
+        expect(span.status.code).toBe(SpanStatusCode.ERROR);
+        expect(span.events).toContainEqual(
+          expect.objectContaining({ name: 'exception' }),
+        );
+      }
+
+      expect(stepSpan.parentSpanContext?.spanId).toBe(
+        rootSpan.spanContext().spanId,
+      );
+      expect(chatSpan.parentSpanContext?.spanId).toBe(
+        stepSpan.spanContext().spanId,
+      );
+      expect((await collectInferenceDuration(reader)).dataPoints).toMatchObject(
+        [
+          {
+            attributes: { 'error.type': 'Error' },
+            value: { count: 1 },
+          },
+        ],
+      );
     });
   });
 
   describe('full lifecycle', () => {
-    it('creates correct span hierarchy for generateText with tool call', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
-      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+    it('creates correct span hierarchy for multi-step tool loop', () => {
+      integration.onStart!(makeOnStartEvent());
 
-      expect(tracer.spans).toHaveLength(3);
-      expect(tracer.spans[0].name).toBe('ai.generateText');
-      expect(tracer.spans[1].name).toBe('ai.generateText.doGenerate');
-      expect(tracer.spans[2].name).toBe('ai.toolCall');
-
-      expect(tracer.spans[0].ended).toBe(true);
-      expect(tracer.spans[1].ended).toBe(true);
-      expect(tracer.spans[2].ended).toBe(true);
-    });
-
-    it('creates correct span hierarchy for multi-step generation', () => {
-      otelIntegration.onStart!(makeOnStartEvent());
-
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 0 }));
-      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
-      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
-      otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 0 }));
-
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
-      otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
-
-      otelIntegration.onFinish!(makeFinishEvent());
-
-      expect(tracer.spans).toHaveLength(4);
-      expect(tracer.spans[0].name).toBe('ai.generateText');
-      expect(tracer.spans[1].name).toBe('ai.generateText.doGenerate');
-      expect(tracer.spans[2].name).toBe('ai.toolCall');
-      expect(tracer.spans[3].name).toBe('ai.generateText.doGenerate');
-
-      for (const span of tracer.spans) {
-        expect(span.ended).toBe(true);
-      }
-    });
-
-    it('handles concurrent calls with different callIds', () => {
-      const callId1 = 'call-1';
-      const callId2 = 'call-2';
-
-      otelIntegration.onStart!(makeOnStartEvent({ callId: callId1 }));
-      otelIntegration.onStart!(makeOnStartEvent({ callId: callId2 }));
-
-      expect(tracer.spans).toHaveLength(2);
-
-      otelIntegration.onStepStart!(makeStepStartEvent({ callId: callId1 }));
-      otelIntegration.onStepStart!(makeStepStartEvent({ callId: callId2 }));
-
-      expect(tracer.spans).toHaveLength(4);
-
-      otelIntegration.onStepFinish!(makeStepFinishEvent({ callId: callId1 }));
-      otelIntegration.onFinish!(makeFinishEvent({ callId: callId1 }));
-
-      expect(tracer.spans[0].ended).toBe(true);
-      expect(tracer.spans[2].ended).toBe(true);
-
-      expect(tracer.spans[1].ended).toBe(false);
-      expect(tracer.spans[3].ended).toBe(false);
-
-      otelIntegration.onStepFinish!(makeStepFinishEvent({ callId: callId2 }));
-      otelIntegration.onFinish!(makeFinishEvent({ callId: callId2 }));
-
-      for (const span of tracer.spans) {
-        expect(span.ended).toBe(true);
-      }
-    });
-
-    it('creates correct span hierarchy for streamText', () => {
-      otelIntegration.onStart!(
-        makeOnStartEvent({ operationId: 'ai.streamText' }),
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
       );
-      otelIntegration.onStepStart!(makeStepStartEvent());
-
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.firstChunk',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFirstChunk': 10 },
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          finishReason: 'tool-calls',
+          content: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tool-call-1',
+              toolName: 'myTool',
+              input: { query: 'test' },
+            },
+          ],
+        }),
+      );
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
+      integration.onStepFinish!(
+        makeStepFinishEvent({
+          finishReason: 'tool-calls',
+          toolCalls: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tool-call-1',
+              toolName: 'myTool',
+              input: { query: 'test' },
+            },
+          ],
+          text: undefined,
         }),
       );
 
-      otelIntegration.onChunk!(
-        makeChunkEvent({
-          type: 'ai.stream.finish',
-          callId,
-          stepNumber: 0,
-          attributes: { 'ai.stream.msToFinish': 200 },
+      integration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
+          messages: [{ role: 'assistant', content: 'Tool result received' }],
+        }),
+      );
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      integration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
+
+      integration.onEnd!(makeFinishEvent());
+
+      expect(
+        tracer.spans.map(s => ({
+          name: s.name,
+          ended: s.ended,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "name": "invoke_agent gpt-4",
+          },
+          {
+            "ended": true,
+            "name": "step 1",
+          },
+          {
+            "ended": true,
+            "name": "chat gpt-4",
+          },
+          {
+            "ended": true,
+            "name": "execute_tool myTool",
+          },
+          {
+            "ended": true,
+            "name": "step 2",
+          },
+          {
+            "ended": true,
+            "name": "chat gpt-4",
+          },
+        ]
+      `);
+    });
+
+    it('full trace snapshot for single-step generateText', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onEnd!(makeFinishEvent());
+
+      expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+              "gen_ai.operation.name": "invoke_agent",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "invoke_agent gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "agent_step",
+            },
+            "name": "step 1",
+            "runtimeAttributes": {},
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "chat",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "chat gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.client.operation.duration": 1,
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "gpt-4",
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('full trace snapshot for multi-step tool loop', () => {
+      integration.onStart!(makeOnStartEvent());
+
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          finishReason: 'tool-calls',
+        }),
+      );
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
+      integration.onStepFinish!(
+        makeStepFinishEvent({
+          finishReason: 'tool-calls',
+          toolCalls: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tool-call-1',
+              toolName: 'myTool',
+              input: { query: 'test' },
+            },
+          ],
+          text: undefined,
         }),
       );
 
-      otelIntegration.onStepFinish!(makeStepFinishEvent());
-      otelIntegration.onFinish!(makeFinishEvent());
+      integration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      integration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
-      expect(tracer.spans).toHaveLength(2);
-      expect(tracer.spans[0].name).toBe('ai.streamText');
-      expect(tracer.spans[1].name).toBe('ai.streamText.doStream');
+      integration.onEnd!(makeFinishEvent());
 
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.events).toHaveLength(2);
-      expect(stepSpan.events[0].name).toBe('ai.stream.firstChunk');
-      expect(stepSpan.events[1].name).toBe('ai.stream.finish');
+      expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
+              "gen_ai.operation.name": "invoke_agent",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "invoke_agent gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "agent_step",
+            },
+            "name": "step 1",
+            "runtimeAttributes": {},
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "chat",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "chat gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.client.operation.duration": 1,
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"tool_call"}]",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.response.finish_reasons": [
+                "tool-calls",
+              ],
+              "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "gpt-4",
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "execute_tool",
+              "gen_ai.tool.call.arguments": "{"query":"test"}",
+              "gen_ai.tool.call.id": "tool-call-1",
+              "gen_ai.tool.name": "myTool",
+              "gen_ai.tool.type": "function",
+            },
+            "name": "execute_tool myTool",
+            "runtimeAttributes": {
+              "gen_ai.execute_tool.duration": 0.042,
+              "gen_ai.tool.call.result": "{"result":"ok"}",
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "agent_step",
+            },
+            "name": "step 2",
+            "runtimeAttributes": {},
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "chat",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "chat gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.client.operation.duration": 1,
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "gpt-4",
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('does not use ai.* attribute prefix anywhere', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
       for (const span of tracer.spans) {
-        expect(span.ended).toBe(true);
+        for (const key of Object.keys(span.attributes)) {
+          expect(key).not.toMatch(/^ai\./);
+        }
       }
     });
   });
 
-  describe('functionId in telemetry', () => {
-    it('includes functionId in operation name', () => {
-      otelIntegration.onStart!(
-        makeOnStartEvent({
-          functionId: 'my-chat',
-        }),
+  describe('durable telemetry', () => {
+    function getSpanTimes(exporter: InMemorySpanExporter) {
+      const toMs = ([seconds, nanoseconds]: [number, number]) =>
+        seconds * 1000 + nanoseconds / 1e6;
+      return Object.fromEntries(
+        exporter
+          .getFinishedSpans()
+          .map(span => [span.name, [toMs(span.startTime), toMs(span.endTime)]]),
       );
+    }
 
-      const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['operation.name']).toBe('ai.generateText my-chat');
-      expect(attrs['resource.name']).toBe('my-chat');
-      expect(attrs['ai.telemetry.functionId']).toBe('my-chat');
+    it('uses event timestamps for span start and end times', () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      // Epoch times before the process time origin must not be treated as
+      // performance.now() values.
+      integration.onStart!(makeOnStartEvent({ timestamp: 1_000 }));
+      integration.onStepStart!(makeStepStartEvent({ timestamp: 1_100 }));
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({ timestamp: 1_200 }),
+      );
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({ timestamp: 1_300 }),
+      );
+      integration.onToolExecutionStart!(
+        makeToolCallStartEvent({ timestamp: 1_400 }),
+      );
+      integration.onToolExecutionEnd!(
+        makeToolCallFinishEvent(true, { timestamp: 1_500 }),
+      );
+      integration.onStepEnd!(makeStepFinishEvent({ timestamp: 1_600 }));
+      integration.onEnd!(makeFinishEvent({ timestamp: 1_700 }));
+
+      expect(getSpanTimes(sdkTrace.exporter)).toEqual({
+        [`invoke_agent ${model.modelId}`]: [1_000, 1_700],
+        'step 1': [1_100, 1_600],
+        [`chat ${model.modelId}`]: [1_200, 1_300],
+        'execute_tool myTool': [1_400, 1_500],
+      });
     });
-  });
 
-  describe('context in telemetry', () => {
-    it('includes context as telemetry attributes', () => {
-      otelIntegration.onStart!(
-        makeOnStartEvent({
-          runtimeContext: { userId: 'user-123', sessionId: 'sess-456' },
+    function createDurableTracer(
+      sampler?: ConstructorParameters<typeof OpenTelemetryIdGenerator>[0],
+    ) {
+      const durable = new OpenTelemetryIdGenerator(sampler);
+      const exporter = new InMemorySpanExporter();
+      const provider = new BasicTracerProvider({
+        idGenerator: durable,
+        sampler: durable,
+        spanProcessors: [new SimpleSpanProcessor(exporter)],
+      });
+      return { exporter, tracer: provider.getTracer('test-tracer'), durable };
+    }
+
+    it('preserves the parent trace and sampler trace state', async () => {
+      const parent = {
+        traceId: 'a'.repeat(32),
+        spanId: 'b'.repeat(16),
+        traceFlags: 1,
+        traceState: createTraceState('vendor=parent'),
+      };
+      const parentContext = trace.setSpanContext(context.active(), parent);
+      const active = vi.spyOn(context, 'active').mockReturnValue(parentContext);
+      const { tracer, exporter, durable } = createDurableTracer({
+        sampler: {
+          shouldSample: () => ({
+            decision: 2 as const,
+            traceState: createTraceState('vendor=sampled'),
+            attributes: { 'sampling.attribute': 'preserved' },
+          }),
+        },
+      });
+      integration = new OpenTelemetry({ tracer, durable });
+      const run =
+        (await integration.experimental_durable!.captureContext(
+          makeOnStartEvent(),
+        ))!;
+      active.mockRestore();
+      expect(run).toMatchObject({
+        traceId: parent.traceId,
+        traceFlags: 1,
+        traceState: 'vendor=sampled',
+        parentSpanContext: { spanId: parent.spanId },
+      });
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
+          durableContext: { run, phase: 'live', stepNumber: 0 },
         }),
       );
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      integration.onStart!(
+        makeOnStartEvent({ durableContext: { run, phase: 'replay' } }),
+      );
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onStepEnd!(makeStepFinishEvent());
+      integration.onEnd!(makeFinishEvent());
 
-      const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['ai.settings.context.userId']).toBe('user-123');
-      expect(attrs['ai.settings.context.sessionId']).toBe('sess-456');
+      const spans = exporter.getFinishedSpans();
+      expect(spans).toHaveLength(3);
+      for (const span of spans) {
+        expect(span.spanContext().traceId).toBe(parent.traceId);
+        expect(span.spanContext().traceState?.serialize()).toBe(
+          'vendor=sampled',
+        );
+      }
+      const root = spans.find(span => span.name.startsWith('invoke_agent'))!;
+      expect(root.parentSpanContext?.spanId).toBe(parent.spanId);
+      expect(root.attributes['sampling.attribute']).toBe('preserved');
+    });
+
+    it('preserves filtered context and headers on live model spans', async () => {
+      const { tracer, exporter, durable } = createDurableTracer();
+      const enrich = vi.fn(() => undefined);
+      integration = new OpenTelemetry({
+        tracer,
+        durable,
+        runtimeContext: true,
+        headers: true,
+        enrichSpan: enrich,
+      });
+      const run =
+        (await integration.experimental_durable!.captureContext(
+          makeOnStartEvent(),
+        ))!;
+      const runtimeContext = { traceIdentity: { sessionId: 'session-1' } };
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
+          durableContext: {
+            run,
+            phase: 'live',
+            stepNumber: 0,
+            runtimeContext,
+            headers: { 'x-test': 'value' },
+          },
+        }),
+      );
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      expect(enrich).toHaveBeenCalledWith(
+        expect.objectContaining({ spanType: 'languageModel', runtimeContext }),
+      );
+      const chat = exporter.getFinishedSpans()[0];
+      expect(chat.attributes['ai.request.headers.x-test']).toBe('value');
+    });
+
+    it('reuses the captured sampling decision for model and tool spans', async () => {
+      const shouldSample = vi.fn(() => ({ decision: 2 as const }));
+      const { tracer, exporter, durable } = createDurableTracer({
+        sampler: { shouldSample },
+      });
+      const live = new OpenTelemetry({ tracer, durable });
+      const run =
+        (await live.experimental_durable.captureContext(makeOnStartEvent()))!;
+      live.onLanguageModelCallStart(
+        makeLanguageModelCallStartEvent({
+          durableContext: { run, phase: 'live', stepNumber: 0 },
+        }),
+      );
+      live.onLanguageModelCallEnd(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'provider-tool',
+              toolName: 'search',
+              input: {},
+              providerExecuted: true,
+            },
+          ],
+        }),
+      );
+      integration = new OpenTelemetry({ tracer, durable });
+      integration.onStart!(
+        makeOnStartEvent({ durableContext: { run, phase: 'replay' } }),
+      );
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
+      integration.onStepEnd!(makeStepFinishEvent());
+      integration.onEnd!(makeFinishEvent());
+      expect(shouldSample).toHaveBeenCalledOnce();
+      expect(exporter.getFinishedSpans()).toHaveLength(5);
+    });
+
+    it('closes failed durable attempts and a failed retry', async () => {
+      const { tracer, exporter, durable } = createDurableTracer();
+      const live = new OpenTelemetry({ tracer, durable });
+      const run =
+        (await live.experimental_durable.captureContext(makeOnStartEvent()))!;
+      const event = makeLanguageModelCallStartEvent({
+        durableContext: { run, phase: 'live', stepNumber: 0 },
+        timestamp: 1_000,
+      });
+      live.onLanguageModelCallStart(event);
+      live.onLanguageModelCallStart({ ...event, timestamp: 1_100 });
+      live.onError({ callId, error: new Error('rejected'), timestamp: 1_200 });
+      const [failed, retried] = exporter.getFinishedSpans();
+      expect(exporter.getFinishedSpans()).toHaveLength(2);
+      expect(failed.status.code).toBe(SpanStatusCode.ERROR);
+      expect(retried.status.code).toBe(SpanStatusCode.ERROR);
+      expect(retried.endTime).toEqual([1, 200_000_000]);
+      expect(failed.endTime).toEqual(retried.startTime);
+      expect(failed.parentSpanContext).toEqual(retried.parentSpanContext);
+      expect(failed.spanContext().spanId).not.toBe(
+        retried.spanContext().spanId,
+      );
     });
   });
 });
 
-const integrationTestUsage: LanguageModelV4Usage = {
-  inputTokens: {
-    total: 3,
-    noCache: 3,
-    cacheRead: undefined,
-    cacheWrite: undefined,
-  },
-  outputTokens: {
-    total: 10,
-    text: 10,
-    reasoning: undefined,
-  },
-};
-
-const integrationDummyResponseValues = {
-  finishReason: { unified: 'stop', raw: 'stop' } as const,
-  usage: integrationTestUsage,
-  warnings: [],
-};
-
-const integrationModelWithReasoning = new MockLanguageModelV4({
-  doGenerate: {
-    ...integrationDummyResponseValues,
-    content: [
-      {
-        type: 'reasoning',
-        text: 'I will open the conversation with witty banter.',
-        providerMetadata: {
-          testProvider: {
-            signature: 'signature',
-          },
-        },
-      },
-      {
-        type: 'reasoning',
-        text: '',
-        providerMetadata: {
-          testProvider: {
-            redactedData: 'redacted-reasoning-data',
-          },
-        },
-      },
-      { type: 'text', text: 'Hello, world!' },
-    ],
-  },
-});
-
-describe('OpenTelemetry integration with generateText', () => {
-  let tracer: IntegrationMockTracer;
-
-  beforeEach(() => {
-    tracer = new IntegrationMockTracer();
-  });
-
-  it('should record telemetry data when isEnabled is not explicitly set', async () => {
-    await generateText({
-      model: new MockLanguageModelV4({
-        doGenerate: async ({}) => ({
-          ...integrationDummyResponseValues,
-          content: [{ type: 'text', text: 'Hello, world!' }],
-          response: {
-            id: 'test-id-default-enabled',
-            timestamp: new Date(10000),
-            modelId: 'mock-model-id',
-          },
-        }),
-      }),
-      prompt: 'prompt',
-      experimental_telemetry: {
-        integrations: new OpenTelemetry({ tracer }),
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record telemetry data when enabled', async () => {
-    await generateText({
-      model: new MockLanguageModelV4({
-        doGenerate: async ({}) => ({
-          ...integrationDummyResponseValues,
-          content: [{ type: 'text', text: 'Hello, world!' }],
-          response: {
-            id: 'test-id-from-model',
-            timestamp: new Date(10000),
-            modelId: 'test-response-model-id',
-          },
-          providerMetadata: {
-            testProvider: {
-              testKey: 'testValue',
-            },
-          },
-        }),
-      }),
-      prompt: 'prompt',
-      topK: 0.1,
-      topP: 0.2,
-      frequencyPenalty: 0.3,
-      presencePenalty: 0.4,
-      temperature: 0.5,
-      runtimeContext: {
-        test1: 'value1',
-        test2: false,
-      },
-      stopSequences: ['stop'],
-      headers: {
-        header1: 'value1',
-        header2: 'value2',
-      },
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'test-function-id',
-        integrations: new OpenTelemetry({ tracer }),
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record successful tool call', async () => {
-    await generateText({
-      model: new MockLanguageModelV4({
-        doGenerate: async ({}) => ({
-          ...integrationDummyResponseValues,
-          content: [
-            {
-              type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              input: `{ "value": "value" }`,
-            },
-          ],
-          response: {
-            id: 'test-id',
-            timestamp: new Date(0),
-            modelId: 'mock-model-id',
-          },
-        }),
-      }),
-      tools: {
-        tool1: {
-          inputSchema: z.object({ value: z.string() }),
-          execute: async () => 'result1',
-        },
-      },
-      prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      _internal: {
-        generateId: () => 'test-id',
-        generateCallId: () => 'test-telemetry-call-id',
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
-      [
-        {
-          "attributes": {
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.generateText",
-            "ai.prompt": "{"prompt":"test-input"}",
-            "ai.request.headers.user-agent": "ai/0.0.0-test",
-            "ai.response.finishReason": "stop",
-            "ai.response.text": "",
-            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
-            "ai.settings.maxRetries": 2,
-            "ai.usage.inputTokenDetails.noCacheTokens": 3,
-            "ai.usage.inputTokens": 3,
-            "ai.usage.outputTokenDetails.textTokens": 10,
-            "ai.usage.outputTokens": 10,
-            "ai.usage.totalTokens": 13,
-            "operation.name": "ai.generateText",
-          },
-          "events": [],
-          "name": "ai.generateText",
-        },
-        {
-          "attributes": {
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.generateText.doGenerate",
-            "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
-            "ai.prompt.toolChoice": "{"type":"auto"}",
-            "ai.prompt.tools": [
-              "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
-            ],
-            "ai.request.headers.user-agent": "ai/0.0.0-test",
-            "ai.response.finishReason": "stop",
-            "ai.response.id": "test-id",
-            "ai.response.model": "mock-model-id",
-            "ai.response.text": "",
-            "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
-            "ai.settings.maxRetries": 2,
-            "ai.usage.inputTokenDetails.noCacheTokens": 3,
-            "ai.usage.inputTokens": 3,
-            "ai.usage.outputTokenDetails.textTokens": 10,
-            "ai.usage.outputTokens": 10,
-            "ai.usage.totalTokens": 13,
-            "gen_ai.request.model": "mock-model-id",
-            "gen_ai.response.finish_reasons": [
-              "stop",
-            ],
-            "gen_ai.response.id": "test-id",
-            "gen_ai.response.model": "mock-model-id",
-            "gen_ai.system": "mock-provider",
-            "gen_ai.usage.input_tokens": 3,
-            "gen_ai.usage.output_tokens": 10,
-            "operation.name": "ai.generateText.doGenerate",
-          },
-          "events": [],
-          "name": "ai.generateText.doGenerate",
-        },
-        {
-          "attributes": {
-            "ai.operationId": "ai.toolCall",
-            "ai.toolCall.args": "{"value":"value"}",
-            "ai.toolCall.id": "call-1",
-            "ai.toolCall.name": "tool1",
-            "ai.toolCall.result": ""result1"",
-            "operation.name": "ai.toolCall",
-          },
-          "events": [],
-          "name": "ai.toolCall",
-        },
-      ]
-    `);
-  });
-
-  it('should record error on tool call', async () => {
-    await generateText({
-      model: new MockLanguageModelV4({
-        doGenerate: async ({}) => ({
-          ...integrationDummyResponseValues,
-          content: [
-            {
-              type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              input: `{ "value": "value" }`,
-            },
-          ],
-        }),
-      }),
-      tools: {
-        tool1: {
-          inputSchema: z.object({ value: z.string() }),
-          execute: async () => {
-            throw new Error('Tool execution failed');
-          },
-        },
-      },
-      prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      _internal: {
-        generateId: () => 'test-id',
-        generateCallId: () => 'test-telemetry-call-id',
-      },
-    });
-
-    expect(tracer.jsonSpans).toHaveLength(3);
-
-    expect(tracer.jsonSpans[0].name).toBe('ai.generateText');
-    expect(tracer.jsonSpans[1].name).toBe('ai.generateText.doGenerate');
-    expect(tracer.jsonSpans[2].name).toBe('ai.toolCall');
-
-    const toolCallSpan = tracer.jsonSpans[2];
-    expect(toolCallSpan.status).toEqual({
-      code: 2,
-      message: 'Tool execution failed',
-    });
-
-    expect(toolCallSpan.events).toHaveLength(1);
-    const exceptionEvent = toolCallSpan.events[0];
-    expect(exceptionEvent.name).toBe('exception');
-    expect(exceptionEvent.attributes).toMatchObject({
-      'exception.message': 'Tool execution failed',
-      'exception.name': 'Error',
-    });
-    expect(exceptionEvent.attributes?.['exception.stack']).toContain(
-      'Tool execution failed',
-    );
-    expect(exceptionEvent.time).toEqual([0, 0]);
-  });
-
-  it('should not record telemetry inputs / outputs when disabled', async () => {
-    await generateText({
-      model: new MockLanguageModelV4({
-        doGenerate: async ({}) => ({
-          ...integrationDummyResponseValues,
-          content: [
-            {
-              type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              input: `{ "value": "value" }`,
-            },
-          ],
-          response: {
-            id: 'test-id',
-            timestamp: new Date(0),
-            modelId: 'mock-model-id',
-          },
-        }),
-      }),
-      tools: {
-        tool1: {
-          inputSchema: z.object({ value: z.string() }),
-          execute: async () => 'result1',
-        },
-      },
-      prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-        recordInputs: false,
-        recordOutputs: false,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      _internal: {
-        generateId: () => 'test-id',
-        generateCallId: () => 'test-telemetry-call-id',
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record reasoning in telemetry when present', async () => {
-    await generateText({
-      model: integrationModelWithReasoning,
-      prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-    });
-
-    const rootSpan = tracer.jsonSpans.find(
-      span => span.name === 'ai.generateText',
-    );
-    const doGenerateSpan = tracer.jsonSpans.find(
-      span => span.name === 'ai.generateText.doGenerate',
-    );
-
-    expect(rootSpan?.attributes['ai.response.reasoning']).toBe(
-      'I will open the conversation with witty banter.\n',
-    );
-    expect(doGenerateSpan?.attributes['ai.response.reasoning']).toBe(
-      'I will open the conversation with witty banter.\n',
-    );
-  });
-
-  it('should record total usage across steps in root span', async () => {
-    let responseCount = 0;
-    await generateText({
-      model: new MockLanguageModelV4({
-        doGenerate: async () => {
-          switch (responseCount++) {
-            case 0:
-              return {
-                finishReason: {
-                  unified: 'tool-calls' as const,
-                  raw: undefined,
-                },
-                usage: {
-                  inputTokens: {
-                    total: 5,
-                    noCache: 5,
-                    cacheRead: undefined,
-                    cacheWrite: undefined,
-                  },
-                  outputTokens: {
-                    total: 20,
-                    text: 20,
-                    reasoning: undefined,
-                  },
-                },
-                warnings: [],
-                content: [
-                  {
-                    type: 'tool-call' as const,
-                    toolCallType: 'function' as const,
-                    toolCallId: 'call-1',
-                    toolName: 'tool1',
-                    input: '{ "value": "value" }',
-                  },
-                ],
-              };
-            case 1:
-            default:
-              return {
-                finishReason: {
-                  unified: 'stop' as const,
-                  raw: 'stop',
-                },
-                usage: {
-                  inputTokens: {
-                    total: 10,
-                    noCache: 10,
-                    cacheRead: undefined,
-                    cacheWrite: undefined,
-                  },
-                  outputTokens: {
-                    total: 15,
-                    text: 15,
-                    reasoning: undefined,
-                  },
-                },
-                warnings: [],
-                content: [{ type: 'text' as const, text: 'Final answer.' }],
-              };
+describe('OpenTelemetry integration with decide', () => {
+  it.each(['deprecated', 'current'] as const)(
+    'honors %s subclass hooks with and without super calls',
+    async hooks => {
+      for (const callSuper of [false, true]) {
+        const calls: Array<[string, string]> = [];
+        const tracer = createMockTracer();
+        class DeprecatedHooksIntegration extends OpenTelemetry {
+          override experimental_onEvaluateStart(
+            event: Parameters<OpenTelemetry['experimental_onEvaluateStart']>[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateStart(event);
           }
-        },
-      }),
-      tools: {
-        tool1: {
-          inputSchema: z.object({ value: z.string() }),
-          execute: async () => 'result1',
-        },
-      },
-      stopWhen: isStepCount(2),
-      prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-    });
-
-    const rootSpan = tracer.jsonSpans.find(
-      span => span.name === 'ai.generateText',
-    );
-
-    expect(rootSpan?.attributes['ai.usage.inputTokens']).toBe(15);
-    expect(rootSpan?.attributes['ai.usage.outputTokens']).toBe(35);
-    expect(rootSpan?.attributes['ai.usage.totalTokens']).toBe(50);
-  });
-
-  it('should execute subagent generateText inside executeToolCall context', async () => {
-    let activeContext: string | undefined;
-    let capturedContext: string | undefined;
-    const otelIntegration = new OpenTelemetry({ tracer });
-
-    await generateText({
-      model: new MockLanguageModelV4({
-        doGenerate: async () => ({
-          ...integrationDummyResponseValues,
-          content: [
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'researchTool',
-              input: '{ "city": "Tokyo" }',
-            },
-          ],
-        }),
-      }),
-      tools: {
-        researchTool: tool({
-          inputSchema: z.object({ city: z.string() }),
-          execute: async ({ city }) => {
-            capturedContext = activeContext;
-
-            const subResult = await generateText({
-              model: new MockLanguageModelV4({
-                doGenerate: async () => ({
-                  ...integrationDummyResponseValues,
-                  content: [
-                    { type: 'text', text: `Weather in ${city}: sunny` },
-                  ],
-                }),
-              }),
-              prompt: `Weather for ${city}`,
-              experimental_telemetry: {
-                isEnabled: true,
-                functionId: `sub-agent-${city.toLowerCase()}`,
-                integrations: otelIntegration,
-              },
-            });
-            return subResult.text;
-          },
-        }),
-      },
-      prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'weather-agent',
-        integrations: [
-          otelIntegration,
-          {
-            executeTool: async ({ callId, toolCallId, execute }) => {
-              activeContext = `${callId}:${toolCallId}`;
-              try {
-                return await execute();
-              } finally {
-                activeContext = undefined;
-              }
-            },
-          },
-        ],
-      },
-      _internal: {
-        generateId: () => 'outer-test-id',
-        generateCallId: () => 'outer-test-call-id',
-      },
-    });
-
-    expect(capturedContext).toBe('outer-test-call-id:call-1');
-
-    expect(tracer.spans.map(s => s.name)).toEqual([
-      'ai.generateText',
-      'ai.generateText.doGenerate',
-      'ai.toolCall',
-      'ai.generateText',
-      'ai.generateText.doGenerate',
-    ]);
-
-    const toolCallSpan = tracer.spans[2];
-    expect(toolCallSpan.attributes['ai.toolCall.name']).toBe('researchTool');
-
-    const innerRootSpan = tracer.spans[3];
-    expect(innerRootSpan.attributes['ai.telemetry.functionId']).toBe(
-      'sub-agent-tokyo',
-    );
-
-    const innerStepSpan = tracer.spans[4];
-    expect(innerStepSpan.attributes['ai.response.text']).toBe(
-      'Weather in Tokyo: sunny',
-    );
-  });
-});
-
-function createStreamTestModel({
-  stream = convertArrayToReadableStream([
-    {
-      type: 'stream-start' as const,
-      warnings: [],
-    },
-    {
-      type: 'response-metadata' as const,
-      id: 'id-0',
-      modelId: 'mock-model-id',
-      timestamp: new Date(0),
-    },
-    { type: 'text-start' as const, id: '1' },
-    { type: 'text-delta' as const, id: '1', delta: 'Hello' },
-    { type: 'text-delta' as const, id: '1', delta: ', ' },
-    { type: 'text-delta' as const, id: '1', delta: 'world!' },
-    { type: 'text-end' as const, id: '1' },
-    {
-      type: 'finish' as const,
-      finishReason: { unified: 'stop' as const, raw: 'stop' },
-      usage: integrationTestUsage,
-      providerMetadata: {
-        testProvider: { testKey: 'testValue' },
-      },
-    },
-  ]),
-}: {
-  stream?: ReadableStream<LanguageModelV4StreamPart>;
-} = {}) {
-  return new MockLanguageModelV4({
-    doStream: async () => ({ stream }),
-  });
-}
-
-describe('OpenTelemetry integration with streamText', () => {
-  let tracer: IntegrationMockTracer;
-
-  beforeEach(() => {
-    tracer = new IntegrationMockTracer();
-  });
-
-  it('should record telemetry data when isEnabled is not explicitly set', async () => {
-    const result = streamText({
-      model: createStreamTestModel(),
-      prompt: 'test-input',
-      experimental_telemetry: {
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      _internal: {
-        now: mockValues(0, 100, 500),
-      },
-    });
-
-    await result.consumeStream();
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record telemetry data when enabled', async () => {
-    const result = streamText({
-      model: createStreamTestModel(),
-      prompt: 'test-input',
-      topK: 0.1,
-      topP: 0.2,
-      frequencyPenalty: 0.3,
-      presencePenalty: 0.4,
-      temperature: 0.5,
-      stopSequences: ['stop'],
-      runtimeContext: {
-        test1: 'value1',
-        test2: false,
-      },
-      headers: {
-        header1: 'value1',
-        header2: 'value2',
-      },
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'test-function-id',
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      _internal: { now: mockValues(0, 100, 500) },
-    });
-
-    await result.consumeStream();
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record successful tool call', async () => {
-    const result = streamText({
-      model: createStreamTestModel({
-        stream: convertArrayToReadableStream([
-          {
-            type: 'response-metadata',
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            input: `{ "value": "value" }`,
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: integrationTestUsage,
-          },
-        ]),
-      }),
-      tools: {
-        tool1: {
-          inputSchema: z.object({ value: z.string() }),
-          execute: async ({ value }) => `${value}-result`,
-        },
-      },
-      prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      _internal: { now: mockValues(0, 100, 500) },
-    });
-
-    await result.consumeStream();
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record error on tool call', async () => {
-    const result = streamText({
-      model: createStreamTestModel({
-        stream: convertArrayToReadableStream([
-          {
-            type: 'response-metadata',
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            input: `{ "value": "value" }`,
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: integrationTestUsage,
-          },
-        ]),
-      }),
-      tools: {
-        tool1: {
-          inputSchema: z.object({ value: z.string() }),
-          execute: async () => {
-            throw new Error('Tool execution failed');
-          },
-        },
-      },
-      prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      _internal: { now: mockValues(0, 100, 500) },
-    });
-
-    await result.consumeStream();
-
-    expect(tracer.jsonSpans).toHaveLength(3);
-
-    expect(tracer.jsonSpans[0].name).toBe('ai.streamText');
-    expect(tracer.jsonSpans[1].name).toBe('ai.streamText.doStream');
-    expect(tracer.jsonSpans[2].name).toBe('ai.toolCall');
-
-    const toolCallSpan = tracer.jsonSpans[2];
-    expect(toolCallSpan.status).toEqual({
-      code: 2,
-      message: 'Tool execution failed',
-    });
-
-    expect(toolCallSpan.events).toHaveLength(1);
-    const exceptionEvent = toolCallSpan.events[0];
-    expect(exceptionEvent.name).toBe('exception');
-    expect(exceptionEvent.attributes).toMatchObject({
-      'exception.message': 'Tool execution failed',
-      'exception.name': 'Error',
-    });
-    expect(exceptionEvent.attributes?.['exception.stack']).toContain(
-      'Tool execution failed',
-    );
-    expect(exceptionEvent.time).toEqual([0, 0]);
-  });
-
-  it('should not record telemetry inputs / outputs when disabled', async () => {
-    const result = streamText({
-      model: createStreamTestModel({
-        stream: convertArrayToReadableStream([
-          {
-            type: 'response-metadata',
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'tool1',
-            input: `{ "value": "value" }`,
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: integrationTestUsage,
-          },
-        ]),
-      }),
-      tools: {
-        tool1: {
-          inputSchema: z.object({ value: z.string() }),
-          execute: async ({ value }) => `${value}-result`,
-        },
-      },
-      prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-        recordInputs: false,
-        recordOutputs: false,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      _internal: { now: mockValues(0, 100, 500) },
-    });
-
-    await result.consumeStream();
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record reasoning in telemetry when present', async () => {
-    const result = streamText({
-      model: createStreamTestModel({
-        stream: convertArrayToReadableStream([
-          {
-            type: 'response-metadata',
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          { type: 'reasoning-start', id: '1' },
-          {
-            type: 'reasoning-delta',
-            id: '1',
-            delta: 'This is my reasoning ',
-          },
-          {
-            type: 'reasoning-delta',
-            id: '1',
-            delta: 'about the problem.',
-          },
-          { type: 'reasoning-end', id: '1' },
-          { type: 'text-start', id: '2' },
-          { type: 'text-delta', id: '2', delta: 'Hello, world!' },
-          { type: 'text-end', id: '2' },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: integrationTestUsage,
-          },
-        ]),
-      }),
-      prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      _internal: { now: mockValues(0, 100, 500) },
-    });
-
-    await result.consumeStream();
-
-    const rootSpan = tracer.jsonSpans.find(
-      span => span.name === 'ai.streamText',
-    );
-    const doStreamSpan = tracer.jsonSpans.find(
-      span => span.name === 'ai.streamText.doStream',
-    );
-
-    expect(rootSpan?.attributes['ai.response.reasoning']).toBe(
-      'This is my reasoning about the problem.',
-    );
-    expect(doStreamSpan?.attributes['ai.response.reasoning']).toBe(
-      'This is my reasoning about the problem.',
-    );
-  });
-
-  it('should execute subagent streamText inside executeToolCall context', async () => {
-    let activeContext: string | undefined;
-    let capturedContext: string | undefined;
-    const otelIntegration = new OpenTelemetry({ tracer });
-
-    const result = streamText({
-      model: createStreamTestModel({
-        stream: convertArrayToReadableStream([
-          {
-            type: 'response-metadata',
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'researchTool',
-            input: '{ "city": "Tokyo" }',
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: integrationTestUsage,
-          },
-        ]),
-      }),
-      tools: {
-        researchTool: tool({
-          inputSchema: z.object({ city: z.string() }),
-          execute: async ({ city }) => {
-            capturedContext = activeContext;
-
-            const innerResult = streamText({
-              model: createStreamTestModel({
-                stream: convertArrayToReadableStream([
-                  {
-                    type: 'response-metadata',
-                    id: 'inner-id-0',
-                    modelId: 'mock-model-id',
-                    timestamp: new Date(0),
-                  },
-                  { type: 'text-start', id: '1' },
-                  {
-                    type: 'text-delta',
-                    id: '1',
-                    delta: `Weather in ${city}: sunny`,
-                  },
-                  { type: 'text-end', id: '1' },
-                  {
-                    type: 'finish',
-                    finishReason: { unified: 'stop', raw: 'stop' },
-                    usage: integrationTestUsage,
-                  },
-                ]),
-              }),
-              prompt: `Weather for ${city}`,
-              experimental_telemetry: {
-                isEnabled: true,
-                functionId: `sub-agent-${city.toLowerCase()}`,
-                integrations: otelIntegration,
-              },
-              _internal: { now: mockValues(0, 100, 500) },
-              onError: () => {},
-            });
-
-            return await innerResult.text;
-          },
-        }),
-      },
-      prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'weather-agent',
-        integrations: [
-          otelIntegration,
-          {
-            executeTool: async ({ callId, toolCallId, execute }) => {
-              activeContext = `${callId}:${toolCallId}`;
-              try {
-                return await execute();
-              } finally {
-                activeContext = undefined;
-              }
-            },
-          },
-        ],
-      },
-      _internal: {
-        now: mockValues(0, 100, 500),
-        generateId: mockId({ prefix: 'id' }),
-        generateCallId: () => 'outer-test-call-id',
-      },
-      onError: () => {},
-    });
-
-    await result.consumeStream();
-
-    expect(capturedContext).toBe('outer-test-call-id:call-1');
-
-    expect(tracer.spans.map(s => s.name)).toEqual([
-      'ai.streamText',
-      'ai.streamText.doStream',
-      'ai.toolCall',
-      'ai.streamText',
-      'ai.streamText.doStream',
-    ]);
-
-    const toolCallSpan = tracer.spans[2];
-    expect(toolCallSpan.attributes['ai.toolCall.name']).toBe('researchTool');
-
-    const innerRootSpan = tracer.spans[3];
-    expect(innerRootSpan.attributes['ai.telemetry.functionId']).toBe(
-      'sub-agent-tokyo',
-    );
-
-    const innerStepSpan = tracer.spans[4];
-    expect(innerStepSpan.attributes['ai.response.text']).toBe(
-      'Weather in Tokyo: sunny',
-    );
-  });
-});
-
-const rerankModel = new MockRerankingModelV4({
-  doRerank: async () => ({
-    ranking: [
-      { index: 2, relevanceScore: 0.9 },
-      { index: 0, relevanceScore: 0.8 },
-      { index: 1, relevanceScore: 0.7 },
-    ],
-    providerMetadata: {
-      aProvider: {
-        someResponseKey: 'someResponseValue',
-      },
-    },
-    response: {
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: {
-        id: '123',
-      },
-    },
-  }),
-});
-
-describe('OpenTelemetry integration with rerank', () => {
-  let tracer: IntegrationMockTracer;
-
-  beforeEach(() => {
-    tracer = new IntegrationMockTracer();
-  });
-
-  it('should record telemetry data when isEnabled is not explicitly set', async () => {
-    await rerank({
-      model: rerankModel,
-      documents: [
-        'sunny day at the beach',
-        'rainy day in the city',
-        'cloudy day in the mountains',
-      ],
-      experimental_telemetry: {
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      query: 'rainy day',
-      topN: 3,
-    });
-
-    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
-      [
-        {
-          "attributes": {
-            "ai.documents": [
-              ""sunny day at the beach"",
-              ""rainy day in the city"",
-              ""cloudy day in the mountains"",
-            ],
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.rerank",
-            "ai.settings.maxRetries": 2,
-            "operation.name": "ai.rerank",
-          },
-          "events": [],
-          "name": "ai.rerank",
-        },
-        {
-          "attributes": {
-            "ai.documents": [
-              ""sunny day at the beach"",
-              ""rainy day in the city"",
-              ""cloudy day in the mountains"",
-            ],
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.rerank.doRerank",
-            "ai.ranking": [
-              "{"index":2,"relevanceScore":0.9}",
-              "{"index":0,"relevanceScore":0.8}",
-              "{"index":1,"relevanceScore":0.7}",
-            ],
-            "ai.ranking.type": "text",
-            "ai.settings.maxRetries": 2,
-            "operation.name": "ai.rerank.doRerank",
-          },
-          "events": [],
-          "name": "ai.rerank.doRerank",
-        },
-      ]
-    `);
-  });
-
-  it('should record telemetry data when enabled (single call path)', async () => {
-    await rerank({
-      model: rerankModel,
-      documents: [
-        'sunny day at the beach',
-        'rainy day in the city',
-        'cloudy day in the mountains',
-      ],
-      query: 'rainy day',
-      topN: 3,
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'test-function-id',
-        integrations: [new OpenTelemetry({ tracer })],
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
-      [
-        {
-          "attributes": {
-            "ai.documents": [
-              ""sunny day at the beach"",
-              ""rainy day in the city"",
-              ""cloudy day in the mountains"",
-            ],
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.rerank",
-            "ai.settings.maxRetries": 2,
-            "ai.telemetry.functionId": "test-function-id",
-            "operation.name": "ai.rerank test-function-id",
-            "resource.name": "test-function-id",
-          },
-          "events": [],
-          "name": "ai.rerank",
-        },
-        {
-          "attributes": {
-            "ai.documents": [
-              ""sunny day at the beach"",
-              ""rainy day in the city"",
-              ""cloudy day in the mountains"",
-            ],
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.rerank.doRerank",
-            "ai.ranking": [
-              "{"index":2,"relevanceScore":0.9}",
-              "{"index":0,"relevanceScore":0.8}",
-              "{"index":1,"relevanceScore":0.7}",
-            ],
-            "ai.ranking.type": "text",
-            "ai.settings.maxRetries": 2,
-            "ai.telemetry.functionId": "test-function-id",
-            "operation.name": "ai.rerank.doRerank test-function-id",
-            "resource.name": "test-function-id",
-          },
-          "events": [],
-          "name": "ai.rerank.doRerank",
-        },
-      ]
-    `);
-  });
-
-  it('should not record telemetry inputs / outputs when disabled', async () => {
-    await rerank({
-      model: rerankModel,
-      documents: [
-        'sunny day at the beach',
-        'rainy day in the city',
-        'cloudy day in the mountains',
-      ],
-      query: 'rainy day',
-      topN: 3,
-      experimental_telemetry: {
-        isEnabled: true,
-        recordInputs: false,
-        recordOutputs: false,
-        integrations: [new OpenTelemetry({ tracer })],
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
-      [
-        {
-          "attributes": {
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.rerank",
-            "ai.settings.maxRetries": 2,
-            "operation.name": "ai.rerank",
-          },
-          "events": [],
-          "name": "ai.rerank",
-        },
-        {
-          "attributes": {
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.rerank.doRerank",
-            "ai.ranking.type": "text",
-            "ai.settings.maxRetries": 2,
-            "operation.name": "ai.rerank.doRerank",
-          },
-          "events": [],
-          "name": "ai.rerank.doRerank",
-        },
-      ]
-    `);
-  });
-});
-
-// --- embed integration fixtures ---
-
-const embedDummyEmbedding = [0.1, 0.2, 0.3];
-const embedTestValue = 'sunny day at the beach';
-
-function mockEmbedSingle(
-  expectedValues: Array<string>,
-  embeddings: Array<Embedding>,
-  usage?: EmbeddingModelUsage,
-  response: Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>['response'] = {
-    headers: {},
-    body: {},
-  },
-  providerMetadata?: Awaited<
-    ReturnType<EmbeddingModelV4['doEmbed']>
-  >['providerMetadata'],
-  warnings: Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>['warnings'] = [],
-): EmbeddingModelV4['doEmbed'] {
-  return async ({ values }) => {
-    assert.deepStrictEqual(expectedValues, values);
-    return { embeddings, usage, response, providerMetadata, warnings };
-  };
-}
-
-describe('OpenTelemetry integration with embed', () => {
-  let tracer: IntegrationMockTracer;
-
-  beforeEach(() => {
-    tracer = new IntegrationMockTracer();
-  });
-
-  it('should record telemetry data when isEnabled is not explicitly set', async () => {
-    await embed({
-      model: new MockEmbeddingModelV4({
-        doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding]),
-      }),
-      value: embedTestValue,
-      experimental_telemetry: {
-        integrations: [new OpenTelemetry({ tracer })],
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record telemetry data when enabled', async () => {
-    await embed({
-      model: new MockEmbeddingModelV4({
-        doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding], {
-          tokens: 10,
-        }),
-      }),
-      value: embedTestValue,
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'test-function-id',
-        integrations: [new OpenTelemetry({ tracer })],
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should not record telemetry inputs / outputs when disabled', async () => {
-    await embed({
-      model: new MockEmbeddingModelV4({
-        doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding], {
-          tokens: 10,
-        }),
-      }),
-      value: embedTestValue,
-      experimental_telemetry: {
-        isEnabled: true,
-        recordInputs: false,
-        recordOutputs: false,
-        integrations: [new OpenTelemetry({ tracer })],
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-});
-
-// --- embedMany integration fixtures ---
-
-const embedManyDummyEmbeddings = [
-  [0.1, 0.2, 0.3],
-  [0.4, 0.5, 0.6],
-  [0.7, 0.8, 0.9],
-];
-
-const embedManyTestValues = [
-  'sunny day at the beach',
-  'rainy afternoon in the city',
-  'snowy night in the mountains',
-];
-
-function mockEmbedMany(
-  expectedValues: Array<string>,
-  embeddings: Array<Embedding>,
-  usage?: EmbeddingModelUsage,
-  response: Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>['response'] = {
-    headers: {},
-    body: {},
-  },
-  providerMetadata?: Awaited<
-    ReturnType<EmbeddingModelV4['doEmbed']>
-  >['providerMetadata'],
-): EmbeddingModelV4['doEmbed'] {
-  return async ({ values }) => {
-    assert.deepStrictEqual(expectedValues, values);
-    return { embeddings, usage, response, providerMetadata, warnings: [] };
-  };
-}
-
-describe('OpenTelemetry integration with embedMany', () => {
-  let tracer: IntegrationMockTracer;
-
-  beforeEach(() => {
-    tracer = new IntegrationMockTracer();
-  });
-
-  it('should record telemetry data when isEnabled is not explicitly set', async () => {
-    await embedMany({
-      model: new MockEmbeddingModelV4({
-        maxEmbeddingsPerCall: 5,
-        doEmbed: mockEmbedMany(embedManyTestValues, embedManyDummyEmbeddings),
-      }),
-      values: embedManyTestValues,
-      experimental_telemetry: {
-        integrations: [new OpenTelemetry({ tracer })],
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record telemetry data when enabled (multiple calls path)', async () => {
-    let callCount = 0;
-
-    await embedMany({
-      model: new MockEmbeddingModelV4({
-        maxEmbeddingsPerCall: 2,
-        doEmbed: async ({ values }) => {
-          switch (callCount++) {
-            case 0:
-              assert.deepStrictEqual(values, embedManyTestValues.slice(0, 2));
-              return {
-                embeddings: embedManyDummyEmbeddings.slice(0, 2),
-                usage: { tokens: 10 },
-                warnings: [],
-              };
-            case 1:
-              assert.deepStrictEqual(values, embedManyTestValues.slice(2));
-              return {
-                embeddings: embedManyDummyEmbeddings.slice(2),
-                usage: { tokens: 20 },
-                warnings: [],
-              };
-            default:
-              throw new Error('Unexpected call');
+          override experimental_onEvaluationModelCallStart(
+            event: Parameters<
+              OpenTelemetry['experimental_onEvaluationModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallStart(event);
           }
-        },
-      }),
-      values: embedManyTestValues,
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'test-function-id',
-        integrations: [new OpenTelemetry({ tracer })],
-      },
-    });
+          override experimental_onEvaluationModelCallEnd(
+            event: Parameters<
+              OpenTelemetry['experimental_onEvaluationModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallEnd(event);
+          }
+          override experimental_onEvaluateEnd(
+            event: Parameters<OpenTelemetry['experimental_onEvaluateEnd']>[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateEnd(event);
+          }
+        }
+        class CurrentHooksIntegration extends OpenTelemetry {
+          override experimental_onDecideStart(
+            event: Parameters<OpenTelemetry['experimental_onDecideStart']>[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onDecideStart(event);
+          }
+          override experimental_onDecisionModelCallStart(
+            event: Parameters<
+              OpenTelemetry['experimental_onDecisionModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallStart(event);
+          }
+          override experimental_onDecisionModelCallEnd(
+            event: Parameters<
+              OpenTelemetry['experimental_onDecisionModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallEnd(event);
+          }
+          override experimental_onDecideEnd(
+            event: Parameters<OpenTelemetry['experimental_onDecideEnd']>[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onDecideEnd(event);
+          }
+        }
+        const Integration =
+          hooks === 'deprecated'
+            ? DeprecatedHooksIntegration
+            : CurrentHooksIntegration;
+        await experimental_decide({
+          model: new Experimental_DecisionMockModelV4({
+            doDecide: async () => ({
+              answers: { refund: { type: 'boolean', probability: 0.9 } },
+              warnings: [],
+            }),
+          }),
+          state: 'Please refund me',
+          questions: { refund: { type: 'boolean', instructions: 'Refund?' } },
+          telemetry: { integrations: new Integration({ tracer }) },
+        });
+        expect(calls).toEqual([
+          ['start', 'ai.decide'],
+          ['model-start', 'ai.decide.doDecide'],
+          ['model-end', 'ai.decide.doDecide'],
+          ['end', 'ai.decide'],
+        ]);
+        expect(tracer.spans).toHaveLength(callSuper ? 2 : 0);
+        for (const span of tracer.spans) {
+          expect(span.ended).toBe(true);
+          expect(span.end).toHaveBeenCalledOnce();
+        }
+      }
+    },
+  );
 
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record telemetry data when enabled (single call path)', async () => {
-    await embedMany({
-      model: new MockEmbeddingModelV4({
-        maxEmbeddingsPerCall: null,
-        doEmbed: mockEmbedMany(embedManyTestValues, embedManyDummyEmbeddings, {
-          tokens: 10,
-        }),
-      }),
-      values: embedManyTestValues,
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'test-function-id',
-        integrations: [new OpenTelemetry({ tracer })],
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should not record telemetry inputs / outputs when disabled', async () => {
-    await embedMany({
-      model: new MockEmbeddingModelV4({
-        maxEmbeddingsPerCall: null,
-        doEmbed: mockEmbedMany(embedManyTestValues, embedManyDummyEmbeddings, {
-          tokens: 10,
-        }),
-      }),
-      values: embedManyTestValues,
-      experimental_telemetry: {
-        isEnabled: true,
-        recordInputs: false,
-        recordOutputs: false,
-        integrations: [new OpenTelemetry({ tracer })],
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should correctly track telemetry spans for parallel doEmbed calls', async () => {
-    const resolvables = [
-      createResolvablePromise<void>(),
-      createResolvablePromise<void>(),
-      createResolvablePromise<void>(),
-    ];
-
-    let callCount = 0;
-
-    const embedManyPromise = embedMany({
-      model: new MockEmbeddingModelV4({
-        supportsParallelCalls: true,
-        maxEmbeddingsPerCall: 1,
-        doEmbed: async () => {
-          const index = callCount++;
-          await resolvables[index].promise;
-          return {
-            embeddings: [embedManyDummyEmbeddings[index]],
-            usage: { tokens: (index + 1) * 10 },
+  it.each([true, false])(
+    'serializes decision image bytes with recordInputs=%s',
+    async recordInputs => {
+      const tracer = createMockTracer();
+      const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+      await experimental_decide({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { visible: { type: 'boolean', probability: 0.9 } },
             warnings: [],
-          };
-        },
-      }),
-      values: embedManyTestValues,
-      experimental_telemetry: {
-        isEnabled: true,
-        integrations: [new OpenTelemetry({ tracer })],
-      },
-    });
-
-    resolvables[0].resolve();
-    resolvables[1].resolve();
-    resolvables[2].resolve();
-
-    await embedManyPromise;
-
-    const doEmbedSpans = tracer.jsonSpans.filter(
-      s => s.name === 'ai.embedMany.doEmbed',
-    );
-
-    expect(doEmbedSpans).toHaveLength(3);
-
-    expect(doEmbedSpans[0].attributes['ai.usage.tokens']).toBe(10);
-    expect(doEmbedSpans[1].attributes['ai.usage.tokens']).toBe(20);
-    expect(doEmbedSpans[2].attributes['ai.usage.tokens']).toBe(30);
-  });
-});
-
-// --- generateObject telemetry integration fixtures ---
-
-const generateObjectDummyResponseValues = {
-  finishReason: { unified: 'stop', raw: 'stop' } as const,
-  usage: {
-    inputTokens: {
-      total: 10,
-      noCache: 10,
-      cacheRead: undefined,
-      cacheWrite: undefined,
-    },
-    outputTokens: {
-      total: 20,
-      text: 20,
-      reasoning: undefined,
-    },
-  },
-  response: { id: 'id-1', timestamp: new Date(123), modelId: 'm-1' },
-  warnings: [],
-};
-
-describe('OpenTelemetry integration with generateObject', () => {
-  let tracer: IntegrationMockTracer;
-
-  beforeEach(() => {
-    tracer = new IntegrationMockTracer();
-  });
-
-  it('should record telemetry data when isEnabled is not explicitly set', async () => {
-    await generateObject({
-      model: new MockLanguageModelV4({
-        doGenerate: async () => ({
-          ...generateObjectDummyResponseValues,
-          content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+          }),
         }),
-      }),
-      schema: z.object({ content: z.string() }),
-      prompt: 'prompt',
-      experimental_telemetry: {
-        integrations: new OpenTelemetry({ tracer }),
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record telemetry data when enabled', async () => {
-    await generateObject({
-      model: new MockLanguageModelV4({
-        doGenerate: async () => ({
-          ...generateObjectDummyResponseValues,
-          content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
-          response: {
-            id: 'test-id-from-model',
-            timestamp: new Date(10000),
-            modelId: 'test-response-model-id',
-          },
-          providerMetadata: {
-            testProvider: {
-              testKey: 'testValue',
-            },
-          },
-        }),
-      }),
-      schema: z.object({ content: z.string() }),
-      schemaName: 'test-name',
-      schemaDescription: 'test description',
-      prompt: 'prompt',
-      topK: 0.1,
-      topP: 0.2,
-      frequencyPenalty: 0.3,
-      presencePenalty: 0.4,
-      temperature: 0.5,
-      headers: {
-        header1: 'value1',
-        header2: 'value2',
-      },
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'test-function-id',
-        integrations: new OpenTelemetry({ tracer }),
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should not record telemetry inputs / outputs when disabled', async () => {
-    await generateObject({
-      model: new MockLanguageModelV4({
-        doGenerate: async () => ({
-          ...generateObjectDummyResponseValues,
-          content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
-          response: {
-            id: 'test-id-from-model',
-            timestamp: new Date(10000),
-            modelId: 'test-response-model-id',
-          },
-        }),
-      }),
-      schema: z.object({ content: z.string() }),
-      prompt: 'prompt',
-      experimental_telemetry: {
-        isEnabled: true,
-        recordInputs: false,
-        recordOutputs: false,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-});
-
-// --- streamObject telemetry integration fixtures ---
-
-const streamObjectTestUsage: LanguageModelV4Usage = {
-  inputTokens: {
-    total: 3,
-    noCache: 3,
-    cacheRead: undefined,
-    cacheWrite: undefined,
-  },
-  outputTokens: {
-    total: 10,
-    text: 10,
-    reasoning: undefined,
-  },
-};
-
-function createStreamObjectTestModel({
-  stream = convertArrayToReadableStream([
-    {
-      type: 'stream-start' as const,
-      warnings: [],
+        state: [{ type: 'file', mediaType: 'image/png', data: bytes }],
+        questions: {
+          visible: { type: 'boolean', instructions: 'Is the product visible?' },
+        },
+        telemetry: {
+          recordInputs,
+          integrations: new OpenTelemetry({
+            tracer,
+            experimental_decision: true,
+          }),
+        },
+      });
+      const attributes = tracer.spans.map(
+        span => serializeSpan(span, tracer).initAttributes,
+      );
+      expect(attributes).toHaveLength(2);
+      for (const value of attributes) {
+        expect(value['ai.decision.state']).toBe(
+          recordInputs
+            ? '[{"type":"file","mediaType":"image/png","data":"iVBOR///"}]'
+            : undefined,
+        );
+      }
     },
-    {
-      type: 'response-metadata' as const,
-      id: 'id-0',
-      modelId: 'mock-model-id',
-      timestamp: new Date(0),
-    },
-    { type: 'text-start' as const, id: '1' },
-    { type: 'text-delta' as const, id: '1', delta: '{ ' },
-    { type: 'text-delta' as const, id: '1', delta: '"content": ' },
-    { type: 'text-delta' as const, id: '1', delta: '"Hello, ' },
-    { type: 'text-delta' as const, id: '1', delta: 'world' },
-    { type: 'text-delta' as const, id: '1', delta: '!"' },
-    { type: 'text-delta' as const, id: '1', delta: ' }' },
-    { type: 'text-end' as const, id: '1' },
-    {
-      type: 'finish' as const,
-      finishReason: { unified: 'stop' as const, raw: 'stop' },
-      usage: streamObjectTestUsage,
-      providerMetadata: {
-        testProvider: { testKey: 'testValue' },
-      },
-    },
-  ]),
-}: {
-  stream?: ReadableStream<LanguageModelV4StreamPart>;
-} = {}) {
-  return new MockLanguageModelV4({
-    doStream: async () => ({ stream }),
-  });
-}
+  );
 
-describe('OpenTelemetry integration with streamObject', () => {
-  let tracer: IntegrationMockTracer;
+  it.each(['current', 'deprecated'] as const)(
+    'creates decision spans through the %s API',
+    async api => {
+      const tracer = createMockTracer();
+      const questions = {
+        refund: { type: 'boolean', instructions: 'Refund?' },
+      } as const;
 
-  beforeEach(() => {
-    tracer = new IntegrationMockTracer();
-  });
-
-  it('should record telemetry data when isEnabled is not explicitly set', async () => {
-    const result = streamObject({
-      model: new MockLanguageModelV4({
-        doStream: async () => ({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
+      await (api === 'current' ? experimental_decide : experimental_evaluate)({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { refund: { type: 'boolean', probability: 0.9 } },
+            usage: { inputTokens: 12, outputTokens: 2 },
+            warnings: [],
+            response: {
+              id: 'test-response-id',
+              modelId: 'mock-model-resolved',
             },
-            { type: 'text-start', id: '1' },
-            { type: 'text-delta', id: '1', delta: '{ ' },
-            { type: 'text-delta', id: '1', delta: '"content": ' },
-            { type: 'text-delta', id: '1', delta: '"Hello, ' },
-            { type: 'text-delta', id: '1', delta: 'world' },
-            { type: 'text-delta', id: '1', delta: '!"' },
-            { type: 'text-delta', id: '1', delta: ' }' },
-            { type: 'text-end', id: '1' },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: streamObjectTestUsage,
-            },
-          ]),
+          }),
         }),
-      }),
-      schema: z.object({ content: z.string() }),
-      prompt: 'prompt',
-      experimental_telemetry: {
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      _internal: { now: () => 0 },
-    });
-
-    await convertAsyncIterableToArray(result.partialObjectStream);
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record telemetry data when enabled', async () => {
-    const result = streamObject({
-      model: createStreamObjectTestModel({
-        stream: convertArrayToReadableStream([
-          {
-            type: 'response-metadata',
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-          },
-          { type: 'text-start', id: '1' },
-          { type: 'text-delta', id: '1', delta: '{ ' },
-          { type: 'text-delta', id: '1', delta: '"content": ' },
-          { type: 'text-delta', id: '1', delta: '"Hello, ' },
-          { type: 'text-delta', id: '1', delta: 'world' },
-          { type: 'text-delta', id: '1', delta: '!"' },
-          { type: 'text-delta', id: '1', delta: ' }' },
-          { type: 'text-end', id: '1' },
-          {
-            type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
-            usage: streamObjectTestUsage,
-            providerMetadata: {
-              testProvider: {
-                testKey: 'testValue',
-              },
-            },
-          },
-        ]),
-      }),
-      schema: z.object({ content: z.string() }),
-      schemaName: 'test-name',
-      schemaDescription: 'test description',
-      prompt: 'prompt',
-      topK: 0.1,
-      topP: 0.2,
-      frequencyPenalty: 0.3,
-      presencePenalty: 0.4,
-      temperature: 0.5,
-      headers: {
-        header1: 'value1',
-        header2: 'value2',
-      },
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'test-function-id',
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      _internal: { now: () => 0 },
-    });
-
-    await convertAsyncIterableToArray(result.partialObjectStream);
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should not record telemetry inputs / outputs when disabled', async () => {
-    const result = streamObject({
-      model: new MockLanguageModelV4({
-        doStream: async () => ({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            { type: 'text-start', id: '1' },
-            { type: 'text-delta', id: '1', delta: '{ ' },
-            { type: 'text-delta', id: '1', delta: '"content": ' },
-            { type: 'text-delta', id: '1', delta: '"Hello, ' },
-            { type: 'text-delta', id: '1', delta: 'world' },
-            { type: 'text-delta', id: '1', delta: '!"' },
-            { type: 'text-delta', id: '1', delta: ' }' },
-            { type: 'text-end', id: '1' },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: streamObjectTestUsage,
-            },
-          ]),
-        }),
-      }),
-      schema: z.object({ content: z.string() }),
-      prompt: 'prompt',
-      experimental_telemetry: {
-        isEnabled: true,
-        recordInputs: false,
-        recordOutputs: false,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      _internal: { now: () => 0 },
-    });
-
-    await convertAsyncIterableToArray(result.partialObjectStream);
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should pass correct callId to onError when doStream throws', async () => {
-    const onErrorCalls: Array<{ callId: string; error: unknown }> = [];
-
-    const result = streamObject({
-      model: new MockLanguageModelV4({
-        doStream: async () => {
-          throw new Error('doStream failure');
-        },
-      }),
-      schema: z.object({ content: z.string() }),
-      prompt: 'prompt',
-      experimental_telemetry: {
-        isEnabled: true,
-        integrations: {
-          onStart(event: any) {
-            onErrorCalls.length;
-          },
-          onError(event: any) {
-            onErrorCalls.push(event);
-          },
-        },
-      },
-      onError: () => {},
-    });
-
-    await convertAsyncIterableToArray(result.partialObjectStream);
-
-    expect(onErrorCalls).toHaveLength(1);
-    expect(onErrorCalls[0].callId).not.toBe('');
-    expect(onErrorCalls[0].error).toBeInstanceOf(Error);
-    expect((onErrorCalls[0].error as Error).message).toBe('doStream failure');
-  });
-});
-
-// --- streamText stopWhen telemetry integration fixtures ---
-
-const streamTextTestUsage: LanguageModelV4Usage = {
-  inputTokens: {
-    total: 3,
-    noCache: 3,
-    cacheRead: undefined,
-    cacheWrite: undefined,
-  },
-  outputTokens: {
-    total: 10,
-    text: 10,
-    reasoning: undefined,
-  },
-};
-
-const streamTextTestUsage2: LanguageModelV4Usage = {
-  inputTokens: {
-    total: 3,
-    noCache: 3,
-    cacheRead: 0,
-    cacheWrite: 0,
-  },
-  outputTokens: {
-    total: 10,
-    text: 10,
-    reasoning: 10,
-  },
-};
-
-describe('OpenTelemetry integration with streamText stopWhen (2 steps)', () => {
-  it('should record telemetry data for each step', async () => {
-    const tracer = new IntegrationMockTracer();
-    let responseCount = 0;
-    const result = streamText({
-      model: new MockLanguageModelV4({
-        doStream: async () => {
-          switch (responseCount++) {
-            case 0: {
-              return {
-                stream: convertArrayToReadableStream([
-                  {
-                    type: 'response-metadata',
-                    id: 'id-0',
-                    modelId: 'mock-model-id',
-                    timestamp: new Date(0),
-                  },
-                  { type: 'reasoning-start', id: '0' },
-                  { type: 'reasoning-delta', id: '0', delta: 'thinking' },
-                  { type: 'reasoning-end', id: '0' },
-                  {
-                    type: 'tool-call',
-                    id: 'call-1',
-                    toolCallId: 'call-1',
-                    toolName: 'tool1',
-                    input: `{ "value": "value" }`,
-                  },
-                  {
-                    type: 'finish',
-                    finishReason: { unified: 'tool-calls', raw: undefined },
-                    usage: streamTextTestUsage,
-                  },
-                ]),
-                response: { headers: { call: '1' } },
-              };
-            }
-            case 1: {
-              return {
-                stream: convertArrayToReadableStream([
-                  {
-                    type: 'response-metadata',
-                    id: 'id-1',
-                    modelId: 'mock-model-id',
-                    timestamp: new Date(1000),
-                  },
-                  { type: 'text-start', id: '1' },
-                  { type: 'text-delta', id: '1', delta: 'Hello, ' },
-                  { type: 'text-delta', id: '1', delta: `world!` },
-                  { type: 'text-end', id: '1' },
-                  {
-                    type: 'finish',
-                    finishReason: { unified: 'stop', raw: 'stop' },
-                    usage: streamTextTestUsage2,
-                  },
-                ]),
-                response: { headers: { call: '2' } },
-              };
-            }
-            default:
-              throw new Error(`Unexpected response count: ${responseCount}`);
-          }
-        },
-      }),
-      tools: {
-        tool1: {
-          inputSchema: z.object({ value: z.string() }),
-          execute: async () => 'result1',
-        },
-      },
-      prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      stopWhen: isStepCount(3),
-      _internal: {
-        now: mockValues(0, 100, 500, 600, 1000),
-        generateId: mockId({ prefix: 'id' }),
-        generateCallId: () => 'test-telemetry-call-id',
-      },
-    });
-
-    await result.consumeStream();
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-});
-
-describe('OpenTelemetry integration with streamText stopWhen (2 steps with transformed tool results)', () => {
-  it('should record telemetry data for each step', async () => {
-    const tracer = new IntegrationMockTracer();
-
-    const upperCaseToolResultTransform = () =>
-      new TransformStream({
-        transform(chunk: any, controller: any) {
-          if (chunk.type === 'tool-result' && !chunk.dynamic) {
-            chunk.output = chunk.output.toUpperCase();
-            chunk.input = {
-              ...chunk.input,
-              value: chunk.input.value.toUpperCase(),
-            };
-          }
-          controller.enqueue(chunk);
+        state: { message: 'Please refund me' },
+        questions,
+        telemetry: {
+          integrations: new OpenTelemetry({
+            tracer,
+            ...(api === 'current'
+              ? { experimental_decision: true }
+              : { experimental_evaluation: true }),
+          }),
         },
       });
 
-    let responseCount = 0;
-    const result = streamText({
-      model: new MockLanguageModelV4({
-        doStream: async () => {
-          switch (responseCount++) {
-            case 0: {
-              return {
-                stream: convertArrayToReadableStream([
-                  {
-                    type: 'response-metadata',
-                    id: 'id-0',
-                    modelId: 'mock-model-id',
-                    timestamp: new Date(0),
-                  },
-                  { type: 'reasoning-start', id: 'id-0' },
-                  {
-                    type: 'reasoning-delta',
-                    id: 'id-0',
-                    delta: 'thinking',
-                  },
-                  { type: 'reasoning-end', id: 'id-0' },
-                  {
-                    type: 'tool-call',
-                    toolCallId: 'call-1',
-                    toolName: 'tool1',
-                    input: `{ "value": "value" }`,
-                  },
-                  {
-                    type: 'finish',
-                    finishReason: { unified: 'tool-calls', raw: undefined },
-                    usage: streamTextTestUsage,
-                  },
-                ]),
-                response: { headers: { call: '1' } },
-              };
-            }
-            case 1: {
-              return {
-                stream: convertArrayToReadableStream([
-                  {
-                    type: 'response-metadata',
-                    id: 'id-1',
-                    modelId: 'mock-model-id',
-                    timestamp: new Date(1000),
-                  },
-                  { type: 'text-start', id: '1' },
-                  { type: 'text-delta', id: '1', delta: 'Hello, ' },
-                  { type: 'text-delta', id: '1', delta: `world!` },
-                  { type: 'text-end', id: '1' },
-                  {
-                    type: 'finish',
-                    finishReason: { unified: 'stop', raw: 'stop' },
-                    usage: streamTextTestUsage2,
-                  },
-                ]),
-                response: { headers: { call: '2' } },
-              };
-            }
-            default:
-              throw new Error(`Unexpected response count: ${responseCount}`);
-          }
+      expect(tracer.spans).toHaveLength(2);
+      expect(tracer.spans.map(span => serializeSpan(span, tracer)))
+        .toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+              "ai.decision.state": "{"message":"Please refund me"}",
+              "gen_ai.operation.name": "decide",
+              "gen_ai.provider.name": "mock-provider",
+              "gen_ai.request.model": "mock-model-id",
+            },
+            "name": "decide mock-model-id",
+            "runtimeAttributes": {
+              "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+              "ai.decision.state": "[{"type":"json","value":{"message":"Please refund me"}}]",
+              "gen_ai.operation.name": "decide",
+              "gen_ai.provider.name": "mock-provider",
+              "gen_ai.request.model": "mock-model-id",
+            },
+            "name": "decide mock-model-id",
+            "runtimeAttributes": {
+              "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+              "gen_ai.response.id": "test-response-id",
+              "gen_ai.response.model": "mock-model-resolved",
+              "gen_ai.usage.input_tokens": 12,
+              "gen_ai.usage.output_tokens": 2,
+            },
+          },
+        ]
+      `);
+    },
+  );
+
+  it('ends both spans with error status when decision fails', async () => {
+    const tracer = createMockTracer();
+    const error = new Error('decision failed');
+
+    await expect(
+      experimental_decide({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => {
+            throw error;
+          },
+        }),
+        state: 'Please refund me',
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
         },
+        maxRetries: 0,
+        telemetry: { integrations: new OpenTelemetry({ tracer }) },
       }),
-      tools: {
-        tool1: {
-          inputSchema: z.object({ value: z.string() }),
-          execute: async () => 'result1',
-        },
-      },
-      experimental_transform: upperCaseToolResultTransform,
-      prompt: 'test-input',
-      experimental_telemetry: {
-        isEnabled: true,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      stopWhen: isStepCount(3),
-      _internal: {
-        now: mockValues(0, 100, 500, 600, 1000),
-        generateId: mockId({ prefix: 'id' }),
-        generateCallId: () => 'test-telemetry-call-id',
-      },
-    });
+    ).rejects.toBe(error);
 
-    await result.consumeStream();
-
-    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
-      [
-        {
-          "attributes": {
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.streamText",
-            "ai.prompt": "{"prompt":"test-input"}",
-            "ai.response.finishReason": "stop",
-            "ai.response.text": "Hello, world!",
-            "ai.settings.maxRetries": 2,
-            "ai.usage.cachedInputTokens": 0,
-            "ai.usage.inputTokenDetails.cacheReadTokens": 0,
-            "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
-            "ai.usage.inputTokenDetails.noCacheTokens": 6,
-            "ai.usage.inputTokens": 6,
-            "ai.usage.outputTokenDetails.reasoningTokens": 10,
-            "ai.usage.outputTokenDetails.textTokens": 20,
-            "ai.usage.outputTokens": 20,
-            "ai.usage.reasoningTokens": 10,
-            "ai.usage.totalTokens": 26,
-            "operation.name": "ai.streamText",
-          },
-          "events": [],
-          "name": "ai.streamText",
-        },
-        {
-          "attributes": {
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.streamText.doStream",
-            "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
-            "ai.prompt.toolChoice": "{"type":"auto"}",
-            "ai.prompt.tools": [
-              "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
-            ],
-            "ai.response.avgOutputTokensPerSecond": 20,
-            "ai.response.finishReason": "tool-calls",
-            "ai.response.id": "id-0",
-            "ai.response.model": "mock-model-id",
-            "ai.response.msToFinish": 500,
-            "ai.response.msToFirstChunk": 100,
-            "ai.response.reasoning": "thinking",
-            "ai.response.text": "",
-            "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
-            "ai.settings.maxRetries": 2,
-            "ai.usage.inputTokenDetails.noCacheTokens": 3,
-            "ai.usage.inputTokens": 3,
-            "ai.usage.outputTokenDetails.textTokens": 10,
-            "ai.usage.outputTokens": 10,
-            "ai.usage.totalTokens": 13,
-            "gen_ai.request.model": "mock-model-id",
-            "gen_ai.response.finish_reasons": [
-              "tool-calls",
-            ],
-            "gen_ai.response.id": "id-0",
-            "gen_ai.response.model": "mock-model-id",
-            "gen_ai.system": "mock-provider",
-            "gen_ai.usage.input_tokens": 3,
-            "gen_ai.usage.output_tokens": 10,
-            "operation.name": "ai.streamText.doStream",
-          },
-          "events": [
-            {
-              "attributes": {
-                "ai.response.msToFirstChunk": 100,
-              },
-              "name": "ai.stream.firstChunk",
-            },
-            {
-              "attributes": {
-                "ai.response.avgOutputTokensPerSecond": 20,
-                "ai.response.msToFinish": 500,
-              },
-              "name": "ai.stream.finish",
-            },
-          ],
-          "name": "ai.streamText.doStream",
-        },
-        {
-          "attributes": {
-            "ai.operationId": "ai.toolCall",
-            "ai.toolCall.args": "{"value":"value"}",
-            "ai.toolCall.id": "call-1",
-            "ai.toolCall.name": "tool1",
-            "ai.toolCall.result": ""result1"",
-            "operation.name": "ai.toolCall",
-          },
-          "events": [],
-          "name": "ai.toolCall",
-        },
-        {
-          "attributes": {
-            "ai.model.id": "mock-model-id",
-            "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.streamText.doStream",
-            "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":{"type":"text","value":"RESULT1"}}]}]",
-            "ai.prompt.toolChoice": "{"type":"auto"}",
-            "ai.prompt.tools": [
-              "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
-            ],
-            "ai.response.avgOutputTokensPerSecond": 25,
-            "ai.response.finishReason": "stop",
-            "ai.response.id": "id-1",
-            "ai.response.model": "mock-model-id",
-            "ai.response.msToFinish": 400,
-            "ai.response.msToFirstChunk": 400,
-            "ai.response.text": "Hello, world!",
-            "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
-            "ai.settings.maxRetries": 2,
-            "ai.usage.cachedInputTokens": 0,
-            "ai.usage.inputTokenDetails.cacheReadTokens": 0,
-            "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
-            "ai.usage.inputTokenDetails.noCacheTokens": 3,
-            "ai.usage.inputTokens": 3,
-            "ai.usage.outputTokenDetails.reasoningTokens": 10,
-            "ai.usage.outputTokenDetails.textTokens": 10,
-            "ai.usage.outputTokens": 10,
-            "ai.usage.reasoningTokens": 10,
-            "ai.usage.totalTokens": 13,
-            "gen_ai.request.model": "mock-model-id",
-            "gen_ai.response.finish_reasons": [
-              "stop",
-            ],
-            "gen_ai.response.id": "id-1",
-            "gen_ai.response.model": "mock-model-id",
-            "gen_ai.system": "mock-provider",
-            "gen_ai.usage.input_tokens": 3,
-            "gen_ai.usage.output_tokens": 10,
-            "operation.name": "ai.streamText.doStream",
-          },
-          "events": [
-            {
-              "attributes": {
-                "ai.response.msToFirstChunk": 400,
-              },
-              "name": "ai.stream.firstChunk",
-            },
-            {
-              "attributes": {
-                "ai.response.avgOutputTokensPerSecond": 25,
-                "ai.response.msToFinish": 400,
-              },
-              "name": "ai.stream.finish",
-            },
-          ],
-          "name": "ai.streamText.doStream",
-        },
-      ]
-    `);
-  });
-});
-
-describe('OpenTelemetry integration with streamText transform', () => {
-  it('telemetry should record transformed data when enabled', async () => {
-    const tracer = new IntegrationMockTracer();
-
-    const upperCaseTransform = () =>
-      new TransformStream({
-        transform(chunk: any, controller: any) {
-          if (chunk.type === 'text-delta' || chunk.type === 'reasoning-delta') {
-            chunk.text = chunk.text.toUpperCase();
-          }
-
-          if (chunk.type === 'tool-input-delta') {
-            chunk.delta = chunk.delta.toUpperCase();
-          }
-
-          if (chunk.type === 'tool-call' && !chunk.dynamic) {
-            chunk.input = {
-              ...chunk.input,
-              value: chunk.input.value.toUpperCase(),
-            };
-          }
-
-          if (chunk.type === 'tool-result' && !chunk.dynamic) {
-            chunk.output = chunk.output.toUpperCase();
-          }
-
-          controller.enqueue(chunk);
-        },
+    expect(tracer.spans).toHaveLength(2);
+    for (const span of tracer.spans) {
+      expect(span.ended).toBe(true);
+      expect(span.status).toEqual({
+        code: SpanStatusCode.ERROR,
+        message: 'decision failed',
       });
-
-    const result = streamText({
-      model: new MockLanguageModelV4({
-        doStream: async () => ({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            { type: 'text-start', id: '1' },
-            { type: 'text-delta', id: '1', delta: 'Hello' },
-            { type: 'text-delta', id: '1', delta: ', ' },
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              input: `{ "value": "value" }`,
-            },
-            { type: 'text-delta', id: '1', delta: 'world!' },
-            { type: 'text-end', id: '1' },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: streamTextTestUsage,
-              providerMetadata: {
-                testProvider: { testKey: 'testValue' },
-              },
-            },
-          ]),
-        }),
-      }),
-      tools: {
-        tool1: tool({
-          inputSchema: z.object({ value: z.string() }),
-          execute: async ({ value }) => `${value}-result`,
-        }),
-      },
-      prompt: 'test-input',
-      experimental_transform: upperCaseTransform,
-      experimental_telemetry: {
-        isEnabled: true,
-        integrations: new OpenTelemetry({ tracer }),
-      },
-      _internal: { now: mockValues(0, 100, 500) },
-    });
-
-    await result.consumeStream();
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
+      expect(span.exceptions).toHaveLength(1);
+    }
   });
 });

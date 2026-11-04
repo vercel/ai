@@ -1,24 +1,26 @@
 import {
-  Experimental_VideoModelV4,
-  ImageModelV4,
   NoSuchModelError,
-  ProviderV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type ProviderV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
+  resolveWith,
+  type Resolvable,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { FalImageModel } from './fal-image-model';
-import { FalImageModelId } from './fal-image-settings';
-import { FalTranscriptionModelId } from './fal-transcription-options';
+import type { FalImageModelId } from './fal-image-settings';
+import type { FalTranscriptionModelId } from './fal-transcription-options';
 import { FalTranscriptionModel } from './fal-transcription-model';
-import { FalSpeechModelId } from './fal-speech-settings';
+import type { FalSpeechModelId } from './fal-speech-settings';
 import { FalSpeechModel } from './fal-speech-model';
 import { FalVideoModel } from './fal-video-model';
-import { FalVideoModelId } from './fal-video-settings';
+import type { FalVideoModelId } from './fal-video-settings';
 import { VERSION } from './version';
 
 export interface FalProviderSettings {
@@ -26,7 +28,7 @@ export interface FalProviderSettings {
    * fal.ai API key. Default value is taken from the `FAL_API_KEY` environment
    * variable, falling back to `FAL_KEY`.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for the API calls.
@@ -132,14 +134,16 @@ function loadFalApiKey({
 export function createFal(options: FalProviderSettings = {}): FalProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Key ${loadFalApiKey({
-          apiKey: options.apiKey,
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/fal/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Key ${loadFalApiKey({
+            apiKey,
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-fal/${VERSION}`,
+      ),
     );
 
   const createImageModel = (modelId: FalImageModelId) =>

@@ -1,9 +1,8 @@
 import { weatherTool } from '@/tool/weather-tool';
 import { openai } from '@ai-sdk/openai';
-import { InferAgentUIMessage, ToolLoopAgent } from 'ai';
-
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 export const openaiWeatherToolApprovalAgent = new ToolLoopAgent({
-  model: openai('gpt-5.4-mini'),
+  model: openai('gpt-6-luna'),
   // context engineering required to make sure the model does not retry
   // the tool execution if it is not approved for a particular tool call:
   instructions:

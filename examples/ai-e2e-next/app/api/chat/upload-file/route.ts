@@ -6,10 +6,11 @@ import {
   consumeStream,
   convertToModelMessages,
   createProviderRegistry,
+  createUIMessageStreamResponse,
   streamText,
-  UIMessage,
+  toUIMessageStream,
+  type UIMessage,
 } from 'ai';
-
 export const maxDuration = 60;
 
 const registry = createProviderRegistry({ anthropic, google, openai, xai });
@@ -33,7 +34,8 @@ export async function POST(req: Request) {
     abortSignal: req.signal,
   });
 
-  return result.toUIMessageStreamResponse({
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
     consumeSseStream: consumeStream,
   });
 }

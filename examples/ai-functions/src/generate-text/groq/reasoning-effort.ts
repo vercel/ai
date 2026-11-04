@@ -1,4 +1,4 @@
-import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
+import { groq, type GroqLanguageModelChatOptions } from '@ai-sdk/groq';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 
@@ -7,7 +7,9 @@ run(async () => {
     model: groq('openai/gpt-oss-120b'),
     reasoning: 'medium',
     providerOptions: {
-      groq: { reasoningFormat: 'parsed' } satisfies GroqLanguageModelOptions,
+      groq: {
+        reasoningFormat: 'parsed',
+      } satisfies GroqLanguageModelChatOptions,
     },
     prompt: 'How many "r"s are in the word "strawberry"?',
   });

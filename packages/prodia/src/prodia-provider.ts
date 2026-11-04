@@ -1,15 +1,17 @@
 import {
+  NoSuchModelError,
   type Experimental_VideoModelV4,
   type ImageModelV4,
   type LanguageModelV4,
-  NoSuchModelError,
   type ProviderV4,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { ProdiaImageModel } from './prodia-image-model';
 import type { ProdiaImageModelId } from './prodia-image-settings';
@@ -23,7 +25,7 @@ export interface ProdiaProviderSettings {
   /**
    * Prodia API key. Default value is taken from the `PRODIA_TOKEN` environment variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for the API calls. Defaults to `https://inference.prodia.com/v2`.
@@ -81,16 +83,18 @@ export function createProdia(
 ): ProdiaProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'PRODIA_TOKEN',
-          description: 'Prodia',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/prodia/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'PRODIA_TOKEN',
+            description: 'Prodia',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-prodia/${VERSION}`,
+      ),
     );
 
   const createImageModel = (modelId: ProdiaImageModelId) =>

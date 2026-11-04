@@ -1,10 +1,10 @@
 {
   "name": "@ai-sdk/workflow",
-  "version": "1.0.0-beta.26",
+  "version": "2.0.94",
+  "type": "module",
   "description": "WorkflowAgent for building AI agents with AI SDK",
   "license": "Apache-2.0",
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "source": "./src/index.ts",
   "files": [
@@ -18,8 +18,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
+    "build": "pnpm clean && tsdown",
+    "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli dist *.tsbuildinfo",
     "type-check": "tsc --build",
     "test": "pnpm test:node && pnpm test:edge",
@@ -33,38 +33,56 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "default": "./dist/client.js"
+    },
+    "./video": {
+      "types": "./dist/video.d.ts",
+      "import": "./dist/video.js",
+      "default": "./dist/video.js"
     }
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "ai": "workspace:*",
-    "ajv": "^8.18.0"
+    "ajv": "^8.20.0"
   },
   "devDependencies": {
-    "@types/node": "20.17.24",
+    "@ai-sdk/otel": "workspace:*",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/sdk-trace-base": "2.7.1",
+    "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@workflow/vitest": "4.0.1",
-    "tsup": "^8",
-    "typescript": "5.8.3",
-    "workflow": "4.2.0",
-    "zod": "3.25.76"
+    "@vercel/ai-tsdown-config": "workspace:*",
+    "@workflow/vitest": "5.0.2",
+    "tsdown": "^0.23.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11",
+    "workflow": "5.1.0",
+    "zod": "4.5.4"
   },
   "peerDependencies": {
+    "workflow": "^5.1.0",
     "zod": "^3.25.76 || ^4.1.8"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "https://github.com/vercel/ai",
+    "directory": "packages/workflow"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"

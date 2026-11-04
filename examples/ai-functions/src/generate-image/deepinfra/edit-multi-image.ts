@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepInfra, type DeepInfraImageModelOptions } from '@ai-sdk/deepinfra';
 import { generateImage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
@@ -15,10 +15,15 @@ run(async () => {
   console.log(`PROMPT: ${prompt}`);
 
   const { images } = await generateImage({
-    model: deepinfra.image('Qwen/Qwen-Image-Edit'),
+    model: deepInfra.image('Qwen/Qwen-Image-Edit'),
     prompt: {
       text: prompt,
       images: [cat, dog],
+    },
+    providerOptions: {
+      deepinfra: {
+        response_format: 'b64_json',
+      } satisfies DeepInfraImageModelOptions,
     },
   });
 

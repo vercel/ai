@@ -1,4 +1,5 @@
-import { EmbeddingModelV4Embedding } from '@ai-sdk/provider';
+import type { EmbeddingModelV4Embedding } from '@ai-sdk/provider';
+import { EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import { createGoogle } from './google-provider';
@@ -15,24 +16,32 @@ const dummyEmbeddings = [
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
 const provider = createGoogle({ apiKey: 'test-api-key' });
-const model = provider.embeddingModel('gemini-embedding-001');
+const model = provider.embeddingModel(
+  'gemini-embedding-001',
+) as GoogleEmbeddingModel;
+const multimodalModel = provider.embeddingModel('gemini-embedding-2-preview');
 
 const URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:something';
+const MULTIMODAL_URL =
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:something';
 
 const server = createTestServer({
   [URL]: {},
+  [MULTIMODAL_URL]: {},
 });
 
 describe('GoogleEmbeddingModel', () => {
   function prepareBatchJsonResponse({
     embeddings = dummyEmbeddings,
     headers,
+    url = URL,
   }: {
     embeddings?: EmbeddingModelV4Embedding[];
     headers?: Record<string, string>;
+    url?: typeof URL | typeof MULTIMODAL_URL;
   } = {}) {
-    server.urls[URL].response = {
+    server.urls[url].response = {
       type: 'json-value',
       headers,
       body: {
@@ -44,11 +53,13 @@ describe('GoogleEmbeddingModel', () => {
   function prepareSingleJsonResponse({
     embeddings = dummyEmbeddings,
     headers,
+    url = URL,
   }: {
     embeddings?: EmbeddingModelV4Embedding[];
     headers?: Record<string, string>;
+    url?: typeof URL | typeof MULTIMODAL_URL;
   } = {}) {
-    server.urls[URL].response = {
+    server.urls[url].response = {
       type: 'json-value',
       headers,
       body: {
@@ -56,6 +67,46 @@ describe('GoogleEmbeddingModel', () => {
       },
     };
   }
+
+  describe.each([1, 2])('dimensions with %i input values', count => {
+    it.each([
+      {
+        dimensions: undefined,
+        providerDimensions: undefined,
+        expected: undefined,
+      },
+      { dimensions: 256, providerDimensions: undefined, expected: 256 },
+      { dimensions: undefined, providerDimensions: 512, expected: 512 },
+      { dimensions: 256, providerDimensions: 512, expected: 512 },
+    ])(
+      'maps $dimensions with provider override $providerDimensions to $expected',
+      async ({ dimensions, providerDimensions, expected }) => {
+        if (count === 1) {
+          prepareSingleJsonResponse();
+        } else {
+          prepareBatchJsonResponse();
+        }
+
+        await model.doEmbed({
+          values: testValues.slice(0, count),
+          dimensions,
+          providerOptions: {
+            google: { outputDimensionality: providerDimensions },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        if (count === 1) {
+          expect(body.outputDimensionality).toBe(expected);
+        } else {
+          expect(body.requests).toHaveLength(count);
+          for (const request of body.requests) {
+            expect(request.outputDimensionality).toBe(expected);
+          }
+        }
+      },
+    );
+  });
 
   it('should extract embedding', async () => {
     prepareBatchJsonResponse();
@@ -244,7 +295,7 @@ describe('GoogleEmbeddingModel', () => {
       }
     `);
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/google/0.0.0-test`,
+      `ai-sdk-google/0.0.0-test`,
     );
   });
 
@@ -255,11 +306,15 @@ describe('GoogleEmbeddingModel', () => {
       headers: () => ({}),
     });
 
-    const tooManyValues = Array(2049).fill('test');
+    const tooManyValues = Array(101).fill('test');
 
     await expect(model.doEmbed({ values: tooManyValues })).rejects.toThrow(
-      'Too many values for a single embedding call. The google.generative-ai model "gemini-embedding-001" can only embed up to 2048 values per call, but 2049 values were provided.',
+      'Too many values for a single embedding call. The google.generative-ai model "gemini-embedding-001" can only embed up to 100 values per call, but 101 values were provided.',
     );
+  });
+
+  it('should expose the Google batch embedding API limit', () => {
+    expect(model.maxEmbeddingsPerCall).toBe(100);
   });
 
   it('should use the batch embeddings endpoint', async () => {
@@ -428,6 +483,116 @@ describe('GoogleEmbeddingModel', () => {
         ],
       }
     `);
+  });
+
+  it('should slice per-value multimodal content for automatic batches', async () => {
+    const providerOptions = {
+      google: {
+        outputDimensionality: 128,
+        content: [[{ text: 'context 0' }], null, [{ text: 'context 2' }]],
+      },
+    };
+
+    expect(
+      await model[EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER]({
+        providerOptions,
+        values: ['value 0', 'value 1', 'value 2'],
+        startIndex: 1,
+        endIndex: 3,
+      }),
+    ).toStrictEqual({
+      google: {
+        outputDimensionality: 128,
+        content: [null, [{ text: 'context 2' }]],
+      },
+    });
+  });
+
+  it('should merge fileData content for single embedding', async () => {
+    prepareSingleJsonResponse({ url: MULTIMODAL_URL });
+
+    await multimodalModel.doEmbed({
+      values: [testValues[0]],
+      providerOptions: {
+        google: {
+          content: [
+            [
+              {
+                fileData: {
+                  fileUri: 'gs://bucket/video.mp4',
+                  mimeType: 'video/mp4',
+                },
+              },
+            ],
+          ],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      content: {
+        parts: [
+          { text: 'sunny day at the beach' },
+          {
+            fileData: {
+              fileUri: 'gs://bucket/video.mp4',
+              mimeType: 'video/mp4',
+            },
+          },
+        ],
+      },
+      model: 'models/gemini-embedding-2-preview',
+    });
+  });
+
+  it('should merge fileData content for batch embedding', async () => {
+    prepareBatchJsonResponse({ url: MULTIMODAL_URL });
+
+    await multimodalModel.doEmbed({
+      values: testValues,
+      providerOptions: {
+        google: {
+          content: [
+            [
+              {
+                fileData: {
+                  fileUri: 'gs://bucket/video.mp4',
+                  mimeType: 'video/mp4',
+                },
+              },
+            ],
+            null,
+          ],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      requests: [
+        {
+          content: {
+            parts: [
+              { text: 'sunny day at the beach' },
+              {
+                fileData: {
+                  fileUri: 'gs://bucket/video.mp4',
+                  mimeType: 'video/mp4',
+                },
+              },
+            ],
+            role: 'user',
+          },
+          model: 'models/gemini-embedding-2-preview',
+        },
+        {
+          content: {
+            parts: [{ text: 'rainy day in the city' }],
+            role: 'user',
+          },
+          model: 'models/gemini-embedding-2-preview',
+        },
+      ],
+    });
   });
 
   it('should throw error when content length does not match values length', async () => {

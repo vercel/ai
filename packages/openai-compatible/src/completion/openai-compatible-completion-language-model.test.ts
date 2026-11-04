@@ -1,10 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import {
-  convertReadableStreamToArray,
-  isNodeVersion,
-} from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createOpenAICompatible } from '../openai-compatible-provider';
 import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
 
@@ -25,6 +22,26 @@ const model = provider.completionModel('gpt-3.5-turbo-instruct');
 const server = createTestServer({
   'https://my.api.com/v1/completions': {},
 });
+
+describe.each(['doGenerate', 'doStream'] as const)(
+  'prompt validation (%s)',
+  method => {
+    it('should include the content of an unexpected system message in the error', async () => {
+      await expect(
+        model[method]({
+          prompt: [
+            ...TEST_PROMPT,
+            { role: 'system', content: 'misplaced system message' },
+          ],
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidPromptError',
+        message:
+          'Invalid prompt: Unexpected system message in prompt: misplaced system message',
+      });
+    });
+  },
+);
 
 describe('config', () => {
   it('should extract base name from provider string', () => {
@@ -623,20 +640,18 @@ describe('doStream', () => {
     `);
   });
 
-  it.skipIf(isNodeVersion(20))(
-    'should handle unparsable stream parts',
-    async () => {
-      server.urls['https://my.api.com/v1/completions'].response = {
-        type: 'stream-chunks',
-        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-      };
+  it('should handle unparsable stream parts', async () => {
+    server.urls['https://my.api.com/v1/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+    };
 
-      const { stream } = await model.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "type": "stream-start",
@@ -670,8 +685,7 @@ describe('doStream', () => {
           },
         ]
       `);
-    },
-  );
+  });
 
   it('should send request body', async () => {
     prepareEmptyStreamResponse();

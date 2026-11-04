@@ -1,13 +1,13 @@
 'use client';
 
-import {
+import type {
   PreviousResponseIdRequestBody,
   PreviousResponseIdUIMessage,
 } from '@/app/api/chat/openai-previous-response-id/route';
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import { ReasoningView } from '@/components/reasoning-view';
-import { OpenaiResponsesProviderMetadata } from '@ai-sdk/openai';
+import type { OpenaiResponsesProviderMetadata } from '@ai-sdk/openai';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useRef } from 'react';

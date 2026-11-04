@@ -1,10 +1,13 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { Output, ToolLoopAgent } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   output: Output.object({
     schema: z.object({
       recipe: z.object({

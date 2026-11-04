@@ -5,12 +5,12 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
     prompt: 'Count from 1 to 10, one number per line.',
     stopSequences: ['5'],
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta':
         process.stdout.write(part.text);

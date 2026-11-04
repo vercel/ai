@@ -1,6 +1,5 @@
 import { xai } from '@ai-sdk/xai';
-import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
-
+import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 export const xaiMcpServerAgent = new ToolLoopAgent({
   model: xai.responses('grok-4-1-fast-reasoning'),
   tools: {

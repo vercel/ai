@@ -1,5 +1,8 @@
-import { SharedV4Warning, SharedV4ProviderMetadata } from '@ai-sdk/provider';
-import { AnthropicCacheControl } from './anthropic-messages-api';
+import type {
+  SharedV4Warning,
+  SharedV4ProviderMetadata,
+} from '@ai-sdk/provider';
+import type { AnthropicCacheControl } from './anthropic-api';
 
 // Anthropic allows a maximum of 4 cache breakpoints per request
 const MAX_CACHE_BREAKPOINTS = 4;
@@ -8,11 +11,18 @@ const MAX_CACHE_BREAKPOINTS = 4;
 // Allows both cacheControl and cache_control for flexibility
 function getCacheControl(
   providerMetadata: SharedV4ProviderMetadata | undefined,
+  providerOptionsName: string,
 ): AnthropicCacheControl | undefined {
+  const custom = providerMetadata?.[providerOptionsName];
   const anthropic = providerMetadata?.anthropic;
 
-  // allow both cacheControl and cache_control:
-  const cacheControlValue = anthropic?.cacheControl ?? anthropic?.cache_control;
+  // Prefer the configured namespace, retaining the canonical namespace as a fallback.
+  // Allow both cacheControl and cache_control.
+  const cacheControlValue =
+    custom?.cacheControl ??
+    custom?.cache_control ??
+    anthropic?.cacheControl ??
+    anthropic?.cache_control;
 
   // Pass through value assuming it is of the correct type.
   // The Anthropic API will validate the value.
@@ -23,11 +33,16 @@ export class CacheControlValidator {
   private breakpointCount = 0;
   private warnings: SharedV4Warning[] = [];
 
+  constructor(private readonly providerOptionsName = 'anthropic') {}
+
   getCacheControl(
     providerMetadata: SharedV4ProviderMetadata | undefined,
     context: { type: string; canCache: boolean },
   ): AnthropicCacheControl | undefined {
-    const cacheControlValue = getCacheControl(providerMetadata);
+    const cacheControlValue = getCacheControl(
+      providerMetadata,
+      this.providerOptionsName,
+    );
 
     if (!cacheControlValue) {
       return undefined;

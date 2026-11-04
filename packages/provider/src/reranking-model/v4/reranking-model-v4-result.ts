@@ -1,4 +1,4 @@
-import {
+import type {
   SharedV4Headers,
   SharedV4ProviderMetadata,
   SharedV4Warning,

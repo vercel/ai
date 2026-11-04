@@ -1,9 +1,9 @@
-import { SharedV3Headers, SharedV3Warning } from '../../shared';
-import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
-import { LanguageModelV3Content } from './language-model-v3-content';
-import { LanguageModelV3FinishReason } from './language-model-v3-finish-reason';
-import { LanguageModelV3ResponseMetadata } from './language-model-v3-response-metadata';
-import { LanguageModelV3Usage } from './language-model-v3-usage';
+import type { SharedV3Headers, SharedV3Warning } from '../../shared';
+import type { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
+import type { LanguageModelV3Content } from './language-model-v3-content';
+import type { LanguageModelV3FinishReason } from './language-model-v3-finish-reason';
+import type { LanguageModelV3ResponseMetadata } from './language-model-v3-response-metadata';
+import type { LanguageModelV3Usage } from './language-model-v3-usage';
 
 /**
  * The result of a language model doGenerate call.

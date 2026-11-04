@@ -1,11 +1,14 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
 import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('o3-mini'),
+    model: openai.responses('gpt-6-luna'),
     stopWhen: isStepCount(10),
     tools: {
       generateRandomText: tool({
@@ -32,7 +35,7 @@ run(async () => {
         },
       }),
     },
-    system: `If you encounter a function call error, you should retry 3 times before giving up.`,
+    instructions: `If you encounter a function call error, you should retry 3 times before giving up.`,
     prompt: `Generate two texts of 1024 characters each. Count the number of "a" in the first text, and the number of "b" in the second text.`,
     reasoning: 'medium',
     providerOptions: {
@@ -43,7 +46,7 @@ run(async () => {
     },
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'start':
         console.log('START');

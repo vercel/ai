@@ -1,6 +1,6 @@
 import {
-  bedrock,
-  type AmazonBedrockLanguageModelOptions,
+  amazonBedrock,
+  type AmazonBedrockLanguageModelChatOptions,
 } from '@ai-sdk/amazon-bedrock';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
@@ -9,7 +9,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: bedrock('us.anthropic.claude-sonnet-4-20250514-v1:0'),
+    model: amazonBedrock('us.anthropic.claude-sonnet-4-20250514-v1:0'),
     output: Output.object({
       schema: z.object({
         summary: z.string().describe('Summary of the PDF document'),

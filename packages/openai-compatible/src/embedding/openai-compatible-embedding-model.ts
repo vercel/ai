@@ -1,27 +1,31 @@
 import {
-  EmbeddingModelV4,
-  SharedV4Warning,
   TooManyEmbeddingValuesForCallError,
+  type EmbeddingModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-  FetchFunction,
   parseProviderOptions,
   postJsonToApi,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  OpenAICompatibleEmbeddingModelId,
   openaiCompatibleEmbeddingModelOptions,
-} from './openai-compatible-embedding-options';
+  type OpenAICompatibleEmbeddingModelId,
+} from './openai-compatible-embedding-model-options';
 import {
   defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
+  type ProviderErrorStructure,
 } from '../openai-compatible-error';
 import { warnIfDeprecatedProviderOptionsKey } from '../utils/to-camel-case';
 
@@ -38,7 +42,7 @@ type OpenAICompatibleEmbeddingConfig = {
 
   provider: string;
   url: (options: { modelId: string; path: string }) => string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
 };
@@ -89,6 +93,7 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -151,12 +156,12 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
         path: '/embeddings',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         input: values,
         encoding_format: 'float',
-        dimensions: compatibleOptions.dimensions,
+        dimensions: compatibleOptions.dimensions ?? dimensions,
         user: compatibleOptions.user,
       },
       failedResponseHandler: createJsonErrorResponseHandler(
@@ -183,10 +188,14 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiTextEmbeddingResponseSchema = z.object({
-  data: z.array(z.object({ embedding: z.array(z.number()) })),
-  usage: z.object({ prompt_tokens: z.number() }).nullish(),
-  providerMetadata: z
-    .record(z.string(), z.record(z.string(), z.any()))
-    .optional(),
-});
+const openaiTextEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      data: z.array(z.object({ embedding: z.array(z.number()) })),
+      usage: z.object({ prompt_tokens: z.number() }).nullish(),
+      providerMetadata: z
+        .record(z.string(), z.record(z.string(), z.any()))
+        .optional(),
+    }),
+  ),
+);

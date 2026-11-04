@@ -1,4 +1,7 @@
-import { LanguageModelV4CallOptions, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4CallOptions,
+  SharedV4Warning,
+} from '@ai-sdk/provider';
 
 export type HuggingFaceResponsesTool = {
   type: 'function';
@@ -9,6 +12,7 @@ export type HuggingFaceResponsesTool = {
 
 export type HuggingFaceResponsesToolChoice =
   | 'auto'
+  | 'none'
   | 'required'
   | { type: 'function'; function: { name: string } };
 
@@ -68,7 +72,7 @@ export function prepareResponsesTools({
         mappedToolChoice = 'required';
         break;
       case 'none':
-        // not supported, ignore
+        mappedToolChoice = 'none';
         break;
       case 'tool':
         mappedToolChoice = {

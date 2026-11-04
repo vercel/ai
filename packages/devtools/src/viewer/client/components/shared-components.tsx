@@ -29,21 +29,33 @@ import {
   getInputTokenBreakdown,
   getOutputTokenBreakdown,
 } from '../utils';
+import { MediaPreviewList } from './media-components';
 
 export function JsonBlock({
   data,
   compact = false,
   size = 'sm',
+  maxStringLength,
 }: {
   data: unknown;
   compact?: boolean;
   size?: 'sm' | 'base' | 'lg';
+  maxStringLength?: number;
 }) {
   const [copied, setCopied] = useState(false);
 
-  const jsonString = JSON.stringify(data, null, 2);
+  const replacer =
+    maxStringLength == null
+      ? undefined
+      : (_key: string, value: unknown) =>
+          typeof value === 'string' && value.length > maxStringLength
+            ? `${value.slice(0, maxStringLength)}… [${value.length - maxStringLength} characters omitted from the viewer]`
+            : value;
+  const jsonString = JSON.stringify(data, replacer, 2);
   const displayString =
-    compact && jsonString.length > 200 ? JSON.stringify(data) : jsonString;
+    compact && jsonString.length > 200
+      ? JSON.stringify(data, replacer)
+      : jsonString;
 
   const sizeClasses = {
     sm: 'text-xs',
@@ -72,11 +84,20 @@ export function JsonBlock({
       </button>
       <pre
         className={`font-mono ${sizeClasses[size]} text-muted-foreground whitespace-pre-wrap wrap-break-words bg-background rounded p-2 ${
-          compact ? 'max-h-20 overflow-hidden' : ''
+          compact ? 'overflow-hidden max-h-20' : ''
         }`}
       >
         {displayString}
       </pre>
+    </div>
+  );
+}
+
+export function MediaAwareValue({ data }: { data: unknown }) {
+  return (
+    <div className="space-y-3">
+      <MediaPreviewList data={data} />
+      <JsonBlock data={data} maxStringLength={16 * 1024} />
     </div>
   );
 }
@@ -108,16 +129,16 @@ export function RawDataSection({
         <ChevronRight
           className={`size-3 transition-transform ${expanded ? 'rotate-90' : ''}`}
         />
-        <span className="font-medium uppercase tracking-wider">
+        <span className="font-medium tracking-wider uppercase">
           Request / Response
         </span>
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 px-4 pb-4">
           {rawRequest && (
             <div className="flex flex-col">
-              <div className="h-7 flex items-end mb-2">
+              <div className="flex items-end mb-2 h-7">
                 <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                   Request
                 </span>
@@ -129,7 +150,7 @@ export function RawDataSection({
           )}
           {(rawResponse || rawChunks) && (
             <div className="flex flex-col">
-              <div className="h-7 flex items-end justify-between mb-2">
+              <div className="flex justify-between items-end mb-2 h-7">
                 <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                   {isStream ? 'Stream' : 'Response'}
                 </span>
@@ -182,8 +203,8 @@ export function UsageDetails({ usage }: { usage: ParsedUsage }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+        <div className="p-4 rounded-lg border border-border bg-card">
+          <div className="mb-2 text-xs font-medium tracking-wider uppercase text-muted-foreground">
             Input Tokens
           </div>
           <div className="text-2xl font-semibold">{inputBreakdown.total}</div>
@@ -212,8 +233,8 @@ export function UsageDetails({ usage }: { usage: ParsedUsage }) {
           )}
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+        <div className="p-4 rounded-lg border border-border bg-card">
+          <div className="mb-2 text-xs font-medium tracking-wider uppercase text-muted-foreground">
             Output Tokens
           </div>
           <div className="text-2xl font-semibold">{outputBreakdown.total}</div>
@@ -239,7 +260,7 @@ export function UsageDetails({ usage }: { usage: ParsedUsage }) {
 
       {usage?.raw != null && (
         <div>
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+          <div className="mb-2 text-xs font-medium tracking-wider uppercase text-muted-foreground">
             Raw Provider Usage
           </div>
           <JsonBlock data={usage.raw} size="sm" />
@@ -247,7 +268,7 @@ export function UsageDetails({ usage }: { usage: ParsedUsage }) {
       )}
 
       <div>
-        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+        <div className="mb-2 text-xs font-medium tracking-wider uppercase text-muted-foreground">
           Full Usage Object
         </div>
         <JsonBlock data={usage} size="sm" />
@@ -283,33 +304,33 @@ export function TokenBreakdownTooltip({
   }
 
   return (
-    <div className="text-xs space-y-2">
+    <div className="space-y-2 text-xs">
       <div>
-        <div className="font-medium mb-1">Input: {input.total}</div>
+        <div className="mb-1 font-medium">Input: {input.total}</div>
         {input.cacheRead !== undefined && (
-          <div className="text-muted-foreground ml-2">
+          <div className="ml-2 text-muted-foreground">
             Cache read: {input.cacheRead}
           </div>
         )}
         {input.cacheWrite !== undefined && (
-          <div className="text-muted-foreground ml-2">
+          <div className="ml-2 text-muted-foreground">
             Cache write: {input.cacheWrite}
           </div>
         )}
       </div>
       <div>
-        <div className="font-medium mb-1">Output: {output.total}</div>
+        <div className="mb-1 font-medium">Output: {output.total}</div>
         {output.text !== undefined && (
-          <div className="text-muted-foreground ml-2">Text: {output.text}</div>
+          <div className="ml-2 text-muted-foreground">Text: {output.text}</div>
         )}
         {output.reasoning !== undefined && (
-          <div className="text-muted-foreground ml-2">
+          <div className="ml-2 text-muted-foreground">
             Reasoning: {output.reasoning}
           </div>
         )}
       </div>
       {raw !== undefined && (
-        <div className="pt-1 border-t border-border mt-1">
+        <div className="pt-1 mt-1 border-t border-border">
           <div className="text-muted-foreground/70 font-mono text-[10px] max-w-[200px] truncate">
             Raw: {JSON.stringify(raw)}
           </div>
@@ -326,28 +347,28 @@ export function ReasoningBlock({ content }: { content: string }) {
     content.length > 200 ? content.slice(0, 200) + '…' : content;
 
   return (
-    <div className="rounded-md border border-amber-500/30 overflow-hidden">
+    <div className="overflow-hidden rounded-md border border-warning/30">
       <button
-        className="w-full flex items-center gap-2 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 transition-colors"
+        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-warning/10 hover:bg-warning/20"
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
-          className={`size-3 text-amber-500 transition-transform shrink-0 ${
+          className={`size-3 text-warning transition-transform shrink-0 ${
             expanded ? 'rotate-90' : ''
           }`}
         />
-        <Brain className="size-3 text-amber-500 shrink-0" />
-        <span className="text-xs font-medium text-amber-500">Thinking</span>
+        <Brain className="text-warning size-3 shrink-0" />
+        <span className="text-xs font-medium text-warning">Thinking</span>
         {!expanded && (
-          <span className="text-[11px] text-amber-500/70 truncate ml-1">
+          <span className="text-[11px] text-warning truncate ml-1">
             {previewContent}
           </span>
         )}
       </button>
 
       {expanded && (
-        <div className="p-3 bg-card/50 border-t border-amber-500/30">
-          <div className="text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap">
+        <div className="p-3 border-t bg-card/50 border-warning/30">
+          <div className="text-xs leading-relaxed whitespace-pre-wrap text-foreground/80">
             {content}
           </div>
         </div>
@@ -371,11 +392,11 @@ export function TextBlock({
   const previewContent =
     content.length > 200 ? content.slice(0, 200) + '…' : content;
 
-  const borderColor = isSystem ? 'border-blue-500/30' : 'border-border';
-  const bgColor = isSystem ? 'bg-blue-500/10' : 'bg-muted/30';
-  const hoverBgColor = isSystem ? 'hover:bg-blue-500/20' : 'hover:bg-muted/50';
-  const iconColor = isSystem ? 'text-blue-400' : 'text-muted-foreground';
-  const labelColor = isSystem ? 'text-blue-400' : 'text-foreground';
+  const borderColor = isSystem ? 'border-info/30' : 'border-border';
+  const bgColor = isSystem ? 'bg-info/10' : 'bg-muted/30';
+  const hoverBgColor = isSystem ? 'hover:bg-info/20' : 'hover:bg-muted/50';
+  const iconColor = isSystem ? 'text-info' : 'text-muted-foreground';
+  const labelColor = isSystem ? 'text-info' : 'text-foreground';
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -385,9 +406,9 @@ export function TextBlock({
   };
 
   return (
-    <div className={`rounded-md border ${borderColor} overflow-hidden`}>
+    <div className={`overflow-hidden rounded-md border ${borderColor}`}>
       <button
-        className={`w-full flex items-center gap-2 px-3 py-2 ${bgColor} ${hoverBgColor} transition-colors`}
+        className={`flex gap-2 items-center px-3 py-2 w-full transition-colors ${bgColor} ${hoverBgColor}`}
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
@@ -399,7 +420,7 @@ export function TextBlock({
         <span className={`text-xs font-medium ${labelColor}`}>Text</span>
         {!expanded && (
           <span
-            className={`text-[11px] ${isSystem ? 'text-blue-400/70' : 'text-muted-foreground'} truncate ml-1`}
+            className={`text-[11px] ${isSystem ? 'text-info' : 'text-muted-foreground'} truncate ml-1`}
           >
             {previewContent}
           </span>
@@ -408,7 +429,7 @@ export function TextBlock({
 
       {expanded && (
         <div
-          className={`p-3 bg-card/50 border-t ${borderColor} group relative`}
+          className={`relative p-3 border-t bg-card/50 ${borderColor} group`}
         >
           <button
             onClick={handleCopy}
@@ -421,7 +442,7 @@ export function TextBlock({
               <Copy className="size-3 text-muted-foreground" />
             )}
           </button>
-          <div className="text-xs text-foreground leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
+          <div className="overflow-y-auto max-h-60 text-xs leading-relaxed whitespace-pre-wrap text-foreground">
             {content}
           </div>
         </div>
@@ -433,14 +454,16 @@ export function TextBlock({
 export function ToolItem({ tool }: { tool: ToolDefinition }) {
   const [expanded, setExpanded] = useState(false);
 
+  const hasExpandableContent = tool.parameters || tool.description;
+
   return (
-    <div className="rounded-md border border-border bg-background overflow-hidden">
+    <div className="overflow-hidden rounded-md border border-border bg-background">
       <button
         className="w-full flex items-center justify-between p-2.5 hover:bg-accent/50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
-        <span className="text-sm font-mono text-purple">{tool.name}</span>
-        {tool.parameters && (
+        <span className="font-mono text-sm text-tool">{tool.name}</span>
+        {hasExpandableContent && (
           <ChevronRight
             className={`size-3 text-muted-foreground transition-transform ${
               expanded ? 'rotate-90' : ''
@@ -448,21 +471,23 @@ export function ToolItem({ tool }: { tool: ToolDefinition }) {
           />
         )}
       </button>
-      {expanded && tool.parameters && (
-        <div className="px-2.5 pb-2.5 border-t border-border">
-          {tool.description && (
-            <p className="text-xs text-muted-foreground mb-2 pt-2">
-              {tool.description}
-            </p>
-          )}
-          <JsonBlock data={tool.parameters} compact />
-        </div>
-      )}
       {!expanded && tool.description && (
-        <div className="px-2.5 pb-2 -mt-1">
+        <div className="px-2.5 pb-2">
           <p className="text-[11px] text-muted-foreground truncate">
             {tool.description}
           </p>
+        </div>
+      )}
+      {expanded && hasExpandableContent && (
+        <div className="px-2.5 pb-2.5 border-t border-border">
+          {tool.description && (
+            <p
+              className={`pt-2 text-xs text-muted-foreground ${tool.parameters ? 'mb-2' : ''}`}
+            >
+              {tool.description}
+            </p>
+          )}
+          {tool.parameters && <JsonBlock data={tool.parameters} compact />}
         </div>
       )}
     </div>
@@ -482,25 +507,25 @@ export function CollapsibleToolCall({
   const parsedData = typeof data === 'string' ? safeParseJson(data) : data;
 
   return (
-    <div className="rounded-md border border-purple/30 overflow-hidden">
+    <div className="overflow-hidden rounded-md border border-tool/30">
       <button
-        className="w-full flex items-center gap-2 px-3 py-2 bg-purple/10 hover:bg-purple/20 transition-colors"
+        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-tool/10 hover:bg-tool/20"
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
-          className={`size-3 text-purple transition-transform shrink-0 ${
+          className={`size-3 text-tool transition-transform shrink-0 ${
             expanded ? 'rotate-90' : ''
           }`}
         />
-        <Wrench className="size-3 text-purple shrink-0" />
-        <span className="text-xs font-mono font-medium text-purple">
+        <Wrench className="size-3 text-tool shrink-0" />
+        <span className="font-mono text-xs font-medium text-tool">
           {toolName}
         </span>
         {!expanded &&
           parsedData != null &&
           typeof parsedData === 'object' &&
           !Array.isArray(parsedData) && (
-            <span className="text-[11px] font-mono text-purple/70 truncate">
+            <span className="text-[11px] font-mono text-tool truncate">
               {formatToolParams(parsedData as Record<string, unknown>)}
             </span>
           )}
@@ -511,8 +536,8 @@ export function CollapsibleToolCall({
         )}
       </button>
       {expanded && (
-        <div className="p-3 bg-card/50 border-t border-purple/30">
-          <JsonBlock data={parsedData} />
+        <div className="p-3 border-t bg-card/50 border-tool/30">
+          <MediaAwareValue data={parsedData} />
         </div>
       )}
     </div>
@@ -531,9 +556,9 @@ export function CollapsibleToolResult({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="rounded-md border border-success/30 overflow-hidden">
+    <div className="overflow-hidden rounded-md border border-success/30">
       <button
-        className="w-full flex items-center gap-2 px-3 py-2 bg-success/10 hover:bg-success/20 transition-colors"
+        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-success/10 hover:bg-success/20"
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
@@ -554,8 +579,8 @@ export function CollapsibleToolResult({
         )}
       </button>
       {expanded && (
-        <div className="p-3 bg-card/50 border-t border-success/30">
-          <JsonBlock data={data} />
+        <div className="p-3 border-t bg-card/50 border-success/30">
+          <MediaAwareValue data={data} />
         </div>
       )}
     </div>
@@ -610,7 +635,7 @@ export function StepConfigBar({
             <span key={i}>
               {p.label}: <span className="text-foreground">{p.value}</span>
               {i < params.length - 1 && (
-                <span className="text-muted-foreground/30 mx-1">·</span>
+                <span className="mx-1 text-muted-foreground/30">·</span>
               )}
             </span>
           ))}
@@ -622,7 +647,7 @@ export function StepConfigBar({
           <span className="text-muted-foreground/30">·</span>
           <Drawer direction="right">
             <DrawerTrigger asChild>
-              <button className="inline-flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
+              <button className="inline-flex gap-1 items-center transition-colors cursor-pointer hover:text-foreground">
                 <Wrench className="size-3" />
                 {toolCount} available {toolCount === 1 ? 'tool' : 'tools'}
               </button>
@@ -631,7 +656,7 @@ export function StepConfigBar({
               <DrawerHeader className="border-b border-border shrink-0">
                 <DrawerTitle>Available Tools ({toolCount})</DrawerTitle>
               </DrawerHeader>
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="overflow-y-auto flex-1 p-4">
                 <div className="space-y-3">
                   {input?.tools?.map((tool: ToolDefinition, i: number) => (
                     <ToolItem key={i} tool={tool} />
@@ -648,7 +673,7 @@ export function StepConfigBar({
           <span className="text-muted-foreground/30">·</span>
           <Drawer direction="right">
             <DrawerTrigger asChild>
-              <button className="inline-flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
+              <button className="inline-flex gap-1 items-center transition-colors cursor-pointer hover:text-foreground">
                 <Settings className="size-3" />
                 Provider options
               </button>
@@ -657,7 +682,7 @@ export function StepConfigBar({
               <DrawerHeader className="border-b border-border shrink-0">
                 <DrawerTitle>Provider Options</DrawerTitle>
               </DrawerHeader>
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="overflow-y-auto flex-1 p-4">
                 <JsonBlock data={providerOptions} size="lg" />
               </div>
             </DrawerContent>
@@ -670,7 +695,7 @@ export function StepConfigBar({
           <span className="text-muted-foreground/30">·</span>
           <Drawer direction="right">
             <DrawerTrigger asChild>
-              <button className="inline-flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
+              <button className="inline-flex gap-1 items-center transition-colors cursor-pointer hover:text-foreground">
                 <BarChart3 className="size-3" />
                 Usage
               </button>
@@ -679,7 +704,7 @@ export function StepConfigBar({
               <DrawerHeader className="border-b border-border shrink-0">
                 <DrawerTitle>Token Usage</DrawerTitle>
               </DrawerHeader>
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="overflow-y-auto flex-1 p-4">
                 <UsageDetails usage={usage} />
               </div>
             </DrawerContent>

@@ -3,7 +3,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import * as fs from 'node:fs';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createVertex } from './google-vertex-provider';
+import { createGoogleVertex } from './google-vertex-provider-base';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -14,11 +14,15 @@ const testValues = ['test text one', 'test text two'];
 const DEFAULT_URL =
   'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/us-central1/publishers/google/models/textembedding-gecko@001:predict';
 
+const GEMINI_EMBEDDING_2_URL =
+  'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/us-central1/publishers/google/models/gemini-embedding-2:embedContent';
+
 const CUSTOM_URL =
   'https://custom-endpoint.com/models/textembedding-gecko@001:predict';
 
 const server = createTestServer({
   [DEFAULT_URL]: {},
+  [GEMINI_EMBEDDING_2_URL]: {},
   [CUSTOM_URL]: {},
 });
 
@@ -59,6 +63,52 @@ describe('GoogleVertexEmbeddingModel', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('google-vertex-embedding');
     });
+
+    describe.each(['predict', 'embedContent'] as const)(
+      '%s dimensions',
+      endpoint => {
+        it.each([
+          {
+            dimensions: undefined,
+            providerDimensions: undefined,
+            expected: undefined,
+          },
+          { dimensions: 256, providerDimensions: undefined, expected: 256 },
+          { dimensions: undefined, providerDimensions: 512, expected: 512 },
+          { dimensions: 256, providerDimensions: 512, expected: 512 },
+        ])(
+          'maps $dimensions with provider override $providerDimensions to $expected',
+          async ({ dimensions, providerDimensions, expected }) => {
+            server.urls[GEMINI_EMBEDDING_2_URL].response = {
+              type: 'json-value',
+              body: { embedding: { values: [0.1, 0.2, 0.3] } },
+            };
+            const embeddingModel =
+              endpoint === 'predict'
+                ? model
+                : new GoogleVertexEmbeddingModel(
+                    'gemini-embedding-2',
+                    mockConfig,
+                  );
+
+            await embeddingModel.doEmbed({
+              values: [testValues[0]],
+              dimensions,
+              providerOptions: {
+                googleVertex: { outputDimensionality: providerDimensions },
+              },
+            });
+
+            const body = await server.calls[0].requestBodyJson;
+            const config =
+              endpoint === 'predict'
+                ? body.parameters
+                : body.embedContentConfig;
+            expect(config.outputDimensionality).toBe(expected);
+          },
+        );
+      },
+    );
 
     it('should extract embeddings', async () => {
       const { embeddings } = await model.doEmbed({
@@ -136,10 +186,10 @@ describe('GoogleVertexEmbeddingModel', () => {
       `);
     });
 
-    it('should accept vertex as provider options key', async () => {
+    it('should accept googleVertex as provider options key', async () => {
       await model.doEmbed({
         values: testValues,
-        providerOptions: { vertex: mockProviderOptions },
+        providerOptions: { googleVertex: mockProviderOptions },
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
@@ -211,6 +261,70 @@ describe('GoogleVertexEmbeddingModel', () => {
         }
       `);
     });
+
+    it('should use embedContent for gemini-embedding-2', async () => {
+      server.urls[GEMINI_EMBEDDING_2_URL].response = {
+        type: 'json-value',
+        body: {
+          embedding: { values: [0.1, 0.2, 0.3] },
+          usageMetadata: { promptTokenCount: 4 },
+        },
+      };
+
+      const geminiEmbeddingModel = new GoogleVertexEmbeddingModel(
+        'gemini-embedding-2',
+        mockConfig,
+      );
+
+      const result = await geminiEmbeddingModel.doEmbed({
+        values: ['test text one'],
+        providerOptions: { google: mockProviderOptions },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(GEMINI_EMBEDDING_2_URL);
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "test text one",
+              },
+            ],
+          },
+          "embedContentConfig": {
+            "autoTruncate": false,
+            "outputDimensionality": 768,
+            "taskType": "SEMANTIC_SIMILARITY",
+            "title": "test title",
+          },
+        }
+      `);
+      expect(result.embeddings).toStrictEqual([[0.1, 0.2, 0.3]]);
+      expect(result.usage).toStrictEqual({ tokens: 4 });
+    });
+
+    describe('maxEmbeddingsPerCall', () => {
+      it('should limit predict endpoint models to 250 values per call', () => {
+        const geminiEmbeddingModel = new GoogleVertexEmbeddingModel(
+          'gemini-embedding-001',
+          mockConfig,
+        );
+
+        expect(geminiEmbeddingModel.maxEmbeddingsPerCall).toBe(250);
+      });
+
+      it.each(['gemini-embedding-2', 'gemini-embedding-2-preview'] as const)(
+        'should limit %s to one value per call',
+        modelId => {
+          const geminiEmbeddingModel = new GoogleVertexEmbeddingModel(
+            modelId,
+            mockConfig,
+          );
+
+          expect(geminiEmbeddingModel.maxEmbeddingsPerCall).toBe(1);
+        },
+      );
+    });
   });
 
   describe('response headers', () => {
@@ -252,7 +366,7 @@ describe('GoogleVertexEmbeddingModel', () => {
   it('should pass headers correctly', async () => {
     prepareJsonFixtureResponse('google-vertex-embedding');
 
-    const provider = createVertex({
+    const provider = createGoogleVertex({
       project: 'test-project',
       location: 'us-central1',
       headers: { 'X-Custom-Header': 'custom-value' },
@@ -272,12 +386,12 @@ describe('GoogleVertexEmbeddingModel', () => {
       }
     `);
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/google-vertex/0.0.0-test`,
+      `ai-sdk-google-vertex/0.0.0-test`,
     );
   });
 
   it('should throw TooManyEmbeddingValuesForCallError when too many values provided', async () => {
-    const tooManyValues = Array(2049).fill('test');
+    const tooManyValues = Array(251).fill('test');
 
     await expect(
       model.doEmbed({

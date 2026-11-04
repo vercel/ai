@@ -1,4 +1,4 @@
-import {
+import type {
   LanguageModelV4,
   EmbeddingModelV4,
   ProviderV4,
@@ -9,15 +9,17 @@ import {
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
 import {
-  FetchFunction,
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { DeepInfraChatModelId } from './deepinfra-chat-options';
-import { DeepInfraEmbeddingModelId } from './deepinfra-embedding-options';
-import { DeepInfraCompletionModelId } from './deepinfra-completion-options';
-import { DeepInfraImageModelId } from './deepinfra-image-settings';
+import type { DeepInfraChatModelId } from './deepinfra-chat-options';
+import type { DeepInfraEmbeddingModelId } from './deepinfra-embedding-options';
+import type { DeepInfraCompletionModelId } from './deepinfra-completion-options';
+import type { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { DeepInfraImageModel } from './deepinfra-image-model';
 import { DeepInfraChatLanguageModel } from './deepinfra-chat-language-model';
 import { VERSION } from './version';
@@ -25,8 +27,9 @@ import { VERSION } from './version';
 export interface DeepInfraProviderSettings {
   /**
    * DeepInfra API key.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -91,22 +94,24 @@ export function createDeepInfra(
     options.baseURL ?? 'https://api.deepinfra.com/v1',
   );
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'DEEPINFRA_API_KEY',
-          description: "DeepInfra's API key",
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/deepinfra/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'DEEPINFRA_API_KEY',
+            description: "DeepInfra's API key",
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-deepinfra/${VERSION}`,
+      ),
     );
 
   interface CommonModelConfig {
     provider: string;
     url: ({ path }: { path: string }) => string;
-    headers: () => Record<string, string>;
+    headers: Resolvable<Record<string, string>>;
     fetch?: FetchFunction;
   }
 
@@ -118,10 +123,10 @@ export function createDeepInfra(
   });
 
   const createChatModel = (modelId: DeepInfraChatModelId) => {
-    return new DeepInfraChatLanguageModel(
-      modelId,
-      getCommonModelConfig('chat'),
-    );
+    return new DeepInfraChatLanguageModel(modelId, {
+      ...getCommonModelConfig('chat'),
+      supportsStructuredOutputs: true,
+    });
   };
 
   const createCompletionModel = (modelId: DeepInfraCompletionModelId) =>
@@ -158,4 +163,4 @@ export function createDeepInfra(
   return provider;
 }
 
-export const deepinfra = createDeepInfra();
+export const deepInfra = createDeepInfra();

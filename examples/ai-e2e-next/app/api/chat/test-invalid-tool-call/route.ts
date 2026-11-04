@@ -1,12 +1,14 @@
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
-  InferUITools,
+  createUIMessageStreamResponse,
   isStepCount,
   streamText,
   tool,
-  UIDataTypes,
-  UIMessage,
+  toUIMessageStream,
+  type InferUITools,
+  type UIDataTypes,
+  type UIMessage,
 } from 'ai';
 import { convertArrayToReadableStream, MockLanguageModelV3 } from 'ai/test';
 import { z } from 'zod';
@@ -43,7 +45,7 @@ export async function POST(req: Request) {
   console.log('messages', JSON.stringify(messages, null, 2));
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     messages: await convertToModelMessages(messages),
     stopWhen: isStepCount(5), // multi-steps for server-side tools
     tools,
@@ -103,10 +105,13 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    //  originalMessages: messages, //add if you want to have correct ids
-    onFinish: options => {
-      console.log('onFinish', options);
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      //  originalMessages: messages, //add if you want to have correct ids
+      onFinish: options => {
+        console.log('onFinish', options);
+      },
+    }),
   });
 }

@@ -1,0 +1,192 @@
+---
+title: Claude Platform on AWS
+description: Learn how to use Claude Platform on AWS with AI Gateway and the direct provider.
+---
+
+# Claude Platform on AWS Provider
+
+The Claude Platform on AWS provider for the [AI SDK](/docs) gives you access to the Anthropic Messages API hosted inside your AWS environment. Anthropic operates the stack, so you get the same API surface and feature set as the first-party [Anthropic provider](/providers/ai-sdk-providers/anthropic) — including streaming, prompt caching, tool use, computer use, Agent Skills, and `anthropic-beta` headers — with AWS-native authentication and AWS Marketplace billing.
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/anthropic-aws` to connect directly to Claude Platform on AWS.
+
+```ts provider="anthropic-aws" model="anthropic/claude-sonnet-5.5"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  __GATEWAY_OPTIONS__,
+});
+
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+The example sets `providerOptions.gateway.order` to `['claudeaws']`. This sends the request to Claude Platform on AWS first, then falls back to other available providers of the same model if Claude Platform on AWS is unavailable or the request fails. `order` sets a preference; it does not restrict fallback to Claude Platform on AWS. See [provider ordering](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+The dropdown lists models served by Claude Platform on AWS through Gateway with a corresponding direct-provider example. Provider availability depends on the model and your team's [Provider Allowlist](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+Gateway uses the `claudeaws` route for Claude Platform on AWS. Enable `claudeaws` in your team's Gateway Provider Allowlist if it is disabled; otherwise `order` allows Gateway to fall back to another provider. It authenticates the upstream request using Gateway-managed credentials; your AWS workspace and AWS Marketplace billing are configured separately when using the direct provider.
+
+## Using `@ai-sdk/anthropic-aws`
+
+For direct access to Claude Platform on AWS, install `ai` and `@ai-sdk/anthropic-aws`:
+
+<InstallPackages packages="ai @ai-sdk/anthropic-aws" />
+
+Set your Claude Platform on AWS API credential in the `ANTHROPIC_AWS_API_KEY` environment variable:
+
+```bash
+export ANTHROPIC_AWS_API_KEY=your_api_key_here
+export AWS_REGION=us-west-2
+export ANTHROPIC_AWS_WORKSPACE_ID=your_workspace_id
+```
+
+Use the direct provider when you need AWS-native authentication, AWS Marketplace billing, or access to your Claude Platform workspace. Gateway requests do not use your workspace configuration.
+
+<Note>
+  The following sections document the direct `@ai-sdk/anthropic-aws` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
+
+This differs from [Amazon Bedrock](/providers/ai-sdk-providers/amazon-bedrock) in two important ways: Claude Platform on AWS uses Anthropic's Messages API directly (not Bedrock's `Converse`/`InvokeModel`), and new features are available the same day they launch on the first-party Claude API (no AWS integration delay).
+
+### Prerequisites
+
+Before you can use the provider, your AWS account must be subscribed to Claude Platform on AWS through the AWS Marketplace, and outbound web identity federation must be enabled on the account (a one-time setup step):
+
+```bash
+aws iam enable-outbound-web-identity-federation
+```
+
+Without this, every request returns `Outbound web identity federation is disabled for your account`. This is the most common setup error.
+
+You'll also need your workspace ID. When you subscribe, AWS provisions an initial workspace for your account in the selected region. You can find the ID in the Claude Console under **Workspaces** (accessed from the AWS Console via the Claude Platform on AWS service page).
+
+### Authentication
+
+The provider supports two authentication methods:
+
+#### Using AWS SigV4 (recommended for production)
+
+SigV4 integrates with your existing AWS IAM policies, roles, and auditing. Configure AWS credentials using any method supported by the AWS default credential provider chain — environment variables, shared credentials file, web identity (IRSA), ECS container credentials, or EC2 instance metadata.
+
+```bash
+AWS_REGION=us-west-2
+ANTHROPIC_AWS_WORKSPACE_ID=wrkspc_…
+AWS_ACCESS_KEY_ID=…
+AWS_SECRET_ACCESS_KEY=…
+# AWS_SESSION_TOKEN=…  # only for temporary credentials (SSO, STS, assumed role)
+```
+
+Then use the default provider instance:
+
+```ts
+import { anthropicAws } from '@ai-sdk/anthropic-aws';
+```
+
+Or instantiate explicitly:
+
+```ts
+import { createAnthropicAws } from '@ai-sdk/anthropic-aws';
+
+const anthropicAws = createAnthropicAws({
+  region: 'us-west-2',
+  workspaceId: 'wrkspc_…',
+});
+```
+
+For dynamic credentials (e.g., assuming a role at request time):
+
+```ts
+const anthropicAws = createAnthropicAws({
+  region: 'us-west-2',
+  workspaceId: 'wrkspc_…',
+  credentialProvider: async () => fetchCredentialsFromSTS(),
+});
+```
+
+#### Using an API key
+
+For simpler integration paths (local development, scripts, migration from the first-party Claude API), you can authenticate with an API key instead of SigV4. Your Anthropic account representative provisions API keys for Claude Platform on AWS.
+
+```bash
+ANTHROPIC_AWS_API_KEY=sk-…
+```
+
+When `apiKey` is set, it takes precedence over any SigV4 credentials in the environment.
+
+```ts
+import { createAnthropicAws } from '@ai-sdk/anthropic-aws';
+
+const anthropicAws = createAnthropicAws({
+  region: 'us-west-2',
+  workspaceId: 'wrkspc_…',
+  apiKey: 'sk-…',
+});
+```
+
+A callback or promise selects API key authentication and must resolve to a non-empty
+string. Lookup failures do not switch to SigV4. The caller handles key caching and renewal.
+
+### Provider Settings
+
+| Setting              | Description                                                                                                                                                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `region`             | AWS region for the Claude Platform on AWS endpoint. Reads from `AWS_REGION` if omitted. Required — no fallback default.                                                                                                              |
+| `workspaceId`        | Anthropic workspace ID for this AWS account. Sent on every request via the `anthropic-workspace-id` header. Reads from `ANTHROPIC_AWS_WORKSPACE_ID` if omitted.                                                                      |
+| `apiKey`             | API key for `x-api-key` authentication: `string`, `PromiseLike<string>`, or a callback returning either. Callbacks resolve before each request. When provided, used instead of SigV4. Reads from `ANTHROPIC_AWS_API_KEY` if omitted. |
+| `accessKeyId`        | AWS access key ID for SigV4. Reads from `AWS_ACCESS_KEY_ID`.                                                                                                                                                                         |
+| `secretAccessKey`    | AWS secret access key for SigV4. Reads from `AWS_SECRET_ACCESS_KEY`.                                                                                                                                                                 |
+| `sessionToken`       | AWS session token for SigV4 (temporary credentials only). Reads from `AWS_SESSION_TOKEN`.                                                                                                                                            |
+| `baseURL`            | Base URL override. Defaults to `https://aws-external-anthropic.{region}.api.aws/v1`.                                                                                                                                                 |
+| `headers`            | Custom headers to include on every request.                                                                                                                                                                                          |
+| `fetch`              | Custom fetch implementation for testing or middleware.                                                                                                                                                                               |
+| `credentialProvider` | Function returning dynamic AWS credentials. Overrides `accessKeyId`, `secretAccessKey`, and `sessionToken`.                                                                                                                          |
+
+## Language Models
+
+You can create models that call the Anthropic Messages API on AWS using the provider instance:
+
+```ts
+import { anthropicAws } from '@ai-sdk/anthropic-aws';
+
+const model = anthropicAws('claude-sonnet-5-5');
+```
+
+Model IDs are identical to the first-party Anthropic API. See the [Anthropic provider docs](/providers/ai-sdk-providers/anthropic#language-models) for the full list of language model options, prompt caching, computer use, web search, code execution, and Agent Skills. All of these work identically here because Claude Platform on AWS uses Anthropic's runtime directly.
+
+### Example
+
+```ts
+import { anthropicAws } from '@ai-sdk/anthropic-aws';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropicAws('claude-sonnet-5-5'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
+
+## IAM permissions
+
+Your IAM principal needs permission to call the Claude Platform on AWS actions on your workspace. AWS provides three managed policies:
+
+- `AnthropicFullAccess` — grants `aws-external-anthropic:*` on all resources.
+- `AnthropicInferenceAccess` — grants read actions plus `CreateInference`, `CreateBatchInference`, `CancelBatchInference`, `DeleteBatchInference`, and `CountTokens` on all workspaces. **This is the minimum for calling models.**
+- `AnthropicReadOnlyAccess` — grants `Get*`, `List*`, and `CallWithBearerToken` on all workspaces. Insufficient for inference.

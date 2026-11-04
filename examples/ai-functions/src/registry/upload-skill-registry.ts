@@ -11,7 +11,7 @@ run(async () => {
       files: [
         {
           path: 'island-rescue/SKILL.md',
-          content: readFileSync('data/island-rescue/SKILL.md'),
+          data: readFileSync('data/island-rescue/SKILL.md'),
         },
       ],
       displayTitle: 'Island Rescue Test',

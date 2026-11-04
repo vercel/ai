@@ -1,9 +1,27 @@
 import {
-  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-import { GroqChatPrompt } from './groq-api-types';
-import { convertToBase64, isProviderReference } from '@ai-sdk/provider-utils';
+import type { GroqChatPrompt } from './groq-api-types';
+import {
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
+  convertToBase64,
+  getTopLevelMediaType,
+  resolveFullMediaType,
+} from '@ai-sdk/provider-utils';
+
+function serializeGroqToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input);
+}
 
 export function convertToGroqChatMessages(
   prompt: LanguageModelV4Prompt,
@@ -31,30 +49,36 @@ export function convertToGroqChatMessages(
                 return { type: 'text', text: part.text };
               }
               case 'file': {
-                if (isProviderReference(part.data)) {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'file parts with provider references',
-                  });
+                switch (part.data.type) {
+                  case 'reference': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
+                  case 'text': {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'text file parts',
+                    });
+                  }
+                  case 'url':
+                  case 'data': {
+                    if (getTopLevelMediaType(part.mediaType) !== 'image') {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'Non-image file content parts',
+                      });
+                    }
+
+                    return {
+                      type: 'image_url',
+                      image_url: {
+                        url:
+                          part.data.type === 'url'
+                            ? part.data.url.toString()
+                            : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
+                      },
+                    };
+                  }
                 }
-
-                if (!part.mediaType.startsWith('image/')) {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'Non-image file content parts',
-                  });
-                }
-
-                const mediaType =
-                  part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
-
-                return {
-                  type: 'image_url',
-                  image_url: {
-                    url:
-                      part.data instanceof URL
-                        ? part.data.toString()
-                        : `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                  },
-                };
               }
             }
           }),
@@ -92,7 +116,7 @@ export function convertToGroqChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeGroqToolCallArguments(part.input),
                 },
               });
               break;
@@ -129,7 +153,7 @@ export function convertToGroqChatMessages(
             case 'content':
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 

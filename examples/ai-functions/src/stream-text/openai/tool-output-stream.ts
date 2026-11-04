@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     stopWhen: isStepCount(5),
     tools: {
       weather: tool({
@@ -52,7 +52,7 @@ run(async () => {
     prompt: 'What is the weather in New York?',
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

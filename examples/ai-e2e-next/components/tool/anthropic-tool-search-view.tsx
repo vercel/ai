@@ -1,5 +1,5 @@
-import { anthropic } from '@ai-sdk/anthropic';
-import { UIToolInvocation } from 'ai';
+import type { anthropic } from '@ai-sdk/anthropic';
+import type { UIToolInvocation } from 'ai';
 
 export default function AnthropicToolSearchView({
   invocation,

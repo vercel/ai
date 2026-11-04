@@ -1,13 +1,18 @@
 import {
-  type Experimental_VideoModelV4,
   NoSuchModelError,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
-  type FetchFunction,
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withoutTrailingSlash,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { ByteDanceImageModel } from './bytedance-image-model';
+import type { ByteDanceImageModelId } from './bytedance-image-settings';
 import { ByteDanceVideoModel } from './bytedance-video-model';
 import type { ByteDanceVideoModelId } from './bytedance-video-settings';
 
@@ -16,7 +21,7 @@ export interface ByteDanceProviderSettings {
    * ByteDance Ark API key. Default value is taken from the `ARK_API_KEY`
    * environment variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for the API calls.
@@ -46,6 +51,16 @@ export interface ByteDanceProvider extends ProviderV4 {
    * Creates a model for video generation.
    */
   videoModel(modelId: ByteDanceVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for image generation.
+   */
+  image(modelId: ByteDanceImageModelId): ImageModelV4;
+
+  /**
+   * Creates a model for image generation.
+   */
+  imageModel(modelId: ByteDanceImageModelId): ImageModelV4;
 }
 
 const defaultBaseURL = 'https://ark.ap-southeast.bytepluses.com/api/v3';
@@ -58,19 +73,28 @@ export function createByteDance(
 ): ByteDanceProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'ARK_API_KEY',
-      description: 'ByteDance ModelArk',
-    })}`,
-    'Content-Type': 'application/json',
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    resolveWith(options.apiKey, apiKey => ({
+      Authorization: `Bearer ${loadApiKey({
+        apiKey,
+        environmentVariableName: 'ARK_API_KEY',
+        description: 'ByteDance ModelArk',
+      })}`,
+      'Content-Type': 'application/json',
+      ...options.headers,
+    }));
 
   const createVideoModel = (modelId: ByteDanceVideoModelId) =>
     new ByteDanceVideoModel(modelId, {
       provider: 'bytedance.video',
+      baseURL: baseURL ?? defaultBaseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const createImageModel = (modelId: ByteDanceImageModelId) =>
+    new ByteDanceImageModel(modelId, {
+      provider: 'bytedance.image',
       baseURL: baseURL ?? defaultBaseURL,
       headers: getHeaders,
       fetch: options.fetch,
@@ -81,12 +105,11 @@ export function createByteDance(
     embeddingModel: (modelId: string) => {
       throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
     },
-    imageModel: (modelId: string) => {
-      throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-    },
     languageModel: (modelId: string) => {
       throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
     },
+    image: createImageModel,
+    imageModel: createImageModel,
     video: createVideoModel,
     videoModel: createVideoModel,
   };

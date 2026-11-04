@@ -1,10 +1,10 @@
 'use client';
 
-import { experimental_useObject as useObject } from '@ai-sdk/react';
+import { useObject } from '@ai-sdk/react';
 import {
-  Expense,
   expenseSchema,
-  PartialExpense,
+  type Expense,
+  type PartialExpense,
 } from '../api/use-object-expense-tracker/schema';
 import { useState } from 'react';
 

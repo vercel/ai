@@ -1,24 +1,25 @@
 import {
-  EmbeddingModelV4,
-  LanguageModelV4,
   NoSuchModelError,
-  RerankingModelV4,
-  ProviderV4,
+  type EmbeddingModelV4,
+  type LanguageModelV4,
+  type RerankingModelV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
-
 import {
-  FetchFunction,
+  resolveWith,
+  type Resolvable,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { CohereChatLanguageModel } from './cohere-chat-language-model';
-import { CohereChatModelId } from './cohere-chat-options';
+import type { CohereChatModelId } from './cohere-chat-language-model-options';
 import { CohereEmbeddingModel } from './cohere-embedding-model';
-import { CohereRerankingModelId } from './reranking/cohere-reranking-options';
+import type { CohereRerankingModelId } from './reranking/cohere-reranking-model-options';
 import { CohereRerankingModel } from './reranking/cohere-reranking-model';
-import { CohereEmbeddingModelId } from './cohere-embedding-options';
+import type { CohereEmbeddingModelId } from './cohere-embedding-model-options';
 import { VERSION } from './version';
 
 export interface CohereProvider extends ProviderV4 {
@@ -71,7 +72,7 @@ export interface CohereProviderSettings {
    * API key that is being send using the `Authorization` header.
    * It defaults to the `COHERE_API_KEY` environment variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -100,16 +101,18 @@ export function createCohere(
     withoutTrailingSlash(options.baseURL) ?? 'https://api.cohere.com/v2';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'COHERE_API_KEY',
-          description: 'Cohere',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/cohere/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'COHERE_API_KEY',
+            description: 'Cohere',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-cohere/${VERSION}`,
+      ),
     );
 
   const createChatModel = (modelId: CohereChatModelId) =>

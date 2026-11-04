@@ -1,31 +1,67 @@
 ---
 title: Azure OpenAI
-description: Learn how to use the Azure OpenAI provider for the AI SDK.
+description: Learn how to use Azure OpenAI with AI Gateway and the direct provider.
 ---
 
 # Azure OpenAI Provider
 
 The [Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service) provider contains language model support for the Azure OpenAI chat API.
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/azure` to connect directly to Azure OpenAI.
 
-## Setup
+```ts provider="azure" model="openai/gpt-6-astra"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Azure OpenAI provider is available in the `@ai-sdk/azure` module. You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  __GATEWAY_OPTIONS__,
+});
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/azure" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/azure" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/azure" dark />
-  </Tab>
+console.log(text);
+```
 
-  <Tab>
-    <Snippet text="bun add @ai-sdk/azure" dark />
-  </Tab>
-</Tabs>
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+The example sets `providerOptions.gateway.order` to `['azure']`. This sends the request to Azure OpenAI first, then falls back to other available providers of the same model if Azure OpenAI is unavailable or the request fails. `order` sets a preference; it does not restrict fallback to Azure OpenAI. See [provider ordering](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+The dropdown lists models served by Azure OpenAI through Gateway with a corresponding direct-provider example. Provider availability depends on the model and your team's [Provider Allowlist](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+## Using `@ai-sdk/azure`
+
+For direct access to Azure OpenAI, install `ai` and `@ai-sdk/azure`:
+
+<InstallPackages packages="ai @ai-sdk/azure" />
+
+Set your Azure API key and resource name:
+
+```bash
+export AZURE_API_KEY=your_api_key_here
+export AZURE_RESOURCE_NAME=your_resource_name
+```
+
+The direct example uses an Azure deployment name. Replace it with the deployment name configured in your resource.
+
+Use the direct provider for your Azure deployments, Microsoft Entra ID authentication, or Azure-specific APIs. Replace the deployment name in the Azure example with one from your resource.
+
+<Note>
+  The following sections document the direct `@ai-sdk/azure` provider, including
+  its model factories and settings. Gateway model and feature availability can
+  differ.
+</Note>
 
 ## Provider Instance
 
@@ -46,6 +82,35 @@ const azure = createAzure({
 });
 ```
 
+You can also use a complete [Microsoft Foundry OpenAI v1 base URL](https://learn.microsoft.com/en-us/azure/foundry/openai/api-version-lifecycle#model-support):
+
+```ts
+const azure = createAzure({
+  baseURL: 'https://your-resource.services.ai.azure.com/openai/v1',
+  apiKey: 'your-api-key',
+});
+```
+
+For Microsoft Entra ID authentication, you can provide a token provider.
+Install `@azure/identity` separately if you want to use its credential helpers:
+
+```ts
+import { createAzure } from '@ai-sdk/azure';
+import {
+  DefaultAzureCredential,
+  getBearerTokenProvider,
+} from '@azure/identity';
+
+const credential = new DefaultAzureCredential();
+const scope = 'https://cognitiveservices.azure.com/.default';
+const tokenProvider = getBearerTokenProvider(credential, scope);
+
+const azure = createAzure({
+  resourceName: 'your-resource-name',
+  tokenProvider,
+});
+```
+
 You can use the following optional settings to customize the OpenAI provider instance:
 
 - **resourceName** _string_
@@ -54,17 +119,28 @@ You can use the following optional settings to customize the OpenAI provider ins
   It defaults to the `AZURE_RESOURCE_NAME` environment variable.
 
   The resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/v1{path}`.
+  It must be a single DNS label (letters, digits, and hyphens).
   You can use `baseURL` instead to specify the URL prefix.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a callback to resolve the API key before each request. The callback can
+  return a string or a promise; token caching and renewal are handled by the caller.
 
   API key that is being sent using the `api-key` header.
   It defaults to the `AZURE_API_KEY` environment variable.
+
+- **tokenProvider** _() => Promise&lt;string&gt;_
+
+  Microsoft Entra ID token provider that returns an access token to be sent using the `Authorization` header.
+  When provided, this is used instead of `apiKey`.
 
 - **apiVersion** _string_
 
   Sets a custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation).
   Defaults to `v1`.
+  This setting is applied when the provider constructs the v1 path or uses
+  deployment-based URLs. Complete v1 base URLs are used as-is.
 
 - **baseURL** _string_
 
@@ -73,7 +149,20 @@ You can use the following optional settings to customize the OpenAI provider ins
   Either this or `resourceName` can be used.
   When a baseURL is provided, the resourceName is ignored.
 
-  With a baseURL, the resolved URL is `{baseURL}/v1{path}`.
+  For Azure-hosted URLs ending in `.openai.azure.com`,
+  `.services.ai.azure.com`, or `.cognitiveservices.azure.com`, you can pass
+  either an unversioned OpenAI prefix such as `https://your-resource.services.ai.azure.com/openai`
+  or a complete v1 base URL such as `https://your-resource.services.ai.azure.com/openai/v1`.
+  The provider appends `/v1` and the configured `api-version` to unversioned
+  resource URLs. Complete v1 URLs are used as-is.
+
+  Complete Microsoft Foundry project v1 URLs, such as
+  `https://your-resource.services.ai.azure.com/api/projects/your-project/openai/v1`,
+  are also used as-is. If `/v1` is omitted from a Foundry project URL, the
+  provider appends it without adding an `api-version` query parameter.
+
+  With a non-Azure custom gateway baseURL, the resolved URL is `{baseURL}{path}`;
+  the SDK does not append `/v1` or an `api-version` query parameter in this mode.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -96,6 +185,27 @@ You can use the following optional settings to customize the OpenAI provider ins
   This option is useful for compatibility with certain Azure OpenAI models or deployments
   that require the legacy endpoint format.
 
+- **speechBaseURL** _string_
+
+  URL prefix for Azure Speech requests (MAI-Transcribe transcription and MAI-Voice
+  speech generation), for example a regional endpoint such as `https://eastus.api.cognitive.microsoft.com`.
+  Defaults to `https://{resourceName}.cognitiveservices.azure.com`.
+  Speech requests do not use `baseURL` or `apiVersion`.
+
+- **maiBaseURL** _string_
+
+  URL prefix for MAI requests (MAI-Image and MAI-Transcribe-2-Streaming).
+  Defaults to `https://{resourceName}.services.ai.azure.com/mai/v1`.
+
+- **webSocket** _WebSocketConstructor_
+
+  Custom WebSocket implementation for MAI streaming transcription, for example
+  the `WebSocket` export of the `ws` package in Node.js. With a custom
+  implementation the API key is sent in the `api-key` header; with the native
+  `WebSocket` it is sent as the `api-key` query parameter. Microsoft Entra ID
+  (`tokenProvider`) authentication requires a custom implementation; without one,
+  streaming fails with an `InvalidArgumentError` before connecting.
+
 ## Language Models
 
 The Azure OpenAI provider instance is a function that you can invoke to create a language model:
@@ -105,6 +215,19 @@ const model = azure('your-deployment-name');
 ```
 
 You need to pass your deployment name as the first argument.
+
+You can optionally pass the underlying model ID in a settings object:
+
+```ts
+const model = azure('production-chat', { modelId: 'gpt-5' });
+```
+
+The SDK uses the model ID as the model identity, including in telemetry, and
+to detect model capabilities such as reasoning support. API requests still use the deployment name.
+The model ID returned by Azure in response metadata is preserved.
+
+If omitted, the deployment name is used for model identity and capability detection.
+Keep the supplied model ID aligned with the model running in your deployment.
 
 ### Reasoning Models
 
@@ -149,7 +272,7 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 <Note>
   Azure OpenAI sends larger chunks than OpenAI. This can lead to the perception
   that the response is slower. See [Troubleshooting: Azure OpenAI Slow To
-  Stream](/docs/troubleshooting/common-issues/azure-stream-slow)
+  Stream](/docs/troubleshooting/azure-stream-slow)
 </Note>
 
 ### Provider Options
@@ -168,8 +291,9 @@ const messages = [
         text: 'What is the capital of the moon?',
       },
       {
-        type: 'image',
-        image: 'https://example.com/image.png',
+        type: 'file',
+        mediaType: 'image',
+        data: 'https://example.com/image.png',
         providerOptions: {
           openai: { imageDetail: 'low' },
         },
@@ -259,6 +383,30 @@ The following optional provider options are available for OpenAI chat models:
 
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. Learn more.
+
+### DeepSeek Chat Models
+
+You can create Azure-hosted DeepSeek chat models using the `.deepseek()` factory method:
+
+```ts
+const model = azure.deepseek('your-deepseek-deployment-name');
+```
+
+Use this factory for Azure DeepSeek models that support DeepSeek's chat
+reasoning fields, such as `deepseek-v4-pro` and `deepseek-v4-flash`. The
+factory maps top-level `reasoning` to DeepSeek `reasoning_effort` request
+settings, and parses streamed `reasoning_content` as AI SDK reasoning parts.
+
+```ts
+import { azure, type AzureDeepSeekLanguageModelOptions } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = generateText({
+  model: azure.deepseek('your-deepseek-deployment-name'),
+  prompt: 'How many "r"s are in the word "strawberry"?',
+  reasoning: 'high',
+});
+```
 
 ### Responses Models
 
@@ -359,47 +507,116 @@ The following Azure-specific metadata may be returned:
   not supported when using 'azure.chat' or 'azure.completion'
 </Note>
 
+#### Changing Reasoning Effort Mid-Conversation
+
+Azure Responses models support message-level reasoning effort updates through
+`providerOptions.azure.reasoningEffortUpdate`. The `openai` namespace is also
+accepted when the message has no `azure` options. Use the
+`OpenAIResponsesSystemMessageOptions` type exported from `@ai-sdk/azure` to
+validate these options:
+
+```ts
+import { azure, type OpenAIResponsesSystemMessageOptions } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  // Use the name of your GPT-6 deployment.
+  model: azure.responses('gpt-6-astra'),
+  reasoning: 'low',
+  allowSystemInMessages: true,
+  messages: [
+    {
+      role: 'system',
+      content: '',
+      providerOptions: {
+        azure: {
+          reasoningEffortUpdate: 'high',
+        } satisfies OpenAIResponsesSystemMessageOptions,
+      },
+    },
+    { role: 'user', content: 'Analyze the failure modes of this migration.' },
+  ],
+});
+```
+
+Keep the request-level `reasoning` unchanged throughout the conversation and
+retain earlier effort updates when resending message history. These updates
+also work with `streamText`. See the [OpenAI reasoning effort
+guide](/providers/ai-sdk-providers/openai#changing-reasoning-effort-mid-conversation)
+for continuation, compaction, and configuration restrictions.
+
+<Note>
+  The SDK infers support for effort updates from the optional `modelId` setting
+  passed to `azure.responses()`, falling back to the deployment name. The ID must identify
+  a supported GPT-6-or-later model family, such as `gpt-6-astra`. A custom name
+  such as `production` is not recognized, even when the underlying deployment
+  runs GPT-6. Pass the underlying model ID, for example
+  `azure.responses('production', { modelId: 'gpt-6-astra' })`, to enable detection
+  for a custom deployment name.
+</Note>
+
 #### Web Search Tool
 
-The Azure OpenAI responses API supports web search(preview) through the `azure.tools.webSearchPreview` tool.
+The Azure OpenAI responses API supports web search through the `azure.tools.webSearch` tool.
+
+<Note>
+  `azure.tools.webSearchPreview()` is deprecated. Use `azure.tools.webSearch()`
+  instead. The existing `searchContextSize` and `userLocation` options are
+  supported by both tools.
+</Note>
 
 ```ts
 const result = await generateText({
-  model: azure('gpt-4.1-mini'),
+  model: azure('gpt-5'),
   prompt: 'What happened in San Francisco last week?',
   tools: {
-    web_search_preview: azure.tools.webSearchPreview({
+    web_search: azure.tools.webSearch({
       // optional configuration:
-      searchContextSize: 'low',
+      searchContextSize: 'high',
       userLocation: {
         type: 'approximate',
         city: 'San Francisco',
         region: 'California',
       },
+      filters: {
+        allowedDomains: ['sfchronicle.com', 'sfgate.com'],
+        blockedDomains: ['example.com'],
+      },
     }),
   },
   // Force web search tool (optional):
-  toolChoice: { type: 'tool', toolName: 'web_search_preview' },
+  toolChoice: { type: 'tool', toolName: 'web_search' },
 });
-
-console.log(result.text);
 
 // URL sources directly from `results`
 const sources = result.sources;
-for (const source of sources) {
-  console.log('source:', source);
+
+// Or access sources from tool results
+for (const toolResult of result.toolResults) {
+  if (toolResult.toolName === 'web_search') {
+    console.log('Query:', toolResult.output.action.query);
+    console.log('Sources:', toolResult.output.sources);
+    // `sources` is an array of object: { type: 'url', url: string }
+  }
 }
 ```
 
-<Note>
-  The tool must be named `web_search_preview` when using Azure OpenAI's web
-  search(preview) functionality. This name is required by Azure OpenAI's API
-  specification and cannot be customized.
-</Note>
+The web search tool supports the following configuration options:
+
+- **externalWebAccess** _boolean_ - Whether to use external web access for fetching live content. Defaults to `true`.
+- **searchContextSize** _'low' | 'medium' | 'high'_ - Controls the amount of context used for the search. Higher values provide more comprehensive results but may have higher latency and cost.
+- **userLocation** - Optional location information to provide geographically relevant results. Includes `type` (always `'approximate'`), `country`, `city`, `region`, and `timezone`.
+- **filters** - Optional filter configuration to restrict search results.
+  - **allowedDomains** _string[]_ - Up to 100 allowed domains for the search.
+  - **blockedDomains** _string[]_ - Up to 100 blocked domains for the search.
+
+Omit the HTTP or HTTPS prefix from domain filters. Subdomains of configured domains are automatically included or excluded.
+
+For detailed information on configuration options see the [Azure OpenAI Web Search Tool documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/web-search).
 
 <Note>
-  The 'web_search_preview' tool is only supported with the default responses
-  API, and is not supported when using 'azure.chat' or 'azure.completion'
+  On Microsoft Foundry environment , Live internet access is not supported. The
+  parameter `externalWebAccess` if passed will be ignored.
 </Note>
 
 #### File Search Tool
@@ -449,7 +666,7 @@ import { generateText } from 'ai';
 
 const azure = createAzure({
   headers: {
-    'x-ms-oai-image-generation-deployment': 'gpt-image-1', // use your own image model deployment
+    'x-ms-oai-image-generation-deployment': 'gpt-image-2', // use your own image model deployment
   },
 });
 
@@ -517,7 +734,21 @@ const result = await generateText({
 
 The code interpreter tool can be configured with:
 
-- **container**: Either a container ID string or an object with `fileIds` to specify uploaded files that should be available to the code interpreter
+- **container**: Either:
+  - a container ID (`string`) to reuse an existing container, or
+  - a configuration `object` to create and configure a new container.
+
+- **container configuration object**
+  - **fileIds** _string[]_ — File IDs to make available in the container at startup
+  - **memoryLimit** _'1g' | '4g' | '16g' | '64g'_ — Memory limit for the container
+
+<Note type="warning">
+  The shared `networkPolicy` container option is exposed by
+  `azure.tools.codeInterpreter`, but outbound networking availability is
+  controlled by Azure OpenAI. Check the supported options for your deployment
+  and API version in the [Azure Responses API
+  documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses).
+</Note>
 
 <Note>
   The tool must be named `code_interpreter` when using Azure OpenAI's code
@@ -536,6 +767,350 @@ The code interpreter tool can be configured with:
   Parts](#typed-providermetadata-in-text-parts) and [`providerMetadata` in
   Source Document Parts](#typed-providermetadata-in-source-document-parts).
 </Note>
+
+#### Custom Tool
+
+Use `azure.tools.customTool` to send OpenAI-style
+[custom tools](https://developers.openai.com/api/docs/guides/function-calling/#custom-tools)
+with Azure Responses models. Availability depends on your Azure model deployment
+and API version; see Microsoft's [reasoning model documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/reasoning).
+Custom tool calls contain a raw string input instead of JSON, optionally constrained
+to a regex or Lark grammar. This is useful for SQL queries, code snippets, or other
+text that must match a specific pattern.
+
+<Note>
+  Replace `your-deployment-name` below with an Azure deployment that supports
+  custom tools. These tools use the Responses API, rather than `azure.chat` or
+  `azure.completion`.
+</Note>
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText, isStepCount } from 'ai';
+
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    write_sql: azure.tools.customTool({
+      description: 'Write a SQL SELECT query to answer the user question.',
+      format: {
+        type: 'grammar',
+        syntax: 'regex',
+        definition: 'SELECT .+',
+      },
+      execute: async input => {
+        // input is a raw string matching the grammar, e.g. "SELECT * FROM users WHERE age > 25"
+        const rows = await db.query(input);
+        return JSON.stringify(rows);
+      },
+    }),
+  },
+  toolChoice: 'required',
+  prompt: 'Write a SQL query to get all users older than 25.',
+  stopWhen: isStepCount(3),
+});
+```
+
+Custom tools also work with `streamText`:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    write_sql: azure.tools.customTool({
+      description: 'Write a SQL SELECT query to answer the user question.',
+      format: {
+        type: 'grammar',
+        syntax: 'regex',
+        definition: 'SELECT .+',
+      },
+    }),
+  },
+  toolChoice: 'required',
+  prompt: 'Write a SQL query to get all users older than 25.',
+});
+
+for await (const chunk of result.stream) {
+  if (chunk.type === 'tool-call') {
+    console.log(`Tool: ${chunk.toolName}`);
+    console.log(`Input: ${chunk.input}`);
+  }
+}
+```
+
+The key in the `tools` object (`write_sql` above) names the tool.
+The custom tool can be configured with:
+
+- **description** _string_ (optional) - A description of what the tool does, to help the model understand when to use it.
+- **format** _object_ (optional) - The output format constraint. Omit for unconstrained text output.
+  - **type** _'grammar' | 'text'_ - The format type. Use `'grammar'` for constrained output or `'text'` for explicit unconstrained text.
+  - **syntax** _'regex' | 'lark'_ - (grammar only) The grammar syntax. Use `'regex'` for regular expression patterns or `'lark'` for [Lark parser grammar](https://lark-parser.readthedocs.io/).
+  - **definition** _string_ - (grammar only) The grammar definition string (a regex pattern or Lark grammar).
+- **execute** _function_ (optional) - An async function that receives the raw string input and returns the tool result. Enables multi-turn tool calling.
+
+#### Apply Patch Tool
+
+Use `azure.tools.applyPatch` to configure the OpenAI apply patch tool for Azure Responses models.
+Availability depends on your model deployment, region, and API version; see the
+[Azure Responses API documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/responses).
+The apply patch tool lets the model create, update, and delete files in your codebase using structured diffs.
+Instead of just suggesting edits, the model emits patch operations that your application applies and reports back on,
+enabling iterative, multi-step code editing workflows.
+
+Register this tool with the `apply_patch` key so patch results are returned in the
+format expected by the Responses API.
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText, isStepCount } from 'ai';
+
+const result = await generateText({
+  // Use your Azure deployment name with apply-patch support.
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    apply_patch: azure.tools.applyPatch({
+      execute: async ({ callId, operation }) => {
+        // ... your implementation for applying the diffs.
+        return { status: 'completed' };
+      },
+    }),
+  },
+  prompt: 'Create a python file that calculates the factorial of a number',
+  stopWhen: isStepCount(5),
+});
+```
+
+Your execute function must return:
+
+- **status** _'completed' | 'failed'_ - Whether the patch was applied successfully
+- **output** _string_ (optional) - Human-readable log text (e.g., results or error messages)
+
+#### Shell Tool
+
+Configure the shell tool for Azure Responses models with `azure.tools.shell`.
+Availability of shell execution, hosted containers, container references, and skills
+depends on your model deployment, region, and API version. See the
+[Azure Responses API documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/responses).
+The shell tool allows running bash commands and interacting with a command line.
+The model proposes shell commands; your application executes them in local mode,
+while the Azure OpenAI service executes them in hosted mode.
+
+<Note type="warning">
+  Running arbitrary shell commands can be dangerous. Always sandbox execution or
+  add strict allow-/deny-lists before forwarding a command to the system shell.
+</Note>
+
+The shell tool supports three environment modes that control where commands are executed:
+
+##### Local Execution (default)
+
+When no `environment` is specified (or `type: 'local'` is used), commands are executed locally via your `execute` callback.
+Connect it to your sandbox; the placeholder below returns a failed result without executing commands:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText, isStepCount } from 'ai';
+
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    shell: azure.tools.shell({
+      execute: async ({ action }) => {
+        // Replace this placeholder with your sandbox integration.
+        return {
+          output: action.commands.map(() => ({
+            stdout: '',
+            stderr: 'No sandbox executor configured.',
+            outcome: { type: 'exit' as const, exitCode: 1 },
+          })),
+        };
+      },
+    }),
+  },
+  prompt: 'List the files in the current directory and show disk usage.',
+  stopWhen: isStepCount(5),
+});
+```
+
+##### Hosted Container (auto)
+
+Set `environment.type` to `'containerAuto'` to run commands in a container hosted by the Azure OpenAI service. No `execute` callback is needed — Azure OpenAI handles execution server-side:
+
+<Note type="warning">
+  The Azure OpenAI Responses API shell tool currently does not support
+  `networkPolicy`. The shared factory accepts and forwards this option, so check
+  your deployment's service support before using it.
+</Note>
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    shell: azure.tools.shell({
+      environment: {
+        type: 'containerAuto',
+        // optional configuration:
+        memoryLimit: '4g',
+        fileIds: ['assistant-abc123'],
+      },
+    }),
+  },
+  prompt: 'Install numpy and compute the eigenvalues of a 3x3 matrix.',
+});
+```
+
+The `containerAuto` environment supports:
+
+- **fileIds** _string[]_ - File IDs to make available in the container
+- **memoryLimit** _'1g' | '4g' | '16g' | '64g'_ - Memory limit for the container
+
+##### Existing Container Reference
+
+Set `environment.type` to `'containerReference'` to use an existing container by ID:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    shell: azure.tools.shell({
+      environment: {
+        type: 'containerReference',
+        containerId: 'cntr_abc123',
+      },
+    }),
+  },
+  prompt: 'Check the status of running processes.',
+});
+```
+
+##### Execute Callback
+
+For local execution (default or `type: 'local'`), your execute function must return an output array with results for each command:
+
+- **stdout** _string_ - Standard output from the command
+- **stderr** _string_ - Standard error from the command
+- **outcome** - Either `{ type: 'timeout' }` or `{ type: 'exit', exitCode: number }`
+
+##### Skills
+
+[Skills](https://platform.openai.com/docs/guides/tools-skills) are versioned bundles of files with a `SKILL.md` manifest that extend the shell tool's capabilities. They can be attached to both `containerAuto` and `local` environments.
+
+<Note type="warning">
+  Azure skill-ID resolution is not implemented by the shared shell adapter. Use
+  local skill directories or inline archives instead of OpenAI platform skill
+  references.
+</Note>
+
+**Local skills** point to a directory on disk containing a `SKILL.md` file:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText, isStepCount } from 'ai';
+import { resolve } from 'node:path';
+
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    shell: azure.tools.shell({
+      execute: async ({ action }) => {
+        // Replace this placeholder with your sandbox integration.
+        return {
+          output: action.commands.map(() => ({
+            stdout: '',
+            stderr: 'No sandbox executor configured.',
+            outcome: { type: 'exit' as const, exitCode: 1 },
+          })),
+        };
+      },
+      environment: {
+        type: 'local',
+        skills: [
+          {
+            name: 'my-skill',
+            description: 'What this skill does',
+            path: resolve('path/to/skill-directory'),
+          },
+        ],
+      },
+    }),
+  },
+  prompt: 'Use the skill to solve this problem.',
+  stopWhen: isStepCount(5),
+});
+```
+
+**Inline container skills** provide a ZIP archive containing the skill's `SKILL.md`
+and supporting files. For a deployment that supports hosted shell skills:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+import { readFileSync } from 'node:fs';
+
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  tools: {
+    shell: azure.tools.shell({
+      environment: {
+        type: 'containerAuto',
+        skills: [
+          {
+            type: 'inline',
+            name: 'my-skill',
+            description: 'What this skill does',
+            source: {
+              type: 'base64',
+              mediaType: 'application/zip',
+              data: readFileSync('my-skill.zip').toString('base64'),
+            },
+          },
+        ],
+      },
+    }),
+  },
+  prompt: 'Use the skill to solve this problem.',
+});
+```
+
+#### Tool Search Tool
+
+The Azure OpenAI provider supports [tool search](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/tool-search) through the `azure.tools.toolSearch` tool.
+Tool search lets the model load deferred tools only when it needs them. It requires `gpt-5.4` or later.
+Mark the tools to defer with `deferLoading: true`:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText, isStepCount, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: azure('gpt-6.1-sol'),
+  prompt: 'What is the weather in San Francisco?',
+  stopWhen: isStepCount(5),
+  tools: {
+    toolSearch: azure.tools.toolSearch(),
+    get_weather: tool({
+      description: 'Get the current weather at a specific location',
+      inputSchema: z.object({ location: z.string() }),
+      execute: async ({ location }) => ({ location, temperature: 64 }),
+      providerOptions: {
+        azure: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+`azure.tools.toolSearch` accepts the same options as [`openai.tools.toolSearch`](/providers/ai-sdk-providers/openai#tool-search), including client-executed tool search and namespaces.
 
 #### Compaction
 
@@ -710,7 +1285,6 @@ This metadata includes the following fields:
   If no annotations are present, this property itself may be omitted (`undefined`).
 
   Each element in `annotations` is a discriminated union with a required `type` field. Supported types include, for example:
-
   - `url_citation`
   - `file_citation`
   - `container_file_citation`
@@ -730,7 +1304,7 @@ const result = await generateText({
     'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results. Also save the result to a file.',
   tools: {
     code_interpreter: azure.tools.codeInterpreter(),
-    web_search_preview: azure.tools.webSearchPreview({}),
+    web_search: azure.tools.webSearch({}),
     file_search: azure.tools.fileSearch({ vectorStoreIds: ['vs_1234'] }), // requires a configured vector store
   },
 });
@@ -852,7 +1426,7 @@ const result = await generateText({
     'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results. Also save the result to a file.',
   tools: {
     code_interpreter: azure.tools.codeInterpreter(),
-    web_search_preview: azure.tools.webSearchPreview({}),
+    web_search: azure.tools.webSearch({}),
     file_search: azure.tools.fileSearch({ vectorStoreIds: ['vs_1234'] }), // requires a configured vector store
   },
 });
@@ -1022,7 +1596,8 @@ The following optional provider options are available for Azure OpenAI embedding
 
 ## Image Models
 
-You can create models that call the Azure OpenAI image generation API (DALL-E) using the `.image()` factory method. The first argument is your deployment name for the DALL-E model.
+You can create models that call the Azure OpenAI image generation API using the `.image()` factory method. The first argument is your deployment name.
+MAI-Image models use the [MAI image API](#mai-image) instead.
 
 ```ts
 const model = azure.image('your-dalle-deployment-name');
@@ -1031,6 +1606,10 @@ const model = azure.image('your-dalle-deployment-name');
 Azure OpenAI image models support several additional settings. You can pass them as `providerOptions.openai` when generating the image:
 
 ```ts
+import { azure } from '@ai-sdk/azure';
+import type { OpenAIImageModelGenerationOptions } from '@ai-sdk/openai';
+import { generateImage } from 'ai';
+
 await generateImage({
   model: azure.image('your-dalle-deployment-name'),
   prompt: 'A photorealistic image of a cat astronaut floating in space',
@@ -1038,8 +1617,7 @@ await generateImage({
   providerOptions: {
     openai: {
       user: 'test-user', // optional unique user identifier
-      responseFormat: 'url', // 'url' or 'b64_json', defaults to 'url'
-    },
+    } satisfies OpenAIImageModelGenerationOptions,
   },
 });
 ```
@@ -1071,6 +1649,13 @@ Azure OpenAI supports DALL-E 2 and DALL-E 3 models through deployments. The capa
 | DALL-E 3      | 1024x1024, 1792x1024, 1024x1792 |
 | DALL-E 2      | 256x256, 512x512, 1024x1024     |
 
+Azure deployment names are user-defined and do not identify the backing model.
+Consequently, `supportsFileInputs` and `supportsMaskInputs` are `undefined`
+(unknown) for Azure image model instances. If your application knows the
+capabilities of a deployment, you can advertise them with the
+`overrideSupportsFileInputs` and `overrideSupportsMaskInputs` options of
+[`wrapImageModel`](/docs/reference/ai-sdk-core/wrap-image-model).
+
 <Note>
   DALL-E models do not support the `aspectRatio` parameter. Use the `size`
   parameter instead.
@@ -1081,15 +1666,258 @@ Azure OpenAI supports DALL-E 2 and DALL-E 3 models through deployments. The capa
   version you want to use.
 </Note>
 
+### MAI-Image
+
+MAI-Image models (`MAI-Image-2.6`, `MAI-Image-2.6-Flash`, `MAI-Image-2.5`,
+`MAI-Image-2.5-Flash`, `MAI-Image-2.5-Pro`) use the MAI image API at
+`https://{resourceName}.services.ai.azure.com/mai/v1` (override with
+`maiBaseURL`). Deployments named after the model are detected automatically,
+case-insensitively. For other deployment names, set
+`providerOptions.azure.api` to `'mai'`.
+
+```ts
+import { azure, type AzureImageModelOptions } from '@ai-sdk/azure';
+import { generateImage } from 'ai';
+
+const { image, usage } = await generateImage({
+  model: azure.image('MAI-Image-2.6'),
+  prompt: 'A watercolor of three flowers on a blue background',
+  size: '1536x1024',
+  providerOptions: {
+    azure: {
+      webGrounding: true,
+    } satisfies AzureImageModelOptions,
+  },
+});
+```
+
+Pass reference images to edit or combine them (up to five JPEG or PNG
+images). Masks are not supported.
+
+```ts
+const { image } = await generateImage({
+  model: azure.image('MAI-Image-2.6-Flash'),
+  prompt: {
+    text: 'Put the product from the first image into the scene from the second',
+    images: [productImage, sceneImage],
+  },
+});
+```
+
+Each request returns one PNG image; `generateImage` sends one request per image.
+`size` is sent as `width` and `height`. Each side must be at least 768 pixels,
+and the total pixel count at most 2,359,296 for MAI-Image-2.6 models and
+1,048,576 for MAI-Image-2.5 models. Without `size`, `aspectRatio` is mapped to
+dimensions of about one megapixel; without either, the model returns 1024x1024.
+`seed` is not supported. Token usage is returned in `usage`, with the input
+text and image token split in `providerMetadata.azure.images`.
+
+The following provider options are available:
+
+- **api** _'mai' | 'openai'_
+
+  API to use. Defaults to `'mai'` for MAI-Image models, `'openai'` otherwise.
+
+- **autoAspectRatio** _boolean_
+
+  Let the model choose the output aspect ratio from the prompt and reference
+  images. MAI-Image-2.6 models only.
+
+- **webGrounding** _boolean_
+
+  Ground generation in Bing web search results. MAI-Image-2.6 models only.
+
 ## Transcription Models
 
-You can create models that call the Azure OpenAI transcription API using the `.transcription()` factory method.
+You can create models that call the Azure OpenAI or Azure Speech transcription API using the `.transcription()` factory method.
 
 The first argument is the model id e.g. `whisper-1`.
 
 ```ts
 const model = azure.transcription('whisper-1');
 ```
+
+### MAI-Transcribe
+
+MAI-Transcribe models are multilingual speech-to-text models from Microsoft AI, served through Azure.
+The following model IDs use the Azure Speech API. They are matched case-insensitively
+and sent to Azure under their Azure model names:
+
+| Model ID             | Azure model          | Notes                                |
+| -------------------- | -------------------- | ------------------------------------ |
+| `mai-transcribe-2`   | `MAI-Transcribe-2`   | Supports every option below.         |
+| `mai-transcribe-1.5` | `MAI-Transcribe-1.5` | Supports `locales` and `phraseList`. |
+
+`mai-transcribe-2-streaming` uses the MAI realtime API; see
+[MAI-Transcribe-2-Streaming](#mai-transcribe-2-streaming). All other IDs use the
+OpenAI API by default, including custom deployment names.
+
+```ts
+import { azure, type AzureTranscriptionModelOptions } from '@ai-sdk/azure';
+import { transcribe } from 'ai';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: azure.transcription('mai-transcribe-2'),
+  audio: await readFile('audio.wav'),
+  providerOptions: {
+    azure: {
+      timestamps: 'word',
+      diarization: { enabled: true },
+      transcribeStyle: 'clean',
+    } satisfies AzureTranscriptionModelOptions,
+  },
+});
+```
+
+MAI-Transcribe models require a Microsoft Foundry (Speech) resource in a region where they are available:
+`centralindia`, `eastus`, `northeurope`, `southeastasia`, `westus`, or `westus2`
+(see [Speech service regions](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/regions?tabs=llmspeech)).
+Resources in other regions reject the request.
+Set `AZURE_RESOURCE_NAME` and `AZURE_API_KEY` to that resource's name and key,
+or pass `resourceName` and `apiKey` to `createAzure`. `tokenProvider`, custom headers,
+and custom fetch are also supported. Keys are sent as `Ocp-Apim-Subscription-Key`.
+
+Speech requests use `https://{resourceName}.cognitiveservices.azure.com/speechtotext/transcriptions:transcribe`
+with API version `2025-10-15`. Use `speechBaseURL` to supply a different Speech URL prefix
+(without `/speechtotext/transcriptions:transcribe`), for example a regional endpoint:
+
+```ts
+import { createAzure } from '@ai-sdk/azure';
+
+const azure = createAzure({
+  speechBaseURL: 'https://eastus.api.cognitive.microsoft.com',
+  apiKey: process.env.AZURE_SPEECH_API_KEY,
+});
+```
+
+Speech requests do not use `baseURL`, `apiVersion`, or `useDeploymentBasedUrls`;
+those settings only apply to Azure OpenAI models.
+
+The following options are available through `providerOptions.azure`:
+
+- **api** _'openai' | 'speech'_
+  Overrides model-based API selection for this request.
+  Set `openai` for an OpenAI deployment named after one of the model IDs above, or `speech` to
+  send another model ID to Speech. Other Speech model IDs are sent unchanged.
+
+- **timestamps** _'word' | 'segment' | 'none'_
+  Timing granularity. For MAI-Transcribe-2 the AI SDK defaults to `segment` so that results
+  include timed segments (Azure's own default is `none`). `segment` returns one segment
+  per sentence or speaker turn, `word` additionally returns word timing in provider
+  metadata, and `none` returns a single segment that spans the whole audio.
+  MAI-Transcribe-1.5 only supports `none`, so the AI SDK does not send a default for it.
+
+- **transcribeStyle** _'verbatim' | 'clean'_
+  `verbatim` keeps fillers and false starts, `clean` removes them. Defaults to `verbatim`.
+  `clean` requires MAI-Transcribe-2.
+
+- **locales** _string[]_
+  Exactly one language code, such as `['en']`. This is a strong hint; omit it for
+  automatic language detection and code switching.
+
+- **diarization** _object_
+  Set `enabled` to `true` to identify speakers. Speaker IDs are returned in
+  provider metadata. Requires MAI-Transcribe-2. `maxSpeakers` is not supported.
+
+- **phraseList** _object_
+  Set `phrases` to a list of names and domain terms to bias recognition toward them.
+
+Explicit `api` takes precedence over the model ID. Existing OpenAI transcription
+options remain under `providerOptions.openai`. Speech-only Azure options produce
+warnings when used with the OpenAI API. Unknown `providerOptions.azure` keys
+(for example `diarization.maxSpeakers`) are rejected before the request is sent.
+Options that a model does not support, such as `timestamps: 'word'` with
+MAI-Transcribe-1.5, are sent unchanged, and Azure rejects the request with an
+error that names the option.
+
+For Azure Speech, the shared `timestampGranularities: ['word', 'segment']`
+setting requests word timestamps, which also include phrase timing.
+`providerOptions.azure.timestamps` takes precedence. Requests for timings that
+are disabled by that override or unsupported by the model produce a warning.
+MAI-Transcribe-2 exposes normalized word timing in `result.words` and phrase
+timing in `result.segments`, both in seconds. MAI-Transcribe-1.5 does not support
+timestamp requests. Azure OpenAI models use the OpenAI timing settings and
+precedence instead.
+
+Results include transcript text, timed segments, duration, and an ISO-639-1
+language code when the reported phrase locales identify one language. Mixed-language
+results, and languages without an ISO-639-1 code such as Filipino (`fil`) or
+Cantonese (`yue`), leave `language` undefined. Speaker IDs, exact locales, and word
+timing are preserved in `providerMetadata.azure.phrases`; use the exported
+`AzureTranscriptionProviderMetadata` type to access them. Phrase timing is in
+milliseconds in metadata and seconds in normalized `segments`.
+
+MAI-Transcribe models are file transcription models: they accept WAV, MP3, or FLAC files
+shorter than 2 hours and smaller than 250 MB, and do not support streaming
+transcription; use [MAI-Transcribe-2-Streaming](#mai-transcribe-2-streaming) to stream.
+The models are in public preview. See
+[Azure's MAI-Transcribe guide](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-transcribe)
+for supported languages and diarization limits.
+
+AI Gateway forwards these provider options, including `azure.api`.
+
+### MAI-Transcribe-2-Streaming
+
+MAI-Transcribe-2-Streaming is a low-latency streaming speech-to-text model from Microsoft AI.
+`azure.transcription('mai-transcribe-2-streaming')` streams audio to the MAI realtime API
+(`wss://{resourceName}.services.ai.azure.com/mai/v1/realtime`) with
+[`experimental_streamTranscribe`](/docs/ai-sdk-core/transcription#streaming-transcription).
+The model ID is sent to Azure as the Foundry deployment name, so deploy the model
+as `mai-transcribe-2-streaming`, or set `api: 'mai'` for other deployment names.
+
+```ts
+import {
+  createAzure,
+  type AzureOpenAIProviderSettings,
+  type AzureTranscriptionModelOptions,
+} from '@ai-sdk/azure';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+import { WebSocket } from 'ws';
+
+const azure = createAzure({
+  // `ws`'s WebSocket type differs from the DOM-style WebSocketConstructor.
+  webSocket: WebSocket as unknown as AzureOpenAIProviderSettings['webSocket'],
+});
+
+const result = streamTranscribe({
+  model: azure.transcription('mai-transcribe-2-streaming'),
+  audio, // ReadableStream of 16-bit mono PCM chunks
+  inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+  providerOptions: {
+    azure: { language: 'en' } satisfies AzureTranscriptionModelOptions,
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-delta') {
+    process.stdout.write(part.delta);
+  }
+}
+```
+
+The model requires a Microsoft Foundry resource with a MAI-Transcribe-2-Streaming
+deployment in a supported region, such as `centralus`.
+Input audio must be 16-bit mono PCM (`audio/pcm`) at 16000 or 24000 Hz; the default is 24000 Hz.
+
+The stream emits `transcript-delta` parts for finalized text and `transcript-partial`
+parts for the provisional text that follows the latest delta. MAI does not detect
+pauses on the server, so the stream commits once when the input audio ends and then
+emits a `transcript-final` part and the finished transcript. `durationInSeconds` is
+computed from the streamed audio.
+
+The following options are available through `providerOptions.azure`:
+
+- **api** _'openai' | 'speech' | 'mai'_
+  Set `mai` to stream with a deployment that has a different name.
+
+- **language** _string_
+  Language hint such as `en`. Omit for automatic language detection.
+
+File transcription options such as `timestamps` produce warnings when streaming.
+MAI-Transcribe-2-Streaming does not support file transcription.
+
+### OpenAI transcription
 
 <Note>
   If you encounter a "DeploymentNotFound" error with transcription models,
@@ -1110,7 +1938,7 @@ When using useDeploymentBasedUrls, the default api-version is not valid. You mus
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.
 
 ```ts highlight="6"
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { azure, type OpenAITranscriptionModelOptions } from '@ai-sdk/azure';
 import { readFile } from 'fs/promises';
 
@@ -1151,17 +1979,21 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                    | Transcription       | Duration            | Segments            | Language            |
-| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `whisper-1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                        | Transcription         | Duration  | Segments  | Language  |
+| ---------------------------- | --------------------- | --------- | --------- | --------- |
+| `whisper-1`                  | <Check />             | <Check /> | <Check /> | <Check /> |
+| `gpt-4o-mini-transcribe`     | <Check />             | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe`          | <Check />             | <Cross /> | <Cross /> | <Cross /> |
+| `mai-transcribe-2`           | <Check />             | <Check /> | <Check /> | <Check /> |
+| `mai-transcribe-1.5`         | <Check />             | <Check /> | <Check /> | <Check /> |
+| `mai-transcribe-2-streaming` | <Check /> (streaming) | <Check /> | <Cross /> | <Cross /> |
 
 ## Speech Models
 
-You can create models that call the Azure OpenAI speech API using the `.speech()` factory method.
+You can create models that call the Azure OpenAI speech API or Azure Speech text to speech using the `.speech()` factory method.
 
-The first argument is your deployment name for the text-to-speech model (e.g., `tts-1`).
+The first argument is your deployment name for the text-to-speech model (e.g., `tts-1`),
+or a [MAI-Voice](#mai-voice) model ID.
 
 ```ts
 const model = azure.speech('your-tts-deployment-name');
@@ -1171,7 +2003,7 @@ const model = azure.speech('your-tts-deployment-name');
 
 ```ts
 import { azure } from '@ai-sdk/azure';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: azure.speech('your-tts-deployment-name'),
@@ -1184,7 +2016,7 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts
 import { azure, type OpenAISpeechModelOptions } from '@ai-sdk/azure';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: azure.speech('your-tts-deployment-name'),
@@ -1215,8 +2047,82 @@ The following provider options are available:
 
 Azure OpenAI supports TTS models through deployments. The capabilities depend on which model version your deployment is using:
 
-| Model Version     | Instructions        |
-| ----------------- | ------------------- |
-| `tts-1`           | <Cross size={18} /> |
-| `tts-1-hd`        | <Cross size={18} /> |
-| `gpt-4o-mini-tts` | <Check size={18} /> |
+| Model Version     | Instructions |
+| ----------------- | ------------ |
+| `tts-1`           | <Cross />    |
+| `tts-1-hd`        | <Cross />    |
+| `gpt-4o-mini-tts` | <Check />    |
+
+### MAI-Voice
+
+MAI-Voice models are multilingual text-to-speech models from Microsoft AI, served through Azure.
+The following model IDs use the Azure Speech API:
+
+| Model ID              | Notes                                         |
+| --------------------- | --------------------------------------------- |
+| `mai-voice-2.1-flash` | Low latency, for voice agents and assistants. |
+| `mai-voice-2.1`       | Highest fidelity, for long-form narration.    |
+| `mai-voice-2-flash`   | Low latency, for voice agents and assistants. |
+| `mai-voice-2`         | Highest fidelity, for long-form narration.    |
+
+All other IDs use the OpenAI API by default, including custom deployment names.
+
+```ts
+import { azure, type AzureSpeechModelOptions } from '@ai-sdk/azure';
+import { generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: azure.speech('mai-voice-2-flash'),
+  text: 'Thanks for calling! Your order shipped this morning.',
+  voice: 'en-US-Ethan',
+  providerOptions: {
+    azure: { style: 'excited' } satisfies AzureSpeechModelOptions,
+  },
+});
+```
+
+MAI-Voice models require a Microsoft Foundry (Speech) resource in a region where they are available
+(see [Speech service regions](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/regions)).
+They use the same settings as [MAI-Transcribe](#mai-transcribe): `resourceName` (or `AZURE_RESOURCE_NAME`),
+`apiKey` (or `AZURE_API_KEY`), `tokenProvider`, and `speechBaseURL`.
+
+- **voice** is a prebuilt voice ID that includes its locale, such as `en-US-Harper`
+  (the default), `de-DE-Mia`, or `es-MX-Valeria`. The voice locale selects the language.
+  Full Azure voice names such as `es-MX-Valeria:MAI-Voice-2` are also accepted. Available
+  voices vary by model; see
+  [Azure's MAI-Voice guide](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices).
+- **language** picks a default voice when `voice` is not set (see the table below). Other
+  languages and `auto` use `en-US-Harper` with a warning. When `voice` is set, its locale
+  selects the language, and a conflicting `language` produces a warning.
+- **outputFormat** accepts `mp3` (default, 24 kHz), `wav`, `pcm` (headerless 24 kHz, 16-bit, mono), `opus` (Ogg),
+  or any Azure `X-Microsoft-OutputFormat` value such as `audio-48khz-192kbitrate-mono-mp3`.
+  Other values fall back to `mp3` with a warning. Azure labels raw formats such as `pcm` as `audio/basic`.
+- **speed** is a rate multiplier, for example `0.5` for half speed or `2` for double speed.
+- `instructions` is not supported and produces a warning.
+
+| Language | Default voice   | Language | Default voice |
+| -------- | --------------- | -------- | ------------- |
+| `de`     | `de-DE-Mia`     | `nl`     | `nl-NL-Fleur` |
+| `en`     | `en-US-Harper`  | `pt`     | `pt-BR-Luana` |
+| `es`     | `es-MX-Valeria` | `ro`     | `ro-RO-Elena` |
+| `fr`     | `fr-FR-Soleil`  | `ru`     | `ru-RU-Masha` |
+| `hi`     | `hi-IN-Kavya`   | `th`     | `th-TH-Krit`  |
+| `hu`     | `hu-HU-Lilla`   | `tr`     | `tr-TR-Elif`  |
+| `it`     | `it-IT-Rosa`    | `zh`     | `zh-CN-Mei`   |
+| `ko`     | `ko-KR-Haena`   |          |               |
+
+The following options are available through `providerOptions.azure`:
+
+- **api** _'openai' | 'speech'_
+  Overrides model-based API selection for this request.
+  Set `openai` for an OpenAI deployment named after one of the model IDs above, or `speech` to
+  send another model ID to Speech.
+
+- **style** _string_
+  Speaking style, such as `excited` or `whispering`. Supported styles vary by voice and model.
+
+- **styleDegree** _number_
+  Style intensity from 0.01 to 2. Azure defaults to 1. Requires `style`.
+
+Text is always spoken as plain text; SSML input is not supported.
+The models are in public preview. AI Gateway forwards these provider options, including `azure.api`.

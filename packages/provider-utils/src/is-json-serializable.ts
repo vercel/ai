@@ -1,4 +1,4 @@
-import { JSONValue } from '@ai-sdk/provider';
+import type { JSONValue } from '@ai-sdk/provider';
 
 /**
  * Checks whether a value can cross a workflow serialization boundary.

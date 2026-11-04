@@ -32,7 +32,9 @@ run(async () => {
       }),
     },
     prompt: 'read data for user 123',
-    includeRawChunks: true,
+    include: {
+      rawChunks: true,
+    },
     onStepFinish: ({ toolCalls, toolResults }) => {
       if (toolCalls) {
         console.log(`\ntool calls: ${toolCalls.length}`);
@@ -58,7 +60,7 @@ run(async () => {
   console.log('\nturn 1 response:');
 
   let rawChunkCount = 0;
-  for await (const chunk of turn1.fullStream) {
+  for await (const chunk of turn1.stream) {
     if (chunk.type === 'text-delta') {
       process.stdout.write(chunk.text);
     } else if (chunk.type === 'raw') {
@@ -129,7 +131,9 @@ run(async () => {
     const turn2 = streamText({
       model: google('gemini-3.1-pro-preview'),
       messages: messagesForTurn2,
-      includeRawChunks: true,
+      include: {
+        rawChunks: true,
+      },
       tools: {
         readuserdata: tool({
           description: 'read user data from file',
@@ -145,7 +149,7 @@ run(async () => {
 
     console.log('\nturn 2 response:');
 
-    for await (const chunk of turn2.fullStream) {
+    for await (const chunk of turn2.stream) {
       if (chunk.type === 'text-delta') {
         process.stdout.write(chunk.text);
       }
@@ -183,7 +187,9 @@ run(async () => {
     const turn3 = streamText({
       model: google('gemini-3.1-pro-preview'),
       messages: messagesForTurn3,
-      includeRawChunks: true,
+      include: {
+        rawChunks: true,
+      },
       tools: {
         readuserdata: tool({
           description: 'read user data from file',
@@ -224,7 +230,7 @@ run(async () => {
 
     console.log('\nturn 3 response:');
 
-    for await (const chunk of turn3.fullStream) {
+    for await (const chunk of turn3.stream) {
       if (chunk.type === 'text-delta') {
         process.stdout.write(chunk.text);
       }

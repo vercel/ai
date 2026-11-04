@@ -1,6 +1,6 @@
-import { JSONObject } from '@ai-sdk/provider';
-import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
-import { Warning } from '../types/warning';
+import type { JSONObject } from '@ai-sdk/provider';
+import type { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
+import type { Warning } from '../types/warning';
 
 /**
  * The result of a `transcribe` call.
@@ -15,6 +15,7 @@ export interface TranscriptionResult {
   /**
    * Array of transcript segments with timing information.
    * Each segment represents a portion of the transcribed text with start and end times.
+   * Segments retain the provider's behavior and may represent individual words.
    */
   readonly segments: Array<{
     /**
@@ -27,6 +28,25 @@ export interface TranscriptionResult {
     readonly startSecond: number;
     /**
      * The end time of this segment in seconds.
+     */
+    readonly endSecond: number;
+  }>;
+
+  /**
+   * Word-level timings returned by the provider, whether explicitly requested
+   * or returned by default. Undefined when the provider does not return them.
+   */
+  readonly words?: Array<{
+    /**
+     * The text of this word.
+     */
+    readonly text: string;
+    /**
+     * The start time of this word in seconds.
+     */
+    readonly startSecond: number;
+    /**
+     * The end time of this word in seconds.
      */
     readonly endSecond: number;
   }>;

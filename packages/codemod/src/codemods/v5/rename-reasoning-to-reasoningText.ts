@@ -1,4 +1,4 @@
-import { ASTPath } from 'jscodeshift';
+import type { ASTPath } from 'jscodeshift';
 import { createTransformer } from '../lib/create-transformer';
 
 /*
