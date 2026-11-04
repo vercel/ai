@@ -500,6 +500,68 @@ describe('LegacyOpenTelemetry', () => {
       expect(attrs['ai.prompt.messages']).toBeDefined();
     });
 
+    it.each([undefined, false])(
+      'redacts domain secrets in tool definitions with recordInputs=%s',
+      recordInputs => {
+        const stepTools = [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'python',
+            args: {
+              container: {
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets: [
+                    {
+                      domain: 'example.com',
+                      name: 'API_KEY',
+                      value: 'private-key',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ];
+        const originalTools = structuredClone(stepTools);
+        otelIntegration.onStart!(makeOnStartEvent({ recordInputs }));
+        otelIntegration.onStepStart!(makeStepStartEvent({ stepTools }));
+
+        const definitions = getStartSpanAttributes(tracer, 1)[
+          'ai.prompt.tools'
+        ];
+        if (recordInputs === false) {
+          expect(definitions).toBeUndefined();
+        } else {
+          expect(definitions).toEqual([
+            JSON.stringify({
+              type: 'provider',
+              id: 'openai.code_interpreter',
+              name: 'python',
+              args: {
+                container: {
+                  networkPolicy: {
+                    type: 'allowlist',
+                    allowedDomains: ['example.com'],
+                    domainSecrets: [
+                      {
+                        domain: 'example.com',
+                        name: 'API_KEY',
+                        value: '[redacted]',
+                      },
+                    ],
+                  },
+                },
+              },
+            }),
+          ]);
+        }
+        expect(stepTools).toEqual(originalTools);
+      },
+    );
+
     it('includes tool choice and tools when provided', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(
