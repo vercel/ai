@@ -1922,10 +1922,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings,
       providerMetadata: (() => {
         const stopDetails = mapAnthropicStopDetails(response.stop_details);
+        const serviceTier =
+          response.usage.service_tier ?? response.service_tier;
 
         const anthropicMetadata = {
           usage: response.usage as JSONObject,
           stopSequence: response.stop_sequence ?? null,
+          ...(serviceTier != null ? { serviceTier } : {}),
           ...(stopDetails != null ? { stopDetails } : {}),
           ...(response.input_transformations != null
             ? { inputTransformations: response.input_transformations }
@@ -2086,6 +2089,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       | null = null;
     let rawUsage: JSONObject | undefined = undefined;
     let stopSequence: string | null = null;
+    let serviceTier: string | null = null;
     let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let inputTransformations: AnthropicMessageMetadata['inputTransformations'];
     let safeguardResults: AnthropicMessageMetadata['safeguardResults'];
@@ -3076,6 +3080,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 return;
               }
 
+              serviceTier =
+                value.message.usage.service_tier ??
+                value.message.service_tier ??
+                null;
               isMessageOpen = true;
               activeMessageId = value.message.id;
               heldBackTextByIndex.clear();
@@ -3244,6 +3252,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 safeguardResults = value.delta.safeguard_results;
               }
 
+              serviceTier = value.usage.service_tier ?? serviceTier;
+
               rawUsage = {
                 ...rawUsage,
                 ...(value.usage as JSONObject),
@@ -3259,6 +3269,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,
+                ...(serviceTier != null ? { serviceTier } : {}),
                 ...(stopDetails != null ? { stopDetails } : {}),
                 ...(inputTransformations != null
                   ? { inputTransformations }

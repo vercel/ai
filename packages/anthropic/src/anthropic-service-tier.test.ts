@@ -21,7 +21,7 @@ const message = {
   usage: { input_tokens: 1, output_tokens: 1 },
 };
 
-function events(value: typeof message) {
+function events(value: Record<string, unknown>) {
   return [
     { type: 'message_start', message: value },
     {
@@ -71,5 +71,100 @@ describe('Anthropic service tiers', () => {
     expect(result.warnings).toContainEqual(
       expect.objectContaining({ type: 'unsupported', feature: 'serviceTier' }),
     );
+  });
+});
+
+describe('Anthropic service-tier response metadata', () => {
+  const server = createTestServer({ [url]: {} });
+  const model = createAnthropic({ apiKey: 'test' })('claude-haiku-4-5');
+
+  it.each(['generate', 'stream'] as const)(
+    'reads the applied tier from usage in %s',
+    async mode => {
+      const response = {
+        ...message,
+        service_tier: 'top-level',
+        usage: { ...message.usage, service_tier: 'priority' },
+      };
+      server.urls[url].response =
+        mode === 'generate'
+          ? { type: 'json-value', body: response }
+          : { type: 'stream-chunks', chunks: events(response) };
+      const metadata =
+        mode === 'generate'
+          ? (await model.doGenerate(options)).providerMetadata
+          : (
+              await convertReadableStreamToArray(
+                (
+                  await model.doStream(options)
+                ).stream,
+              )
+            ).find(part => part.type === 'finish')?.providerMetadata;
+      expect(metadata?.anthropic?.serviceTier).toBe('priority');
+    },
+  );
+
+  it.each(['generate', 'stream'] as const)(
+    'retains top-level compatible-provider metadata in %s',
+    async mode => {
+      const response = { ...message, service_tier: 'standard' };
+      server.urls[url].response =
+        mode === 'generate'
+          ? { type: 'json-value', body: response }
+          : { type: 'stream-chunks', chunks: events(response) };
+      const metadata =
+        mode === 'generate'
+          ? (await model.doGenerate(options)).providerMetadata
+          : (
+              await convertReadableStreamToArray(
+                (
+                  await model.doStream(options)
+                ).stream,
+              )
+            ).find(part => part.type === 'finish')?.providerMetadata;
+      expect(metadata?.anthropic?.serviceTier).toBe('standard');
+    },
+  );
+
+  it('does not retain a previous message tier when the next message omits it', async () => {
+    server.urls[url].response = {
+      type: 'stream-chunks',
+      chunks: [
+        ...events({
+          ...message,
+          usage: { ...message.usage, service_tier: 'standard' },
+        }),
+        ...events({ ...message, id: 'msg_second' }),
+      ],
+    };
+    const parts = await convertReadableStreamToArray(
+      (await model.doStream(options)).stream,
+    );
+    const finished = parts.filter(part => part.type === 'finish');
+    expect(
+      finished.map(part => part.providerMetadata?.anthropic?.serviceTier),
+    ).toEqual(['standard', undefined]);
+  });
+
+  it('uses a final usage update when the service tier arrives in a delta', async () => {
+    server.urls[url].response = {
+      type: 'stream-chunks',
+      chunks: [
+        { type: 'message_start', message },
+        {
+          type: 'message_delta',
+          delta: { stop_reason: 'end_turn' },
+          usage: { output_tokens: 1, service_tier: 'priority' },
+        },
+        { type: 'message_stop' },
+      ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+    };
+    const parts = await convertReadableStreamToArray(
+      (await model.doStream(options)).stream,
+    );
+    expect(
+      parts.find(part => part.type === 'finish')?.providerMetadata?.anthropic
+        ?.serviceTier,
+    ).toBe('priority');
   });
 });
