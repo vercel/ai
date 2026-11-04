@@ -10,7 +10,7 @@ We will implement this task in several steps. Each step is a single scoped task 
 
 The steps are below:
 
-1. [ ] Define the most foundational versions of the `HarnessV2` contract types in `packages/harness/src/v2/`, and export them from the package's main entry point (next to the `HarnessV1` types).
+1. [x] Define the most foundational versions of the `HarnessV2` contract types in `packages/harness/src/v2/`, and export them from the package's main entry point (next to the `HarnessV1` types).
    - Never import any `v1/` file from any of the new `v2/` files. Cross-references are strictly prohibited.
    - For types that fully or partly match between V1 and V2, still redeclare them.
 2. [ ] Scaffold a minimal new implementation of the `HarnessAgent` class in `packages/harness/src/agent/v2/harness-agent.ts` that rejects every existing setting but `harness` and `tools`.

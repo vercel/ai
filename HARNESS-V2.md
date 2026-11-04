@@ -353,20 +353,6 @@ interface HarnessV2EffectContext {
   startId: string;
 }
 
-/**
- * Thrown from `drive()` (or from an effect's `fn`) to ask for the drive to be
- * rebuilt from a fresh read of the log, e.g. after the runtime exited mid-turn
- * or the harness diverged from what the log recorded.
- *
- * The agent decides whether to honor it: it restarts the drive a limited
- * number of times per delivery, and only while enough time is left before
- * `deadline`. Past that, the turn fails with this error, so an adapter never
- * counts restarts itself and cannot restart forever.
- */
-declare class HarnessV2RestartError extends Error {
-  constructor(options: { message: string; cause?: unknown });
-}
-
 interface HarnessV2DriveContext {
   /**
    * The session's append-only log: in memory without a World, backed by the
@@ -424,7 +410,7 @@ interface HarnessV2DriveContext {
    * Never rejects with the outcome of `fn`: a thrown error becomes an `error`
    * output, and an abort of `abortSignal` becomes an `interrupted` output, so
    * the first run and a replay return the same shape. The only exception is
-   * `HarnessV2RestartError` thrown from `fn`, which propagates to the agent.
+   * `HarnessInvalidDriveStateError` thrown from `fn`, which propagates to the agent.
    *
    * `fn` is either a regular async function, whose return value is the
    * output, or an async generator, whose yielded values are recorded as
