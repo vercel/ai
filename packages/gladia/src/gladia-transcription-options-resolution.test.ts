@@ -97,3 +97,39 @@ describe('resolveCustomVocabulary', () => {
     });
   });
 });
+
+describe('legacy language precedence', () => {
+  it('treats an explicit config as the complete override', () => {
+    expect(
+      resolveLanguageConfig({
+        languageConfig: { codeSwitching: false },
+        language: 'en',
+        enableCodeSwitching: true,
+        codeSwitchingConfig: { languages: ['fr'] },
+      }),
+    ).toEqual({ languages: undefined, codeSwitching: false });
+    expect(
+      resolveLanguageConfig({ languageConfig: {}, language: 'en' }),
+    ).toEqual({ languages: undefined, codeSwitching: undefined });
+  });
+  it('does not enable code switching from an empty legacy config', () => {
+    expect(resolveLanguageConfig({ codeSwitchingConfig: {} })).toBeUndefined();
+  });
+  it('uses code-switching candidates when enabled', () => {
+    expect(
+      resolveLanguageConfig({
+        language: 'en',
+        enableCodeSwitching: true,
+        codeSwitchingConfig: { languages: ['en', 'fr'] },
+      }),
+    ).toEqual({ languages: ['en', 'fr'], codeSwitching: true });
+  });
+  it('ignores candidates when code switching is disabled', () => {
+    expect(
+      resolveLanguageConfig({
+        enableCodeSwitching: false,
+        codeSwitchingConfig: { languages: ['fr'] },
+      }),
+    ).toEqual({ languages: undefined, codeSwitching: false });
+  });
+});

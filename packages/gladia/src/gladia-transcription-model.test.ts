@@ -461,3 +461,23 @@ describe('legacy option warnings', () => {
     },
   );
 });
+
+it('warns when explicit language configuration overrides legacy fields', async () => {
+  prepareJsonFixtureResponse();
+  const result = await model.doGenerate({
+    audio: audioData,
+    mediaType: 'audio/mp3',
+    providerOptions: {
+      gladia: { languageConfig: { codeSwitching: false }, language: 'en' },
+    },
+  });
+  expect((await server.calls[1].requestBodyJson).language_config).toEqual({
+    code_switching: false,
+  });
+  expect(result.warnings).toContainEqual({
+    type: 'deprecated',
+    setting: 'language',
+    message:
+      'Ignored because languageConfig is provided; remove this deprecated option.',
+  });
+});

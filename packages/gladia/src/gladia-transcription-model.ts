@@ -116,7 +116,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
           warnings.push({
             type: 'deprecated',
             setting,
-            message: 'Use languageConfig instead.',
+            message:
+              gladiaOptions.languageConfig != null
+                ? 'Ignored because languageConfig is provided; remove this deprecated option.'
+                : 'Use languageConfig instead.',
           });
       }
       const { customVocabulary, vocabulary: customVocabularyFromArray } =

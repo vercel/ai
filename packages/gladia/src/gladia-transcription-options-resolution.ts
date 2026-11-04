@@ -8,38 +8,26 @@ export type ResolvedLanguageConfig = {
 export function resolveLanguageConfig(
   options: GladiaTranscriptionModelOptions,
 ): ResolvedLanguageConfig | undefined {
-  const explicitConfig = options.languageConfig;
-  let languages = explicitConfig?.languages;
-  let codeSwitching = explicitConfig?.codeSwitching;
-
-  if (languages == null && options.language != null) {
-    languages = [options.language];
+  if (options.languageConfig != null) {
+    return {
+      languages: options.languageConfig.languages ?? undefined,
+      codeSwitching: options.languageConfig.codeSwitching ?? undefined,
+    };
   }
 
-  if (languages == null && options.codeSwitchingConfig?.languages != null) {
-    languages = options.codeSwitchingConfig.languages;
-  }
+  const codeSwitching = options.enableCodeSwitching ?? undefined;
+  const languages =
+    codeSwitching === true && options.codeSwitchingConfig?.languages != null
+      ? options.codeSwitchingConfig.languages
+      : options.language != null
+        ? [options.language]
+        : options.detectLanguage
+          ? []
+          : undefined;
 
-  if (languages == null && options.detectLanguage) {
-    languages = [];
-  }
-
-  if (codeSwitching == null && options.enableCodeSwitching != null) {
-    codeSwitching = options.enableCodeSwitching;
-  }
-
-  if (codeSwitching == null && options.codeSwitchingConfig != null) {
-    codeSwitching = true;
-  }
-
-  if (languages == null && codeSwitching == null) {
-    return undefined;
-  }
-
-  return {
-    languages,
-    codeSwitching,
-  };
+  return languages == null && codeSwitching == null
+    ? undefined
+    : { languages, codeSwitching };
 }
 
 export function resolveCustomVocabulary(
