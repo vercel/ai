@@ -1,3 +1,5 @@
+import type { FxProviderCredentials } from './fx-subscription';
+
 export type FxToolResult = {
   type: 'libfx.tool-result';
   text: string;
@@ -14,6 +16,7 @@ export type FxTool = {
   name: string;
   description: string;
   inputSchema: unknown;
+  idempotent: boolean;
   execute: (
     input: unknown,
     context: { signal: AbortSignal },
@@ -53,14 +56,53 @@ export type FxTurn = AsyncIterable<FxRuntimeEvent> & {
   result: Promise<{ stopReason: string; usage?: Record<string, number> }>;
 };
 
-export type FxAgent = {
+export type FxEngine = {
   prompt(input: FxPrompt, options?: { signal?: AbortSignal }): FxTurn;
   checkpoint(): Promise<Uint8Array>;
   close(): Promise<void>;
 };
 
-export type FxRuntimeOptions = {
-  apiKey: string;
+type FxCredentialRequest = { provider: 'codex' | 'grok'; sessionId?: string };
+
+export type FxSessionUpdate = {
+  sessionUpdate?: string;
+  toolCallId?: string;
+  name?: string;
+  toolName?: string;
+  title?: string;
+  content?: { type?: string; text?: string };
+};
+
+export type FxModelEnd = {
+  finishReason?: string | null;
+  usage?: {
+    inputTokens: number | null;
+    outputTokens: number | null;
+    cacheReadTokens: number | null;
+    cacheWriteTokens: number | null;
+    reasoningTokens: number | null;
+  };
+};
+
+export type FxRuntimeOptions = (
+  | {
+      provider?: 'gateway';
+      apiKey: string;
+      credentials?: undefined;
+      onCredentials?: undefined;
+    }
+  | {
+      provider: 'codex' | 'grok';
+      apiKey?: undefined;
+      credentials(
+        request: FxCredentialRequest,
+      ): FxProviderCredentials | Promise<FxProviderCredentials>;
+      onCredentials?(
+        credentials: FxProviderCredentials,
+        info: FxCredentialRequest,
+      ): void | Promise<void>;
+    }
+) & {
   model?:
     | string
     | { id: string; effort?: string; fast?: boolean; ultrafast?: boolean };
@@ -72,20 +114,23 @@ export type FxRuntimeOptions = {
   checkpoint?: Uint8Array;
   fetch: typeof globalThis.fetch;
   backend?: 'auto' | 'native' | 'wasm';
+  hooks?: {
+    onEvent(event: { type: string; data: FxModelEnd }): void;
+  };
   onEvent?: (event: { type: string; message?: unknown }) => void;
 };
 
 /*
- * The pinned stable SDK ships JavaScript without declarations. Keeping its
- * small, source-verified boundary here avoids ambient declarations and keeps
- * upstream implementation types out of the package's public API.
+ * Keeping a small, source-verified runtime boundary here keeps upstream
+ * implementation types out of the package's public API and lets the adapter
+ * describe only the runtime operations it uses.
  */
 export async function createFxRuntime(
   options: FxRuntimeOptions,
-): Promise<FxAgent> {
+): Promise<FxEngine> {
   const packageName: string = 'libfx';
   const runtime = (await import(packageName)) as {
-    createFxAgent(options: FxRuntimeOptions): Promise<FxAgent>;
+    createFxEngine(options: FxRuntimeOptions): Promise<FxEngine>;
   };
-  return runtime.createFxAgent(options);
+  return runtime.createFxEngine(options);
 }

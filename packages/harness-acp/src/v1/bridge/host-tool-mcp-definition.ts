@@ -9,8 +9,8 @@ import type { HostToolRelay } from './host-tool-relay';
  * Builds the ACP `session/new` definition for the harness-owned MCP server
  * that exposes host tools. The stdio transport launches `host-tool-mcp.mjs`,
  * which bridges back to the relay over its private HTTP protocol. The http
- * transport points the ACP implementation straight at the relay's own MCP
- * endpoint, which is required by implementations that reject client-supplied
+ * transport points the ACP agent straight at the relay's own MCP
+ * endpoint, which is required by agents that reject client-supplied
  * stdio MCP servers.
  */
 export function createHostToolMcpServerDefinition({

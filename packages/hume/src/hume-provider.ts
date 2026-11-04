@@ -4,6 +4,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
@@ -24,9 +26,10 @@ export interface HumeProvider extends ProviderV4 {
 
 export interface HumeProviderSettings {
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -45,16 +48,18 @@ export interface HumeProviderSettings {
  */
 export function createHume(options: HumeProviderSettings = {}): HumeProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        'X-Hume-Api-Key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'HUME_API_KEY',
-          description: 'Hume',
-        }),
-        ...options.headers,
-      },
-      `ai-sdk-hume/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          'X-Hume-Api-Key': loadApiKey({
+            apiKey,
+            environmentVariableName: 'HUME_API_KEY',
+            description: 'Hume',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-hume/${VERSION}`,
+      ),
     );
 
   const createSpeechModel = () =>

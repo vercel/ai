@@ -76,7 +76,7 @@ export type BrowserbaseFetchOutput =
   | BrowserbaseFetchError
   | BrowserbaseFetchResponse;
 
-const jsonObjectSchema = z.record(z.string(), z.unknown());
+const jsonObjectSchema = () => z.record(z.string(), z.unknown());
 
 const browserbaseFetchInputSchema = lazySchema(() =>
   zodSchema(
@@ -104,7 +104,7 @@ const browserbaseFetchInputSchema = lazySchema(() =>
         .describe(
           'Output format. raw returns the response body unchanged, markdown returns page content as Markdown, and json returns structured content using schema.',
         ),
-      schema: jsonObjectSchema
+      schema: jsonObjectSchema()
         .optional()
         .describe(
           'JSON Schema for structured extraction. Only use with format set to json.',
@@ -118,7 +118,7 @@ const browserbaseFetchOutputSchema = lazySchema(() =>
     z.union([
       z.object({
         id: z.string(),
-        content: z.union([z.string(), jsonObjectSchema]),
+        content: z.union([z.string(), jsonObjectSchema()]),
         contentType: z.string(),
         encoding: z.string(),
         headers: z.record(z.string(), z.string()),

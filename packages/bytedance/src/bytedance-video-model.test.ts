@@ -75,6 +75,63 @@ describe('ByteDanceVideoModel', () => {
           },
         },
       },
+    'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/abc%2F..%2F..%2Finternal':
+      {
+        response: {
+          type: 'json-value',
+          body: {
+            id: 'test-task-id-123',
+            model: 'seedance-1-0-pro-250528',
+            status: 'succeeded',
+            content: {
+              video_url: 'https://bytedance.cdn/files/video-output.mp4',
+              last_frame_url:
+                'https://bytedance.cdn/files/video-output-last-frame.png',
+            },
+            usage: {
+              completion_tokens: 100,
+            },
+          },
+        },
+      },
+    'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/%252E':
+      {
+        response: {
+          type: 'json-value',
+          body: {
+            id: 'test-task-id-123',
+            model: 'seedance-1-0-pro-250528',
+            status: 'succeeded',
+            content: {
+              video_url: 'https://bytedance.cdn/files/video-output.mp4',
+              last_frame_url:
+                'https://bytedance.cdn/files/video-output-last-frame.png',
+            },
+            usage: {
+              completion_tokens: 100,
+            },
+          },
+        },
+      },
+    'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/%252E%252E':
+      {
+        response: {
+          type: 'json-value',
+          body: {
+            id: 'test-task-id-123',
+            model: 'seedance-1-0-pro-250528',
+            status: 'succeeded',
+            content: {
+              video_url: 'https://bytedance.cdn/files/video-output.mp4',
+              last_frame_url:
+                'https://bytedance.cdn/files/video-output-last-frame.png',
+            },
+            usage: {
+              completion_tokens: 100,
+            },
+          },
+        },
+      },
   });
 
   describe('constructor', () => {
@@ -187,6 +244,26 @@ describe('ByteDanceVideoModel', () => {
           },
         ],
         seed: 42,
+      });
+    });
+
+    it('should pass seed when it is 0', async () => {
+      const model = createBasicModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        seed: 0,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'seedance-1-0-pro-250528',
+        content: [
+          {
+            type: 'text',
+            text: prompt,
+          },
+        ],
+        seed: 0,
       });
     });
 
@@ -1715,6 +1792,35 @@ describe('ByteDanceVideoModel', () => {
   });
 
   describe('doStatus', () => {
+    it('should encode the task ID as a single URL path segment', async () => {
+      const model = createBasicModel();
+      const taskId = 'abc/../../internal';
+
+      await model.doStatus({ operation: { taskId } });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/${encodeURIComponent(
+          taskId,
+        )}`,
+      );
+    });
+
+    it.each([
+      { taskId: '.', encodedTaskId: '%252E' },
+      { taskId: '..', encodedTaskId: '%252E%252E' },
+    ])(
+      'should preserve the $taskId task ID as a URL path segment',
+      async ({ taskId, encodedTaskId }) => {
+        const model = createBasicModel();
+
+        await model.doStatus({ operation: { taskId } });
+
+        expect(server.calls[0].requestUrl).toBe(
+          `https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/${encodedTaskId}`,
+        );
+      },
+    );
+
     it('should return completed with video data when succeeded', async () => {
       const model = createBasicModel();
 

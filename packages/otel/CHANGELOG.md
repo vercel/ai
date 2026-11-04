@@ -1,5 +1,161 @@
 # @ai-sdk/otel
 
+## 1.0.162
+
+### Patch Changes
+
+- 4d6d830: Support a single telemetry operation for durable `WorkflowAgent` runs, including the prompt, final output, steps, and tools. Events recorded in the workflow are reported on completion or suspension with their original timestamps. For OpenTelemetry, pass the same `OpenTelemetryIdGenerator` instance as the tracer provider's `idGenerator` and `sampler` and as `new OpenTelemetry({ durable })`. This explicit bridge carries parent trace context and sampling across steps, reports model spans live with provider requests nested beneath them, and reconstructs the enclosing `invoke_agent` tree when the run completes. Without the bridge, existing live per-model tracing is preserved. Add typed experimental durable context hooks for telemetry integrations; remove reliance on process-global ID-generator detection.
+- Updated dependencies [857ca45]
+- Updated dependencies [4d6d830]
+  - ai@7.0.162
+
+## 1.0.161
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+  - ai@7.0.161
+
+## 1.0.160
+
+### Patch Changes
+
+- 5946558: Record the `gen_ai.client.inference.duration` OpenTelemetry histogram in seconds for `generateText` and `streamText` model calls, including errors, cancellation, and failed stream retry attempts, so configured metric exporters can report inference latency.
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
+## 1.0.159
+
+### Patch Changes
+
+- ai@7.0.159
+
+## 1.0.158
+
+### Patch Changes
+
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - ai@7.0.158
+  - @ai-sdk/provider@4.0.35
+
+## 1.0.157
+
+### Patch Changes
+
+- Updated dependencies [0cc4921]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+
+## 1.0.156
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 1.0.155
+
+### Patch Changes
+
+- Updated dependencies [b6b9dca]
+  - ai@7.0.155
+
+## 1.0.154
+
+### Patch Changes
+
+- 47236dd: add onStepError callback to generateText, streamText, ToolLoopAgent and telemetry integrations, and onError and onAbort to ToolLoopAgent
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+
+## 1.0.153
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - ai@7.0.153
+
+## 1.0.152
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 1.0.151
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 1.0.150
+
+### Patch Changes
+
+- Updated dependencies [8e18d59]
+- Updated dependencies [85d84a1]
+  - ai@7.0.150
+  - @ai-sdk/provider@4.0.33
+
+## 1.0.149
+
+### Patch Changes
+
+- e6a568d: Add an `agentSpanName` option to `OpenTelemetry` to name root agent spans using `functionId` or a custom callback. Preserve model-based span names by default.
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+  - @ai-sdk/provider@4.0.32
+
+## 1.0.148
+
+### Patch Changes
+
+- ai@7.0.148
+
+## 1.0.147
+
+### Patch Changes
+
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 1.0.146
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+  - @ai-sdk/provider@4.0.31
+
+## 1.0.145
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 1.0.144
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - @ai-sdk/provider@4.0.30
+  - ai@7.0.144
+
 ## 1.0.143
 
 ### Patch Changes

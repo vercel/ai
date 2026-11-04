@@ -43,6 +43,7 @@ import {
 import { createMcpToolErrorMiddleware } from './mcp-tool-errors';
 import {
   loadMemorySaver,
+  pruneMemorySaver,
   removeMemorySaverSnapshot,
   saveMemorySaver,
 } from './persistent-memory-saver';
@@ -286,10 +287,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit = (event: Record<string, unknown>) =>
     turn.emit(event as BridgeEvent);
 
-  const interruptOn = buildInterruptOn(
-    start.permissionMode,
-    start.builtinToolFiltering,
-  );
+  const interruptOn = buildInterruptOn({
+    permissionMode: start.permissionMode,
+    builtinToolFiltering: start.builtinToolFiltering,
+    workDir: workdir,
+    readableSkillRoots: start.readableSkillRoots ?? [],
+  });
   const config = {
     version: 'v2' as const,
     configurable: { thread_id: 'bridge-session' },
@@ -302,6 +305,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     instructions: start.instructions,
     tools: start.tools,
     skillsPaths: start.skillsPaths,
+    permissionMode: start.permissionMode,
+    builtinToolFiltering: start.builtinToolFiltering,
+    readableSkillRoots: start.readableSkillRoots,
   });
   const rebuildAgent =
     agent == null ||
@@ -395,7 +401,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   };
 
   let resumeInput: unknown = {
-    messages: [{ role: 'user', content: start.prompt }],
+    messages: [
+      {
+        role: 'user',
+        content:
+          typeof start.prompt === 'string'
+            ? start.prompt
+            : start.prompt.map(part =>
+                part.type === 'text'
+                  ? part
+                  : {
+                      type: 'image' as const,
+                      mimeType: part.mediaType,
+                      data: part.data,
+                    },
+              ),
+      },
+    ],
   };
   let emittedStructuredOutput = false;
 
@@ -517,7 +539,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 await runBridge<StartMessage>({
   bridgeType: 'deepagents',
   bridgeStateDir: bridgeStateDir!,
-  onStart: runTurn,
+  onStart: async (start, turn) => {
+    try {
+      await runTurn(start, turn);
+    } finally {
+      pruneMemorySaver({ saver: checkpointer });
+    }
+  },
   onStop: async () => {
     await closeMcpClient();
     await saveMemorySaver({

@@ -8,6 +8,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
@@ -29,11 +31,15 @@ import {
 } from './heygen-video-model-options';
 import type { HeyGenVideoModelId } from './heygen-video-settings';
 
-const operationSchema = z.object({
-  videoId: z.string().min(1),
-  mode: z.enum(['text_to_video', 'image_to_video', 'reference_to_video']),
-  resolution: z.enum(['480p', '768p', '1080p', '2k']),
-});
+const operationSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      videoId: z.string().min(1),
+      mode: z.enum(['text_to_video', 'image_to_video', 'reference_to_video']),
+      resolution: z.enum(['480p', '768p', '1080p', '2k']),
+    }),
+  ),
+);
 
 // HeyGen's named size classes do not consistently equal the short edge.
 // https://developers.heygen.com/docs/models/heygen-video#output
@@ -105,17 +111,6 @@ export class HeyGenVideoModel implements VideoModelV4 {
       throw new InvalidArgumentError({
         argument: 'prompt',
         message: 'HeyGen requires a prompt between 1 and 32,000 characters.',
-      });
-    }
-    if (
-      options.duration != null &&
-      (!Number.isInteger(options.duration) ||
-        options.duration < 5 ||
-        options.duration > 15)
-    ) {
-      throw new InvalidArgumentError({
-        argument: 'duration',
-        message: 'HeyGen duration must be an integer between 5 and 15 seconds.',
       });
     }
     if (
@@ -220,6 +215,17 @@ export class HeyGenVideoModel implements VideoModelV4 {
         : referenceCount > 0
           ? 'reference_to_video'
           : 'text_to_video');
+    if (
+      options.duration != null &&
+      (!Number.isInteger(options.duration) || options.duration <= 0)
+    ) {
+      throw new InvalidArgumentError({
+        argument: 'duration',
+        message:
+          'HeyGen duration must be a positive integer number of seconds.',
+      });
+    }
+
     if (
       (mode === 'image_to_video' && image == null) ||
       (mode !== 'image_to_video' && image != null)

@@ -16,6 +16,7 @@ import type {
   TranscriptionStartEvent,
 } from './transcription-events';
 import type { Warning } from '../types/warning';
+import { VERSION } from '../version';
 
 vi.mock('../version', () => {
   return {
@@ -395,6 +396,7 @@ describe('transcribe', () => {
         },
         {
           type: 'error',
+          aiVersion: VERSION,
           callId: 'call-download-error',
           error,
         },
@@ -593,7 +595,7 @@ describe('transcribe', () => {
           text: sampleTranscript.text,
           audio: { byteLength: 4, mediaType: 'audio/wav' },
           usage: { inputTokens: 12 },
-          providerMetadata: { mock: { traceId: 'trace-1' } },
+          providerMetadata: undefined,
           functionId: 'transcribe-audio',
         },
       },
@@ -619,6 +621,7 @@ describe('transcribe', () => {
     ).rejects.toBe(error);
 
     expect(onError).toHaveBeenCalledExactlyOnceWith({
+      aiVersion: VERSION,
       callId: 'call-1',
       error,
     });

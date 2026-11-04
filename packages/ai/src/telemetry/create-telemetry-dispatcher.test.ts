@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { VERSION } from '../version';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
 import type { Telemetry } from './telemetry';
 import { registerTelemetry } from './telemetry-registry';
@@ -6,6 +7,7 @@ import { registerTelemetry } from './telemetry-registry';
 const dummyEvent = {} as any;
 const augmentedDummyEvent = {
   ...dummyEvent,
+  aiVersion: VERSION,
   recordInputs: undefined,
   recordOutputs: undefined,
   functionId: undefined,
@@ -71,6 +73,22 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onStart!(dummyEvent);
 
     expect(integration.onStart).toHaveBeenCalledWith(augmentedDummyEvent);
+  });
+
+  it('adds the emitting SDK version without modifying the original event', async () => {
+    const onStart = vi.fn();
+    const event = Object.freeze({
+      ...dummyEvent,
+      aiVersion: 'other-version',
+    });
+    const telemetry = createTelemetryDispatcher({
+      telemetry: { integrations: { onStart } },
+    });
+
+    await telemetry.onStart!(event);
+
+    expect(onStart).toHaveBeenCalledWith(augmentedDummyEvent);
+    expect(event.aiVersion).toBe('other-version');
   });
 
   it('accepts an array of integrations', () => {
@@ -516,10 +534,13 @@ describe('createTelemetryDispatcher', () => {
     it('wraps execute with a single integration', async () => {
       const execute = vi.fn().mockResolvedValue('result');
       let wrapperCalls = 0;
+      let version: string | undefined;
       const wrapper: Telemetry['executeLanguageModelCall'] = async ({
         execute,
+        aiVersion,
       }) => {
         wrapperCalls += 1;
+        version = aiVersion;
         return `wrapped:${await execute()}` as any;
       };
 
@@ -535,6 +556,7 @@ describe('createTelemetryDispatcher', () => {
       ).resolves.toBe('wrapped:result');
 
       expect(wrapperCalls).toBe(1);
+      expect(version).toBe(VERSION);
       expect(execute).toHaveBeenCalledOnce();
     });
 
@@ -584,8 +606,13 @@ describe('createTelemetryDispatcher', () => {
     it('wraps execute with a single integration', async () => {
       const execute = vi.fn().mockResolvedValue('result');
       let wrapperCalls = 0;
-      const wrapper: Telemetry['executeTool'] = async ({ execute }) => {
+      let version: string | undefined;
+      const wrapper: Telemetry['executeTool'] = async ({
+        execute,
+        aiVersion,
+      }) => {
         wrapperCalls += 1;
+        version = aiVersion;
         return `wrapped:${await execute()}` as any;
       };
 
@@ -602,6 +629,7 @@ describe('createTelemetryDispatcher', () => {
       ).resolves.toBe('wrapped:result');
 
       expect(wrapperCalls).toBe(1);
+      expect(version).toBe(VERSION);
       expect(execute).toHaveBeenCalledOnce();
     });
 
@@ -693,5 +721,114 @@ describe('createTelemetryDispatcher', () => {
 
       expect(integration.calls).toBe(1);
     });
+  });
+});
+
+describe('recordInputs / recordOutputs filtering', () => {
+  const promptEvent = {
+    callId: 'call-1',
+    operationId: 'ai.generateText',
+    instructions: 'secret instructions',
+    messages: [{ role: 'user', content: 'secret prompt' }],
+    modelId: 'model-1',
+  } as any;
+
+  it('strips input content from events sent to integrations when recordInputs is false', async () => {
+    const integration: Telemetry = { onStart: vi.fn() };
+    const telemetry = createTelemetryDispatcher({
+      telemetry: { integrations: integration, recordInputs: false },
+    });
+
+    await telemetry.onStart!(promptEvent);
+
+    const delivered = vi.mocked(integration.onStart!).mock.calls[0][0] as any;
+    expect(delivered.instructions).toBeUndefined();
+    expect(delivered.messages).toEqual([]);
+    expect(delivered.modelId).toBe('model-1');
+    expect(delivered.recordInputs).toBe(false);
+  });
+
+  it('strips output content when recordOutputs is false', async () => {
+    const integration: Telemetry = { onEnd: vi.fn() };
+    const telemetry = createTelemetryDispatcher({
+      telemetry: { integrations: integration, recordOutputs: false },
+    });
+
+    await telemetry.onEnd!({
+      callId: 'call-1',
+      operationId: 'ai.generateText',
+      content: [{ type: 'text', text: 'secret reply' }],
+      text: 'secret reply',
+      responseMessages: [{ role: 'assistant', content: 'secret reply' }],
+      usage: { inputTokens: 1, outputTokens: 1 },
+    } as any);
+
+    const delivered = vi.mocked(integration.onEnd!).mock.calls[0][0] as any;
+    expect(delivered.content).toEqual([]);
+    expect(delivered.text).toBe('');
+    expect(delivered.responseMessages).toEqual([]);
+    expect(delivered.usage).toEqual({ inputTokens: 1, outputTokens: 1 });
+  });
+
+  it('keeps content when the flags are not set', async () => {
+    const integration: Telemetry = { onStart: vi.fn() };
+    const telemetry = createTelemetryDispatcher({
+      telemetry: { integrations: integration },
+    });
+
+    await telemetry.onStart!(promptEvent);
+
+    const delivered = vi.mocked(integration.onStart!).mock.calls[0][0] as any;
+    expect(delivered.instructions).toBe('secret instructions');
+    expect(delivered.messages).toEqual([
+      { role: 'user', content: 'secret prompt' },
+    ]);
+  });
+
+  it('does not mutate the original event object', async () => {
+    const integration: Telemetry = { onStart: vi.fn() };
+    const telemetry = createTelemetryDispatcher({
+      telemetry: { integrations: integration, recordInputs: false },
+    });
+    const original = {
+      ...promptEvent,
+      toolCall: { toolName: 'search', input: { q: 'secret' } },
+    } as any;
+
+    await telemetry.onStart!(original);
+
+    expect(original.instructions).toBe('secret instructions');
+    expect(original.toolCall.input).toEqual({ q: 'secret' });
+    const delivered = vi.mocked(integration.onStart!).mock.calls[0][0] as any;
+    expect(delivered.toolCall.input).toBeUndefined();
+    expect(delivered.toolCall.toolName).toBe('search');
+  });
+
+  it('treats text as input for speech and as output elsewhere', async () => {
+    const speechIntegration: Telemetry = { onStart: vi.fn() };
+    const speechTelemetry = createTelemetryDispatcher({
+      telemetry: { integrations: speechIntegration, recordInputs: false },
+    });
+    await speechTelemetry.onStart!({
+      callId: 'call-1',
+      operationId: 'ai.generateSpeech',
+      text: 'secret narration',
+    } as any);
+    expect(
+      (vi.mocked(speechIntegration.onStart!).mock.calls[0][0] as any).text,
+    ).toBe('');
+
+    const textIntegration: Telemetry = { onEnd: vi.fn() };
+    const textTelemetry = createTelemetryDispatcher({
+      telemetry: { integrations: textIntegration, recordInputs: false },
+    });
+    await textTelemetry.onEnd!({
+      callId: 'call-1',
+      operationId: 'ai.generateText',
+      text: 'generated reply',
+    } as any);
+    expect(
+      (vi.mocked(textIntegration.onEnd!).mock.calls[0][0] as any).text,
+    ).toBe('generated reply');
   });
 });

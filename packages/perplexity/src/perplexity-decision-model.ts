@@ -6,6 +6,8 @@ import {
   type Experimental_DecisionModelV4Answer as DecisionModelV4Answer,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
@@ -25,6 +27,10 @@ import {
 } from './perplexity-agent-api';
 
 import type { PerplexityDecisionModelId } from './perplexity-decision-model-options';
+import {
+  getPerplexityDecisionModelEntry,
+  type perplexityDecisionModelLimits,
+} from './perplexity-model-catalog';
 
 type PerplexityDecisionConfig = {
   provider: string;
@@ -35,12 +41,17 @@ type PerplexityDecisionConfig = {
 
 export class DecisionPerplexityModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
-  readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
+  readonly supportedQuestionTypes: typeof perplexityDecisionModelLimits.supportedQuestionTypes;
 
   constructor(
     readonly modelId: PerplexityDecisionModelId,
     private readonly config: PerplexityDecisionConfig,
-  ) {}
+  ) {
+    this.supportedQuestionTypes =
+      getPerplexityDecisionModelEntry(
+        modelId,
+      ).capabilities.decision.supportedQuestionTypes;
+  }
 
   get provider() {
     return this.config.provider;
@@ -63,18 +74,22 @@ export class DecisionPerplexityModel implements DecisionModelV4 {
   async doDecide({
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     headers,
     abortSignal,
     providerOptions,
   }: Parameters<DecisionModelV4['doDecide']>[0]): Promise<
     Awaited<ReturnType<DecisionModelV4['doDecide']>>
   > {
+    const { decision } = getPerplexityDecisionModelEntry(
+      this.modelId,
+    ).capabilities;
     const entries = Object.entries(questions);
-    if (entries.length === 0 || entries.length > 128) {
+    if (entries.length === 0 || entries.length > decision.maxQuestions) {
       throw new InvalidArgumentError({
         argument: 'questions',
-        message:
-          'Perplexity Decisions supports 1 to 128 questions per request.',
+        message: `Perplexity Decisions supports 1 to ${decision.maxQuestions} questions per request.`,
       });
     }
     const nativeQuestions = Object.fromEntries(
@@ -97,11 +112,10 @@ export class DecisionPerplexityModel implements DecisionModelV4 {
             ];
           case 'choice': {
             const count = Object.keys(question.criteria).length;
-            if (count === 0 || count > 255) {
+            if (count === 0 || count > decision.maxChoiceOptions) {
               throw new InvalidArgumentError({
                 argument: `questions.${id}.criteria`,
-                message:
-                  'Perplexity Choice questions support 1 to 255 options.',
+                message: `Perplexity Choice questions support 1 to ${decision.maxChoiceOptions} options.`,
               });
             }
             return [
@@ -116,13 +130,12 @@ export class DecisionPerplexityModel implements DecisionModelV4 {
           case 'score':
             if (
               question.criteria.length === 0 ||
-              question.criteria.length > 10 ||
+              question.criteria.length > decision.maxScoreLevels ||
               question.criteria.some(level => level === null)
             ) {
               throw new InvalidArgumentError({
                 argument: `questions.${id}.criteria`,
-                message:
-                  'Perplexity Score questions require 1 to 10 non-null levels.',
+                message: `Perplexity Score questions require 1 to ${decision.maxScoreLevels} non-null levels.`,
               });
             }
             return [
@@ -209,10 +222,18 @@ export class DecisionPerplexityModel implements DecisionModelV4 {
               outputTokens: response.usage.output_tokens ?? undefined,
             },
       // Perplexity returns full-precision probabilities; no rounding allowance.
-      warnings: Object.keys(providerOptions?.perplexity ?? {}).map(option => ({
-        type: 'unsupported',
-        feature: `providerOptions.perplexity.${option}`,
-      })),
+      warnings: [
+        ...(maxOutputTokens != null && decision.maxOutputTokens === false
+          ? [{ type: 'unsupported' as const, feature: 'maxOutputTokens' }]
+          : []),
+        ...(reasoning != null && decision.reasoning === false
+          ? [{ type: 'unsupported' as const, feature: 'reasoning' }]
+          : []),
+        ...Object.keys(providerOptions?.perplexity ?? {}).map(option => ({
+          type: 'unsupported' as const,
+          feature: `providerOptions.perplexity.${option}`,
+        })),
+      ],
       providerMetadata: {
         perplexity: {
           confidence: Object.fromEntries(
@@ -241,32 +262,36 @@ export class DecisionPerplexityModel implements DecisionModelV4 {
   }
 }
 
-const probability = z.number().min(0).max(1);
-const perplexityDecisionResponseSchema = z.object({
-  model: z.string().nullish(),
-  answers: z.record(
-    z.string(),
-    z.discriminatedUnion('type', [
-      z.object({ type: z.literal('noul'), noul: probability }),
-      z.object({
-        type: z.literal('choice'),
-        choice: z.string(),
-        probabilities: z.record(z.string(), probability),
-        confidence: probability.nullish(),
-      }),
-      z.object({
-        type: z.literal('score'),
-        score: z.number(),
-        probabilities: z.record(z.string(), probability),
-        confidence: probability.nullish(),
-        legend: z.record(z.string(), z.json()).nullish(),
-      }),
-    ]),
+const probability = () => z.number().min(0).max(1);
+const perplexityDecisionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      model: z.string().nullish(),
+      answers: z.record(
+        z.string(),
+        z.discriminatedUnion('type', [
+          z.object({ type: z.literal('noul'), noul: probability() }),
+          z.object({
+            type: z.literal('choice'),
+            choice: z.string(),
+            probabilities: z.record(z.string(), probability()),
+            confidence: probability().nullish(),
+          }),
+          z.object({
+            type: z.literal('score'),
+            score: z.number(),
+            probabilities: z.record(z.string(), probability()),
+            confidence: probability().nullish(),
+            legend: z.record(z.string(), z.json()).nullish(),
+          }),
+        ]),
+      ),
+      usage: z
+        .object({
+          input_tokens: z.number().nullish(),
+          output_tokens: z.number().nullish(),
+        })
+        .nullish(),
+    }),
   ),
-  usage: z
-    .object({
-      input_tokens: z.number().nullish(),
-      output_tokens: z.number().nullish(),
-    })
-    .nullish(),
-});
+);

@@ -1,5 +1,7 @@
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
@@ -358,60 +360,70 @@ const falValidationErrorSchema = z.object({
 type ValidationError = z.infer<typeof falValidationErrorSchema>;
 
 // Other errors have a message property
-const falHttpErrorSchema = z.object({
-  message: z.string(),
-});
+const falHttpErrorSchema = () =>
+  z.object({
+    message: z.string(),
+  });
 
-const falErrorSchema = z.union([falValidationErrorSchema, falHttpErrorSchema]);
+const falErrorSchema = lazySchema(() =>
+  zodSchema(z.union([falValidationErrorSchema, falHttpErrorSchema()])),
+);
 
-const falImageSchema = z.object({
-  url: z.string(),
-  width: z.number().nullish(),
-  height: z.number().nullish(),
-  // e.g. https://fal.ai/models/fal-ai/fashn/tryon/v1.6/api#schema-output
-  content_type: z.string().nullish(),
-  // e.g. https://fal.ai/models/fal-ai/flowedit/api#schema-output
-  file_name: z.string().nullish(),
-  file_data: z.string().optional(),
-  file_size: z.number().nullish(),
-});
+const falImageSchema = () =>
+  z.object({
+    url: z.string(),
+    width: z.number().nullish(),
+    height: z.number().nullish(),
+    // e.g. https://fal.ai/models/fal-ai/fashn/tryon/v1.6/api#schema-output
+    content_type: z.string().nullish(),
+    // e.g. https://fal.ai/models/fal-ai/flowedit/api#schema-output
+    file_name: z.string().nullish(),
+    file_data: z.string().optional(),
+    file_size: z.number().nullish(),
+  });
 
 // https://fal.ai/models/fal-ai/lora/api#type-File
-const loraFileSchema = z.object({
-  url: z.string(),
-  content_type: z.string().optional(),
-  file_name: z.string().nullable().optional(),
-  file_data: z.string().optional(),
-  file_size: z.number().nullable().optional(),
-});
+const loraFileSchema = () =>
+  z.object({
+    url: z.string(),
+    content_type: z.string().optional(),
+    file_name: z.string().nullable().optional(),
+    file_data: z.string().optional(),
+    file_size: z.number().nullable().optional(),
+  });
 
-const commonResponseSchema = z.object({
-  timings: z
-    .object({
-      inference: z.number().optional(),
-    })
-    .optional(),
-  seed: z.number().optional(),
-  has_nsfw_concepts: z.array(z.boolean()).optional(),
-  prompt: z.string().optional(),
-  // https://fal.ai/models/fal-ai/lcm/api#schema-output
-  nsfw_content_detected: z.array(z.boolean()).optional(),
-  num_inference_steps: z.number().optional(),
-  // https://fal.ai/models/fal-ai/lora/api#schema-output
-  debug_latents: loraFileSchema.optional(),
-  debug_per_pass_latents: loraFileSchema.optional(),
-});
+const commonResponseSchema = () =>
+  z.object({
+    timings: z
+      .object({
+        inference: z.number().optional(),
+      })
+      .optional(),
+    seed: z.number().optional(),
+    has_nsfw_concepts: z.array(z.boolean()).optional(),
+    prompt: z.string().optional(),
+    // https://fal.ai/models/fal-ai/lcm/api#schema-output
+    nsfw_content_detected: z.array(z.boolean()).optional(),
+    num_inference_steps: z.number().optional(),
+    // https://fal.ai/models/fal-ai/lora/api#schema-output
+    debug_latents: loraFileSchema().optional(),
+    debug_per_pass_latents: loraFileSchema().optional(),
+  });
 
 // Most FAL image models respond with an array of images, but some have a response
 // with a single image, e.g. https://fal.ai/models/easel-ai/easel-avatar/api#schema-output
-const base = z.looseObject(commonResponseSchema.shape);
-const falImageResponseSchema = z
-  .union([
-    base.extend({ images: z.array(falImageSchema) }),
-    base.extend({ image: falImageSchema }),
-  ])
-  .transform(v => ('images' in v ? v : { ...v, images: [v.image] }))
-  .pipe(base.extend({ images: z.array(falImageSchema) }));
+const base = () => z.looseObject(commonResponseSchema().shape);
+const falImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z
+      .union([
+        base().extend({ images: z.array(falImageSchema()) }),
+        base().extend({ image: falImageSchema() }),
+      ])
+      .transform(v => ('images' in v ? v : { ...v, images: [v.image] }))
+      .pipe(base().extend({ images: z.array(falImageSchema()) })),
+  ),
+);
 
 function isValidationError(error: unknown): error is ValidationError {
   return falValidationErrorSchema.safeParse(error).success;

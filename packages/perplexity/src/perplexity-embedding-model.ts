@@ -3,6 +3,10 @@ import {
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonErrorResponseHandler,
@@ -23,20 +27,23 @@ import {
   perplexityErrorSchema,
   perplexityErrorToMessage,
 } from './perplexity-language-model';
+import {
+  getPerplexityEmbeddingModelEntry,
+  perplexityEmbeddingModelLimits,
+} from './perplexity-model-catalog';
 
 type PerplexityEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
 export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: PerplexityEmbeddingModelId;
-  // https://docs.perplexity.ai/docs/embeddings/standard-embeddings
-  readonly maxEmbeddingsPerCall = 512;
-  readonly supportsParallelCalls = true;
+  readonly maxEmbeddingsPerCall: typeof perplexityEmbeddingModelLimits.maxEmbeddingsPerCall;
+  readonly supportsParallelCalls: typeof perplexityEmbeddingModelLimits.supportsParallelCalls;
 
   private readonly config: PerplexityEmbeddingConfig;
 
@@ -64,6 +71,11 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
   ) {
     this.modelId = modelId;
     this.config = config;
+    const limits =
+      getPerplexityEmbeddingModelEntry(modelId).capabilities.embedding ??
+      perplexityEmbeddingModelLimits;
+    this.maxEmbeddingsPerCall = limits.maxEmbeddingsPerCall;
+    this.supportsParallelCalls = limits.supportsParallelCalls;
   }
 
   async doEmbed({
@@ -92,7 +104,10 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
       })) ?? {};
 
     // Perplexity only returns quantized (base64-encoded) embeddings.
-    const encodingFormat = perplexityOptions.encodingFormat ?? 'base64_int8';
+    const encodingFormat =
+      perplexityOptions.encodingFormat ??
+      getPerplexityEmbeddingModelEntry(this.modelId).requestConfig.embedding
+        .encodingFormat;
 
     const {
       responseHeaders,
@@ -100,7 +115,7 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/v1/embeddings`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         input: values,
@@ -169,18 +184,22 @@ function decodeEmbedding(
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const perplexityEmbeddingResponseSchema = z.object({
-  data: z.array(z.object({ embedding: z.string() })),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      cost: z
+const perplexityEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      data: z.array(z.object({ embedding: z.string() })),
+      usage: z
         .object({
-          input_cost: z.number().nullish(),
-          total_cost: z.number().nullish(),
-          currency: z.string().nullish(),
+          prompt_tokens: z.number(),
+          cost: z
+            .object({
+              input_cost: z.number().nullish(),
+              total_cost: z.number().nullish(),
+              currency: z.string().nullish(),
+            })
+            .nullish(),
         })
         .nullish(),
-    })
-    .nullish(),
-});
+    }),
+  ),
+);

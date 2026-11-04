@@ -14,6 +14,7 @@
     "target": "ES2022",
     "declaration": true,
     "declarationMap": true,
+    "emitDeclarationOnly": true,
     "stripInternal": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,

@@ -3,7 +3,7 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
+import { APICallError, UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { createElevenLabs } from './elevenlabs-provider';
 import { readFile } from 'node:fs/promises';
@@ -114,6 +114,36 @@ describe('doGenerate', () => {
 
   describe('transcription', () => {
     beforeEach(() => prepareJsonFixtureResponse('elevenlabs-transcription'));
+
+    describe('duration', () => {
+      const words = [{ text: 'Hello', type: 'word', start: 0, end: 2.06 }];
+
+      it.each([
+        ['includes trailing silence', 4.24, words, 4.24],
+        ['does not require word timestamps', 4.24, null, 4.24],
+        ['preserves a reported zero', 0, words, 0],
+        ['falls back when audio duration is absent', undefined, words, 2.06],
+        ['falls back when audio duration is null', null, words, 2.06],
+      ])('%s', async (_name, audioDuration, words, expectedDuration) => {
+        server.urls['https://api.elevenlabs.io/v1/speech-to-text'].response = {
+          type: 'json-value',
+          body: {
+            audio_duration_secs: audioDuration,
+            language_code: 'en',
+            language_probability: 1,
+            text: 'Hello',
+            words,
+          },
+        };
+
+        const result = await model.doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+        });
+
+        expect(result.durationInSeconds).toBe(expectedDuration);
+      });
+    });
 
     it('should pass the model', async () => {
       await model.doGenerate({
@@ -268,6 +298,51 @@ describe('doGenerate', () => {
       `);
     });
 
+    it('should send source_url instead of a file when sourceUrl is set', async () => {
+      const result = await model.doGenerate({
+        audio: new Uint8Array(),
+        mediaType: 'audio/mpeg',
+        providerOptions: {
+          elevenlabs: { sourceUrl: 'https://example.com/audio.mp3' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyMultipart).toMatchInlineSnapshot(`
+        {
+          "diarize": "true",
+          "file_format": "other",
+          "model_id": "scribe_v1",
+          "source_url": "https://example.com/audio.mp3",
+          "tag_audio_events": "true",
+          "timestamps_granularity": "word",
+        }
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should warn that audio is ignored when sourceUrl is set', async () => {
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mpeg',
+        providerOptions: {
+          elevenlabs: { sourceUrl: 'https://example.com/audio.mp3' },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyMultipart;
+      expect(body).not.toHaveProperty('file');
+      expect(body).toMatchObject({
+        source_url: 'https://example.com/audio.mp3',
+      });
+      expect(result.warnings).toEqual([
+        {
+          type: 'other',
+          message:
+            'ElevenLabs transcribes providerOptions.elevenlabs.sourceUrl; the audio input was ignored.',
+        },
+      ]);
+    });
+
     it.each([
       ['without provider options', undefined, ['true']],
       ['with empty provider options', {}, ['true']],
@@ -377,6 +452,38 @@ describe('doGenerate', () => {
 
       expect(result).toMatchSnapshot({
         providerMetadata: expect.anything(),
+      });
+    });
+  });
+
+  describe('errors', () => {
+    it('should surface the ElevenLabs error message and code', async () => {
+      server.urls['https://api.elevenlabs.io/v1/speech-to-text'].response = {
+        type: 'error',
+        status: 404,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          detail: {
+            type: 'not_found',
+            code: 'model_not_found',
+            message: "A model with model_id 'scribe_v1' was not found.",
+            status: 'model_not_found',
+            request_id: 'req_test_transcription',
+          },
+        }),
+      };
+
+      const result = model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      await expect(result).rejects.toBeInstanceOf(APICallError);
+      await expect(result).rejects.toMatchObject({
+        message:
+          "A model with model_id 'scribe_v1' was not found. (model_not_found)",
+        statusCode: 404,
+        data: { detail: { request_id: 'req_test_transcription' } },
       });
     });
   });

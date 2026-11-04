@@ -1,17 +1,61 @@
 ---
 title: Cohere
-description: Learn how to use the Cohere provider for the AI SDK.
+description: Learn how to use Cohere with AI Gateway and the direct provider.
 ---
 
 # Cohere Provider
 
 The [Cohere](https://cohere.com/) provider contains language and embedding model support for the Cohere chat API.
+You can use Cohere models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/cohere`.
 
-## Setup
+```ts provider="cohere" model="cohere/command-a"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
-The Cohere provider is available in the `@ai-sdk/cohere` module. You can install it with
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
 
-<InstallPackages packages="@ai-sdk/cohere" />
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/cohere`
+
+For direct access to Cohere, install `ai` and `@ai-sdk/cohere`:
+
+<InstallPackages packages="ai @ai-sdk/cohere" />
+
+Set your Cohere API credential in the `COHERE_API_KEY` environment variable:
+
+```bash
+export COHERE_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/cohere`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/cohere` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -39,7 +83,11 @@ You can use the following optional settings to customize the Cohere provider ins
   Use a different URL prefix for API calls, e.g. to use proxy servers.
   The default prefix is `https://api.cohere.com/v2`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a function to resolve credentials before each request, including when keys
+  rotate. The function can return a string or a promise. Credential caching and
+  refresh are managed by the function.
 
   API key that is being sent using the `Authorization` header.
   It defaults to the `COHERE_API_KEY` environment variable.
@@ -90,6 +138,8 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 
 ### Model Capabilities
 
+{/* model-capabilities:cohere-language:start */}
+
 | Model                         | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | ----------------------------- | ----------- | ----------------- | ---------- | -------------- |
 | `command-a-03-2025`           | <Cross />   | <Check />         | <Check />  | <Check />      |
@@ -105,6 +155,8 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 | `command-nightly`             | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `command-light`               | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `command-light-nightly`       | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+
+{/* model-capabilities:cohere-language:end */}
 
 <Note>
   The table above lists popular models. Please see the [Cohere
@@ -296,18 +348,22 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                           | Embedding Dimensions                      |
-| ------------------------------- | ----------------------------------------- |
-| `embed-v5.0-pro`                | 256, 512, 768, 1024, 1536, 2048 (default) |
-| `embed-v5.0-fast`               | 256, 512, 768, 1024, 1536, 2048 (default) |
-| `embed-v4.0`                    | 256, 512, 1024, 1536 (default)            |
-| `embed-english-v3.0`            | 1024                                      |
-| `embed-multilingual-v3.0`       | 1024                                      |
-| `embed-english-light-v3.0`      | 384                                       |
-| `embed-multilingual-light-v3.0` | 384                                       |
-| `embed-english-v2.0`            | 4096                                      |
-| `embed-english-light-v2.0`      | 1024                                      |
-| `embed-multilingual-v2.0`       | 768                                       |
+{/* model-capabilities:cohere-embedding:start */}
+
+| Model                           | Default Dimensions | Supported Dimensions            | Custom Dimensions |
+| ------------------------------- | ------------------ | ------------------------------- | ----------------- |
+| `embed-v5.0-pro`                | 2048               | 256, 512, 768, 1024, 1536, 2048 | <Check />         |
+| `embed-v5.0-fast`               | 2048               | 256, 512, 768, 1024, 1536, 2048 | <Check />         |
+| `embed-v4.0`                    | 1536               | 256, 512, 1024, 1536            | <Check />         |
+| `embed-english-v3.0`            | 1024               | 1024                            | <Cross />         |
+| `embed-multilingual-v3.0`       | 1024               | 1024                            | <Cross />         |
+| `embed-english-light-v3.0`      | 384                | 384                             | <Cross />         |
+| `embed-multilingual-light-v3.0` | 384                | 384                             | <Cross />         |
+| `embed-english-v2.0`            | 4096               | 4096                            | <Cross />         |
+| `embed-english-light-v2.0`      | 1024               | 1024                            | <Cross />         |
+| `embed-multilingual-v2.0`       | 768                | 768                             | <Cross />         |
+
+{/* model-capabilities:cohere-embedding:end */}
 
 ## Reranking Models
 
@@ -375,10 +431,14 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                      |
-| -------------------------- |
-| `rerank-v4.0-pro`          |
-| `rerank-v4.0-fast`         |
-| `rerank-v3.5`              |
-| `rerank-english-v3.0`      |
-| `rerank-multilingual-v3.0` |
+{/* model-capabilities:cohere-reranking:start */}
+
+| Model                      | Text Documents | Object Documents                                                                 | Top N     |
+| -------------------------- | -------------- | -------------------------------------------------------------------------------- | --------- |
+| `rerank-v4.0-pro`          | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+| `rerank-v4.0-fast`         | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+| `rerank-v3.5`              | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+| `rerank-english-v3.0`      | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+| `rerank-multilingual-v3.0` | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+
+{/* model-capabilities:cohere-reranking:end */}
