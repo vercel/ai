@@ -2885,6 +2885,7 @@ class DefaultStreamTextResult<
                 if (
                   shouldBufferToolParts &&
                   value.type !== 'error' &&
+                  value.type !== 'ping' &&
                   (isToolPart || bufferedAttemptParts.length > 0)
                 ) {
                   bufferedAttemptParts.push(value);

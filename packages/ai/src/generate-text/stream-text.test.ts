@@ -24658,6 +24658,72 @@ describe('streamText', () => {
       expect(chunks.filter(chunk => chunk.type === 'ping')).toEqual([
         { type: 'ping' },
       ]);
+      expect(await result.content).toEqual([]);
+      const uiChunks = await convertReadableStreamToArray(
+        result.toUIMessageStream(),
+      );
+      expect(uiChunks).not.toContainEqual({ type: 'ping' });
+    });
+
+    it('does not hold heartbeats behind buffered tool input during retries', async () => {
+      let upstream!: ReadableStreamDefaultController<LanguageModelV4StreamPart>;
+      const onChunk = vi.fn();
+      const result = streamText({
+        model: createTestModel({
+          stream: new ReadableStream<LanguageModelV4StreamPart>({
+            start(controller) {
+              upstream = controller;
+              controller.enqueue({ type: 'stream-start', warnings: [] });
+              controller.enqueue({
+                type: 'tool-input-start',
+                id: 'call-1',
+                toolName: 'testTool',
+              });
+              controller.enqueue({ type: 'ping' });
+            },
+          }),
+        }),
+        prompt: 'test',
+        streamRetries: 1,
+        onChunk,
+      });
+      const consumption = result.consumeStream();
+      try {
+        await vi.waitFor(() =>
+          expect(onChunk).toHaveBeenCalledWith({ chunk: { type: 'ping' } }),
+        );
+      } finally {
+        upstream.enqueue({
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        });
+        upstream.close();
+        await consumption;
+      }
+      expect(await result.content).toEqual([]);
+    });
+
+    it('does not treat a ping-only incomplete stream as generated output', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([{ type: 'ping' }]),
+        }),
+        prompt: 'test',
+        onError: () => {},
+      });
+      const chunks = await convertAsyncIterableToArray(result.fullStream);
+      expect(chunks).toContainEqual({ type: 'ping' });
+      expect(
+        chunks.some(
+          chunk =>
+            chunk.type === 'error' &&
+            NoOutputGeneratedError.isInstance(chunk.error),
+        ),
+      ).toBe(true);
+      await expect(result.content).rejects.toBeInstanceOf(
+        NoOutputGeneratedError,
+      );
     });
   });
 
