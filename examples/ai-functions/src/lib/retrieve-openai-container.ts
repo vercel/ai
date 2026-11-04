@@ -1,3 +1,5 @@
+import { requireEnv } from './require-env';
+
 type OpenAIContainer = {
   id: string;
   status?: string;
@@ -19,14 +21,10 @@ type OpenAIContainer = {
 async function retrieveOpenAIContainer(
   containerId: string,
 ): Promise<OpenAIContainer> {
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not set');
-  }
+  const apiKey = requireEnv('OPENAI_API_KEY');
 
   const response = await fetch(
-    `https://api.openai.com/v1/containers/${containerId}`,
+    `https://api.openai.com/v1/containers/${encodeURIComponent(containerId)}`,
     {
       method: 'GET',
       headers: {

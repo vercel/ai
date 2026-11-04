@@ -1,3 +1,5 @@
+import { requireEnv } from './require-env';
+
 type AzureContainer = {
   id: string;
   status?: string;
@@ -19,20 +21,11 @@ type AzureContainer = {
 async function retrieveAzureContainer(
   containerId: string,
 ): Promise<AzureContainer> {
-  const resourceName = process.env.AZURE_RESOURCE_NAME;
-
-  if (!resourceName) {
-    throw new Error('AZURE_RESOURCE_NAME is not set');
-  }
-
-  const apiKey = process.env.AZURE_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('AZURE_API_KEY is not set');
-  }
+  const resourceName = requireEnv('AZURE_RESOURCE_NAME');
+  const apiKey = requireEnv('AZURE_API_KEY');
 
   const response = await fetch(
-    `https://${resourceName}.openai.azure.com/openai/v1/containers/${containerId}`,
+    `https://${resourceName}.openai.azure.com/openai/v1/containers/${encodeURIComponent(containerId)}`,
     {
       method: 'GET',
       headers: {
