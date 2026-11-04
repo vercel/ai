@@ -200,12 +200,24 @@ The adapter exposes these Deep Agents built-ins through `agent.tools`:
 - `read`
 - `write`
 - `edit`
+- `delete`
 - `bash`
 - `grep`
 - `glob`
 - `ls`
 - `task`
 - `write_todos`
+
+## Built-in Tool Approvals
+
+With `permissionMode: 'allow-reads'` or `'allow-edits'`, file reads are
+automatically approved only within the session workdir or an active skill's
+directory. `allow-edits` automatically approves file changes only within the
+workdir. Paths outside those directories, including symlink targets, and paths
+that cannot be resolved require host approval through Deep Agents' native
+human-in-the-loop interrupts. Native absolute paths keep their original meaning.
+`allow-all` remains unrestricted. These approval rules are not a filesystem
+sandbox, and approved shell commands can access paths outside the workdir.
 
 ## Known Limitations
 

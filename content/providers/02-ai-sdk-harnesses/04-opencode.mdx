@@ -224,6 +224,14 @@ not fit a common tool shape.
 OpenCode supports built-in tool approval requests when `permissionMode` is
 `allow-reads` or `allow-edits`. Host-executed AI SDK tool approvals also work.
 
+In these modes, file reads are automatically approved only within the session
+workdir or an active skill's directory. `allow-edits` automatically approves
+file changes only within the workdir. Paths outside those directories, including
+symlink targets, and paths that cannot be resolved require host approval.
+Approvals apply only to the current tool call, not subsequent calls.
+`allow-all` remains unrestricted. These approval rules are not a filesystem
+sandbox, and approved shell commands can access paths outside the workdir.
+
 ## Built-in Tool Filtering
 
 The adapter supports `activeTools` and `inactiveTools` for OpenCode built-in

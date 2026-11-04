@@ -5551,6 +5551,38 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('mcp tunnel tool', () => {
+      it('should send a tunnel target without legacy target fields', async () => {
+        prepareJsonFixtureResponse('openai-mcp-tool.1');
+        const options = {
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider' as const,
+              id: 'openai.mcp' as const,
+              name: 'MCP',
+              args: {
+                serverLabel: 'private',
+                tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+                allowedTools: { readOnly: true },
+                requireApproval: 'always',
+              },
+            },
+          ],
+        };
+        await createModel('gpt-5-mini').doGenerate(options);
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'mcp',
+            server_label: 'private',
+            tunnel_id: 'tunnel_0123456789abcdef0123456789abcdef',
+            allowed_tools: { read_only: true },
+            require_approval: 'always',
+          },
+        ]);
+      });
+    });
+
     describe('mcp tool', () => {
       let result: LanguageModelV4GenerateResult;
 
@@ -10606,6 +10638,37 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('mcp tool', () => {
+      it('should send a tunnel target without legacy target fields', async () => {
+        prepareChunksFixtureResponse('openai-mcp-tool.1');
+        const options = {
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider' as const,
+              id: 'openai.mcp' as const,
+              name: 'MCP',
+              args: {
+                serverLabel: 'private',
+                tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+                allowedTools: { readOnly: true },
+                requireApproval: 'always',
+              },
+            },
+          ],
+        };
+        const { stream } = await createModel('gpt-5-mini').doStream(options);
+        await convertReadableStreamToArray(stream);
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'mcp',
+            server_label: 'private',
+            tunnel_id: 'tunnel_0123456789abcdef0123456789abcdef',
+            allowed_tools: { read_only: true },
+            require_approval: 'always',
+          },
+        ]);
+      });
+
       it('should stream mcp tool results (list tools, tool calls, tool results)', async () => {
         prepareChunksFixtureResponse('openai-mcp-tool.1');
 

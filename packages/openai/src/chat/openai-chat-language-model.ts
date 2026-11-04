@@ -178,16 +178,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
-      {
+    const { messages, warnings: messageWarnings } =
+      await convertToOpenAIChatMessages({
         prompt,
         systemMessageMode:
           openaiOptions.systemMessageMode ??
           (isReasoningModel
             ? 'developer'
             : modelRequestConfig.systemMessageMode),
-      },
-    );
+      });
 
     warnings.push(...messageWarnings);
 

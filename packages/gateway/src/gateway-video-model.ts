@@ -354,7 +354,7 @@ export class GatewayVideoModel implements VideoModelV4 {
       ...(resolution && { resolution }),
       ...(duration && { duration }),
       ...(fps && { fps }),
-      ...(seed && { seed }),
+      ...(seed != null && { seed }),
       ...(generateAudio !== undefined && { generateAudio }),
       ...(providerOptions && { providerOptions }),
       ...(image && { image: maybeEncodeVideoFile(image) }),
@@ -411,6 +411,10 @@ const providerMetadataEntrySchema = () =>
 
 const gatewayVideoDataSchema = () =>
   z.union([
+    z.object({
+      type: z.literal('uploaded'),
+      mediaType: z.string(),
+    }),
     z.object({
       type: z.literal('url'),
       url: z.string(),

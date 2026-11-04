@@ -1,7 +1,12 @@
-import type { JSONObject } from '@ai-sdk/provider';
+import type {
+  JSONObject,
+  TranscriptionModelV4TimestampGranularity,
+} from '@ai-sdk/provider';
 import {
   createIdGenerator,
   detectMediaType,
+  getTopLevelMediaType,
+  isFullMediaType,
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
@@ -49,6 +54,7 @@ export async function transcribe({
   model,
   audio,
   providerOptions = {},
+  timestampGranularities,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -81,6 +87,16 @@ export async function transcribe({
    * ```
    */
   providerOptions?: ProviderOptions;
+
+  /**
+   * Word and segment timings to request.
+   *
+   * Supported adapters map this onto the provider's native control when the
+   * matching provider option is omitted. An explicit provider option wins.
+   * Supported adapters warn when they cannot return a requested granularity.
+   * An empty array requests no shared timing granularity; provider defaults may vary.
+   */
+  timestampGranularities?: Array<TranscriptionModelV4TimestampGranularity>;
 
   /**
    * Maximum number of retries per transcript model call. Set to 0 to disable retries.
@@ -166,6 +182,7 @@ export async function transcribe({
     maxRetries,
     headers,
     providerOptions,
+    timestampGranularities,
   });
 
   const executeWithStartEvent = async <T>({
@@ -237,7 +254,7 @@ export async function transcribe({
   let mediaType =
     audioData instanceof URL
       ? undefined
-      : (downloadedMediaType ??
+      : (getAudioMediaType(downloadedMediaType) ??
         detectMediaType({
           data: audioData,
           topLevelType: 'audio',
@@ -258,6 +275,9 @@ export async function transcribe({
             abortSignal,
             headers: headersWithUserAgent,
             providerOptions,
+            ...(timestampGranularities != null
+              ? { timestampGranularities }
+              : {}),
           };
           if (audioData instanceof URL) {
             const nativeResult = await resolvedModel.doGenerateFromUrl?.({
@@ -274,7 +294,7 @@ export async function transcribe({
             });
             audioData = downloaded.data;
             mediaType =
-              downloaded.mediaType ??
+              getAudioMediaType(downloaded.mediaType) ??
               detectMediaType({ data: audioData, topLevelType: 'audio' }) ??
               'audio/wav';
             byteLength = audioData.byteLength;
@@ -309,6 +329,7 @@ export async function transcribe({
           },
           text: result.text,
           segments: result.segments,
+          words: result.words,
           language: result.language,
           durationInSeconds: result.durationInSeconds,
           usage: result.usage,
@@ -325,6 +346,7 @@ export async function transcribe({
         return new DefaultTranscriptionResult({
           text: result.text,
           segments: result.segments,
+          words: result.words,
           language: result.language,
           durationInSeconds: result.durationInSeconds,
           warnings: result.warnings,
@@ -339,9 +361,32 @@ export async function transcribe({
   }
 }
 
+/**
+ * Normalizes a downloaded `Content-Type` header value and returns it only
+ * when it is a full `audio/<subtype>` media type. Generic or mislabeled types
+ * (e.g. `application/octet-stream`, `binary/octet-stream`, `text/plain`)
+ * return `undefined` so that the media type is detected from the audio bytes
+ * instead.
+ */
+function getAudioMediaType(
+  contentType: string | undefined,
+): string | undefined {
+  const mediaType = contentType?.split(';')[0].trim().toLowerCase();
+  return mediaType != null &&
+    getTopLevelMediaType(mediaType) === 'audio' &&
+    isFullMediaType(mediaType)
+    ? mediaType
+    : undefined;
+}
+
 class DefaultTranscriptionResult implements TranscriptionResult {
   readonly text: string;
   readonly segments: Array<{
+    text: string;
+    startSecond: number;
+    endSecond: number;
+  }>;
+  readonly words?: Array<{
     text: string;
     startSecond: number;
     endSecond: number;
@@ -359,6 +404,11 @@ class DefaultTranscriptionResult implements TranscriptionResult {
       startSecond: number;
       endSecond: number;
     }>;
+    words?: Array<{
+      text: string;
+      startSecond: number;
+      endSecond: number;
+    }>;
     language: string | undefined;
     durationInSeconds: number | undefined;
     warnings: Array<Warning>;
@@ -367,6 +417,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
   }) {
     this.text = options.text;
     this.segments = options.segments;
+    this.words = options.words;
     this.language = options.language;
     this.durationInSeconds = options.durationInSeconds;
     this.warnings = options.warnings;
