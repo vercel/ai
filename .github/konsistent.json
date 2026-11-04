@@ -1060,6 +1060,33 @@
           }
         }
       ]
+    },
+    {
+      "name": "verifier-must-follow-required-conventions",
+      "description": "Each verifier script must follow the required conventions.",
+      "paths": [".agents/verifiers/{verifier}.ts"],
+      "must": [
+        {
+          "name": "verifier-script-must-have-matching-guideline",
+          "description": "The verifier script must have a matching guideline",
+          "must": {
+            "haveFiles": ["../guidelines/${verifier}.md"]
+          }
+        },
+        {
+          "name": "verifier-script-must-use-verifier-runner",
+          "description": "The verifier script must use runVerifier().",
+          "must": {
+            "importValues": [
+              { "name": "runVerifier", "from": "../../tools/verifiers/api.ts" }
+            ],
+            "callFunction": ["runVerifier"]
+          },
+          "mustNot": {
+            "importValuesFrom": ["../../tools/verifiers/internal/*"]
+          }
+        }
+      ]
     }
   ],
   "kebabToPascalMap": {

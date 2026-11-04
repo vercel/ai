@@ -23,6 +23,9 @@ const TEST_ENV_KEYS = [
   'CLAUDE_CODE_BRIDGE_INHERITED_TEST',
   'CLAUDE_CODE_BRIDGE_OVERRIDE_TEST',
   'CLAUDE_CODE_BRIDGE_CONFIGURED_TEST',
+  'ANTHROPIC_DEFAULT_OPUS_MODEL',
+  'ANTHROPIC_DEFAULT_SONNET_MODEL',
+  'ANTHROPIC_DEFAULT_HAIKU_MODEL',
 ] as const;
 
 const state = vi.hoisted(() => ({
@@ -1144,6 +1147,100 @@ describe('Claude Code bridge configuration', () => {
     'sets no model overrides for %s',
     async model => {
       state.start = { ...state.start, model };
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+    },
+  );
+
+  test('maps the dotted ids of all model aliases alongside the session model', async () => {
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5',
+      env: {
+        ANTHROPIC_DEFAULT_OPUS_MODEL: 'anthropic/claude-opus-4.8',
+        ANTHROPIC_DEFAULT_SONNET_MODEL: 'anthropic/claude-sonnet-5.5',
+        ANTHROPIC_DEFAULT_HAIKU_MODEL: 'anthropic/claude-haiku-5.5',
+      },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: {
+        'claude-opus-5-5': 'anthropic/claude-opus-5.5',
+        'claude-opus-4-8': 'anthropic/claude-opus-4.8',
+        'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5',
+        'claude-haiku-5-5': 'anthropic/claude-haiku-5.5',
+      },
+    });
+  });
+
+  test('maps model aliases inherited from the bridge environment', async () => {
+    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL = 'anthropic/claude-sonnet-5.5';
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options?.settings).toEqual({
+      modelOverrides: { 'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5' },
+    });
+    expect(options).not.toHaveProperty('env');
+  });
+
+  test('prefers a configured model alias over an inherited one', async () => {
+    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL = 'anthropic/claude-sonnet-4.6';
+    state.start = {
+      ...state.start,
+      env: { ANTHROPIC_DEFAULT_SONNET_MODEL: 'anthropic/claude-sonnet-5.5' },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: { 'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5' },
+    });
+  });
+
+  test('keeps a context window suffix on a model alias id', async () => {
+    state.start = {
+      ...state.start,
+      env: {
+        ANTHROPIC_DEFAULT_SONNET_MODEL: 'anthropic/claude-sonnet-5.5[1m]',
+      },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: {
+        'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5[1m]',
+      },
+    });
+  });
+
+  test('lets the session model win a key it shares with a model alias', async () => {
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5[1m]',
+      env: { ANTHROPIC_DEFAULT_OPUS_MODEL: 'anthropic/claude-opus-5.5' },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5[1m]' },
+    });
+  });
+
+  test.each(['claude-sonnet-5-5', 'anthropic/claude-sonnet-5', 'xai/grok-4.6'])(
+    'sets no model overrides for a model alias set to %s',
+    async modelId => {
+      state.start = {
+        ...state.start,
+        env: { ANTHROPIC_DEFAULT_SONNET_MODEL: modelId },
+      };
 
       await import('./index');
 
