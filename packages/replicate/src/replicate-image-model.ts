@@ -1,4 +1,8 @@
 import {
+  getReplicateImageModelEntry,
+  MAX_FLUX_2_INPUT_IMAGES,
+} from './replicate-model-catalog';
+import {
   InvalidResponseDataError,
   type ImageModelV4,
   type SharedV4Warning,
@@ -42,39 +46,25 @@ interface ReplicateImageModelConfig {
 }
 
 // Flux-2 models support up to 8 input images with input_image, input_image_2, etc.
-const FLUX_2_MODEL_PATTERN = /^black-forest-labs\/flux-2-/;
-const MAX_FLUX_2_INPUT_IMAGES = 8;
 
 export class ReplicateImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
   get maxImagesPerCall(): number {
-    // Flux-2 models support up to 8 input images
-    return this.isFlux2Model ? MAX_FLUX_2_INPUT_IMAGES : 1;
+    return getReplicateImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
   }
 
   get supportsFileInputs(): boolean | undefined {
-    if (
-      this.modelId === 'black-forest-labs/flux-2-pro' ||
-      this.modelId === 'black-forest-labs/flux-2-dev' ||
-      this.modelId === 'black-forest-labs/flux-fill-pro' ||
-      this.modelId === 'black-forest-labs/flux-fill-dev'
-    ) {
-      return true;
-    }
-
-    return undefined;
+    const support = getReplicateImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get supportsMaskInputs(): boolean | undefined {
-    if (
-      this.modelId === 'black-forest-labs/flux-fill-pro' ||
-      this.modelId === 'black-forest-labs/flux-fill-dev'
-    ) {
-      return true;
-    }
-
-    return this.supportsFileInputs === true ? false : undefined;
+    const support = getReplicateImageModelEntry(this.modelId).capabilities.image
+      .maskInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get provider(): string {
@@ -82,7 +72,8 @@ export class ReplicateImageModel implements ImageModelV4 {
   }
 
   private get isFlux2Model(): boolean {
-    return FLUX_2_MODEL_PATTERN.test(this.modelId);
+    return getReplicateImageModelEntry(this.modelId).requestConfig.image
+      .isFlux2Model;
   }
 
   static [WORKFLOW_SERIALIZE](model: ReplicateImageModel) {
