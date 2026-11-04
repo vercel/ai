@@ -1,0 +1,39 @@
+/** Remove provider credentials from a telemetry-only copy of a tool definition. */
+export function redactToolDefinition(
+  tool: Record<string, unknown>,
+): Record<string, unknown> {
+  if (tool.type !== 'provider' || tool.id !== 'openai.code_interpreter') {
+    return tool;
+  }
+
+  const args = tool.args;
+  if (!isRecord(args)) return tool;
+  const container = args.container;
+  if (!isRecord(container)) return tool;
+  const networkPolicy = container.networkPolicy;
+  if (!isRecord(networkPolicy) || !Array.isArray(networkPolicy.domainSecrets)) {
+    return tool;
+  }
+
+  return {
+    ...tool,
+    args: {
+      ...args,
+      container: {
+        ...container,
+        networkPolicy: {
+          ...networkPolicy,
+          domainSecrets: networkPolicy.domainSecrets.map(secret =>
+            isRecord(secret) && 'value' in secret
+              ? { ...secret, value: '[redacted]' }
+              : secret,
+          ),
+        },
+      },
+    },
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
