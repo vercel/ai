@@ -3,4 +3,4 @@
 '@ai-sdk/azure': patch
 ---
 
-add custom tool in azure responses tools
+Expose `customTool` through `azure.tools` for Azure Responses models, sharing the OpenAI custom tool factory and its raw string input support.
