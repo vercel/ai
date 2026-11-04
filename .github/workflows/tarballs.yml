@@ -108,6 +108,7 @@ jobs:
       contents: read
       actions: read
       pull-requests: read
+      id-token: write
     outputs:
       origin: ${{ steps.publish.outputs.origin }}
     env:
@@ -132,13 +133,17 @@ jobs:
         run: node tools/tarballs/github.mjs revalidate
         env:
           GH_TOKEN: ${{ github.token }}
+      - name: Authenticate Vercel CLI with GitHub OIDC
+        uses: vercel/authenticate-cli-action@34fa13671fee771a9f656d6dda34148f8dce0c8d
+        with:
+          team: ${{ vars.TARBALLS_VERCEL_ORG_ID }}
+          policy: ${{ vars.TARBALLS_VERCEL_OIDC_POLICY_ID }}
+          audience: ${{ vars.TARBALLS_VERCEL_OIDC_AUDIENCE }}
       - name: Upload static preview and assign immutable alias
         id: publish
         run: node tools/tarballs/publish.mjs tarballs
         env:
-          VERCEL_ORG_ID: ${{ vars.TARBALLS_VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.TARBALLS_VERCEL_PROJECT_ID }}
-          VERCEL_TOKEN: ${{ secrets.TARBALLS_VERCEL_TOKEN }}
 
   smoke:
     needs: [validate, publish]

@@ -108,8 +108,9 @@ deployments.
    filenames, sizes, versions, and hashes, and constructs its own Vercel Build
    Output API directory. It copies only `.tgz` bytes and generates the HTML,
    catalog, routing config, and project link itself. Symlinks and unexpected files
-   are rejected. It never extracts tarballs or executes PR code. The Vercel token
-   is available only to this static upload/alias step.
+   are rejected. It never extracts tarballs or executes PR code. After CI
+   revalidation, the runner exchanges its GitHub OIDC identity for a short-lived
+   Vercel token, available to the subsequent static upload/alias step.
 6. A fresh runner without deployment credentials downloads every public tarball,
    checks integrity and package manifests, and runs isolated npm and pnpm installs
    plus runtime imports of `ai` and `@ai-sdk/openai`. It also exercises internal
@@ -122,41 +123,39 @@ cache, Vercel function, `vercel.json`, lifecycle hook, or generated script is
 executed on the credentialed publisher. Only default-branch tooling is trusted;
 changes to this tooling require maintainer review before merging.
 
-## Deployment authentication (rollout blocker)
+## Deployment authentication
 
-The current publisher expects the `TARBALLS_VERCEL_TOKEN` environment secret,
-which would be a persistent Vercel access token. **Do not provision that secret
-or enable previews.** Deployment authentication must use short-lived credentials
-before rollout.
+The trusted `publish` job uses
+[`vercel/authenticate-cli-action`](https://github.com/vercel/authenticate-cli-action/blob/34fa13671fee771a9f656d6dda34148f8dce0c8d/README.md),
+pinned to that revision, to exchange its GitHub OIDC identity for a short-lived
+Vercel CLI access token. The action receives `TARBALLS_VERCEL_ORG_ID` as its
+`team` input and exports `VERCEL_ORG_ID` and `VERCEL_TOKEN` for the subsequent
+upload step. No persistent Vercel token needs to be stored in GitHub.
+Only `publish` has `id-token: write`; the runner executing PR code remains
+unprivileged. Authentication happens after the publisher revalidates CI and the
+current PR revision, immediately before the static upload.
 
-The intended flow is for the trusted `publish` job to request a GitHub Actions
-OIDC identity and exchange it for short-lived Vercel deployment credentials.
-The Vercel trust policy must restrict access to this repository, this workflow
-on `main`, the protected `tarballs` environment, and the dedicated `ai-tarballs`
-project. The exchange must authorize the publisher's project/environment checks,
-alias lookups, prebuilt upload, and alias assignment. Only the publishing job may
-request an OIDC identity; the runner executing PR code must remain unprivileged.
+Create a **Vercel CLI OIDC policy** on `vercel-labs` restricted to GitHub
+repository `vercel/ai`, workflow `.github/workflows/tarballs.yml`, branch `main`,
+and the dedicated `ai-tarballs` project. Keep the GitHub `tarballs` environment
+restricted to `main`. Because the job uses that environment, its default OIDC
+subject is `repo:vercel/ai:environment:tarballs`; the separate `ref` claim is
+`refs/heads/main`. The publisher runs from the default branch for approved fork
+PRs as well; the policy must recognize the trusted publisher's identity.
 
-The integration to validate is a **Vercel CLI OIDC policy** on `vercel-labs`,
-which exchanges a GitHub identity for a short-lived Vercel access token with
-restricted project and command permissions. Vercel's public
-[BYOC GitHub Actions guide](https://vercel.com/docs/networking/bring-your-own-cloud/deploy-with-github-actions)
-documents CLI OIDC authentication and says to request enablement when unavailable
-on a team. That guide covers a different deployment flow; it does not establish
-that this publisher's prebuilt upload and custom alias operations are supported.
+Leave the optional policy and audience variables unset when one policy matches
+and it accepts GitHub's default audience. If multiple policies match, set
+`TARBALLS_VERCEL_OIDC_POLICY_ID` to the intended policy ID. If the policy specifies
+a custom audience, set `TARBALLS_VERCEL_OIDC_AUDIENCE` to that exact value. The
+workflow passes these values as the action's `policy` and `audience` inputs.
 
-Before replacing the secret reference, confirm team enablement and an
-authentication implementation usable from this public repository. Then verify
-the complete publisher flow with the restricted identity: project and environment
-checks, missing/existing alias lookups, prebuilt deployment through `READY`,
-custom alias assignment, and retry reuse. Successful token exchange alone is
-insufficient. Keep previews disabled until every operation works with short-lived
-credentials; do not fall back to a persistent token when one fails.
-
-Runtime OIDC federation, Trusted Sources access to protected deployments, and
-OIDC brokers that issue GitHub installation tokens do not authorize Vercel
-deployment API operations. Do not substitute a GitHub ID token for `VERCEL_TOKEN`
-without the supported Vercel exchange.
+Before rollout, confirm team enablement and that this public repository can use
+the pinned action. Verify the complete publisher flow with the restricted
+identity: project and environment checks, missing/existing alias lookups,
+prebuilt deployment through `READY`, custom alias assignment, and retry reuse.
+Successful token exchange alone is insufficient. Keep previews disabled until
+the policy is configured and the publisher is ready for verification; do not
+fall back to a persistent token when authentication or authorization fails.
 
 ## Maintainer setup
 
@@ -194,16 +193,18 @@ Keep `TARBALLS_ENABLED` unset or `false` until every step below is complete.
    optional because the build and credentialed upload run on separate runners.
 5. In that environment, configure these variables:
 
-   | Name                         | Value                    |
-   | ---------------------------- | ------------------------ |
-   | `TARBALLS_VERCEL_ORG_ID`     | `vercel-labs` team ID    |
-   | `TARBALLS_VERCEL_PROJECT_ID` | `ai-tarballs` project ID |
+   | Name                             | Value                                      |
+   | -------------------------------- | ------------------------------------------ |
+   | `TARBALLS_VERCEL_ORG_ID`         | Canonical `vercel-labs` team ID (`team_…`) |
+   | `TARBALLS_VERCEL_PROJECT_ID`     | `ai-tarballs` project ID                   |
+   | `TARBALLS_VERCEL_OIDC_POLICY_ID` | Optional policy ID when multiple match     |
+   | `TARBALLS_VERCEL_OIDC_AUDIENCE`  | Optional custom audience matching policy   |
 
-6. Resolve the [deployment authentication blocker](#deployment-authentication-rollout-blocker),
-   configure the inbound trust policy, and verify that short-lived credentials
-   support every publisher operation. Remove the workflow's static secret
-   reference. Vercel CLI is pinned in the workflow; review and test version
-   updates before enabling them.
+6. Configure the [Vercel CLI OIDC policy](#deployment-authentication) and verify
+   that short-lived credentials support every publisher operation. Ensure this
+   public repository can use the pinned authentication action. Vercel CLI and
+   the action are pinned in the workflow; review and test version updates before
+   enabling them.
 7. Merge the workflow/tooling to `main`, then set the **repository variable**
    `TARBALLS_ENABLED=true`. `workflow_run` cannot bootstrap itself from this PR.
    Rerun **all jobs** of a test PR's CI after merge so that the context artifact
