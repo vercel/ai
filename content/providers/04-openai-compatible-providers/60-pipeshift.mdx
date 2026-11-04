@@ -1,0 +1,154 @@
+---
+title: Pipeshift
+description: Use the Pipeshift OpenAI compatible API with the AI SDK.
+---
+
+# Pipeshift Provider
+
+[Pipeshift](https://pipeshift.com) provides serverless inference and dedicated
+deployments for open-weight models through an OpenAI-compatible API. You can
+use Pipeshift with the AI SDK through the `@ai-sdk/openai-compatible` module;
+no Pipeshift-specific provider package is required.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create an API key in the [Pipeshift dashboard](https://dashboard.pipeshift.com)
+and set it as a server-side environment variable:
+
+```bash
+export PIPESHIFT_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a Pipeshift provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const pipeshift = createOpenAICompatible({
+  name: 'pipeshift',
+  apiKey: process.env.PIPESHIFT_API_KEY,
+  baseURL: 'https://api.pipeshift.com/api/v0',
+});
+```
+
+The serverless API uses `/api/v0` as its base path. The `apiKey` setting sends
+the key as a Bearer token in the `Authorization` header.
+
+## Language Models
+
+Create a language model by passing a Pipeshift model ID to the provider
+instance:
+
+```ts
+const model = pipeshift('zai-org/GLM-5.3');
+```
+
+### Example
+
+Use `generateText` to generate text with a Pipeshift model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const pipeshift = createOpenAICompatible({
+  name: 'pipeshift',
+  apiKey: process.env.PIPESHIFT_API_KEY,
+  baseURL: 'https://api.pipeshift.com/api/v0',
+});
+
+const { text } = await generateText({
+  model: pipeshift('zai-org/GLM-5.3'),
+  prompt: 'Reply with the single word: ready',
+});
+
+console.log(text);
+```
+
+You can also stream responses with `streamText`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const pipeshift = createOpenAICompatible({
+  name: 'pipeshift',
+  apiKey: process.env.PIPESHIFT_API_KEY,
+  baseURL: 'https://api.pipeshift.com/api/v0',
+});
+
+const result = streamText({
+  model: pipeshift('Qwen/Qwen3.8-Max'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Supported Models and Capabilities
+
+Pipeshift's serverless API supports these chat model IDs:
+
+| Model ID                          | Image input |
+| --------------------------------- | ----------- |
+| `Qwen/Qwen3.8-Flash`              | Yes         |
+| `Qwen/Qwen3.8-Max`                | Yes         |
+| `deepseek-ai/DeepSeek-V4.1-Flash` | Yes         |
+| `deepseek-ai/DeepSeek-V4-Flash`   | No          |
+| `deepseek-ai/DeepSeek-V4-Pro`     | No          |
+| `moonshotai/Kimi-K3`              | Yes         |
+| `zai-org/GLM-5.3`                 | No          |
+| `zai-org/GLM-5.2`                 | No          |
+
+All listed models support text generation, streaming, tool calling,
+multi-step tool use, and reasoning content. Image-capable models accept AI SDK
+`image` content parts.
+
+Pipeshift's serverless API supports structured data generation in JSON mode.
+Leave `supportsStructuredOutputs` unset so the OpenAI Compatible provider uses
+`response_format: { type: 'json_object' }`, and name the required fields in
+your prompt. The serverless API does not currently accept JSON Schema response
+formats.
+
+Model availability can change. Check the
+[Pipeshift AI SDK guide](https://github.com/pipeshift-org/ai-sdk-provider#readme)
+or the dashboard for current model IDs.
+
+## Dedicated Deployments
+
+Each dedicated deployment has its own host and serves OpenAI-compatible
+endpoints under `/v1`. Create a separate provider instance using the deployment
+host and the served model name shown on its deployment page:
+
+```ts
+const dedicated = createOpenAICompatible({
+  name: 'pipeshift',
+  apiKey: process.env.PIPESHIFT_API_KEY,
+  baseURL: 'https://my-model-us-east-1-a1b2c3-private.pipeshift.com/v1',
+});
+
+const model = dedicated('<served-model-name>');
+```
+
+Dedicated embedding deployments are available through the provider's
+`embeddingModel` factory:
+
+```ts
+const embeddingModel = dedicated.embeddingModel('<served-model-name>');
+```
+
+The serverless API does not currently provide embedding models.
+
+## Resources
+
+- [Pipeshift AI SDK guide](https://github.com/pipeshift-org/ai-sdk-provider#readme)
+- [Pipeshift dashboard](https://dashboard.pipeshift.com)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
