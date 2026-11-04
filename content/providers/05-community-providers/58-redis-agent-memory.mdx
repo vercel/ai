@@ -1,0 +1,149 @@
+---
+title: Redis Agent Memory
+description: Learn how to use Redis Agent Memory with the AI SDK.
+---
+
+# Redis Agent Memory
+
+[Redis Agent Memory](https://redis.io/agent-memory/) is a managed memory layer that gives agents short-term session memory and persistent long-term memory across conversations.
+The [`@redis/vercel-ai-sdk`](https://www.npmjs.com/package/@redis/vercel-ai-sdk) package, maintained by Redis, adds it to the AI SDK in two ways:
+
+- **Automatic-memory model**: wraps a model you have already configured. Before each call it restores the session and recalls the user's long-term memories, and afterwards it records the conversation. The model has no memory tools.
+- **Memory tools**: a standard AI SDK `ToolSet` that lets the model search, save, update and delete memories and read or write session history.
+
+The package is server-side and ESM-only. It requires AI SDK 7 and Node.js 22 or later.
+
+## Setup
+
+```bash
+pnpm add @redis/vercel-ai-sdk
+```
+
+Provision a store in [Redis Cloud](https://cloud.redis.io/#/agent-memory) and set these variables on your server:
+
+```bash
+AGENT_MEMORY_STORE_ID=your-store-id
+AGENT_MEMORY_API_KEY=your-api-key
+# Optional: only if your store uses a different endpoint
+AGENT_MEMORY_URL=https://...
+```
+
+## Provider Instance
+
+Create the factory once. It holds the connection and an optional default model. Both approaches below use the same factory.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { createRedisAgentMemory } from '@redis/vercel-ai-sdk';
+
+const memory = createRedisAgentMemory({
+  serverUrl: process.env.AGENT_MEMORY_URL,
+  storeId: process.env.AGENT_MEMORY_STORE_ID,
+  apiKey: process.env.AGENT_MEMORY_API_KEY,
+  model: anthropic('claude-sonnet-4-5'),
+});
+```
+
+The default `model` is optional and must be a configured model, not a model-name string. You can instead pass `model` to each `memory.model()` call.
+
+## Automatic-Memory Model
+
+Call `memory.model()` inside each request. The result is scoped to one user and one session.
+
+```ts
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: memory.model({
+    scope: { userId: 'user-123', sessionId: 'conversation-456' },
+    assistantId: 'assistant',
+  }),
+  prompt: 'Remember that my favorite editor is Neovim.',
+});
+```
+
+By default (`historyMode: 'iris'`) the wrapper:
+
+1. Restores the scoped session history and recalls the user's long-term memories.
+2. Injects a bounded context block, labelled as stale and untrusted, before inference.
+3. Records the current user message and each successful text-producing model step.
+
+Only text is restored and recorded. Images, reasoning, tool arguments and results, and system messages are left out.
+Redis Agent Memory may extract long-term memories from recorded events asynchronously.
+
+It works with `streamText` and with `ToolLoopAgent` in the same way:
+
+```ts
+import { ToolLoopAgent, isStepCount } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model: memory.model({
+    scope: { userId, sessionId },
+    assistantId: 'assistant',
+  }),
+  stopWhen: isStepCount(8),
+});
+```
+
+Create a fresh `memory.model()` for every application request and reuse it only for the steps and retries of that request. Do not pass it to a long-lived singleton agent.
+
+### Managing History Yourself
+
+If your application already stores the conversation, keep long-term recall and skip restoring and recording:
+
+```ts
+const model = memory.model({
+  scope: { userId, sessionId },
+  historyMode: 'application',
+  recording: false,
+});
+```
+
+### Diagnostics and Provenance
+
+Memory failures never replace a successful model response. Observe them with the optional, content-free `onDiagnostic` callback.
+Set `includeMemoryProvenance: true` to get the IDs of the memories included in the prompt in `providerMetadata.redisAgentMemory.memories`.
+
+```ts
+const model = memory.model({
+  scope: { userId, sessionId },
+  assistantId: 'assistant',
+  includeMemoryProvenance: true,
+  onDiagnostic: event => console.log(event.operation, event.outcome),
+});
+```
+
+## Memory Tools
+
+Use the tools when you want the model to decide what to remember.
+
+```ts
+import { generateText, isStepCount } from 'ai';
+import { instructions } from 'ai-sdk-redis-agent-memory';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  system: instructions,
+  prompt: 'What do you remember about my editor preferences?',
+  tools: memory.tools({ scope: { userId, sessionId } }),
+  stopWhen: isStepCount(5),
+});
+```
+
+The tool map includes `search_memories`, `create_memories`, `update_memory`, `get_session_memory`, `add_session_event` and others. Deletion tools (`allowDeletes`) and namespace tools (`namespaceTools`) are off by default.
+To record the conversation without relying on the model, use `tools.createSessionEventHook()` with `onStart` and `onEnd`. See the [tools guide](https://github.com/redis/vercel-ai-sdk/blob/main/TOOLS.md).
+
+Do not combine automatic model recording with session-write tools or recording hooks for the same interaction. It duplicates events.
+
+## Best Practices
+
+- **Scope from authenticated state**: derive `userId`, `sessionId` and `namespaceId` from your application's authentication. The factory scope is trusted configuration, not an authorization check.
+- **Session IDs**: use collision-resistant IDs bound to the user in your own database, and serialize requests for the same session. Redis Agent Memory has no conditional session creation or append idempotency key.
+- **Best effort**: writes are not exactly once. A timed-out write may still have committed.
+- **Treat memory as data**: retrieved text is injected as untrusted reference material, not as instructions.
+
+## References
+
+- [Package README](https://github.com/redis/vercel-ai-sdk#readme)
+- [Redis Agent Memory](https://redis.io/agent-memory/)
+- [Tools guide](https://github.com/redis/vercel-ai-sdk/blob/main/TOOLS.md)
