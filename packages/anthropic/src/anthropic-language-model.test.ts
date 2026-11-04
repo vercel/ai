@@ -8997,12 +8997,6 @@ describe('AnthropicLanguageModel', () => {
         const reader = stream.getReader();
         try {
           expect((await reader.read()).value?.type).toBe('stream-start');
-          expect((await reader.read()).value).toEqual({
-            type: 'response-metadata',
-            id: 'msg_initial_usage',
-            modelId: 'claude-haiku-4-5',
-          });
-          const start = (await reader.read()).value;
           const expectedUsage = {
             input_tokens: 10,
             ...(outputTokens != null ? { output_tokens: outputTokens } : {}),
@@ -9010,6 +9004,27 @@ describe('AnthropicLanguageModel', () => {
             cache_creation_input_tokens: 30,
             service_tier: 'standard',
           };
+          const metadata = (await reader.read()).value;
+          expect(metadata).toEqual({
+            type: 'response-metadata',
+            id: 'msg_initial_usage',
+            modelId: 'claude-haiku-4-5',
+            usage: {
+              inputTokens: {
+                total: 60,
+                noCache: 10,
+                cacheRead: 20,
+                cacheWrite: 30,
+              },
+              outputTokens: {
+                total: outputTokens ?? 0,
+                text: undefined,
+                reasoning: undefined,
+              },
+              raw: expectedUsage,
+            },
+          });
+          const start = (await reader.read()).value;
           expect(start).toEqual({
             type: 'custom',
             kind: 'anthropic.message_start',
@@ -9034,7 +9049,10 @@ describe('AnthropicLanguageModel', () => {
             },
           });
           expect((await reader.read()).done).toBe(true);
-          // Terminal deltas must not mutate the initial snapshot.
+          // Terminal deltas must not mutate either initial snapshot.
+          expect(
+            metadata?.type === 'response-metadata' && metadata.usage?.raw,
+          ).toEqual(expectedUsage);
           expect(
             start?.type === 'custom' &&
               start.providerMetadata?.anthropic?.usage,
