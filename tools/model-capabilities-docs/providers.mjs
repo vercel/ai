@@ -1,3 +1,4 @@
+import { falDocs } from './providers/fal.mjs';
 import { voyageDocs } from './providers/voyage.mjs';
 import { huggingfaceDocs } from './providers/huggingface.mjs';
 import { basetenDocs } from './providers/baseten.mjs';
@@ -20,6 +21,7 @@ import { formatSupport } from './render-tables.mjs';
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
+  falDocs,
   voyageDocs,
   huggingfaceDocs,
   basetenDocs,
