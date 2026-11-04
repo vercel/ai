@@ -190,3 +190,59 @@ Your IAM principal needs permission to call the Claude Platform on AWS actions o
 - `AnthropicFullAccess` — grants `aws-external-anthropic:*` on all resources.
 - `AnthropicInferenceAccess` — grants read actions plus `CreateInference`, `CreateBatchInference`, `CancelBatchInference`, `DeleteBatchInference`, and `CountTokens` on all workspaces. **This is the minimum for calling models.**
 - `AnthropicReadOnlyAccess` — grants `Get*`, `List*`, and `CallWithBearerToken` on all workspaces. Insufficient for inference.
+
+## Model Capabilities
+
+{/* model-capabilities:anthropic-aws-language:start */}
+
+| Model               | Image Input | Object Generation | Tool Usage | Tool Streaming | Computer Use | Web Search | Tool Search | Compaction |
+| ------------------- | ----------- | ----------------- | ---------- | -------------- | ------------ | ---------- | ----------- | ---------- |
+| `claude-opus-5-5`   | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-opus-5`     | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-sonnet-5-5` | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-sonnet-5`   | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-haiku-5-5`  | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-fable-5-1`  | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-fable-5`    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-opus-4-8`   | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-opus-4-7`   | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-opus-4-6`   | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-sonnet-4-6` | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-opus-4-5`   | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Cross />  |
+| `claude-haiku-4-5`  | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Cross />  |
+| `claude-sonnet-4-5` | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Check />   | <Cross />  |
+| `claude-opus-4-1`   | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Cross />   | <Cross />  |
+| `claude-opus-4-0`   | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Cross />   | <Cross />  |
+| `claude-sonnet-4-0` | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    | <Check />  | <Cross />   | <Cross />  |
+
+{/* model-capabilities:anthropic-aws-language:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:anthropic-aws-provider-options:start */}
+
+| Operation | Option                   | Description                                        |
+| --------- | ------------------------ | -------------------------------------------------- |
+| language  | `sendReasoning`          | Whether to send reasoning to the model.            |
+| language  | `structuredOutputMode`   | How structured outputs are generated.              |
+| language  | `thinking`               | Extended thinking configuration.                   |
+| language  | `disableParallelToolUse` | Use at most one tool per response.                 |
+| language  | `cacheControl`           | Prompt cache control settings.                     |
+| language  | `metadata`               | Request metadata, such as a user ID.               |
+| language  | `mcpServers`             | MCP servers to use in the request.                 |
+| language  | `container`              | Container and Agent Skills configuration.          |
+| language  | `toolStreaming`          | Fine-grained streaming of tool inputs and outputs. |
+| language  | `effort`                 | Effort spent on thinking, text, and tool calls.    |
+| language  | `taskBudget`             | Advisory token budget for an agentic task.         |
+| language  | `speed`                  | Fast mode for faster output token speeds.          |
+| language  | `serviceTier`            | Service tier for the request.                      |
+| language  | `inferenceGeo`           | Where model inference runs.                        |
+| language  | `fallbacks`              | Server-side fallback models.                       |
+| language  | `anthropicBeta`          | Additional beta features to enable.                |
+| language  | `safeguards`             | Server-side safeguards to run.                     |
+| language  | `compaction`             | On-demand conversation summary.                    |
+| language  | `contextManagement`      | Server-side context management.                    |
+
+{/* model-capabilities:anthropic-aws-provider-options:end */}

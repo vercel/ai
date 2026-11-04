@@ -1,3 +1,4 @@
+import { anthropicAwsDocs } from './providers/anthropic-aws.mjs';
 import { googleVertexDocs } from './providers/google-vertex.mjs';
 import { amazonBedrockDocs } from './providers/amazon-bedrock.mjs';
 import { azureDocs } from './providers/azure.mjs';
@@ -7,6 +8,7 @@ import { formatSupport } from './render-tables.mjs';
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
+  anthropicAwsDocs,
   googleVertexDocs,
   amazonBedrockDocs,
   azureDocs,
