@@ -443,8 +443,9 @@ describe('doGenerate', () => {
       ],
     };
 
-    await vertexModel.doGenerate({
+    const result = await vertexModel.doGenerate({
       text: 'Joe: Hi. Jane: Hello.',
+      language: 'en-US',
       providerOptions: { googleVertex: { multiSpeakerVoiceConfig } },
     });
 
@@ -452,9 +453,10 @@ describe('doGenerate', () => {
       contents: [{ role: 'user', parts: [{ text: 'Joe: Hi. Jane: Hello.' }] }],
       generationConfig: {
         responseModalities: ['AUDIO'],
-        speechConfig: { multiSpeakerVoiceConfig },
+        speechConfig: { languageCode: 'en-US', multiSpeakerVoiceConfig },
       },
     });
+    expect(result.warnings).toEqual([]);
   });
 
   it('should ignore instructions (with a warning) when multi-speaker is set', async () => {
