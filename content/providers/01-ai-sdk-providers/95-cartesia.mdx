@@ -198,6 +198,24 @@ The following provider options are available:
   The language to generate speech in (ISO 639-1 code).
   Optional.
 
+- **locale** _string_
+
+  A regional locale such as `en-GB` or `es-MX`. Regional locales require Sonic 3.6
+  or later. Optional.
+
+  Cannot be combined with `providerOptions.cartesia.language`. When a generic
+  `language` call option is also set, `locale` takes precedence and the ignored
+  generic option produces an unsupported warning.
+
+- **normalization** _string_
+
+  Controls how written text is prepared for speech. Use `auto` (the default),
+  `off`, or a language or locale code such as `en-IN` to select reading
+  conventions independently of the speech language. Optional.
+
+  Cartesia validates the supported values. See the
+  [text normalization guide](https://docs.cartesia.ai/build-with-cartesia/capability-guides/text-normalization).
+
 - **pronunciationDictionaryId** _string_
 
   ID of a [pronunciation dictionary](https://docs.cartesia.ai/api-reference/pronunciation-dicts/create) to apply to the text.
