@@ -2,13 +2,21 @@
 export function redactToolDefinition(
   tool: Record<string, unknown>,
 ): Record<string, unknown> {
-  if (tool.type !== 'provider' || tool.id !== 'openai.code_interpreter') {
+  if (tool.type !== 'provider') {
     return tool;
   }
 
+  const containerKey =
+    tool.id === 'openai.code_interpreter'
+      ? 'container'
+      : tool.id === 'openai.shell'
+        ? 'environment'
+        : undefined;
+  if (containerKey == null) return tool;
+
   const args = tool.args;
   if (!isRecord(args)) return tool;
-  const container = args.container;
+  const container = args[containerKey];
   if (!isRecord(container)) return tool;
   const networkPolicy = container.networkPolicy;
   if (!isRecord(networkPolicy) || !Array.isArray(networkPolicy.domainSecrets)) {
@@ -19,7 +27,7 @@ export function redactToolDefinition(
     ...tool,
     args: {
       ...args,
-      container: {
+      [containerKey]: {
         ...container,
         networkPolicy: {
           ...networkPolicy,
