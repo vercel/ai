@@ -8,7 +8,7 @@ import {
 
 run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-5-nano'),
+    model: openai.responses('gpt-5.4-nano'),
     tools: {
       code_interpreter: openai.tools.codeInterpreter({
         container: {
@@ -16,6 +16,7 @@ run(async () => {
         },
       }),
     },
+    toolChoice: 'required',
     prompt:
       'Simulate rolling two dice 10000 times and, return the sum of all the results, and upload the result to a file.',
   });

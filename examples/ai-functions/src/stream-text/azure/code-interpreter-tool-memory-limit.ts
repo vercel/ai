@@ -16,6 +16,7 @@ run(async () => {
         },
       }),
     },
+    toolChoice: 'required',
     prompt:
       'Simulate rolling two dice 10000 times and, return the sum of all the results, and upload the result to a file.',
   });

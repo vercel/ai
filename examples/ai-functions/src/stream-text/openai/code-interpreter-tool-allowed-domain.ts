@@ -25,21 +25,9 @@ import {
  * organization's security policies and OpenAI platform policies.
  */
 
-/**
- * Note:
- * When toolChoice is set to "auto", the model may decide not to invoke
- * the Code Interpreter if it believes it can answer the question
- * without executing code.
- *
- * For deterministic behavior in examples or tests, either:
- * 1) Set toolChoice: "required" to force tool execution, or
- * 2) Use a strongly explicit prompt that clearly instructs the model
- *    to execute code via the Code Interpreter.
- */
-
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-5-mini'),
+    model: openai.responses('gpt-5.4-nano'),
     tools: {
       code_interpreter: openai.tools.codeInterpreter({
         container: {
@@ -50,7 +38,7 @@ run(async () => {
         },
       }),
     },
-    //　toolChoice:'required',
+    toolChoice: 'required',
     prompt: `
       Use the Code Interpreter tool to execute the following Python code exactly as written.
       Do not answer without executing it.
