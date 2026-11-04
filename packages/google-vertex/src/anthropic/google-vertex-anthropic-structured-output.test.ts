@@ -396,3 +396,31 @@ describe('structured outputs for Claude models that reject forced tool use', () 
     expect(body.tool_choice).toMatchObject({ type: 'any' });
   });
 });
+
+it.each(['generate', 'stream'] as const)(
+  'keeps open-object schemas on the JSON tool despite the opt-in: %s',
+  async method => {
+    const schema = {
+      type: 'object' as const,
+      additionalProperties: { type: 'string' as const },
+    };
+    const fetch = vi.fn<FetchFunction>(async () =>
+      createResponse(method, false, { answer: '42' }),
+    );
+    const model = createGoogleVertexAnthropic({
+      project: 'test-project',
+      location: 'us-east5',
+      supportsNativeStructuredOutput: true,
+      fetch,
+    })('claude-sonnet-4-6');
+
+    await call(model, method, {
+      prompt,
+      responseFormat: { type: 'json', schema },
+    });
+
+    const request = JSON.parse(fetch.mock.calls[0][1]!.body as string);
+    expect(request.output_config).toBeUndefined();
+    expect(request.tools[0].input_schema).toEqual(schema);
+  },
+);

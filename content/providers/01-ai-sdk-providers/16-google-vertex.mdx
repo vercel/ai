@@ -1722,7 +1722,7 @@ The following optional provider options are available for Anthropic models:
 
 ### Native Structured Output
 
-By default, Vertex Anthropic uses a JSON response tool to generate structured
+Vertex Anthropic normally uses a JSON response tool to generate structured
 output. If your Google Cloud organization policy permits native structured output,
 you can opt in for a provider instance:
 
@@ -1750,6 +1750,9 @@ The opt-in applies to `structuredOutputMode: 'auto'` (the default) for versioned
 Claude model IDs from 4.5 onward, including Vertex IDs with an `@` suffix.
 Older models and unrecognized IDs continue to use the JSON response tool.
 The setting is available in both the Node.js and Edge providers.
+In `'auto'` mode, schemas that native output cannot safely represent, such as
+open objects, circular references, or schemas with too many optional properties,
+continue to use the JSON response tool.
 
 Google Cloud denies the feature by default through
 `constraints/vertexai.allowedPartnerModelFeatures`. Allow
@@ -1763,7 +1766,8 @@ You can still set `providerOptions.anthropic.structuredOutputMode` per request:
 
 - `'jsonTool'` selects tool emulation. Models that reject forced tool use retain
   the Anthropic provider's existing behavior of switching to native output when
-  native output is enabled and supported.
+  the model supports it and the schema can be represented, even without this
+  opt-in. This fallback also applies in `'auto'` mode with the opt-in disabled.
 - `'outputFormat'` explicitly requests native output, bypassing the opt-in and
   model detection. The API rejects unsupported or policy-denied requests.
 
