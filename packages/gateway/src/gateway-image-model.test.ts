@@ -169,6 +169,24 @@ describe('GatewayImageModel', () => {
       expect(requestBody).not.toHaveProperty('seed');
     });
 
+    it('should pass seed when it is 0', async () => {
+      prepareJsonResponse();
+
+      await createTestModel().doGenerate({
+        prompt: 'A simple prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: 0,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toHaveProperty('seed', 0);
+    });
+
     it('should return images array correctly', async () => {
       const mockImages = ['base64-image-1', 'base64-image-2'];
       prepareJsonResponse({ images: mockImages });

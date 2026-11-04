@@ -455,7 +455,16 @@ export async function convertToAmazonBedrockChatMessages(
         for (let j = 0; j < block.messages.length; j++) {
           const message = block.messages[j];
           const isLastMessage = j === block.messages.length - 1;
-          const { content } = message;
+          // Foreign empty text is metadata only. Remove it before determining
+          // the last part so assistant prefill trimming still applies.
+          const content = message.content.filter(
+            part =>
+              part.type !== 'text' ||
+              part.text.length > 0 ||
+              part.providerOptions == null ||
+              part.providerOptions.amazonBedrock != null ||
+              part.providerOptions.bedrock != null,
+          );
           const hasReasoningBlocks = content.some(
             part => part.type === 'reasoning',
           );

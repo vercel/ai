@@ -138,6 +138,8 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 
 ### Model Capabilities
 
+{/* model-capabilities:cohere-language:start */}
+
 | Model                         | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | ----------------------------- | ----------- | ----------------- | ---------- | -------------- |
 | `command-a-03-2025`           | <Cross />   | <Check />         | <Check />  | <Check />      |
@@ -153,6 +155,8 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 | `command-nightly`             | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `command-light`               | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `command-light-nightly`       | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+
+{/* model-capabilities:cohere-language:end */}
 
 <Note>
   The table above lists popular models. Please see the [Cohere
@@ -344,18 +348,22 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                           | Embedding Dimensions                      |
-| ------------------------------- | ----------------------------------------- |
-| `embed-v5.0-pro`                | 256, 512, 768, 1024, 1536, 2048 (default) |
-| `embed-v5.0-fast`               | 256, 512, 768, 1024, 1536, 2048 (default) |
-| `embed-v4.0`                    | 256, 512, 1024, 1536 (default)            |
-| `embed-english-v3.0`            | 1024                                      |
-| `embed-multilingual-v3.0`       | 1024                                      |
-| `embed-english-light-v3.0`      | 384                                       |
-| `embed-multilingual-light-v3.0` | 384                                       |
-| `embed-english-v2.0`            | 4096                                      |
-| `embed-english-light-v2.0`      | 1024                                      |
-| `embed-multilingual-v2.0`       | 768                                       |
+{/* model-capabilities:cohere-embedding:start */}
+
+| Model                           | Default Dimensions | Supported Dimensions            | Custom Dimensions |
+| ------------------------------- | ------------------ | ------------------------------- | ----------------- |
+| `embed-v5.0-pro`                | 2048               | 256, 512, 768, 1024, 1536, 2048 | <Check />         |
+| `embed-v5.0-fast`               | 2048               | 256, 512, 768, 1024, 1536, 2048 | <Check />         |
+| `embed-v4.0`                    | 1536               | 256, 512, 1024, 1536            | <Check />         |
+| `embed-english-v3.0`            | 1024               | 1024                            | <Cross />         |
+| `embed-multilingual-v3.0`       | 1024               | 1024                            | <Cross />         |
+| `embed-english-light-v3.0`      | 384                | 384                             | <Cross />         |
+| `embed-multilingual-light-v3.0` | 384                | 384                             | <Cross />         |
+| `embed-english-v2.0`            | 4096               | 4096                            | <Cross />         |
+| `embed-english-light-v2.0`      | 1024               | 1024                            | <Cross />         |
+| `embed-multilingual-v2.0`       | 768                | 768                             | <Cross />         |
+
+{/* model-capabilities:cohere-embedding:end */}
 
 ## Reranking Models
 
@@ -423,10 +431,14 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                      |
-| -------------------------- |
-| `rerank-v4.0-pro`          |
-| `rerank-v4.0-fast`         |
-| `rerank-v3.5`              |
-| `rerank-english-v3.0`      |
-| `rerank-multilingual-v3.0` |
+{/* model-capabilities:cohere-reranking:start */}
+
+| Model                      | Text Documents | Object Documents                                                                 | Top N     |
+| -------------------------- | -------------- | -------------------------------------------------------------------------------- | --------- |
+| `rerank-v4.0-pro`          | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+| `rerank-v4.0-fast`         | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+| `rerank-v3.5`              | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+| `rerank-english-v3.0`      | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+| `rerank-multilingual-v3.0` | <Check />      | Conditional: Objects are converted to JSON strings with a compatibility warning. | <Check /> |
+
+{/* model-capabilities:cohere-reranking:end */}

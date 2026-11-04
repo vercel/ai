@@ -299,6 +299,7 @@ console.log('ANSWER:', result.text);
 ```
 
 Most Mistral reasoning models support `'high'` and `'none'` as effort levels.
+On the Chat API, `mistral-large-4` and `mistral-large-4-0` support `'low'`, `'medium'`, and `'high'` and cannot disable reasoning. For these models, `reasoning: 'none'` maps to `'low'` with a compatibility warning; `reasoning: 'medium'` is preserved. You can also set `providerOptions.mistral.reasoningEffort: 'medium'` directly.
 GLM-5.3 models (`zai-glm-5-3`, `zai-glm-5-3-flash`, `zai-glm-5`, `zai-glm-latest`) support `'low'`, `'high'`, and `'max'` and cannot disable reasoning.
 
 ### Example
