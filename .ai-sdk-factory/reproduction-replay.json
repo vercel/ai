@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 23124,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-23124-prune-orphaned-reasoning.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-23124-prune-orphaned-reasoning.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_23124: pruneMessages kept orphaned reasoning after pruning tool calls"
+  }
+}
