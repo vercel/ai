@@ -32,9 +32,39 @@ export type GoogleInteractionsModelId =
   | 'gemini-3.1-flash-image-preview'
   | 'gemini-3.1-flash-lite-preview'
   | 'gemini-3.1-flash-tts-preview'
+  | 'gemini-3.5-flash'
+  | 'gemini-3.5-flash-lite'
+  | 'gemini-3.6-flash'
+  | 'gemini-3.7-flash'
+  | 'gemini-3.8-flash'
+  | 'gemini-4-argon'
+  | 'gemini-nano-banana-2.1'
   | 'lyria-3-clip-preview'
   | 'lyria-3-pro-preview'
   | (string & {});
+
+/**
+ * Provider options for an individual video file part sent to the Gemini
+ * Interactions API.
+ */
+export type GoogleInteractionsVideoOptions = {
+  /**
+   * Controls how Gemini processes this video.
+   *
+   * Agentic processing dynamically explores the video timeline. Static
+   * processing samples frames at a fixed rate and optionally supports clipping
+   * and custom frame rates.
+   */
+  processing?:
+    | 'agentic'
+    | 'static'
+    | {
+        type: 'static';
+        startOffset?: number;
+        endOffset?: number;
+        fps?: number;
+      };
+};
 
 /**
  * Provider-options schema for `google.interactions(...)` calls. Read from the
@@ -68,6 +98,77 @@ export const googleInteractionsLanguageModelOptions = lazySchema(() =>
 
       thinkingLevel: z.enum(['minimal', 'low', 'medium', 'high']).nullish(),
       thinkingSummaries: z.enum(['auto', 'none']).nullish(),
+
+      /**
+       * Output-format entries that map directly to the API's `response_format`
+       * array. Use this to request image, audio, video, or non-JSON text
+       * outputs with modality-specific controls.
+       *
+       * Entries are sent in order. The AI SDK call-level `responseFormat: {
+       * type: 'json', schema }` still drives JSON-mode and adds a matching
+       * text entry automatically; entries listed here are appended.
+       */
+      responseFormat: z
+        .array(
+          z.union([
+            z
+              .object({
+                type: z.literal('text'),
+                mimeType: z.string().nullish(),
+                schema: z.unknown().nullish(),
+              })
+              .loose(),
+            z
+              .object({
+                type: z.literal('image'),
+                mimeType: z.string().nullish(),
+                aspectRatio: z
+                  .enum([
+                    '1:1',
+                    '2:3',
+                    '3:2',
+                    '3:4',
+                    '4:3',
+                    '4:5',
+                    '5:4',
+                    '9:16',
+                    '16:9',
+                    '21:9',
+                    '1:8',
+                    '8:1',
+                    '1:4',
+                    '4:1',
+                  ])
+                  .nullish(),
+                imageSize: z.enum(['1K', '2K', '4K', '512']).nullish(),
+              })
+              .loose(),
+            z
+              .object({
+                type: z.literal('audio'),
+                mimeType: z.string().nullish(),
+              })
+              .loose(),
+            z
+              .object({
+                type: z.literal('video'),
+                aspectRatio: z.enum(['16:9', '9:16']).nullish(),
+                resolution: z.enum(['360p', '720p', '1080p', '4k']).nullish(),
+                duration: z.string().nullish(),
+                delivery: z.enum(['inline', 'uri']).nullish(),
+                gcsUri: z.string().nullish(),
+              })
+              .loose(),
+          ]),
+        )
+        .nullish(),
+
+      /**
+       * @deprecated Use `responseFormat` with a `{ type: 'image', ... }`
+       * entry instead. Retained for backwards compatibility; the SDK
+       * translates it into a matching `response_format` image entry and
+       * emits a warning when set.
+       */
       imageConfig: z
         .object({
           aspectRatio: z
@@ -127,6 +228,70 @@ export const googleInteractionsLanguageModelOptions = lazySchema(() =>
        * such as deep research can take tens of minutes — increase if needed.
        */
       pollingTimeoutMs: z.number().int().positive().nullish(),
+
+      /**
+       * Run the interaction in the background. Required for agents whose
+       * server-side workflow cannot complete within a single request/response.
+       * When `true`, the POST returns with a non-terminal status and the SDK
+       * polls `GET /interactions/{id}` until the work completes. Some agents
+       * reject `true`; see the agent's documentation for which mode it
+       * requires.
+       */
+      background: z.boolean().nullish(),
+
+      /**
+       * Environment configuration for the agent sandbox. Only applies to agent
+       * calls (`google.interactions({ agent })`); ignored on model-id calls.
+       *
+       *   - `"remote"`: provision a fresh sandbox for this call.
+       *   - any other string: an existing `environment_id` to reuse.
+       *   - object: provision a fresh sandbox and optionally preload `sources`
+       *     and/or constrain outbound traffic via `network`.
+       */
+      environment: z
+        .union([
+          z.string(),
+          z.object({
+            type: z.literal('remote'),
+            sources: z
+              .array(
+                z.union([
+                  z.object({
+                    type: z.literal('gcs'),
+                    source: z.string(),
+                    target: z.string().nullish(),
+                  }),
+                  z.object({
+                    type: z.literal('repository'),
+                    source: z.string(),
+                    target: z.string().nullish(),
+                  }),
+                  z.object({
+                    type: z.literal('inline'),
+                    content: z.string(),
+                    target: z.string(),
+                  }),
+                ]),
+              )
+              .nullish(),
+            network: z
+              .union([
+                z.literal('disabled'),
+                z.object({
+                  allowlist: z.array(
+                    z.object({
+                      domain: z.string(),
+                      transform: z
+                        .array(z.record(z.string(), z.string()))
+                        .nullish(),
+                    }),
+                  ),
+                }),
+              ])
+              .nullish(),
+          }),
+        ])
+        .nullish(),
     }),
   ),
 );

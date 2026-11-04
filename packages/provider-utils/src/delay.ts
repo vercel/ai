@@ -12,7 +12,7 @@ export async function delay(
   },
 ): Promise<void> {
   if (delayInMs == null) {
-    return Promise.resolve();
+    return;
   }
 
   const signal = options?.abortSignal;

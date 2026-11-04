@@ -95,7 +95,7 @@ run(async () => {
           Docker is the foundation for containerization:
 
           1. **Dockerfile** - Defines how to build your application image:
-            - Base image selection (e.g., node:18-alpine)
+            - Base image selection (e.g., node:22-alpine)
             - Working directory setup
             - Dependency installation
             - Source code copying
@@ -244,7 +244,7 @@ run(async () => {
   ];
 
   let result = await generateText({
-    model: anthropic('claude-opus-4-6'),
+    model: anthropic('claude-opus-5-5'),
     messages,
     providerOptions: {
       anthropic: {
@@ -284,7 +284,7 @@ run(async () => {
       console.log('Continuing with compacted context...\n');
 
       result = await generateText({
-        model: anthropic('claude-opus-4-6'),
+        model: anthropic('claude-opus-5-5'),
         messages,
         providerOptions: {
           anthropic: {

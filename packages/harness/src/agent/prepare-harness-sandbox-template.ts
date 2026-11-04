@@ -1,0 +1,91 @@
+import {
+  harnessStateDirectoryPath,
+  type HarnessV1Bootstrap,
+  type HarnessV1SandboxProvider,
+} from '../v1';
+import { resolveSandboxHomeDir } from '../utils/sandbox-home-dir';
+import type { HarnessAgentAdapter } from './harness-agent-types';
+import type { HarnessAgentSandboxConfig } from './harness-agent-settings';
+import { applyBootstrapRecipe } from './internal/bootstrap-recipe';
+import {
+  createSandboxBootstrapPlan,
+  validateSandboxBootstrapSettings,
+} from './internal/sandbox-bootstrap';
+
+type SandboxBootstrapSettings = Omit<HarnessAgentSandboxConfig, 'onSession'>;
+
+/**
+ * Prepare a harness's sandbox template without running an agent. Idempotent: if
+ * the template already exists (snapshot present, or marker on a non-snapshot
+ * provider), this resolves quickly.
+ *
+ * Use from a CI/deploy script to amortize the first-session cost so production
+ * sessions always resume from snapshot. For adapters without a bootstrap
+ * recipe (no `getBootstrap`) this is a no-op.
+ *
+ * The temporary network sandbox session created during preparation is stopped
+ * before the function resolves; the snapshot/template state persists in the
+ * provider's native storage.
+ * @deprecated Use `createHarnessSandboxTemplate` and pass its template to a sandbox session creator instead.
+ */
+export async function prepareHarnessSandboxTemplate(options: {
+  readonly harness: HarnessAgentAdapter;
+  readonly sandboxProvider: HarnessV1SandboxProvider;
+  readonly sandboxConfig?: SandboxBootstrapSettings;
+  readonly abortSignal?: AbortSignal;
+}): Promise<void> {
+  console.warn(
+    'prepareHarnessSandboxTemplate (prewarmHarness) is deprecated. Use createHarnessSandboxTemplate and a sandbox session creator instead.',
+  );
+  const sandboxConfig = options.sandboxConfig ?? {};
+  validateSandboxBootstrapSettings(sandboxConfig);
+
+  const { harness, sandboxProvider, abortSignal } = options;
+
+  let recipe: HarnessV1Bootstrap | undefined;
+  if (harness.getBootstrap != null) {
+    recipe = await harness.getBootstrap({ abortSignal });
+  }
+
+  const bootstrapPlan = await createSandboxBootstrapPlan({
+    recipe,
+    settings: sandboxConfig,
+  });
+  if (bootstrapPlan.identity == null || bootstrapPlan.onFirstCreate == null) {
+    return;
+  }
+
+  const sandboxSession = await sandboxProvider.createSession({
+    abortSignal,
+    identity: bootstrapPlan.identity,
+    onFirstCreate: bootstrapPlan.onFirstCreate,
+  });
+
+  // Unlike `prepareSandboxForHarness()` and `HarnessAgent.createSession()`, this function
+  // does not apply the agent-specific sandbox config, since the function is meant as a
+  // general harness utility, not for a concrete agent.
+  try {
+    if (bootstrapPlan.recipe != null && bootstrapPlan.recipeIdentity != null) {
+      const restrictedSession = sandboxSession.restricted();
+      await applyBootstrapRecipe({
+        session: restrictedSession,
+        recipe: bootstrapPlan.recipe,
+        identity: bootstrapPlan.recipeIdentity,
+        // Harness infrastructure always lives under the sandbox's own HOME,
+        // never the working directory.
+        stateDirectory: harnessStateDirectoryPath({
+          sandboxHomeDir: await resolveSandboxHomeDir({
+            sandbox: restrictedSession,
+            abortSignal,
+          }),
+        }),
+        abortSignal,
+      });
+    }
+  } finally {
+    await Promise.resolve(sandboxSession.stop()).catch(() => {});
+  }
+}
+
+/** @deprecated Use `prepareHarnessSandboxTemplate` instead. */
+export const prewarmHarness = prepareHarnessSandboxTemplate;

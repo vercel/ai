@@ -1,16 +1,18 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import {
+  experimental_toolCaller,
   tool,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import type {
-  GenerateTextOnFinishCallback,
+  GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
@@ -101,16 +103,102 @@ describe('ToolLoopAgent', () => {
       `);
     });
 
+    it('should forward experimental_toolCallers to generateText', async () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: tools =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => Object.keys(tools),
+            }),
+        },
+      );
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        tools: {
+          code_mode: codeMode,
+          getInventory: tool({
+            inputSchema: z.object({ sku: z.string() }),
+            execute: async ({ sku }) => ({ sku }),
+          }),
+        },
+        experimental_toolCallers: {
+          getInventory: ['code_mode'],
+        },
+      });
+
+      await agent.generate({ prompt: 'Hello, world!' });
+
+      expect(doGenerateOptions?.tools?.map(tool => tool.name)).toEqual([
+        'code_mode',
+      ]);
+    });
+
+    it('should tag the user-agent with the agent identifier', async () => {
+      const agent = new ToolLoopAgent({ model: mockModel });
+
+      await agent.generate({ prompt: 'Hello, world!' });
+
+      expect(doGenerateOptions?.headers?.['user-agent']).toContain(
+        'ai-sdk-agent/tool-loop',
+      );
+    });
+
+    it('should preserve a caller-provided user-agent', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        headers: { 'user-agent': 'my-app/1.0' },
+      });
+
+      await agent.generate({ prompt: 'Hello, world!' });
+
+      const ua = doGenerateOptions?.headers?.['user-agent'] ?? '';
+      expect(ua).toContain('my-app/1.0');
+      expect(ua).toContain('ai-sdk-agent/tool-loop');
+    });
+
+    it('should forward toolOrder to generateText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        tools: {
+          zebra: tool({
+            inputSchema: z.object({}),
+          }),
+          alpha: tool({
+            inputSchema: z.object({}),
+          }),
+          middle: tool({
+            inputSchema: z.object({}),
+          }),
+        },
+        toolOrder: ['middle'],
+      });
+
+      await agent.generate({ prompt: 'Hello, world!' });
+
+      expect(doGenerateOptions?.tools?.map(tool => tool.name)).toEqual([
+        'middle',
+        'alpha',
+        'zebra',
+      ]);
+    });
+
     it('should pass sandbox to prepareCall', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        run: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
 
       const agent = new ToolLoopAgent({
         model: mockModel,
@@ -142,6 +230,49 @@ describe('ToolLoopAgent', () => {
       expect(doGenerateOptions?.abortSignal).toBe(abortController.signal);
     });
 
+    it('should allow system messages when allowSystemInMessages is true', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        allowSystemInMessages: true,
+      });
+
+      await agent.generate({
+        messages: [{ role: 'system', content: 'SYSTEM INSTRUCTIONS' }],
+      });
+
+      expect(doGenerateOptions?.prompt).toEqual([
+        { role: 'system', content: 'SYSTEM INSTRUCTIONS' },
+      ]);
+    });
+
+    it('should allow prepareCall to return allowSystemInMessages', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        prepareCall: ({ ...rest }) => ({
+          ...rest,
+          allowSystemInMessages: true,
+        }),
+      });
+
+      await agent.generate({
+        messages: [{ role: 'system', content: 'SYSTEM INSTRUCTIONS' }],
+      });
+
+      expect(doGenerateOptions?.prompt).toEqual([
+        { role: 'system', content: 'SYSTEM INSTRUCTIONS' },
+      ]);
+    });
+
+    it('should reject system messages when allowSystemInMessages is not set', async () => {
+      const agent = new ToolLoopAgent({ model: mockModel });
+
+      await expect(
+        agent.generate({
+          messages: [{ role: 'system', content: 'SYSTEM INSTRUCTIONS' }],
+        }),
+      ).rejects.toThrow(/system messages are not allowed/i);
+    });
+
     it('should pass timeout to generateText', async () => {
       const agent = new ToolLoopAgent({ model: mockModel });
 
@@ -154,16 +285,31 @@ describe('ToolLoopAgent', () => {
       expect(doGenerateOptions?.abortSignal).toBeDefined();
     });
 
+    it('should pass settings timeout to generateText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        timeout: 5000,
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+      });
+
+      // timeout is merged into abortSignal, so we check that an abort signal was created
+      expect(doGenerateOptions?.abortSignal).toBeDefined();
+    });
+
     it('should pass sandbox to tool execution', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        run: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
       let modelCallCount = 0;
 
       const agent = new ToolLoopAgent({
@@ -686,16 +832,81 @@ describe('ToolLoopAgent', () => {
       );
     });
 
+    it('should forward experimental_toolCallers to streamText', async () => {
+      const codeMode = experimental_toolCaller(
+        tool({
+          inputSchema: z.object({}),
+          execute: async () => undefined,
+        }),
+        {
+          type: 'local',
+          bind: tools =>
+            tool({
+              inputSchema: z.object({}),
+              execute: async () => Object.keys(tools),
+            }),
+        },
+      );
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        tools: {
+          code_mode: codeMode,
+          getInventory: tool({
+            inputSchema: z.object({ sku: z.string() }),
+            execute: async ({ sku }) => ({ sku }),
+          }),
+        },
+        experimental_toolCallers: {
+          getInventory: ['code_mode'],
+        },
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!' });
+      await result.consumeStream();
+
+      expect(doStreamOptions?.tools?.map(tool => tool.name)).toEqual([
+        'code_mode',
+      ]);
+    });
+
+    it('should forward toolOrder to streamText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        tools: {
+          zebra: tool({
+            inputSchema: z.object({}),
+          }),
+          alpha: tool({
+            inputSchema: z.object({}),
+          }),
+          middle: tool({
+            inputSchema: z.object({}),
+          }),
+        },
+        toolOrder: ['middle'],
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!' });
+      await result.consumeStream();
+
+      expect(doStreamOptions?.tools?.map(tool => tool.name)).toEqual([
+        'middle',
+        'alpha',
+        'zebra',
+      ]);
+    });
+
     it('should pass sandbox to prepareCall', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        run: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
 
       const agent = new ToolLoopAgent({
         model: mockModel,
@@ -748,16 +959,70 @@ describe('ToolLoopAgent', () => {
       expect(doStreamOptions?.abortSignal).toBeDefined();
     });
 
+    it('should pass settings timeout to streamText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        timeout: 5000,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+      });
+
+      await result.consumeStream();
+
+      // timeout is merged into abortSignal, so we check that an abort signal was created
+      expect(doStreamOptions?.abortSignal).toBeDefined();
+    });
+
+    it('should allow system messages when allowSystemInMessages is true', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        allowSystemInMessages: true,
+      });
+
+      const result = await agent.stream({
+        messages: [{ role: 'system', content: 'SYSTEM INSTRUCTIONS' }],
+      });
+
+      await result.consumeStream();
+
+      expect(doStreamOptions?.prompt).toEqual([
+        { role: 'system', content: 'SYSTEM INSTRUCTIONS' },
+      ]);
+    });
+
+    it('should allow prepareCall to return allowSystemInMessages', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+        prepareCall: ({ ...rest }) => ({
+          ...rest,
+          allowSystemInMessages: true,
+        }),
+      });
+
+      const result = await agent.stream({
+        messages: [{ role: 'system', content: 'SYSTEM INSTRUCTIONS' }],
+      });
+
+      await result.consumeStream();
+
+      expect(doStreamOptions?.prompt).toEqual([
+        { role: 'system', content: 'SYSTEM INSTRUCTIONS' },
+      ]);
+    });
+
     it('should pass sandbox to tool execution', async () => {
       const sandbox = {
         description: 'test sandbox',
-        executeCommand: vi.fn(async () => ({
+        run: vi.fn(async () => ({
           exitCode: 0,
           stdout: 'ok',
           stderr: '',
         })),
-      } satisfies Sandbox;
-      let recordedSandbox: Sandbox | undefined;
+        ...mockSandboxSessionFileStubs,
+      } satisfies SandboxSession;
+      let recordedSandbox: SandboxSession | undefined;
       let modelCallCount = 0;
 
       const agent = new ToolLoopAgent({
@@ -1060,7 +1325,7 @@ describe('ToolLoopAgent', () => {
     });
   });
 
-  describe('experimental_onStart', () => {
+  describe('onStart', () => {
     describe('generate', () => {
       let doGenerateOptions: LanguageModelV4CallOptions | undefined;
       let mockModel: MockLanguageModelV4;
@@ -1093,12 +1358,12 @@ describe('ToolLoopAgent', () => {
         });
       });
 
-      it('should call experimental_onStart from constructor', async () => {
+      it('should call onStart from constructor', async () => {
         const onStartCalls: string[] = [];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
-          experimental_onStart: async () => {
+          onStart: async () => {
             onStartCalls.push('constructor');
           },
         });
@@ -1114,7 +1379,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onStart from generate method', async () => {
+      it('should call onStart from generate method', async () => {
         const onStartCalls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -1123,7 +1388,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'Hello, world!',
-          experimental_onStart: async () => {
+          onStart: async () => {
             onStartCalls.push('method');
           },
         });
@@ -1135,19 +1400,19 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call both constructor and method experimental_onStart in correct order', async () => {
+      it('should call both constructor and method onStart in correct order', async () => {
         const onStartCalls: string[] = [];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
-          experimental_onStart: async () => {
+          onStart: async () => {
             onStartCalls.push('constructor');
           },
         });
 
         await agent.generate({
           prompt: 'Hello, world!',
-          experimental_onStart: async () => {
+          onStart: async () => {
             onStartCalls.push('method');
           },
         });
@@ -1192,7 +1457,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'Hello, world!',
-          experimental_onStart: async () => {
+          onStart: async () => {
             callOrder.push('onStart');
           },
         });
@@ -1212,7 +1477,7 @@ describe('ToolLoopAgent', () => {
 
         const result = await agent.generate({
           prompt: 'Hello, world!',
-          experimental_onStart: async () => {
+          onStart: async () => {
             throw new Error('callback error');
           },
         });
@@ -1235,7 +1500,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'Hello, world!',
-          experimental_onStart: async event => {
+          onStart: async event => {
             startEvent = event;
           },
         });
@@ -1277,7 +1542,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           messages: [{ role: 'user', content: 'test-message' }],
-          experimental_onStart: async event => {
+          onStart: async event => {
             startEvent = event;
           },
         });
@@ -1337,12 +1602,12 @@ describe('ToolLoopAgent', () => {
         });
       });
 
-      it('should call experimental_onStart from constructor', async () => {
+      it('should call onStart from constructor', async () => {
         const onStartCalls: string[] = [];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
-          experimental_onStart: async () => {
+          onStart: async () => {
             onStartCalls.push('constructor');
           },
         });
@@ -1357,14 +1622,14 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onStart from stream method', async () => {
+      it('should call onStart from stream method', async () => {
         const onStartCalls: string[] = [];
 
         const agent = new ToolLoopAgent({ model: mockModel });
 
         const result = await agent.stream({
           prompt: 'Hello, world!',
-          experimental_onStart: async () => {
+          onStart: async () => {
             onStartCalls.push('method');
           },
         });
@@ -1378,19 +1643,19 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call both constructor and method experimental_onStart in correct order', async () => {
+      it('should call both constructor and method onStart in correct order', async () => {
         const onStartCalls: string[] = [];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
-          experimental_onStart: async () => {
+          onStart: async () => {
             onStartCalls.push('constructor');
           },
         });
 
         const result = await agent.stream({
           prompt: 'Hello, world!',
-          experimental_onStart: async () => {
+          onStart: async () => {
             onStartCalls.push('method');
           },
         });
@@ -1420,7 +1685,7 @@ describe('ToolLoopAgent', () => {
 
         const result = await agent.stream({
           prompt: 'Hello, world!',
-          experimental_onStart: async event => {
+          onStart: async event => {
             startEvent = event;
           },
         });
@@ -1457,7 +1722,7 @@ describe('ToolLoopAgent', () => {
     });
   });
 
-  describe('experimental_onStepStart', () => {
+  describe('onStepStart', () => {
     describe('generate', () => {
       let mockModel: MockLanguageModelV4;
 
@@ -1487,12 +1752,12 @@ describe('ToolLoopAgent', () => {
         });
       });
 
-      it('should call experimental_onStepStart from constructor', async () => {
+      it('should call onStepStart from constructor', async () => {
         const onStepStartCalls: string[] = [];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
-          experimental_onStepStart: async () => {
+          onStepStart: async () => {
             onStepStartCalls.push('constructor');
           },
         });
@@ -1508,7 +1773,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onStepStart from generate method', async () => {
+      it('should call onStepStart from generate method', async () => {
         const onStepStartCalls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -1517,7 +1782,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'Hello, world!',
-          experimental_onStepStart: async () => {
+          onStepStart: async () => {
             onStepStartCalls.push('method');
           },
         });
@@ -1529,19 +1794,19 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call both constructor and method experimental_onStepStart in correct order', async () => {
+      it('should call both constructor and method onStepStart in correct order', async () => {
         const onStepStartCalls: string[] = [];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
-          experimental_onStepStart: async () => {
+          onStepStart: async () => {
             onStepStartCalls.push('constructor');
           },
         });
 
         await agent.generate({
           prompt: 'Hello, world!',
-          experimental_onStepStart: async () => {
+          onStepStart: async () => {
             onStepStartCalls.push('method');
           },
         });
@@ -1586,7 +1851,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'Hello, world!',
-          experimental_onStepStart: async () => {
+          onStepStart: async () => {
             callOrder.push('onStepStart');
           },
         });
@@ -1606,7 +1871,7 @@ describe('ToolLoopAgent', () => {
 
         const result = await agent.generate({
           prompt: 'Hello, world!',
-          experimental_onStepStart: async () => {
+          onStepStart: async () => {
             throw new Error('callback error');
           },
         });
@@ -1627,7 +1892,7 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'Hello, world!',
-          experimental_onStepStart: async event => {
+          onStepStart: async event => {
             stepStartEvent = event;
           },
         });
@@ -1700,12 +1965,12 @@ describe('ToolLoopAgent', () => {
         });
       });
 
-      it('should call experimental_onStepStart from constructor', async () => {
+      it('should call onStepStart from constructor', async () => {
         const onStepStartCalls: string[] = [];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
-          experimental_onStepStart: async () => {
+          onStepStart: async () => {
             onStepStartCalls.push('constructor');
           },
         });
@@ -1720,14 +1985,14 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onStepStart from stream method', async () => {
+      it('should call onStepStart from stream method', async () => {
         const onStepStartCalls: string[] = [];
 
         const agent = new ToolLoopAgent({ model: mockModel });
 
         const result = await agent.stream({
           prompt: 'Hello, world!',
-          experimental_onStepStart: async () => {
+          onStepStart: async () => {
             onStepStartCalls.push('method');
           },
         });
@@ -1741,19 +2006,19 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call both constructor and method experimental_onStepStart in correct order', async () => {
+      it('should call both constructor and method onStepStart in correct order', async () => {
         const onStepStartCalls: string[] = [];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
-          experimental_onStepStart: async () => {
+          onStepStart: async () => {
             onStepStartCalls.push('constructor');
           },
         });
 
         const result = await agent.stream({
           prompt: 'Hello, world!',
-          experimental_onStepStart: async () => {
+          onStepStart: async () => {
             onStepStartCalls.push('method');
           },
         });
@@ -1781,7 +2046,7 @@ describe('ToolLoopAgent', () => {
 
         const result = await agent.stream({
           prompt: 'Hello, world!',
-          experimental_onStepStart: async event => {
+          onStepStart: async event => {
             stepStartEvent = event;
           },
         });
@@ -1813,6 +2078,386 @@ describe('ToolLoopAgent', () => {
     });
   });
 
+  describe('onStepError', () => {
+    it('should call onStepError when a generate step fails', async () => {
+      const onStepStart = vi.fn();
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const providerError = new Error('provider failure');
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw providerError;
+          },
+        }),
+        maxRetries: 0,
+        onStepStart,
+        onStepError,
+        onStepEnd,
+      });
+
+      await expect(agent.generate({ prompt: 'Hello, world!' })).rejects.toBe(
+        providerError,
+      );
+
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith({
+        ...onStepStart.mock.calls[0][0],
+        error: providerError,
+      });
+    });
+
+    it('should call onStepError when a stream step ends without output', async () => {
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+            ]),
+          }),
+        }),
+        onError: () => {},
+        onStepError,
+        onStepEnd,
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!' });
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 0,
+          error: expect.objectContaining({
+            name: 'AI_NoOutputGeneratedError',
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('onAbort', () => {
+    const hangingModel = (abortController?: AbortController) =>
+      new MockLanguageModelV4({
+        doStream: ({ abortSignal }) => {
+          abortController?.abort();
+          return new Promise((_, reject) => {
+            if (abortSignal?.aborted) {
+              reject(abortSignal.reason);
+            }
+            abortSignal?.addEventListener('abort', () =>
+              reject(abortSignal.reason),
+            );
+          });
+        },
+        doGenerate: ({ abortSignal }) => {
+          abortController?.abort();
+          return new Promise((_, reject) => {
+            if (abortSignal?.aborted) {
+              reject(abortSignal.reason);
+            }
+            abortSignal?.addEventListener('abort', () =>
+              reject(abortSignal.reason),
+            );
+          });
+        },
+      });
+
+    it('should call onAbort when stream() is aborted', async () => {
+      const onAbort = vi.fn();
+      const abortController = new AbortController();
+      const agent = new ToolLoopAgent({
+        model: hangingModel(abortController),
+        maxRetries: 0,
+        onAbort,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        abortSignal: abortController.signal,
+      });
+      await result.consumeStream();
+
+      expect(onAbort).toHaveBeenCalledTimes(1);
+      expect(onAbort.mock.calls[0][0]).toMatchObject({ steps: [] });
+    });
+
+    it('should call onAbort when stream() times out', async () => {
+      const onAbort = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: hangingModel(),
+        maxRetries: 0,
+        onAbort,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        timeout: { totalMs: 10 },
+      });
+      await result.consumeStream();
+
+      expect(onAbort).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call onAbort when generate() is aborted', async () => {
+      const onAbort = vi.fn();
+      const onStepError = vi.fn();
+      const abortController = new AbortController();
+      const agent = new ToolLoopAgent({
+        model: hangingModel(abortController),
+        maxRetries: 0,
+        onAbort,
+        onStepError,
+      });
+
+      await expect(
+        agent.generate({
+          prompt: 'Hello, world!',
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toThrow();
+
+      expect(onAbort).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('onError', () => {
+    it('should call onError when a stream step fails', async () => {
+      const onError = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+            ]),
+          }),
+        }),
+        onError,
+      });
+
+      const result = await agent.stream({ prompt: 'Hello, world!' });
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith({
+        error: expect.objectContaining({ name: 'AI_NoOutputGeneratedError' }),
+      });
+    });
+
+    it('should call onError and rethrow when generate fails', async () => {
+      const onError = vi.fn();
+      const providerError = new Error('provider failure');
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw providerError;
+          },
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      await expect(agent.generate({ prompt: 'Hello, world!' })).rejects.toBe(
+        providerError,
+      );
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith({ error: providerError });
+    });
+
+    it('should rethrow the generate error when onError throws', async () => {
+      const providerError = new Error('provider failure');
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw providerError;
+          },
+        }),
+        maxRetries: 0,
+        onError: () => {
+          throw new Error('callback failure');
+        },
+      });
+
+      await expect(agent.generate({ prompt: 'Hello, world!' })).rejects.toBe(
+        providerError,
+      );
+    });
+
+    it.each([
+      ['an abort', { abort: true }],
+      ['a timeout', { timeout: { totalMs: 10 } }],
+    ] as const)(
+      'should not call onError for %s in generate()',
+      async (_, setup) => {
+        const onError = vi.fn();
+        const abortController = new AbortController();
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4({
+            doGenerate: ({ abortSignal }) => {
+              if ('abort' in setup) {
+                abortController.abort();
+              }
+              return new Promise((_, reject) => {
+                if (abortSignal?.aborted) {
+                  reject(abortSignal.reason);
+                }
+                abortSignal?.addEventListener('abort', () =>
+                  reject(abortSignal.reason),
+                );
+              });
+            },
+          }),
+          maxRetries: 0,
+          onError,
+        });
+
+        await expect(
+          agent.generate({
+            prompt: 'Hello, world!',
+            ...('abort' in setup
+              ? { abortSignal: abortController.signal }
+              : { timeout: setup.timeout }),
+          }),
+        ).rejects.toThrow();
+
+        expect(onError).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should not call onError when a provider wraps a timeout error', async () => {
+      const onError = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw new Error('Gateway request failed', {
+              cause: new DOMException('timed out', 'TimeoutError'),
+            });
+          },
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      await expect(agent.generate({ prompt: 'Hello, world!' })).rejects.toThrow(
+        'Gateway request failed',
+      );
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should not call onError when a provider wraps an abort in stream()', async () => {
+      const onError = vi.fn();
+      const abortController = new AbortController();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            abortController.abort();
+            throw new Error('Gateway request failed', {
+              cause: new DOMException('aborted', 'AbortError'),
+            });
+          },
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        abortSignal: abortController.signal,
+      });
+      await result.consumeStream();
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should not call onError when a provider wraps a timeout in stream()', async () => {
+      const onError = vi.fn();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: ({ abortSignal }) =>
+            new Promise((_, reject) => {
+              abortSignal?.addEventListener('abort', () =>
+                reject(
+                  new Error('Gateway request failed', {
+                    cause: abortSignal.reason,
+                  }),
+                ),
+              );
+            }),
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        timeout: { totalMs: 10 },
+      });
+      await result.consumeStream();
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should not call onError when generate() is aborted with a custom reason', async () => {
+      const onError = vi.fn();
+      const abortController = new AbortController();
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            abortController.abort(new Error('user left'));
+            throw abortController.signal.reason;
+          },
+        }),
+        maxRetries: 0,
+        onError,
+      });
+
+      await expect(
+        agent.generate({
+          prompt: 'Hello, world!',
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toThrow('user left');
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('should keep the default stream error logging when no onError is set', async () => {
+      const consoleError = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      try {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+              ]),
+            }),
+          }),
+        });
+
+        const result = await agent.stream({ prompt: 'Hello, world!' });
+        await result.consumeStream();
+        await expect(result.text).rejects.toThrow();
+
+        expect(consoleError).toHaveBeenCalledWith(
+          expect.objectContaining({ name: 'AI_NoOutputGeneratedError' }),
+        );
+      } finally {
+        consoleError.mockRestore();
+      }
+    });
+  });
+
   describe('onStepFinish', () => {
     describe('generate', () => {
       let mockModel: MockLanguageModelV4;
@@ -1841,6 +2486,52 @@ describe('ToolLoopAgent', () => {
             };
           },
         });
+      });
+
+      it('should call onStepEnd from constructor and generate method in order', async () => {
+        const onStepEndCalls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          onStepEnd: async () => {
+            onStepEndCalls.push('constructor');
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          onStepEnd: async () => {
+            onStepEndCalls.push('method');
+          },
+        });
+
+        expect(onStepEndCalls).toEqual(['constructor', 'method']);
+      });
+
+      it('should prefer onStepEnd over deprecated onStepFinish', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          onStepEnd: async () => {
+            calls.push('constructor-onStepEnd');
+          },
+          onStepFinish: async () => {
+            calls.push('constructor-onStepFinish');
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          onStepEnd: async () => {
+            calls.push('method-onStepEnd');
+          },
+          onStepFinish: async () => {
+            calls.push('method-onStepFinish');
+          },
+        });
+
+        expect(calls).toEqual(['constructor-onStepEnd', 'method-onStepEnd']);
       });
 
       it('should call onStepFinish from constructor', async () => {
@@ -3046,7 +3737,7 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass correct event information', async () => {
-        let event!: Parameters<GenerateTextOnFinishCallback<{}>>[0];
+        let event!: Parameters<GenerateTextOnEndCallback<{}>>[0];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
@@ -3063,8 +3754,8 @@ describe('ToolLoopAgent', () => {
           text: event.text,
           finishReason: event.finishReason,
           stepsLength: event.steps.length,
-          inputTokens: event.totalUsage.inputTokens,
-          outputTokens: event.totalUsage.outputTokens,
+          inputTokens: event.usage.inputTokens,
+          outputTokens: event.usage.outputTokens,
         }).toMatchInlineSnapshot(`
           {
             "finishReason": "stop",
@@ -3197,7 +3888,7 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass correct event information', async () => {
-        let event!: Parameters<GenerateTextOnFinishCallback<{}>>[0];
+        let event!: Parameters<GenerateTextOnEndCallback<{}>>[0];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
@@ -3216,8 +3907,8 @@ describe('ToolLoopAgent', () => {
           text: event.text,
           finishReason: event.finishReason,
           stepsLength: event.steps.length,
-          inputTokens: event.totalUsage.inputTokens,
-          outputTokens: event.totalUsage.outputTokens,
+          inputTokens: event.usage.inputTokens,
+          outputTokens: event.usage.outputTokens,
         }).toMatchInlineSnapshot(`
           {
             "finishReason": "stop",
@@ -3312,8 +4003,8 @@ describe('ToolLoopAgent', () => {
               onToolExecutionEnd: async () => {
                 events.push('onToolExecutionEnd');
               },
-              onStepFinish: async () => {
-                events.push('onStepFinish');
+              onStepEnd: async () => {
+                events.push('onStepEnd');
               },
               onEnd: async () => {
                 events.push('onEnd');
@@ -3329,9 +4020,9 @@ describe('ToolLoopAgent', () => {
           'onStepStart',
           'onToolExecutionStart',
           'onToolExecutionEnd',
-          'onStepFinish',
+          'onStepEnd',
           'onStepStart',
-          'onStepFinish',
+          'onStepEnd',
           'onEnd',
         ]);
       });
@@ -3344,8 +4035,8 @@ describe('ToolLoopAgent', () => {
             onStart: async () => {
               events.push('global-onStart');
             },
-            onStepFinish: async () => {
-              events.push('global-onStepFinish');
+            onStepEnd: async () => {
+              events.push('global-onStepEnd');
             },
             onEnd: async () => {
               events.push('global-onEnd');
@@ -3367,7 +4058,7 @@ describe('ToolLoopAgent', () => {
 
         expect(events).toEqual([
           'global-onStart',
-          'global-onStepFinish',
+          'global-onStepEnd',
           'global-onEnd',
         ]);
       });
@@ -3388,7 +4079,7 @@ describe('ToolLoopAgent', () => {
             userId: 'user-123',
             requestId: 'request-123',
           },
-          experimental_onStart: async ({ runtimeContext }) => {
+          onStart: async ({ runtimeContext }) => {
             callbackContexts.push(runtimeContext);
           },
           onStepFinish: async ({ runtimeContext }) => {
@@ -3407,7 +4098,7 @@ describe('ToolLoopAgent', () => {
                   (event as { runtimeContext: unknown }).runtimeContext,
                 );
               },
-              onStepFinish: async ({ runtimeContext }) => {
+              onStepEnd: async ({ runtimeContext }) => {
                 telemetryContexts.push(runtimeContext);
               },
               onEnd: async event => {
@@ -3444,7 +4135,7 @@ describe('ToolLoopAgent', () => {
               finishReason: { unified: 'stop' as const, raw: 'stop' },
             }),
           }),
-          experimental_onStart: async () => {
+          onStart: async () => {
             events.push('agent-onStart');
           },
           onStepFinish: async () => {
@@ -3458,8 +4149,8 @@ describe('ToolLoopAgent', () => {
               onStart: async () => {
                 events.push('integration-onStart');
               },
-              onStepFinish: async () => {
-                events.push('integration-onStepFinish');
+              onStepEnd: async () => {
+                events.push('integration-onStepEnd');
               },
               onEnd: async () => {
                 events.push('integration-onEnd');
@@ -3474,7 +4165,7 @@ describe('ToolLoopAgent', () => {
           'agent-onStart',
           'integration-onStart',
           'agent-onStepFinish',
-          'integration-onStepFinish',
+          'integration-onStepEnd',
           'agent-onFinish',
           'integration-onEnd',
         ]);
@@ -3494,7 +4185,7 @@ describe('ToolLoopAgent', () => {
               onStart: async () => {
                 throw new Error('integration error');
               },
-              onStepFinish: async () => {
+              onStepEnd: async () => {
                 throw new Error('integration error');
               },
               onEnd: async () => {
@@ -3605,8 +4296,8 @@ describe('ToolLoopAgent', () => {
               onToolExecutionEnd: async () => {
                 events.push('onToolExecutionEnd');
               },
-              onStepFinish: async () => {
-                events.push('onStepFinish');
+              onStepEnd: async () => {
+                events.push('onStepEnd');
               },
               onEnd: async () => {
                 events.push('onEnd');
@@ -3623,9 +4314,9 @@ describe('ToolLoopAgent', () => {
           'onStepStart',
           'onToolExecutionStart',
           'onToolExecutionEnd',
-          'onStepFinish',
+          'onStepEnd',
           'onStepStart',
-          'onStepFinish',
+          'onStepEnd',
           'onEnd',
         ]);
       });
@@ -3638,8 +4329,8 @@ describe('ToolLoopAgent', () => {
             onStart: async () => {
               events.push('global-onStart');
             },
-            onStepFinish: async () => {
-              events.push('global-onStepFinish');
+            onStepEnd: async () => {
+              events.push('global-onStepEnd');
             },
             onEnd: async () => {
               events.push('global-onEnd');
@@ -3672,7 +4363,7 @@ describe('ToolLoopAgent', () => {
 
         expect(events).toEqual([
           'global-onStart',
-          'global-onStepFinish',
+          'global-onStepEnd',
           'global-onEnd',
         ]);
       });
@@ -3703,7 +4394,7 @@ describe('ToolLoopAgent', () => {
             userId: 'user-123',
             requestId: 'request-123',
           },
-          experimental_onStart: async ({ runtimeContext }) => {
+          onStart: async ({ runtimeContext }) => {
             callbackContexts.push(runtimeContext);
           },
           onStepFinish: async ({ runtimeContext }) => {
@@ -3722,7 +4413,7 @@ describe('ToolLoopAgent', () => {
                   (event as { runtimeContext: unknown }).runtimeContext,
                 );
               },
-              onStepFinish: async ({ runtimeContext }) => {
+              onStepEnd: async ({ runtimeContext }) => {
                 telemetryContexts.push(runtimeContext);
               },
               onEnd: async event => {
@@ -3770,7 +4461,7 @@ describe('ToolLoopAgent', () => {
               ]),
             }),
           }),
-          experimental_onStart: async () => {
+          onStart: async () => {
             events.push('agent-onStart');
           },
           onStepFinish: async () => {
@@ -3784,8 +4475,8 @@ describe('ToolLoopAgent', () => {
               onStart: async () => {
                 events.push('integration-onStart');
               },
-              onStepFinish: async () => {
-                events.push('integration-onStepFinish');
+              onStepEnd: async () => {
+                events.push('integration-onStepEnd');
               },
               onEnd: async () => {
                 events.push('integration-onEnd');
@@ -3801,7 +4492,7 @@ describe('ToolLoopAgent', () => {
           'agent-onStart',
           'integration-onStart',
           'agent-onStepFinish',
-          'integration-onStepFinish',
+          'integration-onStepEnd',
           'agent-onFinish',
           'integration-onEnd',
         ]);
@@ -3831,7 +4522,7 @@ describe('ToolLoopAgent', () => {
               onStart: async () => {
                 throw new Error('integration error');
               },
-              onStepFinish: async () => {
+              onStepEnd: async () => {
                 throw new Error('integration error');
               },
               onEnd: async () => {

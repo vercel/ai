@@ -1,4 +1,4 @@
-import { tool, type Tool } from '@ai-sdk/provider-utils';
+import { tool, type Tool, type ToolResultOutput } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from './create-tool-model-output';
 import z from 'zod/v4';
 import { describe, it, expect } from 'vitest';
@@ -164,6 +164,40 @@ describe('createToolModelOutput', () => {
     });
   });
 
+  describe('this binding', () => {
+    // Guards against re-introducing a "this-binding guard" (e.g. destructuring
+    // `toModelOutput` off the tool before calling it), which would break
+    // class-based tools that rely on `this` in `toModelOutput`.
+    // See https://github.com/vercel/ai/pull/15917#discussion_r3376474765
+    it('should preserve `this` when calling a class-based tool.toModelOutput', async () => {
+      class WeatherTool {
+        readonly inputSchema = z.object({});
+        private readonly unit = '°C';
+
+        toModelOutput({ output }: { output: unknown }): ToolResultOutput {
+          // accesses `this.unit`, which requires `this` to be bound to the
+          // tool instance when `toModelOutput` is invoked.
+          return { type: 'text', value: `${output}${this.unit}` };
+        }
+      }
+
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: '21',
+        tool: new WeatherTool(),
+        errorMode: 'none',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "text",
+          "value": "21°C",
+        }
+      `);
+    });
+  });
+
   describe('string output without toModelOutput', () => {
     it('should return text type for string output', async () => {
       const result = await createToolModelOutput({
@@ -243,6 +277,62 @@ describe('createToolModelOutput', () => {
           },
         }
       `);
+    });
+
+    it('should JSON serialize object output', async () => {
+      class ObjectIdLike {
+        toJSON() {
+          return '507f1f77bcf86cd799439011';
+        }
+      }
+
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: {
+          id: new ObjectIdLike(),
+          omitted: undefined,
+        },
+        tool: undefined,
+        errorMode: 'none',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "json",
+          "value": {
+            "id": "507f1f77bcf86cd799439011",
+          },
+        }
+      `);
+    });
+
+    it.each([
+      ['own __proto__', '{"rows":[{"__proto__":"value"}]}'],
+      [
+        'nested constructor.prototype',
+        '{"rows":[{"constructor":{"prototype":{"value":true}}}]}',
+      ],
+    ])('should preserve %s properties', async (_, serializedOutput) => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: JSON.parse(serializedOutput),
+        tool: undefined,
+        errorMode: 'none',
+      });
+
+      expect(result.type).toBe('json');
+      if (result.type === 'json') {
+        expect(JSON.stringify(result.value)).toBe(serializedOutput);
+
+        // the keys must be own data properties; the prototype chain
+        // of the result and of Object.prototype must not be modified.
+        const row = (result.value as { rows: object[] }).rows[0];
+        expect(Object.getPrototypeOf(row)).toBe(Object.prototype);
+        expect(Object.getPrototypeOf({})).toBe(Object.prototype);
+        expect(({} as Record<string, unknown>).value).toBeUndefined();
+      }
     });
 
     it('should return json type for array output', async () => {

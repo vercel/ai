@@ -16,12 +16,12 @@ run(async () => {
     messages.push({ role: 'user', content: await terminal.question('You: ') });
 
     const result = streamText({
-      model: google('gemini-2.5-flash-image'),
+      model: google('gemini-3.1-flash-image-preview'),
       messages,
     });
 
     process.stdout.write('\nAssistant: ');
-    for await (const delta of result.fullStream) {
+    for await (const delta of result.stream) {
       switch (delta.type) {
         case 'text-delta': {
           process.stdout.write(delta.text);

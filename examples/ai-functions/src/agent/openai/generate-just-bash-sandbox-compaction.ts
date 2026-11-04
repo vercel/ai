@@ -1,62 +1,64 @@
 import {
   type ModelMessage,
+  type PrepareStepFunction,
   generateText,
   isStepCount,
   pruneMessages,
 } from 'ai';
 import { run } from '../../lib/run';
 import { anthropic } from '@ai-sdk/anthropic';
-import { JustBashSandbox } from '../../sandbox/just-bash-sandbox';
-import { Bash, OverlayFs } from 'just-bash';
+import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import { openai } from '@ai-sdk/openai';
-
-const overlay = new OverlayFs({
-  root: process.cwd(),
-});
-
-const sandbox = new JustBashSandbox(
-  new Bash({
-    fs: overlay,
-    cwd: overlay.getMountPoint(),
-  }),
-);
 
 const COMPACTION_THRESHOLD = 8000;
 const estimateTokens = (messages: ModelMessage[]) => {
   return JSON.stringify(messages).length / 4;
 };
 
+const compactMessages: PrepareStepFunction<{
+  bash: ReturnType<typeof anthropic.tools.bash_20250124>;
+}> = ({ messages, stepNumber }) => {
+  console.log('\nStep number:', stepNumber);
+
+  const tokenCount = estimateTokens(messages);
+  console.log('Estimated token count:', tokenCount);
+
+  if (tokenCount > COMPACTION_THRESHOLD) {
+    console.log('Compacting messages...');
+    return {
+      // message changes persist over steps now
+      messages: pruneMessages({
+        messages,
+        reasoning: 'all',
+        toolCalls: 'before-last-2-messages',
+        emptyMessages: 'remove',
+      }),
+    };
+  }
+};
+
 run(async () => {
-  const result = await generateText({
-    model: openai('gpt-5.5'),
-    instructions:
-      'You have access to a filesystem. Details: ' + sandbox.description,
-    prompt: 'Read every .ts file in this directory',
-    experimental_sandbox: sandbox,
-    tools: {
-      bash: anthropic.tools.bash_20250124(),
-    },
-    stopWhen: isStepCount(10),
-    prepareStep: ({ messages, stepNumber }) => {
-      console.log('\nStep number:', stepNumber);
-
-      const tokenCount = estimateTokens(messages);
-      console.log('Estimated token count:', tokenCount);
-
-      if (tokenCount > COMPACTION_THRESHOLD) {
-        console.log('Compacting messages...');
-        return {
-          // message changes persist over steps now
-          messages: pruneMessages({
-            messages,
-            reasoning: 'all',
-            toolCalls: 'before-last-2-messages',
-            emptyMessages: 'remove',
-          }),
-        };
-      }
-    },
+  const sandboxSession = await createJustBashNetworkSandboxSession({
+    overlayRoot: process.cwd(),
   });
 
-  console.log(result.text);
+  try {
+    const result = await generateText({
+      model: openai('gpt-6-astra'),
+      instructions:
+        'You have access to a filesystem. Details: ' +
+        sandboxSession.description,
+      prompt: 'Read every .ts file in this directory',
+      experimental_sandbox: sandboxSession.restricted(),
+      tools: {
+        bash: anthropic.tools.bash_20250124(),
+      },
+      stopWhen: isStepCount(10),
+      prepareStep: compactMessages,
+    });
+
+    console.log(result.text);
+  } finally {
+    await sandboxSession.destroy();
+  }
 });

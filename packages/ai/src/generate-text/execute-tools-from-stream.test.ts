@@ -1,7 +1,8 @@
 import {
+  DelayedPromise,
   delay,
   tool,
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -9,6 +10,7 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
@@ -46,8 +48,11 @@ const finishChunk = {
   }),
   performance: {
     responseTimeMs: 0,
-    timeToFirstTokenMs: undefined,
-    tokensPerSecond: 0,
+    effectiveOutputTokensPerSecond: 0,
+    outputTokensPerSecond: undefined,
+    inputTokensPerSecond: undefined,
+    effectiveTotalTokensPerSecond: 0,
+    timeToFirstOutputMs: undefined,
   },
 };
 
@@ -107,9 +112,12 @@ describe('executeToolsFromStream', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -148,6 +156,76 @@ describe('executeToolsFromStream', () => {
       `);
   });
 
+  it('should execute tool calls sequentially in stream order with concurrency 1', async () => {
+    const firstStarted = new DelayedPromise<void>();
+    const secondStarted = new DelayedPromise<void>();
+    const releaseFirst = new DelayedPromise<void>();
+    const events: string[] = [];
+    const tools = {
+      first: tool({
+        inputSchema: z.object({}),
+        execute: async () => {
+          events.push('first:start');
+          firstStarted.resolve();
+          await releaseFirst.promise;
+          events.push('first:end');
+        },
+      }),
+      second: tool({
+        inputSchema: z.object({}),
+        execute: async () => {
+          events.push('second:start');
+          secondStarted.resolve();
+          events.push('second:end');
+        },
+      }),
+    };
+
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'first',
+          input: {},
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'second',
+          input: {},
+        },
+        finishChunk,
+      ]);
+
+    const transformedStream = executeToolsFromStream({
+      stream: inputStream,
+      generateId: mockId({ prefix: 'id' }),
+      tools,
+      callId: 'test-telemetry-call-id',
+      messages: [],
+      timeout: undefined,
+      abortSignal: undefined,
+      toolsContext: {},
+      runtimeContext: {},
+      toolCallConcurrency: 1,
+    });
+
+    const chunksPromise = convertReadableStreamToArray(transformedStream);
+
+    await firstStarted.promise;
+    expect(events).toEqual(['first:start']);
+    releaseFirst.resolve();
+    await secondStarted.promise;
+    expect(events).toEqual([
+      'first:start',
+      'first:end',
+      'second:start',
+      'second:end',
+    ]);
+    await chunksPromise;
+  });
+
   it('should handle sync tool execution', async () => {
     const tools = {
       syncTool: tool({
@@ -181,69 +259,123 @@ describe('executeToolsFromStream', () => {
 
     expect(await convertReadableStreamToArray(transformedStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "input": {
-            "value": "test",
-          },
-          "toolCallId": "call-1",
-          "toolName": "syncTool",
-          "type": "tool-call",
-        },
-        {
-          "finishReason": "stop",
-          "performance": {
-            "responseTimeMs": 0,
-            "timeToFirstTokenMs": undefined,
-            "tokensPerSecond": 0,
-          },
-          "rawFinishReason": "stop",
-          "type": "model-call-end",
-          "usage": {
-            "inputTokenDetails": {
-              "cacheReadTokens": undefined,
-              "cacheWriteTokens": undefined,
-              "noCacheTokens": 3,
+        [
+          {
+            "input": {
+              "value": "test",
             },
-            "inputTokens": 3,
-            "outputTokenDetails": {
-              "reasoningTokens": undefined,
-              "textTokens": 10,
+            "toolCallId": "call-1",
+            "toolName": "syncTool",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "stop",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
+              "responseTimeMs": 0,
+              "timeToFirstOutputMs": undefined,
             },
-            "outputTokens": 10,
-            "raw": undefined,
-            "totalTokens": 13,
+            "rawFinishReason": "stop",
+            "type": "model-call-end",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 13,
+            },
           },
-        },
-        {
-          "toolCallId": "call-1",
-          "toolExecutionMs": 0,
-          "type": "tool-execution-end",
-        },
-        {
-          "dynamic": false,
-          "input": {
-            "value": "test",
+          {
+            "toolCallId": "call-1",
+            "toolExecutionMs": 0,
+            "type": "tool-execution-end",
           },
-          "output": "test-sync-result",
-          "toolCallId": "call-1",
-          "toolName": "syncTool",
-          "type": "tool-result",
-        },
-      ]
-    `);
+          {
+            "dynamic": false,
+            "input": {
+              "value": "test",
+            },
+            "output": "test-sync-result",
+            "toolCallId": "call-1",
+            "toolName": "syncTool",
+            "type": "tool-result",
+          },
+        ]
+      `);
   });
+
+  it.each([
+    'length',
+    'error',
+    'content-filter',
+    'interrupted',
+    'other',
+  ] as const)(
+    'should not execute tools when the finish reason is %s',
+    async finishReason => {
+      const execute = vi.fn(async () => 'tool-result');
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute,
+        }),
+      };
+
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: { value: 'test' },
+          },
+          {
+            ...finishChunk,
+            finishReason,
+            rawFinishReason: finishReason,
+          },
+        ]);
+
+      await convertReadableStreamToArray(
+        executeToolsFromStream({
+          stream: inputStream,
+          generateId: mockId({ prefix: 'id' }),
+          tools,
+          callId: 'test-telemetry-call-id',
+          messages: [],
+          abortSignal: undefined,
+          timeout: undefined,
+          toolsContext: {},
+          runtimeContext: {},
+        }),
+      );
+
+      expect(execute).not.toHaveBeenCalled();
+    },
+  );
 
   it('should pass sandbox to tool execution', async () => {
     const sandbox = {
       description: 'test sandbox',
-      executeCommand: vi.fn(async () => ({
+      run: vi.fn(async () => ({
         exitCode: 0,
         stdout: 'ok',
         stderr: '',
       })),
-    } satisfies Sandbox;
-    let receivedSandbox: Sandbox | undefined;
+      ...mockSandboxSessionFileStubs,
+    } satisfies SandboxSession;
+    let receivedSandbox: SandboxSession | undefined;
 
     const tools = {
       sandboxTool: tool({
@@ -417,9 +549,12 @@ describe('executeToolsFromStream', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -460,7 +595,7 @@ describe('executeToolsFromStream', () => {
     expect(execute).toHaveBeenCalledTimes(1);
   });
 
-  it('should emit approval request and denied response without executing auto-denied tools', async () => {
+  it('should emit denied output after the approval response without executing auto-denied tools', async () => {
     let toolExecuted = false;
 
     const tools = {
@@ -542,11 +677,19 @@ describe('executeToolsFromStream', () => {
             "type": "tool-approval-response",
           },
           {
+            "toolCallId": "call-1",
+            "toolName": "deniedTool",
+            "type": "tool-output-denied",
+          },
+          {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -1206,9 +1349,12 @@ describe('executeToolsFromStream', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",
@@ -1299,9 +1445,12 @@ describe('executeToolsFromStream', () => {
           {
             "finishReason": "stop",
             "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": undefined,
+              "outputTokensPerSecond": undefined,
               "responseTimeMs": 0,
-              "timeToFirstTokenMs": undefined,
-              "tokensPerSecond": 0,
+              "timeToFirstOutputMs": undefined,
             },
             "rawFinishReason": "stop",
             "type": "model-call-end",

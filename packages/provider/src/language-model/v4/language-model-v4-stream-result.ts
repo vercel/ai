@@ -14,6 +14,9 @@ export type LanguageModelV4StreamResult = {
    * Optional request information for telemetry and debugging purposes.
    */
   request?: {
+    /** The actual HTTP endpoint used for this request, when known. */
+    url?: string;
+
     /**
      * Request HTTP body that was sent to the provider API.
      */

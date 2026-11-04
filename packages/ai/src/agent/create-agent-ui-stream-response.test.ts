@@ -1,13 +1,14 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import {
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   tool,
 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
@@ -131,7 +132,9 @@ describe('createAgentUIStreamResponse', () => {
           {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
-            "headers": undefined,
+            "headers": {
+              "user-agent": "ai-sdk-agent/tool-loop",
+            },
             "includeRawChunks": false,
             "maxOutputTokens": undefined,
             "presencePenalty": undefined,
@@ -263,6 +266,7 @@ describe('createAgentUIStreamResponse', () => {
     it('should call onFinish callback and complete stream without errors', async () => {
       let onFinishCalled = false;
       let finishMessages: unknown[] | undefined;
+      const onUIMessageStepEnd = vi.fn();
 
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV4({
@@ -340,6 +344,7 @@ describe('createAgentUIStreamResponse', () => {
           onFinishCalled = true;
           finishMessages = messages;
         },
+        onUIMessageStepEnd,
       });
 
       // Consume the response to trigger onFinish
@@ -357,19 +362,30 @@ describe('createAgentUIStreamResponse', () => {
       expect(onFinishCalled).toBe(true);
       expect(finishMessages).toBeDefined();
       expect(finishMessages!.length).toBe(2);
+      expect(onUIMessageStepEnd).toHaveBeenCalledTimes(1);
+      expect(onUIMessageStepEnd.mock.calls[0][0].responseMessage).toMatchObject(
+        {
+          id: 'msg-2',
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({ type: 'text', text: 'Done!' }),
+          ]),
+        },
+      );
     });
   });
 
   it('should pass sandbox to tool execution', async () => {
     const sandbox = {
       description: 'test sandbox',
-      executeCommand: async () => ({
+      run: async () => ({
         exitCode: 0,
         stdout: 'ok',
         stderr: '',
       }),
-    } satisfies Sandbox;
-    let receivedSandbox: Sandbox | undefined;
+      ...mockSandboxSessionFileStubs,
+    } satisfies SandboxSession;
+    let receivedSandbox: SandboxSession | undefined;
     let callCount = 0;
 
     const agent = new ToolLoopAgent({

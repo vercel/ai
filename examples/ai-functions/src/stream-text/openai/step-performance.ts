@@ -7,7 +7,7 @@ import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-5-nano'),
+    model: openai('gpt-5.4-nano'),
     stopWhen: isStepCount(3),
     maxRetries: 0,
     tools: {
@@ -21,7 +21,7 @@ run(async () => {
     prompt: 'What is the weather in my current location?',
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

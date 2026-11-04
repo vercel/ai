@@ -31,7 +31,7 @@ const tools = {
 
 async function main() {
   const result = streamText({
-    model: anthropic('claude-sonnet-4-6'),
+    model: anthropic('claude-sonnet-5'),
 
     messages: [
       {
@@ -60,7 +60,7 @@ async function main() {
 
   ts('stream started');
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'reasoning-start':
         ts('[reasoning-start]');

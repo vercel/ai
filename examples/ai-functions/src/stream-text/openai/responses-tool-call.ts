@@ -9,7 +9,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-4o-mini'),
+    model: openai.responses('gpt-6-luna'),
     stopWhen: isStepCount(5),
     tools: {
       currentLocation: tool({
@@ -32,7 +32,7 @@ run(async () => {
     },
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
+    model: vertexAnthropic('claude-sonnet-5-5'),
     tools: {
       weather: weatherTool,
       cityAttractions: {
@@ -16,7 +16,7 @@ run(async () => {
     prompt: 'What is the weather in San Francisco?',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta': {
         console.log('Text:', part.text);

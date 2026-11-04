@@ -3,7 +3,7 @@ import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { fullStream } = streamText({
+  const { stream } = streamText({
     model: xai.responses('grok-4-1-fast-reasoning'),
     tools: {
       mcp_server: xai.tools.mcpServer({
@@ -18,7 +18,7 @@ run(async () => {
 
   let toolCallCount = 0;
 
-  for await (const event of fullStream) {
+  for await (const event of stream) {
     if (event.type === 'tool-call') {
       toolCallCount++;
       console.log(

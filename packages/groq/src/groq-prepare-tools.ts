@@ -3,10 +3,7 @@ import {
   type LanguageModelV4CallOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
-import {
-  getSupportedModelsString,
-  isBrowserSearchSupportedModel,
-} from './groq-browser-search-models';
+import { getGroqLanguageModelEntry } from './groq-model-catalog';
 import type { GroqChatModelId } from './groq-chat-language-model-options';
 
 export function prepareTools({
@@ -69,11 +66,14 @@ export function prepareTools({
   for (const tool of tools) {
     if (tool.type === 'provider') {
       if (tool.id === 'groq.browser_search') {
-        if (!isBrowserSearchSupportedModel(modelId)) {
+        if (
+          getGroqLanguageModelEntry(modelId).capabilities.language.tools
+            .browserSearch === false
+        ) {
           toolWarnings.push({
             type: 'unsupported',
             feature: `provider-defined tool ${tool.id}`,
-            details: `Browser search is only supported on the following models: ${getSupportedModelsString()}. Current model: ${modelId}`,
+            details: `Browser search is not supported on model ${modelId}.`,
           });
         } else {
           groqTools.push({

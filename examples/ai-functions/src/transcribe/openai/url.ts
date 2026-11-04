@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {

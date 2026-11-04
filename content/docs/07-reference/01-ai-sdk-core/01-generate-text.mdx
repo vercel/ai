@@ -7,7 +7,7 @@ description: API Reference for generateText.
 
 Generates text and calls tools for a given prompt using a language model.
 
-It is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting email or summarizing web pages) and for agents that use tools.
+It is ideal for non-interactive use cases such as automation tasks where you need to write text (e.g. drafting emails or summarizing web pages) and for agents that use tools.
 
 ```ts
 import { generateText } from 'ai';
@@ -40,7 +40,7 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'model',
       type: 'LanguageModel',
-      description: "The language model to use. Example: openai('gpt-4o')",
+      description: "The language model to use. Example: openai('gpt-6-astra')",
     },
     {
       name: 'instructions',
@@ -278,7 +278,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'role',
               type: "'tool'",
-              description: 'The role for the assistant message.',
+              description: 'The role for the tool message.',
             },
             {
               name: 'content',
@@ -345,7 +345,7 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'description',
               isOptional: true,
-              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_Sandbox }) => string)',
+              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_SandboxSession }) => string)',
               description:
                 'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional experimental sandbox before each model call.',
             },
@@ -455,10 +455,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'reasoning',
-      type: "'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'",
+      type: "'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'",
       isOptional: true,
       description:
-        "Controls how much reasoning the model performs before generating a response. When omitted, the provider's default behavior is used. `'provider-default'` explicitly requests the provider's default. Providers that do not support reasoning will emit a warning. If reasoning-related `providerOptions` are also set, they take precedence and this parameter is ignored. See the [reasoning guide](/docs/ai-sdk-core/reasoning) for provider-specific mapping details.",
+        "Controls how much reasoning the model performs before generating a response. When omitted, the provider's default behavior is used. `'provider-default'` explicitly requests the provider's default. Providers that do not support reasoning will emit a warning. Provider-specific settings take precedence over corresponding mapped fields. Partial configurations may still use portable reasoning to fill missing fields; summary and display settings can be combined with it. See the [reasoning guide](/docs/ai-sdk-core/reasoning) for provider-specific mapping details.",
     },
     {
       name: 'maxRetries',
@@ -476,10 +476,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number; toolMs?: number; tools?: { [toolName]Ms?: number } }',
+      type: 'number | { totalMs?: number; stepMs?: number; toolMs?: number; tools?: Partial<Record<`${toolName}Ms`, number>> }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each complete step, including model generation, retries, and local tool execution. toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
     },
     {
       name: 'headers',
@@ -565,11 +565,32 @@ To see `generateText` in action, check out [these examples](#examples).
         'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default. Tool names are restricted to the string keys of the tool set.',
     },
     {
+      name: 'toolOrder',
+      type: 'ToolOrder<TOOLS>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
+      name: 'toolCallConcurrency',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of tool calls that the SDK executes concurrently within a step. Set to `1` to execute calls sequentially in model-generated order. Must be a positive integer. By default, all tool calls execute concurrently.',
+    },
+    {
       name: 'toolApproval',
       type: 'ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>',
       isOptional: true,
       description:
-        "Approval configuration for this call. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext` (same shape as tool execution options without `abortSignal`, with `context` renamed to `toolContext`). The `RUNTIME_CONTEXT` type parameter matches the call's `runtimeContext`. A `GenericToolApprovalFunction` or `SingleToolApprovalFunction` may return `undefined` for the same effect as `'not-applicable'`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Automatic approvals and denials can include a `reason`, which is forwarded to the emitted approval response. This setting takes precedence over a tool's `needsApproval` default.",
+        "Approval configuration for this call. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext` (same shape as tool execution options without `abortSignal`, with `context` renamed to `toolContext`). The `RUNTIME_CONTEXT` type parameter matches the call's `runtimeContext`. A `GenericToolApprovalFunction` or `SingleToolApprovalFunction` may return `undefined` for the same effect as `'not-applicable'`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Object statuses can include a `reason`: automatic approvals and denials forward it to the approval response, while manual user approvals forward it to the approval request for the human approver. This setting takes precedence over a tool's `needsApproval` default.",
+    },
+    {
+      name: 'experimental_toolCallers',
+      type: 'Experimental_ToolCallers<TOOLS>',
+      isOptional: true,
+      description:
+        "Configures which caller tools may invoke each tool. The callback receives typed references for caller-capable tools in the `tools` set and returns an object keyed by callee tool name. Include `'direct'` to keep a configured tool directly callable by the model. Local-only callees are hidden from direct model calls and bound to their local caller for each generation step. Provider caller references are translated to provider-native allowed-caller options. Tools without an entry keep their existing direct tool-calling behavior.",
     },
     {
       name: 'experimental_refineToolInput',
@@ -590,7 +611,7 @@ To see `generateText` in action, check out [these examples](#examples).
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
       isOptional: true,
       description:
-        'Optional function that you can use to provide different settings for a step. You can modify the model, tool choices, active tools, instructions, input messages, and experimental sandbox for each step.',
+        'Optional function that you can use to provide different settings for a step. You can modify the model, model call settings, tool choices, active tools, instructions, input messages, and experimental sandbox for each step.',
       properties: [
         {
           type: 'PrepareStepFunction<TOOLS>',
@@ -638,6 +659,13 @@ To see `generateText` in action, check out [these examples](#examples).
                         'The messages that will be sent to the model for the current step. If prepareStep returns a messages override, those messages carry forward to later steps.',
                     },
                     {
+                      name: 'experimental_steeringMessages',
+                      type: 'Array<UserModelMessage> | undefined',
+                      isOptional: true,
+                      description:
+                        'The user messages that were sent with `experimental_steering` and added to `messages` for the current step. Undefined when the step received no steering messages. `messages` already contains them. If you return a `messages` override that is rebuilt from other fields, add them back together with the steering messages of previous steps from `steps`.',
+                    },
+                    {
                       name: 'runtimeContext',
                       type: 'CONTEXT',
                       isOptional: true,
@@ -652,7 +680,7 @@ To see `generateText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'experimental_sandbox',
-                      type: 'Experimental_Sandbox | undefined',
+                      type: 'Experimental_SandboxSession | undefined',
                       isOptional: true,
                       description:
                         'The experimental sandbox environment passed via the `experimental_sandbox` setting.',
@@ -676,6 +704,69 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Optionally override which LanguageModel instance is used for this step.',
             },
             {
+              name: 'maxOutputTokens',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Maximum number of tokens to generate for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'temperature',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Temperature for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'topP',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Nucleus sampling value for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'topK',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Top-K sampling value for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'presencePenalty',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Presence penalty for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'frequencyPenalty',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Frequency penalty for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'stopSequences',
+              type: 'string[]',
+              isOptional: true,
+              description:
+                'Stop sequences for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'seed',
+              type: 'number',
+              isOptional: true,
+              description:
+                'Random sampling seed for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
+              name: 'reasoning',
+              type: 'LanguageModelV4CallOptions["reasoning"]',
+              isOptional: true,
+              description:
+                'Reasoning effort for this step. Uses the top-level value when omitted or undefined.',
+            },
+            {
               name: 'toolChoice',
               type: 'ToolChoice<TOOLS>',
               isOptional: true,
@@ -688,6 +779,13 @@ To see `generateText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'If provided, only these tools are enabled/available for this step.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              isOptional: true,
+              description:
+                'If provided, overrides the order in which tools are sent to the provider for this step. Tools not listed are appended alphabetically.',
             },
             {
               name: 'instructions',
@@ -718,7 +816,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_sandbox',
-              type: 'Experimental_Sandbox',
+              type: 'Experimental_SandboxSession',
               isOptional: true,
               description:
                 'Experimental sandbox environment for this step. Changing it will affect tool execution in this step only.',
@@ -749,10 +847,17 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_sandbox',
-      type: 'Experimental_Sandbox',
+      type: 'Experimental_SandboxSession',
       isOptional: true,
       description:
         'Experimental sandbox environment that is passed through to `prepareStep`, tool description functions, and tool execution. Tools can access it from their description function options and execution options.',
+    },
+    {
+      name: 'experimental_steering',
+      type: 'Experimental_Steering',
+      isOptional: true,
+      description:
+        "Experimental steering object created with `experimental_createSteering()`. Messages sent with `steering.steer()` are added as user messages at the next step boundary, after the current step and its tool calls are done. Messages sent with `steering.queue()` wait until the model finishes its current task and are added one per task. A waiting message keeps the loop going for another step unless a stop condition is met. `steer()` and `queue()` resolve with `{ type: 'delivered', id, message, stepNumber }` or `{ type: 'not-delivered', id, message, reason }`. See [Steering](/docs/agents/loop-control#steering).",
     },
     {
       name: 'experimental_download',
@@ -797,7 +902,7 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_repairToolCall',
+      name: 'repairToolCall',
       type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV4ToolCall | null>',
       isOptional: true,
       description:
@@ -844,6 +949,13 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'NoSuchToolError | InvalidToolInputError',
               description:
                 'The error that occurred while parsing the tool call.',
+            },
+            {
+              name: 'abortSignal',
+              type: 'AbortSignal',
+              isOptional: true,
+              description:
+                'An optional signal for cancelling the tool call repair.',
             },
           ],
         },
@@ -913,6 +1025,20 @@ To see `generateText` in action, check out [these examples](#examples).
                         'The schema of the array elements to generate.',
                     },
                     {
+                      name: 'minItems',
+                      type: 'number',
+                      isOptional: true,
+                      description:
+                        'Optional minimum number of array elements. Must be a non-negative integer.',
+                    },
+                    {
+                      name: 'maxItems',
+                      type: 'number',
+                      isOptional: true,
+                      description:
+                        'Optional maximum number of array elements. Must be a non-negative integer and greater than or equal to minItems.',
+                    },
+                    {
                       name: 'name',
                       type: 'string',
                       isOptional: true,
@@ -966,7 +1092,7 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'Output.json()',
               type: 'Output',
               description:
-                'Output specification for unstructured JSON generation. When the model generates a text response, it will return a JSON object.',
+                'Output specification for unstructured JSON generation. When the model generates a text response, it will return any valid JSON value.',
               properties: [
                 {
                   type: 'Options',
@@ -994,11 +1120,11 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onStart',
+      name: 'onStart',
       type: '(event: GenerateTextStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when the generateText operation begins, before any LLM calls are made. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+        'Callback that is called when the generateText operation begins, before any LLM calls are made. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'GenerateTextStartEvent',
@@ -1012,7 +1138,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'modelId',
               type: 'string',
-              description: 'The specific model identifier (e.g., "gpt-4o").',
+              description:
+                'The specific model identifier (e.g., "gpt-6-astra").',
             },
             {
               name: 'instructions',
@@ -1039,6 +1166,12 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'ActiveTools<TOOLS>',
               description:
                 'Limits which tools are available for the model to call.',
+            },
+            {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider.',
             },
             {
               name: 'maxOutputTokens',
@@ -1087,9 +1220,9 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'timeout',
-              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
+              type: 'number | { totalMs?: number; stepMs?: number; firstChunkMs?: number; chunkMs?: number; toolMs?: number; tools?: Partial<Record<`${toolName}Ms`, number>> } | undefined',
               description:
-                'Timeout configuration for the generation. Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.',
+                'Timeout configuration for the generation. Can be a number (milliseconds) or an object with totalMs, stepMs, firstChunkMs (streaming only), chunkMs, toolMs, and per-tool overrides via tools.',
             },
             {
               name: 'headers',
@@ -1135,15 +1268,20 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onStepStart',
+      name: 'onStepStart',
       type: '(event: GenerateTextStepStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when a step (LLM call) begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+        'Callback that is called when a step begins, before the provider is called. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'GenerateTextStepStartEvent',
           parameters: [
+            {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for the generation call.',
+            },
             {
               name: 'stepNumber',
               type: 'number',
@@ -1158,7 +1296,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'modelId',
               type: 'string',
-              description: 'The specific model identifier (e.g., "gpt-4o").',
+              description:
+                'The specific model identifier (e.g., "gpt-6-astra").',
             },
             {
               name: 'instructions',
@@ -1188,6 +1327,12 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'Limits which tools are available for this step.',
             },
             {
+              name: 'toolOrder',
+              type: 'ToolOrder<TOOLS>',
+              description:
+                'Controls the order in which tools are sent to the provider for this step.',
+            },
+            {
               name: 'steps',
               type: 'ReadonlyArray<StepResult<TOOLS>>',
               description:
@@ -1200,38 +1345,10 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Additional provider-specific options for this step.',
             },
             {
-              name: 'timeout',
-              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
-              description:
-                'Timeout configuration for the generation. Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.',
-            },
-            {
-              name: 'headers',
-              type: 'Record<string, string | undefined> | undefined',
-              description: 'Additional HTTP headers sent with the request.',
-            },
-            {
-              name: 'stopWhen',
-              type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>> | undefined',
-              description:
-                'Condition(s) for stopping the generation. When the condition is an array, any of the conditions can be met to stop.',
-            },
-            {
               name: 'output',
               type: 'OUTPUT | undefined',
               description:
                 'The output specification for structured outputs, if configured.',
-            },
-            {
-              name: 'abortSignal',
-              type: 'AbortSignal | undefined',
-              description: 'Abort signal for cancelling the operation.',
-            },
-            {
-              name: 'include',
-              type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean } | undefined',
-              description:
-                'Settings for controlling what data is included in step results.',
             },
             {
               name: 'runtimeContext',
@@ -1250,11 +1367,11 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onLanguageModelCallStart',
+      name: 'onLanguageModelCallStart',
       type: '(event: LanguageModelCallStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called immediately before the provider model call begins. Unlike `experimental_onStepStart`, this callback is scoped to model work only and excludes any later client-side tool execution. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+        'Callback that is called immediately before the provider model call begins. Unlike `onStepStart`, this callback is scoped to model work only and excludes any later client-side tool execution. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'LanguageModelCallStartEvent',
@@ -1295,11 +1412,11 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onLanguageModelCallEnd',
+      name: 'onLanguageModelCallEnd',
       type: '(event: LanguageModelCallEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        'Callback that is called after the model response has been normalized and parsed, but before any client-side tool execution begins. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+        'Callback that is called after the model response has been normalized and parsed, but before any client-side tool execution begins. Errors thrown in this callback are silently caught and do not break the generation flow.',
       properties: [
         {
           type: 'LanguageModelCallEndEvent',
@@ -1317,7 +1434,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'modelId',
               type: 'string',
-              description: 'The specific model identifier for this model call.',
+              description:
+                'The provider-returned model identifier for this model call.',
             },
             {
               name: 'finishReason',
@@ -1342,8 +1460,14 @@ To see `generateText` in action, check out [these examples](#examples).
                 'The provider-returned response ID for this model call.',
             },
             {
+              name: 'providerMetadata',
+              type: 'ProviderMetadata | undefined',
+              description:
+                'Provider-specific metadata for this model call, when returned by the provider.',
+            },
+            {
               name: 'performance',
-              type: '{ responseTimeMs: number; tokensPerSecond: number; timeToFirstTokenMs: number | undefined }',
+              type: '{ responseTimeMs: number; effectiveOutputTokensPerSecond: number; outputTokensPerSecond: number | undefined; inputTokensPerSecond: number | undefined; effectiveTotalTokensPerSecond: number; timeToFirstOutputMs: number | undefined; timeBetweenOutputChunksMs?: OutputChunkTimingStats }',
               description: 'Performance metrics for the model call.',
               properties: [
                 {
@@ -1356,16 +1480,40 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Time spent waiting for the language model response in milliseconds.',
                     },
                     {
-                      name: 'tokensPerSecond',
+                      name: 'effectiveOutputTokensPerSecond',
                       type: 'number',
                       description:
-                        'Average number of output tokens per second during the language model response.',
+                        'Effective number of output tokens per second over the full language model response.',
                     },
                     {
-                      name: 'timeToFirstTokenMs',
+                      name: 'outputTokensPerSecond',
                       type: 'number | undefined',
                       description:
-                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming model calls.',
+                        'Number of output tokens per second after the first generated output chunk was received. For `generateText`, this is `undefined` because the response is not streamed.',
+                    },
+                    {
+                      name: 'inputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of input tokens processed per second before the first generated output chunk was received. For `generateText`, this is `undefined` because the response is not streamed.',
+                    },
+                    {
+                      name: 'effectiveTotalTokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Effective number of input and output tokens per second over the full language model response.',
+                    },
+                    {
+                      name: 'timeToFirstOutputMs',
+                      type: 'number | undefined',
+                      description:
+                        'Time until the first generated output chunk was received in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
+                    },
+                    {
+                      name: 'timeBetweenOutputChunksMs',
+                      type: 'OutputChunkTimingStats | undefined',
+                      description:
+                        'Timing statistics for the gaps between generated output chunks in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                   ],
                 },
@@ -1380,7 +1528,7 @@ To see `generateText` in action, check out [these examples](#examples).
       type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        "Callback that is called right before a tool's execute function runs. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
+        "Callback that is called right before a tool's execute function runs. Errors thrown in this callback are silently caught and do not break the generation flow.",
       properties: [
         {
           type: 'ToolExecutionStartEvent',
@@ -1418,7 +1566,7 @@ To see `generateText` in action, check out [these examples](#examples).
       type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
-        "Callback that is called right after a tool's execute function completes (or errors). The `toolOutput` field is a discriminated union: when `toolOutput.type` is `'tool-result'`, the `output` field contains the tool result; when `toolOutput.type` is `'tool-error'`, the `error` field contains the error. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
+        "Callback that is called right after a tool's execute function completes (or errors). The `toolOutput` field is a discriminated union: when `toolOutput.type` is `'tool-result'`, the `output` field contains the tool result; when `toolOutput.type` is `'tool-error'`, the `error` field contains the error. Errors thrown in this callback are silently caught and do not break the generation flow.",
       properties: [
         {
           type: 'ToolExecutionEndEvent',
@@ -1478,11 +1626,11 @@ To see `generateText` in action, check out [these examples](#examples).
         'Deprecated. Use `onToolExecutionEnd` instead. This alias is only used as a fallback when `onToolExecutionEnd` is not provided.',
     },
     {
-      name: 'onStepFinish',
+      name: 'onStepEnd',
       type: '(stepResult: StepResult<TOOLS>) => Promise<void> | void',
       isOptional: true,
       description:
-        'Callback that is called when a step is finished. Receives a StepResult object.',
+        'Callback that is called when a step ends. Receives a StepResult object.',
       properties: [
         {
           type: 'StepResult',
@@ -1578,7 +1726,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "interrupted" | "other"',
               description: 'The unified reason why the generation finished.',
             },
             {
@@ -1682,16 +1830,34 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'performance',
               type: 'StepResultPerformance',
               description:
-                'Timing and throughput metrics for the step. For `generateText`, `timeToFirstTokenMs` is undefined.',
+                'Timing and throughput metrics for the step. For `generateText`, streaming-only metrics are undefined.',
               properties: [
                 {
                   type: 'StepResultPerformance',
                   parameters: [
                     {
-                      name: 'tokensPerSecond',
+                      name: 'effectiveOutputTokensPerSecond',
                       type: 'number',
                       description:
-                        'Average number of output tokens per second for the language model response.',
+                        'Effective number of output tokens per second over the full language model response.',
+                    },
+                    {
+                      name: 'outputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of output tokens per second after the first generated output chunk was received. For `generateText`, this is `undefined` because the response is not streamed.',
+                    },
+                    {
+                      name: 'inputTokensPerSecond',
+                      type: 'number | undefined',
+                      description:
+                        'Number of input tokens processed per second before the first generated output chunk was received. For `generateText`, this is `undefined` because the response is not streamed.',
+                    },
+                    {
+                      name: 'effectiveTotalTokensPerSecond',
+                      type: 'number',
+                      description:
+                        'Effective number of input and output tokens per second over the full language model response.',
                     },
                     {
                       name: 'stepTimeMs',
@@ -1712,10 +1878,16 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Time spent executing each client-side tool call in the step in milliseconds, keyed by tool call ID.',
                     },
                     {
-                      name: 'timeToFirstTokenMs',
+                      name: 'timeToFirstOutputMs',
                       type: 'number | undefined',
                       description:
-                        'Time until the first text, reasoning, or tool input delta was received in milliseconds. Only available for streaming steps.',
+                        'Time until the first generated output chunk was received in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
+                    },
+                    {
+                      name: 'timeBetweenOutputChunksMs',
+                      type: 'OutputChunkTimingStats | undefined',
+                      description:
+                        'Timing statistics for the gaps between generated output chunks in milliseconds. For `generateText`, this is `undefined` because the response is not streamed.',
                     },
                   ],
                 },
@@ -1735,6 +1907,13 @@ To see `generateText` in action, check out [these examples](#examples).
                 {
                   type: 'LanguageModelRequestMetadata',
                   parameters: [
+                    {
+                      name: 'url',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'HTTP origin reported by the provider, without URL credentials, paths, queries or fragments. Unset when unavailable.',
+                    },
                     {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
@@ -1819,7 +1998,39 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'onFinish',
+      name: 'onStepError',
+      type: '(event: GenerateTextStepErrorEvent) => Promise<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called when a step that started fails before it produces a step result, i.e. when the provider call throws or rejects, or when the call is aborted or times out. `onStepEnd` is not called for such a step. For aborts and timeouts, `error` is the abort or timeout error, or a provider error that has it as its `cause`.',
+      properties: [
+        {
+          type: 'GenerateTextStepErrorEvent',
+          parameters: [
+            {
+              name: '...GenerateTextStepStartEvent',
+              type: 'GenerateTextStepStartEvent',
+              description:
+                'All properties of the `onStepStart` event of the step that failed, such as `callId`, `stepNumber`, `steps`, `messages`, `runtimeContext`, and `toolsContext`.',
+            },
+            {
+              name: 'error',
+              type: 'unknown',
+              description: 'The error that ended the step.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'onStepFinish',
+      type: 'GenerateTextOnStepFinishCallback<TOOLS>',
+      isOptional: true,
+      description:
+        'Deprecated. Use `onStepEnd` instead. This alias is only used as a fallback when `onStepEnd` is not provided.',
+    },
+    {
+      name: 'onEnd',
       type: '(event: GenerateTextEndEvent<TOOLS>) => PromiseLike<void> | void',
       isOptional: true,
       description:
@@ -1841,7 +2052,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "interrupted" | "other"',
               description: 'The unified reason why the generation finished.',
             },
             {
@@ -1976,7 +2187,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'content',
               type: 'Array<ContentPart<TOOLS>>',
-              description: 'The content that was generated in all steps.',
+              description:
+                'The content that was generated in all steps. Text parts can include an optional citations array of references supporting that text; see Sources and Citations in the generating text guide.',
             },
             {
               name: 'providerMetadata',
@@ -2159,6 +2371,13 @@ To see `generateText` in action, check out [these examples](#examples).
                   type: 'LanguageModelRequestMetadata',
                   parameters: [
                     {
+                      name: 'url',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'HTTP origin reported by the provider, without URL credentials, paths, queries or fragments. Unset when unavailable.',
+                    },
+                    {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
                       isOptional: true,
@@ -2248,17 +2467,23 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
-                'The final state of the user-defined shared runtime context object. This reflects any modifications made during the generation lifecycle via `prepareStep`.',
+                'Deprecated. Use `finalStep.runtimeContext` instead. The final state of the user-defined shared runtime context object. This reflects any modifications made during the generation lifecycle via `prepareStep`.',
             },
             {
               name: 'toolsContext',
               type: 'InferToolSetContext<TOOLS>',
               description:
-                'The final state of the per-tool context map passed via `toolsContext`.',
+                'Deprecated. Use `finalStep.toolsContext` instead. The final state of the per-tool context map passed via `toolsContext`.',
             },
           ],
         },
       ],
+    },
+    {
+      name: 'onFinish',
+      type: '(event: GenerateTextEndEvent<TOOLS>) => PromiseLike<void> | void',
+      isOptional: true,
+      description: 'Deprecated alias for `onEnd`.',
     },
   ]}
 />
@@ -2270,12 +2495,14 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'content',
       type: 'Array<ContentPart<TOOLS>>',
-      description: 'The content that was generated in all steps.',
+      description:
+        'The content that was generated in all steps. Text parts can include an optional citations array of references supporting that text; see Sources and Citations in the generating text guide.',
     },
     {
       name: 'text',
       type: 'string',
-      description: 'The generated text by the model.',
+      description:
+        'The concatenation of all text parts generated in the final step. It is an empty string if the final step contains no text parts. Inspect `finalStep.content` to distinguish that case.',
     },
     {
       name: 'reasoning',
@@ -2437,7 +2664,7 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'finishReason',
-      type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
+      type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'",
       description: 'The reason the model finished generating the text.',
     },
     {
@@ -2576,6 +2803,13 @@ To see `generateText` in action, check out [these examples](#examples).
           type: 'LanguageModelRequestMetadata',
           parameters: [
             {
+              name: 'url',
+              type: 'string',
+              isOptional: true,
+              description:
+                'HTTP origin reported by the provider, without URL credentials, paths, queries or fragments. Unset when unavailable.',
+            },
+            {
               name: 'messages',
               type: 'Array<ModelMessage>',
               isOptional: true,
@@ -2663,10 +2897,9 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'output',
-      type: 'Output',
-      isOptional: true,
+      type: 'InferCompleteOutput<OUTPUT>',
       description:
-        'The generated structured output. It uses the `output` specification.',
+        'The generated output according to the `output` specification. Accessing this property throws `NoOutputGeneratedError` when no output is available, for example when the final step does not finish with a `stop` reason.',
     },
     {
       name: 'steps',
@@ -2708,7 +2941,8 @@ To see `generateText` in action, check out [these examples](#examples).
             {
               name: 'text',
               type: 'string',
-              description: 'The generated text.',
+              description:
+                'The concatenation of all text parts generated in this step. It is an empty string if the step contains no text parts.',
             },
             {
               name: 'reasoning',
@@ -2842,7 +3076,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'interrupted' | 'other'",
               description: 'The reason why the generation finished.',
             },
             {
@@ -2957,6 +3191,13 @@ To see `generateText` in action, check out [these examples](#examples).
                   type: 'LanguageModelRequestMetadata',
                   parameters: [
                     {
+                      name: 'url',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'HTTP origin reported by the provider, without URL credentials, paths, queries or fragments. Unset when unavailable.',
+                    },
+                    {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
                       isOptional: true,
@@ -3028,6 +3269,13 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'ProviderMetadata | undefined',
               description:
                 'Additional provider-specific metadata. They are passed through from the provider to the AI SDK and enable provider-specific results that can be fully encapsulated in the provider.',
+            },
+            {
+              name: 'experimental_steeringMessages',
+              type: 'Array<UserModelMessage> | undefined',
+              isOptional: true,
+              description:
+                'The user messages that were sent with `experimental_steering` and added to the input of this step. Undefined when the step received no steering messages.',
             },
           ],
         },

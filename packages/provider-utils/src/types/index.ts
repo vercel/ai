@@ -31,7 +31,26 @@ export type { InferToolSetContext } from './infer-tool-set-context';
 export type { ModelMessage } from './model-message';
 export type { ProviderOptions } from './provider-options';
 export type { ProviderReference } from './provider-reference';
-export type { Experimental_Sandbox } from './sandbox';
+export type {
+  SandboxSession as Experimental_SandboxSession,
+  SandboxProcess as Experimental_SandboxProcess,
+  SandboxRunOptions as Experimental_SandboxRunOptions,
+  SandboxReadFileOptions as Experimental_SandboxReadFileOptions,
+  SandboxReadBinaryFileOptions as Experimental_SandboxReadBinaryFileOptions,
+  SandboxReadTextFileOptions as Experimental_SandboxReadTextFileOptions,
+  SandboxSpawnOptions as Experimental_SandboxSpawnOptions,
+  SandboxSpawnOptionsWithStdin as Experimental_SandboxSpawnOptionsWithStdin,
+  SandboxSpawnOptionsWithoutStdin as Experimental_SandboxSpawnOptionsWithoutStdin,
+  SandboxWriteFileOptions as Experimental_SandboxWriteFileOptions,
+  SandboxWriteBinaryFileOptions as Experimental_SandboxWriteBinaryFileOptions,
+  SandboxWriteTextFileOptions as Experimental_SandboxWriteTextFileOptions,
+  WritableSandboxProcess as Experimental_WritableSandboxProcess,
+  SandboxStatOptions as Experimental_SandboxStatOptions,
+  SandboxListDirectoryOptions as Experimental_SandboxListDirectoryOptions,
+  SandboxDeleteFileOptions as Experimental_SandboxDeleteFileOptions,
+  SandboxFileStat as Experimental_SandboxFileStat,
+  SandboxDirectoryEntry as Experimental_SandboxDirectoryEntry,
+} from './sandbox';
 export type { SystemModelMessage } from './system-model-message';
 export {
   dynamicTool,
@@ -45,6 +64,12 @@ export {
 export type { ToolApprovalRequest } from './tool-approval-request';
 export type { ToolApprovalResponse } from './tool-approval-response';
 export type { ToolCall } from './tool-call';
+export {
+  getToolCaller as experimental_getToolCaller,
+  toolCaller as experimental_toolCaller,
+  type ToolCallerDefinition as Experimental_ToolCallerDefinition,
+  type ToolCallerTool as Experimental_ToolCallerTool,
+} from './tool-caller';
 export type {
   ToolExecuteFunction,
   ToolExecutionOptions,

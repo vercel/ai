@@ -4,10 +4,12 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
   serializeModelOptions,
@@ -20,7 +22,8 @@ import {
   modelMaxImagesPerCall,
   type AmazonBedrockImageModelId,
 } from './amazon-bedrock-image-settings';
-import { AmazonBedrockErrorSchema } from './amazon-bedrock-error';
+import { amazonBedrockImageModelOptionsSchema } from './amazon-bedrock-image-model-options';
+import { amazonBedrockFailedResponseHandler } from './amazon-bedrock-error';
 import { z } from 'zod/v4';
 
 type AmazonBedrockImageModelConfig = {
@@ -54,6 +57,14 @@ export class AmazonBedrockImageModel implements ImageModelV4 {
     return modelMaxImagesPerCall[this.modelId] ?? 1;
   }
 
+  get supportsFileInputs(): boolean | undefined {
+    return this.modelId === 'amazon.nova-canvas-v1:0' ? true : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.modelId === 'amazon.nova-canvas-v1:0' ? true : undefined;
+  }
+
   private getUrl(modelId: string): string {
     const encodedModelId = encodeURIComponent(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}/invoke`;
@@ -85,14 +96,24 @@ export class AmazonBedrockImageModel implements ImageModelV4 {
 
     // Prefer the new `amazonBedrock` providerOptions key; fall back to the
     // legacy `bedrock` key for backward compatibility.
-    const amazonBedrockOptions = (providerOptions?.amazonBedrock ??
-      providerOptions?.bedrock) as Record<string, any> | undefined;
+    const amazonBedrockOptions =
+      (await parseProviderOptions({
+        provider: 'amazonBedrock',
+        providerOptions,
+        schema: amazonBedrockImageModelOptionsSchema,
+      })) ??
+      (await parseProviderOptions({
+        provider: 'bedrock',
+        providerOptions,
+        schema: amazonBedrockImageModelOptionsSchema,
+      })) ??
+      {};
 
     // Build image generation config (common to most modes)
     const imageGenerationConfig = {
       ...(width ? { width } : {}),
       ...(height ? { height } : {}),
-      ...(seed ? { seed } : {}),
+      ...(seed != null ? { seed } : {}),
       ...(n ? { numberOfImages: n } : {}),
       ...(amazonBedrockOptions?.quality
         ? { quality: amazonBedrockOptions.quality }
@@ -247,10 +268,7 @@ export class AmazonBedrockImageModel implements ImageModelV4 {
         ),
       ),
       body: args,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: AmazonBedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
-      }),
+      failedResponseHandler: amazonBedrockFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         amazonBedrockImageResponseSchema,
       ),
@@ -307,15 +325,19 @@ function getBase64Data(file: ImageModelV4File): string {
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const amazonBedrockImageResponseSchema = z.object({
-  // Normal successful response
-  images: z.array(z.string()).optional(),
+const amazonBedrockImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      // Normal successful response
+      images: z.array(z.string()).optional(),
 
-  // Moderation response fields
-  id: z.string().optional(),
-  status: z.string().optional(),
-  result: z.unknown().optional(),
-  progress: z.unknown().optional(),
-  details: z.record(z.string(), z.unknown()).optional(),
-  preview: z.unknown().optional(),
-});
+      // Moderation response fields
+      id: z.string().optional(),
+      status: z.string().optional(),
+      result: z.unknown().optional(),
+      progress: z.unknown().optional(),
+      details: z.record(z.string(), z.unknown()).optional(),
+      preview: z.unknown().optional(),
+    }),
+  ),
+);

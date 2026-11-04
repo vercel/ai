@@ -63,7 +63,7 @@ export function synthesizeGoogleInteractionsAgentStream({
       }
 
       const { content, hasFunctionCall } = parseGoogleInteractionsOutputs({
-        outputs: response.outputs ?? null,
+        steps: response.steps ?? null,
         generateId,
         interactionId,
       });

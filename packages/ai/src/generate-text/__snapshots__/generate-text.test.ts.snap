@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`generateText > options.experimental_onStart > should send correct information with text prompt 1`] = `
+exports[`generateText > options.onStart > should send correct information with text prompt 1`] = `
 {
   "activeTools": undefined,
   "callId": "test-telemetry-call-id",
@@ -30,6 +30,7 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "temperature": undefined,
   "timeout": undefined,
   "toolChoice": undefined,
+  "toolOrder": undefined,
   "tools": undefined,
   "toolsContext": {},
   "topK": undefined,
@@ -42,6 +43,27 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "callId": "test-telemetry-call-id",
   "content": [
     {
+      "input": {
+        "value": "value",
+      },
+      "providerExecuted": undefined,
+      "providerMetadata": undefined,
+      "title": "Tool One",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+    {
+      "dynamic": false,
+      "input": {
+        "value": "value",
+      },
+      "output": "result1",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
+    {
       "text": "Hello, world!",
       "type": "text",
     },
@@ -49,6 +71,76 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "dynamicToolCalls": [],
   "dynamicToolResults": [],
   "files": [],
+  "finalStep": DefaultStepResult {
+    "callId": "test-telemetry-call-id",
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "finishReason": "stop",
+    "model": {
+      "modelId": "mock-model-id",
+      "provider": "mock-provider",
+    },
+    "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
+      "responseTimeMs": 0,
+      "stepTimeMs": 0,
+      "timeToFirstOutputMs": undefined,
+      "toolExecutionMs": {},
+    },
+    "providerMetadata": undefined,
+    "rawFinishReason": "stop",
+    "request": {
+      "body": undefined,
+      "messages": undefined,
+    },
+    "response": {
+      "body": undefined,
+      "headers": {
+        "custom-response-header": "response-header-value",
+      },
+      "id": "test-id-2-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "providerOptions": undefined,
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ],
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:10.000Z,
+    },
+    "runtimeContext": {},
+    "stepNumber": 1,
+    "toolsContext": {},
+    "usage": {
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
+      "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
+      "outputTokens": 10,
+      "raw": undefined,
+      "totalTokens": 13,
+    },
+    "warnings": [],
+  },
   "finishReason": "stop",
   "model": {
     "modelId": "mock-model-id",
@@ -126,8 +218,31 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   ],
   "runtimeContext": {},
   "sources": [],
-  "staticToolCalls": [],
-  "staticToolResults": [],
+  "staticToolCalls": [
+    {
+      "input": {
+        "value": "value",
+      },
+      "providerExecuted": undefined,
+      "providerMetadata": undefined,
+      "title": "Tool One",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+  ],
+  "staticToolResults": [
+    {
+      "dynamic": false,
+      "input": {
+        "value": "value",
+      },
+      "output": "result1",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
+  ],
   "stepNumber": 1,
   "steps": [
     DefaultStepResult {
@@ -161,10 +276,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "provider": "mock-provider",
       },
       "performance": {
+        "effectiveOutputTokensPerSecond": 0,
+        "effectiveTotalTokensPerSecond": 0,
+        "inputTokensPerSecond": undefined,
+        "outputTokensPerSecond": undefined,
         "responseTimeMs": 0,
         "stepTimeMs": 0,
-        "timeToFirstTokenMs": undefined,
-        "tokensPerSecond": 0,
+        "timeToFirstOutputMs": undefined,
         "toolExecutionMs": {
           "call-1": 0,
         },
@@ -247,10 +365,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "provider": "mock-provider",
       },
       "performance": {
+        "effectiveOutputTokensPerSecond": 0,
+        "effectiveTotalTokensPerSecond": 0,
+        "inputTokensPerSecond": undefined,
+        "outputTokensPerSecond": undefined,
         "responseTimeMs": 0,
         "stepTimeMs": 0,
-        "timeToFirstTokenMs": undefined,
-        "tokensPerSecond": 0,
+        "timeToFirstOutputMs": undefined,
         "toolExecutionMs": {},
       },
       "providerMetadata": undefined,
@@ -302,8 +423,31 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     },
   ],
   "text": "Hello, world!",
-  "toolCalls": [],
-  "toolResults": [],
+  "toolCalls": [
+    {
+      "input": {
+        "value": "value",
+      },
+      "providerExecuted": undefined,
+      "providerMetadata": undefined,
+      "title": "Tool One",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+  ],
+  "toolResults": [
+    {
+      "dynamic": false,
+      "input": {
+        "value": "value",
+      },
+      "output": "result1",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
+  ],
   "toolsContext": {},
   "totalUsage": {
     "inputTokenDetails": {
@@ -323,16 +467,15 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "inputTokenDetails": {
       "cacheReadTokens": undefined,
       "cacheWriteTokens": undefined,
-      "noCacheTokens": 3,
+      "noCacheTokens": 13,
     },
-    "inputTokens": 3,
+    "inputTokens": 13,
     "outputTokenDetails": {
       "reasoningTokens": undefined,
-      "textTokens": 10,
+      "textTokens": 15,
     },
-    "outputTokens": 10,
-    "raw": undefined,
-    "totalTokens": 13,
+    "outputTokens": 15,
+    "totalTokens": 28,
   },
   "warnings": [],
 }
@@ -371,10 +514,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "provider": "mock-provider",
     },
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputMs": undefined,
       "toolExecutionMs": {
         "call-1": 0,
       },
@@ -457,10 +603,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "provider": "mock-provider",
     },
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputMs": undefined,
       "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
@@ -590,10 +739,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       "provider": "mock-provider",
     },
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputMs": undefined,
       "toolExecutionMs": {
         "call-1": 0,
       },
@@ -676,10 +828,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       "provider": "mock-provider",
     },
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputMs": undefined,
       "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
@@ -765,10 +920,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "provider": "mock-provider",
     },
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputMs": undefined,
       "toolExecutionMs": {
         "call-1": 0,
       },
@@ -853,10 +1011,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "provider": "mock-provider",
     },
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputMs": undefined,
       "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
@@ -988,10 +1149,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "provider": "mock-provider",
     },
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputMs": undefined,
       "toolExecutionMs": {
         "call-1": 0,
       },
@@ -1076,10 +1240,13 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "provider": "mock-provider",
     },
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputMs": undefined,
       "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
@@ -1377,6 +1544,7 @@ exports[`generateText > result.files > should contain files 1`] = `
   DefaultGeneratedFile {
     "base64Data": "AQID",
     "mediaType": "image/png",
+    "providerMetadata": undefined,
     "uint8ArrayData": Uint8Array [
       1,
       2,
@@ -1386,6 +1554,7 @@ exports[`generateText > result.files > should contain files 1`] = `
   DefaultGeneratedFile {
     "base64Data": "QkFVRw==",
     "mediaType": "image/jpeg",
+    "providerMetadata": undefined,
     "uint8ArrayData": undefined,
   },
 ]
@@ -1589,10 +1758,13 @@ exports[`generateText > result.steps > should add the reasoning from the model r
       "provider": "mock-provider",
     },
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputMs": undefined,
       "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
@@ -1674,6 +1846,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
         "file": DefaultGeneratedFile {
           "base64Data": "AQID",
           "mediaType": "image/png",
+          "providerMetadata": undefined,
           "uint8ArrayData": Uint8Array [
             1,
             2,
@@ -1686,6 +1859,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
         "file": DefaultGeneratedFile {
           "base64Data": "QkFVRw==",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "uint8ArrayData": undefined,
         },
         "type": "file",
@@ -1697,10 +1871,13 @@ exports[`generateText > result.steps > should contain files 1`] = `
       "provider": "mock-provider",
     },
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputMs": undefined,
       "toolExecutionMs": {},
     },
     "providerMetadata": undefined,
@@ -1803,10 +1980,13 @@ exports[`generateText > result.steps > should contain sources 1`] = `
       "provider": "mock-provider",
     },
     "performance": {
+      "effectiveOutputTokensPerSecond": 0,
+      "effectiveTotalTokensPerSecond": 0,
+      "inputTokensPerSecond": undefined,
+      "outputTokensPerSecond": undefined,
       "responseTimeMs": 0,
       "stepTimeMs": 0,
-      "timeToFirstTokenMs": undefined,
-      "tokensPerSecond": 0,
+      "timeToFirstOutputMs": undefined,
       "toolExecutionMs": {},
     },
     "providerMetadata": undefined,

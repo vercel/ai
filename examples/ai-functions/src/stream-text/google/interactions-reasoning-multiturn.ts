@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { streamText, type ModelMessage } from 'ai';
 import { run } from '../../lib/run';
 
@@ -23,14 +26,17 @@ run(async () => {
 
   console.log('--- Turn 1 ---');
   const turn1 = streamText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     messages,
     reasoning: 'medium',
     providerOptions: {
-      google: { store: false, thinkingSummaries: 'auto' },
+      google: {
+        store: false,
+        thinkingSummaries: 'auto',
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
-  for await (const part of turn1.fullStream) {
+  for await (const part of turn1.stream) {
     if (part.type === 'reasoning-delta') {
       process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
     } else if (part.type === 'text-delta') {
@@ -49,14 +55,17 @@ run(async () => {
 
   console.log('--- Turn 2 ---');
   const turn2 = streamText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     messages,
     reasoning: 'medium',
     providerOptions: {
-      google: { store: false, thinkingSummaries: 'auto' },
+      google: {
+        store: false,
+        thinkingSummaries: 'auto',
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
-  for await (const part of turn2.fullStream) {
+  for await (const part of turn2.stream) {
     if (part.type === 'reasoning-delta') {
       process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
     } else if (part.type === 'text-delta') {

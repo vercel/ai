@@ -25,6 +25,7 @@ import {
   createDefaultDownloadFunction,
   type DownloadFunction,
 } from '../util/download/download-function';
+import { mergeObjects } from '../util/merge-objects';
 import { convertToLanguageModelV4FilePart } from './file-part-data';
 import { logWarnings } from '../logger/log-warnings';
 import type { Warning } from '../types/warning';
@@ -35,7 +36,8 @@ import { MissingToolResultsError } from '../error/missing-tool-result-error';
 export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
-  download = createDefaultDownloadFunction(),
+  download,
+  abortSignal,
   // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
   // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
   provider,
@@ -43,45 +45,14 @@ export async function convertToLanguageModelPrompt({
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
+  abortSignal?: AbortSignal;
   provider?: string;
 }): Promise<LanguageModelV4Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
-    download,
+    download ?? createDefaultDownloadFunction(undefined, abortSignal),
     supportedUrls,
   );
-
-  const approvalIdToToolCallId = new Map<string, string>();
-  for (const message of prompt.messages) {
-    if (message.role === 'assistant' && Array.isArray(message.content)) {
-      for (const part of message.content) {
-        if (
-          part.type === 'tool-approval-request' &&
-          'approvalId' in part &&
-          'toolCallId' in part
-        ) {
-          approvalIdToToolCallId.set(
-            part.approvalId as string,
-            part.toolCallId as string,
-          );
-        }
-      }
-    }
-  }
-
-  const approvedToolCallIds = new Set<string>();
-  for (const message of prompt.messages) {
-    if (message.role === 'tool') {
-      for (const part of message.content) {
-        if (part.type === 'tool-approval-response') {
-          const toolCallId = approvalIdToToolCallId.get(part.approvalId);
-          if (toolCallId) {
-            approvedToolCallIds.add(toolCallId);
-          }
-        }
-      }
-    }
-  }
 
   const messages = [
     ...(prompt.instructions != null
@@ -108,7 +79,25 @@ export async function convertToLanguageModelPrompt({
 
     const lastCombinedMessage = combinedMessages.at(-1);
     if (lastCombinedMessage?.role === 'tool') {
+      const lastContentPart = lastCombinedMessage.content.at(-1);
+      if (
+        lastContentPart != null &&
+        lastCombinedMessage.providerOptions != null
+      ) {
+        lastContentPart.providerOptions = mergeObjects(
+          lastCombinedMessage.providerOptions,
+          lastContentPart.providerOptions,
+        );
+      }
+
       lastCombinedMessage.content.push(...message.content);
+      lastCombinedMessage.providerOptions =
+        lastContentPart == null
+          ? mergeObjects(
+              lastCombinedMessage.providerOptions,
+              message.providerOptions,
+            )
+          : message.providerOptions;
     } else {
       combinedMessages.push(message);
     }
@@ -136,11 +125,6 @@ export async function convertToLanguageModelPrompt({
       }
       case 'user':
       case 'system':
-        // remove approved tool calls from the set before checking:
-        for (const id of approvedToolCallIds) {
-          toolCallIds.delete(id);
-        }
-
         if (toolCallIds.size > 0) {
           throw new MissingToolResultsError({
             toolCallIds: Array.from(toolCallIds),
@@ -148,11 +132,6 @@ export async function convertToLanguageModelPrompt({
         }
         break;
     }
-  }
-
-  // remove approved tool calls from the set before checking:
-  for (const id of approvedToolCallIds) {
-    toolCallIds.delete(id);
   }
 
   if (toolCallIds.size > 0) {
@@ -426,7 +405,7 @@ function convertImagePartToFilePart(
 /**
  * Downloads files from URLs in the user messages.
  */
-async function downloadAssets(
+export async function downloadAssets(
   messages: ModelMessage[],
   download: DownloadFunction,
   supportedUrls: Record<string, RegExp[]>,
@@ -466,8 +445,10 @@ async function downloadAssets(
         }
 
         for (const contentPart of part.output.value) {
-          if (contentPart.type === 'file') {
-            downloadableFiles.push(contentPart);
+          const filePart = getDownloadableFilePart(contentPart);
+
+          if (filePart != null) {
+            downloadableFiles.push(filePart);
           }
         }
       }
@@ -482,8 +463,10 @@ async function downloadAssets(
           continue;
         }
         for (const contentPart of part.output.value) {
-          if (contentPart.type === 'file') {
-            downloadableFiles.push(contentPart);
+          const filePart = getDownloadableFilePart(contentPart);
+
+          if (filePart != null) {
+            downloadableFiles.push(filePart);
           }
         }
       }
@@ -522,6 +505,74 @@ async function downloadAssets(
       )
       .filter(file => file != null),
   );
+}
+
+/**
+ * Resolves the tool result content parts that point at a remote file to the
+ * tagged file shape, including the deprecated `file-url` and `image-url`
+ * types, so that they are downloaded and inlined exactly like their `file`
+ * replacement. Returns `undefined` for content that is already inline or
+ * provider-referenced.
+ */
+function getDownloadableFilePart(
+  contentPart: Extract<ToolResultOutput, { type: 'content' }>['value'][number],
+): FilePart | undefined {
+  switch (contentPart.type) {
+    case 'file':
+      return contentPart;
+    case 'file-url':
+      return {
+        type: 'file',
+        data: { type: 'url', url: new URL(contentPart.url) },
+        mediaType:
+          contentPart.mediaType ?? getMediaTypeFromUrl(contentPart.url),
+        providerOptions: contentPart.providerOptions,
+      };
+    case 'image-url':
+      return {
+        type: 'file',
+        data: { type: 'url', url: new URL(contentPart.url) },
+        mediaType: 'image',
+        providerOptions: contentPart.providerOptions,
+      };
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Resolves file data and media type for a remote tool result content part: the downloaded
+ * bytes when the asset was fetched, otherwise the URL reference. `originalUrl`
+ * is preserved when the URL string does not round-trip through `URL`.
+ */
+function resolveDownloadedFile({
+  url,
+  originalUrl,
+  downloadedAssets,
+  mediaType,
+}: {
+  url: URL;
+  originalUrl: string;
+  downloadedAssets: Record<
+    string,
+    { mediaType: string | undefined; data: Uint8Array }
+  >;
+  mediaType: string;
+}): Pick<LanguageModelV4FilePart, 'data' | 'mediaType'> {
+  const convertedPart = convertPartToLanguageModelPart(
+    {
+      type: 'file',
+      data: {
+        type: 'url',
+        url,
+        ...(url.toString() !== originalUrl ? { originalUrl } : {}),
+      },
+      mediaType,
+    },
+    downloadedAssets,
+  ) as LanguageModelV4FilePart;
+
+  return { data: convertedPart.data, mediaType: convertedPart.mediaType };
 }
 
 /**
@@ -592,7 +643,7 @@ function convertPartToLanguageModelPart(
   };
 }
 
-function mapToolResultOutput({
+export function mapToolResultOutput({
   output,
   // `provider` is only needed here to convert legacy "file-id" and "image-file-id" types to provider references, in case they are using string ID values.
   // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
@@ -646,6 +697,7 @@ function mapToolResultOutput({
         }
         case 'file-url': {
           const mediaType = item.mediaType ?? getMediaTypeFromUrl(item.url);
+          const url = new URL(item.url);
           let message = `The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`;
           if (!item.mediaType) {
             const inferenceSuffix =
@@ -661,8 +713,12 @@ function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: { type: 'url' as const, url: new URL(item.url) },
-            mediaType,
+            ...resolveDownloadedFile({
+              url,
+              originalUrl: item.url,
+              downloadedAssets,
+              mediaType,
+            }),
             providerOptions: item.providerOptions,
           };
         }
@@ -717,6 +773,7 @@ function mapToolResultOutput({
           };
         }
         case 'image-url': {
+          const url = new URL(item.url);
           warnings.push({
             type: 'deprecated',
             setting: '"tool-result" content of type "image-url"',
@@ -724,8 +781,12 @@ function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: { type: 'url' as const, url: new URL(item.url) },
-            mediaType: 'image',
+            ...resolveDownloadedFile({
+              url,
+              originalUrl: item.url,
+              downloadedAssets,
+              mediaType: 'image',
+            }),
             providerOptions: item.providerOptions,
           };
         }
@@ -826,9 +887,12 @@ function getMediaTypeFromUrl(
 ): string {
   try {
     const pathname = new URL(url).pathname;
-    const ext = pathname.split('.').pop()?.toLowerCase();
-    if (ext && Object.hasOwn(URL_EXTENSION_TO_MEDIA_TYPE, ext)) {
-      return URL_EXTENSION_TO_MEDIA_TYPE[ext];
+    const fileExtension = pathname.split('.').pop()?.toLowerCase();
+    if (
+      fileExtension &&
+      Object.hasOwn(URL_EXTENSION_TO_MEDIA_TYPE, fileExtension)
+    ) {
+      return URL_EXTENSION_TO_MEDIA_TYPE[fileExtension];
     }
   } catch {
     // ignore URL parse errors

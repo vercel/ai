@@ -1,6 +1,7 @@
 import type { MCPAppResource } from '@ai-sdk/mcp';
 import type { DynamicToolUIPart, ToolUIPart, UITools } from 'ai';
 import type { CSSProperties, ReactNode } from 'react';
+import type { MCPAppPermission } from './sandbox';
 
 export type { MCPAppResource };
 
@@ -25,6 +26,11 @@ export type MCPAppToolCallParams = {
 };
 
 export type MCPAppBridgeHandlers = {
+  /**
+   * Tools the MCP App is allowed to invoke via `tools/call`. Deny-by-default:
+   * if omitted, the (untrusted) app cannot call any tool. List only the tools
+   * the app is meant to see.
+   */
   allowedTools?: string[];
   callTool?: (params: MCPAppToolCallParams) => Promise<unknown> | unknown;
   readResource?: (params: { uri: string }) => Promise<unknown> | unknown;
@@ -50,6 +56,12 @@ export type MCPAppSandboxConfig = {
   targetOrigin?: string;
   outerSandbox?: string;
   innerSandbox?: string;
+  /**
+   * Iframe capabilities the host allows an app to use. Deny-by-default: a
+   * server-requested permission (camera/microphone/geolocation/clipboardWrite)
+   * is only granted when it also appears here. Omitting this grants nothing.
+   */
+  allowedPermissions?: MCPAppPermission[];
 };
 
 export type MCPAppFrameProps = {

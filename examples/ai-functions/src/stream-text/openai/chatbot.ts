@@ -29,7 +29,7 @@ run(async () => {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: openai('gpt-4o'), // gpt-5-mini
+      model: openai('gpt-6-astra'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',
@@ -64,7 +64,7 @@ run(async () => {
     });
 
     process.stdout.write('\nAssistant: ');
-    for await (const chunk of result.fullStream) {
+    for await (const chunk of result.stream) {
       switch (chunk.type) {
         case 'raw':
           console.log(JSON.stringify(chunk.rawValue, null, 2));

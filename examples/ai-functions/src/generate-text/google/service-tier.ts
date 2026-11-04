@@ -8,7 +8,7 @@ run(async () => {
     prompt: 'What color is the sky in one word?',
     providerOptions: {
       google: {
-        serviceTier: 'flex',
+        serviceTier: 'priority',
       } satisfies GoogleLanguageModelOptions,
     },
   });

@@ -1,7 +1,17 @@
 import type { EmbeddingModelV4 } from '@ai-sdk/provider';
 import assert from 'node:assert';
-import { beforeEach, describe, expect, it, vi, vitest } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
+import { InvalidResponseDataError } from '../error';
 import * as logWarningsModule from '../logger/log-warnings';
+import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import type { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { embed } from './embed';
@@ -26,6 +36,38 @@ describe('result.embedding', () => {
     });
 
     assert.deepStrictEqual(result.embedding, dummyEmbedding);
+  });
+
+  it('should reject when the model returns no embeddings', async () => {
+    const model = new MockEmbeddingModelV4({
+      doEmbed: async () => ({
+        embeddings: [],
+        usage: { tokens: 5 },
+        warnings: [],
+      }),
+    });
+    const onEnd = vi.fn();
+    const onError = vi.fn();
+
+    const result = embed({
+      model,
+      value: testValue,
+      telemetry: {
+        integrations: { onEnd, onError },
+      },
+    });
+
+    await expect(result).rejects.toSatisfy(error => {
+      expect(InvalidResponseDataError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        data: [],
+        message: 'No embedding generated.',
+      });
+      return true;
+    });
+    expect(model.doEmbedCalls).toHaveLength(1);
+    expect(onEnd).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledOnce();
   });
 });
 
@@ -156,6 +198,18 @@ describe('options.providerOptions', () => {
 });
 
 describe('result.warnings', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   it('should include warnings in the result', async () => {
     const expectedWarnings: Warning[] = [
       {
@@ -181,13 +235,33 @@ describe('result.warnings', () => {
 
     expect(result.warnings).toStrictEqual(expectedWarnings);
   });
+
+  it('should default missing v2 provider warnings to an empty array', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV2<string>({
+        doEmbed: async () => ({
+          embeddings: [dummyEmbedding],
+          usage: { tokens: 1 },
+        }),
+      }),
+      value: testValue,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
 });
 
 describe('logWarnings', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
   beforeEach(() => {
-    logWarningsSpy = vitest.spyOn(logWarningsModule, 'logWarnings');
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
   });
 
   it('should call logWarnings with the correct warnings', async () => {
@@ -222,7 +296,7 @@ describe('logWarnings', () => {
   });
 });
 
-describe('options.experimental_onStart', () => {
+describe('options.onStart', () => {
   it('should send correct event information', async () => {
     let startEvent!: EmbedStartEvent;
 
@@ -237,7 +311,7 @@ describe('options.experimental_onStart', () => {
       _internal: {
         generateCallId: () => 'test-call-id',
       },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
@@ -259,7 +333,7 @@ describe('options.experimental_onStart', () => {
         recordOutputs: true,
         functionId: 'embed-fn',
       },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
@@ -284,7 +358,7 @@ describe('options.experimental_onStart', () => {
         recordOutputs: true,
         functionId: 'embed-fn-deprecated',
       },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
@@ -303,7 +377,7 @@ describe('options.experimental_onStart', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
@@ -324,7 +398,7 @@ describe('options.experimental_onStart', () => {
         },
       }),
       value: testValue,
-      experimental_onStart: async () => {
+      onStart: async () => {
         callOrder.push('onStart');
       },
     });
@@ -338,7 +412,7 @@ describe('options.experimental_onStart', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_onStart: async () => {
+      onStart: async () => {
         throw new Error('callback error');
       },
     });
@@ -356,7 +430,7 @@ describe('options.experimental_onStart', () => {
       value: testValue,
       headers: { 'x-custom': 'header-value' },
       providerOptions: { myProvider: { key: 'value' } },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
     });
@@ -371,7 +445,19 @@ describe('options.experimental_onStart', () => {
   });
 });
 
-describe('options.experimental_onEnd', () => {
+describe('options.onEnd', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+  });
+
   it('should send correct event information', async () => {
     let endEvent!: EmbedEndEvent;
 
@@ -386,7 +472,7 @@ describe('options.experimental_onEnd', () => {
       _internal: {
         generateCallId: () => 'test-call-id',
       },
-      experimental_onEnd: async event => {
+      onEnd: async event => {
         endEvent = event;
       },
     });
@@ -402,7 +488,7 @@ describe('options.experimental_onEnd', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 15 }),
       }),
       value: testValue,
-      experimental_onEnd: async event => {
+      onEnd: async event => {
         endEvent = event;
       },
     });
@@ -420,7 +506,7 @@ describe('options.experimental_onEnd', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_onEnd: async event => {
+      onEnd: async event => {
         endEvent = event;
       },
     });
@@ -451,7 +537,7 @@ describe('options.experimental_onEnd', () => {
         ),
       }),
       value: testValue,
-      experimental_onEnd: async event => {
+      onEnd: async event => {
         endEvent = event;
       },
     });
@@ -471,7 +557,7 @@ describe('options.experimental_onEnd', () => {
         }),
       }),
       value: testValue,
-      experimental_onEnd: async event => {
+      onEnd: async event => {
         endEvent = event;
       },
     });
@@ -493,7 +579,7 @@ describe('options.experimental_onEnd', () => {
         },
       }),
       value: testValue,
-      experimental_onEnd: async () => {
+      onEnd: async () => {
         callOrder.push('onEnd');
       },
     });
@@ -507,7 +593,7 @@ describe('options.experimental_onEnd', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_onEnd: async () => {
+      onEnd: async () => {
         throw new Error('callback error');
       },
     });
@@ -516,7 +602,7 @@ describe('options.experimental_onEnd', () => {
   });
 });
 
-describe('options.experimental_onStart and experimental_onEnd together', () => {
+describe('options.onStart and onEnd together', () => {
   it('should have consistent callId across both events', async () => {
     let startEvent!: EmbedStartEvent;
     let endEvent!: EmbedEndEvent;
@@ -529,10 +615,10 @@ describe('options.experimental_onStart and experimental_onEnd together', () => {
       _internal: {
         generateCallId: () => 'consistent-call-id',
       },
-      experimental_onStart: async event => {
+      onStart: async event => {
         startEvent = event;
       },
-      experimental_onEnd: async event => {
+      onEnd: async event => {
         endEvent = event;
       },
     });
@@ -553,10 +639,10 @@ describe('options.experimental_onStart and experimental_onEnd together', () => {
         },
       }),
       value: testValue,
-      experimental_onStart: async () => {
+      onStart: async () => {
         callOrder.push('onStart');
       },
-      experimental_onEnd: async () => {
+      onEnd: async () => {
         callOrder.push('onEnd');
       },
     });
@@ -572,10 +658,10 @@ describe('options.experimental_onStart and experimental_onEnd together', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_onStart: async () => {
+      onStart: async () => {
         throw new Error('start error');
       },
-      experimental_onEnd: async () => {
+      onEnd: async () => {
         endCalled = true;
       },
     });

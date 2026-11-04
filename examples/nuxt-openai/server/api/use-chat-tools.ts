@@ -1,5 +1,11 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { convertToModelMessages, isStepCount, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  isStepCount,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { z } from 'zod';
 
 export default defineLazyEventHandler(async () => {
@@ -11,7 +17,7 @@ export default defineLazyEventHandler(async () => {
     const { messages } = await readBody(event);
 
     const result = streamText({
-      model: openai('gpt-4o'),
+      model: openai('gpt-6-astra'),
       messages: await convertToModelMessages(messages),
       stopWhen: isStepCount(5), // multi-steps for server-side tools
       tools: {
@@ -53,6 +59,8 @@ export default defineLazyEventHandler(async () => {
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   });
 });

@@ -1,5 +1,9 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { env } from '$env/dynamic/private';
 
 const openai = createOpenAI({
@@ -25,7 +29,7 @@ export const POST = async ({ request }: { request: Request }) => {
   const { prompt } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     system,
     prompt,
     onError: error => {
@@ -33,5 +37,7 @@ export const POST = async ({ request }: { request: Request }) => {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 };

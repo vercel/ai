@@ -9,7 +9,7 @@
     "dist",
     "build",
     "node_modules",
-    "tsup.config.ts",
+    "tsdown.config.ts",
     "edge.d.ts",
     "anthropic/edge.d.ts",
     "anthropic/index.d.ts",
@@ -33,6 +33,9 @@
     },
     {
       "path": "../provider-utils"
+    },
+    {
+      "path": "../test-server"
     }
   ]
 }

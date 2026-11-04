@@ -204,15 +204,17 @@ export default function Chat() {
 
 ## Server
 
-```tsx filename='api/chat.ts'
+```tsx filename='app/api/chat/route.ts'
 import {
   type InferUITools,
   type ToolSet,
   type UIDataTypes,
   type UIMessage,
   convertToModelMessages,
+  createUIMessageStreamResponse,
   isStepCount,
   streamText,
+  toUIMessageStream,
   tool,
 } from 'ai';
 import { z } from 'zod';
@@ -261,12 +263,14 @@ export async function POST(request: Request) {
   const { messages }: { messages: ChatMessage[] } = await request.json();
 
   const result = streamText({
-    model: 'openai/gpt-4.1',
+    model: 'openai/gpt-6-astra',
     messages: await convertToModelMessages(messages),
     tools,
     stopWhen: isStepCount(5),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```

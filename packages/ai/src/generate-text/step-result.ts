@@ -4,6 +4,7 @@ import type {
   ReasoningFilePart,
   ReasoningPart,
   ToolSet,
+  UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import type {
   CallWarning,
@@ -34,14 +35,67 @@ import type {
 } from './tool-result';
 
 /**
+ * Timing statistics for the gaps between generated output chunks.
+ */
+export type OutputChunkTimingStats = {
+  /** Shortest observed time between output chunks in milliseconds. */
+  readonly min: number;
+
+  /** 10th percentile time between output chunks in milliseconds. */
+  readonly p10: number;
+
+  /** Median time between output chunks in milliseconds. */
+  readonly median: number;
+
+  /** Average time between output chunks in milliseconds. */
+  readonly avg: number;
+
+  /** 90th percentile time between output chunks in milliseconds. */
+  readonly p90: number;
+
+  /** Longest observed time between output chunks in milliseconds. */
+  readonly max: number;
+};
+
+/**
  * Performance metrics for a single step in the generation process.
  */
 export type StepResultPerformance = {
   /**
-   * Average number of output tokens per second during the language model
+   * Effective number of output tokens per second over the full language model
    * response.
+   *
+   * Calculated as `outputTokens / requestSeconds`.
    */
-  readonly tokensPerSecond: number;
+  readonly effectiveOutputTokensPerSecond: number;
+
+  /**
+   * Number of output tokens per second after the first generated output chunk
+   * was received.
+   *
+   * Only available for streaming steps.
+   *
+   * Calculated as `outputTokens / outputStreamSeconds`.
+   */
+  readonly outputTokensPerSecond: number | undefined;
+
+  /**
+   * Number of input tokens processed per second before the first generated
+   * output chunk was received.
+   *
+   * Only available for streaming steps.
+   *
+   * Calculated as `inputTokens / ttftSeconds`.
+   */
+  readonly inputTokensPerSecond: number | undefined;
+
+  /**
+   * Effective number of input and output tokens per second over the full
+   * language model response.
+   *
+   * Calculated as `(inputTokens + outputTokens) / requestSeconds`.
+   */
+  readonly effectiveTotalTokensPerSecond: number;
 
   /**
    * Total time spent on the step in milliseconds.
@@ -60,12 +114,23 @@ export type StepResultPerformance = {
   readonly toolExecutionMs: Readonly<Record<string, number>>;
 
   /**
-   * Time until the first text, reasoning, or tool input delta was received in
-   * milliseconds.
+   * Time until the first generated output chunk was received in milliseconds.
+   *
+   * This includes text deltas, reasoning deltas, generated files, reasoning
+   * files, tool input deltas, and tool calls.
    *
    * Only available for streaming steps.
    */
-  readonly timeToFirstTokenMs: number | undefined;
+  readonly timeToFirstOutputMs: number | undefined;
+
+  /**
+   * Timing statistics for the gaps between generated output chunks in
+   * milliseconds.
+   *
+   * Only available for streaming steps with at least two generated output
+   * chunks.
+   */
+  readonly timeBetweenOutputChunksMs?: OutputChunkTimingStats;
 };
 
 /**
@@ -112,7 +177,8 @@ export type StepResult<
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
-   * The generated text. Can be an empty string if the model has not generated any text.
+   * The concatenation of all text parts generated in this step.
+   * It is an empty string if the step contains no text parts.
    */
   readonly text: string;
 
@@ -210,6 +276,13 @@ export type StepResult<
    * results that can be fully encapsulated in the provider.
    */
   readonly providerMetadata: ProviderMetadata | undefined;
+
+  /**
+   * The user messages that were sent with `experimental_steering` and added
+   * to the input of this step. Undefined when the step received no steering
+   * messages.
+   */
+  readonly experimental_steeringMessages?: Array<UserModelMessage>;
 };
 
 export class DefaultStepResult<
@@ -236,6 +309,10 @@ export class DefaultStepResult<
     TOOLS,
     RUNTIME_CONTEXT
   >['providerMetadata'];
+  declare readonly experimental_steeringMessages?: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['experimental_steeringMessages'];
 
   constructor({
     callId,
@@ -253,6 +330,7 @@ export class DefaultStepResult<
     request,
     response,
     providerMetadata,
+    steeringMessages,
   }: {
     callId: StepResult<TOOLS, RUNTIME_CONTEXT>['callId'];
     stepNumber: StepResult<TOOLS, RUNTIME_CONTEXT>['stepNumber'];
@@ -269,6 +347,7 @@ export class DefaultStepResult<
     request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
     response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
     providerMetadata: StepResult<TOOLS, RUNTIME_CONTEXT>['providerMetadata'];
+    steeringMessages?: Array<UserModelMessage>;
   }) {
     this.callId = callId;
     this.stepNumber = stepNumber;
@@ -284,6 +363,10 @@ export class DefaultStepResult<
     this.request = request;
     this.response = response;
     this.providerMetadata = providerMetadata;
+
+    if (steeringMessages != null && steeringMessages.length > 0) {
+      this.experimental_steeringMessages = steeringMessages;
+    }
   }
 
   get text() {

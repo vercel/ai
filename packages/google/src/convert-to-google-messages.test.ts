@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest';
-import { convertToGoogleMessages } from './convert-to-google-messages';
+import type {
+  LanguageModelV4FilePart,
+  LanguageModelV4ToolResultOutput,
+} from '@ai-sdk/provider';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  convertToGoogleMessages,
+  SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+} from './convert-to-google-messages';
 
 describe('system messages', () => {
   it('should store system message in system instruction', async () => {
@@ -26,6 +33,49 @@ describe('system messages', () => {
 });
 
 describe('thought signatures', () => {
+  it.each(['google', 'vertex', 'googleVertex'])(
+    'preserves standalone empty text and reasoning signatures from %s',
+    namespace => {
+      const result = convertToGoogleMessages(
+        [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  [namespace]: { thoughtSignature: 'text-signature' },
+                },
+              },
+              {
+                type: 'reasoning',
+                text: '',
+                providerOptions: {
+                  [namespace]: { thoughtSignature: 'reasoning-signature' },
+                },
+              },
+            ],
+          },
+        ],
+        { providerOptionsNames: ['googleVertex', 'vertex'] },
+      );
+      expect(result.contents).toEqual([
+        {
+          role: 'model',
+          parts: [
+            { text: '', thoughtSignature: 'text-signature' },
+            {
+              text: '',
+              thought: true,
+              thoughtSignature: 'reasoning-signature',
+            },
+          ],
+        },
+      ]);
+    },
+  );
+
   it('should preserve thought signatures in assistant messages', async () => {
     const result = convertToGoogleMessages([
       {
@@ -71,6 +121,7 @@ describe('thought signatures', () => {
                   "args": {
                     "value": "test",
                   },
+                  "id": "call1",
                   "name": "test",
                 },
                 "thoughtSignature": "sig3",
@@ -134,6 +185,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
                   "args": {
                     "location": "London",
                   },
+                  "id": "call1",
                   "name": "getWeather",
                 },
                 "thoughtSignature": "sig3",
@@ -171,6 +223,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -201,6 +254,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -258,6 +312,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
                   "args": {
                     "location": "London",
                   },
+                  "id": "call1",
                   "name": "getWeather",
                 },
                 "thoughtSignature": "sig3",
@@ -295,6 +350,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -322,6 +378,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         name: 'getWeather',
         args: { location: 'London' },
       },
@@ -444,6 +501,42 @@ describe('Gemma model system instructions', () => {
 });
 
 describe('user messages', () => {
+  it('should preserve original Google Cloud Storage file URIs', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'url',
+              url: new URL('gs://my-bucket/folder/My File.pdf'),
+              originalUrl: 'gs://my-bucket/folder/My File.pdf',
+            },
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'application/pdf',
+                fileUri: 'gs://my-bucket/folder/My File.pdf',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('should add image parts', async () => {
     const result = convertToGoogleMessages([
       {
@@ -506,6 +599,192 @@ describe('user messages', () => {
         },
       ],
     });
+  });
+
+  describe('videoMetadata', () => {
+    const videoMetadata = { startOffset: '0s', endOffset: '10.5s', fps: 0.5 };
+    const fileUri =
+      'https://generativelanguage.googleapis.com/v1beta/files/video';
+
+    it.each<{
+      name: string;
+      data: LanguageModelV4FilePart['data'];
+      expected: object;
+    }>([
+      {
+        name: 'YouTube URL',
+        data: {
+          type: 'url',
+          url: new URL('https://www.youtube.com/watch?v=example'),
+        },
+        expected: {
+          fileData: {
+            mimeType: 'video/mp4',
+            fileUri: 'https://www.youtube.com/watch?v=example',
+          },
+        },
+      },
+      {
+        name: 'Cloud Storage URL with original casing',
+        data: {
+          type: 'url',
+          url: new URL('gs://VideoBucket/video.mp4'),
+          originalUrl: 'gs://VideoBucket/video.mp4',
+        },
+        expected: {
+          fileData: {
+            mimeType: 'video/mp4',
+            fileUri: 'gs://VideoBucket/video.mp4',
+          },
+        },
+      },
+      {
+        name: 'uploaded file reference',
+        data: { type: 'reference', reference: { google: fileUri } },
+        expected: { fileData: { mimeType: 'video/mp4', fileUri } },
+      },
+      {
+        name: 'base64 data',
+        data: { type: 'data', data: 'AAECAw==' },
+        expected: { inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' } },
+      },
+      {
+        name: 'binary data',
+        data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
+        expected: { inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' } },
+      },
+    ])('should include videoMetadata for $name', ({ data, expected }) => {
+      const result = convertToGoogleMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data,
+              mediaType: 'video/mp4',
+              providerOptions: { google: { videoMetadata } },
+            },
+          ],
+        },
+      ]);
+
+      expect(result.contents[0].parts[0]).toEqual({
+        ...expected,
+        videoMetadata,
+      });
+    });
+
+    it.each([
+      { providerOptionsNames: ['google'], namespace: 'google' },
+      {
+        providerOptionsNames: ['googleVertex', 'vertex'],
+        namespace: 'googleVertex',
+      },
+      { providerOptionsNames: ['googleVertex', 'vertex'], namespace: 'vertex' },
+      { providerOptionsNames: ['googleVertex', 'vertex'], namespace: 'google' },
+      { providerOptionsNames: ['google'], namespace: 'googleVertex' },
+      { providerOptionsNames: ['google'], namespace: 'vertex' },
+    ])(
+      'should resolve $namespace metadata with $providerOptionsNames',
+      ({ providerOptionsNames, namespace }) => {
+        const result = convertToGoogleMessages(
+          [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL(
+                      'https://storage.googleapis.com/bucket/video.mp4',
+                    ),
+                  },
+                  mediaType: 'video/mp4',
+                  providerOptions: {
+                    [namespace]: { videoMetadata: { fps: 2 } },
+                  },
+                },
+              ],
+            },
+          ],
+          { providerOptionsNames },
+        );
+
+        expect(result.contents[0].parts[0]).toEqual({
+          fileData: {
+            mimeType: 'video/mp4',
+            fileUri: 'https://storage.googleapis.com/bucket/video.mp4',
+          },
+          videoMetadata: { fps: 2 },
+        });
+      },
+    );
+
+    it.each([
+      { providerOptionsNames: ['google'], expected: { fps: 1 } },
+      {
+        providerOptionsNames: ['googleVertex', 'vertex'],
+        expected: { fps: 2 },
+      },
+      { providerOptionsNames: ['vertex'], expected: { fps: 3 } },
+    ])(
+      'should prefer the configured namespace $providerOptionsNames',
+      ({ providerOptionsNames, expected }) => {
+        const result = convertToGoogleMessages(
+          [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: { type: 'url', url: new URL(fileUri) },
+                  mediaType: 'video/mp4',
+                  providerOptions: {
+                    google: { videoMetadata: { fps: 1 } },
+                    googleVertex: { videoMetadata: { fps: 2 } },
+                    vertex: { videoMetadata: { fps: 3 } },
+                  },
+                },
+              ],
+            },
+          ],
+          { providerOptionsNames },
+        );
+
+        expect(result.contents[0].parts[0]).toEqual({
+          fileData: { mimeType: 'video/mp4', fileUri },
+          videoMetadata: expected,
+        });
+      },
+    );
+
+    it.each<LanguageModelV4FilePart['providerOptions']>([
+      undefined,
+      {},
+      { google: { videoMetadata: null } },
+    ])(
+      'should omit videoMetadata when it is not provided (%j)',
+      providerOptions => {
+        const result = convertToGoogleMessages([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'data', data: 'AAECAw==' },
+                mediaType: 'video/mp4',
+                providerOptions,
+              },
+            ],
+          },
+        ]);
+
+        expect(result.contents[0].parts[0]).toEqual({
+          inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' },
+        });
+      },
+    );
   });
 
   it('should convert file parts with provider reference to fileData', async () => {
@@ -634,6 +913,7 @@ describe('tool messages', () => {
           parts: [
             {
               functionResponse: {
+                id: 'testCallId',
                 name: 'testFunction',
                 response: {
                   name: 'testFunction',
@@ -644,6 +924,118 @@ describe('tool messages', () => {
           ],
         },
       ],
+    });
+  });
+
+  it.each([
+    {
+      output: { type: 'text', value: 'deployed' },
+      response: { content: 'deployed' },
+    },
+    {
+      output: { type: 'json', value: { version: '1.0' } },
+      response: { content: { version: '1.0' } },
+    },
+    {
+      output: { type: 'error-text', value: 'migration failed' },
+      response: { error: 'migration failed' },
+    },
+    {
+      output: { type: 'error-json', value: { code: 'E_MIGRATION' } },
+      response: { error: { code: 'E_MIGRATION' } },
+    },
+    {
+      output: { type: 'error-json', value: { $ref: '#/$defs/Error' } },
+      response: { error: '{"$ref":"#/$defs/Error"}' },
+    },
+    {
+      output: { type: 'execution-denied', reason: 'User declined.' },
+      response: { error: 'User declined.' },
+    },
+    {
+      output: { type: 'execution-denied' },
+      response: { error: 'Tool call execution denied.' },
+    },
+  ] satisfies Array<{
+    output: LanguageModelV4ToolResultOutput;
+    response: unknown;
+  }>)(
+    'should preserve the status of tool output $output',
+    ({ output, response }) => {
+      const result = convertToGoogleMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'deploy',
+              toolCallId: 'call-deploy',
+              output,
+            },
+          ],
+        },
+      ]);
+
+      expect(result.contents).toEqual([
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                id: 'call-deploy',
+                name: 'deploy',
+                response: { name: 'deploy', ...response },
+              },
+            },
+          ],
+        },
+      ]);
+    },
+  );
+
+  it('should serialize JSON Schema references in function response content', async () => {
+    const toolResult = {
+      tools: [
+        {
+          name: 'find_records',
+          inputSchema: {
+            $defs: {
+              Node: {
+                type: 'object',
+                properties: {
+                  child: { $ref: '#/$defs/Node' },
+                },
+              },
+            },
+            $ref: '#/$defs/Node',
+          },
+        },
+      ],
+    };
+
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'get_schema',
+            toolCallId: 'testCallId',
+            output: { type: 'json', value: toolResult },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'get_schema',
+        response: {
+          name: 'get_schema',
+          content: JSON.stringify(toolResult),
+        },
+      },
     });
   });
 
@@ -683,6 +1075,7 @@ describe('tool messages', () => {
           parts: [
             {
               functionResponse: {
+                id: 'testCallId',
                 name: 'imageGenerator',
                 response: {
                   name: 'imageGenerator',
@@ -731,6 +1124,7 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionResponse: {
+        id: 'testCallId',
         name: 'documentReader',
         response: {
           name: 'documentReader',
@@ -777,6 +1171,7 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionResponse: {
+        id: 'testCallId',
         name: 'imageGenerator',
         response: {
           name: 'imageGenerator',
@@ -787,6 +1182,164 @@ describe('tool messages', () => {
             inlineData: {
               mimeType: 'image/png',
               data: 'base64pngdata',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('should derive the full media type from a tool result data URL', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'imageGenerator',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('data:image/png;base64,base64pngdata'),
+                  },
+                  mediaType: 'image',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: 'Tool executed successfully.',
+        },
+        parts: [
+          {
+            inlineData: {
+              mimeType: 'image/png',
+              data: 'base64pngdata',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('should convert supported tool result URLs into functionResponse file data', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'imageGenerator',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('gs://example-bucket/renditions/hero.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      {
+        supportedFunctionResponseUrls: {
+          '*': [/^gs:\/\/.*$/],
+        },
+      },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: 'Tool executed successfully.',
+        },
+        parts: [
+          {
+            fileData: {
+              mimeType: 'image/png',
+              fileUri: 'gs://example-bucket/renditions/hero.png',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('should preserve the original supported GCS tool result URL', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'imageGenerator',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL(
+                        'gs://example-bucket/renditions/My Hero.png',
+                      ),
+                      originalUrl: 'gs://example-bucket/renditions/My Hero.png',
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      {
+        supportedFunctionResponseUrls: {
+          '*': [/^gs:\/\/.*$/],
+        },
+      },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: 'Tool executed successfully.',
+        },
+        parts: [
+          {
+            fileData: {
+              mimeType: 'image/png',
+              fileUri: 'gs://example-bucket/renditions/My Hero.png',
             },
           },
         ],
@@ -823,10 +1376,50 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionResponse: {
+        id: 'testCallId',
         name: 'imageGenerator',
         response: {
           name: 'imageGenerator',
           content: `{"type":"file","data":{"type":"url","url":"https://example.com/image.png"},"mediaType":"image/png"}`,
+        },
+      },
+    });
+  });
+
+  it('should forward unsupported non-data URLs with top-level media types as text content', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'imageGenerator',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('https://example.com/image.png'),
+                  },
+                  mediaType: 'image',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: `{"type":"file","data":{"type":"url","url":"https://example.com/image.png"},"mediaType":"image"}`,
         },
       },
     });
@@ -861,6 +1454,7 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionResponse: {
+        id: 'testCallId',
         name: 'documentReader',
         response: {
           name: 'documentReader',
@@ -910,6 +1504,7 @@ describe('tool messages', () => {
     expect(result.contents[0].parts).toEqual([
       {
         functionResponse: {
+          id: 'testCallId',
           name: 'imageGenerator',
           response: {
             name: 'imageGenerator',
@@ -927,9 +1522,60 @@ describe('tool messages', () => {
         text: 'Tool executed successfully and returned this image as a response',
       },
       {
-        text: `{"type":"file","data":{"type":"data","data":"base64pdfdata"},"mediaType":"application/pdf","filename":"report.pdf"}`,
+        inlineData: {
+          mimeType: 'application/pdf',
+          data: 'base64pdfdata',
+        },
+      },
+      {
+        text: 'Tool executed successfully and returned this file as a response',
       },
     ]);
+  });
+
+  it('issue #16072: should not serialize PDF file tool results as text on the non-Gemini-3 path', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'catalogSearch',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'metadata' },
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: 'JVBERi0xLjQK' },
+                    mediaType: 'application/pdf',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      { supportsFunctionResponseParts: false },
+    );
+
+    const textParts = result.contents.flatMap(content =>
+      content.parts
+        .filter(part => 'text' in part)
+        .map(part => (part as { text: string }).text),
+    );
+
+    expect(textParts).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('JVBERi0xLjQK')]),
+    );
+    expect(result.contents[0].parts).toContainEqual({
+      inlineData: {
+        mimeType: 'application/pdf',
+        data: 'JVBERi0xLjQK',
+      },
+    });
   });
 
   it('should keep URL tool result parts on the legacy path', async () => {
@@ -1366,6 +2012,7 @@ describe('parallel tool calls', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         args: { city: 'paris' },
         name: 'checkweather',
       },
@@ -1374,11 +2021,125 @@ describe('parallel tool calls', () => {
 
     expect(result.contents[0].parts[1]).toEqual({
       functionCall: {
+        id: 'call2',
         args: { city: 'london' },
         name: 'checkweather',
       },
       thoughtSignature: undefined,
     });
+  });
+
+  it('should parse JSON string input into args object for functionCall', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'checkweather',
+            input: '{"city":"berlin","units":"metric"}',
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        id: 'call1',
+        args: { city: 'berlin', units: 'metric' },
+        name: 'checkweather',
+      },
+      thoughtSignature: undefined,
+    });
+  });
+
+  it('should handle circular references in tool-result without recursion error', async () => {
+    const cyclicObj: any = { status: 'ok' };
+    cyclicObj.self = cyclicObj;
+
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'inspectData',
+            toolCallId: 'call_cycle',
+            output: { type: 'json', value: cyclicObj },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'call_cycle',
+        name: 'inspectData',
+        response: {
+          name: 'inspectData',
+          content: { status: 'ok', self: '[Circular]' },
+        },
+      },
+    });
+  });
+
+  it('should handle circular references and BigInt with $ref in tool-result safely', async () => {
+    const cyclicSchema: any = {
+      $ref: '#/components/schemas/Item',
+      count: 100n,
+    };
+    cyclicSchema.self = cyclicSchema;
+
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'getSchema',
+            toolCallId: 'call_schema',
+            output: { type: 'json', value: cyclicSchema },
+          },
+        ],
+      },
+    ]);
+
+    const content = (result.contents[0].parts[0] as any).functionResponse
+      .response.content;
+    expect(typeof content).toBe('string');
+    expect(content).toContain('"count":"100"');
+    expect(content).toContain('"self":"[Circular]"');
+  });
+
+  it('should preserve reused non-circular objects with $ref in tool-result', async () => {
+    const shared: any = { id: 1 };
+    const schema: any = {
+      $ref: '#/components/schemas/Item',
+      first: shared,
+      second: shared,
+    };
+
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'getSchema',
+            toolCallId: 'call_schema',
+            output: { type: 'json', value: schema },
+          },
+        ],
+      },
+    ]);
+
+    const content = (result.contents[0].parts[0] as any).functionResponse
+      .response.content;
+    expect(typeof content).toBe('string');
+    expect(content).toContain('"first":{"id":1}');
+    expect(content).toContain('"second":{"id":1}');
+    expect(content).not.toContain('[Circular]');
   });
 });
 
@@ -1416,6 +2177,7 @@ describe('tool results with thought signatures', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'call1',
         args: { userId: '123' },
         name: 'readdata',
       },
@@ -1424,9 +2186,10 @@ describe('tool results with thought signatures', () => {
 
     expect(result.contents[1].parts[0]).toEqual({
       functionResponse: {
+        id: 'call1',
         name: 'readdata',
         response: {
-          content: 'file not found',
+          error: 'file not found',
           name: 'readdata',
         },
       },
@@ -1437,6 +2200,128 @@ describe('tool results with thought signatures', () => {
 });
 
 describe('server tool combination round-trip', () => {
+  it('should parse stringified code execution input', () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'code-call-1',
+            toolName: 'code_execution',
+            input: JSON.stringify({
+              language: 'PYTHON',
+              code: 'print(17 * 19)',
+            }),
+            providerExecuted: true,
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      executableCode: {
+        language: 'PYTHON',
+        code: 'print(17 * 19)',
+      },
+    });
+  });
+
+  it('should preserve code execution parts alongside a function tool call', () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'code-call-1',
+              toolName: 'code_execution',
+              input: { language: 'PYTHON', code: 'print(17 * 19)' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'function-call-1',
+              toolName: 'listItems',
+              input: {},
+              providerOptions: {
+                google: { thoughtSignature: 'function-signature' },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'code-call-1',
+              toolName: 'code_execution',
+              output: {
+                type: 'json',
+                value: { outcome: 'OUTCOME_OK', output: '323\n' },
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'function-call-1',
+              toolName: 'listItems',
+              output: {
+                type: 'json',
+                value: { items: ['a', 'b'] },
+              },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true },
+    );
+
+    expect(result.contents).toEqual([
+      {
+        role: 'model',
+        parts: [
+          {
+            executableCode: {
+              language: 'PYTHON',
+              code: 'print(17 * 19)',
+            },
+          },
+          {
+            functionCall: {
+              id: 'function-call-1',
+              name: 'listItems',
+              args: {},
+            },
+            thoughtSignature: 'function-signature',
+          },
+          {
+            codeExecutionResult: {
+              outcome: 'OUTCOME_OK',
+              output: '323\n',
+            },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        parts: [
+          {
+            functionResponse: {
+              id: 'function-call-1',
+              name: 'listItems',
+              response: {
+                name: 'listItems',
+                content: { items: ['a', 'b'] },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should convert assistant tool-call with serverToolCallId to toolCall wire format', () => {
     const result = convertToGoogleMessages([
       {
@@ -1486,6 +2371,7 @@ describe('server tool combination round-trip', () => {
 
     expect(result.contents[0].parts[0]).toEqual({
       functionCall: {
+        id: 'tc-1',
         name: 'weather',
         args: { location: 'SF' },
       },
@@ -1617,6 +2503,426 @@ describe('server tool combination round-trip', () => {
   });
 });
 
+describe('Gemini 3 missing thoughtSignature mitigation', () => {
+  const promptWithToolCallMissingSignature = [
+    { role: 'user' as const, content: [{ type: 'text' as const, text: 'hi' }] },
+    {
+      role: 'assistant' as const,
+      content: [
+        {
+          type: 'tool-call' as const,
+          toolCallId: 'tc_1',
+          toolName: 'weather',
+          input: { location: 'SF' },
+        },
+      ],
+    },
+    {
+      role: 'tool' as const,
+      content: [
+        {
+          type: 'tool-result' as const,
+          toolCallId: 'tc_1',
+          toolName: 'weather',
+          output: { type: 'json' as const, value: { temperature: 72 } },
+        },
+      ],
+    },
+  ];
+
+  it('injects skip_thought_signature_validator and emits a warning for Gemini 3 when a tool-call has no signature', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(promptWithToolCallMissingSignature, {
+      isGemini3Model: true,
+      onWarning,
+    });
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      functionCall: { id: 'tc_1', name: 'weather', args: { location: 'SF' } },
+      thoughtSignature: SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+    });
+    expect(onWarning).toHaveBeenCalledTimes(1);
+    expect(onWarning.mock.calls[0][0]).toMatchObject({
+      type: 'other',
+      message: expect.stringContaining('skip_thought_signature_validator'),
+    });
+    expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
+  });
+
+  it('does NOT inject the sentinel or warn for unsigned parallel calls after a signed call', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_paris',
+              toolName: 'get_weather',
+              input: { city: 'Paris' },
+              providerOptions: {
+                vertex: { thoughtSignature: 'parallel_batch_signature' },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_tokyo',
+              toolName: 'get_weather',
+              input: { city: 'Tokyo' },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_new_york',
+              toolName: 'get_weather',
+              input: { city: 'New York' },
+            },
+          ],
+        },
+      ],
+      {
+        isGemini3Model: true,
+        providerOptionsNames: ['googleVertex', 'vertex'],
+        onWarning,
+      },
+    );
+
+    expect(result.contents[0].parts).toStrictEqual([
+      {
+        functionCall: {
+          id: 'tc_paris',
+          name: 'get_weather',
+          args: { city: 'Paris' },
+        },
+        thoughtSignature: 'parallel_batch_signature',
+      },
+      {
+        functionCall: {
+          id: 'tc_tokyo',
+          name: 'get_weather',
+          args: { city: 'Tokyo' },
+        },
+        thoughtSignature: undefined,
+      },
+      {
+        functionCall: {
+          id: 'tc_new_york',
+          name: 'get_weather',
+          args: { city: 'New York' },
+        },
+        thoughtSignature: undefined,
+      },
+    ]);
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT inject the sentinel when other response parts separate parallel function calls', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_signed',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: {
+                google: { thoughtSignature: 'signed_batch' },
+              },
+            },
+            {
+              type: 'text',
+              text: 'Checking another city in the same response.',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_unsigned',
+              toolName: 'weather',
+              input: { location: 'NYC' },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    expect(result.contents[0].parts[2]).toStrictEqual({
+      functionCall: {
+        id: 'tc_unsigned',
+        name: 'weather',
+        args: { location: 'NYC' },
+      },
+      thoughtSignature: undefined,
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT inject the sentinel when server tool parts separate parallel function calls', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'signed_function_call',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: {
+                google: { thoughtSignature: 'function_signature' },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'server_call',
+              toolName: 'server:GOOGLE_SEARCH_WEB',
+              input: { query: 'weather' },
+              providerOptions: {
+                google: {
+                  serverToolCallId: 'server_call',
+                  serverToolType: 'GOOGLE_SEARCH_WEB',
+                  thoughtSignature: 'server_call_signature',
+                },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'server_call',
+              toolName: 'server:GOOGLE_SEARCH_WEB',
+              output: { type: 'json', value: { results: [] } },
+              providerOptions: {
+                google: {
+                  serverToolCallId: 'server_call',
+                  serverToolType: 'GOOGLE_SEARCH_WEB',
+                  thoughtSignature: 'server_response_signature',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'unsigned_function_call',
+              toolName: 'weather',
+              input: { location: 'NYC' },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    expect(result.contents[0].parts[3]).toStrictEqual({
+      functionCall: {
+        id: 'unsigned_function_call',
+        name: 'weather',
+        args: { location: 'NYC' },
+      },
+      thoughtSignature: undefined,
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('injects the sentinel when a signed server tool call precedes an unsigned function call', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'server_call',
+              toolName: 'server:GOOGLE_SEARCH_WEB',
+              input: { query: 'weather' },
+              providerOptions: {
+                google: {
+                  serverToolCallId: 'server_call',
+                  serverToolType: 'GOOGLE_SEARCH_WEB',
+                  thoughtSignature: 'server_signature',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'function_call',
+              toolName: 'weather',
+              input: { location: 'NYC' },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    expect(result.contents[0].parts).toStrictEqual([
+      {
+        toolCall: {
+          toolType: 'GOOGLE_SEARCH_WEB',
+          args: { query: 'weather' },
+          id: 'server_call',
+        },
+        thoughtSignature: 'server_signature',
+      },
+      {
+        functionCall: {
+          id: 'function_call',
+          name: 'weather',
+          args: { location: 'NYC' },
+        },
+        thoughtSignature: SKIP_THOUGHT_SIGNATURE_VALIDATOR,
+      },
+    ]);
+    expect(onWarning).toHaveBeenCalledTimes(1);
+    expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
+  });
+
+  it('does NOT inject the sentinel for non-Gemini-3 models', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(promptWithToolCallMissingSignature, {
+      isGemini3Model: false,
+      onWarning,
+    });
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      functionCall: { id: 'tc_1', name: 'weather', args: { location: 'SF' } },
+      thoughtSignature: undefined,
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT inject the sentinel when a real signature is present under `google`', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: { google: { thoughtSignature: 'real_sig' } },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      thoughtSignature: 'real_sig',
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT inject the sentinel when a real signature is present under `vertex`', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: { vertex: { thoughtSignature: 'vertex_sig' } },
+            },
+          ],
+        },
+      ],
+      {
+        isGemini3Model: true,
+        providerOptionsNames: ['googleVertex', 'vertex'],
+        onWarning,
+      },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      thoughtSignature: 'vertex_sig',
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('does NOT inject the sentinel when a real signature is present under `googleVertex`', () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'SF' },
+              providerOptions: {
+                googleVertex: { thoughtSignature: 'google_vertex_sig' },
+              },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    const assistant = result.contents.find(c => c.role === 'model');
+    expect(assistant?.parts[0]).toMatchObject({
+      thoughtSignature: 'google_vertex_sig',
+    });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
+  it('emits one warning per request listing each affected tool name', () => {
+    const onWarning = vi.fn();
+    convertToGoogleMessages(
+      [
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_1',
+              toolName: 'weather',
+              input: { location: 'SF' },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_2',
+              toolName: 'weather',
+              input: { location: 'NYC' },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'tc_3',
+              toolName: 'search',
+              input: { query: 'q' },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true, onWarning },
+    );
+
+    expect(onWarning).toHaveBeenCalledTimes(1);
+    expect(onWarning.mock.calls[0][0].message).toContain('3 ');
+    expect(onWarning.mock.calls[0][0].message).toContain('`weather`');
+    expect(onWarning.mock.calls[0][0].message).toContain('`search`');
+  });
+});
+
 describe('top-level-only media type resolution', () => {
   const pngBase64 = 'iVBORw0KGgo=';
 
@@ -1696,4 +3002,70 @@ describe('top-level-only media type resolution', () => {
       inlineData: { mimeType: 'image/png', data: pngBase64 },
     });
   });
+});
+
+it.each(['{"city":', 'null'])(
+  'retains malformed input or parsed null without throwing: %s',
+  input => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'weather',
+            input,
+          },
+        ],
+      },
+    ]);
+    expect((result.contents[0].parts[0] as any).functionCall.args).toBe(
+      input === 'null' ? null : input,
+    );
+  },
+);
+
+it('keeps non-ref tool results JSON serializable with BigInt and cycles', () => {
+  const value: any = { count: 42n };
+  value.self = value;
+  const result = convertToGoogleMessages([
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'call1',
+          toolName: 'inspect',
+          output: { type: 'json', value },
+        },
+      ],
+    },
+  ]);
+  expect(
+    (result.contents[0].parts[0] as any).functionResponse.response.content,
+  ).toEqual({ count: '42', self: '[Circular]' });
+  expect(() => JSON.stringify(result)).not.toThrow();
+});
+
+it('serializes BigInt returned by toJSON in structured tool results', () => {
+  const result = convertToGoogleMessages([
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'call1',
+          toolName: 'inspect',
+          output: {
+            type: 'json',
+            value: { count: { toJSON: () => 42n } } as any,
+          },
+        },
+      ],
+    },
+  ]);
+  expect(
+    (result.contents[0].parts[0] as any).functionResponse.response.content,
+  ).toEqual({ count: '42' });
 });

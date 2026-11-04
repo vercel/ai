@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText, type ModelMessage } from 'ai';
 import { run } from '../../lib/run';
 
@@ -22,11 +25,14 @@ run(async () => {
   ];
 
   const turn1 = await generateText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     messages,
     reasoning: 'medium',
     providerOptions: {
-      google: { store: false, thinkingSummaries: 'auto' },
+      google: {
+        store: false,
+        thinkingSummaries: 'auto',
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
 
@@ -45,11 +51,14 @@ run(async () => {
   });
 
   const turn2 = await generateText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     messages,
     reasoning: 'medium',
     providerOptions: {
-      google: { store: false, thinkingSummaries: 'auto' },
+      google: {
+        store: false,
+        thinkingSummaries: 'auto',
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
 
