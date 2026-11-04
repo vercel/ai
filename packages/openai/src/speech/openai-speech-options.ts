@@ -20,7 +20,7 @@ export const openaiSpeechModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       instructions: z.string().nullish(),
-      speed: z.number().min(0.25).max(4.0).default(1.0).nullish(),
+      speed: z.number().min(0.25).max(4.0).nullish(),
     }),
   ),
 );
