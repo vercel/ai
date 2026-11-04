@@ -466,6 +466,26 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       customProviderOptions ?? {},
     );
 
+    if (anthropicOptions.serviceTier != null) {
+      const supportedTiers =
+        providerOptionsName === 'anthropic'
+          ? ['auto', 'standard_only']
+          : providerOptionsName === 'minimax'
+            ? ['standard', 'priority']
+            : undefined;
+      if (
+        supportedTiers != null &&
+        !supportedTiers.includes(anthropicOptions.serviceTier)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'serviceTier',
+          details: `serviceTier "${anthropicOptions.serviceTier}" is not supported by ${providerOptionsName}. Use ${supportedTiers.map(tier => `"${tier}"`).join(' or ')}.`,
+        });
+        anthropicOptions.serviceTier = undefined;
+      }
+    }
+
     const {
       maxOutputTokens: maxOutputTokensForModel,
       supportsStructuredOutput: modelSupportsStructuredOutput,
