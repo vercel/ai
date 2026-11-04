@@ -98,6 +98,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
           | 'tool-output-denied'
           | 'start-step'
           | 'finish-step'
+          | 'steering-message'
           | 'start'
           | 'abort';
       }
