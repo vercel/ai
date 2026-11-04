@@ -128,9 +128,9 @@ describe('Anthropic batch', () => {
     expect(result.status).toBe('succeeded');
     if (result.status !== 'succeeded')
       throw new Error('Expected a succeeded result');
-    expect(result.result.providerMetadata?.anthropic?.serviceTier).toBe(
-      'batch',
-    );
+    expect(result.result.providerMetadata).toMatchObject({
+      anthropic: { serviceTier: 'batch' },
+    });
   });
 
   it('rejects unsupported request types before making an API request', async () => {
