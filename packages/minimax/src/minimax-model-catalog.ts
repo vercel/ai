@@ -8,11 +8,8 @@ import type {
   MiniMaxLanguageModelChatOptions,
   MiniMaxLanguageModelOptions,
 } from './minimax-chat-language-model-options';
-import {
-  minimaxVideoResolutions,
-  type MiniMaxVideoModelOptions,
-} from './minimax-video-model-options';
-
+import type { MiniMaxVideoModelOptions } from './minimax-video-model-options';
+import { minimaxVideoResolutions } from './minimax-model-catalog-config';
 /** Known options accepted under providerOptions; open-ended extension keys remain undeclared. */
 export const miniMaxProviderOptions = {
   language: {

@@ -607,9 +607,11 @@ MiniMax video results include `providerMetadata.minimax`:
 
 ## Model Capabilities
 
+{/* model-capabilities:minimax-language:start */}
+
 | Model                    | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | ------------------------ | ----------- | ----------------- | ---------- | -------------- |
-| `MiniMax-M3.1-Flash`     | <Check />   | <Check />         | <Check />  | <Check />      |
+| `minimax-m3.1-flash`     | <Check />   | Unknown           | Unknown    | Unknown        |
 | `minimax-m3`             | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `minimax-m2.7`           | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `minimax-m2.7-highspeed` | <Cross />   | <Check />         | <Check />  | <Check />      |
@@ -619,8 +621,40 @@ MiniMax video results include `providerMetadata.minimax`:
 | `minimax-m2.1-highspeed` | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `minimax-m2`             | <Cross />   | <Check />         | <Check />  | <Check />      |
 
+{/* model-capabilities:minimax-language:end */}
+
 <Note>
   Please see the [MiniMax docs](https://platform.minimax.io/docs) for a full
   list of available models. You can also pass any available provider model ID as
   a string if needed.
 </Note>
+
+## Video Model Capabilities
+
+{/* model-capabilities:minimax-video:start */}
+
+| Model            | Image Input | First Frame | Last Frame                                   | Reference Images | Reference Video | Audio     | Aspect Ratio                               | Resolution | Duration  | FPS       | Seed      |
+| ---------------- | ----------- | ----------- | -------------------------------------------- | ---------------- | --------------- | --------- | ------------------------------------------ | ---------- | --------- | --------- | --------- |
+| `MiniMax-H3`     | <Check />   | <Check />   | Conditional: A first frame is also supplied. | <Check />        | <Check />       | <Cross /> | Conditional: No frame images are supplied. | <Check />  | <Check /> | <Cross /> | <Cross /> |
+| `MiniMax-H3-Max` | <Check />   | <Check />   | Conditional: A first frame is also supplied. | <Cross />        | <Cross />       | <Cross /> | Conditional: No frame images are supplied. | <Check />  | <Check /> | <Cross /> | <Cross /> |
+
+{/* model-capabilities:minimax-video:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:minimax-provider-options:start */}
+
+| Operation | Option               | Description                                                                                                                                             |
+| --------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| language  | `effort`             | Reasoning effort for MiniMax M3.1 and later models. Higher levels can use more reasoning tokens and increase latency. Defaults to the server's setting. |
+| language  | `thinking`           | thinking                                                                                                                                                |
+| video     | `resolution`         | Output resolution.                                                                                                                                      |
+| video     | `ratio`              | Aspect ratio of the generated video. Overrides the top-level `aspectRatio`.                                                                             |
+| video     | `referenceAudioUrls` | Reference audio URLs for reference-to-video generation.                                                                                                 |
+| video     | `aigcWatermark`      | Whether to embed an AIGC watermark in the output. Defaults to `false`.                                                                                  |
+| video     | `pollIntervalMs`     | Interval in milliseconds between task status polls. Default: 10000.                                                                                     |
+| video     | `pollTimeoutMs`      | Maximum time in milliseconds to poll before timing out. Default: 600000.                                                                                |
+
+{/* model-capabilities:minimax-provider-options:end */}
