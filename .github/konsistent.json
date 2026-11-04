@@ -315,7 +315,11 @@
     {
       "name": "harness-package-must-export-required-symbols",
       "description": "Every harness package must have specific files that export a specific set of symbols.",
-      "paths": ["packages/harness-{harnessId}/src/index.ts"],
+      "paths": [
+        "packages/harness-{harnessId}/src/index.ts",
+        "!packages/harness-*-v2/src/index.ts",
+        "!packages/harness-ai-sdk/src/index.ts"
+      ],
       "must": [
         {
           "name": "harness-package-must-export-harness-creator-and-settings",
