@@ -1,0 +1,109 @@
+---
+title: Recall
+description: Learn how to use Recall memory with the AI SDK.
+---
+
+# Recall
+
+[Recall](https://recallmem.dev) is a memory service for AI agents, hosted or self-hosted with Docker. It stores conversations, learns dated facts about each user from them, and answers questions from what it learned. The [`@recall-memory/ai-sdk`](https://www.npmjs.com/package/@recall-memory/ai-sdk) package connects it to the AI SDK.
+
+Features include:
+
+- Middleware that adds what Recall knows about the user to each request and stores every turn
+- Three tools the model can call: `searchMemory`, `askMemory` and `rememberFact`
+- Works with `generateText`, `streamText` and `ToolLoopAgent`
+- One memory per user (`userId`), one session per conversation (`sessionId`)
+- Full TypeScript support
+
+## Setup
+
+Create an API key at [app.recallmem.dev](https://app.recallmem.dev) and set it as `RECALL_API_KEY`.
+
+## Installation
+
+```bash
+pnpm add @recall-memory/ai-sdk @recall-memory/sdk
+```
+
+## Middleware
+
+`recallMiddleware` works with any model. Before each call it adds what Recall knows about the user, biased towards their latest message, as a system message. After the final step it stores the user's message and the reply.
+
+```ts
+import { recallMiddleware } from '@recall-memory/ai-sdk';
+import { generateText, wrapLanguageModel } from 'ai';
+
+const { text } = await generateText({
+  model: wrapLanguageModel({
+    model: yourModel,
+    middleware: recallMiddleware({ userId: 'user-123', sessionId: 'chat-1' }),
+  }),
+  prompt: 'Can you plan a dinner for four on Saturday?',
+});
+```
+
+If Recall cannot be reached, the call goes on without memory and the `onError` option is called.
+
+## Memory tools
+
+```ts
+__PROVIDER_IMPORT__;
+import { recallTools } from '@recall-memory/ai-sdk';
+import { generateText, isStepCount } from 'ai';
+
+const { text } = await generateText({
+  model: __MODEL__,
+  tools: recallTools({ userId: 'user-123' }),
+  stopWhen: isStepCount(5),
+  prompt: 'What do I usually eat?',
+});
+```
+
+| Tool | Description |
+| --- | --- |
+| `searchMemory` | Facts about the user and messages they wrote that match a query |
+| `askMemory` | A question about the user, answered from everything Recall remembers |
+| `rememberFact` | Saves one fact about the user, searchable at once |
+
+## Agents
+
+For a `ToolLoopAgent` defined once, pass the user and the conversation as call options and add memory in `prepareCall`:
+
+```ts
+import { recallMiddleware, recallTools } from '@recall-memory/ai-sdk';
+import { ToolLoopAgent, wrapLanguageModel } from 'ai';
+import { z } from 'zod';
+
+const agent = new ToolLoopAgent({
+  model: yourModel,
+  callOptionsSchema: z.object({ userId: z.string(), sessionId: z.string() }),
+  prepareCall: ({ options, ...settings }) => ({
+    ...settings,
+    model: wrapLanguageModel({ model: yourModel, middleware: recallMiddleware(options) }),
+    tools: recallTools(options),
+  }),
+});
+
+await agent.generate({
+  prompt: 'Remember that my sister Ana is coming too.',
+  options: { userId: 'user-123', sessionId: 'chat-1' },
+});
+```
+
+## Configuration
+
+| Option | Description |
+| --- | --- |
+| `userId` | The user, as a Recall peer id (required) |
+| `sessionId` | The conversation; needed to store turns |
+| `recall` | A `Recall` client from `@recall-memory/sdk` (default: configured from `RECALL_API_KEY`) |
+| `assistantId` | The assistant's id (default `assistant`); Recall does not learn about it |
+| `store` / `context` | Set to `false` to only read memory, or only store turns |
+
+`recallContext()` returns the same memory as text for `instructions`, and `saveTurn()` stores a turn by hand, for example from `onEnd`.
+
+## More Information
+
+- [Guide with tested examples](https://recallmem.dev/guides/vercel-ai-sdk)
+- [Recall documentation](https://recallmem.dev/docs)
+- [Package on npm](https://www.npmjs.com/package/@recall-memory/ai-sdk)
