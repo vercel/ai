@@ -116,12 +116,12 @@ type ObjectOptions<SCHEMA> = {
  *
  * @returns An output specification for generating objects with the specified schema.
  */
-export function object<SCHEMA>(
-  options: ObjectOptions<ValidatedSchema<SCHEMA>>,
-): Output<InferSchema<SCHEMA>, DeepPartial<InferSchema<SCHEMA>>, never>;
 export function object<OBJECT>(
   options: ObjectOptions<FlexibleSchema<OBJECT>>,
 ): Output<OBJECT, DeepPartial<OBJECT>, never>;
+export function object<SCHEMA>(
+  options: ObjectOptions<ValidatedSchema<SCHEMA>>,
+): Output<InferSchema<SCHEMA>, DeepPartial<InferSchema<SCHEMA>>, never>;
 export function object<OBJECT>({
   schema: inputSchema,
   name,
@@ -245,6 +245,9 @@ type ArrayOptions<SCHEMA> = {
  *
  * @returns An output specification for generating an array of elements.
  */
+export function array<ELEMENT>(
+  options: ArrayOptions<FlexibleSchema<ELEMENT>>,
+): Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT>;
 export function array<SCHEMA>(
   options: ArrayOptions<ValidatedSchema<SCHEMA>>,
 ): Output<
@@ -252,9 +255,6 @@ export function array<SCHEMA>(
   Array<InferSchema<SCHEMA>>,
   InferSchema<SCHEMA>
 >;
-export function array<ELEMENT>(
-  options: ArrayOptions<FlexibleSchema<ELEMENT>>,
-): Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT>;
 export function array<ELEMENT>({
   element: inputElementSchema,
   minItems,

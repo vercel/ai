@@ -1,3 +1,4 @@
+import type { JSONSchema7 } from '@ai-sdk/provider';
 import {
   jsonSchema,
   lazySchema,
@@ -103,9 +104,10 @@ describe('Output.object', () => {
     const output = Output.object<A | B>({ schema: schemas[key] });
 
     expectTypeOf<InferCompleteOutput<typeof output>>().toEqualTypeOf<A | B>();
-    expectTypeOf<
-      InferCompleteOutput<ReturnType<typeof Output.object<A>>>
-    >().toEqualTypeOf<A>();
+
+    const single = Output.object<A>({ schema: schemaA });
+
+    expectTypeOf<InferCompleteOutput<typeof single>>().toEqualTypeOf<A>();
   });
 
   it('should support an explicit any type argument', () => {
@@ -184,9 +186,10 @@ describe('Output.array', () => {
     const output = Output.array<A | B>({ element: schemas[key] });
 
     expectTypeOf<InferElementOutput<typeof output>>().toEqualTypeOf<A | B>();
-    expectTypeOf<
-      InferElementOutput<ReturnType<typeof Output.array<A>>>
-    >().toEqualTypeOf<A>();
+
+    const single = Output.array<A>({ element: schemaA });
+
+    expectTypeOf<InferElementOutput<typeof single>>().toEqualTypeOf<A>();
   });
 
   it('should support an explicit any type argument', () => {
@@ -216,5 +219,22 @@ describe('Output.array', () => {
     expectTypeOf<typeof result.elementStream>().toEqualTypeOf<
       AsyncIterableStream<A | B>
     >();
+  });
+});
+
+describe('contextual typing with un-parameterized jsonSchema', () => {
+  type Person = { name: string };
+  const personJsonSchema: JSONSchema7 = {
+    type: 'object',
+    properties: { name: { type: 'string' } },
+    required: ['name'],
+    additionalProperties: false,
+  };
+
+  it('should infer the element type from the Output.array annotation', () => {
+    const spec: Output.Output<Person[], Person[], Person> = Output.array({
+      element: jsonSchema(personJsonSchema),
+    });
+    expectTypeOf(spec).not.toBeAny();
   });
 });
