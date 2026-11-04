@@ -98,12 +98,13 @@ describe('parseOpenAIRealtimeServerEvent usage', () => {
 
     expect(event.type === 'input-transcription-completed' && event.usage)
       .toMatchInlineSnapshot(`
-      {
-        "inputAudioTokens": 50,
-        "inputTextTokens": 4,
-        "outputTextTokens": 8,
-      }
-    `);
+        {
+          "inputAudioTokens": 50,
+          "inputTextTokens": 4,
+          "outputTextTokens": 8,
+          "outputTokens": 8,
+        }
+      `);
   });
 });
 

@@ -97,8 +97,8 @@ describe('OpenAIRealtimeModel', () => {
       expect(await model.getServerWebSocketConfig()).toMatchInlineSnapshot(`
         {
           "headers": {
-            "x-custom": "custom-header",
             "authorization": "Bearer test-key",
+            "x-custom": "custom-header",
           },
           "url": "wss://api.openai.com/v1/realtime?model=gpt-realtime",
         }
