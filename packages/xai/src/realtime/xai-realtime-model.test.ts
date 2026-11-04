@@ -29,9 +29,9 @@ describe('XaiRealtimeModel', () => {
     });
   });
 
-  describe('getServerConnection', () => {
+  describe('getServerWebSocketConfig', () => {
     it('builds the voice URL with the model query param and forwards headers', () => {
-      expect(createModel().getServerConnection()).toMatchInlineSnapshot(`
+      expect(createModel().getServerWebSocketConfig()).toMatchInlineSnapshot(`
         {
           "headers": {
             "authorization": "Bearer test-key",
@@ -48,14 +48,14 @@ describe('XaiRealtimeModel', () => {
         headers: () => ({ authorization: 'Bearer test-key' }),
       });
 
-      expect(localModel.getServerConnection().url).toMatchInlineSnapshot(
+      expect(localModel.getServerWebSocketConfig().url).toMatchInlineSnapshot(
         `"ws://localhost:8787/v1/realtime?model=grok-voice-latest"`,
       );
     });
 
     it('rejects unsupported endpoint intents', () => {
       expect(() =>
-        createModel().getServerConnection({ intent: 'translation' }),
+        createModel().getServerWebSocketConfig({ intent: 'translation' }),
       ).toThrow("does not support the 'translation' session intent");
     });
   });

@@ -38,6 +38,11 @@ export type GatewayRealtimeModelConfig = {
  */
 export class GatewayRealtimeModel implements RealtimeModelV4 {
   readonly specificationVersion = 'v4' as const;
+  readonly capabilities = {
+    conversation: 'turn-based',
+    transports: ['websocket'],
+    connections: ['client-secret-websocket', 'server-websocket'],
+  } as const;
   readonly provider: string;
   readonly modelId: string;
 
@@ -87,7 +92,7 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
     };
   }
 
-  async getServerConnection(options?: {
+  async getServerWebSocketConfig(options?: {
     intent?: RealtimeModelV4SessionIntent;
   }): Promise<RealtimeModelV4ServerConnection> {
     if (options?.intent != null && options.intent !== 'conversation') {

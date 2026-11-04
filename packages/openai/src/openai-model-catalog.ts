@@ -757,7 +757,7 @@ const realtimeModelEntry = {
     realtime: {
       conversation: 'turn-based',
       transports: ['websocket'],
-      connections: ['client-secret-websocket'],
+      connections: ['client-secret-websocket', 'server-websocket'],
     },
   },
   requestConfig: {

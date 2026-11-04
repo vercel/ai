@@ -222,7 +222,7 @@ describe('GoogleRealtimeModel', () => {
     });
   });
 
-  describe('getServerConnection', () => {
+  describe('getServerWebSocketConfig', () => {
     it('connects to the unconstrained Bidi endpoint with the API key header', () => {
       const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
         provider: 'google.realtime',
@@ -233,7 +233,7 @@ describe('GoogleRealtimeModel', () => {
         }),
       });
 
-      expect(model.getServerConnection()).toMatchInlineSnapshot(`
+      expect(model.getServerWebSocketConfig()).toMatchInlineSnapshot(`
         {
           "headers": {
             "x-goog-api-key": "test-key",
@@ -251,7 +251,7 @@ describe('GoogleRealtimeModel', () => {
       });
 
       expect(() =>
-        model.getServerConnection({ intent: 'transcription' }),
+        model.getServerWebSocketConfig({ intent: 'transcription' }),
       ).toThrow("does not support the 'transcription' session intent");
     });
   });

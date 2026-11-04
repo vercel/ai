@@ -10,6 +10,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   resolve,
+  resolveWith,
   removeUndefinedEntries,
   type Resolvable,
   type FetchFunction,
@@ -59,6 +60,11 @@ export type GoogleRealtimeModelConfig = {
 
 export class GoogleRealtimeModel implements RealtimeModelV4 {
   readonly specificationVersion = 'v4' as const;
+  readonly capabilities = {
+    conversation: 'turn-based',
+    transports: ['websocket'],
+    connections: ['client-secret-websocket', 'server-websocket'],
+  } as const;
   readonly provider: string;
   readonly modelId: string;
 
@@ -149,9 +155,11 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
     };
   }
 
-  getServerConnection(options?: {
+  getServerWebSocketConfig(options?: {
     intent?: RealtimeModelV4SessionIntent;
-  }): RealtimeModelV4ServerConnection {
+  }):
+    | RealtimeModelV4ServerConnection
+    | PromiseLike<RealtimeModelV4ServerConnection> {
     // Gemini Live exposes only the conversational endpoint; fail fast instead
     // of silently downgrading unsupported intents.
     if (options?.intent != null && options.intent !== 'conversation') {
@@ -159,10 +167,10 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
         `Google realtime does not support the '${options.intent}' session intent.`,
       );
     }
-    return {
+    return resolveWith(this.config.headers, headers => ({
       url: getServerWebSocketURL(this.config.baseURL),
-      headers: removeUndefinedEntries(this.config.headers()),
-    };
+      headers: removeUndefinedEntries(headers),
+    }));
   }
 
   parseServerEvent(

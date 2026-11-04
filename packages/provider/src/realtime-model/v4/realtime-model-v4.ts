@@ -59,11 +59,6 @@ export type RealtimeModelV4 = {
     options: RealtimeModelV4TransportOptions,
   ): RealtimeModelV4Transport;
 
-  /** Server-only connection settings. Headers can contain long-lived credentials. */
-  getServerWebSocketConfig?():
-    | { url: string; headers: Record<string, string> }
-    | PromiseLike<{ url: string; headers: Record<string, string> }>;
-
   /** Provider-specific setup for the WebRTC event channel. */
   getWebRTCConfig?(): { dataChannelLabel: string };
 
@@ -116,7 +111,7 @@ export type RealtimeModelV4 = {
   /**
    * Browser-side: Serializes a normalized client event into the provider's
    * native WebSocket format. Server-side callers should pass the same `intent`
-   * used for `getServerConnection`.
+   * used for `getServerWebSocketConfig`.
    */
   serializeClientEvent(
     event: RealtimeModelV4ClientEvent,
@@ -126,7 +121,7 @@ export type RealtimeModelV4 = {
   /**
    * Browser-side: Builds the provider-specific session configuration payload.
    * Server-side callers should pass the same `intent` used for
-   * `getServerConnection`.
+   * `getServerWebSocketConfig`.
    */
   buildSessionConfig(
     config: RealtimeModelV4SessionConfig,
@@ -146,7 +141,7 @@ export type RealtimeModelV4 = {
    * May return a promise for providers whose server connection requires a
    * round-trip (e.g. minting an ephemeral connection token).
    */
-  getServerConnection?(options?: {
+  getServerWebSocketConfig?(options?: {
     intent?: RealtimeModelV4SessionIntent;
   }):
     | RealtimeModelV4ServerConnection

@@ -1,6 +1,7 @@
 import {
   type Resolvable,
   resolve,
+  resolveWith,
   removeUndefinedEntries,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -29,6 +30,11 @@ export type OpenAIRealtimeModelConfig = {
 
 export class OpenAIRealtimeModel implements RealtimeModelV4 {
   readonly specificationVersion = 'v4' as const;
+  readonly capabilities = {
+    conversation: 'turn-based',
+    transports: ['websocket'],
+    connections: ['client-secret-websocket', 'server-websocket'],
+  } as const;
   readonly provider: string;
   readonly modelId: string;
 
@@ -102,17 +108,19 @@ export class OpenAIRealtimeModel implements RealtimeModelV4 {
     };
   }
 
-  getServerConnection(options?: {
+  getServerWebSocketConfig(options?: {
     intent?: RealtimeModelV4SessionIntent;
-  }): RealtimeModelV4ServerConnection {
-    return {
+  }):
+    | RealtimeModelV4ServerConnection
+    | PromiseLike<RealtimeModelV4ServerConnection> {
+    return resolveWith(this.config.headers, headers => ({
       url: buildServerUrl(
         this.config.baseURL,
         this.modelId,
         options?.intent ?? 'conversation',
       ),
-      headers: removeUndefinedEntries(this.config.headers()),
-    };
+      headers: removeUndefinedEntries(headers),
+    }));
   }
 
   parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent {

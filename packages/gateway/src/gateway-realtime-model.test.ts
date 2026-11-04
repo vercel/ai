@@ -129,9 +129,9 @@ describe('GatewayRealtimeModel', () => {
     });
   });
 
-  describe('getServerConnection', () => {
+  describe('getServerWebSocketConfig', () => {
     it('returns a header-authenticated Gateway WebSocket connection', async () => {
-      const connection = await createTestModel().getServerConnection();
+      const connection = await createTestModel().getServerWebSocketConfig();
 
       expect(connection).toEqual({
         url: 'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
@@ -145,7 +145,7 @@ describe('GatewayRealtimeModel', () => {
         'https://ai-gateway.vercel.sh/v4/ai',
         'vck_test-token',
         'my-team',
-      ).getServerConnection();
+      ).getServerWebSocketConfig();
 
       expect(connection.headers).toEqual({
         Authorization: 'Bearer vck_test-token',
@@ -155,7 +155,7 @@ describe('GatewayRealtimeModel', () => {
 
     it('rejects unsupported endpoint intents', async () => {
       await expect(
-        createTestModel().getServerConnection({ intent: 'translation' }),
+        createTestModel().getServerWebSocketConfig({ intent: 'translation' }),
       ).rejects.toThrow("does not support the 'translation' session intent");
     });
   });
