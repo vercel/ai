@@ -106,13 +106,13 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
           /**
            * Languages to use for transcription. If empty, language is auto-detected.
            */
-          languages: z.array(z.string()).nullish(),
+          languages: z.array(z.string()).optional(),
           /**
            * If true, language is auto-detected on each utterance.
            */
-          codeSwitching: z.boolean().nullish(),
+          codeSwitching: z.boolean().optional(),
         })
-        .nullish(),
+        .optional(),
 
       /**
        * Whether to enable callback when transcription is complete.
@@ -228,19 +228,19 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
           /**
            * Whether to enable lip sync for translated audio.
            */
-          lipsync: z.boolean().nullish(),
+          lipsync: z.boolean().optional(),
           /**
            * Whether to adapt translation to the context.
            */
-          contextAdaptation: z.boolean().nullish(),
+          contextAdaptation: z.boolean().optional(),
           /**
            * Context prompt for translation.
            */
-          context: z.string().nullish(),
+          context: z.string().optional(),
           /**
            * Whether to use informal translation style.
            */
-          informal: z.boolean().nullish(),
+          informal: z.boolean().optional(),
         })
         .nullish(),
 
@@ -347,14 +347,14 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
           /**
            * Language model to use for processing.
            */
-          model: z.string().nullish(),
+          model: z.string().optional(),
         })
         .nullish(),
 
       /**
        * Whether to enable PII redaction.
        */
-      piiRedaction: z.boolean().nullish(),
+      piiRedaction: z.boolean().optional(),
 
       /**
        * Configuration for PII redaction.
@@ -364,13 +364,13 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
           /**
            * Entity types to redact.
            */
-          entityTypes: z.array(z.string()).nullish(),
+          entityTypes: z.array(z.string()).optional(),
           /**
            * How redacted text should be represented.
            */
-          processedTextType: z.enum(['MARKER', 'MASK']).nullish(),
+          processedTextType: z.enum(['MARKER', 'MASK']).optional(),
         })
-        .nullish(),
+        .optional(),
 
       /**
        * Custom metadata to include with the transcription.
