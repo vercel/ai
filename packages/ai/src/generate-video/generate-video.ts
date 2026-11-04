@@ -377,12 +377,18 @@ export async function experimental_generateVideo({
 
   // collect result videos, warnings, and response metadata
   const videos: Array<GeneratedFile> = [];
+  let uploadedVideos = 0;
   const responses: Array<VideoModelResponseMetadata> = [];
   const providerMetadata: SharedV4ProviderMetadata = {};
 
   for (const result of results) {
     for (const videoData of result.videos) {
       switch (videoData.type) {
+        case 'uploaded': {
+          uploadedVideos++;
+          break;
+        }
+
         case 'url': {
           const { data, mediaType: downloadedMediaType } = await downloadFn({
             url: new URL(videoData.url),
@@ -455,7 +461,7 @@ export async function experimental_generateVideo({
     }
   }
 
-  if (videos.length === 0) {
+  if (videos.length === 0 && uploadedVideos === 0) {
     throw new NoVideoGeneratedError({ responses });
   }
 
@@ -467,13 +473,31 @@ export async function experimental_generateVideo({
     });
   }
 
-  return {
+  const result = {
     video: videos[0],
     videos,
+    uploadedVideos,
     warnings,
     responses,
     providerMetadata,
   };
+
+  if (videos.length === 0) {
+    // Keep upload-only results safe to serialize or spread. Normal results
+    // retain their existing enumerable video data property.
+    Object.defineProperty(result, 'video', {
+      enumerable: false,
+      get() {
+        throw new NoVideoGeneratedError({
+          message:
+            'Videos were delivered to the upload destination. Use uploadedVideos instead of video.',
+          responses,
+        });
+      },
+    });
+  }
+
+  return result;
 }
 
 async function executeStartStatusFlow({
