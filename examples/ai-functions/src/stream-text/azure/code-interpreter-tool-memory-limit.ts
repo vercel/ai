@@ -1,7 +1,10 @@
 import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
-import { retrieveAzureContainer } from '../../lib/retrieve-azure-container';
+import {
+  retrieveAzureContainer,
+  deleteAzureContainer,
+} from '../../lib/retrieve-azure-container';
 
 run(async () => {
   const result = streamText({
@@ -40,7 +43,11 @@ run(async () => {
   } = codeInterpreter;
   console.log(`containerId: ${containerId}`);
 
-  const container = await retrieveAzureContainer(containerId);
-  console.log('container memory_limit:', container.memory_limit);
-  console.log('container detail:', container);
+  try {
+    const container = await retrieveAzureContainer(containerId);
+    console.log('container memory_limit:', container.memory_limit);
+    console.log('container detail:', container);
+  } finally {
+    await deleteAzureContainer(containerId);
+  }
 });

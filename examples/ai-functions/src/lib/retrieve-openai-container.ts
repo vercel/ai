@@ -42,4 +42,22 @@ async function retrieveOpenAIContainer(
   return (await response.json()) as OpenAIContainer;
 }
 
-export { retrieveOpenAIContainer };
+async function deleteOpenAIContainer(containerId: string): Promise<void> {
+  const apiKey = requireEnv('OPENAI_API_KEY');
+
+  const response = await fetch(
+    `https://api.openai.com/v1/containers/${encodeURIComponent(containerId)}`,
+    {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${apiKey}` },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to delete container: ${response.status} ${response.statusText}`,
+    );
+  }
+}
+
+export { retrieveOpenAIContainer, deleteOpenAIContainer };

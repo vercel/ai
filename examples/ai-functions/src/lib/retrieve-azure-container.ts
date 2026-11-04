@@ -43,4 +43,23 @@ async function retrieveAzureContainer(
   return (await response.json()) as AzureContainer;
 }
 
-export { retrieveAzureContainer };
+async function deleteAzureContainer(containerId: string): Promise<void> {
+  const resourceName = requireEnv('AZURE_RESOURCE_NAME');
+  const apiKey = requireEnv('AZURE_API_KEY');
+
+  const response = await fetch(
+    `https://${resourceName}.openai.azure.com/openai/v1/containers/${encodeURIComponent(containerId)}`,
+    {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${apiKey}` },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to delete container: ${response.status} ${response.statusText}`,
+    );
+  }
+}
+
+export { retrieveAzureContainer, deleteAzureContainer };

@@ -1,7 +1,10 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
-import { retrieveOpenAIContainer } from '../../lib/retrieve-openai-container';
+import {
+  retrieveOpenAIContainer,
+  deleteOpenAIContainer,
+} from '../../lib/retrieve-openai-container';
 
 run(async () => {
   const result = streamText({
@@ -40,7 +43,11 @@ run(async () => {
   } = codeInterpreter;
   console.log(`containerId: ${containerId}`);
 
-  const container = await retrieveOpenAIContainer(containerId);
-  console.log('container memory_limit:', container.memory_limit);
-  console.log('container detail:', container);
+  try {
+    const container = await retrieveOpenAIContainer(containerId);
+    console.log('container memory_limit:', container.memory_limit);
+    console.log('container detail:', container);
+  } finally {
+    await deleteOpenAIContainer(containerId);
+  }
 });

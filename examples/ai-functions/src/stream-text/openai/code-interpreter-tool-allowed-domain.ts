@@ -1,7 +1,10 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
-import { retrieveOpenAIContainer } from '../../lib/retrieve-openai-container';
+import {
+  retrieveOpenAIContainer,
+  deleteOpenAIContainer,
+} from '../../lib/retrieve-openai-container';
 
 /**
  * Note:
@@ -90,11 +93,15 @@ run(async () => {
   const {
     input: { containerId },
   } = codeInterpreter;
-  const container = await retrieveOpenAIContainer(containerId);
+  try {
+    const container = await retrieveOpenAIContainer(containerId);
 
-  console.log(`containerId: ${containerId}`);
-  console.log();
-  console.log('container network policy: ', container.network_policy);
-  console.log();
-  console.log('Answer: ', await result.text);
+    console.log(`containerId: ${containerId}`);
+    console.log();
+    console.log('container network policy: ', container.network_policy);
+    console.log();
+    console.log('Answer: ', await result.text);
+  } finally {
+    await deleteOpenAIContainer(containerId);
+  }
 });
