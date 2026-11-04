@@ -756,9 +756,13 @@ The code interpreter tool can be configured with:
 
 #### Shell Tool
 
-The Azure OpenAI Responses API supports the shell tool through the `azure.tools.shell` tool.
+Configure the shell tool for Azure Responses models with `azure.tools.shell`.
+Availability of shell execution, hosted containers, container references, and skills
+depends on your model deployment, region, and API version. See the
+[Azure Responses API documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/responses).
 The shell tool allows running bash commands and interacting with a command line.
-The model proposes shell commands; your integration executes them and returns the outputs.
+The model proposes shell commands; your application executes them in local mode,
+while the Azure OpenAI service executes them in hosted mode.
 
 <Note type="warning">
   Running arbitrary shell commands can be dangerous. Always sandbox execution or
@@ -776,7 +780,7 @@ import { azure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: azure('gpt-5.2'),
+  model: azure.responses('your-deployment-name'),
   tools: {
     shell: azure.tools.shell({
       execute: async ({ action }) => {
@@ -791,7 +795,7 @@ const result = await generateText({
 
 ##### Hosted Container (auto)
 
-Set `environment.type` to `'containerAuto'` to run commands in an OpenAI-hosted container. No `execute` callback is needed — Azure OpenAI handles execution server-side:
+Set `environment.type` to `'containerAuto'` to run commands in a container hosted by the Azure OpenAI service. No `execute` callback is needed — Azure OpenAI handles execution server-side:
 
 <Note type="warning">
   The Azure OpenAI Responses API shell tool currently does not support
@@ -800,14 +804,14 @@ Set `environment.type` to `'containerAuto'` to run commands in an OpenAI-hosted 
 
 ```ts
 const result = await generateText({
-  model: azure('gpt-5.2'),
+  model: azure.responses('your-deployment-name'),
   tools: {
     shell: azure.tools.shell({
       environment: {
         type: 'containerAuto',
         // optional configuration:
         memoryLimit: '4g',
-        fileIds: ['file-abc123'],
+        fileIds: ['assistant-abc123'],
       },
     }),
   },
@@ -826,7 +830,7 @@ Set `environment.type` to `'containerReference'` to use an existing container by
 
 ```ts
 const result = await generateText({
-  model: azure('gpt-5.2'),
+  model: azure.responses('your-deployment-name'),
   tools: {
     shell: azure.tools.shell({
       environment: {
@@ -860,7 +864,7 @@ For local execution (default or `type: 'local'`), your execute function must ret
 
 ```ts
 const result = await generateText({
-  model: azure('gpt-5.2'),
+  model: azure.responses('your-deployment-name'),
   tools: {
     shell: azure.tools.shell({
       execute: async ({ action }) => {
