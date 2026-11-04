@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-3-5-sonnet-20241022'),
+    model: anthropic('claude-sonnet-5-5'),
     messages: [
       {
         role: 'user',
@@ -32,7 +32,7 @@ run(async () => {
     ],
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta': {
         process.stdout.write(part.text);

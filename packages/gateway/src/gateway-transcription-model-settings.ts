@@ -1,0 +1,18 @@
+export type GatewayTranscriptionModelId =
+  | 'elevenlabs/scribe-v2'
+  | 'elevenlabs/scribe-v2-realtime'
+  | 'fish-audio/transcribe-1'
+  | 'google/gemini-3.5-transcribe'
+  | 'google/gemini-3.5-transcribe-live'
+  | 'microsoft/mai-transcribe-2'
+  | 'microsoft/mai-transcribe-2-streaming'
+  | 'mistral/voxtral-mini-transcribe-3'
+  | 'mistral/voxtral-small-transcribe-3'
+  | 'openai/gpt-4o-mini-transcribe'
+  | 'openai/gpt-4o-transcribe'
+  | 'openai/gpt-live-transcribe'
+  | 'openai/gpt-realtime-whisper'
+  | 'openai/gpt-transcribe'
+  | 'openai/whisper-1'
+  | 'spacexai/grok-stt'
+  | (string & {});

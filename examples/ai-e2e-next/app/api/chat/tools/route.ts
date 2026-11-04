@@ -4,9 +4,11 @@ import {
 } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   isStepCount,
   streamText,
   tool,
+  toUIMessageStream,
   validateUIMessages,
   type InferUITools,
   type UIDataTypes,
@@ -96,7 +98,7 @@ export async function POST(req: Request) {
   });
 
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     messages: await convertToModelMessages(messages),
     stopWhen: isStepCount(5), // multi-steps for server-side tools
     tools,
@@ -110,10 +112,13 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    //  originalMessages: messages, //add if you want to have correct ids
-    onFinish: options => {
-      console.log('onFinish', options);
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      //  originalMessages: messages, //add if you want to have correct ids
+      onFinish: options => {
+        console.log('onFinish', options);
+      },
+    }),
   });
 }

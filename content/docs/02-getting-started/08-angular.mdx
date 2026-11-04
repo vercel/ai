@@ -1,0 +1,327 @@
+---
+title: Angular
+description: Learn how to build your first agent with the AI SDK and Angular.
+---
+
+# Angular Quickstart
+
+The AI SDK is a powerful TypeScript library designed to help developers build AI-powered applications.
+
+In this quickstart tutorial, you'll build a simple agent with a streaming chat user interface using Angular and an Express backend. Along the way, you'll learn key concepts and techniques that are fundamental to using the AI SDK in your own projects.
+
+If you are unfamiliar with the concepts of [Prompt Engineering](/docs/advanced/prompt-engineering) and [HTTP Streaming](/docs/foundations/streaming), you can optionally read these documents first.
+
+## Prerequisites
+
+To follow this quickstart, you'll need:
+
+- Node.js 24.15+ (or another [version supported by Angular](https://angular.dev/reference/versions)) and pnpm installed on your local development machine.
+- A [Vercel AI Gateway](https://vercel.com/ai-gateway) API key.
+
+If you haven't obtained your Vercel AI Gateway API key, you can do so by [signing up](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai&title=Go+to+AI+Gateway) on the Vercel website.
+
+## Set Up Your Application
+
+Create a new Angular application using the Angular CLI:
+
+<Snippet text="pnpm dlx @angular/cli@latest new my-ai-app --defaults --ssr=false --package-manager=pnpm" />
+
+This creates a standalone Angular application. This guide uses client-side rendering, with a separate Express server for the chat API.
+
+Navigate to the newly created directory:
+
+<Snippet text="cd my-ai-app" />
+
+### Install Dependencies
+
+Install `ai` and `@ai-sdk/angular`, the AI package and AI SDK's Angular bindings. You'll also install `express` for the backend, `dotenv` to load environment variables, and `zod` to define tool inputs.
+
+<InstallPackages packages="ai @ai-sdk/angular express dotenv zod" />
+
+Install the TypeScript runner and server type definitions:
+
+<InstallPackages packages="tsx @types/express @types/node" dev />
+
+<Note>
+  This guide uses the Vercel AI Gateway provider, which ships with the `ai`
+  package. You can access hundreds of models with one API key, or switch to
+  another [AI SDK provider](/providers/ai-sdk-providers).
+</Note>
+
+### Configure Your AI Gateway API Key
+
+Create a `.env` file in your project root:
+
+```env filename=".env"
+AI_GATEWAY_API_KEY=xxxxxxxxx
+```
+
+Replace `xxxxxxxxx` with your actual Vercel AI Gateway API key. The Express server loads this file using `dotenv`, and the AI SDK's Gateway provider reads `AI_GATEWAY_API_KEY` automatically. Keep the API key on the server and add `.env` to `.gitignore`.
+
+## Create an API Route
+
+Create `server.ts` in your project root and add the following code:
+
+```ts filename="server.ts"
+import {
+  streamText,
+  type UIMessage,
+  convertToModelMessages,
+  pipeUIMessageStreamToResponse,
+  toUIMessageStream,
+} from 'ai';
+__PROVIDER_IMPORT__;
+import 'dotenv/config';
+import express from 'express';
+
+const app = express();
+app.use(express.json());
+
+app.post('/api/chat', async (req, res) => {
+  const { messages }: { messages: UIMessage[] } = req.body;
+
+  const result = streamText({
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
+  });
+
+  await pipeUIMessageStreamToResponse({
+    response: res,
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
+});
+
+app.listen(3000, '127.0.0.1', () => {
+  console.log('Chat API listening on http://127.0.0.1:3000');
+});
+```
+
+The server listens on `127.0.0.1` to keep the development API local to your machine. This creates a `POST /api/chat` endpoint. Let's take a look at what happens when it receives a request:
+
+1. `express.json()` parses the request body, which contains the conversation's `UIMessage` objects.
+2. [`convertToModelMessages`](/docs/reference/ai-sdk-ui/convert-to-model-messages) converts those UI messages to the format expected by the model.
+3. [`streamText`](/docs/reference/ai-sdk-core/stream-text) calls the model through AI Gateway.
+4. `toUIMessageStream` converts the model's output to the UI message stream format, and `pipeUIMessageStreamToResponse` writes it to the Express response as server-sent events.
+
+### Configure the Development Proxy
+
+Create `proxy.conf.json` in your project root:
+
+```json filename="proxy.conf.json"
+{
+  "/api/**": {
+    "target": "http://127.0.0.1:3000"
+  }
+}
+```
+
+When you start Angular with this proxy configuration, requests to `/api/chat` are forwarded to the Express server. The browser can use the relative `/api/chat` URL, which is also the default endpoint for the AI SDK's `Chat` class.
+
+<Note>
+  This proxy is for local development. When deploying, route `/api/chat` to your
+  backend, or configure a different API URL using
+  [`DefaultChatTransport`](/docs/ai-sdk-ui/transport).
+</Note>
+
+## Choosing a Provider
+
+The AI SDK supports dozens of model providers through [first-party](/providers/ai-sdk-providers), [OpenAI-compatible](/providers/openai-compatible-providers), and [community](/providers/community-providers) packages.
+
+This quickstart uses the [Vercel AI Gateway](https://vercel.com/ai-gateway) provider, which is the default [global provider](/docs/ai-sdk-core/provider-management#global-provider-configuration). You can select a model using a string in your server's configuration:
+
+```ts
+model: __MODEL__;
+```
+
+To use a provider directly, install its package and create a provider instance. Learn more about [provider management](/docs/ai-sdk-core/provider-management#global-provider-configuration).
+
+## Wire Up the UI
+
+The `@ai-sdk/angular` package provides a `Chat` class that manages messages, streams responses, and exposes the current request status. Its state is backed by Angular signals, so the template updates as new content arrives.
+
+Replace `src/app/app.ts` with the following component:
+
+```ts filename="src/app/app.ts"
+import { JsonPipe } from '@angular/common';
+import { Component, signal } from '@angular/core';
+import { Chat } from '@ai-sdk/angular';
+
+@Component({
+  selector: 'app-root',
+  imports: [JsonPipe],
+  template: `
+    <main>
+      @for (message of chat.messages; track message.id) {
+        <div>
+          <strong>{{ message.role === 'user' ? 'User' : 'AI' }}:</strong>
+          @for (part of message.parts; track $index) {
+            @if (part.type === 'text') {
+              <p style="white-space: pre-wrap">{{ part.text }}</p>
+            } @else if (part.type.startsWith('tool-')) {
+              <pre>{{ part | json }}</pre>
+            }
+          }
+        </div>
+      }
+
+      @if (chat.status === 'submitted') {
+        <p>Waiting for a response...</p>
+      }
+
+      @if (chat.error; as error) {
+        <p role="alert">{{ error.message }}</p>
+      }
+
+      <form (submit)="sendMessage($event)">
+        <label for="message">Your message</label>
+        <input
+          id="message"
+          #messageInput
+          [value]="input()"
+          (input)="input.set(messageInput.value)"
+        />
+        <button
+          type="submit"
+          [disabled]="
+            chat.status === 'submitted' || chat.status === 'streaming'
+          "
+        >
+          Send
+        </button>
+        @if (chat.status === 'submitted' || chat.status === 'streaming') {
+          <button type="button" (click)="chat.stop()">Stop</button>
+        }
+      </form>
+    </main>
+  `,
+})
+export class App {
+  readonly chat = new Chat({});
+  readonly input = signal('');
+
+  sendMessage(event: Event) {
+    event.preventDefault();
+    const text = this.input().trim();
+
+    if (
+      !text ||
+      this.chat.status === 'submitted' ||
+      this.chat.status === 'streaming'
+    ) {
+      return;
+    }
+
+    this.chat.sendMessage({ text });
+    this.input.set('');
+  }
+}
+```
+
+<Note>
+  Older Angular projects may name the root component file `app.component.ts` and
+  its class `AppComponent`. If you are using an existing project, keep its file
+  and class names so the imports in `src/main.ts` continue to work.
+</Note>
+
+The component creates one `Chat` instance and uses its reactive properties:
+
+- `messages` contains the conversation. Each message has a `role` and an ordered array of `parts`.
+- `sendMessage` sends a user message to `/api/chat` and streams the response into `messages`.
+- `status` indicates whether the chat is ready, submitted, streaming, or in an error state.
+- `error` contains the latest request error.
+- `stop` cancels the current response.
+
+Read these properties as `chat.messages`, `chat.status`, and `chat.error`; the `Chat` class manages the underlying signals. The input field uses a separate Angular signal, which is read with `input()`.
+
+The template renders text parts as they arrive and uses Angular's `JsonPipe` to display tool calls and results, which you'll add next.
+
+## Running Your Application
+
+In one terminal, start the Express backend from your project root:
+
+<Snippet text="pnpm exec tsx watch server.ts" />
+
+In a second terminal, start the Angular development server from the same directory:
+
+<Snippet text="pnpm exec ng serve --proxy-config proxy.conf.json" />
+
+Open [http://localhost:4200](http://localhost:4200), enter a message, and watch the response stream into the chat interface.
+
+<Note>
+  If you change `proxy.conf.json`, restart the Angular development server so it
+  picks up the new configuration.
+</Note>
+
+## Enhance Your Chatbot with Tools
+
+[Tools](/docs/ai-sdk-core/tools-and-tool-calling) let a model request actions such as looking up the weather. The server executes the action and returns the result to the model.
+
+Replace `server.ts` with the following code to add a weather tool:
+
+```ts filename="server.ts"
+import {
+  streamText,
+  type UIMessage,
+  convertToModelMessages,
+  pipeUIMessageStreamToResponse,
+  toUIMessageStream,
+  tool,
+  isStepCount,
+} from 'ai';
+__PROVIDER_IMPORT__;
+import 'dotenv/config';
+import express from 'express';
+import * as z4 from 'zod/v4';
+
+const app = express();
+app.use(express.json());
+
+app.post('/api/chat', async (req, res) => {
+  const { messages }: { messages: UIMessage[] } = req.body;
+
+  const result = streamText({
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
+    stopWhen: isStepCount(5),
+    tools: {
+      weather: tool({
+        description: 'Get the weather in a location (fahrenheit)',
+        inputSchema: z4.object({
+          location: z4.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => {
+          const temperature = Math.round(Math.random() * (90 - 32) + 32);
+          return { location, temperature };
+        },
+      }),
+    },
+  });
+
+  await pipeUIMessageStreamToResponse({
+    response: res,
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
+});
+
+app.listen(3000, '127.0.0.1', () => {
+  console.log('Chat API listening on http://127.0.0.1:3000');
+});
+```
+
+The `weather` tool has a description, an input schema, and an `execute` function. The model uses the description to decide when to call the tool and the schema to generate its input. The server then executes the function and returns its result.
+
+This example returns a simulated temperature. You can replace the function with a call to a weather API to return real data.
+
+### Enabling Multi-Step Tool Calls
+
+By default, a generation stops after one step. Setting `stopWhen: isStepCount(5)` allows the model to continue after receiving a tool result, for up to five steps. It can use the returned weather data to answer the original question.
+
+Ask "What's the weather in San Francisco?" in your chat interface. The template displays the `tool-weather` part as JSON, followed by the model's text response. No frontend changes are required: the `Chat` class already handles tool parts in the UI message stream.
+
+## Where to Go Next
+
+You've built an Angular chat interface that streams responses, calls tools, and uses their results in multi-step generations.
+
+- Explore the [Angular example](https://github.com/vercel/ai/tree/main/examples/angular) for chat, completion, and structured output examples.
+- Learn more about [AI SDK UI](/docs/ai-sdk-ui/overview) and [tools and tool calling](/docs/ai-sdk-core/tools-and-tool-calling).
+- Use the [transport API](/docs/ai-sdk-ui/transport) to connect your Angular frontend to an existing backend.

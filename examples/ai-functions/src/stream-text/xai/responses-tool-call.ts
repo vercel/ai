@@ -18,7 +18,7 @@ run(async () => {
       'What is the weather in San Francisco and what attractions should I visit?',
   });
 
-  for await (const event of result.fullStream) {
+  for await (const event of result.stream) {
     switch (event.type) {
       case 'text-delta': {
         process.stdout.write(event.text);

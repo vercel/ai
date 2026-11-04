@@ -17,7 +17,7 @@ registerTelemetry(new LegacyOpenTelemetry());
 
 run(async () => {
   const childAgent = new ToolLoopAgent({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     instructions:
       'You are a helpful child agent. Call the simple_tool twice, then provide a summary.',
     tools: {
@@ -42,7 +42,7 @@ run(async () => {
   });
 
   const parentAgent = new ToolLoopAgent({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     instructions:
       'You are the main agent. Delegate the task to the child agent using call_child tool.',
     tools: {

@@ -17,7 +17,7 @@ sdk.start();
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-sonnet-4-5'),
+    model: anthropic('claude-sonnet-5-5'),
     prompt: 'Cook me a lasagna.',
     tools: {
       cookRecipe: {
@@ -41,7 +41,7 @@ run(async () => {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'tool-input-start':
         console.log(`\n[tool-input-start] ${part.toolName} (${part.id})`);

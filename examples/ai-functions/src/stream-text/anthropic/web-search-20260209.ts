@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-sonnet-4-6'),
+    model: anthropic('claude-sonnet-5-5'),
     prompt: 'What happened in tech news today?',
     tools: {
       web_search: anthropic.tools.webSearch_20260209({
@@ -19,7 +19,7 @@ run(async () => {
     },
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

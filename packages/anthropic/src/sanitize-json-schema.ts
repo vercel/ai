@@ -1,4 +1,5 @@
 import type { JSONSchema7, JSONSchema7Definition } from '@ai-sdk/provider';
+import { isRecord } from '@ai-sdk/provider-utils';
 
 const SUPPORTED_STRING_FORMATS = new Set([
   'date-time',
@@ -44,7 +45,7 @@ export function sanitizeJsonSchema(schema: JSONSchema7): JSONSchema7 {
 function sanitizeDefinition(
   definition: JSONSchema7Definition,
 ): JSONSchema7Definition {
-  if (typeof definition === 'boolean' || !isPlainObject(definition)) {
+  if (typeof definition === 'boolean' || !isRecord(definition)) {
     return definition;
   }
 
@@ -53,12 +54,11 @@ function sanitizeDefinition(
 
 function sanitizeSchema(schema: JSONSchema7): JSONSchema7 {
   const result: JSONSchema7 = {};
-  const schemaWithDefs = schema as JSONSchema7 & {
-    $defs?: Record<string, JSONSchema7Definition>;
-  };
 
+  // Keep the definitions next to a `$ref` so a top-level reference still
+  // resolves (e.g. `{ $ref: '#/definitions/Answer', definitions: {...} }`).
   if (schema.$ref != null) {
-    return { $ref: schema.$ref };
+    return { $ref: schema.$ref, ...sanitizeSchemaDefinitions(schema) };
   }
 
   if (schema.$schema != null) {
@@ -103,26 +103,7 @@ function sanitizeSchema(schema: JSONSchema7): JSONSchema7 {
     result.allOf = schema.allOf.map(sanitizeDefinition);
   }
 
-  if (schema.definitions != null) {
-    result.definitions = Object.fromEntries(
-      Object.entries(schema.definitions).map(([name, definition]) => [
-        name,
-        sanitizeDefinition(definition),
-      ]),
-    );
-  }
-
-  if (schemaWithDefs.$defs != null) {
-    const resultWithDefs = result as JSONSchema7 & {
-      $defs?: Record<string, JSONSchema7Definition>;
-    };
-    resultWithDefs.$defs = Object.fromEntries(
-      Object.entries(schemaWithDefs.$defs).map(([name, definition]) => [
-        name,
-        sanitizeDefinition(definition),
-      ]),
-    );
-  }
+  Object.assign(result, sanitizeSchemaDefinitions(schema));
 
   if (schema.type === 'object' || schema.properties != null) {
     if (schema.properties != null) {
@@ -165,6 +146,29 @@ function sanitizeSchema(schema: JSONSchema7): JSONSchema7 {
   return result;
 }
 
+function sanitizeSchemaDefinitions(schema: JSONSchema7): Pick<
+  JSONSchema7,
+  'definitions'
+> & {
+  $defs?: Record<string, JSONSchema7Definition>;
+} {
+  const { $defs } = schema as { $defs?: Record<string, JSONSchema7Definition> };
+  const sanitizeAll = (definitions: Record<string, JSONSchema7Definition>) =>
+    Object.fromEntries(
+      Object.entries(definitions).map(([name, definition]) => [
+        name,
+        sanitizeDefinition(definition),
+      ]),
+    );
+
+  return {
+    ...(schema.definitions != null && {
+      definitions: sanitizeAll(schema.definitions),
+    }),
+    ...($defs != null && { $defs: sanitizeAll($defs) }),
+  };
+}
+
 function getConstraintDescription(schema: JSONSchema7): string | undefined {
   const descriptions = DESCRIPTION_CONSTRAINT_KEYS.flatMap(key => {
     const value = schema[key];
@@ -196,8 +200,4 @@ function formatConstraintValue(value: unknown): string {
   }
 
   return JSON.stringify(value);
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

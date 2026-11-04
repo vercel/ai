@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('o1'),
+    model: openai('gpt-6-astra'),
     output: Output.object({
       schema: z.object({
         characters: z.array(

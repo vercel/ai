@@ -9,11 +9,17 @@
     "dist",
     "build",
     "node_modules",
-    "tsup.config.ts"
+    "tsdown.config.ts"
   ],
   "references": [
-    { "path": "../provider" },
-    { "path": "../provider-utils" },
-    { "path": "../ai" }
+    {
+      "path": "../ai"
+    },
+    {
+      "path": "../provider"
+    },
+    {
+      "path": "../provider-utils"
+    }
   ]
 }

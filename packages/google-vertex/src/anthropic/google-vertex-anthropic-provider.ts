@@ -1,10 +1,14 @@
 import {
+  InvalidArgumentError,
   NoSuchModelError,
   type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  convertUint8ArrayToBase64,
+  isValidHostnamePart,
   loadOptionalSetting,
+  parseProviderOptions,
   withoutTrailingSlash,
   type FetchFunction,
   type Resolvable,
@@ -13,13 +17,30 @@ import {
   anthropicTools,
   AnthropicLanguageModel,
 } from '@ai-sdk/anthropic/internal';
-import type { GoogleVertexAnthropicModelId } from './google-vertex-anthropic-options';
+import {
+  googleVertexAnthropicProviderOptions,
+  type GoogleVertexAnthropicModelId,
+} from './google-vertex-anthropic-options';
+
+type GoogleVertexAnthropicTools = Pick<
+  typeof anthropicTools,
+  | 'bash_20241022'
+  | 'bash_20250124'
+  | 'textEditor_20241022'
+  | 'textEditor_20250124'
+  | 'textEditor_20250429'
+  | 'textEditor_20250728'
+  | 'computer_20241022'
+  | 'webSearch_20250305'
+  | 'toolSearchRegex_20251119'
+  | 'toolSearchBm25_20251119'
+>;
 
 /**
  * Tools supported by Google Vertex Anthropic.
  * This is a subset of the full Anthropic tools - only these are recognized by the Vertex API.
  */
-export const googleVertexAnthropicTools = {
+export const googleVertexAnthropicTools: GoogleVertexAnthropicTools = {
   /**
    * The bash tool enables Claude to execute shell commands in a persistent bash session,
    * allowing system operations, script execution, and command-line automation.
@@ -164,19 +185,37 @@ export function createGoogleVertexAnthropic(
   options: GoogleVertexAnthropicProviderSettings = {},
 ): GoogleVertexAnthropicProvider {
   const getBaseURL = () => {
+    const baseURL = withoutTrailingSlash(options.baseURL);
+    if (baseURL != null) {
+      return baseURL;
+    }
     const location = loadOptionalSetting({
       settingValue: options.location,
       environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
     });
+    if (location != null && !isValidHostnamePart(location)) {
+      throw new InvalidArgumentError({
+        argument: 'location',
+        message:
+          'Invalid Google Vertex location. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+      });
+    }
     const project = loadOptionalSetting({
       settingValue: options.project,
       environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
     });
 
-    return (
-      withoutTrailingSlash(options.baseURL) ??
-      `https://${location === 'global' ? '' : location + '-'}aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
-    );
+    const getHost = () => {
+      if (location === 'global') {
+        return 'aiplatform.googleapis.com';
+      } else if (location === 'eu' || location === 'us') {
+        return `aiplatform.${location}.rep.googleapis.com`;
+      } else {
+        return `${location}-aiplatform.googleapis.com`;
+      }
+    };
+
+    return `https://${getHost()}/v1/projects/${project}/locations/${location}/publishers/anthropic/models`;
   };
 
   const createChatModel = (modelId: GoogleVertexAnthropicModelId) =>
@@ -196,6 +235,32 @@ export function createGoogleVertexAnthropic(
         return {
           ...rest,
           anthropic_version: 'vertex-2023-10-16',
+        };
+      },
+      transformRequestHeaders: async (headers, providerOptions) => {
+        const vertexOptions = await parseProviderOptions({
+          provider: 'vertex',
+          providerOptions,
+          schema: googleVertexAnthropicProviderOptions,
+        });
+
+        // Explicit headers take precedence, regardless of their casing.
+        if (
+          vertexOptions?.labels == null ||
+          Object.keys(headers).some(
+            name =>
+              name.toLowerCase() === 'x-vertex-ai-labels' &&
+              headers[name] != null,
+          )
+        ) {
+          return headers;
+        }
+
+        return {
+          ...headers,
+          'x-vertex-ai-labels': convertUint8ArrayToBase64(
+            new TextEncoder().encode(JSON.stringify(vertexOptions.labels)),
+          ),
         };
       },
       // Google Vertex Anthropic doesn't support URL sources, force download and base64 conversion

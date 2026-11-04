@@ -1,0 +1,270 @@
+{
+  "durationMilliseconds": 17579,
+  "combinedPhrases": [
+    {
+      "text": "Um, so, uh, did you finish the quarterly report for Versal yet?\nYeah, I, uh, I sent it over this morning. It covers the AI gateway numbers.\nGreat. Uh, can you, like, add the transcription pricing too?\nSure. I'll, um, update it by Friday."
+    }
+  ],
+  "phrases": [
+    {
+      "speaker": 0,
+      "offsetMilliseconds": 120,
+      "durationMilliseconds": 4200,
+      "text": "Um, so, uh, did you finish the quarterly report for Versal yet?",
+      "words": [
+        {
+          "text": "Um,",
+          "offsetMilliseconds": 120,
+          "durationMilliseconds": 220
+        },
+        {
+          "text": "so,",
+          "offsetMilliseconds": 640,
+          "durationMilliseconds": 319
+        },
+        {
+          "text": "uh,",
+          "offsetMilliseconds": 1200,
+          "durationMilliseconds": 320
+        },
+        {
+          "text": "did",
+          "offsetMilliseconds": 1760,
+          "durationMilliseconds": 140
+        },
+        {
+          "text": "you",
+          "offsetMilliseconds": 1920,
+          "durationMilliseconds": 120
+        },
+        {
+          "text": "finish",
+          "offsetMilliseconds": 2120,
+          "durationMilliseconds": 259
+        },
+        {
+          "text": "the",
+          "offsetMilliseconds": 2440,
+          "durationMilliseconds": 80
+        },
+        {
+          "text": "quarterly",
+          "offsetMilliseconds": 2640,
+          "durationMilliseconds": 379
+        },
+        {
+          "text": "report",
+          "offsetMilliseconds": 3120,
+          "durationMilliseconds": 299
+        },
+        {
+          "text": "for",
+          "offsetMilliseconds": 3440,
+          "durationMilliseconds": 100
+        },
+        {
+          "text": "Versal",
+          "offsetMilliseconds": 3640,
+          "durationMilliseconds": 359
+        },
+        {
+          "text": "yet?",
+          "offsetMilliseconds": 4080,
+          "durationMilliseconds": 240
+        }
+      ],
+      "locale": "en",
+      "confidence": 0
+    },
+    {
+      "speaker": 1,
+      "offsetMilliseconds": 4480,
+      "durationMilliseconds": 4959,
+      "text": "Yeah, I, uh, I sent it over this morning. It covers the AI gateway numbers.",
+      "words": [
+        {
+          "text": "Yeah,",
+          "offsetMilliseconds": 4480,
+          "durationMilliseconds": 319
+        },
+        {
+          "text": "I,",
+          "offsetMilliseconds": 5040,
+          "durationMilliseconds": 240
+        },
+        {
+          "text": "uh,",
+          "offsetMilliseconds": 5440,
+          "durationMilliseconds": 199
+        },
+        {
+          "text": "I",
+          "offsetMilliseconds": 5800,
+          "durationMilliseconds": 80
+        },
+        {
+          "text": "sent",
+          "offsetMilliseconds": 6000,
+          "durationMilliseconds": 200
+        },
+        {
+          "text": "it",
+          "offsetMilliseconds": 6240,
+          "durationMilliseconds": 99
+        },
+        {
+          "text": "over",
+          "offsetMilliseconds": 6360,
+          "durationMilliseconds": 219
+        },
+        {
+          "text": "this",
+          "offsetMilliseconds": 6640,
+          "durationMilliseconds": 119
+        },
+        {
+          "text": "morning.",
+          "offsetMilliseconds": 6880,
+          "durationMilliseconds": 400
+        },
+        {
+          "text": "It",
+          "offsetMilliseconds": 7520,
+          "durationMilliseconds": 139
+        },
+        {
+          "text": "covers",
+          "offsetMilliseconds": 7760,
+          "durationMilliseconds": 259
+        },
+        {
+          "text": "the",
+          "offsetMilliseconds": 8080,
+          "durationMilliseconds": 80
+        },
+        {
+          "text": "AI",
+          "offsetMilliseconds": 8240,
+          "durationMilliseconds": 199
+        },
+        {
+          "text": "gateway",
+          "offsetMilliseconds": 8560,
+          "durationMilliseconds": 379
+        },
+        {
+          "text": "numbers.",
+          "offsetMilliseconds": 9080,
+          "durationMilliseconds": 359
+        }
+      ],
+      "locale": "en",
+      "confidence": 0
+    },
+    {
+      "speaker": 0,
+      "offsetMilliseconds": 9680,
+      "durationMilliseconds": 4120,
+      "text": "Great. Uh, can you, like, add the transcription pricing too?",
+      "words": [
+        {
+          "text": "Great.",
+          "offsetMilliseconds": 9680,
+          "durationMilliseconds": 280
+        },
+        {
+          "text": "Uh,",
+          "offsetMilliseconds": 10240,
+          "durationMilliseconds": 279
+        },
+        {
+          "text": "can",
+          "offsetMilliseconds": 10760,
+          "durationMilliseconds": 140
+        },
+        {
+          "text": "you,",
+          "offsetMilliseconds": 10960,
+          "durationMilliseconds": 240
+        },
+        {
+          "text": "like,",
+          "offsetMilliseconds": 11480,
+          "durationMilliseconds": 320
+        },
+        {
+          "text": "add",
+          "offsetMilliseconds": 12040,
+          "durationMilliseconds": 119
+        },
+        {
+          "text": "the",
+          "offsetMilliseconds": 12200,
+          "durationMilliseconds": 80
+        },
+        {
+          "text": "transcription",
+          "offsetMilliseconds": 12400,
+          "durationMilliseconds": 619
+        },
+        {
+          "text": "pricing",
+          "offsetMilliseconds": 13120,
+          "durationMilliseconds": 359
+        },
+        {
+          "text": "too?",
+          "offsetMilliseconds": 13600,
+          "durationMilliseconds": 200
+        }
+      ],
+      "locale": "en",
+      "confidence": 0
+    },
+    {
+      "speaker": 1,
+      "offsetMilliseconds": 14040,
+      "durationMilliseconds": 3119,
+      "text": "Sure. I'll, um, update it by Friday.",
+      "words": [
+        {
+          "text": "Sure.",
+          "offsetMilliseconds": 14040,
+          "durationMilliseconds": 339
+        },
+        {
+          "text": "I'll,",
+          "offsetMilliseconds": 14640,
+          "durationMilliseconds": 419
+        },
+        {
+          "text": "um,",
+          "offsetMilliseconds": 15280,
+          "durationMilliseconds": 319
+        },
+        {
+          "text": "update",
+          "offsetMilliseconds": 15880,
+          "durationMilliseconds": 319
+        },
+        {
+          "text": "it",
+          "offsetMilliseconds": 16260,
+          "durationMilliseconds": 99
+        },
+        {
+          "text": "by",
+          "offsetMilliseconds": 16440,
+          "durationMilliseconds": 99
+        },
+        {
+          "text": "Friday.",
+          "offsetMilliseconds": 16680,
+          "durationMilliseconds": 480
+        }
+      ],
+      "locale": "en",
+      "confidence": 0
+    }
+  ]
+}

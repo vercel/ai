@@ -22,7 +22,7 @@ async function parseAndValidateObjectResult<RESULT>(
   result: string,
   outputStrategy: OutputStrategy<any, RESULT, any>,
   context: {
-    response: LanguageModelResponseMetadata;
+    response: Omit<LanguageModelResponseMetadata, 'messages'>;
     usage: LanguageModelUsage;
     finishReason: FinishReason;
   },
@@ -79,7 +79,7 @@ export async function parseAndValidateObjectResultWithRepair<RESULT>(
   outputStrategy: OutputStrategy<any, RESULT, any>,
   repairText: RepairTextFunction | undefined,
   context: {
-    response: LanguageModelResponseMetadata;
+    response: Omit<LanguageModelResponseMetadata, 'messages'>;
     usage: LanguageModelUsage;
     finishReason: FinishReason;
   },

@@ -1,5 +1,6 @@
 import {
   createProviderExecutedToolFactory,
+  experimental_toolCaller,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -311,5 +312,29 @@ const factory = createProviderExecutedToolFactory<
 export const codeExecution_20260120 = (
   args: Parameters<typeof factory>[0] = {},
 ) => {
-  return factory(args);
+  return experimental_toolCaller(factory(args), {
+    type: 'provider',
+    prepareProviderOptions: providerOptions => {
+      const anthropicOptions = providerOptions?.anthropic as
+        | {
+            allowedCallers?: Array<
+              'direct' | 'code_execution_20250825' | 'code_execution_20260120'
+            >;
+          }
+        | undefined;
+
+      return {
+        ...providerOptions,
+        anthropic: {
+          ...anthropicOptions,
+          allowedCallers: [
+            ...new Set([
+              ...(anthropicOptions?.allowedCallers ?? []),
+              'code_execution_20260120' as const,
+            ]),
+          ],
+        },
+      };
+    },
+  });
 };

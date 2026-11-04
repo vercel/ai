@@ -8,9 +8,12 @@ import type { ChatData, MyUIMessage } from './chat-schema';
 // in a real app, you would save the chat to a database
 // and use the id from the database entry
 
+// Treat chat IDs as opaque tokens before using them in file paths.
+const chatIdRegex = /^[A-Za-z0-9_-]+$/;
+
 export async function createChat(): Promise<string> {
   const id = generateId();
-  getChatFile(id);
+  await getChatFile(id);
   return id;
 }
 
@@ -64,21 +67,22 @@ export async function readChat(id: string): Promise<ChatData> {
 }
 
 export async function readAllChats(): Promise<ChatData[]> {
-  const chatDir = path.join(process.cwd(), '.chats');
+  const chatDir = getChatDir();
   const files = await readdir(chatDir, { withFileTypes: true });
   return Promise.all(
     files
       .filter(file => file.isFile())
-      .map(async file => readChat(file.name.replace('.json', ''))),
+      .map(file => file.name.match(/^([A-Za-z0-9_-]+)\.json$/)?.[1])
+      .filter(id => id != null)
+      .map(async id => readChat(id)),
   );
 }
 
 async function getChatFile(id: string): Promise<string> {
-  const chatDir = path.join(process.cwd(), '.chats');
+  const chatDir = getChatDir();
+  const chatFile = getSafeChatFilePath({ chatDir, id });
 
   if (!existsSync(chatDir)) mkdirSync(chatDir, { recursive: true });
-
-  const chatFile = path.join(chatDir, `${id}.json`);
 
   if (!existsSync(chatFile)) {
     const blankChat: ChatData = {
@@ -89,6 +93,31 @@ async function getChatFile(id: string): Promise<string> {
       canceledAt: null,
     };
     await writeFile(chatFile, JSON.stringify(blankChat, null, 2));
+  }
+
+  return chatFile;
+}
+
+function getChatDir(): string {
+  return path.resolve(process.cwd(), '.chats');
+}
+
+function getSafeChatFilePath({
+  chatDir,
+  id,
+}: {
+  chatDir: string;
+  id: string;
+}): string {
+  if (!chatIdRegex.test(id)) {
+    throw new Error('Invalid chat ID');
+  }
+
+  const chatFile = path.resolve(chatDir, `${id}.json`);
+
+  // Defense in depth: keep the resolved file inside the chat directory.
+  if (!chatFile.startsWith(`${chatDir}${path.sep}`)) {
+    throw new Error('Invalid chat ID');
   }
 
   return chatFile;

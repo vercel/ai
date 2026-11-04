@@ -4,8 +4,8 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: googleVertex('gemini-2.5-pro'),
-    system: 'You are a comedian. Only give funny answers.',
+    model: googleVertex('gemini-3.1-pro-preview'),
+    instructions: 'You are a comedian. Only give funny answers.',
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
@@ -17,6 +17,7 @@ run(async () => {
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
 
-  const usageMetadata = (await result.providerMetadata)?.google?.usageMetadata;
+  const usageMetadata = (await result.finalStep).providerMetadata?.google
+    ?.usageMetadata;
   console.log('Usage meta data:', usageMetadata);
 });

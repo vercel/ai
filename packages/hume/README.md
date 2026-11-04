@@ -7,10 +7,8 @@ contains support for the Hume API.
 
 ## Setup
 
-The Hume provider is available in the `@ai-sdk/hume` module. You can install it with
-
 ```bash
-npm i @ai-sdk/hume
+npm i ai @ai-sdk/hume
 ```
 
 ## Skill for Coding Agents
@@ -21,19 +19,11 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `hume` from `@ai-sdk/hume`:
+## Usage
 
 ```ts
 import { hume } from '@ai-sdk/hume';
-```
-
-## Example
-
-```ts
-import { hume } from '@ai-sdk/hume';
-import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { generateSpeech } from 'ai';
 
 const result = await generateSpeech({
   model: hume.speech('aurora'),
@@ -41,6 +31,4 @@ const result = await generateSpeech({
 });
 ```
 
-## Documentation
-
-Please check out the **[Hume provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/hume)** for more information.
+See the [Hume Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/hume) for more information.

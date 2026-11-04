@@ -2,6 +2,10 @@ import type {
   EmbeddingModelV4CallOptions,
   EmbeddingModelV4Middleware,
 } from '@ai-sdk/provider';
+import {
+  EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+  EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER,
+} from '@ai-sdk/provider-utils';
 import { wrapEmbeddingModel } from '../middleware/wrap-embedding-model';
 import { describe, it, expect, vi } from 'vitest';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
@@ -119,6 +123,46 @@ describe('wrapEmbeddingModel', () => {
       });
 
       expect(wrappedModel.maxEmbeddingsPerCall).toStrictEqual(3);
+    });
+  });
+
+  describe('max input bytes per call capability', () => {
+    it('should pass through by default', async () => {
+      const wrappedModel = wrapEmbeddingModel({
+        model: new MockEmbeddingModelV4({ maxInputBytesPerCall: 2 }),
+        middleware: {
+          specificationVersion: 'v4',
+        },
+      });
+
+      expect(
+        await Reflect.get(
+          wrappedModel,
+          EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+        ),
+      ).toStrictEqual(2);
+    });
+  });
+
+  describe('provider options transformer capability', () => {
+    it('should pass through by default', () => {
+      const providerOptionsTransformer = vi.fn();
+      const wrappedModel = wrapEmbeddingModel({
+        model: Object.assign(new MockEmbeddingModelV4(), {
+          [EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER]:
+            providerOptionsTransformer,
+        }),
+        middleware: {
+          specificationVersion: 'v4',
+        },
+      });
+
+      expect(
+        Reflect.get(
+          wrappedModel,
+          EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER,
+        ),
+      ).toBe(providerOptionsTransformer);
     });
   });
 

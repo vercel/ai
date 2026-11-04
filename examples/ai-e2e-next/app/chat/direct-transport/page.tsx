@@ -2,7 +2,12 @@
 
 import { useChat, type UIMessage } from '@ai-sdk/react';
 import ChatInput from '@/components/chat-input';
-import { convertToModelMessages, streamText, type ChatTransport } from 'ai';
+import {
+  convertToModelMessages,
+  streamText,
+  toUIMessageStream,
+  type ChatTransport,
+} from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 
 // Note: this needs a client-side OpenAI API key to work.
@@ -16,12 +21,12 @@ export default function Chat() {
     transport: {
       sendMessages: async ({ messages, abortSignal }) => {
         const result = streamText({
-          model: openai('gpt-4o'),
+          model: openai('gpt-6-astra'),
           messages: await convertToModelMessages(messages),
           abortSignal,
         });
 
-        return result.toUIMessageStream();
+        return toUIMessageStream({ stream: result.stream });
       },
 
       reconnectToStream: async ({ chatId }) => {

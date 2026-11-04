@@ -26,7 +26,8 @@ run(async () => {
   });
 
   const anthropicContainer = (
-    result.providerMetadata?.anthropic as unknown as AnthropicMessageMetadata
+    result.finalStep.providerMetadata
+      ?.anthropic as unknown as AnthropicMessageMetadata
   )?.container;
 
   print('content', result.content);

@@ -13,15 +13,28 @@ export const consoleTelemetry = {
   onLanguageModelCallEnd: logCallback('onLanguageModelCallEnd'),
   onToolExecutionStart: logCallback('onToolExecutionStart'),
   onToolExecutionEnd: logCallback('onToolExecutionEnd'),
-  onChunk: logCallback('onChunk'),
   onStepFinish: logCallback('onStepFinish'),
   onObjectStepStart: logCallback('onObjectStepStart'),
-  onObjectStepFinish: logCallback('onObjectStepFinish'),
+  onObjectStepEnd: logCallback('onObjectStepEnd'),
   onEmbedStart: logCallback('onEmbedStart'),
-  onEmbedFinish: logCallback('onEmbedFinish'),
+  onEmbedEnd: logCallback('onEmbedEnd'),
   onRerankStart: logCallback('onRerankStart'),
-  onRerankFinish: logCallback('onRerankFinish'),
-  onFinish: logCallback('onFinish'),
+  onRerankEnd: logCallback('onRerankEnd'),
+  experimental_onDecideStart: logCallback('experimental_onDecideStart'),
+  experimental_onDecisionModelCallStart: logCallback(
+    'experimental_onDecisionModelCallStart',
+  ),
+  experimental_onDecisionModelCallEnd: logCallback(
+    'experimental_onDecisionModelCallEnd',
+  ),
+  experimental_onDecideEnd: logCallback('experimental_onDecideEnd'),
+  experimental_onStreamTranscriptionStart: logCallback(
+    'experimental_onStreamTranscriptionStart',
+  ),
+  experimental_onStreamTranscriptionEnd: logCallback(
+    'experimental_onStreamTranscriptionEnd',
+  ),
+  onEnd: logCallback('onEnd'),
   onError: logCallback('onError'),
   executeTool: async ({ callId, toolCallId, execute }) => {
     console.log('executeTool', JSON.stringify({ callId, toolCallId }, null, 2));

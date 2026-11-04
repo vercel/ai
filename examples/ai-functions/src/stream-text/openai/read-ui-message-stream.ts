@@ -3,6 +3,7 @@ import {
   readUIMessageStream,
   isStepCount,
   streamText,
+  toUIMessageStream,
   tool,
   type Tool,
 } from 'ai';
@@ -15,7 +16,7 @@ run(async () => {
   > = [];
 
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
@@ -40,7 +41,7 @@ run(async () => {
   });
 
   for await (const uiMessage of readUIMessageStream({
-    stream: result.toUIMessageStream(),
+    stream: toUIMessageStream({ stream: result.stream }),
   })) {
     console.clear();
     console.log(JSON.stringify(uiMessage, null, 2));

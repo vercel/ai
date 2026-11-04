@@ -1,5 +1,6 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import type { LanguageModelCallOptions } from 'ai';
+import { getRuntimeContextAttributes } from './supplemental-attributes';
 
 export function getBaseTelemetryAttributes({
   model,
@@ -23,12 +24,7 @@ export function getBaseTelemetryAttributes({
     }, {} as Attributes),
 
     // add context as attributes:
-    ...Object.entries(context ?? {}).reduce((attributes, [key, value]) => {
-      if (value != undefined) {
-        attributes[`ai.settings.context.${key}`] = value as AttributeValue;
-      }
-      return attributes;
-    }, {} as Attributes),
+    ...(getRuntimeContextAttributes(context) as Attributes),
 
     // request headers
     ...Object.entries(headers ?? {}).reduce((attributes, [key, value]) => {

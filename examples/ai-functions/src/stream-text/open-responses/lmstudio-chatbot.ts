@@ -25,7 +25,7 @@ run(async () => {
     const result = streamText({
       model: lmstudio('zai-org/glm-4.7-flash'),
       tools: { weather: weatherTool },
-      system: `You are a helpful, respectful and honest assistant.`,
+      instructions: `You are a helpful, respectful and honest assistant.`,
       stopWhen: isStepCount(5),
       messages,
       onError: ({ error }) => {
@@ -39,7 +39,7 @@ run(async () => {
     });
 
     process.stdout.write('\nAssistant: ');
-    for await (const chunk of result.fullStream) {
+    for await (const chunk of result.stream) {
       switch (chunk.type) {
         case 'tool-call': {
           process.stdout.write('\x1b[33m');

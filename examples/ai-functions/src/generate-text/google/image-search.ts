@@ -33,7 +33,7 @@ run(async () => {
   console.log('SOURCES');
   console.log(result.sources);
 
-  const metadata = (await result.providerMetadata)?.google as
+  const metadata = result.finalStep.providerMetadata?.google as
     | GoogleProviderMetadata
     | undefined;
   const groundingMetadata = metadata?.groundingMetadata;

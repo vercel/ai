@@ -16,7 +16,7 @@ run(async () => {
     messages.push({ role: 'user', content: await terminal.question('You: ') });
 
     const result = await generateText({
-      model: google('gemini-2.5-flash-image'),
+      model: google('gemini-3.1-flash-image-preview'),
       providerOptions: {
         google: {
           responseModalities: ['TEXT', 'IMAGE'],
@@ -37,6 +37,6 @@ run(async () => {
 
     process.stdout.write('\n\n');
 
-    messages.push(...result.response.messages);
+    messages.push(...result.responseMessages);
   }
 });

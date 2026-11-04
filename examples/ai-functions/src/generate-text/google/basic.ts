@@ -4,11 +4,11 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: google('gemini-3-flash-preview'),
+    model: google('gemini-3.8-flash'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  const googleMetadata = result.providerMetadata?.google;
+  const googleMetadata = result.finalStep.providerMetadata?.google;
 
   console.log(result.text);
   console.log();

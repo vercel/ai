@@ -41,8 +41,8 @@ run(async () => {
     approvals = [];
 
     const result = await generateText({
-      model: openai.responses('gpt-5-mini'),
-      system:
+      model: openai.responses('gpt-6-luna'),
+      instructions:
         'You are a helpful assistant that can shorten links. ' +
         'Use the MCP tools available to you to shorten links when needed. ' +
         'When a tool execution is not approved by the user, do not retry it. ' +
@@ -97,6 +97,6 @@ run(async () => {
       }
     }
 
-    messages.push(...result.response.messages);
+    messages.push(...result.responseMessages);
   }
 });

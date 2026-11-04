@@ -2,7 +2,9 @@ import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
+import type { TextStreamPart } from '../generate-text/stream-text-result';
 import { createTextStreamResponse } from './create-text-stream-response';
+import { toTextStream } from './to-text-stream';
 import { describe, it, expect } from 'vitest';
 
 describe('createTextStreamResponse', () => {
@@ -13,7 +15,7 @@ describe('createTextStreamResponse', () => {
       headers: {
         'Custom-Header': 'test',
       },
-      textStream: convertArrayToReadableStream(['test-data']),
+      stream: convertArrayToReadableStream(['test-data']),
     });
 
     // Verify response properties
@@ -34,5 +36,26 @@ describe('createTextStreamResponse', () => {
     const decodedChunks = chunks.map(chunk => decoder.decode(chunk));
 
     expect(decodedChunks).toEqual(['test-data']);
+  });
+
+  it('can respond with a stream created by toTextStream', async () => {
+    const response = createTextStreamResponse({
+      stream: toTextStream({
+        stream: convertArrayToReadableStream([
+          { type: 'start' },
+          { type: 'text-delta', id: 't1', text: 'Hello' },
+          { type: 'text-delta', id: 't1', text: ', world!' },
+          { type: 'text-end', id: 't1' },
+        ] satisfies TextStreamPart<{}>[]),
+      }),
+    });
+
+    const decoder = new TextDecoder();
+    const chunks = await convertReadableStreamToArray(response.body!);
+
+    expect(chunks.map(chunk => decoder.decode(chunk))).toEqual([
+      'Hello',
+      ', world!',
+    ]);
   });
 });

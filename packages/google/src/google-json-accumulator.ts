@@ -51,8 +51,14 @@ export class GoogleJSONAccumulator {
     let delta = '';
 
     for (const arg of partialArgs) {
-      const rawPath = arg.jsonPath.replace(/^\$\./, '');
-      if (!rawPath) continue;
+      // Vertex terminates an array with a value-less `$.path[]` entry. For an
+      // empty array, that terminator is the only entry sent for the path.
+      const isArrayTerminator = arg.jsonPath.endsWith('[]');
+      const jsonPath = isArrayTerminator
+        ? arg.jsonPath.slice(0, -2)
+        : arg.jsonPath;
+      const rawPath = jsonPath.replace(/^\$\./, '');
+      if (!rawPath || rawPath === '$') continue;
 
       const segments = parsePath(rawPath);
 
@@ -68,11 +74,34 @@ export class GoogleJSONAccumulator {
           (existingValue as string) + arg.stringValue,
         );
         delta += escaped;
+        if (arg.willContinue !== true) {
+          delta += this.closeOpenString();
+        }
         continue;
       }
 
       const resolved = resolvePartialArgValue(arg);
-      if (resolved == null) continue;
+      if (resolved == null) {
+        // A value-less entry for a path without a value is an empty container
+        // (an empty container has no leaves to stream). Value-less entries for
+        // existing paths are string or array terminators. A string terminator
+        // closes the open string, an array terminator is ignored.
+        if (existingValue !== undefined) {
+          if (typeof existingValue === 'string' && arg.willContinue !== true) {
+            delta += this.closeOpenString();
+          }
+          continue;
+        }
+        if (arg.willContinue === true) continue;
+
+        setNestedValue(
+          this.accumulatedArgs,
+          segments,
+          isArrayTerminator ? [] : {},
+        );
+        delta += this.emitContainer(segments, isArrayTerminator);
+        continue;
+      }
 
       setNestedValue(this.accumulatedArgs, segments, resolved.value);
       delta += this.emitNavigationTo(segments, arg, resolved.json);
@@ -94,6 +123,18 @@ export class GoogleJSONAccumulator {
     const finalArgs = JSON.stringify(this.accumulatedArgs);
     const closingDelta = finalArgs.slice(this.jsonText.length);
     return { finalJSON: finalArgs, closingDelta };
+  }
+
+  /**
+   * Input: stringOpen=true
+   * Output: '"' (and stringOpen=false), or '' when no string is open
+   */
+  private closeOpenString(): string {
+    if (!this.stringOpen) {
+      return '';
+    }
+    this.stringOpen = false;
+    return '"';
   }
 
   /**
@@ -120,12 +161,7 @@ export class GoogleJSONAccumulator {
     arg: PartialArg,
     valueJson: string,
   ): string {
-    let fragment = '';
-
-    if (this.stringOpen) {
-      fragment += '"';
-      this.stringOpen = false;
-    }
+    let fragment = this.closeOpenString();
 
     fragment += this.ensureRoot();
 
@@ -137,6 +173,31 @@ export class GoogleJSONAccumulator {
     fragment += this.closeDownTo(commonDepth);
     fragment += this.openDownTo(targetContainerSegments, leafSegment);
     fragment += this.emitLeaf(leafSegment, arg, valueJson);
+
+    return fragment;
+  }
+
+  /**
+   * Navigates to `targetSegments` and opens a container there. The container
+   * stays open so later entries for its children continue inside it; it is
+   * closed by subsequent navigation or by `finalize()`.
+   *
+   * Input: targetSegments=["nested","tags"], isArray=true
+   * Output: '{"nested":{"tags":['
+   */
+  private emitContainer(
+    targetSegments: PathSegment[],
+    isArray: boolean,
+  ): string {
+    let fragment = this.closeOpenString();
+
+    fragment += this.ensureRoot();
+
+    const commonDepth = this.findCommonStackDepth(targetSegments);
+
+    fragment += this.closeDownTo(commonDepth);
+    // openDownTo infers the innermost container type from the leaf segment type
+    fragment += this.openDownTo(targetSegments, isArray ? 0 : '');
 
     return fragment;
   }
@@ -196,7 +257,7 @@ export class GoogleJSONAccumulator {
     const startIdx = this.pathStack.length - 1;
 
     for (let i = startIdx; i < targetContainer.length; i++) {
-      const seg = targetContainer[i];
+      const pathSegment = targetContainer[i];
       const parentEntry = this.pathStack[this.pathStack.length - 1];
 
       if (parentEntry.childCount > 0) {
@@ -204,8 +265,8 @@ export class GoogleJSONAccumulator {
       }
       parentEntry.childCount++;
 
-      if (typeof seg === 'string') {
-        fragment += `${JSON.stringify(seg)}:`;
+      if (typeof pathSegment === 'string') {
+        fragment += `${JSON.stringify(pathSegment)}:`;
       }
 
       const childSeg =
@@ -214,7 +275,7 @@ export class GoogleJSONAccumulator {
 
       fragment += isArray ? '[' : '{';
 
-      this.pathStack.push({ segment: seg, isArray, childCount: 0 });
+      this.pathStack.push({ segment: pathSegment, isArray, childCount: 0 });
     }
 
     return fragment;
@@ -276,6 +337,35 @@ function parsePath(rawPath: string): Array<string | number> {
   return segments;
 }
 
+const hasOwn = Object.prototype.hasOwnProperty;
+
+/**
+ * Checks only direct properties so path traversal never follows the prototype chain.
+ */
+function hasOwnProperty(
+  obj: Record<string | number, unknown>,
+  key: string | number,
+): boolean {
+  return hasOwn.call(obj, key);
+}
+
+/**
+ * Defines path values as own data properties so special keys like `__proto__`
+ * cannot invoke prototype setters while accumulating streamed arguments.
+ */
+function defineOwnProperty(
+  obj: Record<string | number, unknown>,
+  key: string | number,
+  value: unknown,
+): void {
+  Object.defineProperty(obj, key, {
+    value,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  });
+}
+
 /**
  * Traverses a nested object along the given path segments and returns the leaf value.
  *
@@ -287,9 +377,11 @@ function getNestedValue(
   segments: Array<string | number>,
 ): unknown {
   let current: unknown = obj;
-  for (const seg of segments) {
+  for (const pathSegment of segments) {
     if (current == null || typeof current !== 'object') return undefined;
-    current = (current as Record<string | number, unknown>)[seg];
+    const currentRecord = current as Record<string | number, unknown>;
+    if (!hasOwnProperty(currentRecord, pathSegment)) return undefined;
+    current = currentRecord[pathSegment];
   }
   return current;
 }
@@ -307,14 +399,18 @@ function setNestedValue(
 ): void {
   let current: Record<string | number, unknown> = obj;
   for (let i = 0; i < segments.length - 1; i++) {
-    const seg = segments[i];
+    const pathSegment = segments[i];
     const nextSeg = segments[i + 1];
-    if (current[seg] == null) {
-      current[seg] = typeof nextSeg === 'number' ? [] : {};
+    if (!hasOwnProperty(current, pathSegment) || current[pathSegment] == null) {
+      defineOwnProperty(
+        current,
+        pathSegment,
+        typeof nextSeg === 'number' ? [] : {},
+      );
     }
-    current = current[seg] as Record<string | number, unknown>;
+    current = current[pathSegment] as Record<string | number, unknown>;
   }
-  current[segments[segments.length - 1]] = value;
+  defineOwnProperty(current, segments[segments.length - 1], value);
 }
 
 /**
@@ -332,5 +428,4 @@ function resolvePartialArgValue(arg: {
   const value = arg.stringValue ?? arg.numberValue ?? arg.boolValue;
   if (value != null) return { value, json: JSON.stringify(value) };
   if ('nullValue' in arg) return { value: null, json: 'null' };
-  return undefined;
 }

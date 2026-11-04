@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: googleVertex('gemini-2.5-flash'),
+    model: googleVertex('gemini-3.8-flash'),
     tools: {
       google_search: googleVertex.tools.googleSearch({}),
     },
@@ -17,7 +17,7 @@ run(async () => {
     process.stdout.write(textPart);
   }
 
-  console.log((await result.providerMetadata)?.google);
+  console.log((await result.finalStep).providerMetadata?.google);
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);

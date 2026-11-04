@@ -55,4 +55,18 @@ describe('generateObject', () => {
 
     expectTypeOf<typeof result.object>().toEqualTypeOf<number[]>();
   });
+
+  it('should support stable start callbacks', async () => {
+    generateObject({
+      schema: z.object({ number: z.number() }),
+      model: undefined!,
+      messages: [],
+      onStart: event => {
+        expectTypeOf(event.operationId).toEqualTypeOf<string>();
+      },
+      onStepStart: event => {
+        expectTypeOf(event.stepNumber).toEqualTypeOf<0>();
+      },
+    });
+  });
 });

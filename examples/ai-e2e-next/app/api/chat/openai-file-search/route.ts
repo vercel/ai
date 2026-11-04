@@ -4,7 +4,9 @@ import {
 } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   streamText,
+  toUIMessageStream,
   validateUIMessages,
   type InferUITools,
   type ToolSet,
@@ -30,7 +32,7 @@ export async function POST(req: Request) {
   const uiMessages = await validateUIMessages({ messages });
 
   const result = streamText({
-    model: openai('gpt-5-nano'),
+    model: openai('gpt-5.4-nano'),
     tools,
     messages: await convertToModelMessages(uiMessages),
     onStepFinish: ({ request }) => {
@@ -43,7 +45,7 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    sendSources: true,
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream, sendSources: true }),
   });
 }

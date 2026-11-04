@@ -36,9 +36,9 @@ export async function submitUserMessage(content: string) {
   let textNode: React.ReactNode;
 
   const result = await streamUI({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     initial: <Message role="assistant">Working on that...</Message>,
-    system: 'You are a weather assistant.',
+    instructions: 'You are a weather assistant.',
     messages: aiState
       .get()
       .messages.map(({ role, content }) => ({ role, content }) as ModelMessage),
