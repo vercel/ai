@@ -962,6 +962,17 @@ describe('OpenTelemetry', () => {
               },
             },
           },
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'remote_tools',
+            args: {
+              serverLabel: 'example',
+              serverUrl: 'https://example.com/mcp',
+              authorization: 'mcp-private-token',
+              headers: { 'X-Custom-Key': 'mcp-private-key' },
+            },
+          },
           { type: 'function', name: 'weather', description: 'Get weather' },
         ];
         const originalTools = structuredClone(tools);

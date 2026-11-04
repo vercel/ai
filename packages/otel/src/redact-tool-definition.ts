@@ -6,6 +6,26 @@ export function redactToolDefinition(
     return tool;
   }
 
+  const args = tool.args;
+  if (!isRecord(args)) return tool;
+
+  if (tool.id === 'openai.mcp') {
+    return {
+      ...tool,
+      args: {
+        ...args,
+        ...(args.authorization != null ? { authorization: '[redacted]' } : {}),
+        ...(isRecord(args.headers)
+          ? {
+              headers: Object.fromEntries(
+                Object.keys(args.headers).map(name => [name, '[redacted]']),
+              ),
+            }
+          : {}),
+      },
+    };
+  }
+
   const containerKey =
     tool.id === 'openai.code_interpreter'
       ? 'container'
@@ -14,8 +34,6 @@ export function redactToolDefinition(
         : undefined;
   if (containerKey == null) return tool;
 
-  const args = tool.args;
-  if (!isRecord(args)) return tool;
   const container = args[containerKey];
   if (!isRecord(container)) return tool;
   const networkPolicy = container.networkPolicy;

@@ -58,6 +58,47 @@ describe('redactToolDefinition', () => {
     expect(tool).toEqual(original);
   });
 
+  it('redacts MCP authorization and all header values without mutating provider arguments', () => {
+    const tool = {
+      type: 'provider',
+      id: 'openai.mcp',
+      name: 'remote_tools',
+      args: {
+        serverLabel: 'example',
+        serverUrl: 'https://example.com/mcp',
+        allowedTools: ['search'],
+        requireApproval: 'always',
+        authorization: 'mcp-private-token',
+        headers: {
+          Authorization: 'Bearer mcp-private-token',
+          'X-Custom-Key': 'mcp-private-key',
+        },
+      },
+    };
+    const original = structuredClone(tool);
+    expect(redactToolDefinition(tool)).toEqual({
+      ...tool,
+      args: {
+        serverLabel: 'example',
+        serverUrl: 'https://example.com/mcp',
+        allowedTools: ['search'],
+        requireApproval: 'always',
+        authorization: '[redacted]',
+        headers: { Authorization: '[redacted]', 'X-Custom-Key': '[redacted]' },
+      },
+    });
+    expect(tool).toEqual(original);
+  });
+
+  it('preserves MCP definitions without credentials', () => {
+    const tool = {
+      type: 'provider',
+      id: 'openai.mcp',
+      args: { serverLabel: 'example', serverUrl: 'https://example.com/mcp' },
+    };
+    expect(redactToolDefinition(tool)).toEqual(tool);
+  });
+
   it('preserves unrelated tool definitions', () => {
     const args = {
       container: {

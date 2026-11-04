@@ -562,6 +562,49 @@ describe('LegacyOpenTelemetry', () => {
       },
     );
 
+    it.each([undefined, false])(
+      'redacts MCP credentials in tool definitions with recordInputs=%s',
+      recordInputs => {
+        const stepTools = [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'remote_tools',
+            args: {
+              serverLabel: 'example',
+              serverUrl: 'https://example.com/mcp',
+              authorization: 'mcp-private-token',
+              headers: { 'X-Custom-Key': 'mcp-private-key' },
+            },
+          },
+        ];
+        const originalTools = structuredClone(stepTools);
+        otelIntegration.onStart!(makeOnStartEvent({ recordInputs }));
+        otelIntegration.onStepStart!(makeStepStartEvent({ stepTools }));
+        const definitions = getStartSpanAttributes(tracer, 1)[
+          'ai.prompt.tools'
+        ];
+        expect(definitions).toEqual(
+          recordInputs === false
+            ? undefined
+            : [
+                JSON.stringify({
+                  type: 'provider',
+                  id: 'openai.mcp',
+                  name: 'remote_tools',
+                  args: {
+                    serverLabel: 'example',
+                    serverUrl: 'https://example.com/mcp',
+                    authorization: '[redacted]',
+                    headers: { 'X-Custom-Key': '[redacted]' },
+                  },
+                }),
+              ],
+        );
+        expect(stepTools).toEqual(originalTools);
+      },
+    );
+
     it('includes tool choice and tools when provided', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(
