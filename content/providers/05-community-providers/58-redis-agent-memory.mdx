@@ -119,7 +119,7 @@ Use the tools when you want the model to decide what to remember.
 
 ```ts
 import { generateText, isStepCount } from 'ai';
-import { instructions } from 'ai-sdk-redis-agent-memory';
+import { instructions } from '@redis/vercel-ai-sdk';
 
 const { text } = await generateText({
   model: 'anthropic/claude-sonnet-5.5',
