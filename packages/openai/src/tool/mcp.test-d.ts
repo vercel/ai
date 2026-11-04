@@ -20,6 +20,31 @@ describe('mcp tool type', () => {
     mcp({ serverLabel: 'optional-target', serverUrl: process.env.MCP_URL });
     mcp({ serverLabel: 'missing-target' });
 
+    mcp({
+      serverLabel: 'legacy-pair',
+      serverUrl: 'https://example.com/mcp',
+      connectorId: 'connector_example',
+    });
+    mcp({
+      serverLabel: 'optional-connector',
+      connectorId: process.env.CONNECTOR_ID,
+    });
+
+    // @ts-expect-error a tunnel cannot be combined with a connector
+    mcp({
+      serverLabel: 'mixed-connector',
+      connectorId: 'connector_example',
+      tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+    });
+
+    // @ts-expect-error a tunnel cannot be combined with either legacy target
+    mcp({
+      serverLabel: 'all-targets',
+      serverUrl: 'https://example.com/mcp',
+      connectorId: 'connector_example',
+      tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+    });
+
     // @ts-expect-error MCP targets are mutually exclusive
     mcp({
       serverLabel: 'ambiguous-target',

@@ -79,33 +79,80 @@ describe('prepareResponsesTools', () => {
       ]);
     });
 
-    it('should reject missing or ambiguous MCP targets', async () => {
-      const prepare = (args: Record<string, unknown>) =>
-        prepareResponsesTools({
-          tools: [
-            {
-              type: 'provider',
-              id: 'openai.mcp',
-              name: 'mcp',
-              args,
+    it('should preserve legacy URL and connector combinations', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'mcp',
+            args: {
+              serverLabel: 'legacy',
+              serverUrl: 'https://example.com/mcp',
+              connectorId: 'connector_example',
             },
-          ],
-          toolChoice: undefined,
-        });
+          },
+        ],
+        toolChoice: undefined,
+      });
+      expect(result.tools).toEqual([
+        expect.objectContaining({
+          server_url: 'https://example.com/mcp',
+          connector_id: 'connector_example',
+        }),
+      ]);
+    });
 
-      await expect(prepare({ serverLabel: 'missing-target' })).rejects.toThrow(
-        'One of serverUrl, connectorId, or tunnelId must be provided.',
-      );
+    it.each([
+      { serverLabel: 'missing-target' },
+      {
+        serverLabel: 'undefined-targets',
+        serverUrl: undefined,
+        connectorId: undefined,
+        tunnelId: undefined,
+      },
+    ])('should reject missing MCP targets: %j', async args => {
       await expect(
-        prepare({
-          serverLabel: 'ambiguous-target',
-          serverUrl: 'https://example.com/mcp',
-          tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+        prepareResponsesTools({
+          tools: [{ type: 'provider', id: 'openai.mcp', name: 'mcp', args }],
+          toolChoice: undefined,
         }),
       ).rejects.toThrow(
-        'tunnelId cannot be combined with serverUrl or connectorId.',
+        'One of serverUrl, connectorId, or tunnelId must be provided.',
       );
     });
+
+    it.each([
+      { serverUrl: 'https://example.com/mcp' },
+      { connectorId: 'connector_example' },
+      {
+        serverUrl: 'https://example.com/mcp',
+        connectorId: 'connector_example',
+      },
+    ])(
+      'should reject a tunnel combined with another target: %j',
+      async targets => {
+        await expect(
+          prepareResponsesTools({
+            tools: [
+              {
+                type: 'provider',
+                id: 'openai.mcp',
+                name: 'mcp',
+                args: {
+                  serverLabel: 'ambiguous-target',
+                  tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+                  ...targets,
+                },
+              },
+            ],
+            toolChoice: undefined,
+          }),
+        ).rejects.toThrow(
+          'tunnelId cannot be combined with serverUrl or connectorId.',
+        );
+      },
+    );
   });
 
   describe('omitFromRequestTools', () => {
