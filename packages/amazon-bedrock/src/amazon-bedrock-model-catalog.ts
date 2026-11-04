@@ -847,3 +847,86 @@ export const amazonBedrockModelCatalog: Readonly<
   'cohere.rerank-v3-5:0': rerankingEntry,
   ...amazonBedrockImageModelCatalog,
 };
+
+/** Capabilities of the native Anthropic endpoint, distinct from Converse. */
+const nativeAnthropicModels = {
+  'us.anthropic.claude-fable-5-1': { computerUse: true, reasoning: true },
+  'us.anthropic.claude-sonnet-5-5': { computerUse: true, reasoning: true },
+  'us.anthropic.claude-sonnet-5': { computerUse: true, reasoning: true },
+  'us.anthropic.claude-haiku-5-5': { computerUse: true, reasoning: true },
+  'us.anthropic.claude-fable-5': { computerUse: true, reasoning: true },
+  'us.anthropic.claude-opus-4-8': { computerUse: true, reasoning: true },
+  'us.anthropic.claude-opus-4-7': { computerUse: true, reasoning: true },
+  'us.anthropic.claude-opus-4-6-v1': { computerUse: true, reasoning: true },
+  'us.anthropic.claude-opus-4-5-20251101-v1:0': {
+    computerUse: true,
+    reasoning: true,
+  },
+  'us.anthropic.claude-sonnet-4-5-20250929-v1:0': {
+    computerUse: true,
+    reasoning: true,
+  },
+  'us.anthropic.claude-opus-4-20250514-v1:0': {
+    computerUse: true,
+    reasoning: true,
+  },
+  'us.anthropic.claude-sonnet-4-20250514-v1:0': {
+    computerUse: true,
+    reasoning: true,
+  },
+  'us.anthropic.claude-opus-4-1-20250805-v1:0': {
+    computerUse: true,
+    reasoning: true,
+  },
+  'us.anthropic.claude-haiku-4-5-20251001-v1:0': {
+    computerUse: true,
+    reasoning: true,
+  },
+  'us.anthropic.claude-3-5-sonnet-20241022-v2:0': {
+    computerUse: false,
+    reasoning: false,
+  },
+};
+export const amazonBedrockAnthropicModelCatalog = Object.fromEntries(
+  Object.entries(nativeAnthropicModels).map(([id, support]) => {
+    const base = getAmazonBedrockLanguageModelEntry(id).capabilities.language;
+    const entry = {
+      capabilities: {
+        language: {
+          ...base,
+          inputs: { image: true, audio: false },
+          objectGeneration: true,
+          tools: {
+            ...base.tools,
+            usage: true,
+            streaming: true,
+            computerUse: support.computerUse,
+          },
+          reasoning: { support: support.reasoning },
+        },
+      },
+    } as const;
+    return [id, entry satisfies ModelEntry];
+  }),
+);
+
+/** Endpoint availability documented for Mantle's known GPT-OSS models. */
+const mantleModels = {
+  'openai.gpt-oss-20b': { chatCompletions: true, responses: true },
+  'openai.gpt-oss-120b': { chatCompletions: true, responses: true },
+  'openai.gpt-oss-safeguard-20b': { chatCompletions: true, responses: false },
+  'openai.gpt-oss-safeguard-120b': { chatCompletions: true, responses: false },
+};
+export const amazonBedrockMantleModelCatalog = Object.fromEntries(
+  Object.entries(mantleModels).map(([id, endpoints]) => {
+    const entry = {
+      capabilities: {
+        language: {
+          ...getAmazonBedrockLanguageModelEntry(id).capabilities.language,
+          endpoints,
+        },
+      },
+    } as const;
+    return [id, entry satisfies ModelEntry];
+  }),
+);

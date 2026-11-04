@@ -1,3 +1,4 @@
+import { amazonBedrockDocs } from './providers/amazon-bedrock.mjs';
 import { azureDocs } from './providers/azure.mjs';
 import { formatSupport } from './render-tables.mjs';
 
@@ -5,6 +6,7 @@ import { formatSupport } from './render-tables.mjs';
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
+  amazonBedrockDocs,
   azureDocs,
   {
     catalogPath: 'packages/perplexity/src/perplexity-model-catalog.ts',

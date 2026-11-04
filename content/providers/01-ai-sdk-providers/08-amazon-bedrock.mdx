@@ -994,67 +994,102 @@ These tools can be used in conjunction with the `anthropic.claude-3-5-sonnet-202
 
 ### Model Capabilities
 
+{/* model-capabilities:amazon-bedrock-language:start */}
+
 | Model                                          | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | ---------------------------------------------- | ----------- | ----------------- | ---------- | -------------- |
 | `amazon.titan-tg1-large`                       | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `amazon.titan-text-express-v1`                 | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
-| `amazon.titan-text-lite-v1`                    | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
-| `us.amazon.nova-premier-v1:0`                  | <Check />   | <Check />         | <Check />  | <Check />      |
-| `us.amazon.nova-pro-v1:0`                      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `us.amazon.nova-lite-v1:0`                     | <Check />   | <Check />         | <Check />  | <Check />      |
-| `us.amazon.nova-micro-v1:0`                    | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `anthropic.claude-haiku-4-5-20251001-v1:0`     | <Check />   | <Check />         | <Check />  | <Check />      |
-| `anthropic.claude-sonnet-4-20250514-v1:0`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `anthropic.claude-sonnet-4-5-20250929-v1:0`    | <Check />   | <Check />         | <Check />  | <Check />      |
-| `anthropic.claude-opus-4-20250514-v1:0`        | <Check />   | <Check />         | <Check />  | <Check />      |
-| `anthropic.claude-opus-4-1-20250805-v1:0`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `anthropic.claude-3-5-sonnet-20241022-v2:0`    | <Check />   | <Check />         | <Check />  | <Check />      |
-| `anthropic.claude-3-5-sonnet-20240620-v1:0`    | <Check />   | <Check />         | <Check />  | <Check />      |
-| `anthropic.claude-3-opus-20240229-v1:0`        | <Check />   | <Check />         | <Check />  | <Check />      |
-| `anthropic.claude-3-sonnet-20240229-v1:0`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `anthropic.claude-3-haiku-20240307-v1:0`       | <Check />   | <Check />         | <Check />  | <Check />      |
-| `us.anthropic.claude-sonnet-4-20250514-v1:0`   | <Check />   | <Check />         | <Check />  | <Check />      |
-| `us.anthropic.claude-sonnet-4-5-20250929-v1:0` | <Check />   | <Check />         | <Check />  | <Check />      |
-| `us.anthropic.claude-opus-4-20250514-v1:0`     | <Check />   | <Check />         | <Check />  | <Check />      |
-| `us.anthropic.claude-opus-4-1-20250805-v1:0`   | <Check />   | <Check />         | <Check />  | <Check />      |
-| `us.anthropic.claude-3-5-sonnet-20241022-v2:0` | <Check />   | <Check />         | <Check />  | <Check />      |
-| `us.anthropic.claude-3-5-sonnet-20240620-v1:0` | <Check />   | <Check />         | <Check />  | <Check />      |
-| `us.anthropic.claude-3-sonnet-20240229-v1:0`   | <Check />   | <Check />         | <Check />  | <Check />      |
-| `us.anthropic.claude-3-opus-20240229-v1:0`     | <Check />   | <Check />         | <Check />  | <Check />      |
-| `us.anthropic.claude-3-haiku-20240307-v1:0`    | <Check />   | <Check />         | <Check />  | <Check />      |
 | `anthropic.claude-v2`                          | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `anthropic.claude-v2:1`                        | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `anthropic.claude-instant-v1`                  | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+| `anthropic.claude-sonnet-5`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-sonnet-5-5`                  | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-haiku-5-5`                   | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-fable-5`                     | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-fable-5-1`                   | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-opus-5`                      | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-opus-5-5`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-opus-4-8`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-opus-4-7`                    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-opus-4-6-v1`                 | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-sonnet-4-6-v1`               | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-opus-4-5-20251101-v1:0`      | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-haiku-4-5-20251001-v1:0`     | <Check />   | <Check />         | <Check />  | <Check />      |
+| `anthropic.claude-sonnet-4-5-20250929-v1:0`    | <Check />   | <Check />         | <Check />  | <Check />      |
+| `anthropic.claude-sonnet-4-20250514-v1:0`      | <Check />   | <Check />         | <Check />  | <Check />      |
+| `anthropic.claude-opus-4-20250514-v1:0`        | <Check />   | <Check />         | <Check />  | <Check />      |
+| `anthropic.claude-opus-4-1-20250805-v1:0`      | <Check />   | <Check />         | <Check />  | <Check />      |
+| `anthropic.claude-3-7-sonnet-20250219-v1:0`    | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-3-5-sonnet-20240620-v1:0`    | <Check />   | <Check />         | <Check />  | <Check />      |
+| `anthropic.claude-3-5-sonnet-20241022-v2:0`    | <Check />   | <Check />         | <Check />  | <Check />      |
+| `anthropic.claude-3-5-haiku-20241022-v1:0`     | Unknown     | Unknown           | Unknown    | Unknown        |
+| `anthropic.claude-3-sonnet-20240229-v1:0`      | <Check />   | <Check />         | <Check />  | <Check />      |
+| `anthropic.claude-3-haiku-20240307-v1:0`       | <Check />   | <Check />         | <Check />  | <Check />      |
+| `anthropic.claude-3-opus-20240229-v1:0`        | <Check />   | <Check />         | <Check />  | <Check />      |
 | `cohere.command-text-v14`                      | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `cohere.command-light-text-v14`                | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `cohere.command-r-v1:0`                        | <Cross />   | <Cross />         | <Check />  | <Cross />      |
 | `cohere.command-r-plus-v1:0`                   | <Cross />   | <Cross />         | <Check />  | <Cross />      |
-| `us.deepseek.r1-v1:0`                          | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `meta.llama3-8b-instruct-v1:0`                 | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `meta.llama3-70b-instruct-v1:0`                | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
-| `meta.llama3-1-8b-instruct-v1:0`               | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
-| `meta.llama3-1-70b-instruct-v1:0`              | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+| `meta.llama3-8b-instruct-v1:0`                 | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `meta.llama3-1-405b-instruct-v1:0`             | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+| `meta.llama3-1-70b-instruct-v1:0`              | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+| `meta.llama3-1-8b-instruct-v1:0`               | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+| `meta.llama3-2-11b-instruct-v1:0`              | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `meta.llama3-2-1b-instruct-v1:0`               | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `meta.llama3-2-3b-instruct-v1:0`               | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
-| `meta.llama3-2-11b-instruct-v1:0`              | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `meta.llama3-2-90b-instruct-v1:0`              | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
-| `us.meta.llama3-2-1b-instruct-v1:0`            | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `us.meta.llama3-2-3b-instruct-v1:0`            | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `us.meta.llama3-2-11b-instruct-v1:0`           | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `us.meta.llama3-2-90b-instruct-v1:0`           | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `us.meta.llama3-1-8b-instruct-v1:0`            | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `us.meta.llama3-1-70b-instruct-v1:0`           | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `us.meta.llama3-3-70b-instruct-v1:0`           | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `us.meta.llama4-scout-17b-instruct-v1:0`       | <Cross />   | <Check />         | <Check />  | <Check />      |
-| `us.meta.llama4-maverick-17b-instruct-v1:0`    | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `mistral.mistral-7b-instruct-v0:2`             | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `mistral.mixtral-8x7b-instruct-v0:1`           | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `mistral.mistral-large-2402-v1:0`              | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
 | `mistral.mistral-small-2402-v1:0`              | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
-| `us.mistral.pixtral-large-2502-v1:0`           | <Check />   | <Check />         | <Check />  | <Check />      |
 | `openai.gpt-oss-120b-1:0`                      | <Cross />   | <Check />         | <Check />  | <Check />      |
 | `openai.gpt-oss-20b-1:0`                       | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `amazon.titan-text-lite-v1`                    | <Cross />   | <Cross />         | <Cross />  | <Cross />      |
+| `us.amazon.nova-premier-v1:0`                  | <Check />   | <Check />         | <Check />  | <Check />      |
+| `us.amazon.nova-pro-v1:0`                      | <Check />   | <Check />         | <Check />  | <Check />      |
+| `us.amazon.nova-micro-v1:0`                    | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `us.amazon.nova-lite-v1:0`                     | <Check />   | <Check />         | <Check />  | <Check />      |
+| `us.anthropic.claude-3-sonnet-20240229-v1:0`   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `us.anthropic.claude-3-opus-20240229-v1:0`     | <Check />   | <Check />         | <Check />  | <Check />      |
+| `us.anthropic.claude-3-haiku-20240307-v1:0`    | <Check />   | <Check />         | <Check />  | <Check />      |
+| `us.anthropic.claude-3-5-sonnet-20240620-v1:0` | <Check />   | <Check />         | <Check />  | <Check />      |
+| `us.anthropic.claude-3-5-haiku-20241022-v1:0`  | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-3-5-sonnet-20241022-v2:0` | <Check />   | <Check />         | <Check />  | <Check />      |
+| `us.anthropic.claude-3-7-sonnet-20250219-v1:0` | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-sonnet-5`                 | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-sonnet-5-5`               | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-haiku-5-5`                | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-fable-5`                  | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-fable-5-1`                | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-opus-5`                   | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-opus-5-5`                 | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-opus-4-8`                 | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-opus-4-7`                 | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-opus-4-6-v1`              | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-sonnet-4-6-v1`            | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-opus-4-5-20251101-v1:0`   | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.anthropic.claude-sonnet-4-5-20250929-v1:0` | <Check />   | <Check />         | <Check />  | <Check />      |
+| `us.anthropic.claude-sonnet-4-20250514-v1:0`   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `us.anthropic.claude-opus-4-20250514-v1:0`     | <Check />   | <Check />         | <Check />  | <Check />      |
+| `us.anthropic.claude-opus-4-1-20250805-v1:0`   | <Check />   | <Check />         | <Check />  | <Check />      |
+| `us.anthropic.claude-haiku-4-5-20251001-v1:0`  | Unknown     | Unknown           | Unknown    | Unknown        |
+| `global.anthropic.claude-fable-5-1`            | Unknown     | Unknown           | Unknown    | Unknown        |
+| `us.meta.llama3-2-11b-instruct-v1:0`           | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `us.meta.llama3-2-3b-instruct-v1:0`            | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `us.meta.llama3-2-90b-instruct-v1:0`           | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `us.meta.llama3-2-1b-instruct-v1:0`            | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `us.meta.llama3-1-8b-instruct-v1:0`            | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `us.meta.llama3-1-70b-instruct-v1:0`           | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `us.meta.llama3-3-70b-instruct-v1:0`           | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `us.deepseek.r1-v1:0`                          | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `us.mistral.pixtral-large-2502-v1:0`           | <Check />   | <Check />         | <Check />  | <Check />      |
+| `us.meta.llama4-scout-17b-instruct-v1:0`       | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `us.meta.llama4-maverick-17b-instruct-v1:0`    | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `amazon.nova-2-lite-v1:0`                      | Unknown     | Unknown           | Unknown    | Unknown        |
+
+{/* model-capabilities:amazon-bedrock-language:end */}
 
 <Note>
   The table above lists popular models. Please see the [Amazon Bedrock
@@ -1197,6 +1232,8 @@ const { embeddings } = await embedMany({
 
 ### Model Capabilities
 
+{/* model-capabilities:amazon-bedrock-embedding:start */}
+
 | Model                          | Default Dimensions | Custom Dimensions |
 | ------------------------------ | ------------------ | ----------------- |
 | `amazon.titan-embed-text-v1`   | 1536               | <Cross />         |
@@ -1204,6 +1241,9 @@ const { embeddings } = await embedMany({
 | `amazon.nova-embed-text-v2:0`  | 1024               | <Check />         |
 | `cohere.embed-english-v3`      | 1024               | <Cross />         |
 | `cohere.embed-multilingual-v3` | 1024               | <Cross />         |
+| `cohere.embed-v4:0`            | 1536               | <Check />         |
+
+{/* model-capabilities:amazon-bedrock-embedding:end */}
 
 ## Reranking Models
 
@@ -1270,10 +1310,14 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                  |
-| ---------------------- |
-| `amazon.rerank-v1:0`   |
-| `cohere.rerank-v3-5:0` |
+{/* model-capabilities:amazon-bedrock-reranking:start */}
+
+| Model                  | Text Documents | Object Documents | Top N     |
+| ---------------------- | -------------- | ---------------- | --------- |
+| `amazon.rerank-v1:0`   | <Check />      | <Check />        | <Check /> |
+| `cohere.rerank-v3-5:0` | <Check />      | <Check />        | <Check /> |
+
+{/* model-capabilities:amazon-bedrock-reranking:end */}
 
 ## Image Models
 
@@ -1535,9 +1579,13 @@ The Amazon Nova Canvas model supports custom sizes with constraints as follows:
 For more, see [Image generation access and
 usage](https://docs.aws.amazon.com/nova/latest/userguide/image-gen-access.html).
 
-| Model                     | Sizes                                                                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `amazon.nova-canvas-v1:0` | Custom sizes: 320-4096px per side (must be divisible by 16), aspect ratio 1:4 to 4:1, max 4.2M pixels |
+{/* model-capabilities:amazon-bedrock-image:start */}
+
+| Model                     | Sizes                                                                                            | Image Editing | Mask Input | Max Images Per Call |
+| ------------------------- | ------------------------------------------------------------------------------------------------ | ------------- | ---------- | ------------------- |
+| `amazon.nova-canvas-v1:0` | 320–4096 pixels per side, divisible by 16; aspect ratio 1:4 to 4:1; fewer than 4,194,304 pixels. | <Check />     | <Check />  | 5                   |
+
+{/* model-capabilities:amazon-bedrock-image:end */}
 
 ## Response Headers
 
@@ -1899,6 +1947,8 @@ on how to integrate reasoning into your chatbot.
 
 ### Model Capabilities
 
+{/* model-capabilities:amazon-bedrock-anthropic:start */}
+
 | Model                                          | Image Input | Object Generation | Tool Usage | Computer Use | Reasoning |
 | ---------------------------------------------- | ----------- | ----------------- | ---------- | ------------ | --------- |
 | `us.anthropic.claude-fable-5-1`                | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
@@ -1916,6 +1966,8 @@ on how to integrate reasoning into your chatbot.
 | `us.anthropic.claude-opus-4-1-20250805-v1:0`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
 | `us.anthropic.claude-haiku-4-5-20251001-v1:0`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
 | `us.anthropic.claude-3-5-sonnet-20241022-v2:0` | <Check />   | <Check />         | <Check />  | <Cross />    | <Cross /> |
+
+{/* model-capabilities:amazon-bedrock-anthropic:end */}
 
 <Note>
   The Bedrock Anthropic provider uses the native InvokeModel API and supports
@@ -2073,12 +2125,16 @@ const { text } = await generateText({
 
 ### Model Capabilities
 
+{/* model-capabilities:amazon-bedrock-mantle:start */}
+
 | Model                           | Chat Completions | Responses API |
 | ------------------------------- | ---------------- | ------------- |
 | `openai.gpt-oss-20b`            | <Check />        | <Check />     |
 | `openai.gpt-oss-120b`           | <Check />        | <Check />     |
 | `openai.gpt-oss-safeguard-20b`  | <Check />        | <Cross />     |
 | `openai.gpt-oss-safeguard-120b` | <Check />        | <Cross />     |
+
+{/* model-capabilities:amazon-bedrock-mantle:end */}
 
 <Note>
   The Bedrock Mantle provider uses the OpenAI-compatible API format. Models
@@ -2097,3 +2153,37 @@ you were using the `bedrockOptions` object, you should now use the `region`,
 `accessKeyId`, `secretAccessKey`, and `sessionToken` settings directly instead.
 
 Static IAM user keys do not require `sessionToken`.
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:amazon-bedrock-provider-options:start */}
+
+| Operation | Option                         | Description                                                            |
+| --------- | ------------------------------ | ---------------------------------------------------------------------- |
+| language  | `structuredOutputMode`         | Select native structured output or JSON tools.                         |
+| language  | `additionalModelRequestFields` | Additional model-specific inference fields.                            |
+| language  | `reasoningConfig`              | Thinking mode, budget, effort, and display.                            |
+| language  | `anthropicBeta`                | Anthropic beta features to enable.                                     |
+| language  | `serviceTier`                  | Request service tier.                                                  |
+| language  | `requestMetadata`              | Invocation logging and cost attribution metadata.                      |
+| embedding | `dimensions`                   | Titan v2 output dimensions.                                            |
+| embedding | `normalize`                    | Normalize Titan v2 embeddings.                                         |
+| embedding | `embeddingDimension`           | Nova output dimensions.                                                |
+| embedding | `embeddingPurpose`             | Nova embedding purpose.                                                |
+| embedding | `inputType`                    | Cohere embedding input type.                                           |
+| embedding | `truncate`                     | Cohere or Nova truncation mode.                                        |
+| embedding | `outputDimension`              | Cohere v4 output dimensions.                                           |
+| image     | `quality`                      | Image quality.                                                         |
+| image     | `negativeText`                 | Content to avoid.                                                      |
+| image     | `cfgScale`                     | Prompt adherence scale.                                                |
+| image     | `style`                        | Image generation style.                                                |
+| image     | `taskType`                     | Generation, variation, inpainting, outpainting, or background removal. |
+| image     | `maskPrompt`                   | Text describing the region to mask.                                    |
+| image     | `outPaintingMode`              | Outpainting mode.                                                      |
+| image     | `similarityStrength`           | Similarity to reference images.                                        |
+| reranking | `nextToken`                    | Pagination token.                                                      |
+| reranking | `additionalModelRequestFields` | Additional model-specific reranking fields.                            |
+
+{/* model-capabilities:amazon-bedrock-provider-options:end */}

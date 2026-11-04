@@ -406,3 +406,6 @@ export function getAnthropicModelCapabilities(modelId: string) {
     isKnownModel: requestConfig.knownModel,
   };
 }
+
+// Compatibility name also exported by the Anthropic runtime adapter.
+export { getAnthropicModelCapabilities as getModelCapabilities };
