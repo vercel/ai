@@ -23,7 +23,7 @@ run(async () => {
     prompt: 'List the files in my current directory',
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

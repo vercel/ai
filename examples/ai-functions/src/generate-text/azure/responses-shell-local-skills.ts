@@ -1,6 +1,6 @@
 import { azure } from '@ai-sdk/azure';
 import { generateText, isStepCount } from 'ai';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 import { executeShellCommand } from '../../lib/shell-executor';
 import { run } from '../../lib/run';
 

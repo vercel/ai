@@ -1,6 +1,6 @@
 import { azure } from '@ai-sdk/azure';
 import { generateText, isStepCount } from 'ai';
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 import { run } from '../../lib/run';
 
 const skillZip = readFileSync('data/island-rescue-skill.zip').toString(

@@ -1,6 +1,6 @@
 import { azure } from '@ai-sdk/azure';
 import { isStepCount, streamText } from 'ai';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 import { executeShellCommand } from '../../lib/shell-executor';
 import { run } from '../../lib/run';
 
@@ -35,7 +35,7 @@ run(async () => {
       'You are trapped and lost on a lonely island in 1895. Find a way to get rescued!',
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

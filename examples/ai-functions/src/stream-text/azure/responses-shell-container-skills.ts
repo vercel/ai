@@ -1,8 +1,7 @@
 import { azure } from '@ai-sdk/azure';
 import { isStepCount, streamText } from 'ai';
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 import { run } from '../../lib/run';
-import { saveRawChunks } from '../../lib/save-raw-chunks';
 
 const skillZip = readFileSync('data/island-rescue-skill.zip').toString(
   'base64',
@@ -35,7 +34,7 @@ run(async () => {
       'You are trapped and lost on a lonely island in 1895. Find a way to get rescued!',
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);
