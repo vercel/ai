@@ -7,6 +7,7 @@ import type {
   LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import {
+  normalizeHeaders,
   parseProviderOptions,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
@@ -158,7 +159,7 @@ export class CerebrasChatLanguageModel
     return {
       ...options,
       headers: {
-        ...options.headers,
+        ...normalizeHeaders(options.headers),
         queue_threshold: String(cerebrasOptions.queueThreshold),
       },
     };

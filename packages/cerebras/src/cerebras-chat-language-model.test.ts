@@ -430,6 +430,37 @@ describe('service tiers', () => {
       expect(headers.get('queue_threshold')).toBeNull();
     });
 
+    it('gives queueThreshold precedence over header casing without mutating callers', async () => {
+      const { fetch, calls } = createRecordingJsonFetchMock(
+        SERVICE_TIER_RESPONSE_BODY,
+      );
+      const model = createCerebras({
+        apiKey: 'test-api-key',
+        fetch,
+        headers: { queue_threshold: '777' },
+      })('gpt-oss-120b');
+      const headers = {
+        queue_threshold: '999',
+        QUEUE_THRESHOLD: '888',
+        'X-Request-ID': 'request-123',
+      };
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        headers,
+        providerOptions: { cerebras: { queueThreshold: 200 } },
+      });
+
+      const sentHeaders = new Headers(calls[0].init!.headers as HeadersInit);
+      expect(sentHeaders.get('queue_threshold')).toBe('200');
+      expect(sentHeaders.get('x-request-id')).toBe('request-123');
+      expect(headers).toEqual({
+        queue_threshold: '999',
+        QUEUE_THRESHOLD: '888',
+        'X-Request-ID': 'request-123',
+      });
+    });
+
     it('exposes the effective service tier from service_tier', async () => {
       const { fetch } = createRecordingJsonFetchMock({
         ...SERVICE_TIER_RESPONSE_BODY,
