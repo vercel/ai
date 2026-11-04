@@ -13,6 +13,7 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import { MistralConversationLanguageModel } from './mistral-conversation-language-model';
@@ -25,9 +26,15 @@ import { MistralTranscriptionModel } from './mistral-transcription-model';
 import type { MistralTranscriptionModelId } from './mistral-transcription-model-options';
 import { VERSION } from './version';
 import { mistralTools } from './tool';
+import {
+  createMistralRealtimeFactory,
+  type MistralRealtimeFactory,
+} from './realtime/mistral-realtime-factory';
 
 export interface MistralProvider extends ProviderV4 {
   tools: typeof mistralTools;
+  /** Creates managed voice agents and their server-side sessions. */
+  experimental_realtime: MistralRealtimeFactory;
   (modelId: MistralChatModelId): LanguageModelV4;
 
   /**
@@ -112,6 +119,12 @@ export interface MistralProviderSettings {
    */
   fetch?: FetchFunction;
 
+  /**
+   * WebSocket implementation for realtime transcription. Use a header-capable
+   * implementation such as `ws` to send Mistral's Authorization header.
+   */
+  webSocket?: WebSocketConstructor;
+
   generateId?: () => string;
 }
 
@@ -179,6 +192,7 @@ export function createMistral(
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const provider = function (modelId: MistralChatModelId) {
@@ -196,6 +210,11 @@ export function createMistral(
   provider.chat = createChatModel;
   provider.conversation = createConversationModel;
   provider.tools = mistralTools;
+  provider.experimental_realtime = createMistralRealtimeFactory({
+    baseURL,
+    headers: getHeaders,
+    fetch: options.fetch,
+  });
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

@@ -352,7 +352,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         ...(reasoningEffort !== undefined
           ? { reasoning_effort: reasoningEffort }
           : {}),
-        verbosity: compatibleOptions.textVerbosity,
+        // an unset textVerbosity must not overwrite a raw `verbosity`
+        // passed through provider options:
+        ...(compatibleOptions.textVerbosity !== undefined
+          ? { verbosity: compatibleOptions.textVerbosity }
+          : {}),
 
         // messages:
         messages: convertToOpenAICompatibleChatMessages(prompt, {
