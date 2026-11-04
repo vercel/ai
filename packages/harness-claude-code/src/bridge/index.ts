@@ -153,7 +153,41 @@ let lastClaudeSessionId: string | undefined;
 await runBridge<StartMessage>({
   bridgeType: 'claude-code',
   bridgeStateDir,
-  onStart: runTurn,
+  onStart: async (start, turn) => {
+    const emit: BridgeTurn['emit'] = event => {
+      if (turn.abortSignal.aborted) return;
+      turn.emit({
+        ...event,
+        ...(start.startId == null ? {} : { startId: start.startId }),
+      });
+    };
+    /*
+     * The shared emitError closes over its own emitter, so wrapping turn.emit
+     * cannot attach startId to errors or suppress them after abort. Duplicating
+     * its stderr logging and error serialization here is an adapter-local
+     * workaround to keep errors scoped to their turn without changing the
+     * shared bridge. Keep this duplication aligned with shared error handling.
+     */
+    const emitError: BridgeTurn['emitError'] = ({ error, message }) => {
+      if (turn.abortSignal.aborted) return;
+      console.error(
+        `[harness:claude-code:error] ${message ?? 'bridge error'}:`,
+        error,
+      );
+      emit({
+        type: 'error',
+        error:
+          error instanceof Error
+            ? { name: error.name, message: error.message, stack: error.stack }
+            : error,
+      });
+    };
+    try {
+      await runTurn(start, { ...turn, emit, emitError });
+    } catch (error) {
+      emitError({ error, message: 'claude-code turn failed' });
+    }
+  },
   // Claude Code's conversation state lives in the runtime's own store, keyed
   // by working directory. The resume payload names the exact conversation so a
   // later resume does not have to fall back to "most recent in this workdir".
@@ -570,7 +604,16 @@ function nativeToolRequiresApproval(input: {
 }
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
-  const emit: Emit = msg => turn.emit(msg as BridgeEvent);
+  /*
+   * The host settles an aborted turn before its query finishes interrupting.
+   * Keep draining the query for graceful shutdown, but do not send its remaining
+   * events to listeners that may already belong to the next turn.
+   */
+  const emit: Emit = msg => {
+    if (!turn.abortSignal.aborted) {
+      turn.emit(msg as BridgeEvent);
+    }
+  };
 
   // Local controller for the Claude query. Aborted either by the host (via the
   // shared runtime's `turn.abortSignal`) or by us on a terminal error.
