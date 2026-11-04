@@ -9,6 +9,23 @@ import type {
   ProviderOptionDefinition,
   ProviderOptionDefinitions,
 } from '@ai-sdk/provider';
+const videoInputSupport: Partial<Record<string, boolean>> = {
+  'moonshot-v1-auto': false,
+  'moonshot-v1-8k': false,
+  'moonshot-v1-32k': false,
+  'moonshot-v1-128k': false,
+  'moonshot-v1-8k-vision-preview': false,
+  'moonshot-v1-32k-vision-preview': false,
+  'moonshot-v1-128k-vision-preview': false,
+  'kimi-k2.5': true,
+  'kimi-k2.6': true,
+  'kimi-k2.7-code': true,
+  'kimi-k2.7-code-highspeed': true,
+  'kimi-k3': true,
+  'kimi-k3.1-pro': true,
+  'kimi-k3.1-pro-highspeed': true,
+};
+
 /** Known options accepted under providerOptions; open-ended extension keys remain undeclared. */
 export const moonshotAIProviderOptions = {
   language: {
@@ -214,6 +231,13 @@ export function getMoonshotAILanguageModelEntry(
       language: {
         ...(documentedLanguageCapabilities[modelId] ??
           unknownLanguageCapabilities),
+        inputs: {
+          ...(
+            documentedLanguageCapabilities[modelId] ??
+            unknownLanguageCapabilities
+          ).inputs,
+          video: videoInputSupport[modelId] ?? 'unknown',
+        },
         objectGeneration: true,
         tools: { usage: true, streaming: true, required: requiredTools },
         reasoning: {
