@@ -581,6 +581,12 @@ describe('selected model identity', () => {
         providerOptions: { gladia: { languageConfig: { languages: ['en'] } } },
       });
       expect(result.response.modelId).toBe(modelId);
+      for (const call of server.calls) {
+        expect(call.requestHeaders).toMatchObject({
+          'x-gladia-key': 'test-api-key',
+          'x-gladia-version': 'ai-sdk/0.0.0-test',
+        });
+      }
       const body = await server.calls[1].requestBodyJson;
       if (modelId === 'default') expect(body).not.toHaveProperty('model');
       else expect(body.model).toBe(modelId);
