@@ -1210,6 +1210,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         ...(anthropicOptions?.anthropicBeta ?? []),
       ]),
       usesJsonResponseTool: jsonResponseTool != null,
+      includePings: stream === true && anthropicOptions?.includePings === true,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -2004,6 +2005,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings,
       betas,
       usesJsonResponseTool,
+      includePings,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -2168,7 +2170,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
           switch (value.type) {
             case 'ping': {
-              controller.enqueue({ type: 'ping' });
+              if (includePings) controller.enqueue({ type: 'ping' });
               return;
             }
 
