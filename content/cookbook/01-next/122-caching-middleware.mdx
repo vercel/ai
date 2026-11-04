@@ -58,6 +58,7 @@ export default function Chat() {
 Next, you will create a `LanguageModelMiddleware` that caches the assistant's responses in KV storage.
 `LanguageModelMiddleware` has two methods: `wrapGenerate` and `wrapStream`.
 `wrapGenerate` is called when using [`generateText`](/docs/reference/ai-sdk-core/generate-text) and [`generateObject`](/docs/reference/ai-sdk-core/generate-object), while `wrapStream` is called when using [`streamText`](/docs/reference/ai-sdk-core/stream-text) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object).
+Include the provider and model ID in the cache key alongside the call parameters to keep cached responses separate across models and providers.
 
 For `wrapGenerate`, you can cache the response directly.
 Instead, for `wrapStream`, you cache an array of the stream parts, which can then be used with [`simulateReadableStream`](/docs/reference/ai-sdk-core/simulate-readable-stream) function to create a simulated `ReadableStream` that returns the cached response.
@@ -79,8 +80,12 @@ const redis = new Redis({
 });
 
 export const cacheMiddleware: LanguageModelV2Middleware = {
-  wrapGenerate: async ({ doGenerate, params }) => {
-    const cacheKey = JSON.stringify(params);
+  wrapGenerate: async ({ doGenerate, params, model }) => {
+    const cacheKey = JSON.stringify({
+      provider: model.provider,
+      modelId: model.modelId,
+      params,
+    });
 
     const cached = (await redis.get(cacheKey)) as Awaited<
       ReturnType<LanguageModelV1['doGenerate']>
@@ -104,8 +109,12 @@ export const cacheMiddleware: LanguageModelV2Middleware = {
 
     return result;
   },
-  wrapStream: async ({ doStream, params }) => {
-    const cacheKey = JSON.stringify(params);
+  wrapStream: async ({ doStream, params, model }) => {
+    const cacheKey = JSON.stringify({
+      provider: model.provider,
+      modelId: model.modelId,
+      params,
+    });
 
     // Check if the result is in the cache
     const cached = await redis.get(cacheKey);
