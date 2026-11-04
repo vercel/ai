@@ -698,8 +698,8 @@ describe('telemetry', () => {
         operationId: 'ai.decide',
         provider: 'mock-provider',
         modelId: 'mock-model-id',
-        state,
-        questions,
+        state: {},
+        questions: {},
         runtimeContext: {},
         maxRetries: 2,
         recordInputs: false,
@@ -711,8 +711,8 @@ describe('telemetry', () => {
       expect.objectContaining({
         callId: 'test-call-id',
         operationId: 'ai.decide.doDecide',
-        state: [{ type: 'json', value: state }],
-        questions,
+        state: [],
+        questions: {},
       }),
     );
     expect(experimental_onDecisionModelCallEnd).toHaveBeenCalledWith(
@@ -735,12 +735,16 @@ describe('telemetry', () => {
     expect(decideOnStart).toHaveBeenCalledWith(
       expect.objectContaining({
         operationId: 'ai.decide',
+        state,
+        questions,
         runtimeContext: { requestId: 'request-1', secret: 'hidden' },
       }),
     );
     expect(decideOnEnd).toHaveBeenCalledWith(
       expect.objectContaining({
         operationId: 'ai.decide',
+        state,
+        questions,
         runtimeContext: { requestId: 'request-1', secret: 'hidden' },
       }),
     );

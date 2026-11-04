@@ -1923,6 +1923,195 @@ describe('responses', () => {
       });
     });
 
+    describe('custom tool', () => {
+      const sql = 'SELECT "name" FROM users WHERE age > 25';
+      const customCall = {
+        type: 'custom_tool_call',
+        id: 'ct_sql',
+        call_id: 'call_sql',
+        name: 'write_sql',
+        input: sql,
+        status: 'completed',
+      };
+      const customResponse = {
+        id: 'resp_custom',
+        created_at: 1741257730,
+        model: 'test-deployment',
+        output: [customCall],
+        usage: { input_tokens: 2, output_tokens: 4 },
+      };
+      const customTools = (): LanguageModelV4CallOptions['tools'] => {
+        const customTool = provider.tools.customTool({
+          description: 'Write a SQL query.',
+          format: { type: 'grammar', syntax: 'regex', definition: 'SELECT .+' },
+        });
+        return [
+          {
+            type: 'provider',
+            id: customTool.id,
+            name: 'write_sql',
+            args: customTool.args,
+          },
+        ];
+      };
+
+      it('exposes the shared provider-defined custom tool factory', () => {
+        expect(
+          createAzure({ resourceName: 'test-resource' }).tools.customTool({}),
+        ).toMatchObject({
+          type: 'provider',
+          id: 'openai.custom',
+          isProviderExecuted: false,
+        });
+      });
+
+      it('sends custom tool definitions and parses raw string inputs with Azure metadata', async () => {
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/responses'
+        ].response = {
+          type: 'json-value',
+          body: customResponse,
+        };
+        const result = await provider.responses('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: customTools(),
+          toolChoice: { type: 'required' },
+        });
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'custom',
+            name: 'write_sql',
+            description: 'Write a SQL query.',
+            format: {
+              type: 'grammar',
+              syntax: 'regex',
+              definition: 'SELECT .+',
+            },
+          },
+        ]);
+        expect(result.content).toMatchObject([
+          {
+            type: 'tool-call',
+            toolCallId: 'call_sql',
+            toolName: 'write_sql',
+            input: JSON.stringify(sql),
+            providerMetadata: { azure: { itemId: 'ct_sql' } },
+          },
+        ]);
+      });
+
+      it('streams raw custom input deltas and the final Azure tool call', async () => {
+        const deltas = ['SELECT "name"', ' FROM users WHERE age > 25'];
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/responses'
+        ].response = {
+          type: 'stream-chunks',
+          chunks: [
+            { type: 'response.created', response: customResponse },
+            {
+              type: 'response.output_item.added',
+              output_index: 0,
+              item: { ...customCall, input: '' },
+            },
+            ...deltas.map(delta => ({
+              type: 'response.custom_tool_call_input.delta',
+              item_id: 'ct_sql',
+              output_index: 0,
+              delta,
+            })),
+            {
+              type: 'response.output_item.done',
+              output_index: 0,
+              item: customCall,
+            },
+            { type: 'response.completed', response: customResponse },
+          ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        };
+        const { stream } = await provider
+          .responses('test-deployment')
+          .doStream({
+            prompt: TEST_PROMPT,
+            tools: customTools(),
+          });
+        const chunks = await convertReadableStreamToArray(stream);
+        expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([]);
+        expect(chunks).toContainEqual({
+          type: 'tool-input-start',
+          id: 'call_sql',
+          toolName: 'write_sql',
+          inputEncoding: 'text',
+        });
+        expect(
+          chunks
+            .filter(chunk => chunk.type === 'tool-input-delta')
+            .map(chunk => chunk.delta),
+        ).toEqual(deltas);
+        expect(chunks).toContainEqual(
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_sql',
+            toolName: 'write_sql',
+            input: JSON.stringify(sql),
+            providerMetadata: { azure: { itemId: 'ct_sql' } },
+          }),
+        );
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'custom',
+            name: 'write_sql',
+            description: 'Write a SQL query.',
+            format: {
+              type: 'grammar',
+              syntax: 'regex',
+              definition: 'SELECT .+',
+            },
+          },
+        ]);
+      });
+
+      it('sends custom tool results in follow-up prompts', async () => {
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/responses'
+        ].response = {
+          type: 'json-value',
+          body: { ...customResponse, output: [] },
+        };
+        await provider.responses('test-deployment').doGenerate({
+          tools: customTools(),
+          prompt: [
+            ...TEST_PROMPT,
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_sql',
+                  toolName: 'write_sql',
+                  input: sql,
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_sql',
+                  toolName: 'write_sql',
+                  output: { type: 'text', value: 'Query received.' },
+                },
+              ],
+            },
+          ],
+        });
+        expect((await server.calls[0].requestBodyJson).input).toContainEqual({
+          type: 'custom_tool_call_output',
+          call_id: 'call_sql',
+          output: 'Query received.',
+        });
+      });
+    });
+
     describe('apply patch tool', () => {
       const tools: LanguageModelV4CallOptions['tools'] = [
         {

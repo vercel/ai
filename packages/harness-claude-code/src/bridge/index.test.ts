@@ -26,6 +26,7 @@ const TEST_ENV_KEYS = [
   'ANTHROPIC_DEFAULT_OPUS_MODEL',
   'ANTHROPIC_DEFAULT_SONNET_MODEL',
   'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+  'CLAUDE_CODE_SUBAGENT_MODEL',
 ] as const;
 
 const state = vi.hoisted(() => ({
@@ -1234,6 +1235,59 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test('maps the dotted id of the subagent model', async () => {
+    state.start = {
+      ...state.start,
+      env: { CLAUDE_CODE_SUBAGENT_MODEL: 'anthropic/claude-sonnet-5.5' },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: { 'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5' },
+    });
+  });
+
+  test('maps a subagent model inherited from the bridge environment', async () => {
+    process.env.CLAUDE_CODE_SUBAGENT_MODEL = 'anthropic/claude-haiku-5.5[1m]';
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: { 'claude-haiku-5-5': 'anthropic/claude-haiku-5.5[1m]' },
+    });
+  });
+
+  test('lets the session model win a key it shares with the subagent model', async () => {
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-sonnet-5.5[1m]',
+      env: { CLAUDE_CODE_SUBAGENT_MODEL: 'anthropic/claude-sonnet-5.5' },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: {
+        'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5[1m]',
+      },
+    });
+  });
+
+  test.each(['sonnet', 'claude-sonnet-5-5', 'xai/grok-4.6'])(
+    'sets no model overrides for a subagent model set to %s',
+    async modelId => {
+      state.start = {
+        ...state.start,
+        env: { CLAUDE_CODE_SUBAGENT_MODEL: modelId },
+      };
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+    },
+  );
+
   test.each(['claude-sonnet-5-5', 'anthropic/claude-sonnet-5', 'xai/grok-4.6'])(
     'sets no model overrides for a model alias set to %s',
     async modelId => {
@@ -2361,6 +2415,149 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test.each([true, false])(
+    'forwards the query tail only when the host has not aborted: aborted=%s',
+    async aborted => {
+      const turnAbort = new AbortController();
+      state.turnAbortController = turnAbort;
+      const emitError = vi.fn();
+      state.emitError = emitError;
+      let releaseInterrupt!: () => void;
+      const interrupted = new Promise<void>(resolve => {
+        releaseInterrupt = resolve;
+      });
+      const interrupt = vi.fn(async () => releaseInterrupt());
+      let beforeAbort: Record<string, unknown>[] = [];
+      let consumedTail = false;
+      let queryAbortSignal!: AbortSignal;
+      const generator = (async function* () {
+        yield { type: 'stream_event', event: { type: 'message_start' } };
+        yield {
+          type: 'stream_event',
+          event: {
+            type: 'content_block_start',
+            index: 0,
+            content_block: { type: 'text' },
+          },
+        };
+        yield {
+          type: 'stream_event',
+          event: {
+            type: 'content_block_delta',
+            index: 0,
+            delta: { type: 'text_delta', text: 'before abort' },
+          },
+        };
+        beforeAbort = [...state.emitted];
+        if (aborted) {
+          turnAbort.abort();
+          await interrupted;
+        }
+        expect(queryAbortSignal.aborted).toBe(false);
+        yield {
+          type: 'stream_event',
+          event: {
+            type: 'content_block_delta',
+            index: 0,
+            delta: { type: 'text_delta', text: ' after abort' },
+          },
+        };
+        yield {
+          type: 'stream_event',
+          event: { type: 'content_block_stop', index: 0 },
+        };
+        yield {
+          type: 'assistant',
+          message: {
+            content: [{ type: 'text', text: 'before abort after abort' }],
+          },
+        };
+        yield { type: 'stream_event', event: { type: 'message_stop' } };
+        consumedTail = true;
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+      const disposed = vi.fn();
+      const originalReturn = generator.return.bind(generator);
+      generator.return = ((value?: unknown) => {
+        disposed();
+        return originalReturn(value as never);
+      }) as typeof generator.return;
+      state.createQuery = args => {
+        queryAbortSignal = args.options.abortSignal as AbortSignal;
+        return Object.assign(generator, { interrupt });
+      };
+
+      await import('./index');
+
+      expect(consumedTail).toBe(true);
+      expect(interrupt).toHaveBeenCalledTimes(aborted ? 1 : 0);
+      expect(disposed).toHaveBeenCalled();
+      expect(emitError).not.toHaveBeenCalled();
+      if (aborted) {
+        expect(state.emitted).toEqual(beforeAbort);
+        expect(state.emitted.map(event => event.type)).toMatchInlineSnapshot(`
+          [
+            "stream-start",
+            "text-start",
+            "text-delta",
+          ]
+        `);
+      } else {
+        expect(state.emitted.map(event => event.type)).toMatchInlineSnapshot(`
+          [
+            "stream-start",
+            "text-start",
+            "text-delta",
+            "text-delta",
+            "text-end",
+            "raw",
+            "finish-step",
+            "finish",
+          ]
+        `);
+        expect(
+          state.emitted
+            .filter(event => event.type === 'text-delta')
+            .map(event => event.delta),
+        ).toMatchInlineSnapshot(`
+          [
+            "before abort",
+            " after abort",
+          ]
+        `);
+      }
+    },
+  );
+
+  test('does not emit finish when the host aborts during query disposal', async () => {
+    const turnAbort = new AbortController();
+    state.turnAbortController = turnAbort;
+    const query = {
+      [Symbol.asyncIterator]: async function* () {
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      },
+      interrupt: vi.fn(),
+      return: vi.fn(async () => {
+        await Promise.resolve();
+        turnAbort.abort();
+        return { done: true, value: undefined };
+      }),
+    };
+    state.createQuery = () => query;
+
+    await import('./index');
+
+    expect(query.return).toHaveBeenCalledTimes(1);
+    expect(query.interrupt).not.toHaveBeenCalled();
+    expect(state.emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+        },
+      ]
+    `);
+  });
+
   test('a host abort interrupts the query gracefully, stays quiet, and disposes it', async () => {
     const turnAbort = new AbortController();
     state.turnAbortController = turnAbort;
@@ -2469,10 +2666,12 @@ describe('Claude Code bridge configuration', () => {
 
     await import('./index');
 
-    expect(emitError).toHaveBeenCalledWith({
-      error: 'API Error: 400 the request was rejected',
-      message: 'claude-code terminal error',
-    });
+    expect(state.emitted.filter(event => event.type === 'error')).toEqual([
+      {
+        type: 'error',
+        error: 'API Error: 400 the request was rejected',
+      },
+    ]);
     // The turn must not also settle as a normal finish: that is what made a
     // hard rejection look like an agent that simply returned nothing.
     expect(state.emitted).not.toContainEqual(
@@ -2495,11 +2694,80 @@ describe('Claude Code bridge configuration', () => {
 
     await import('./index');
 
-    expect(emitError).toHaveBeenCalledWith({
-      error: 'Claude Code reported an API error (HTTP 529)',
-      message: 'claude-code terminal error',
-    });
+    expect(state.emitted.filter(event => event.type === 'error')).toEqual([
+      {
+        type: 'error',
+        error: 'Claude Code reported an API error (HTTP 529)',
+      },
+    ]);
   });
+
+  test('tags every turn event with the start identifier', async () => {
+    state.start = { ...state.start, startId: 'first-turn' };
+    state.additionalTurns = [
+      {
+        start: { ...state.start, startId: 'second-turn' },
+        firstTurn: false,
+      },
+    ];
+    state.messages = [{ type: 'result', subtype: 'success', result: 'done' }];
+    await import('./index');
+    const firstFinish = state.emitted.findIndex(
+      event => event.type === 'finish',
+    );
+    expect(firstFinish).toBeGreaterThanOrEqual(0);
+    expect(
+      state.emitted.slice(0, firstFinish + 1).map(event => event.startId),
+    ).toEqual(Array(firstFinish + 1).fill('first-turn'));
+    expect(
+      state.emitted.slice(firstFinish + 1).map(event => event.startId),
+    ).toEqual(
+      Array(state.emitted.length - firstFinish - 1).fill('second-turn'),
+    );
+    expect(state.emitted.at(-1)?.type).toBe('finish');
+  });
+
+  test.each(['setup', 'iteration', 'terminal'] as const)(
+    'tags %s errors without emitting an untagged duplicate',
+    async phase => {
+      state.start = { ...state.start, startId: 'failed-turn' };
+      if (phase === 'setup') {
+        state.createQuery = () => {
+          throw new Error('query failed');
+        };
+      } else if (phase === 'iteration') {
+        state.createQuery = () =>
+          (async function* () {
+            throw new Error('query failed');
+            yield undefined as never;
+          })();
+      } else {
+        state.messages = [
+          {
+            type: 'result',
+            subtype: 'error_during_execution',
+            errors: ['query failed'],
+          },
+        ];
+      }
+      await import('./index');
+      expect(state.emitted.filter(event => event.type === 'error')).toEqual([
+        {
+          type: 'error',
+          startId: 'failed-turn',
+          error:
+            phase === 'terminal'
+              ? 'query failed'
+              : {
+                  name: 'Error',
+                  message: 'query failed',
+                  stack: expect.any(String),
+                },
+        },
+      ]);
+      expect(state.emitted.some(event => event.type === 'finish')).toBe(false);
+    },
+  );
 
   test('still finishes normally when a `success` result is not flagged as an error', async () => {
     const emitError = vi.fn();

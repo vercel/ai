@@ -3519,6 +3519,9 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
+      '@iarna/toml':
+        specifier: 3.0.0
+        version: 3.0.0
     devDependencies:
       '@types/node':
         specifier: 22.19.19

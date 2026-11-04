@@ -135,6 +135,11 @@ The `audio` stream must contain raw audio chunks. `Uint8Array` chunks are raw by
   the provider.
 </Note>
 
+Deepgram Nova models support streaming through
+`deepgram.transcription('nova-3')`; see the
+[Deepgram streaming documentation](/providers/ai-sdk-providers/deepgram#streaming-transcription)
+for audio formats and provider options.
+
 OpenAI streaming transcription uses `openai.transcription('gpt-realtime-whisper')`.
 Cartesia uses `cartesia.transcription('ink-2')` for streaming-only Ink 2
 transcription. ElevenLabs uses

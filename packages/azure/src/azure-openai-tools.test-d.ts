@@ -12,6 +12,16 @@ expectTypeOf(
 expectTypeOf(azure.tools.toolSearch()).not.toBeNever();
 
 expectTypeOf(
+  azure.tools.customTool({
+    format: { type: 'grammar', syntax: 'regex', definition: 'SELECT .+' },
+    execute: async input => {
+      expectTypeOf(input).toEqualTypeOf<string>();
+      return input;
+    },
+  }),
+).not.toBeNever();
+
+expectTypeOf(
   azure.tools.applyPatch({
     execute: async ({ callId, operation }) => {
       expectTypeOf(callId).toEqualTypeOf<string>();

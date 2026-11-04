@@ -163,6 +163,7 @@ export class OpenAIImageModel implements ImageModelV4 {
           output_format: openaiOptions.outputFormat,
           output_compression: openaiOptions.outputCompression,
           input_fidelity: openaiOptions.inputFidelity,
+          moderation: openaiOptions.moderation,
           user: openaiOptions.user,
         }),
         failedResponseHandler: openaiFailedResponseHandler,
@@ -333,6 +334,7 @@ type OpenAIImageEditInput = {
   output_format?: OpenAIImageModelEditOptions['outputFormat'];
   output_compression?: OpenAIImageModelEditOptions['outputCompression'];
   input_fidelity?: OpenAIImageModelEditOptions['inputFidelity'];
+  moderation?: OpenAIImageModelEditOptions['moderation'];
   user?: OpenAIImageModelEditOptions['user'];
 };
 

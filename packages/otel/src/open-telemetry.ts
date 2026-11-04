@@ -60,6 +60,7 @@ import {
 } from './gen-ai-format-messages';
 import { stringifyDecisionStateForTelemetry } from './stringify-for-telemetry';
 import { recordErrorOnSpan } from './record-span';
+import { redactToolDefinition } from './redact-tool-definition';
 import { getProviderUsageAttributes } from './provider-usage-attributes';
 import { getServerAttributes } from './server-attributes';
 import { sanitizeAttributes } from './sanitize-attribute-value';
@@ -1085,7 +1086,8 @@ export class OpenTelemetry implements Telemetry {
 
     const { telemetry } = state;
     const providerName = mapProviderName(event.provider);
-    state.inferenceToolDefinitions = event.tools;
+    const toolDefinitions = event.tools?.map(redactToolDefinition);
+    state.inferenceToolDefinitions = toolDefinitions;
     state.inferenceMetrics = {
       startTime: performance.now(),
       startTimestamp: getEventTimestamp(event),
@@ -1135,7 +1137,8 @@ export class OpenTelemetry implements Telemetry {
         },
       },
       'gen_ai.tool.definitions': {
-        input: () => (event.tools ? JSON.stringify(event.tools) : undefined),
+        input: () =>
+          toolDefinitions ? JSON.stringify(toolDefinitions) : undefined,
       },
     });
 

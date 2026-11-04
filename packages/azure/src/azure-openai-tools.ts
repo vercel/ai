@@ -1,6 +1,7 @@
 import {
   applyPatch,
   codeInterpreter,
+  customTool,
   fileSearch,
   imageGeneration,
   toolSearch,
@@ -11,6 +12,7 @@ import {
 export const azureOpenaiTools: {
   applyPatch: typeof applyPatch;
   codeInterpreter: typeof codeInterpreter;
+  customTool: typeof customTool;
   fileSearch: typeof fileSearch;
   imageGeneration: typeof imageGeneration;
   toolSearch: typeof toolSearch;
@@ -22,6 +24,7 @@ export const azureOpenaiTools: {
 } = {
   applyPatch,
   codeInterpreter,
+  customTool,
   fileSearch,
   imageGeneration,
   toolSearch,
