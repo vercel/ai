@@ -584,3 +584,21 @@ it('validates PII configuration before uploading audio', async () => {
   ).rejects.toThrow('invalid gladia provider options');
   expect(server.calls).toHaveLength(0);
 });
+
+it('warns about missing solaria-3 language without changing the request', async () => {
+  prepareJsonFixtureResponse();
+  const result = await provider
+    .transcription('solaria-3')
+    .doGenerate({ audio: audioData, mediaType: 'audio/mp3' });
+  expect(await server.calls[1].requestBodyJson).toEqual({
+    audio_url: uploadFixture.audio_url,
+    model: 'solaria-3',
+  });
+  expect(result.warnings).toEqual([
+    {
+      type: 'other',
+      message:
+        'The "solaria-3" model supports a single language only. Pass exactly one language in languageConfig.languages; Gladia may reject the request.',
+    },
+  ]);
+});

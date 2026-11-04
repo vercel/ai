@@ -174,27 +174,6 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
       const languageConfig = resolveLanguageConfig(gladiaOptions);
 
       if (languageConfig) {
-        // `solaria-3` only supports a single language and no code switching.
-        // Warn rather than fail so the request still reaches the API.
-        if (this.modelId === 'solaria-3') {
-          if ((languageConfig.languages?.length ?? 0) > 1) {
-            warnings.push({
-              type: 'other',
-              message:
-                'The "solaria-3" model supports a single language only. ' +
-                'Pass exactly one language in languageConfig.languages.',
-            });
-          }
-          if (languageConfig.codeSwitching) {
-            warnings.push({
-              type: 'other',
-              message:
-                'The "solaria-3" model does not support code switching. ' +
-                'The codeSwitching option will be ignored.',
-            });
-          }
-        }
-
         body.language_config = {
           languages: languageConfig.languages ?? undefined,
           code_switching: languageConfig.codeSwitching ?? undefined,
@@ -277,6 +256,21 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
             gladiaOptions.piiRedactionConfig.processedTextType ?? undefined,
         };
       }
+    }
+
+    if (this.modelId === 'solaria-3') {
+      if (body.language_config?.languages?.length !== 1)
+        warnings.push({
+          type: 'other',
+          message:
+            'The "solaria-3" model supports a single language only. Pass exactly one language in languageConfig.languages; Gladia may reject the request.',
+        });
+      if (body.language_config?.code_switching)
+        warnings.push({
+          type: 'other',
+          message:
+            'The "solaria-3" model does not support code switching; Gladia may reject the request.',
+        });
     }
 
     return {
