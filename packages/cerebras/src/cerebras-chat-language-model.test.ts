@@ -537,13 +537,33 @@ describe('service tiers', () => {
       ).resolves.toBeDefined();
     });
 
-    it('rejects an unknown serviceTier value', async () => {
-      await expect(
-        createModel().doGenerate({
-          prompt: TEST_PROMPT,
-          providerOptions: { cerebras: { serviceTier: 'turbo' } },
-        }),
-      ).rejects.toThrow(InvalidArgumentError);
+    it('preserves the existing runtime option pass-through', async () => {
+      const { fetch, calls } = createRecordingJsonFetchMock(
+        SERVICE_TIER_RESPONSE_BODY,
+      );
+      const model = createCerebras({ apiKey: 'test-api-key', fetch })(
+        'gpt-oss-120b',
+      );
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          cerebras: {
+            queueThreshold: 200,
+            serviceTier: 'future-tier',
+            reasoningEffort: null,
+            topLogprobs: 21,
+            promptCacheKey: 'x'.repeat(1025),
+          },
+        },
+      });
+
+      expect(JSON.parse(calls[0].init!.body as string)).toMatchObject({
+        service_tier: 'future-tier',
+        reasoning_effort: null,
+        top_logprobs: 21,
+        prompt_cache_key: 'x'.repeat(1025),
+      });
     });
 
     it('rejects invalid options on the streaming path too', async () => {

@@ -148,7 +148,7 @@ export class CerebrasChatLanguageModel
     const cerebrasOptions = await parseProviderOptions({
       provider: 'cerebras',
       providerOptions: options.providerOptions,
-      schema: cerebrasLanguageModelChatOptions,
+      schema: cerebrasLanguageModelChatOptions.pick({ queueThreshold: true }),
     });
 
     if (cerebrasOptions?.queueThreshold == null) {
