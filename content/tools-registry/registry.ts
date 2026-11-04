@@ -928,4 +928,35 @@ console.log(text);`,
     websiteUrl: 'https://cleave.fi',
     npmUrl: 'https://www.npmjs.com/package/@cleave-protocol/ai-sdk',
   },
+  {
+    slug: 'sidequest',
+    name: 'SideQuest',
+    description:
+      'Let your agent hire verified people for real-world tasks: confirm a store is open, photograph a shelf, inspect an item, call a business, or translate text with a native speaker. Rewards are paid upfront and held until the agent approves the proof.',
+    packageName: 'sidequestpays',
+    tags: ['human-in-the-loop', 'real-world', 'tasks'],
+    apiKeyEnvName: 'SIDEQUEST_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add sidequestpays',
+      npm: 'npm install sidequestpays',
+      yarn: 'yarn add sidequestpays',
+      bun: 'bun add sidequestpays',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { sidequestTools } from 'sidequestpays/ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5-5',
+  prompt:
+    'Have someone check whether the Reading Terminal Market (39.9533, -75.1590) is open right now. Pay $8.',
+  tools: sidequestTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://sidequestpays.com/docs#ai-sdk',
+    apiKeyUrl: 'https://sidequestpays.com/docs#key',
+    websiteUrl: 'https://sidequestpays.com',
+    npmUrl: 'https://www.npmjs.com/package/sidequestpays',
+  },
 ];
