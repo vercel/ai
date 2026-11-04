@@ -273,6 +273,18 @@ The following optional provider options are available for Anthropic models:
 
   Optional. See [Fast Mode section](#fast-mode) for more details.
 
+- `serviceTier` _"auto" | "standard_only"_
+
+  Optional. Selects whether to use priority capacity when available (`"auto"`)
+  or standard capacity only (`"standard_only"`), sent as `service_tier`.
+  MiniMax uses its own `"standard"` and `"priority"` values. A tier belonging
+  to another known provider is omitted with an unsupported-setting warning.
+  See [Anthropic service tiers](https://platform.claude.com/docs/en/api/service-tiers).
+
+  The applied tier, when returned by the API, is available as
+  `providerMetadata.anthropic.serviceTier` for generation, streaming and batch
+  results. The original `usage.service_tier` remains in the raw usage metadata.
+
 - `inferenceGeo` _"us" | "global"_
 
   Optional. See [Data Residency section](#data-residency) for more details.

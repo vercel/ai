@@ -8016,6 +8016,7 @@ describe('AnthropicLanguageModel', () => {
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
+                  "serviceTier": "standard",
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -8192,6 +8193,7 @@ describe('AnthropicLanguageModel', () => {
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
+                  "serviceTier": "standard",
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -8414,6 +8416,7 @@ describe('AnthropicLanguageModel', () => {
                     "container": null,
                     "contextManagement": null,
                     "iterations": null,
+                    "serviceTier": "standard",
                     "stopSequence": null,
                     "usage": {
                       "cache_creation": {
@@ -11520,6 +11523,7 @@ describe('AnthropicLanguageModel', () => {
                     "container": null,
                     "contextManagement": null,
                     "iterations": null,
+                    "serviceTier": "standard",
                     "stopSequence": null,
                     "usage": {
                       "cache_creation": {
