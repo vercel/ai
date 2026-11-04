@@ -4,6 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
+    // Replace with your Azure deployment name that supports this shell mode.
     model: azure.responses('gpt-5.4-mini'),
     tools: {
       shell: azure.tools.shell({
