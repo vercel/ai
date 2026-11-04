@@ -1,20 +1,20 @@
-import type {
-  Experimental_Sandbox,
-  Experimental_SandboxProcess,
-} from '@ai-sdk/provider-utils';
+import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 
 /**
- * No-op stubs for the file and spawn methods on `Experimental_Sandbox`,
+ * File and path stubs and an unimplemented spawn method on `Experimental_SandboxSession`,
  * intended to be spread into test fixtures that only care about `run`.
  */
-export const mockSandboxFileStubs: Pick<
-  Experimental_Sandbox,
+export const mockSandboxSessionFileStubs: Pick<
+  Experimental_SandboxSession,
   | 'readFile'
   | 'readBinaryFile'
   | 'readTextFile'
   | 'writeFile'
   | 'writeBinaryFile'
   | 'writeTextFile'
+  | 'stat'
+  | 'listDirectory'
+  | 'deleteFile'
   | 'spawn'
 > = {
   readFile: async () => null,
@@ -23,10 +23,10 @@ export const mockSandboxFileStubs: Pick<
   writeFile: async () => {},
   writeBinaryFile: async () => {},
   writeTextFile: async () => {},
-  spawn: async (): Promise<Experimental_SandboxProcess> => ({
-    stdout: new ReadableStream<Uint8Array>({ start: c => c.close() }),
-    stderr: new ReadableStream<Uint8Array>({ start: c => c.close() }),
-    wait: async () => ({ exitCode: 0 }),
-    kill: async () => {},
-  }),
+  stat: async () => null,
+  listDirectory: async () => null,
+  deleteFile: async () => false,
+  spawn: async () => {
+    throw new Error('spawn is not implemented in this mock.');
+  },
 };

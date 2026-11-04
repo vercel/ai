@@ -1,6 +1,13 @@
 export type { ActiveTools } from './active-tools';
 export type { ContentPart } from './content-part';
-export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tools';
+export {
+  filterActiveTools,
+
+  /**
+   * @deprecated Use `filterActiveTools` instead.
+   */
+  filterActiveTools as experimental_filterActiveTools,
+} from './filter-active-tools';
 export { generateText, type GenerateTextInclude } from './generate-text';
 export type {
   GenerateTextAbortEvent,
@@ -9,10 +16,13 @@ export type {
   GenerateTextOnFinishCallback,
   GenerateTextOnEndCallback,
   GenerateTextOnStartCallback,
+  GenerateTextOnStepEndCallback,
+  GenerateTextOnStepErrorCallback,
   GenerateTextOnStepFinishCallback,
   GenerateTextOnStepStartCallback,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateTextStepStartEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -22,7 +32,7 @@ export type {
 export type { GenerateTextResult } from './generate-text-result';
 export {
   DefaultGeneratedFile,
-  type GeneratedFile as Experimental_GeneratedImage, // Image for backwards compatibility, TODO remove in v7
+  type Experimental_GeneratedImage,
   type GeneratedFile,
 } from './generated-file';
 export type {
@@ -48,6 +58,12 @@ export type {
   StepResultPerformance,
 } from './step-result';
 export {
+  createSteering as experimental_createSteering,
+  type Steering as Experimental_Steering,
+  type SteeringNotDeliveredReason as Experimental_SteeringNotDeliveredReason,
+  type SteeringOutcome as Experimental_SteeringOutcome,
+} from './steering';
+export {
   hasToolCall,
   isLoopFinished,
   isStepCount,
@@ -60,13 +76,23 @@ export {
 } from './stop-condition';
 export {
   streamLanguageModelCall as experimental_streamLanguageModelCall,
+  type LanguageModelStreamPart,
+
+  /**
+   * @deprecated Use `LanguageModelStreamPart` instead. This alias will be removed in v8.
+   */
   type LanguageModelStreamPart as Experimental_LanguageModelStreamPart,
 } from './stream-language-model-call';
 export {
   streamText,
+  streamTextLowMemory as experimental_streamTextLowMemory,
+  type StreamTextEndEvent,
   type StreamTextInclude,
   type StreamTextOnChunkCallback,
+  type StreamTextOnEndCallback,
   type StreamTextOnErrorCallback,
+  type StreamTextOnErrorRetryCallback,
+  type StreamTextOnErrorResult,
   type StreamTextTransform,
 } from './stream-text';
 export type {
@@ -80,6 +106,8 @@ export type {
   ToolApprovalConfiguration,
   ToolApprovalStatus,
 } from './tool-approval-configuration';
+export type { Experimental_ToolCallers } from './tool-caller-configuration';
+export { detectToolDrift, fingerprintTools } from './tool-fingerprint';
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 export type { ToolApprovalResponseOutput } from './tool-approval-response-output';
 export type {
@@ -102,6 +130,7 @@ export type {
   ToolExecutionStartEvent,
 } from './tool-execution-events';
 export type { ToolInputRefinement } from './tool-input-refinement';
+export type { ToolOrder } from './tool-order';
 export type {
   StaticToolOutputDenied,
   TypedToolOutputDenied,

@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`generateText > options.experimental_onStart > should send correct information with text prompt 1`] = `
+exports[`generateText > options.onStart > should send correct information with text prompt 1`] = `
 {
   "activeTools": undefined,
   "callId": "test-telemetry-call-id",
@@ -30,6 +30,7 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "temperature": undefined,
   "timeout": undefined,
   "toolChoice": undefined,
+  "toolOrder": undefined,
   "tools": undefined,
   "toolsContext": {},
   "topK": undefined,
@@ -1543,6 +1544,7 @@ exports[`generateText > result.files > should contain files 1`] = `
   DefaultGeneratedFile {
     "base64Data": "AQID",
     "mediaType": "image/png",
+    "providerMetadata": undefined,
     "uint8ArrayData": Uint8Array [
       1,
       2,
@@ -1552,6 +1554,7 @@ exports[`generateText > result.files > should contain files 1`] = `
   DefaultGeneratedFile {
     "base64Data": "QkFVRw==",
     "mediaType": "image/jpeg",
+    "providerMetadata": undefined,
     "uint8ArrayData": undefined,
   },
 ]
@@ -1843,6 +1846,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
         "file": DefaultGeneratedFile {
           "base64Data": "AQID",
           "mediaType": "image/png",
+          "providerMetadata": undefined,
           "uint8ArrayData": Uint8Array [
             1,
             2,
@@ -1855,6 +1859,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
         "file": DefaultGeneratedFile {
           "base64Data": "QkFVRw==",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "uint8ArrayData": undefined,
         },
         "type": "file",

@@ -74,6 +74,26 @@ function prepareChunksFixtureResponse(filename: string) {
   };
 }
 
+describe.each(['doGenerate', 'doStream'] as const)(
+  'prompt validation (%s)',
+  method => {
+    it('should include the content of an unexpected system message in the error', async () => {
+      await expect(
+        model[method]({
+          prompt: [
+            ...TEST_PROMPT,
+            { role: 'system', content: 'misplaced system message' },
+          ],
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidPromptError',
+        message:
+          'Invalid prompt: Unexpected system message in prompt: misplaced system message',
+      });
+    });
+  },
+);
+
 describe('doGenerate', () => {
   it('should extract text response', async () => {
     server.urls['https://api.openai.com/v1/completions'].response = {
@@ -405,6 +425,48 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it.each([
+    ['missing', 'interrupted'],
+    ['unknown_reason', 'other'],
+    ['invalid-json', 'error'],
+  ] as const)(
+    'handles a stream ending with %s as %s',
+    async (ending, unified) => {
+      server.urls['https://api.openai.com/v1/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ id: 'response-1', object: 'chat.completion.chunk', created: 1, model: 'test-model', choices: [{ index: 0, text: 'Partial answer', finish_reason: null }] })}\n\n`,
+          ...(ending === 'missing'
+            ? []
+            : ending === 'invalid-json'
+              ? ['data: {invalid-json}\n\n']
+              : [
+                  `data: ${JSON.stringify({ choices: [{ index: 0, text: '', finish_reason: ending }] })}\n\n`,
+                ]),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'Partial answer',
+        }),
+      );
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        ending === 'invalid-json' ? 1 : 0,
+      );
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: {
+            unified,
+            raw: ending === 'unknown_reason' ? ending : undefined,
+          },
+        }),
+      ]);
+    },
+  );
+
   it('should stream text deltas', async () => {
     server.urls['https://api.openai.com/v1/completions'].response = {
       type: 'stream-chunks',
@@ -533,12 +595,35 @@ describe('doStream', () => {
     `);
   });
 
-  it('should handle error stream parts', async () => {
+  it('should throw an api error when the first stream chunk is an error', async () => {
     server.urls['https://api.openai.com/v1/completions'].response = {
       type: 'stream-chunks',
       chunks: [
         `data: {"error":{"message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our ` +
           `help center at help.openai.com if you keep seeing this error.","type":"server_error","param":null,"code":null}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    await expect(
+      model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      }),
+    ).rejects.toMatchObject({
+      message:
+        'The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.',
+      statusCode: 500,
+      isRetryable: true,
+    });
+  });
+
+  it('should forward error stream parts after output has started', async () => {
+    server.urls['https://api.openai.com/v1/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"cmpl-error-after-output","object":"text_completion","created":1711363440,"choices":[{"text":"Hello","index":0,"logprobs":null,"finish_reason":null}],"model":"gpt-3.5-turbo-instruct"}\n\n`,
+        `data: {"error":{"message":"stream failed after output","type":"server_error","param":null,"code":null}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
@@ -555,13 +640,39 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
+          "id": "cmpl-error-after-output",
+          "modelId": "gpt-3.5-turbo-instruct",
+          "timestamp": 2024-03-25T10:44:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
           "error": {
-            "code": null,
-            "message": "The server had an error processing your request. Sorry about that! You can retry your request, or contact us through our help center at help.openai.com if you keep seeing this error.",
-            "param": null,
+            "code": undefined,
+            "data": {
+              "code": null,
+              "message": "stream failed after output",
+              "param": null,
+              "type": "server_error",
+            },
+            "isRetryable": true,
+            "message": "stream failed after output",
+            "statusCode": 500,
             "type": "server_error",
           },
           "type": "error",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
         {
           "finishReason": {
@@ -766,7 +877,7 @@ describe('doStream', () => {
       'openai-project': 'test-project',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/openai/0.0.0-test`,
+      `ai-sdk-openai/0.0.0-test`,
     );
   });
 });

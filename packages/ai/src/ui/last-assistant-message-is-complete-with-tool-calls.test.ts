@@ -31,7 +31,7 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
     ).toBe(false);
   });
 
-  it('should return true when there is a text part after the last tool result in the last step', () => {
+  it('should return true when completed text follows the last tool result in the last step', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({
         messages: [
@@ -61,7 +61,39 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
     ).toBe(true);
   });
 
-  it('should return true when the tool has a output-error state', () => {
+  it('should return false when trailing text has no completed stream state', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeatherInformation',
+                toolCallId: 'call_6iy0GxZ9R4VDI5MKohXxV48y',
+                state: 'output-available',
+                input: {
+                  city: 'New York',
+                },
+                output: {
+                  success: true,
+                  queryResult: 'large result',
+                },
+              },
+              {
+                type: 'text',
+                text: 'Prompt is too long',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return true when the tool has an output-error state', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({
         messages: [
@@ -83,6 +115,36 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
                 type: 'text',
                 text: 'The current weather in New York is windy.',
                 state: 'done',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return true when text precedes the last completed tool call', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'text',
+                text: 'I will check the weather.',
+                state: 'done',
+              },
+              {
+                type: 'tool-getWeatherInformation',
+                toolCallId: 'call_1',
+                state: 'output-available',
+                input: {
+                  city: 'New York',
+                },
+                output: 'windy',
               },
             ],
           },
@@ -115,6 +177,59 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
         ],
       }),
     ).toBe(true);
+  });
+
+  it('should return false when a tool output is preliminary', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeatherInformation',
+                toolCallId: 'call_1',
+                state: 'output-available',
+                input: {
+                  city: 'New York',
+                },
+                output: 'checking weather station',
+                preliminary: true,
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when a dynamic tool output is preliminary', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_1',
+                state: 'output-available',
+                input: {
+                  location: 'San Francisco',
+                },
+                output: 'checking weather station',
+                preliminary: true,
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
   });
 
   it('should return false when dynamic tool call is still streaming input', () => {

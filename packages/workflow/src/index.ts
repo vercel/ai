@@ -5,7 +5,11 @@ export {
   type DownloadFunction,
   type WorkflowAgentOptions,
   type WorkflowAgentStreamOptions,
+  type WorkflowAgentCallOptions,
+  type WorkflowAgentGenerateOptions,
+  type WorkflowAgentGenerateResult,
   type WorkflowAgentStreamResult,
+  type WorkflowToolApprovalSecret,
   type GenerationSettings,
   type InferWorkflowAgentTools,
   type InferWorkflowAgentUIMessage,
@@ -21,12 +25,14 @@ export {
   type WorkflowAgentOnEndCallback,
   type WorkflowAgentOnErrorCallback,
   type WorkflowAgentOnFinishCallback,
+  type WorkflowAgentOnStepEndCallback,
   type WorkflowAgentOnStepFinishCallback,
-  type StreamTextTransform,
   type TelemetryOptions,
   type ToolCallRepairFunction,
   type WorkflowAgentOnStartCallback,
   type WorkflowAgentOnStepStartCallback,
+  type WorkflowAgentToolExecutionStartEvent,
+  type WorkflowAgentToolExecutionEndEvent,
   type WorkflowAgentOnToolExecutionStartCallback,
   type WorkflowAgentOnToolExecutionEndCallback,
 } from './workflow-agent.js';
@@ -44,3 +50,5 @@ export {
   type SendMessagesOptions,
   type ReconnectToStreamOptions,
 } from './workflow-chat-transport.js';
+
+export { normalizeUIMessageStreamParts } from './normalize-ui-message-stream.js';

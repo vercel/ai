@@ -1,23 +1,23 @@
-import { createGateway, streamText } from 'ai';
+import { gateway, streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const gateway = createGateway({
-    baseURL: 'http://localhost:3000/v1/ai',
-  });
-
   const result = streamText({
-    model: gateway('openai/gpt-5-nano'),
+    model: 'openai/gpt-5.4-nano',
     prompt: `Search for the latest research on quantum computing breakthroughs.`,
     tools: {
       parallel_search: gateway.tools.parallelSearch({
-        mode: 'agentic',
+        mode: 'advanced',
+        location: 'us',
         maxResults: 5,
         sourcePolicy: {
           includeDomains: ['nature.com', 'arxiv.org', 'science.org'],
         },
         excerpts: {
           maxCharsPerResult: 8000,
+        },
+        fetchPolicy: {
+          maxAgeSeconds: 3600,
         },
       }),
     },

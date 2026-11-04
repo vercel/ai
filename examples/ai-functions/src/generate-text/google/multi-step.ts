@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { text } = await generateText({
-    model: google('gemini-2.5-pro'),
+    model: google('gemini-3.1-pro-preview'),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',

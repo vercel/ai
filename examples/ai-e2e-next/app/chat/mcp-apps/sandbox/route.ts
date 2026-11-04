@@ -44,9 +44,14 @@ const sandboxProxyHtml = `<!doctype html>
       window.addEventListener('message', event => {
         const data = event.data;
 
+        // Only the trusted host window may (re)configure the inner iframe's
+        // sandbox and content. Without this source check the untrusted inner
+        // frame could forge a resource-ready message to grant itself
+        // 'allow-same-origin' and escape to the host origin.
         if (
           isJsonRpc(data) &&
-          data.method === 'ui/notifications/sandbox-resource-ready'
+          data.method === 'ui/notifications/sandbox-resource-ready' &&
+          event.source === window.parent
         ) {
           createAppFrame(data.params || {});
           return;

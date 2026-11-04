@@ -1,5 +1,3 @@
-# Releases
-
 # Releases - for maintainers only
 
 We use [changesets](https://github.com/changesets/action) for automated releases.
@@ -33,13 +31,25 @@ Quick reference:
 - Exit beta mode: `pnpm changeset pre exit`
 - Backport fixes: add the `backport` label to the merged PR
 
+## Snapshot Releases
+
+For test purposes (e.g. to validate whether a certain PR fixes a downstream bug), you can trigger snapshot releases based on the PR branch.
+
+Manually dispatch the [release workflow](https://github.com/vercel/ai/actions/workflows/release.yml), selecting the PR branch and enabling the checkbox to ensure it is a snapshot release.
+
+Snapshot releases from PR branches are currently not available. The release job runs in the `npm-release` environment, which only allows `main` and maintenance branches.
+
+## New Major Releases
+
+- Update version in `skills/use-ai-sdk/SKILL.md`.
+
 ## Provenance
 
 All packages are published with [npm provenance](https://docs.npmjs.com/generating-provenance-statements). This is enabled via:
 
 - `publishConfig.provenance: true` in each package's `package.json`
 - `id-token: write` permission in `.github/workflows/release.yml`
-- A [Trusted Publisher](https://docs.npmjs.com/trusted-publishers) configured per package on npmjs.com, pointing at `vercel/ai` and `release.yml`
+- A [Trusted Publisher](https://docs.npmjs.com/trusted-publishers) configured per package on npmjs.com, pointing at `vercel/ai`, `release.yml`, and the `npm-release` [environment](https://github.com/vercel/ai/settings/environments)
 
 For an existing package, no action is required — provenance is emitted automatically on every publish. For a **new** package, see [Bootstrapping a new `@ai-sdk/*` package](#bootstrapping-a-new-ai-sdk-package) below.
 
@@ -66,6 +76,8 @@ Steps:
    - **Organization or user:** `vercel`
    - **Repository:** `ai`
    - **Workflow name:** `release.yml`
-   - **Environment name:** _(leave empty)_
+   - **Environment name:** `npm-release`
+
+   Do not add a Trusted Publisher without an environment name. It would allow publishing from any branch.
 
 After this is done, subsequent releases of the package go through the normal changesets flow on `main`.

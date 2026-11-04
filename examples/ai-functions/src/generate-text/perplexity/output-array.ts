@@ -1,16 +1,24 @@
-import { perplexity } from '@ai-sdk/perplexity';
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: perplexity('sonar-pro'),
+    model: perplexity('low'),
     prompt: 'What has happened in San Francisco recently?',
     providerOptions: {
       perplexity: {
-        search_recency_filter: 'week',
-      },
+        tools: [
+          {
+            type: 'web_search',
+            filters: { search_recency_filter: 'week' },
+          },
+        ],
+      } satisfies PerplexityLanguageModelOptions,
     },
     output: Output.array({
       element: z.object({

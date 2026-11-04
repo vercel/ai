@@ -87,6 +87,20 @@ const tools = {
       defaultUnit: z.enum(['celsius', 'fahrenheit']),
     }),
     execute: getWeather,
+
+    // `toModelOutput` controls what the model sees for this tool result.
+    // The app/UI still receives the full structured object, but the model
+    // receives this compact one-line summary instead of raw JSON.
+    toModelOutput: ({
+      output,
+    }: {
+      output: Awaited<ReturnType<typeof getWeather>>;
+    }) => ({
+      type: 'text' as const,
+      value: `${output.city}: ${output.temperature}°${
+        output.unit === 'celsius' ? 'C' : 'F'
+      }, ${output.condition}.`,
+    }),
   },
   calculate: {
     description: 'Evaluate a math expression.',
@@ -118,7 +132,7 @@ const repairToolCall: ToolCallRepairFunction<typeof tools> = async ({
  * workflow. Demonstrates the two complementary context APIs:
  *
  * - `runtimeContext` — shared agent state that flows through `prepareStep`,
- *   lifecycle callbacks, and `onFinish`. Not added to the prompt.
+ *   lifecycle callbacks, and `onEnd`. Not added to the prompt.
  * - `toolsContext` — per-tool, schema-validated state. Each tool's
  *   `execute` only sees its own validated entry as `context`.
  */
@@ -133,7 +147,11 @@ export interface ChatRequestContext {
 export async function chat(messages: UIMessage[], request: ChatRequestContext) {
   'use workflow';
 
-  const modelMessages = await convertToModelMessages(messages);
+  // Pass `tools` so prior tool results from the UI history are reconstructed
+  // through each tool's `toModelOutput` hook — the same conversion WorkflowAgent
+  // applies to fresh tool results. Without this, earlier-turn tool results would
+  // fall back to default `json`/`text` serialization, diverging across turns.
+  const modelMessages = await convertToModelMessages(messages, { tools });
 
   const agent = new WorkflowAgent({
     model: anthropic('claude-sonnet-4-20250514'),
@@ -142,7 +160,7 @@ export async function chat(messages: UIMessage[], request: ChatRequestContext) {
     tools,
 
     // Shared agent state. Available in `prepareStep`, lifecycle callbacks,
-    // and `onFinish`. Treat as immutable — return a new value from
+    // and `onEnd`. Treat as immutable — return a new value from
     // `prepareStep` to update it between steps.
     runtimeContext: {
       tenantId: request.tenantId,
@@ -166,12 +184,26 @@ export async function chat(messages: UIMessage[], request: ChatRequestContext) {
       }
       return {};
     },
+
+    // Make `toModelOutput` observable end-to-end. The tool-role messages here
+    // carry the model-facing tool results, while the UI renders raw tool output.
+    onEnd: ({ messages }) => {
+      const modelFacingToolResults = messages
+        .filter(message => message.role === 'tool')
+        .flatMap(message =>
+          Array.isArray(message.content) ? message.content : [],
+        );
+      console.log(
+        '[WorkflowAgent] model-facing tool results (post toModelOutput):',
+        JSON.stringify(modelFacingToolResults, null, 2),
+      );
+    },
   });
 
   const result = await agent.stream({
     messages: modelMessages,
     writable: getWritable<ModelCallStreamPart>(),
-    experimental_repairToolCall: repairToolCall as any,
+    repairToolCall: repairToolCall as any,
   });
 
   return { messages: result.messages };

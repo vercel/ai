@@ -11,7 +11,7 @@ run(async () => {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
   });
-  const model = openai.chatModel('gpt-4o-mini');
+  const model = openai.chatModel('gpt-6-luna');
   const result = await generateText({
     model,
     messages: [

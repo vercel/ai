@@ -157,6 +157,10 @@ Open a PR with all the changes from steps 3-7. Once merged, the first beta relea
 - Every PR still needs a changeset (use `patch` by default).
 - Beta versions are published automatically when the **Version Packages** PR is merged.
 
+### Adding a new package
+
+When introducing a new package while `main` is in pre-release mode, set its initial `version` in `package.json` to plain `0.0.0` — **never** `0.0.0-canary.0` (or any `-<tag>.N` suffix). A pre-release suffix makes the version a "premajor", and semver treats a `major`/`minor`/`patch` bump on a premajor as merely dropping the suffix, so the package gets stuck at `0.0.0-canary.N` instead of advancing (e.g. a `major` changeset should produce `1.0.0-canary.0`). See [add-new-provider.md → When in pre-release mode](./add-new-provider.md#when-in-pre-release-mode).
+
 ### Backporting fixes to stable
 
 To backport a fix from `main` to the maintenance branch, add the `backport` label to the merged PR. This creates a new PR targeting the maintenance branch automatically.

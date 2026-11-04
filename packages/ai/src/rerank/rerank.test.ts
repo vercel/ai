@@ -1,10 +1,49 @@
-import type { RerankingModelV4CallOptions } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type RerankingModelV4CallOptions,
+} from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as logWarningsModule from '../logger/log-warnings';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { rerank } from './rerank';
 import type { RerankStartEvent, RerankEndEvent } from './rerank-events';
 import type { RerankResult } from './rerank-result';
+
 describe('rerank', () => {
+  describe('error handling', () => {
+    it.each([3, -1, 5, 1.5])(
+      'should reject invalid provider ranking index %s',
+      async index => {
+        let doRerankCalls = 0;
+        const onEnd = vi.fn();
+        const ranking = [{ index, relevanceScore: 0.9 }];
+
+        const result = rerank({
+          model: new MockRerankingModelV4({
+            doRerank: async () => {
+              doRerankCalls++;
+              return { ranking };
+            },
+          }),
+          documents: ['a', 'b', 'c'],
+          query: 'q',
+          onEnd,
+        });
+
+        await expect(result).rejects.toSatisfy(
+          InvalidResponseDataError.isInstance,
+        );
+        await expect(result).rejects.toMatchObject({
+          name: 'AI_InvalidResponseDataError',
+          message: `Invalid ranking index ${index}. Expected an integer between 0 and 2.`,
+          data: ranking,
+        });
+        expect(doRerankCalls).toBe(1);
+        expect(onEnd).not.toHaveBeenCalled();
+      },
+    );
+  });
+
   describe('rerank with string documents', () => {
     let result: RerankResult<string>;
     let calls: RerankingModelV4CallOptions[];
@@ -345,7 +384,7 @@ describe('rerank', () => {
     });
   });
 
-  describe('options.experimental_onStart', () => {
+  describe('options.onStart', () => {
     const mockModel = new MockRerankingModelV4({
       doRerank: async () => ({
         ranking: [
@@ -380,7 +419,7 @@ describe('rerank', () => {
         _internal: {
           generateCallId: () => 'test-call-id',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -405,7 +444,7 @@ describe('rerank', () => {
           recordOutputs: true,
           functionId: 'rerank-fn',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -433,7 +472,7 @@ describe('rerank', () => {
           recordOutputs: true,
           functionId: 'rerank-fn-deprecated',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -455,7 +494,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -479,7 +518,7 @@ describe('rerank', () => {
         }),
         documents: ['test document'],
         query: 'test query',
-        experimental_onStart: async () => {
+        onStart: async () => {
           callOrder.push('onStart');
         },
       });
@@ -496,7 +535,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onStart: async () => {
+        onStart: async () => {
           throw new Error('callback error');
         },
       });
@@ -519,7 +558,7 @@ describe('rerank', () => {
         topN: 2,
         headers: { 'x-custom': 'header-value' },
         providerOptions: { myProvider: { key: 'value' } },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
       });
@@ -538,7 +577,19 @@ describe('rerank', () => {
     });
   });
 
-  describe('options.experimental_onEnd', () => {
+  describe('options.onEnd', () => {
+    let logWarningsSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      logWarningsSpy = vi
+        .spyOn(logWarningsModule, 'logWarnings')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      logWarningsSpy.mockRestore();
+    });
+
     const mockModel = new MockRerankingModelV4({
       doRerank: async () => ({
         ranking: [
@@ -578,7 +629,7 @@ describe('rerank', () => {
         _internal: {
           generateCallId: () => 'test-call-id',
         },
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });
@@ -597,7 +648,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });
@@ -627,6 +678,49 @@ describe('rerank', () => {
       ]);
     });
 
+    it('should isolate the result from ranking mutations in onEnd', async () => {
+      const result = await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        onEnd: async event => {
+          event.ranking[0].document = 'mutated document';
+          event.ranking.push({
+            originalIndex: 0,
+            score: 0,
+            document: 'appended document',
+          });
+        },
+      });
+
+      expect(result.ranking).toEqual([
+        {
+          originalIndex: 2,
+          score: 0.9,
+          document: 'cloudy day in the mountains',
+        },
+        {
+          originalIndex: 0,
+          score: 0.8,
+          document: 'sunny day at the beach',
+        },
+        {
+          originalIndex: 1,
+          score: 0.7,
+          document: 'rainy day in the city',
+        },
+      ]);
+      expect(result.rerankedDocuments).toEqual([
+        'cloudy day in the mountains',
+        'sunny day at the beach',
+        'rainy day in the city',
+      ]);
+    });
+
     it('should include model information', async () => {
       let endEvent!: RerankEndEvent;
 
@@ -638,7 +732,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });
@@ -659,7 +753,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });
@@ -683,7 +777,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });
@@ -711,7 +805,7 @@ describe('rerank', () => {
         }),
         documents: ['test document'],
         query: 'test query',
-        experimental_onEnd: async () => {
+        onEnd: async () => {
           callOrder.push('onEnd');
         },
       });
@@ -728,7 +822,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onEnd: async () => {
+        onEnd: async () => {
           throw new Error('callback error');
         },
       });
@@ -738,7 +832,7 @@ describe('rerank', () => {
     });
   });
 
-  describe('options.experimental_onStart and experimental_onEnd together', () => {
+  describe('options.onStart and onEnd together', () => {
     const mockModel = new MockRerankingModelV4({
       doRerank: async () => ({
         ranking: [
@@ -768,10 +862,10 @@ describe('rerank', () => {
         _internal: {
           generateCallId: () => 'consistent-call-id',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });
@@ -795,10 +889,10 @@ describe('rerank', () => {
         }),
         documents: ['test document'],
         query: 'test query',
-        experimental_onStart: async () => {
+        onStart: async () => {
           callOrder.push('onStart');
         },
-        experimental_onEnd: async () => {
+        onEnd: async () => {
           callOrder.push('onEnd');
         },
       });
@@ -817,10 +911,10 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_onStart: async () => {
+        onStart: async () => {
           throw new Error('onStart error');
         },
-        experimental_onEnd: async () => {
+        onEnd: async () => {
           endCalled = true;
         },
       });
@@ -840,10 +934,10 @@ describe('rerank', () => {
         _internal: {
           generateCallId: () => 'empty-call-id',
         },
-        experimental_onStart: async event => {
+        onStart: async event => {
           startEvent = event;
         },
-        experimental_onEnd: async event => {
+        onEnd: async event => {
           endEvent = event;
         },
       });

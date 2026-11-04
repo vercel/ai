@@ -10,7 +10,7 @@ import type {
   ToolExecutionOptions,
 } from './tool-execute-function';
 import type { ToolNeedsApprovalFunction } from './tool-needs-approval-function';
-import type { Experimental_Sandbox as Sandbox } from './sandbox';
+import type { SandboxSession } from './sandbox';
 
 /**
  * Helper type to determine the outputSchema and execute function properties of a tool.
@@ -58,6 +58,14 @@ type BaseTool<
   OUTPUT extends JSONValue | unknown | never = any,
   CONTEXT extends Context | unknown | never = any,
 > = {
+  /**
+   * Defer exposing this tool until it is discovered by `toolSearch`.
+   * Supports direct calls and local callers that announce tools in conversation
+   * messages (code mode with `toolDiscovery: 'conversation'`). Discovered tools
+   * become available on the next model step.
+   */
+  deferLoading?: boolean;
+
   /**
    * An optional title of the tool.
    *
@@ -112,8 +120,8 @@ type BaseTool<
       >;
 
   /**
-   * Optional function that is called when the argument streaming starts.
-   * Only called when the tool is used in a streaming context.
+   * Optional function that is called when the model starts generating the tool input.
+   * In non-streaming contexts, it is called immediately before `onInputAvailable`.
    */
   onInputStart?: (
     options: ToolExecutionOptions<NoInfer<CONTEXT>>,
@@ -190,7 +198,7 @@ type BaseFunctionTool<
     | string
     | ((options: {
         context: NoInfer<CONTEXT>;
-        experimental_sandbox?: Sandbox;
+        experimental_sandbox?: SandboxSession;
       }) => string);
 
   /**

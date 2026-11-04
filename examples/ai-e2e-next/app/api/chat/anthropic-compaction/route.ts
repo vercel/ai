@@ -5,7 +5,9 @@ import {
 import {
   consumeStream,
   convertToModelMessages,
+  createUIMessageStreamResponse,
   streamText,
+  toUIMessageStream,
   type ModelMessage,
   type UIMessage,
 } from 'ai';
@@ -254,7 +256,7 @@ export async function POST(req: Request) {
   );
 
   const result = streamText({
-    model: anthropic('claude-opus-4-6'),
+    model: anthropic('claude-opus-5-5'),
     messages: allMessages,
     abortSignal: req.signal,
     providerOptions: {
@@ -274,12 +276,15 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    onFinish: async ({ isAborted }) => {
-      if (isAborted) {
-        console.log('Aborted');
-      }
-    },
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      onFinish: async ({ isAborted }) => {
+        if (isAborted) {
+          console.log('Aborted');
+        }
+      },
+    }),
     consumeSseStream: consumeStream,
   });
 }

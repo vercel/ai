@@ -7,7 +7,7 @@ run(async () => {
   const {
     output: { events },
   } = await generateText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     output: Output.object({
       schema: z.object({
         events: z.array(

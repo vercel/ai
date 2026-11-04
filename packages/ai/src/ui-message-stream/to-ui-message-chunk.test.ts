@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
 import type { GeneratedFile } from '../generate-text';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
+import { setToolCallInputSchemaInput } from '../generate-text/tool-call';
 import type { ProviderMetadata } from '../types/provider-metadata';
-import type { UIMessage } from '../ui/ui-messages';
 import { toUIMessageChunk } from './to-ui-message-chunk';
 
 const providerMetadata: ProviderMetadata = {
@@ -349,6 +349,7 @@ describe('toUIMessageChunk', () => {
           type: 'tool-input-start',
           id: 'call-1',
           toolName: 'dynamicTool',
+          inputEncoding: 'text',
           providerExecuted: true,
           providerMetadata,
           toolMetadata,
@@ -360,6 +361,7 @@ describe('toUIMessageChunk', () => {
       type: 'tool-input-start',
       toolCallId: 'call-1',
       toolName: 'dynamicTool',
+      inputEncoding: 'text',
       providerExecuted: true,
       providerMetadata,
       toolMetadata,
@@ -470,6 +472,31 @@ describe('toUIMessageChunk', () => {
     });
   });
 
+  it('preserves schema input for transformed tool approval requests', () => {
+    const toolCall = setToolCallInputSchemaInput<Tools>(
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'staticTool',
+        input: { value: 'trimmed' },
+      },
+      { value: ' trimmed ' },
+    );
+
+    expect(
+      toUIMessageChunk<Tools>({
+        type: 'tool-approval-request',
+        approvalId: 'approval-1',
+        toolCall,
+      }),
+    ).toEqual({
+      type: 'tool-approval-request',
+      approvalId: 'approval-1',
+      toolCallId: 'call-1',
+      inputSchemaInput: { value: ' trimmed ' },
+    });
+  });
+
   it('maps tool result, tool error, tool denial, and approval parts', () => {
     expect(
       toUIMessageChunk<Tools>(
@@ -496,6 +523,27 @@ describe('toUIMessageChunk', () => {
       toolMetadata,
       dynamic: true,
       preliminary: true,
+    });
+
+    expect(
+      toUIMessageChunk<Tools>(
+        {
+          type: 'tool-result',
+          toolCallId: 'call-undefined',
+          toolName: 'dynamicTool',
+          input: { value: 'input' },
+          output: undefined,
+        },
+        { tools },
+      ),
+    ).toEqual({
+      type: 'tool-output-available',
+      toolCallId: 'call-undefined',
+      // This must be `null` so that we don't lose the property when this is
+      // serialized to JSON. See the following issue for more details:
+      // https://github.com/vercel/ai/issues/15854
+      output: null,
+      dynamic: true,
     });
 
     expect(
@@ -582,12 +630,14 @@ describe('toUIMessageChunk', () => {
           toolName: 'staticTool',
           input: { value: 'input' },
         },
+        reason: 'requires operator review',
         isAutomatic: true,
       }),
     ).toEqual({
       type: 'tool-approval-request',
       approvalId: 'approval-1',
       toolCallId: 'call-5',
+      reason: 'requires operator review',
       isAutomatic: true,
     });
 

@@ -199,81 +199,79 @@ export type KlingAIVideoModelOptions = {
 
 export const klingaiVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
-    z
-      .object({
-        mode: z.enum(['std', 'pro']).nullish(),
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-        // T2V and I2V
-        negativePrompt: z.string().nullish(),
-        sound: z.enum(['on', 'off']).nullish(),
-        cfgScale: z.number().nullish(),
-        cameraControl: z
-          .object({
-            type: z.enum([
-              'simple',
-              'down_back',
-              'forward_up',
-              'right_turn_forward',
-              'left_turn_forward',
-            ]),
-            config: z
-              .object({
-                horizontal: z.number().nullish(),
-                vertical: z.number().nullish(),
-                pan: z.number().nullish(),
-                tilt: z.number().nullish(),
-                roll: z.number().nullish(),
-                zoom: z.number().nullish(),
-              })
-              .nullish(),
-          })
-          .nullish(),
-        // v3.0 multi-shot
-        multiShot: z.boolean().nullish(),
-        shotType: z.enum(['customize', 'intelligence']).nullish(),
-        multiPrompt: z
-          .array(
-            z.object({
-              index: z.number(),
-              prompt: z.string(),
-              duration: z.string(),
-            }),
-          )
-          .nullish(),
-        // v3.0 element control (I2V)
-        elementList: z
-          .array(
-            z.object({
-              element_id: z.number(),
-            }),
-          )
-          .nullish(),
-        // v3.0 voice control
-        voiceList: z
-          .array(
-            z.object({
-              voice_id: z.string(),
-            }),
-          )
-          .nullish(),
-        // I2V-specific
-        imageTail: z.string().nullish(),
-        staticMask: z.string().nullish(),
-        dynamicMasks: z
-          .array(
-            z.object({
-              mask: z.string(),
-              trajectories: z.array(z.object({ x: z.number(), y: z.number() })),
-            }),
-          )
-          .nullish(),
-        // Motion-control-specific
-        videoUrl: z.string().nullish(),
-        characterOrientation: z.enum(['image', 'video']).nullish(),
-        keepOriginalSound: z.enum(['yes', 'no']).nullish(),
-        watermarkEnabled: z.boolean().nullish(),
-      })
-      .passthrough(),
+    z.looseObject({
+      mode: z.enum(['std', 'pro']).nullish(),
+      pollIntervalMs: z.number().positive().nullish(),
+      pollTimeoutMs: z.number().positive().nullish(),
+      // T2V and I2V
+      negativePrompt: z.string().nullish(),
+      sound: z.enum(['on', 'off']).nullish(),
+      cfgScale: z.number().nullish(),
+      cameraControl: z
+        .object({
+          type: z.enum([
+            'simple',
+            'down_back',
+            'forward_up',
+            'right_turn_forward',
+            'left_turn_forward',
+          ]),
+          config: z
+            .object({
+              horizontal: z.number().nullish(),
+              vertical: z.number().nullish(),
+              pan: z.number().nullish(),
+              tilt: z.number().nullish(),
+              roll: z.number().nullish(),
+              zoom: z.number().nullish(),
+            })
+            .nullish(),
+        })
+        .nullish(),
+      // v3.0 multi-shot
+      multiShot: z.boolean().nullish(),
+      shotType: z.enum(['customize', 'intelligence']).nullish(),
+      multiPrompt: z
+        .array(
+          z.object({
+            index: z.number(),
+            prompt: z.string(),
+            duration: z.string(),
+          }),
+        )
+        .nullish(),
+      // v3.0 element control (I2V)
+      elementList: z
+        .array(
+          z.object({
+            element_id: z.number(),
+          }),
+        )
+        .nullish(),
+      // v3.0 voice control
+      voiceList: z
+        .array(
+          z.object({
+            voice_id: z.string(),
+          }),
+        )
+        .nullish(),
+      // I2V-specific
+      imageTail: z.string().nullish(),
+      staticMask: z.string().nullish(),
+      dynamicMasks: z
+        .array(
+          z.object({
+            mask: z.string(),
+            trajectories: z.array(z.object({ x: z.number(), y: z.number() })),
+          }),
+        )
+        .nullish(),
+      // Motion-control-specific
+      videoUrl: z.string().nullish(),
+      characterOrientation: z.enum(['image', 'video']).nullish(),
+      keepOriginalSound: z.enum(['yes', 'no']).nullish(),
+      watermarkEnabled: z.boolean().nullish(),
+    }),
   ),
 );

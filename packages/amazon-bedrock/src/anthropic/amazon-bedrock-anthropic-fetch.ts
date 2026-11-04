@@ -1,14 +1,21 @@
 import {
+  lazySchema,
+  zodSchema,
   convertBase64ToUint8Array,
   safeParseJSON,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { createAmazonBedrockEventStreamDecoder } from '../amazon-bedrock-event-stream-decoder';
+import { getAmazonBedrockStreamErrorMetadata } from '../amazon-bedrock-stream-error';
 
-const amazonBedrockErrorSchema = z.looseObject({
-  message: z.string().optional(),
-});
+const amazonBedrockErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.looseObject({
+      message: z.string().optional(),
+    }),
+  ),
+);
 
 export function createAmazonBedrockAnthropicFetch(
   baseFetch: FetchFunction,
@@ -93,9 +100,28 @@ function transformAmazonBedrockEventStreamToSSE(
           controller.enqueue(textEncoder.encode('data: [DONE]\n\n'));
         }
       } else if (event.messageType === 'exception') {
+        const parsed = await safeParseJSON({ text: event.data });
+        const data = parsed.success ? parsed.value : event.data;
+        const message =
+          typeof data === 'object' &&
+          data != null &&
+          typeof (data as Record<string, unknown>).message === 'string'
+            ? (data as Record<string, unknown>).message
+            : event.data;
+        const type = event.eventType ?? event.exceptionType ?? 'error';
+        const metadata = getAmazonBedrockStreamErrorMetadata(type);
+
         controller.enqueue(
           textEncoder.encode(
-            `data: ${JSON.stringify({ type: 'error', error: event.data })}\n\n`,
+            `data: ${JSON.stringify({
+              type: 'error',
+              error: {
+                type,
+                message,
+                ...metadata,
+                data,
+              },
+            })}\n\n`,
           ),
         );
       }

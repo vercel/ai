@@ -1,3 +1,4 @@
+export { OpenTelemetryIdGenerator } from './durable-span-ids';
 export { OpenTelemetry } from './open-telemetry';
 export type {
   EnrichSpan,

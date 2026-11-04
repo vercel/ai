@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`rerank > options.experimental_onEnd > should send correct event information 1`] = `
+exports[`rerank > options.onEnd > should send correct event information 1`] = `
 {
   "callId": "test-call-id",
   "documents": [
@@ -45,6 +45,7 @@ exports[`rerank > options.experimental_onEnd > should send correct event informa
     "modelId": "mock-response-model-id",
     "timestamp": 2025-06-01T00:00:00.000Z,
   },
+  "runtimeContext": {},
   "warnings": [
     {
       "message": "test warning",
@@ -54,7 +55,7 @@ exports[`rerank > options.experimental_onEnd > should send correct event informa
 }
 `;
 
-exports[`rerank > options.experimental_onStart > should send correct event information 1`] = `
+exports[`rerank > options.onStart > should send correct event information 1`] = `
 {
   "callId": "test-call-id",
   "documents": [
@@ -69,6 +70,7 @@ exports[`rerank > options.experimental_onStart > should send correct event infor
   "provider": "mock-provider",
   "providerOptions": undefined,
   "query": "rainy day",
+  "runtimeContext": {},
   "topN": 3,
 }
 `;

@@ -23,7 +23,8 @@ You can try the following, the solution only affects the streaming API:
 - add `'Content-Encoding': 'none'` headers
 
   ```tsx
-  return result.toUIMessageStreamResponse({
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
     headers: {
       'Content-Encoding': 'none',
     },

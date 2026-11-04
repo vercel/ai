@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { text: answer } = await generateText({
-    model: openai('gpt-4o-2024-08-06'),
+    model: openai('gpt-6-astra'),
     tools: {
       calculate: tool({
         description:
