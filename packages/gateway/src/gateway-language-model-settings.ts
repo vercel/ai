@@ -294,6 +294,7 @@ export type GatewayModelId =
   | 'tencent/hy-mt2-plus'
   | 'tencent/hy-mt2-pro'
   | 'tencent/hy3'
+  | 'tencent/hy4'
   | 'tencent/hy4-preview'
   | 'thinkingmachines/inkling'
   | 'thinkingmachines/inkling-small'
