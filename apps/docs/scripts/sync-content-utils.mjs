@@ -60,7 +60,29 @@ const rewriteLegacyLinks = line =>
  * Rewrites code fence meta to fumadocs conventions and drops top-level MDX
  * imports that next-mdx-remote previously ignored.
  */
-const rewriteLines = mdx => {
+const rewriteVersionedProviderInstalls = (line, version, family) => {
+  if (family !== 'providers' || !/^v[56]$/.test(version ?? '')) {
+    return line;
+  }
+
+  const major = version.slice(1);
+  return line.replace(
+    /\b(pnpm add|npm install|yarn add|bun add)((?:\s+(?:@[\w-]+\/[\w.-]+|[\w.-]+))*)/g,
+    (match, command, packages) => {
+      if (!packages.includes('@ai-sdk/')) {
+        return match;
+      }
+
+      const versionedPackages = packages.replace(
+        /(@ai-sdk\/[\w.-]+)(?!@[\w.-]+)/g,
+        `$1@ai-v${major}`,
+      );
+      return `${command} ai@${major}${versionedPackages}`;
+    },
+  );
+};
+
+const rewriteLines = (mdx, version, family) => {
   let inFence = false;
 
   return mdx
@@ -88,7 +110,11 @@ const rewriteLines = mdx => {
       if (!inFence && /^import\s/.test(line)) {
         return null;
       }
-      const rewrittenLine = !inFence ? rewriteLegacyLinks(line) : line;
+      const rewrittenLine = rewriteVersionedProviderInstalls(
+        !inFence ? rewriteLegacyLinks(line) : line,
+        version,
+        family,
+      );
       if (
         !inFence &&
         /^#{1,6}\s/.test(rewrittenLine) &&
@@ -129,8 +155,8 @@ const addLegacyAnchors = mdx => {
   return mdx;
 };
 
-export const transformMdx = mdx =>
-  addLegacyAnchors(stripLeadingH1(rewriteLines(mdx)));
+export const transformMdx = (mdx, version, family) =>
+  addLegacyAnchors(stripLeadingH1(rewriteLines(mdx, version, family)));
 
 const frontmatterOf = mdx => {
   const match = mdx.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
@@ -163,7 +189,7 @@ const titleOf = mdx => {
  * its first recipe, which `next.config.ts` mirrors), so keeping them would
  * add empty "Overview" pages to the sidebar, sitemap, and llms surfaces.
  */
-export const transformDir = (srcDir, outDir, relPath = "") => {
+export const transformDir = (srcDir, outDir, relPath = "", version, family) => {
   mkdirSync(outDir, { recursive: true });
 
   const entries = readdirSync(srcDir, { withFileTypes: true })
@@ -202,7 +228,13 @@ export const transformDir = (srcDir, outDir, relPath = "") => {
     seen.set(clean, entry.name);
 
     if (entry.isDirectory()) {
-      transformDir(srcPath, join(outDir, clean), join(relPath, clean));
+      transformDir(
+        srcPath,
+        join(outDir, clean),
+        join(relPath, clean),
+        version,
+        family,
+      );
       pages.push(clean);
     } else if (entry.name.endsWith(".mdx")) {
       const mdx = readFileSync(srcPath, "utf8");
@@ -215,7 +247,10 @@ export const transformDir = (srcDir, outDir, relPath = "") => {
         folderTitle = titleOf(mdx);
         continue;
       }
-      writeFileSync(join(outDir, `${clean}.mdx`), transformMdx(mdx));
+      writeFileSync(
+        join(outDir, `${clean}.mdx`),
+        transformMdx(mdx, version, family),
+      );
       // `index` is the folder page; fumadocs doesn't want it in `pages`.
       if (clean !== "index") {
         pages.push(clean);
