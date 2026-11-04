@@ -207,6 +207,8 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       response_format: responseFormat,
       include: openAIOptions?.include,
       language: openAIOptions?.language,
+      languages: openAIOptions?.languages,
+      keywords: openAIOptions?.keywords,
       prompt: openAIOptions?.prompt,
       temperature: openAIOptions?.temperature,
       timestamp_granularities: timestampGranularities,
@@ -384,6 +386,8 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     const rawOpenAIOptions = options.providerOptions?.openai ?? {};
     for (const option of [
       'include',
+      'languages',
+      'keywords',
       'prompt',
       'temperature',
       'timestampGranularities',

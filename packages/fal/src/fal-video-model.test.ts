@@ -174,6 +174,20 @@ describe('FalVideoModel', () => {
       });
     });
 
+    it('should pass seed when it is 0', async () => {
+      const model = createBasicModel();
+
+      await model.doStart({
+        ...defaultOptions,
+        seed: 0,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        seed: 0,
+      });
+    });
+
     it('should pass aspect ratio when provided', async () => {
       const model = createBasicModel();
 

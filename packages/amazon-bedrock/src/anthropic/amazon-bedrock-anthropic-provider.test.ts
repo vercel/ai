@@ -117,18 +117,12 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'anthropic.claude-opus-4-8',
     'us.anthropic.claude-opus-4-8',
     'eu.anthropic.claude-opus-4-8',
-    'anthropic.claude-opus-5',
-    'us.anthropic.claude-opus-5',
-    'eu.anthropic.claude-opus-5',
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
     'anthropic.claude-fable-5-1',
     'us.anthropic.claude-fable-5-1',
     'global.anthropic.claude-fable-5-1',
-    'anthropic.claude-sonnet-5',
-    'us.anthropic.claude-sonnet-5',
-    'eu.anthropic.claude-sonnet-5',
   ])('should disable native structured output for %s', modelId => {
     const provider = createAmazonBedrockAnthropic({
       region: 'us-east-1',
@@ -154,18 +148,12 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'anthropic.claude-opus-4-8',
     'us.anthropic.claude-opus-4-8',
     'eu.anthropic.claude-opus-4-8',
-    'anthropic.claude-opus-5',
-    'us.anthropic.claude-opus-5',
-    'eu.anthropic.claude-opus-5',
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
     'anthropic.claude-fable-5-1',
     'us.anthropic.claude-fable-5-1',
     'global.anthropic.claude-fable-5-1',
-    'anthropic.claude-sonnet-5',
-    'us.anthropic.claude-sonnet-5',
-    'eu.anthropic.claude-sonnet-5',
   ])(
     'should disable strict tools for %s (Bedrock rejects tools[].strict)',
     modelId => {
@@ -180,6 +168,35 @@ describe('amazon-bedrock-anthropic-provider', () => {
         modelId,
         expect.objectContaining({
           supportsStrictTools: false,
+        }),
+      );
+    },
+  );
+
+  it.each([
+    'anthropic.claude-opus-5',
+    'us.anthropic.claude-opus-5',
+    'eu.anthropic.claude-opus-5',
+    'anthropic.claude-sonnet-5',
+    'us.anthropic.claude-sonnet-5',
+    'eu.anthropic.claude-sonnet-5',
+    'global.anthropic.claude-sonnet-5-5',
+    'global.anthropic.claude-haiku-5-5',
+  ])(
+    'should enable native structured output and strict tools for %s',
+    modelId => {
+      const provider = createAmazonBedrockAnthropic({
+        region: 'us-east-1',
+        accessKeyId: 'test-key',
+        secretAccessKey: 'test-secret',
+      });
+      provider(modelId as Parameters<typeof provider>[0]);
+
+      expect(AnthropicLanguageModel).toHaveBeenCalledWith(
+        modelId,
+        expect.objectContaining({
+          supportsNativeStructuredOutput: true,
+          supportsStrictTools: true,
         }),
       );
     },

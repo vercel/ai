@@ -4,7 +4,8 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
 import { isDeepStrictEqual } from 'node:util';
@@ -37,6 +38,7 @@ import {
 import { createEmitStreamEvent, stringValue } from './create-emit-stream-event';
 import { mapOpenCodeFinishReason } from './opencode-finish-step';
 import { configureOpenCodePath } from './opencode-path';
+import { resolveOpenCodeInstructions } from './opencode-project-isolation';
 import { configureOpenCodeServerAuth } from './opencode-server-auth';
 import {
   addUsage,
@@ -182,6 +184,14 @@ const runtime: RuntimeState = {
 let currentHostInputTracker: OpenCodeHostInputTracker | undefined;
 let currentTurn: BridgeTurn | undefined;
 configureOpenCodePath({ bootstrapDir, env: procEnv });
+/*
+ * OpenCode loads `opencode.json[c]` and `.opencode/` configuration from the
+ * session working directory and its parents. That configuration can define
+ * agent-local permissions, plugins, and MCP servers, so repository content
+ * could override harness permissions and built-in tool filtering. Disabling
+ * project configuration keeps the bridge-provided configuration authoritative.
+ */
+procEnv.OPENCODE_DISABLE_PROJECT_CONFIG = '1';
 
 await runBridge<StartMessage>({
   bridgeType: 'opencode',
@@ -261,6 +271,27 @@ async function ensureRuntime({
   closeRuntime();
 
   try {
+    /*
+     * OpenCode always loads configuration, instructions, and skills from the
+     * home directory and its global config directory, even with project
+     * configuration disabled. A working directory that is or contains either
+     * location would let repository content act as trusted global
+     * configuration.
+     */
+    const homeDirectory = homedir();
+    for (const protectedPath of [
+      homeDirectory,
+      path.join(
+        procEnv.XDG_CONFIG_HOME || path.join(homeDirectory, '.config'),
+        'opencode',
+      ),
+    ]) {
+      if (isPathInsideOrEqual(protectedPath, workdir)) {
+        throw new Error(
+          `OpenCode session working directory "${workdir}" must not be or contain the sandbox home directory or OpenCode's global config directory, because OpenCode always loads configuration from those locations.`,
+        );
+      }
+    }
     if (start.tools && start.tools.length > 0) {
       runtime.toolNames = new Set(start.tools.map(tool => tool.name));
       runtime.relay = await startToolRelay({
@@ -361,6 +392,11 @@ function buildOpenCodeConfig({
       question: 'allow',
     },
   };
+  const instructions = resolveOpenCodeInstructions({
+    workdir,
+    hostInstructions: start.openCodeConfig?.instructions,
+  });
+  if (instructions) config.instructions = instructions;
   if (start.model) config.model = start.model;
   if (skillsDir) config.skills = { paths: [skillsDir] };
   const permission = config.permission as Record<string, unknown>;
@@ -1765,6 +1801,34 @@ function isBuiltinToolInactive(input: {
       toolName => toolName === input.toolName,
     ) ?? false
   );
+}
+
+function isPathInsideOrEqual(file: string, root: string): boolean {
+  const relative = path.relative(
+    canonicalizeForContainment(root),
+    canonicalizeForContainment(file),
+  );
+  return (
+    relative === '' ||
+    (relative !== '..' &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
+  );
+}
+
+function canonicalizeForContainment(inputPath: string): string {
+  const normalized = path.resolve(inputPath);
+  try {
+    return realpathSync.native(normalized);
+  } catch {
+    const parent = path.dirname(normalized);
+    return parent === normalized
+      ? normalized
+      : path.join(
+          canonicalizeForContainment(parent),
+          path.basename(normalized),
+        );
+  }
 }
 
 type PermissionContext = {

@@ -414,16 +414,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
+    const url = this.config.url({
+      path: '/chat/completions',
+      modelId: this.config.requestModelId ?? this.modelId,
+    });
 
     const {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
     } = await postJsonToApi({
-      url: this.config.url({
-        path: '/chat/completions',
-        modelId: this.config.requestModelId ?? this.modelId,
-      }),
+      url,
       headers: combineHeaders(
         await resolve(this.config.headers),
         options.headers,
@@ -499,7 +500,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertOpenAIChatUsage(response.usage),
-      request: { body },
+      request: { body, url },
       response: {
         ...getResponseMetadata(response),
         headers: responseHeaders,
@@ -705,7 +706,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
           },
         }),
       ),
-      request: { body },
+      request: { body, url },
       response: { headers: responseHeaders },
     };
 

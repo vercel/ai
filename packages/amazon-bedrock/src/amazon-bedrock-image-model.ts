@@ -113,7 +113,7 @@ export class AmazonBedrockImageModel implements ImageModelV4 {
     const imageGenerationConfig = {
       ...(width ? { width } : {}),
       ...(height ? { height } : {}),
-      ...(seed ? { seed } : {}),
+      ...(seed != null ? { seed } : {}),
       ...(n ? { numberOfImages: n } : {}),
       ...(amazonBedrockOptions?.quality
         ? { quality: amazonBedrockOptions.quality }

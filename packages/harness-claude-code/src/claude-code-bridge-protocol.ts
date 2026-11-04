@@ -38,6 +38,7 @@ const skillOverridesSchema = z.record(
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   prompt: harnessPromptContentSchema,
+  readableSkillRoots: z.array(z.string()).optional(),
   instructions: z.string().optional(),
   thinking: thinkingSchema,
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),

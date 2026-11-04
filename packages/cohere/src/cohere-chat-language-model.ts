@@ -34,6 +34,10 @@ import {
   type CohereChatModelId,
 } from './cohere-chat-language-model-options';
 import { cohereFailedResponseHandler } from './cohere-error';
+import {
+  getCohereLanguageModelEntry,
+  type CohereLanguageModelEntry,
+} from './cohere-model-catalog';
 import { prepareTools } from './cohere-prepare-tools';
 import { convertCohereUsage, type CohereUsage } from './convert-cohere-usage';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
@@ -153,6 +157,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
         // reasoning:
         ...resolveCohereThinking({
+          modelEntry: getCohereLanguageModelEntry(this.modelId),
           reasoning,
           cohereOptions,
           warnings,
@@ -471,18 +476,24 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 }
 
 function resolveCohereThinking({
+  modelEntry,
   reasoning,
   cohereOptions,
   warnings,
 }: {
+  modelEntry: CohereLanguageModelEntry;
   reasoning: LanguageModelV4CallOptions['reasoning'];
   cohereOptions: InferSchema<typeof cohereLanguageModelChatOptions>;
   warnings: SharedV4Warning[];
 }): { thinking?: { type: string; token_budget?: number } } {
+  const {
+    capabilities: { language: capabilities },
+    requestConfig: { language: defaults },
+  } = modelEntry;
   if (cohereOptions.thinking) {
     return {
       thinking: {
-        type: cohereOptions.thinking.type ?? 'enabled',
+        type: cohereOptions.thinking.type ?? defaults.thinkingType,
         token_budget: cohereOptions.thinking.tokenBudget,
       },
     };
@@ -498,8 +509,8 @@ function resolveCohereThinking({
 
   const tokenBudget = mapReasoningToProviderBudget({
     reasoning,
-    maxOutputTokens: 32768,
-    maxReasoningBudget: 32768,
+    maxOutputTokens: defaults.reasoningMaxOutputTokens,
+    maxReasoningBudget: capabilities.reasoning.maxBudget,
     warnings,
   });
 

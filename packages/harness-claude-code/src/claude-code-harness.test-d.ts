@@ -134,6 +134,7 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
 
   test('createClaudeCode accepts sandbox bridge reconnect settings', () => {
     const settings: ClaudeCodeHarnessSettings = {
+      turnStartTimeoutMs: 60_000,
       reconnect: {
         maxElapsedMs: 120_000,
         initialDelayMs: 100,

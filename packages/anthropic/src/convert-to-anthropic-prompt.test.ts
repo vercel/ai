@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type {
+  JSONValue,
   LanguageModelV4FilePart,
   LanguageModelV4Prompt,
   SharedV4Warning,
@@ -12,6 +13,87 @@ import { CacheControlValidator } from './get-cache-control';
 const defaultToolNameMapping = createToolNameMapping({
   tools: [],
   providerToolNames: {},
+});
+
+describe('foreign provider history', () => {
+  it.each(['google', 'vertex', 'googleVertex'])(
+    'preserves message cache control and trims prefill before empty %s text',
+    async namespace => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            providerOptions: {
+              anthropic: { cacheControl: { type: 'ephemeral' } },
+            },
+            content: [
+              { type: 'text', text: 'Answer  ' },
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  [namespace]: { thoughtSignature: 'opaque' },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Answer',
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+        },
+      ]);
+      expect(warnings).toEqual([]);
+    },
+  );
+
+  it.each(['google', 'vertex', 'googleVertex'])(
+    'omits empty %s signature text from assistant content',
+    async namespace => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'A' },
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  [namespace]: { thoughtSignature: 'opaque' },
+                },
+              },
+              { type: 'text', text: 'B' },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'A', cache_control: undefined },
+            { type: 'text', text: 'B', cache_control: undefined },
+          ],
+        },
+      ]);
+    },
+  );
 });
 
 describe('custom media conversion', () => {
@@ -5120,6 +5202,131 @@ describe('cache control', () => {
         },
         betas: new Set(),
       });
+    });
+
+    it('should parse valid JSON string tool call input into an object', async () => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                input: '{"city":"Paris","count":5}',
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toEqual({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool_use',
+                  name: 'cityAttractions',
+                  id: 'call-1',
+                  input: { city: 'Paris', count: 5 },
+                  cache_control: undefined,
+                },
+              ],
+            },
+          ],
+        },
+        betas: new Set(),
+      });
+    });
+
+    it('should safely serialize tool results with BigInt and circular structures', async () => {
+      const circularValue: Record<string, unknown> = {
+        id: 9007199254740993n,
+      };
+      circularValue.self = circularValue;
+
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                output: {
+                  type: 'json',
+                  value: circularValue as JSONValue,
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'call-1',
+              content: '{"id":"9007199254740993","self":"[Circular]"}',
+              is_error: undefined,
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should serialize tool results that reuse non-circular objects', async () => {
+      const shared = { city: 'Paris' };
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'cityAttractions',
+                output: {
+                  type: 'json',
+                  value: { first: shared, second: shared },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'call-1',
+              content: '{"first":{"city":"Paris"},"second":{"city":"Paris"}}',
+              is_error: undefined,
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
     });
 
     it('should set cache_control on last assistant message part with message cache control', async () => {

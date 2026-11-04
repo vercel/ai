@@ -11,6 +11,8 @@ import type {
   OpenAICompatibleContentPart,
 } from './openai-compatible-api-types';
 import {
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
@@ -186,6 +188,18 @@ function convertToolContentPart(
   return convertToOpenAICompatibleContentPart(part, provider);
 }
 
+function serializeToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input);
+}
+
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV4Prompt,
   {
@@ -263,7 +277,7 @@ export function convertToOpenAICompatibleChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeToolCallArguments(part.input),
                 },
                 ...partMetadata,
                 // Include extra_content for Google Gemini thought signatures
@@ -312,14 +326,14 @@ export function convertToOpenAICompatibleChatMessages(
               break;
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
             case 'content':
               contentValue = supportsMultiPartToolContent
                 ? output.value.map(part =>
                     convertToolContentPart(part, provider),
                   )
-                : JSON.stringify(output.value);
+                : stringifyWithBigIntAndCycles(output.value);
               break;
           }
 
