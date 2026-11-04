@@ -7,6 +7,9 @@ import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { z } from 'zod/v4';
 
@@ -154,7 +157,11 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     }
     close(): void {}
   }
-  return { ...actual, SandboxChannel: FakeSandboxChannel };
+  return {
+    ...actual,
+    SandboxChannel: FakeSandboxChannel,
+    readMacOSKeychainPassword: vi.fn(async () => undefined),
+  };
 });
 
 vi.mock('ws', () => ({ WebSocket: wsMock.FakeWebSocket }));
@@ -321,7 +328,31 @@ async function startWithFakeBridgeSocket(
 }
 
 describe('createClaudeCode adapter', () => {
-  beforeEach(() => {
+  let homeDirectory: string;
+
+  beforeEach(async () => {
+    homeDirectory = await mkdtemp(join(tmpdir(), 'claude-code-harness-'));
+    vi.stubEnv('HOME', homeDirectory);
+    vi.stubEnv('USERPROFILE', homeDirectory);
+    vi.stubEnv('CLAUDE_CONFIG_DIR', homeDirectory);
+    for (const name of [
+      'AI_GATEWAY_API_KEY',
+      'VERCEL_OIDC_TOKEN',
+      'ANTHROPIC_API_KEY',
+      'ANTHROPIC_AUTH_TOKEN',
+      'CLAUDE_CODE_OAUTH_TOKEN',
+      'ANTHROPIC_BASE_URL',
+    ]) {
+      vi.stubEnv(name, undefined);
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        throw new Error(
+          'Unexpected network request in Claude Code adapter test',
+        );
+      }),
+    );
     sentMessages.length = 0;
     openCalls.length = 0;
     reconnects.length = 0;
@@ -333,9 +364,12 @@ describe('createClaudeCode adapter', () => {
     wsMock.reset();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    await rm(homeDirectory, { recursive: true, force: true });
   });
 
   it('declares the harness id and builtin tools', () => {
