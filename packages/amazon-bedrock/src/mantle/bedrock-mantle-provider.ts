@@ -213,7 +213,7 @@ export function createBedrockMantle(
         'bedrock-mantle',
       );
 
-  const getBaseURL = (): string =>
+  const getBaseURL = (modelId: string): string =>
     withoutTrailingSlash(
       options.baseURL ??
         `https://bedrock-mantle.${loadSetting({
@@ -221,7 +221,12 @@ export function createBedrockMantle(
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
-        })}.api.aws/v1`,
+        })}.api.aws/${
+          // Mantle serves these models under its separate OpenAI route.
+          /^(?:openai\.gpt-(?!oss-)|google\.gemma-4|xai\.)/.test(modelId)
+            ? 'openai/v1'
+            : 'v1'
+        }`,
     ) ?? 'https://bedrock-mantle.us-east-1.api.aws/v1';
 
   const getHeaders = (): Record<string, string | undefined> =>
@@ -230,8 +235,8 @@ export function createBedrockMantle(
       `ai-sdk/amazon-bedrock/${VERSION}`,
     );
 
-  const url = ({ path }: { path: string; modelId: string }): string =>
-    `${getBaseURL()}${path}`;
+  const url = ({ path, modelId }: { path: string; modelId: string }): string =>
+    `${getBaseURL(modelId)}${path}`;
 
   const createChatModel = (modelId: BedrockMantleChatModelId) =>
     new OpenAIChatLanguageModel(modelId, {
