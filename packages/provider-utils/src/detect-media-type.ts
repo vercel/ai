@@ -341,17 +341,16 @@ export function detectMediaType({
     });
   }
 
-  if (!Object.hasOwn(topLevelSignatureTables, topLevelType)) {
+  if (
+    !Object.prototype.hasOwnProperty.call(topLevelSignatureTables, topLevelType)
+  ) {
     return undefined;
   }
 
-  const signatures = topLevelSignatureTables[topLevelType as TopLevelMediaType];
-
-  if (signatures === undefined) {
-    return undefined;
-  }
-
-  return detectMediaTypeBySignatures({ data, signatures });
+  return detectMediaTypeBySignatures({
+    data,
+    signatures: topLevelSignatureTables[topLevelType as TopLevelMediaType],
+  });
 }
 
 /**
