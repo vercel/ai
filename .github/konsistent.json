@@ -192,8 +192,11 @@
           "description": "The harness layer main entrypoint must export the entire HarnessV1 spec.",
           "for": { "files": ["src/index.ts"] },
           "must": {
-            "exportValues": [{ "name": "*", "from": "./v1" }],
-            "exportValuesFrom": ["./v1", "./errors/*"]
+            "exportValues": [
+              { "name": "*", "from": "./v1" },
+              { "name": "*", "from": "./v2" }
+            ],
+            "exportValuesFrom": ["./v1", "./v2", "./errors/*"]
           },
           "mustNot": {
             "exportValuesFrom": [
@@ -229,7 +232,9 @@
               "../src/utils",
               "../src/utils/*",
               "../src/v1",
-              "../src/v1/*"
+              "../src/v1/*",
+              "../src/v2",
+              "../src/v2/*"
             ],
             "exportTypesFrom": [
               "../src/bridge",
@@ -237,7 +242,9 @@
               "../src/utils",
               "../src/utils/*",
               "../src/v1",
-              "../src/v1/*"
+              "../src/v1/*",
+              "../src/v2",
+              "../src/v2/*"
             ]
           }
         },
@@ -256,7 +263,9 @@
               "../src/utils",
               "../src/utils/*",
               "../src/v1",
-              "../src/v1/*"
+              "../src/v1/*",
+              "../src/v2",
+              "../src/v2/*"
             ],
             "exportTypesFrom": [
               "../src/agent",
@@ -264,7 +273,9 @@
               "../src/utils",
               "../src/utils/*",
               "../src/v1",
-              "../src/v1/*"
+              "../src/v1/*",
+              "../src/v2",
+              "../src/v2/*"
             ]
           }
         },
@@ -283,7 +294,9 @@
               "../src/bridge",
               "../src/bridge/*",
               "../src/v1",
-              "../src/v1/*"
+              "../src/v1/*",
+              "../src/v2",
+              "../src/v2/*"
             ],
             "exportTypesFrom": [
               "../src/agent",
@@ -291,7 +304,9 @@
               "../src/bridge",
               "../src/bridge/*",
               "../src/v1",
-              "../src/v1/*"
+              "../src/v1/*",
+              "../src/v2",
+              "../src/v2/*"
             ]
           }
         }
