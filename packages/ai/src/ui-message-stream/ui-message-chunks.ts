@@ -7,8 +7,10 @@ import {
 import { jsonValueSchema } from '../types/json-value';
 import type { FinishReason } from '../types/language-model';
 import type {
+  FileUIPart,
   InferUIMessageData,
   InferUIMessageMetadata,
+  TextUIPart,
   UIDataTypes,
   UIMessage,
 } from '../ui/ui-messages';
@@ -172,6 +174,27 @@ export const uiMessageChunkSchema = lazySchema(() =>
         url: z.string(),
         mediaType: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
+      }),
+      z.looseObject({
+        type: z.literal('steering-message'),
+        id: z.string(),
+        parts: z.array(
+          z.union([
+            z.looseObject({
+              type: z.literal('text'),
+              text: z.string(),
+              providerMetadata: providerMetadataSchema.optional(),
+            }),
+            z.looseObject({
+              type: z.literal('file'),
+              mediaType: z.string(),
+              url: z.string(),
+              filename: z.string().optional(),
+              providerReference: z.record(z.string(), z.string()).optional(),
+              providerMetadata: providerMetadataSchema.optional(),
+            }),
+          ]),
+        ),
       }),
       z.looseObject({
         type: z.custom<`data-${string}`>(
@@ -388,6 +411,14 @@ export type UIMessageChunk<
       providerMetadata?: ProviderMetadata;
     }
   | DataUIMessageChunk<DATA_TYPES>
+  | {
+      /**
+       * Experimental. A user message that was added to the run with steering.
+       */
+      type: 'steering-message';
+      id: string;
+      parts: Array<TextUIPart | FileUIPart>;
+    }
   | {
       type: 'start-step';
     }
