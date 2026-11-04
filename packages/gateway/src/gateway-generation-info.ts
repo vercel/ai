@@ -102,8 +102,8 @@ const gatewayGenerationInfoResponseSchema = lazySchema(() =>
             id: z.string(),
             total_cost: z.number(),
             market_cost: z.number().nullish(),
-            surcharge_cost: z.number(),
-            gateway_cost: z.number(),
+            surcharge_cost: z.number().nullish(),
+            gateway_cost: z.number().nullish(),
             upstream_inference_cost: z.number(),
             usage: z.number(),
             created_at: z.string(),
@@ -144,8 +144,10 @@ const gatewayGenerationInfoResponseSchema = lazySchema(() =>
               ...rest,
               totalCost: total_cost,
               ...(market_cost != null ? { marketCost: market_cost } : {}),
-              surchargeCost: surcharge_cost,
-              gatewayCost: gateway_cost,
+              ...(surcharge_cost != null
+                ? { surchargeCost: surcharge_cost }
+                : {}),
+              ...(gateway_cost != null ? { gatewayCost: gateway_cost } : {}),
               upstreamInferenceCost: upstream_inference_cost,
               createdAt: created_at,
               isByok: is_byok,

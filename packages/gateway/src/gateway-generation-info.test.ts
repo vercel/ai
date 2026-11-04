@@ -124,6 +124,9 @@ describe('GatewayGenerationInfoFetcher', () => {
       });
 
       expect('total_cost' in result).toBe(false);
+      expect('market_cost' in result).toBe(false);
+      expect('surcharge_cost' in result).toBe(false);
+      expect('gateway_cost' in result).toBe(false);
       expect('is_byok' in result).toBe(false);
       expect('provider_name' in result).toBe(false);
       expect('created_at' in result).toBe(false);
@@ -269,6 +272,54 @@ describe('GatewayGenerationInfoFetcher', () => {
       expect(result.isByok).toBe(true);
       expect(result.upstreamInferenceCost).toBe(0.0009);
       expect(result.providerName).toBe('anthropic');
+    });
+
+    it.each([undefined, null])(
+      'should accept an unavailable cost breakdown (%s)',
+      async value => {
+        server.urls['https://api.example.com/*'].response = {
+          type: 'json-value',
+          body: {
+            data: {
+              ...mockGenerationResponse.data,
+              market_cost: value,
+              surcharge_cost: value,
+              gateway_cost: value,
+            },
+          },
+        };
+
+        const result = await createFetcher().getGenerationInfo({
+          id: mockGenerationResponse.data.id,
+        });
+
+        expect(result.totalCost).toBe(mockGenerationResponse.data.total_cost);
+        expect(result).not.toHaveProperty('marketCost');
+        expect(result).not.toHaveProperty('surchargeCost');
+        expect(result).not.toHaveProperty('gatewayCost');
+      },
+    );
+
+    it('should preserve zero cost values', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: {
+          data: {
+            ...mockGenerationResponse.data,
+            market_cost: 0,
+            surcharge_cost: 0,
+            gateway_cost: 0,
+          },
+        },
+      };
+
+      const result = await createFetcher().getGenerationInfo({
+        id: mockGenerationResponse.data.id,
+      });
+
+      expect(result.marketCost).toBe(0);
+      expect(result.surchargeCost).toBe(0);
+      expect(result.gatewayCost).toBe(0);
     });
 
     it.each([undefined, null])(
