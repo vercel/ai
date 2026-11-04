@@ -207,6 +207,49 @@ The `bankId` identifies the memory store and is typically a user ID. In multi-us
 
 See the [Hindsight provider documentation](/providers/community-providers/hindsight) for full setup and configuration.
 
+### MemoFS
+
+[MemoFS](https://docs.memofs.dev) provides open-source, file-first persistent memory with hybrid retrieval (BM25 + semantic vector embeddings + fuzzy matching) and dynamic prompt context builders.
+
+```bash
+pnpm add @memofs/adapter-ai-sdk @memofs/core
+```
+
+```ts
+import { MemoFS } from '@memofs/core';
+import { createNodeFsMemoryStore } from '@memofs/core/node-fs';
+import {
+  createAiSdkRuntimeFromMemofs,
+  buildRuntimeMemoryToolDefinition,
+} from '@memofs/adapter-ai-sdk';
+import { ToolLoopAgent, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const store = createNodeFsMemoryStore({ rootDir: './.memofs' });
+const memo = new MemoFS({ store, projectId: 'demo-app' });
+const runtime = createAiSdkRuntimeFromMemofs(memo);
+
+const memoryTool = buildRuntimeMemoryToolDefinition({
+  runtime,
+  access: { projectId: 'demo-app', userId: 'user-123' },
+  allowWrites: true,
+});
+
+const agent = new ToolLoopAgent({
+  model: openai('gpt-4o'),
+  tools: {
+    memory: tool(memoryTool),
+  },
+  instructions: 'You are a helpful assistant with persistent file-backed memory.',
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+```
+
+See the [MemoFS provider documentation](/providers/community-providers/memofs) for full setup and configuration.
+
 ### MongoDB
 
 [`@mongodb-developer/vercel-ai-memory`](https://www.npmjs.com/package/@mongodb-developer/vercel-ai-memory) provides MongoDB Atlas-backed persistent memory with five structured tiers: **Session**, **Semantic**, **Procedural**, **Episodic**, and **Scratchpad**. Retrieval is powered by Atlas Vector Search using any AI SDK embedding model, with automatic index creation and per-type retention policies.
