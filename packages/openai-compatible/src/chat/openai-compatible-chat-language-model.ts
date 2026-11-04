@@ -375,9 +375,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   }
 
   /**
-   * Builds the Chat Completions request body that `doGenerate` would send,
-   * including `transformRequestBody`, without making a network call.
-   * The body has no `stream` fields. Subclass overrides of `doGenerate` aren't applied.
+   * Builds the body and warnings `doGenerate` would send, without a network call or `stream`
+   * fields. Serialize `body` with `JSON.stringify`, as it can hold `undefined` values.
+   * Call headers, the abort signal and subclass overrides of `doGenerate` aren't applied.
    */
   async prepareRequest(options: LanguageModelV4CallOptions): Promise<{
     body: Record<string, unknown>;
@@ -396,7 +396,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     providerOptions,
   }: {
     body: unknown;
-    /** Selects the providerMetadata key like `doGenerate`. Defaults to the provider name. */
+    /** The request's providerOptions, so the providerMetadata key matches `doGenerate`. Defaults to the provider name. */
     providerOptions?: SharedV4ProviderOptions;
   }): Promise<LanguageModelV4GenerateResult> {
     const response = await validateTypes({
@@ -548,10 +548,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     });
 
     return {
-      content: result.content,
-      finishReason: result.finishReason,
-      usage: result.usage,
-      providerMetadata: result.providerMetadata,
+      ...result,
       request: { body },
       response: {
         ...result.response,
