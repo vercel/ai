@@ -1,3 +1,4 @@
+import { klingaiDocs } from './providers/klingai.mjs';
 import { lumaDocs } from './providers/luma.mjs';
 import { blackForestLabsDocs } from './providers/black-forest-labs.mjs';
 import { replicateDocs } from './providers/replicate.mjs';
@@ -24,6 +25,7 @@ import { formatSupport } from './render-tables.mjs';
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
+  klingaiDocs,
   lumaDocs,
   blackForestLabsDocs,
   replicateDocs,

@@ -1,4 +1,9 @@
 import {
+  getKlingAIVideoModelEntry,
+  getKlingAIApiModelName,
+  type KlingAIVideoMode,
+} from './klingai-model-catalog';
+import {
   AISDKError,
   NoSuchModelError,
   type Experimental_VideoModelV4 as VideoModelV4,
@@ -31,8 +36,6 @@ import {
   type KlingAIVideoModelOptions,
 } from './klingai-video-model-options';
 import type { KlingAIVideoModelId } from './klingai-video-settings';
-
-type KlingAIVideoMode = 't2v' | 'i2v' | 'mi2v' | 'motion-control';
 
 function fileToImageString(file: VideoModelV4File): string {
   if (file.type === 'url') {
@@ -134,9 +137,8 @@ function resolveImageTail(
  * Detects the video generation mode from the model ID suffix.
  */
 function detectMode(modelId: string): KlingAIVideoMode {
-  if (modelId.endsWith('-t2v')) return 't2v';
-  if (modelId.endsWith('-i2v')) return 'i2v';
-  if (modelId.endsWith('-motion-control')) return 'motion-control';
+  const mode = getKlingAIVideoModelEntry(modelId).requestConfig.video.mode;
+  if (mode != null) return mode;
   throw new NoSuchModelError({ modelId, modelType: 'videoModel' });
 }
 
@@ -149,27 +151,6 @@ const modeEndpointMap: Record<KlingAIVideoMode, string> = {
   mi2v: '/v1/videos/multi-image2video',
   'motion-control': '/v1/videos/motion-control',
 };
-
-/**
- * Derives the KlingAI API `model_name` from the SDK model ID.
- * Strips the mode suffix and converts dots to hyphens.
- *
- * Examples:
- * - 'kling-v2.6-t2v' → 'kling-v2-6'
- * - 'kling-v2.1-master-i2v' → 'kling-v2-1-master'
- * - 'kling-v1-t2v' → 'kling-v1'
- * - 'kling-v3.0-t2v' → 'kling-v3'
- */
-function getApiModelName(modelId: string, mode: KlingAIVideoMode): string {
-  const suffix =
-    mode === 'motion-control'
-      ? '-motion-control'
-      : mode === 'mi2v'
-        ? '-i2v'
-        : `-${mode}`;
-  const baseName = modelId.slice(0, -suffix.length);
-  return baseName.replace(/\.0$/, '').replace(/\./g, '-');
-}
 
 /**
  * Known provider option keys that are handled explicitly and should not be
@@ -479,7 +460,7 @@ export class KlingAIVideoModel implements VideoModelV4 {
   ): Record<string, unknown> {
     const mode = 't2v' as const;
     const body: Record<string, unknown> = {
-      model_name: getApiModelName(this.modelId, mode),
+      model_name: getKlingAIApiModelName(this.modelId, mode),
     };
 
     if (options.prompt != null) {
@@ -566,7 +547,7 @@ export class KlingAIVideoModel implements VideoModelV4 {
   ): Record<string, unknown> {
     const mode = 'i2v' as const;
     const body: Record<string, unknown> = {
-      model_name: getApiModelName(this.modelId, mode),
+      model_name: getKlingAIApiModelName(this.modelId, mode),
     };
 
     if (options.prompt != null) {
@@ -674,7 +655,7 @@ export class KlingAIVideoModel implements VideoModelV4 {
     warnings: SharedV4Warning[],
   ): Record<string, unknown> {
     const body: Record<string, unknown> = {
-      model_name: getApiModelName(this.modelId, 'mi2v'),
+      model_name: getKlingAIApiModelName(this.modelId, 'mi2v'),
       image_list: referenceImages.map(image => ({
         image: fileToImageString(image),
       })),
@@ -752,7 +733,7 @@ export class KlingAIVideoModel implements VideoModelV4 {
 
     const mode = 'motion-control' as const;
     const body: Record<string, unknown> = {
-      model_name: getApiModelName(this.modelId, mode),
+      model_name: getKlingAIApiModelName(this.modelId, mode),
       video_url: klingaiOptions.videoUrl,
       character_orientation: klingaiOptions.characterOrientation,
       mode: klingaiOptions.mode,
