@@ -481,3 +481,65 @@ it('warns when explicit language configuration overrides legacy fields', async (
       'Ignored because languageConfig is provided; remove this deprecated option.',
   });
 });
+
+describe('legacy vocabulary validation', () => {
+  beforeEach(() => prepareJsonFixtureResponse());
+  it('filters invalid legacy entries without crashing', async () => {
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mp3',
+      providerOptions: {
+        gladia: {
+          customVocabulary: [
+            'Gladia',
+            { value: 'AI SDK', intensity: 0.5 },
+            null,
+            42,
+            {},
+            { value: 3 },
+          ],
+        },
+      },
+    });
+    expect(
+      (await server.calls[1].requestBodyJson).custom_vocabulary_config
+        .vocabulary,
+    ).toEqual(['Gladia', { value: 'AI SDK', intensity: 0.5 }]);
+    expect(result.warnings).toEqual([
+      {
+        type: 'deprecated',
+        setting: 'customVocabulary',
+        message:
+          'Use customVocabulary: true with customVocabularyConfig instead of an array.',
+      },
+      {
+        type: 'other',
+        message:
+          'Invalid customVocabulary entries were ignored; use strings or objects with a string value.',
+      },
+    ]);
+  });
+  it('warns when an explicit vocabulary overrides the legacy array', async () => {
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mp3',
+      providerOptions: {
+        gladia: {
+          customVocabulary: ['Legacy'],
+          customVocabularyConfig: {
+            vocabulary: ['Modern'],
+            defaultIntensity: 0.4,
+          },
+        },
+      },
+    });
+    expect(
+      (await server.calls[1].requestBodyJson).custom_vocabulary_config,
+    ).toEqual({ vocabulary: ['Modern'], default_intensity: 0.4 });
+    expect(result.warnings).toContainEqual({
+      type: 'other',
+      message:
+        'customVocabularyConfig.vocabulary overrides the deprecated customVocabulary array.',
+    });
+  });
+});

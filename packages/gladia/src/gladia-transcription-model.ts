@@ -123,7 +123,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
           });
       }
       const { customVocabulary, vocabulary: customVocabularyFromArray } =
-        resolveCustomVocabulary(gladiaOptions);
+        resolveCustomVocabulary(gladiaOptions, warnings);
 
       body.custom_vocabulary = customVocabulary ?? undefined;
       body.callback = gladiaOptions.callback ?? undefined;
