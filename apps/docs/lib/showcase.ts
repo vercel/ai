@@ -68,6 +68,11 @@ export const showcaseProjects: ShowcaseProject[] = [
     image: '2txt.png',
   },
   {
+    name: 'Juno',
+    image: 'juno.png',
+    link: 'https://junocompanion.com',
+  },
+  {
     name: 'Vercel AI templates',
     link: 'https://vercel.com/templates?type=ai',
     image: 'templates.png',
