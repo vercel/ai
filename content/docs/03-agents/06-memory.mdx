@@ -256,6 +256,42 @@ Session memory supports two modes: **tool-driven** (the LLM decides when to read
 
 MongoDB memory works with any AI SDK model and embedding provider, with no vendor lock-in beyond MongoDB Atlas.
 
+### GoodMem
+
+The [GoodMem](https://goodmem.ai) provider gives AI SDK agents persistent memory, stored in organized spaces and searched by meaning with optional reranking. It runs on GoodMem Cloud ([sign up](https://cloud.goodmem.ai/login), free 14-day trial) or fully on-premises, with embedding models you choose.
+
+```bash
+pnpm add @pairsystems/goodmem-vercel-ai-sdk
+```
+
+```ts
+__PROVIDER_IMPORT__;
+import { goodmemTools } from '@pairsystems/goodmem-vercel-ai-sdk';
+import { ToolLoopAgent } from 'ai';
+
+// Reads GOODMEM_BASE_URL and GOODMEM_API_KEY from the environment.
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: goodmemTools({ spaceId: 'space-id' }),
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+```
+
+The tools give the model `searchMemories` and `addMemory` operations. You can also wrap any AI SDK model so relevant memories are retrieved and injected automatically:
+
+```ts
+import { withGoodmem } from '@pairsystems/goodmem-vercel-ai-sdk';
+
+const model = withGoodmem(__MODEL__, { spaceId: 'space-id' });
+```
+
+Or manage memories explicitly with `addMemories` and `retrieveMemories`. GoodMem works with any AI SDK provider.
+
+See the [GoodMem provider documentation](/providers/community-providers/goodmem) for full setup and configuration.
+
 **When to use memory providers**: these providers are a good fit when you want memory without building any storage infrastructure. The tradeoff is that the provider controls memory behavior, so you have less visibility into what gets stored and how it is retrieved. You also take on a dependency on an external service.
 
 ## Custom Tool
