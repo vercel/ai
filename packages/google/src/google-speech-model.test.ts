@@ -329,6 +329,45 @@ describe('doGenerate', () => {
     });
   });
 
+  it.each([
+    { language: undefined, multi: false },
+    { language: undefined, multi: true },
+    { language: 'auto', multi: false },
+    { language: 'auto', multi: true },
+  ])(
+    'omits an automatic language without warnings (%j)',
+    async ({ language, multi }) => {
+      prepareJsonResponse();
+      const result = await model.doGenerate({
+        text: multi ? 'Joe: Hello.' : 'Hello.',
+        language,
+        ...(multi
+          ? {
+              providerOptions: {
+                google: {
+                  multiSpeakerVoiceConfig: {
+                    speakerVoiceConfigs: [
+                      {
+                        speaker: 'Joe',
+                        voiceConfig: {
+                          prebuiltVoiceConfig: { voiceName: 'Kore' },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            }
+          : {}),
+      });
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.generationConfig.speechConfig).not.toHaveProperty(
+        'languageCode',
+      );
+      expect(result.warnings).toEqual([]);
+    },
+  );
+
   it('should prepend instructions to the prompt text', async () => {
     prepareJsonResponse();
 

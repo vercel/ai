@@ -128,14 +128,15 @@ export class GoogleSpeechModel implements SpeechModelV4 {
 
     // Multi-speaker (provider option) takes precedence over the single voice.
     const multiSpeakerVoiceConfig = googleOptions?.multiSpeakerVoiceConfig;
+    const languageCode = language === 'auto' ? undefined : language;
     const speechConfig = multiSpeakerVoiceConfig
       ? {
           multiSpeakerVoiceConfig,
-          ...(language != null && { languageCode: language }),
+          ...(languageCode != null && { languageCode }),
         }
       : {
           voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } },
-          ...(language != null && { languageCode: language }),
+          ...(languageCode != null && { languageCode }),
         };
 
     // Older models expect directions in the prompt. Prepending them to a
