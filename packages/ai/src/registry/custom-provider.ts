@@ -12,6 +12,10 @@ import {
 } from '@ai-sdk/provider';
 import { asProviderV3 } from '../model/as-provider-v3';
 
+type ProviderWithOptionalVideoModel = {
+  videoModel?: (modelId: string) => Experimental_VideoModelV3;
+};
+
 /**
  * Creates a custom provider with specified language models, text embedding models, image models, transcription models, speech models, and an optional fallback provider.
  *
@@ -153,11 +157,11 @@ export function customProvider<
         return videoModels[modelId];
       }
 
-      // TODO AI SDK v7
-      // @ts-expect-error - videoModel support is experimental
-      const videoModel = fallbackProvider?.videoModel;
-      if (videoModel) {
-        return videoModel(modelId);
+      const provider = fallbackProviderArg as
+        | ProviderWithOptionalVideoModel
+        | undefined;
+      if (provider?.videoModel) {
+        return provider.videoModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'videoModel' });
