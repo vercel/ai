@@ -12,6 +12,15 @@
  * and the whole `usage` object is omitted when nothing is observable.
  */
 export type RealtimeModelV4Usage = {
+  /** Gross input tokens across all reported modalities; includes cached tokens. */
+  inputTokens?: number;
+
+  /** Gross output tokens across all reported modalities. */
+  outputTokens?: number;
+
+  /** Cached portion of gross input tokens, when the provider reports a total. */
+  cachedInputTokens?: number;
+
   /**
    * Input text tokens (includes any cached text tokens).
    */
@@ -45,5 +54,5 @@ export type RealtimeModelV4Usage = {
   /**
    * Audio duration in seconds. Populated for duration-billed transcription.
    */
-  audioSeconds?: number;
+  seconds?: number;
 };

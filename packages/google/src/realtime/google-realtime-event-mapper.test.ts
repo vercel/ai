@@ -1790,6 +1790,32 @@ describe('buildGoogleSessionConfig', () => {
 });
 
 describe('GoogleRealtimeEventMapper usage', () => {
+  it('preserves totals and known zeros without inventing missing modality counts', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const event = mapper.parseServerEvent({
+      usageMetadata: {
+        promptTokenCount: 10,
+        responseTokenCount: 0,
+        promptTokensDetails: [
+          { modality: 'AUDIO' },
+          { modality: 'TEXT', tokenCount: 0 },
+          { modality: 'IMAGE', tokenCount: 10 },
+        ],
+        responseTokensDetails: [{ modality: 'AUDIO', tokenCount: null }],
+      },
+    });
+    expect(event).toMatchObject({
+      type: 'custom',
+      usage: { inputTokens: 10, outputTokens: 0, inputTextTokens: 0 },
+    });
+    expect('usage' in event && event.usage).not.toHaveProperty(
+      'inputAudioTokens',
+    );
+    expect('usage' in event && event.usage).not.toHaveProperty(
+      'outputAudioTokens',
+    );
+  });
+
   it('attaches per-modality usage to response-done on turnComplete', () => {
     const mapper = new GoogleRealtimeEventMapper();
     const events = mapper.parseServerEvent({
@@ -1811,12 +1837,14 @@ describe('GoogleRealtimeEventMapper usage', () => {
       {
         "inputAudioTokens": 50,
         "inputTextTokens": 10,
+        "inputTokens": 60,
         "outputAudioTokens": 200,
+        "outputTokens": 200,
       }
     `);
   });
 
-  it('falls back to aggregate counts as text when modality details are absent', () => {
+  it('preserves aggregate counts without inventing modality details', () => {
     const mapper = new GoogleRealtimeEventMapper();
     const events = mapper.parseServerEvent({
       serverContent: { turnComplete: true },
@@ -1827,8 +1855,8 @@ describe('GoogleRealtimeEventMapper usage', () => {
     const done = list.find(e => e.type === 'response-done');
     expect(done?.type === 'response-done' && done.usage).toMatchInlineSnapshot(`
       {
-        "inputTextTokens": 12,
-        "outputTextTokens": 34,
+        "inputTokens": 12,
+        "outputTokens": 34,
       }
     `);
   });

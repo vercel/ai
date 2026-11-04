@@ -11,15 +11,19 @@ type XaiRealtimeTokenDetails = {
 };
 
 type XaiRealtimeInputTokenDetails = XaiRealtimeTokenDetails & {
+  cached_tokens?: number;
   cached_tokens_details?: XaiRealtimeTokenDetails;
 };
 
 type XaiRealtimeResponseUsage = {
+  input_tokens?: number;
+  output_tokens?: number;
   input_token_details?: XaiRealtimeInputTokenDetails;
   output_token_details?: XaiRealtimeTokenDetails;
 };
 
 type XaiRealtimeTranscriptionUsage = {
+  input_tokens?: number;
   type?: string;
   seconds?: number;
   output_tokens?: number;
@@ -269,6 +273,9 @@ function mapResponseUsage(
   const cached = input?.cached_tokens_details;
 
   return compactUsage({
+    inputTokens: usage.input_tokens,
+    outputTokens: usage.output_tokens,
+    cachedInputTokens: input?.cached_tokens,
     inputAudioTokens: input?.audio_tokens,
     inputTextTokens: input?.text_tokens,
     outputAudioTokens: output?.audio_tokens,
@@ -288,11 +295,13 @@ function mapTranscriptionUsage(
   if (usage == null) return undefined;
 
   if (usage.type === 'duration') {
-    return usage.seconds != null ? { audioSeconds: usage.seconds } : undefined;
+    return usage.seconds != null ? { seconds: usage.seconds } : undefined;
   }
 
   const input = usage.input_token_details;
   return compactUsage({
+    inputTokens: usage.input_tokens,
+    outputTokens: usage.output_tokens,
     inputAudioTokens: input?.audio_tokens,
     inputTextTokens: input?.text_tokens,
     outputTextTokens: usage.output_tokens,

@@ -504,13 +504,9 @@ export class GoogleRealtimeEventMapper {
  * `generateContent` response (see google-language-model.ts). Do not "align"
  * these to `candidates*` — they are different wire shapes.
  *
- * Caveats (the normalized usage type only has text/audio buckets):
- * - Only AUDIO and TEXT modality entries are summed. Other modalities (e.g.
- *   IMAGE/VIDEO from screen-share or video input) are dropped, so for such
- *   sessions the normalized input total will be lower than what Google billed.
- * - When details are absent we fall back to the aggregate counts as TEXT. On an
- *   audio turn that omits details this misclassifies audio tokens as text, which
- *   matters to a consumer applying per-modality pricing.
+ * Gross totals preserve provider counts even when modality details are absent
+ * or contain modalities without a dedicated normalized bucket. Never guess a
+ * text/audio split from those totals.
  */
 function mapGoogleUsage(
   usageMetadata: GoogleRealtimeUsageMetadata | undefined,
@@ -521,15 +517,11 @@ function mapGoogleUsage(
   const output = sumByModality(usageMetadata.responseTokensDetails);
 
   return compactUsage({
-    inputTextTokens:
-      usageMetadata.promptTokensDetails != null
-        ? input.text
-        : usageMetadata.promptTokenCount,
+    inputTokens: usageMetadata.promptTokenCount,
+    outputTokens: usageMetadata.responseTokenCount,
+    inputTextTokens: input.text,
     inputAudioTokens: input.audio,
-    outputTextTokens:
-      usageMetadata.responseTokensDetails != null
-        ? output.text
-        : usageMetadata.responseTokenCount,
+    outputTextTokens: output.text,
     outputAudioTokens: output.audio,
   });
 }
@@ -542,7 +534,8 @@ function sumByModality(details: GoogleRealtimeTokenDetail[] | undefined): {
   if (details == null) return {};
   const totals: { text?: number; audio?: number } = {};
   for (const detail of details) {
-    const count = detail.tokenCount ?? 0;
+    const count = detail.tokenCount;
+    if (count == null) continue;
     const modality = detail.modality?.toUpperCase();
     if (modality === 'AUDIO') {
       totals.audio = (totals.audio ?? 0) + count;

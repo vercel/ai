@@ -2,6 +2,37 @@ import { describe, expect, it } from 'vitest';
 import { parseXaiRealtimeServerEvent } from './xai-realtime-event-mapper';
 
 describe('parseXaiRealtimeServerEvent usage', () => {
+  it('retains duration usage on transcription completions', () => {
+    const event = parseXaiRealtimeServerEvent({
+      type: 'conversation.item.input_audio_transcription.completed',
+      item_id: 'item',
+      transcript: 'hello',
+      usage: { type: 'duration', seconds: 2 },
+    });
+    expect(
+      event.type === 'input-transcription-completed' && event.usage,
+    ).toEqual({ seconds: 2 });
+  });
+
+  it('retains gross totals without inventing modality splits', () => {
+    const event = parseXaiRealtimeServerEvent({
+      type: 'response.done',
+      response: {
+        id: 'response',
+        usage: {
+          input_tokens: 10,
+          output_tokens: 0,
+          input_token_details: { cached_tokens: 4, image_tokens: 10 },
+        },
+      },
+    });
+    expect(event.type === 'response-done' && event.usage).toEqual({
+      inputTokens: 10,
+      outputTokens: 0,
+      cachedInputTokens: 4,
+    });
+  });
+
   it('extracts gross input/output and separate cached tokens from response.done', () => {
     const event = parseXaiRealtimeServerEvent({
       type: 'response.done',

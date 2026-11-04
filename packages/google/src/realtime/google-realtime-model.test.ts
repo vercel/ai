@@ -37,7 +37,13 @@ describe('GoogleRealtimeModel', () => {
     expect(
       Array.isArray(firstDone) ? firstDone : [firstDone],
     ).not.toContainEqual(expect.objectContaining({ usage: expect.anything() }));
-    first({ serverContent: { modelTurn: { parts: [{ text: 'next' }] } } });
+    first({
+      serverContent: {
+        modelTurn: { parts: [{ text: 'next' }] },
+        turnComplete: true,
+      },
+    });
+    first({ serverContent: { modelTurn: { parts: [{ text: 'third' }] } } });
     const secondTurn = second({
       serverContent: { modelTurn: { parts: [{ text: 'independent' }] } },
     });

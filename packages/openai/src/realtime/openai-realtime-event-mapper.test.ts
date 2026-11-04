@@ -6,6 +6,25 @@ import {
 } from './openai-realtime-event-mapper';
 
 describe('parseOpenAIRealtimeServerEvent usage', () => {
+  it('retains gross totals without inventing modality splits', () => {
+    const event = parseOpenAIRealtimeServerEvent({
+      type: 'response.done',
+      response: {
+        id: 'response',
+        usage: {
+          input_tokens: 10,
+          output_tokens: 0,
+          input_token_details: { cached_tokens: 4, image_tokens: 10 },
+        },
+      },
+    });
+    expect(event.type === 'response-done' && event.usage).toEqual({
+      inputTokens: 10,
+      outputTokens: 0,
+      cachedInputTokens: 4,
+    });
+  });
+
   it('extracts gross input/output and separate cached tokens from response.done', () => {
     const event = parseOpenAIRealtimeServerEvent({
       type: 'response.done',
@@ -60,7 +79,7 @@ describe('parseOpenAIRealtimeServerEvent usage', () => {
     expect(event.type === 'input-transcription-completed' && event.usage)
       .toMatchInlineSnapshot(`
       {
-        "audioSeconds": 3.5,
+        "seconds": 3.5,
       }
     `);
   });
