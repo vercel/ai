@@ -14,6 +14,7 @@ import type {
 } from 'ai';
 import type { HarnessAgentToolApprovalConfiguration } from './harness-agent-settings';
 import type {
+  HarnessV1,
   HarnessV1BuiltinToolFiltering,
   HarnessV1NetworkSandboxSession,
   HarnessV1PromptControl,
@@ -24,7 +25,6 @@ import type {
 } from '../v1';
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import type {
-  HarnessAgentAdapter,
   HarnessAgentAdapterSession,
   HarnessAgentContinueTurnState,
   HarnessAgentPendingToolApproval,
@@ -93,7 +93,7 @@ export class HarnessAgentSession {
    */
   readonly sessionId: string;
 
-  private readonly harness: HarnessAgentAdapter;
+  private readonly harness: HarnessV1;
   private readonly sessionWorkDir: string;
   private readonly ownsSandboxLifecycle: boolean;
   private underlyingSession: HarnessAgentAdapterSession | undefined;
@@ -136,7 +136,7 @@ export class HarnessAgentSession {
 
   constructor(options: {
     sessionId: string;
-    harness: HarnessAgentAdapter;
+    harness: HarnessV1;
     underlyingSession: HarnessAgentAdapterSession;
     sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
     ownsSandboxLifecycle?: boolean;

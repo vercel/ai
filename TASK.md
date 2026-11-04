@@ -13,7 +13,7 @@ The steps are below:
 1. [x] Define the most foundational versions of the `HarnessV2` contract types in `packages/harness/src/v2/`, and export them from the package's main entry point (next to the `HarnessV1` types).
    - Never import any `v1/` file from any of the new `v2/` files. Cross-references are strictly prohibited.
    - For types that fully or partly match between V1 and V2, still redeclare them.
-2. [ ] Scaffold a minimal new implementation of the `HarnessAgent` class in `packages/harness/src/agent/v2/harness-agent.ts` that rejects every existing setting but `harness` and `tools`.
+2. [x] Scaffold a minimal new implementation of the `HarnessAgent` class in `packages/harness/src/agent/v2/harness-agent.ts` that rejects every existing setting but `harness` and `tools`.
    - It must also be called `HarnessAgent` (no alternate name!).
    - It must use the existing `HarnessAgentSettings` type directly (no redeclaring that type!).
    - It must have the same generics as the existing (V1) `HarnessAgent` class.
@@ -108,6 +108,7 @@ You must adhere to these at every single step of this task.
   - In those two files, you are allowed to extend (or in rare cases modify) the constructor input handling (basically what comes from the `HarnessAgentSettings` type) and check whether the given `harness` is a `HarnessV2`.
   - In the constructor and every single method, make the `harness` check (and other relevant checks) right in the very beginning, and if so route to the `v2` code you're writing.
   - The existing `HarnessAgent` class will basically become a proxy that conditionally passes through to the `v2` reimplementation of `HarnessAgent`: The OG `HarnessAgent` constructor`will internally conditionally create an instance of the new`HarnessAgent` implementation, and then the other methods will also proxy through to that if it's set.
+  - Inside the `packages/harness/src/agent/v2` directory, never refer to this `HarnessAgent` class and the other V2-specific `HarnessAgent*` symbols as V2. Within that directory, refer to them as if they're the only version. For the actual `HarnessV2` spec, this does not apply, that one is _explicitly_ V2, as the names indicate.
   - Again, we want to keep changes to existing code minimal.
 - All code in `packages/harness/src/agent/v2` must use the harness spec from `packages/harness/src/v2`. It must NEVER import from `packages/harness/src/v1`.
 - DO NOT touch `packages/harness/src/v1` and `packages/harness/src/agent/internal` at all.

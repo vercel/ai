@@ -309,6 +309,23 @@
               "../src/v2/*"
             ]
           }
+        },
+        {
+          "name": "harness-layer-agent-v2-must-use-v2-spec",
+          "description": "The harness layer agent v2 entrypoint must use the v2 spec.",
+          "for": { "files": ["src/agent/v2/*.ts"] },
+          "mustNot": {
+            "importValuesFrom": [
+              "../*",
+              "!../harness-agent-settings",
+              "!../../v2/*"
+            ],
+            "importTypesFrom": [
+              "../*",
+              "!../harness-agent-settings",
+              "!../../v2/*"
+            ]
+          }
         }
       ]
     },
