@@ -1126,10 +1126,12 @@ function anthropicCallerMetadata(
 
 function convertAnthropicMessageMetadata(response: AnthropicResponse) {
   const stopDetails = mapAnthropicStopDetails(response.stop_details);
+  const serviceTier = response.usage.service_tier ?? response.service_tier;
 
   return {
     usage: response.usage as JSONObject,
     stopSequence: response.stop_sequence ?? null,
+    ...(serviceTier != null ? { serviceTier } : {}),
     ...(stopDetails != null ? { stopDetails } : {}),
     ...(response.input_transformations != null
       ? { inputTransformations: response.input_transformations }
