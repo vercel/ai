@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 
 describe('system messages', () => {
   it('should forward system messages', async () => {
-    const result = convertToOpenAIChatMessages({
+    const result = await convertToOpenAIChatMessages({
       prompt: [{ role: 'system', content: 'You are a helpful assistant.' }],
     });
 
@@ -14,7 +14,7 @@ describe('system messages', () => {
   });
 
   it('should convert system messages to developer messages when requested', async () => {
-    const result = convertToOpenAIChatMessages({
+    const result = await convertToOpenAIChatMessages({
       prompt: [{ role: 'system', content: 'You are a helpful assistant.' }],
       systemMessageMode: 'developer',
     });
@@ -24,8 +24,8 @@ describe('system messages', () => {
     ]);
   });
 
-  it('should add a prompt cache breakpoint to a system message', () => {
-    const result = convertToOpenAIChatMessages({
+  it('should add a prompt cache breakpoint to a system message', async () => {
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'system',
@@ -52,7 +52,7 @@ describe('system messages', () => {
   });
 
   it('should remove system messages when requested', async () => {
-    const result = convertToOpenAIChatMessages({
+    const result = await convertToOpenAIChatMessages({
       prompt: [{ role: 'system', content: 'You are a helpful assistant.' }],
       systemMessageMode: 'remove',
     });
@@ -63,7 +63,7 @@ describe('system messages', () => {
 
 describe('user messages', () => {
   it('should convert messages with only a text part to a string content', async () => {
-    const result = convertToOpenAIChatMessages({
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'user',
@@ -75,9 +75,9 @@ describe('user messages', () => {
     expect(result.messages).toEqual([{ role: 'user', content: 'Hello' }]);
   });
 
-  it('should add prompt cache breakpoints to supported content blocks', () => {
+  it('should add prompt cache breakpoints to supported content blocks', async () => {
     const promptCacheBreakpoint = { mode: 'explicit' } as const;
-    const result = convertToOpenAIChatMessages({
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'user',
@@ -146,7 +146,7 @@ describe('user messages', () => {
   });
 
   it('should convert messages with image parts', async () => {
-    const result = convertToOpenAIChatMessages({
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'user',
@@ -180,7 +180,7 @@ describe('user messages', () => {
   });
 
   it('should convert messages with Uint8Array image parts to data URLs', async () => {
-    const result = convertToOpenAIChatMessages({
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'user',
@@ -212,7 +212,7 @@ describe('user messages', () => {
   });
 
   it('should add image detail when specified through extension', async () => {
-    const result = convertToOpenAIChatMessages({
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'user',
@@ -252,8 +252,8 @@ describe('user messages', () => {
   });
 
   describe('file parts', () => {
-    it('should throw for unsupported mime types', () => {
-      expect(() =>
+    it('should throw for unsupported mime types', async () => {
+      await expect(
         convertToOpenAIChatMessages({
           prompt: [
             {
@@ -268,11 +268,11 @@ describe('user messages', () => {
             },
           ],
         }),
-      ).toThrow('file part media type application/something');
+      ).rejects.toThrow('file part media type application/something');
     });
 
-    it('should throw for URL data', () => {
-      expect(() =>
+    it('should throw for URL data', async () => {
+      await expect(
         convertToOpenAIChatMessages({
           prompt: [
             {
@@ -290,11 +290,11 @@ describe('user messages', () => {
             },
           ],
         }),
-      ).toThrow('audio file parts with URLs');
+      ).rejects.toThrow('audio file parts with URLs');
     });
 
-    it('should add audio content for audio/wav file parts', () => {
-      const result = convertToOpenAIChatMessages({
+    it('should add audio content for audio/wav file parts', async () => {
+      const result = await convertToOpenAIChatMessages({
         prompt: [
           {
             role: 'user',
@@ -322,8 +322,8 @@ describe('user messages', () => {
       ]);
     });
 
-    it('should add audio content for audio/mpeg file parts', () => {
-      const result = convertToOpenAIChatMessages({
+    it('should add audio content for audio/mpeg file parts', async () => {
+      const result = await convertToOpenAIChatMessages({
         prompt: [
           {
             role: 'user',
@@ -351,8 +351,8 @@ describe('user messages', () => {
       ]);
     });
 
-    it('should add audio content for audio/mp3 file parts', () => {
-      const result = convertToOpenAIChatMessages({
+    it('should add audio content for audio/mp3 file parts', async () => {
+      const result = await convertToOpenAIChatMessages({
         prompt: [
           {
             role: 'user',
@@ -383,7 +383,7 @@ describe('user messages', () => {
     it('should convert messages with PDF file parts', async () => {
       const base64Data = 'AQIDBAU='; // Base64 encoding of pdfData
 
-      const result = convertToOpenAIChatMessages({
+      const result = await convertToOpenAIChatMessages({
         prompt: [
           {
             role: 'user',
@@ -419,7 +419,7 @@ describe('user messages', () => {
     it('should convert messages with binary PDF file parts', async () => {
       const data = Uint8Array.from([1, 2, 3, 4, 5]);
 
-      const result = convertToOpenAIChatMessages({
+      const result = await convertToOpenAIChatMessages({
         prompt: [
           {
             role: 'user',
@@ -453,7 +453,7 @@ describe('user messages', () => {
     });
 
     it('should convert messages with PDF file parts using provider reference', async () => {
-      const result = convertToOpenAIChatMessages({
+      const result = await convertToOpenAIChatMessages({
         prompt: [
           {
             role: 'user',
@@ -487,7 +487,7 @@ describe('user messages', () => {
     });
 
     it('should convert messages with image parts using provider reference', async () => {
-      const result = convertToOpenAIChatMessages({
+      const result = await convertToOpenAIChatMessages({
         prompt: [
           {
             role: 'user',
@@ -521,7 +521,7 @@ describe('user messages', () => {
     });
 
     it('should throw when provider reference does not contain openai', async () => {
-      expect(() =>
+      await expect(
         convertToOpenAIChatMessages({
           prompt: [
             {
@@ -539,7 +539,7 @@ describe('user messages', () => {
             },
           ],
         }),
-      ).toThrow(
+      ).rejects.toThrow(
         "No provider reference found for provider 'openai'. Available providers: anthropic",
       );
     });
@@ -547,7 +547,7 @@ describe('user messages', () => {
     it('should use default filename for PDF file parts when not provided', async () => {
       const base64Data = 'AQIDBAU=';
 
-      const result = convertToOpenAIChatMessages({
+      const result = await convertToOpenAIChatMessages({
         prompt: [
           {
             role: 'user',
@@ -582,7 +582,7 @@ describe('user messages', () => {
     it('should throw error for unsupported file types', async () => {
       const base64Data = 'AQIDBAU=';
 
-      expect(() => {
+      await expect(
         convertToOpenAIChatMessages({
           prompt: [
             {
@@ -597,12 +597,12 @@ describe('user messages', () => {
             },
           ],
           systemMessageMode: 'system',
-        });
-      }).toThrow('file part media type text/plain');
+        }),
+      ).rejects.toThrow('file part media type text/plain');
     });
 
     it('should throw error for file URLs', async () => {
-      expect(() => {
+      await expect(
         convertToOpenAIChatMessages({
           prompt: [
             {
@@ -620,15 +620,15 @@ describe('user messages', () => {
             },
           ],
           systemMessageMode: 'system',
-        });
-      }).toThrow('PDF file parts with URLs');
+        }),
+      ).rejects.toThrow('PDF file parts with URLs');
     });
 
     describe('top-level-only media type resolution', () => {
       const pngBase64 = 'iVBORw0KGgo=';
 
-      it('detects image subtype from inline bytes for top-level "image"', () => {
-        const result = convertToOpenAIChatMessages({
+      it('detects image subtype from inline bytes for top-level "image"', async () => {
+        const result = await convertToOpenAIChatMessages({
           prompt: [
             {
               role: 'user',
@@ -651,8 +651,8 @@ describe('user messages', () => {
         });
       });
 
-      it('normalizes image/* wildcard via detection', () => {
-        const result = convertToOpenAIChatMessages({
+      it('normalizes image/* wildcard via detection', async () => {
+        const result = await convertToOpenAIChatMessages({
           prompt: [
             {
               role: 'user',
@@ -675,8 +675,8 @@ describe('user messages', () => {
         });
       });
 
-      it('passes through URL source for top-level-only image (provider accepts raw URL)', () => {
-        const result = convertToOpenAIChatMessages({
+      it('passes through URL source for top-level-only image (provider accepts raw URL)', async () => {
+        const result = await convertToOpenAIChatMessages({
           prompt: [
             {
               role: 'user',
@@ -702,8 +702,8 @@ describe('user messages', () => {
         });
       });
 
-      it('throws for top-level-only application (PDF requires full resolution) with URL source', () => {
-        expect(() =>
+      it('throws for top-level-only application (PDF requires full resolution) with URL source', async () => {
+        await expect(
           convertToOpenAIChatMessages({
             prompt: [
               {
@@ -721,11 +721,13 @@ describe('user messages', () => {
               },
             ],
           }),
-        ).toThrow(/media type "application".*not passed as inline bytes/);
+        ).rejects.toThrow(
+          /media type "application".*not passed as inline bytes/,
+        );
       });
 
-      it('preserves full image/png pass-through', () => {
-        const result = convertToOpenAIChatMessages({
+      it('preserves full image/png pass-through', async () => {
+        const result = await convertToOpenAIChatMessages({
           prompt: [
             {
               role: 'user',
@@ -752,8 +754,8 @@ describe('user messages', () => {
 });
 
 describe('tool calls', () => {
-  it('should add a prompt cache breakpoint to assistant text content', () => {
-    const result = convertToOpenAIChatMessages({
+  it('should add a prompt cache breakpoint to assistant text content', async () => {
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'assistant',
@@ -785,8 +787,8 @@ describe('tool calls', () => {
     ]);
   });
 
-  it('should add a prompt cache breakpoint to tool text content', () => {
-    const result = convertToOpenAIChatMessages({
+  it('should add a prompt cache breakpoint to tool text content', async () => {
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'tool',
@@ -823,8 +825,8 @@ describe('tool calls', () => {
     ]);
   });
 
-  it('should stringify arguments to tool calls', () => {
-    const result = convertToOpenAIChatMessages({
+  it('should stringify arguments to tool calls', async () => {
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'assistant',
@@ -874,8 +876,8 @@ describe('tool calls', () => {
     ]);
   });
 
-  it('should preserve pre-serialized string tool arguments', () => {
-    const result = convertToOpenAIChatMessages({
+  it('should preserve pre-serialized string tool arguments', async () => {
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'assistant',
@@ -909,11 +911,11 @@ describe('tool calls', () => {
     ]);
   });
 
-  it('should serialize BigInt and circular structures in tool arguments without crashing', () => {
+  it('should serialize BigInt and circular structures in tool arguments without crashing', async () => {
     const circularArgs: Record<string, unknown> = { count: 9007199254740993n };
     circularArgs.self = circularArgs;
 
-    const result = convertToOpenAIChatMessages({
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'assistant',
@@ -947,8 +949,8 @@ describe('tool calls', () => {
     ]);
   });
 
-  it('should send empty string content for assistant messages with no tool calls', () => {
-    const result = convertToOpenAIChatMessages({
+  it('should send empty string content for assistant messages with no tool calls', async () => {
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'assistant',
@@ -968,8 +970,8 @@ describe('tool calls', () => {
     `);
   });
 
-  it('should default missing tool call input to an empty object', () => {
-    const result = convertToOpenAIChatMessages({
+  it('should default missing tool call input to an empty object', async () => {
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'assistant',
@@ -1005,8 +1007,8 @@ describe('tool calls', () => {
     `);
   });
 
-  it('should normalize malformed tool call input and preserve the tool error semantics', () => {
-    const result = convertToOpenAIChatMessages({
+  it('should normalize malformed tool call input and preserve the tool error semantics', async () => {
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'assistant',
@@ -1073,8 +1075,8 @@ describe('tool calls', () => {
   ] satisfies Array<{
     output: LanguageModelV4ToolResultOutput;
     expected: string;
-  }>)('should wrap tool errors $output', ({ output, expected }) => {
-    const result = convertToOpenAIChatMessages({
+  }>)('should wrap tool errors $output', async ({ output, expected }) => {
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'tool',
@@ -1095,8 +1097,8 @@ describe('tool calls', () => {
     ]);
   });
 
-  it('should handle different tool output types', () => {
-    const result = convertToOpenAIChatMessages({
+  it('should handle different tool output types', async () => {
+    const result = await convertToOpenAIChatMessages({
       prompt: [
         {
           role: 'tool',
@@ -1139,7 +1141,7 @@ it('preserves shared tool argument objects while replacing real cycles', async (
   const shared = { value: 42 };
   const input: Record<string, unknown> = { a: shared, b: shared };
   input.self = input;
-  const result = convertToOpenAIChatMessages({
+  const result = await convertToOpenAIChatMessages({
     prompt: [
       {
         role: 'assistant' as const,
@@ -1162,7 +1164,7 @@ it('preserves shared tool argument objects while replacing real cycles', async (
 it('serializes tool results with BigInt and real cycles', async () => {
   const value: any = { count: 42n };
   value.self = value;
-  const result = convertToOpenAIChatMessages({
+  const result = await convertToOpenAIChatMessages({
     prompt: [
       {
         role: 'tool',
