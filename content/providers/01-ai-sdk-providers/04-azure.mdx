@@ -807,10 +807,14 @@ Set `environment.type` to `'containerAuto'` to run commands in a container hoste
 
 <Note type="warning">
   The Azure OpenAI Responses API shell tool currently does not support
-  `networkPolicy`.
+  `networkPolicy`. The shared factory accepts and forwards this option, so check
+  your deployment's service support before using it.
 </Note>
 
 ```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
 const result = await generateText({
   model: azure.responses('your-deployment-name'),
   tools: {
@@ -837,6 +841,9 @@ The `containerAuto` environment supports:
 Set `environment.type` to `'containerReference'` to use an existing container by ID:
 
 ```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
 const result = await generateText({
   model: azure.responses('your-deployment-name'),
   tools: {
@@ -864,8 +871,9 @@ For local execution (default or `type: 'local'`), your execute function must ret
 [Skills](https://platform.openai.com/docs/guides/tools-skills) are versioned bundles of files with a `SKILL.md` manifest that extend the shell tool's capabilities. They can be attached to both `containerAuto` and `local` environments.
 
 <Note type="warning">
-  Azure skill-ID resolution is not implemented by the shared shell adapter.
-  Use local skill directories or inline archives instead of OpenAI platform skill references.
+  Azure skill-ID resolution is not implemented by the shared shell adapter. Use
+  local skill directories or inline archives instead of OpenAI platform skill
+  references.
 </Note>
 
 **Local skills** point to a directory on disk containing a `SKILL.md` file:
