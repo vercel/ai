@@ -622,3 +622,20 @@ it('warns when PII configuration is set without enabling redaction', async () =>
     processed_text_type: 'MASK',
   });
 });
+
+it.each(['default', 'solaria-1', 'future-gladia-model'])(
+  'forwards transcriptionModel alias ID %s',
+  async modelId => {
+    prepareJsonFixtureResponse();
+    const selected = provider.transcriptionModel!(modelId);
+    const result = await selected.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mp3',
+    });
+    expect(selected.modelId).toBe(modelId);
+    expect(result.response.modelId).toBe(modelId);
+    const body = await server.calls[1].requestBodyJson;
+    if (modelId === 'default') expect(body).not.toHaveProperty('model');
+    else expect(body.model).toBe(modelId);
+  },
+);
