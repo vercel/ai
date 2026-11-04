@@ -353,6 +353,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       toolChoice,
       modelId,
       isVertexProvider,
+      providerFunctionCallingConfig:
+        googleOptions?.functionCallingConfig ?? undefined,
     });
     const toolNameMapping = createToolNameMapping({
       tools,
