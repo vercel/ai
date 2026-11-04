@@ -59,6 +59,10 @@ export type CartesiaSpeechAPITypes = {
    * Controls text normalization.
    */
   normalization?: string;
+  /**
+   * The ID of a pronunciation dictionary to apply to the transcript.
+   */
+  pronunciation_dict_id?: string;
 
   /**
    * The output audio format.
@@ -70,5 +74,7 @@ export type CartesiaSpeechAPITypes = {
    */
   generation_config?: {
     speed?: number;
+    volume?: number;
+    emotion?: string;
   };
 };

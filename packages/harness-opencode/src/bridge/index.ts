@@ -62,6 +62,10 @@ import {
   type OpenCodeQuestionRequest,
 } from './question-tool';
 import { toOpenCodePromptParts } from './opencode-prompt';
+import {
+  areOpenCodePermissionPathsTrusted,
+  type PermissionToolCall,
+} from './permission-paths';
 
 type Emit = (msg: Record<string, unknown>) => void;
 /* Resolves once the approval request has been sent to the host. */
@@ -363,10 +367,22 @@ function buildOpenCodeConfig({
     share: 'disabled',
     autoupdate: false,
     permission: {
-      read: 'allow',
-      glob: 'allow',
-      grep: 'allow',
-      list: 'allow',
+      read:
+        start.permissionMode && start.permissionMode !== 'allow-all'
+          ? 'ask'
+          : 'allow',
+      glob:
+        start.permissionMode && start.permissionMode !== 'allow-all'
+          ? 'ask'
+          : 'allow',
+      grep:
+        start.permissionMode && start.permissionMode !== 'allow-all'
+          ? 'ask'
+          : 'allow',
+      list:
+        start.permissionMode && start.permissionMode !== 'allow-all'
+          ? 'ask'
+          : 'allow',
       edit: 'ask',
       bash: 'ask',
       external_directory: 'ask',
@@ -801,6 +817,7 @@ async function runPrompt({
   const eventLoop = consumeEvents({
     client,
     sessionId,
+    readableSkillRoots: start.readableSkillRoots,
     permissionMode: start.permissionMode,
     inactiveBuiltinToolNames: start.inactiveBuiltinToolNames,
     turn,
@@ -1032,6 +1049,7 @@ async function runCompaction({
   const eventLoop = consumeEvents({
     client,
     sessionId,
+    readableSkillRoots: start.readableSkillRoots,
     permissionMode: start.permissionMode,
     inactiveBuiltinToolNames: start.inactiveBuiltinToolNames,
     turn,
@@ -1097,6 +1115,7 @@ async function consumeEvents({
   client,
   sessionId,
   permissionMode,
+  readableSkillRoots = [],
   inactiveBuiltinToolNames,
   turn,
   state,
@@ -1109,6 +1128,7 @@ async function consumeEvents({
   client: OpenCodeClient;
   sessionId: string;
   permissionMode: StartMessage['permissionMode'];
+  readableSkillRoots?: readonly string[];
   inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
   state: TranslationState;
@@ -1122,6 +1142,59 @@ async function consumeEvents({
   onSubscribed?.();
   if (!stream) return;
   const taskSessionIds = new Set([sessionId]);
+  const observedCalls = new Map<string, PermissionToolCall>();
+  const permissionContext: PermissionContext = {
+    readableSkillRoots,
+    decisions: new Map(),
+    getToolCall: async ({ event, sessionId: sourceSessionId }) => {
+      const props = event.properties ?? {};
+      const source =
+        asOpenCodeObject(props.tool) ?? asOpenCodeObject(props.source);
+      const callID = stringValue(source?.callID);
+      if (!callID) return undefined;
+      const key = JSON.stringify([sourceSessionId, callID]);
+      const observed = observedCalls.get(key);
+      if (observed) return observed;
+      const messageID = stringValue(source?.messageID);
+      if (messageID && typeof client.session.message === 'function') {
+        try {
+          const response = await client.session.message({
+            sessionID: sourceSessionId,
+            messageID,
+            directory: workdir,
+          });
+          const parts = asOpenCodeObject(response.data)?.parts;
+          if (Array.isArray(parts)) {
+            const part = parts
+              .map(asOpenCodeObject)
+              .find(value => value?.callID === callID);
+            const snapshot = permissionToolCallFromPart(part);
+            if (snapshot) {
+              observedCalls.set(key, snapshot);
+              return snapshot;
+            }
+          }
+        } catch {
+          return observedCalls.get(key);
+        }
+      }
+      return observedCalls.get(key);
+    },
+    emitToolCall: ({ toolCallId, toolCall }) => {
+      if (!toolCall || sentToolCallIds.has(toolCallId)) return;
+      const nativeName = toolCall.nativeName;
+      const toolName = toWireToolName(nativeName);
+      state.toolCallsEmitted.add(toolCallId);
+      emitToHost({
+        type: 'tool-call',
+        toolCallId,
+        toolName,
+        input: JSON.stringify(toolCall.input),
+        providerExecuted: true,
+        ...nativeNameField({ nativeName, toolName }),
+      });
+    },
+  };
   const registerSubagentSession = (sourceSessionId: string) =>
     function register({
       parentSessionId,
@@ -1316,6 +1389,26 @@ async function consumeEvents({
           : undefined;
     if (!scopedSessionId) return false;
     const isDescendant = scopedSessionId !== sessionId;
+    const part = asOpenCodeObject(event.properties?.part);
+    const snapshot = permissionToolCallFromPart(part);
+    if (snapshot && typeof part?.callID === 'string') {
+      observedCalls.set(
+        JSON.stringify([scopedSessionId, part.callID]),
+        snapshot,
+      );
+    }
+    if (event.type === 'session.next.tool.started') {
+      const props = event.properties ?? {};
+      const input = asOpenCodeObject(props.input);
+      const nativeName = stringValue(props.toolName ?? props.tool);
+      const callID = stringValue(props.callID);
+      if (input && nativeName && callID) {
+        observedCalls.set(JSON.stringify([scopedSessionId, callID]), {
+          nativeName,
+          input,
+        });
+      }
+    }
     const waitFor = ({
       toolCallId,
       settlesToolCall,
@@ -1345,6 +1438,7 @@ async function consumeEvents({
         handlePermissionV2({
           client,
           sessionId: scopedSessionId,
+          context: permissionContext,
           permissionMode,
           inactiveBuiltinToolNames,
           turn,
@@ -1358,6 +1452,7 @@ async function consumeEvents({
         handlePermission({
           client,
           sessionId: scopedSessionId,
+          context: permissionContext,
           permissionMode,
           inactiveBuiltinToolNames,
           turn,
@@ -1482,6 +1577,7 @@ function sanitizeMcpToolName(value: string): string {
 async function handlePermissionV2({
   client,
   sessionId,
+  context,
   permissionMode,
   inactiveBuiltinToolNames,
   turn,
@@ -1491,6 +1587,7 @@ async function handlePermissionV2({
 }: {
   client: OpenCodeClient;
   sessionId: string;
+  context: PermissionContext;
   permissionMode: StartMessage['permissionMode'];
   inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
@@ -1502,6 +1599,10 @@ async function handlePermissionV2({
   const requestID = String(props.id ?? '');
   if (!requestID) return;
   const reply = await selectPermissionReply({
+    context,
+    sessionId,
+    toolCall: await context.getToolCall({ event, sessionId }),
+    metadata: asOpenCodeObject(props.metadata),
     action: String(props.action ?? ''),
     resources: Array.isArray(props.resources)
       ? props.resources.map(String)
@@ -1525,6 +1626,7 @@ async function handlePermissionV2({
 async function handlePermission({
   client,
   sessionId,
+  context,
   permissionMode,
   inactiveBuiltinToolNames,
   turn,
@@ -1534,6 +1636,7 @@ async function handlePermission({
 }: {
   client: OpenCodeClient;
   sessionId: string;
+  context: PermissionContext;
   permissionMode: StartMessage['permissionMode'];
   inactiveBuiltinToolNames: StartMessage['inactiveBuiltinToolNames'];
   turn: BridgeTurn;
@@ -1546,6 +1649,10 @@ async function handlePermission({
   if (!requestID) return;
   const tool = asOpenCodeObject(props.tool);
   const reply = await selectPermissionReply({
+    context,
+    sessionId,
+    toolCall: await context.getToolCall({ event, sessionId }),
+    metadata: asOpenCodeObject(props.metadata),
     action: String(props.permission ?? ''),
     resources: Array.isArray(props.patterns) ? props.patterns.map(String) : [],
     requestID,
@@ -1566,6 +1673,10 @@ async function handlePermission({
 }
 
 async function selectPermissionReply({
+  context,
+  sessionId,
+  toolCall,
+  metadata,
   action,
   resources,
   requestID,
@@ -1576,6 +1687,10 @@ async function selectPermissionReply({
   emit,
   waitFor,
 }: {
+  context: PermissionContext;
+  sessionId: string;
+  toolCall: PermissionToolCall | undefined;
+  metadata: OpenCodeObject | undefined;
   action: string;
   resources: string[];
   requestID: string;
@@ -1586,20 +1701,33 @@ async function selectPermissionReply({
   emit: EmitApprovalRequest;
   waitFor?: WaitForHostInput;
 }): Promise<{ reply: 'once' | 'always' | 'reject'; message?: string }> {
-  const requestApproval = async () => {
-    const wait = waitFor?.({ toolCallId, settlesToolCall: false });
-    wait?.markWaiting();
-    return turn
-      .requestToolApproval(requestID)
-      .finally(() => wait?.clearWaiting());
+  const requestApproval = () => {
+    const key = toolCall
+      ? JSON.stringify([sessionId, toolCallId, toolCall])
+      : undefined;
+    const existing = key ? context.decisions.get(key) : undefined;
+    if (existing) return existing;
+    const decision = (async () => {
+      context.emitToolCall({
+        toolCallId,
+        toolCall,
+      });
+      await emit({
+        type: 'tool-approval-request',
+        approvalId: requestID,
+        toolCallId,
+      });
+      const wait = waitFor?.({ toolCallId, settlesToolCall: false });
+      wait?.markWaiting();
+      return turn
+        .requestToolApproval(requestID)
+        .finally(() => wait?.clearWaiting());
+    })();
+    if (key) context.decisions.set(key, decision);
+    return decision;
   };
   const toolName = toPermissionToolName(action);
   if (isBuiltinToolInactive({ toolName, inactiveBuiltinToolNames })) {
-    await emit({
-      type: 'tool-approval-request',
-      approvalId: requestID,
-      toolCallId,
-    });
     const decision = await requestApproval();
     return decision.approved
       ? { reply: 'once' }
@@ -1611,21 +1739,34 @@ async function selectPermissionReply({
   if (!permissionMode || permissionMode === 'allow-all') {
     return { reply: 'always' };
   }
-  if (resources.some(resource => isExternalPath(resource))) {
-    return { reply: 'reject', message: 'External directory access rejected.' };
-  }
-  const kind = TOOL_KIND[toolName] ?? 'bash';
+  const nativeName = toolCall?.nativeName;
+  const filePermission =
+    action === 'external_directory' ||
+    ['read', 'write', 'edit', 'glob', 'grep', 'ls'].includes(toolName);
+  const kind =
+    action === 'external_directory' && nativeName
+      ? nativeName === 'apply_patch'
+        ? 'edit'
+        : (TOOL_KIND[toWireToolName(nativeName)] ?? 'bash')
+      : (TOOL_KIND[toolName] ?? 'bash');
   const allowed =
     permissionMode === 'allow-edits'
       ? kind === 'readonly' || kind === 'edit'
       : kind === 'readonly';
-  if (allowed) return { reply: 'always' };
+  if (
+    allowed &&
+    (!filePermission ||
+      (await areOpenCodePermissionPathsTrusted({
+        action,
+        resources,
+        metadata,
+        toolCall,
+        workDir: workdir,
+        readableSkillRoots: context.readableSkillRoots,
+      })))
+  )
+    return { reply: 'once' };
 
-  await emit({
-    type: 'tool-approval-request',
-    approvalId: requestID,
-    toolCallId,
-  });
   const decision = await requestApproval();
   return decision.approved
     ? { reply: 'once' }
@@ -1662,14 +1803,6 @@ function isBuiltinToolInactive(input: {
   );
 }
 
-function isExternalPath(resource: string): boolean {
-  if (!path.isAbsolute(resource)) return false;
-  return (
-    !isPathInsideOrEqual(resource, workdir) &&
-    (!skillsDir || !isPathInsideOrEqual(resource, skillsDir))
-  );
-}
-
 function isPathInsideOrEqual(file: string, root: string): boolean {
   const relative = path.relative(
     canonicalizeForContainment(root),
@@ -1696,6 +1829,35 @@ function canonicalizeForContainment(inputPath: string): string {
           path.basename(normalized),
         );
   }
+}
+
+type PermissionContext = {
+  readableSkillRoots: readonly string[];
+  decisions: Map<string, Promise<{ approved: boolean; reason?: string }>>;
+  getToolCall(options: {
+    event: OpenCodeEvent;
+    sessionId: string;
+  }): Promise<PermissionToolCall | undefined>;
+  emitToolCall(options: {
+    toolCallId: string;
+    toolCall: PermissionToolCall | undefined;
+  }): void;
+};
+
+function permissionToolCallFromPart(
+  value: unknown,
+): PermissionToolCall | undefined {
+  const part = asOpenCodeObject(value);
+  const state = asOpenCodeObject(part?.state);
+  const input = asOpenCodeObject(state?.input);
+  if (
+    part?.type !== 'tool' ||
+    typeof part.tool !== 'string' ||
+    !input ||
+    !['running', 'completed', 'error'].includes(String(state?.status))
+  )
+    return undefined;
+  return { nativeName: part.tool, input };
 }
 
 function toWireToolName(nativeName: string): string {

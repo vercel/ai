@@ -85,6 +85,14 @@ try {
   value forwarded into the sandbox process. It does not restrict which
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
+- `prepareSandbox`: optional synchronous or asynchronous callback for
+  runtime-specific sandbox configuration. Receives `{ sandbox, workDir,
+abortSignal }`, where `sandbox` is the restricted sandbox session and
+  `workDir` is the session working directory. It runs after authentication
+  files are written and before each new bridge process starts, including
+  recovery starts. It is skipped when reconnecting to a live bridge. Errors
+  reject startup without launching the bridge. Forward `abortSignal` to
+  sandbox operations to support startup cancellation.
 - `env`: persistent environment values written at bootstrap.
 - `builtinTools`: optional native tool definitions for static typing and exact
   name matching.
