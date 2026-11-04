@@ -1,10 +1,32 @@
 export function renderCapabilityTable(
   entries,
-  { capability, columns, formatModelId },
+  { capability, columns, formatModelId, filter },
 ) {
   return renderTable(
     ['Model', ...columns.map(([heading]) => heading)],
-    renderCapabilityRows(entries, capability, columns, formatModelId),
+    renderCapabilityRows(
+      filter == null
+        ? entries
+        : entries.filter(([id, entry]) => filter(entry, id)),
+      capability,
+      columns,
+      formatModelId,
+    ),
+  );
+}
+
+export function renderProviderOptionTable(options, section) {
+  return renderTable(
+    ['Operation', 'Option', 'Description'],
+    Object.entries(options)
+      .filter(([operation]) => section == null || section === operation)
+      .flatMap(([operation, definitions]) =>
+        Object.entries(definitions).map(([name, { description }]) => [
+          operation,
+          `\`${name}\``,
+          description,
+        ]),
+      ),
   );
 }
 

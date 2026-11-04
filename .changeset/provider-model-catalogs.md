@@ -1,5 +1,6 @@
 ---
 '@ai-sdk/azure': patch
+'@ai-sdk/openai': patch
 ---
 
 Refactor provider model ID rules into model catalogs that declare capabilities,
