@@ -145,6 +145,9 @@ const languageModelIds = [
   'databricks/dbrx-instruct',
   'deepinfra/airoboros-70b',
   'deepseek-ai/DeepSeek-V3',
+  'deepseek-ai/DeepSeek-R1',
+  'deepseek-ai/DeepSeek-R1-Distill-Llama-70B',
+  'deepseek-ai/DeepSeek-R1-Turbo',
   'google/codegemma-7b-it',
   'google/gemma-1.1-7b-it',
   'google/gemma-2-27b-it',
@@ -402,7 +405,12 @@ const documentedLanguageCapabilities: Record<
     reasoning: { support: 'unknown' },
     sampling: { temperature: 'unknown', topP: 'unknown', logprobs: 'unknown' },
   },
-};
+} satisfies Partial<
+  Record<
+    (typeof languageModelIds)[number],
+    NonNullable<ModelCapabilities['language']>
+  >
+>;
 const unknownLanguageCapabilities: NonNullable<ModelCapabilities['language']> =
   {
     inputs: { image: 'unknown', audio: 'unknown' },
