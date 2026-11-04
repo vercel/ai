@@ -946,7 +946,7 @@ console.log(text);`,
 import { sidequestTools } from 'sidequestpays/ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5-5',
+  model: 'openai/gpt-5-mini',
   prompt:
     'Have someone check whether the Reading Terminal Market (39.9533, -75.1590) is open right now. Pay $8.',
   tools: sidequestTools(),
