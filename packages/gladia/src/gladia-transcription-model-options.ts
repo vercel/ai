@@ -375,7 +375,7 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
       /**
        * Custom metadata to include with the transcription.
        */
-      customMetadata: z.record(z.string(), z.unknown()).nullish(),
+      customMetadata: z.record(z.string(), z.any()).nullish(),
 
       /**
        * Whether to include sentence-level segmentation.
