@@ -3,8 +3,6 @@
 The **[Gladia provider](https://ai-sdk.dev/providers/ai-sdk-providers/gladia)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains transcription model support for the Gladia transcription API.
 
-When updating this provider, sync types from [https://api.gladia.io/openapi.json](https://api.gladia.io/openapi.json).
-
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access Gladia (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
 ## Setup
