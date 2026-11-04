@@ -1,9 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createAuthTokenGenerator } from './google-vertex-auth-google-auth-library';
+import {
+  createAuthHeadersGenerator,
+  createAuthTokenGenerator,
+} from './google-vertex-auth-google-auth-library';
 import { GoogleAuth } from 'google-auth-library';
 
 const getAccessToken = vi.fn().mockResolvedValue({ token: 'mocked-token' });
-const getClient = vi.fn().mockResolvedValue({ getAccessToken });
+const getRequestHeaders = vi.fn().mockResolvedValue(
+  new Headers({
+    authorization: 'Bearer mocked-token',
+    'x-goog-user-project': 'quota-project',
+  }),
+);
+const getClient = vi.fn().mockResolvedValue({
+  getAccessToken,
+  getRequestHeaders,
+});
 
 vi.mock('google-auth-library', () => {
   return {
@@ -75,6 +87,17 @@ describe('createAuthTokenGenerator', () => {
     expect(GoogleAuth).toHaveBeenNthCalledWith(2, {
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
       keyFile: 'second-key.json',
+    });
+  });
+});
+
+describe('createAuthHeadersGenerator', () => {
+  it('should generate all request headers from the auth client', async () => {
+    const generateAuthHeaders = createAuthHeadersGenerator();
+
+    await expect(generateAuthHeaders()).resolves.toEqual({
+      authorization: 'Bearer mocked-token',
+      'x-goog-user-project': 'quota-project',
     });
   });
 });

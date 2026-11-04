@@ -1,13 +1,16 @@
 import { resolve } from '@ai-sdk/provider-utils';
-import { createAuthTokenGenerator } from './google-vertex-auth-google-auth-library';
+import { createAuthHeadersGenerator } from './google-vertex-auth-google-auth-library';
 import { createGoogleVertex as createGoogleVertexOriginal } from './google-vertex-provider-base';
 import { createGoogleVertex as createVertexNode } from './google-vertex-provider';
 import { describe, beforeEach, afterEach, expect, it, vi } from 'vitest';
 
 // Mock the imported modules
 vi.mock('./google-vertex-auth-google-auth-library', () => ({
-  createAuthTokenGenerator: vi.fn(() =>
-    vi.fn().mockResolvedValue('mock-auth-token'),
+  createAuthHeadersGenerator: vi.fn(() =>
+    vi.fn().mockResolvedValue({
+      authorization: 'Bearer mock-auth-token',
+      'x-goog-user-project': 'auth-quota-project',
+    }),
   ),
 }));
 
@@ -27,7 +30,7 @@ describe('google-vertex-provider', () => {
     delete process.env.GOOGLE_VERTEX_API_KEY;
   });
 
-  it('default headers function should return auth token', async () => {
+  it('default headers function should return auth client request headers', async () => {
     createVertexNode({ project: 'test-project' });
 
     expect(createGoogleVertexOriginal).toHaveBeenCalledTimes(1);
@@ -36,11 +39,12 @@ describe('google-vertex-provider', () => {
 
     expect(typeof passedOptions?.headers).toBe('function');
     expect(await resolve(passedOptions?.headers)).toStrictEqual({
-      Authorization: 'Bearer mock-auth-token',
+      authorization: 'Bearer mock-auth-token',
+      'x-goog-user-project': 'auth-quota-project',
     });
   });
 
-  it('should use custom headers in addition to auth token when provided', async () => {
+  it('should use custom headers in addition to auth headers when provided', async () => {
     createVertexNode({
       project: 'test-project',
       headers: async () => ({
@@ -53,12 +57,31 @@ describe('google-vertex-provider', () => {
       .calls[0][0];
 
     expect(await resolve(passedOptions?.headers)).toEqual({
-      Authorization: 'Bearer mock-auth-token',
-      'Custom-Header': 'custom-value',
+      authorization: 'Bearer mock-auth-token',
+      'custom-header': 'custom-value',
+      'x-goog-user-project': 'auth-quota-project',
     });
   });
 
-  it('passes googleAuthOptions to createAuthTokenGenerator', async () => {
+  it('should let custom headers override auth headers case-insensitively', async () => {
+    createVertexNode({
+      project: 'test-project',
+      headers: {
+        Authorization: 'Bearer custom-token',
+        'X-Goog-User-Project': 'custom-quota-project',
+      },
+    });
+
+    const passedOptions = vi.mocked(createGoogleVertexOriginal).mock
+      .calls[0][0];
+
+    expect(await resolve(passedOptions?.headers)).toEqual({
+      authorization: 'Bearer custom-token',
+      'x-goog-user-project': 'custom-quota-project',
+    });
+  });
+
+  it('passes googleAuthOptions to createAuthHeadersGenerator', async () => {
     createVertexNode({
       googleAuthOptions: {
         scopes: ['https://www.googleapis.com/auth/cloud-platform'],
@@ -72,13 +95,13 @@ describe('google-vertex-provider', () => {
 
     await resolve(passedOptions?.headers); // call the headers function
 
-    expect(createAuthTokenGenerator).toHaveBeenCalledWith({
+    expect(createAuthHeadersGenerator).toHaveBeenCalledWith({
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
       keyFile: 'path/to/key.json',
     });
   });
 
-  it('passes project to createAuthTokenGenerator as projectId', async () => {
+  it('passes project to createAuthHeadersGenerator as projectId', async () => {
     createVertexNode({
       project: 'test-project',
     });
@@ -89,7 +112,7 @@ describe('google-vertex-provider', () => {
 
     await resolve(passedOptions?.headers); // call the headers function
 
-    expect(createAuthTokenGenerator).toHaveBeenCalledWith({
+    expect(createAuthHeadersGenerator).toHaveBeenCalledWith({
       projectId: 'test-project',
     });
   });
@@ -109,7 +132,7 @@ describe('google-vertex-provider', () => {
 
     await resolve(passedOptions?.headers); // call the headers function
 
-    expect(createAuthTokenGenerator).toHaveBeenCalledWith({
+    expect(createAuthHeadersGenerator).toHaveBeenCalledWith({
       projectId: 'auth-project',
       keyFile: 'path/to/key.json',
     });
@@ -126,13 +149,13 @@ describe('google-vertex-provider', () => {
 
     expect(passedOptions?.apiKey).toBe('test-api-key');
     expect(passedOptions?.headers).toBeUndefined();
-    expect(createAuthTokenGenerator).not.toHaveBeenCalled();
+    expect(createAuthHeadersGenerator).not.toHaveBeenCalled();
   });
 
-  it('creates the auth token generator once per provider instance', async () => {
+  it('creates the auth headers generator once per provider instance', async () => {
     createVertexNode({ project: 'test-project' });
 
-    expect(createAuthTokenGenerator).toHaveBeenCalledTimes(1);
+    expect(createAuthHeadersGenerator).toHaveBeenCalledTimes(1);
 
     const passedOptions = vi.mocked(createGoogleVertexOriginal).mock
       .calls[0][0];
@@ -140,6 +163,6 @@ describe('google-vertex-provider', () => {
     await resolve(passedOptions?.headers);
     await resolve(passedOptions?.headers);
 
-    expect(createAuthTokenGenerator).toHaveBeenCalledTimes(1);
+    expect(createAuthHeadersGenerator).toHaveBeenCalledTimes(1);
   });
 });
