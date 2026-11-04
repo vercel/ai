@@ -8,7 +8,7 @@ import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
  * The claude-code adapter sends `instructions` separately from the user text
@@ -143,6 +143,10 @@ describe('claude-code adapter — instructions transport', () => {
     openCalls.length = 0;
     listenerAttachmentsStarted = 0;
     listenerAttachmentsFinished = 0;
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('keeps instructions separate from every user message', async () => {

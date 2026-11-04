@@ -344,6 +344,7 @@ describe('createClaudeCode adapter', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('declares the harness id and builtin tools', () => {
