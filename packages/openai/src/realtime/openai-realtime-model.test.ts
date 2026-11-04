@@ -2,6 +2,43 @@ import { describe, it, expect, vi } from 'vitest';
 import { OpenAIRealtimeModel } from './openai-realtime-model';
 
 describe('OpenAIRealtimeModel', () => {
+  it.each([
+    {
+      name: 'object',
+      headers: { authorization: 'Bearer test-key', omitted: undefined },
+    },
+    {
+      name: 'promise',
+      headers: Promise.resolve({
+        authorization: 'Bearer test-key',
+        omitted: undefined,
+      }),
+    },
+    {
+      name: 'callback',
+      headers: () => ({ authorization: 'Bearer test-key', omitted: undefined }),
+    },
+    {
+      name: 'async callback',
+      headers: async () => ({
+        authorization: 'Bearer test-key',
+        omitted: undefined,
+      }),
+    },
+  ])(
+    'resolves $name credentials for server connections',
+    async ({ headers }) => {
+      const model = new OpenAIRealtimeModel('gpt-realtime', {
+        provider: 'openai.realtime',
+        baseURL: 'https://api.openai.com/v1',
+        headers,
+      });
+      expect((await model.getServerWebSocketConfig()).headers).toEqual({
+        authorization: 'Bearer test-key',
+      });
+    },
+  );
+
   describe('doCreateClientSecret', () => {
     const createModel = (fetch: typeof globalThis.fetch) =>
       new OpenAIRealtimeModel('gpt-realtime', {
@@ -50,17 +87,17 @@ describe('OpenAIRealtimeModel', () => {
       baseURL: 'https://api.openai.com/v1',
       headers: () => ({
         authorization: 'Bearer test-key',
-        'OpenAI-Beta': 'realtime=v1',
+        'x-custom': 'custom-header',
         'x-undefined': undefined,
       }),
     });
 
-    it('builds the conversation URL and forwards defined headers', () => {
+    it('builds the conversation URL and forwards defined headers', async () => {
       // Undefined header values are dropped.
-      expect(model.getServerWebSocketConfig()).toMatchInlineSnapshot(`
+      expect(await model.getServerWebSocketConfig()).toMatchInlineSnapshot(`
         {
           "headers": {
-            "OpenAI-Beta": "realtime=v1",
+            "x-custom": "custom-header",
             "authorization": "Bearer test-key",
           },
           "url": "wss://api.openai.com/v1/realtime?model=gpt-realtime",
@@ -68,28 +105,30 @@ describe('OpenAIRealtimeModel', () => {
       `);
     });
 
-    it('builds the transcription URL (model goes in session.update)', () => {
+    it('builds the transcription URL (model goes in session.update)', async () => {
       expect(
-        model.getServerWebSocketConfig({ intent: 'transcription' }).url,
+        (await model.getServerWebSocketConfig({ intent: 'transcription' })).url,
       ).toMatchInlineSnapshot(
         `"wss://api.openai.com/v1/realtime?intent=transcription"`,
       );
     });
 
-    it('rejects translation until the normalized codec supports it', () => {
+    it('rejects translation until the normalized codec supports it', async () => {
       expect(() =>
         model.getServerWebSocketConfig({ intent: 'translation' as never }),
       ).toThrow(/is not supported/);
     });
 
-    it('uses ws:// for an http base URL (local/proxy)', () => {
+    it('uses ws:// for an http base URL (local/proxy)', async () => {
       const localModel = new OpenAIRealtimeModel('gpt-realtime', {
         provider: 'openai.realtime',
         baseURL: 'http://localhost:8787/v1',
         headers: () => ({ authorization: 'Bearer test-key' }),
       });
 
-      expect(localModel.getServerWebSocketConfig().url).toMatchInlineSnapshot(
+      expect(
+        (await localModel.getServerWebSocketConfig()).url,
+      ).toMatchInlineSnapshot(
         `"ws://localhost:8787/v1/realtime?model=gpt-realtime"`,
       );
     });

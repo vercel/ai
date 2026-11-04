@@ -3,6 +3,43 @@ import { GoogleRealtimeModel } from './google-realtime-model';
 import type { GoogleRealtimeModelOptions } from './google-realtime-model-options';
 
 describe('GoogleRealtimeModel', () => {
+  it.each([
+    {
+      name: 'object',
+      headers: { authorization: 'Bearer test-key', omitted: undefined },
+    },
+    {
+      name: 'promise',
+      headers: Promise.resolve({
+        authorization: 'Bearer test-key',
+        omitted: undefined,
+      }),
+    },
+    {
+      name: 'callback',
+      headers: () => ({ authorization: 'Bearer test-key', omitted: undefined }),
+    },
+    {
+      name: 'async callback',
+      headers: async () => ({
+        authorization: 'Bearer test-key',
+        omitted: undefined,
+      }),
+    },
+  ])(
+    'resolves $name credentials for server connections',
+    async ({ headers }) => {
+      const model = new GoogleRealtimeModel('gemini-3.8-live', {
+        provider: 'google.realtime',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers,
+      });
+      expect((await model.getServerWebSocketConfig()).headers).toEqual({
+        authorization: 'Bearer test-key',
+      });
+    },
+  );
+
   it('rejects unsupported intents during serialization as well as connection setup', () => {
     const target = new GoogleRealtimeModel('gemini-3.8-live', {
       provider: 'google.realtime',
@@ -292,7 +329,7 @@ describe('GoogleRealtimeModel', () => {
   });
 
   describe('getServerWebSocketConfig', () => {
-    it('connects to the unconstrained Bidi endpoint with the API key header', () => {
+    it('connects to the unconstrained Bidi endpoint with the API key header', async () => {
       const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
         provider: 'google.realtime',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
@@ -302,7 +339,7 @@ describe('GoogleRealtimeModel', () => {
         }),
       });
 
-      expect(model.getServerWebSocketConfig()).toMatchInlineSnapshot(`
+      expect(await model.getServerWebSocketConfig()).toMatchInlineSnapshot(`
         {
           "headers": {
             "x-goog-api-key": "test-key",
@@ -312,7 +349,7 @@ describe('GoogleRealtimeModel', () => {
       `);
     });
 
-    it('rejects unsupported endpoint intents', () => {
+    it('rejects unsupported endpoint intents', async () => {
       const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
         provider: 'google.realtime',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
@@ -326,7 +363,7 @@ describe('GoogleRealtimeModel', () => {
   });
 
   describe('getWebSocketConfig', () => {
-    it('returns URL with access_token query param', () => {
+    it('returns URL with access_token query param', async () => {
       const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
         provider: 'google.realtime',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
@@ -344,7 +381,7 @@ describe('GoogleRealtimeModel', () => {
   });
 
   describe('parseServerEvent', () => {
-    it('delegates to mapper', () => {
+    it('delegates to mapper', async () => {
       const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
         provider: 'google.realtime',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
@@ -360,7 +397,7 @@ describe('GoogleRealtimeModel', () => {
   });
 
   describe('serializeClientEvent', () => {
-    it('delegates to mapper', () => {
+    it('delegates to mapper', async () => {
       const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
         provider: 'google.realtime',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
@@ -378,7 +415,7 @@ describe('GoogleRealtimeModel', () => {
       });
     });
 
-    it('labels input audio with the configured capture rate', () => {
+    it('labels input audio with the configured capture rate', async () => {
       const model = new GoogleRealtimeModel('gemini-2.0-flash-live-001', {
         provider: 'google.realtime',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
