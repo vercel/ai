@@ -416,10 +416,14 @@ Alibaba embedding models support additional provider options that can be passed 
 
 ### Embedding Model Capabilities
 
+{/* model-capabilities:alibaba-embedding:start */}
+
 | Model               | Default Dimensions | Flexible Dimensions                      | Max Values per Call |
 | ------------------- | ------------------ | ---------------------------------------- | ------------------- |
 | `text-embedding-v4` | 1024               | 64, 128, 256, 512, 768, 1024, 1536, 2048 | 10                  |
 | `text-embedding-v3` | 1024               | 512, 768, 1024                           | 10                  |
+
+{/* model-capabilities:alibaba-embedding:end */}
 
 <Note>
   The tables above list currently documented Alibaba text embedding models. You
@@ -658,6 +662,8 @@ The following provider options are available via `providerOptions.alibaba`:
 
 #### Text-to-Video
 
+{/* model-capabilities:alibaba-video-t2v:start */}
+
 | Model                   | Audio | Resolution        | Duration |
 | ----------------------- | ----- | ----------------- | -------- |
 | `wan2.6-t2v`            | Yes   | 720P, 1080P       | 2-15s    |
@@ -665,21 +671,31 @@ The following provider options are available via `providerOptions.alibaba`:
 | `wan2.7-t2v`            | Yes   | 720P, 1080P       | 2-15s    |
 | `wan2.7-t2v-2026-06-12` | Yes   | 720P, 1080P       | 2-15s    |
 
+{/* model-capabilities:alibaba-video-t2v:end */}
+
 #### Image-to-Video (First Frame)
+
+{/* model-capabilities:alibaba-video-i2v:start */}
 
 | Model              | Audio    | Resolution  | Duration |
 | ------------------ | -------- | ----------- | -------- |
-| `wan2.6-i2v-flash` | Optional | 720P, 1080P | 2-15s    |
 | `wan2.6-i2v`       | Yes      | 720P, 1080P | 2-15s    |
+| `wan2.6-i2v-flash` | Optional | 720P, 1080P | 2-15s    |
+
+{/* model-capabilities:alibaba-video-i2v:end */}
 
 #### Reference-to-Video
 
+{/* model-capabilities:alibaba-video-r2v:start */}
+
 | Model                   | Audio    | Resolution  | Duration                      |
 | ----------------------- | -------- | ----------- | ----------------------------- |
-| `wan2.6-r2v-flash`      | Optional | 720P, 1080P | 2-10s                         |
 | `wan2.6-r2v`            | Yes      | 720P, 1080P | 2-10s                         |
+| `wan2.6-r2v-flash`      | Optional | 720P, 1080P | 2-10s                         |
 | `wan2.7-r2v`            | Yes      | 720P, 1080P | 2-10s (with video ref), 2-15s |
 | `wan2.7-r2v-2026-06-12` | Yes      | 720P, 1080P | 2-10s (with video ref), 2-15s |
+
+{/* model-capabilities:alibaba-video-r2v:end */}
 
 <Note>
   The tables above list models available in the Singapore International region.
@@ -691,3 +707,82 @@ The following provider options are available via `providerOptions.alibaba`:
 Please see the [Alibaba Cloud Model Studio docs](https://www.alibabacloud.com/help/en/model-studio/models) for a full
 list of available models. You can also pass any available provider model ID as
 a string if needed.
+
+## Language Model Capabilities
+
+{/* model-capabilities:alibaba-language:start */}
+
+| Model                           | Image Input | Object Generation | Tool Usage | Tool Streaming | JSON Schema | Preserved Thinking |
+| ------------------------------- | ----------- | ----------------- | ---------- | -------------- | ----------- | ------------------ |
+| `qwen3.7-max`                   | Unknown     | <Check />         | <Check />  | <Check />      | <Check />   | <Check />          |
+| `qwen3-max`                     | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen3-max-preview`             | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen-plus`                     | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen-plus-latest`              | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen-flash`                    | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen-turbo`                    | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen-turbo-latest`             | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen3-235b-a22b`               | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen3-32b`                     | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen3-30b-a3b`                 | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen3-14b`                     | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen3-next-80b-a3b-thinking`   | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen3-235b-a22b-thinking-2507` | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen3-30b-a3b-thinking-2507`   | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwq-plus`                      | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwq-plus-latest`               | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwq-32b`                       | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen-coder`                    | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen3-coder-plus`              | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+| `qwen3-coder-flash`             | Unknown     | <Check />         | <Check />  | <Check />      | <Cross />   | <Cross />          |
+
+{/* model-capabilities:alibaba-language:end */}
+
+## Video Capability Reference
+
+{/* model-capabilities:alibaba-video-all:start */}
+
+| Model                   | Text Input | Image Input | First Frame | Last Frame | Reference Images | Reference Video | Audio     | Aspect Ratio | Resolution | Duration  | FPS       | Seed      |
+| ----------------------- | ---------- | ----------- | ----------- | ---------- | ---------------- | --------------- | --------- | ------------ | ---------- | --------- | --------- | --------- |
+| `wan2.6-t2v`            | <Check />  | <Cross />   | <Cross />   | <Cross />  | <Cross />        | <Cross />       | <Check /> | <Cross />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.5-t2v-preview`    | <Check />  | <Cross />   | <Cross />   | <Cross />  | <Cross />        | <Cross />       | <Check /> | <Cross />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.7-t2v`            | <Check />  | <Cross />   | <Cross />   | <Cross />  | <Cross />        | <Cross />       | <Check /> | <Check />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.7-t2v-2026-06-12` | <Check />  | <Cross />   | <Cross />   | <Cross />  | <Cross />        | <Cross />       | <Check /> | <Check />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.6-i2v`            | <Check />  | <Check />   | <Check />   | <Cross />  | <Cross />        | <Cross />       | <Check /> | <Cross />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.6-i2v-flash`      | <Check />  | <Check />   | <Check />   | <Cross />  | <Cross />        | <Cross />       | <Check /> | <Cross />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.6-r2v`            | <Check />  | <Cross />   | <Cross />   | <Cross />  | <Check />        | <Check />       | <Check /> | <Cross />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.6-r2v-flash`      | <Check />  | <Cross />   | <Cross />   | <Cross />  | <Check />        | <Check />       | <Check /> | <Cross />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.7-r2v`            | <Check />  | <Cross />   | <Check />   | <Cross />  | <Check />        | <Check />       | <Check /> | <Check />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan2.7-r2v-2026-06-12` | <Check />  | <Cross />   | <Check />   | <Cross />  | <Check />        | <Check />       | <Check /> | <Check />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+| `wan3.0-video`          | <Check />  | <Check />   | <Check />   | <Check />  | <Check />        | <Check />       | <Check /> | <Check />    | <Check />  | <Check /> | <Cross /> | <Check /> |
+
+{/* model-capabilities:alibaba-video-all:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:alibaba-provider-options:start */}
+
+| Operation | Option              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| language  | `enableThinking`    | Enable thinking/reasoning mode for supported models. When enabled, the model generates reasoning content before the response.                                                                                                                                                                                                                                                                                                                                                 |
+| language  | `thinkingBudget`    | Maximum number of reasoning tokens to generate.                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| language  | `preserveThinking`  | Whether to preserve reasoning from previous assistant messages. When enabled, historical reasoning is sent separately as `reasoning_content` and Alibaba receives `preserve_thinking: true`. Defaults to `true` for models that support preserved thinking; set to `false` to opt out.                                                                                                                                                                                        |
+| language  | `parallelToolCalls` | Whether to enable parallel function calling during tool use.                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| embedding | `textType`          | Differentiates query text from document text for asymmetric retrieval tasks. Defaults to `document`.                                                                                                                                                                                                                                                                                                                                                                          |
+| embedding | `dimension`         | The dimension of the output embedding vectors. Defaults to 1024. `text-embedding-v4` also supports 1536 and 2048 dimensions.                                                                                                                                                                                                                                                                                                                                                  |
+| embedding | `outputType`        | The output vector type. Defaults to `dense`. Sparse-only output is not supported by the AI SDK embedding interface, which requires dense number arrays.                                                                                                                                                                                                                                                                                                                       |
+| video     | `negativePrompt`    | Negative prompt to specify what to avoid (max 500 chars).                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| video     | `audioUrl`          | URL to audio file for audio-video sync (WAV/MP3, 3-30s, max 15MB).                                                                                                                                                                                                                                                                                                                                                                                                            |
+| video     | `promptExtend`      | Enable prompt extension/rewriting for better generation. Defaults to true.                                                                                                                                                                                                                                                                                                                                                                                                    |
+| video     | `shotType`          | Shot type: 'single' for single-shot or 'multi' for multi-shot narrative (wan2.6 and earlier; wan2.7 models describe shot structure in the prompt).                                                                                                                                                                                                                                                                                                                            |
+| video     | `watermark`         | Whether to add watermark to generated video. Defaults to false.                                                                                                                                                                                                                                                                                                                                                                                                               |
+| video     | `audio`             | Enable audio generation (wan2.6 I2V/R2V and wan3 models; wan2.7 models always generate audio). Defaults to true on wan3.                                                                                                                                                                                                                                                                                                                                                      |
+| video     | `referenceUrls`     | Reference URLs for reference-to-video mode (wan2.6 models). Array of URLs to images (0-5) and/or videos (0-3), max 5 total. Use character identifiers (character1, character2) in prompts to reference them.                                                                                                                                                                                                                                                                  |
+| video     | `media`             | Explicit media array (wan2.7 and wan3 models). Overrides the automatic mapping from `inputReferences` and `frameImages`. Use `Image 1`, `Video 1`, etc. in prompts to reference media items (images, videos, and audio are counted separately, in array order). `reference_audio`, `file`, and `link` are wan3-only and have no top-level call option, so they can only be passed here. wan3 also rejects mixing `reference_*`/`file`/`link` with `first_frame`/`last_frame`. |
+| video     | `ratio`             | Aspect ratio (wan2.7 text-to-video and reference-to-video models, and every wan3 generation). `adaptive` is wan3-only, and is its default.                                                                                                                                                                                                                                                                                                                                    |
+| video     | `pollIntervalMs`    | Polling interval in milliseconds. Defaults to 5000 (5 seconds).                                                                                                                                                                                                                                                                                                                                                                                                               |
+| video     | `pollTimeoutMs`     | Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes).                                                                                                                                                                                                                                                                                                                                                                                      |
+
+{/* model-capabilities:alibaba-provider-options:end */}

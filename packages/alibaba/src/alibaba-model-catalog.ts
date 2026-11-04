@@ -6,6 +6,71 @@ import type {
 import type { AlibabaLanguageModelChatOptions } from './alibaba-chat-language-model-options';
 import type { AlibabaEmbeddingModelOptions } from './alibaba-embedding-model-options';
 import type { AlibabaVideoModelOptions } from './alibaba-video-model-options';
+const documentedVideoDetails: Partial<
+  Record<
+    string,
+    {
+      audioMode: string;
+      resolutionTiers: readonly string[];
+      durationRange: string;
+    }
+  >
+> = {
+  'wan2.6-t2v': {
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-15s',
+  },
+  'wan2.5-t2v-preview': {
+    audioMode: 'Yes',
+    resolutionTiers: ['480P', '720P', '1080P'],
+    durationRange: '5s, 10s',
+  },
+  'wan2.7-t2v': {
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-15s',
+  },
+  'wan2.7-t2v-2026-06-12': {
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-15s',
+  },
+  'wan2.6-i2v-flash': {
+    audioMode: 'Optional',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-15s',
+  },
+  'wan2.6-i2v': {
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-15s',
+  },
+  'wan2.6-r2v-flash': {
+    audioMode: 'Optional',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-10s',
+  },
+  'wan2.6-r2v': {
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-10s',
+  },
+  'wan2.7-r2v': {
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-10s (with video ref), 2-15s',
+  },
+  'wan2.7-r2v-2026-06-12': {
+    audioMode: 'Yes',
+    resolutionTiers: ['720P', '1080P'],
+    durationRange: '2-10s (with video ref), 2-15s',
+  },
+};
+const alibabaEmbeddingLimits = {
+  maxEmbeddingsPerCall: 10,
+  supportsParallelCalls: false,
+} as const;
 
 /** Known options accepted under providerOptions; open-ended extension keys remain undeclared. */
 export const alibabaProviderOptions = {
@@ -242,6 +307,7 @@ export function getAlibabaEmbeddingModelEntry(modelId: string) {
         ? {
             embedding: {
               defaultDimensions: 1024,
+              ...alibabaEmbeddingLimits,
               customDimensions: true,
               dimensions:
                 modelId === 'text-embedding-v4'
@@ -257,7 +323,7 @@ export function getAlibabaEmbeddingModelEntry(modelId: string) {
       ),
     },
     requestConfig: {
-      embedding: { maxEmbeddingsPerCall: 10, supportsParallelCalls: false },
+      embedding: alibabaEmbeddingLimits,
     },
   } as const;
   return entry satisfies ModelEntry<{
@@ -290,6 +356,7 @@ export function getAlibabaVideoModelEntry(modelId: string) {
         fps: false,
         seed: true,
         maxVideosPerCall: 1,
+        ...documentedVideoDetails[modelId],
       },
     },
     providerOptions: {
