@@ -6,9 +6,12 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-haiku-4-5'),
+    model: anthropic('claude-haiku-5-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
     maxRetries: 0,
+    include: {
+      rawChunks: true,
+    },
   });
 
   printFullStream({ result });
@@ -16,4 +19,6 @@ run(async () => {
   print('Usage:', await result.usage);
   print('Finish reason:', await result.finishReason);
   print('Raw finish reason:', await result.rawFinishReason);
+
+  return result;
 });

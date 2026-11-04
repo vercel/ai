@@ -1,9 +1,10 @@
+import type { JSONObject } from '@ai-sdk/provider';
 import type { InferToolInput, ToolSet } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types';
 import type { ValueOf } from '../util/value-of';
 
 export type StaticToolError<TOOLS extends ToolSet> = ValueOf<{
-  [NAME in keyof TOOLS]: {
+  [NAME in keyof TOOLS]-?: {
     type: 'tool-error';
     toolCallId: string;
     toolName: NAME & string;
@@ -11,6 +12,7 @@ export type StaticToolError<TOOLS extends ToolSet> = ValueOf<{
     error: unknown;
     providerExecuted?: boolean;
     providerMetadata?: ProviderMetadata;
+    toolMetadata?: JSONObject;
     dynamic?: false | undefined;
     title?: string;
   };
@@ -24,6 +26,7 @@ export type DynamicToolError = {
   error: unknown;
   providerExecuted?: boolean;
   providerMetadata?: ProviderMetadata;
+  toolMetadata?: JSONObject;
   dynamic: true;
   title?: string;
 };

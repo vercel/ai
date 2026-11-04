@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: xai.responses('grok-4-fast-non-reasoning'),
+    model: xai.responses('grok-4-1-fast-non-reasoning'),
     prompt: 'What is the capital of France?',
   });
 
@@ -16,6 +16,6 @@ run(async () => {
   console.log();
   console.log(
     'Provider metadata:',
-    JSON.stringify(await result.providerMetadata, null, 2),
+    JSON.stringify((await result.finalStep).providerMetadata, null, 2),
   );
 });

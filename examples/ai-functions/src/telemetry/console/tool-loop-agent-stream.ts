@@ -7,7 +7,7 @@ import { consoleTelemetry } from './console-telemetry';
 registerTelemetry(consoleTelemetry);
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   instructions: 'You are a helpful assistant. Use the weather tool.',
   tools: {
     weather: tool({
@@ -19,9 +19,6 @@ const agent = new ToolLoopAgent({
         requestId: z.string(),
         secretKey: z.string(),
       }),
-      sensitiveContext: {
-        secretKey: true,
-      },
       execute: async ({ location }, { context }) => ({
         location,
         temperature: 72,
@@ -41,11 +38,16 @@ const agent = new ToolLoopAgent({
     requestId: 'request-123',
     secretApiKey: 'sk-secret',
   },
-  sensitiveRuntimeContext: {
-    secretApiKey: true,
-  },
   telemetry: {
     functionId: 'my-awesome-agent',
+    includeRuntimeContext: {
+      requestId: true,
+    },
+    includeToolsContext: {
+      weather: {
+        requestId: true,
+      },
+    },
   },
 });
 

@@ -26,7 +26,7 @@ const { providerReference } = await uploadFile({
 });
 
 const { text } = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: openai.responses('gpt-6-luna'),
   messages: [
     {
       role: 'user',
@@ -94,6 +94,31 @@ const { providerReference } = await uploadFile({
 });
 ```
 
+## Streaming Uploads
+
+Providers that support streaming uploads (e.g. OpenAI, xAI) accept a tagged
+`{ type: 'stream', stream }` shape, sending the bytes without buffering the
+full file in memory. Providers without streaming support reject stream data
+with an `UnsupportedFunctionalityError`.
+
+```ts
+const { providerReference } = await uploadFile({
+  api: openai.files(),
+  data: { type: 'stream', stream: fileStream },
+  mediaType: 'application/jsonl',
+  filename: 'batch.jsonl',
+});
+```
+
+The provider consumes the stream: any failed upload — including validation
+failures before a request is made — cancels it, and it must not be reused. Stream data cannot be sniffed, so `mediaType` defaults to
+`application/octet-stream` when omitted, and multipart-based providers default
+the filename to `"blob"`.
+
+Uploads can be cancelled with `abortSignal` and carry request-specific
+`headers`. Results include `byteSize`, `createdAt`, and `expiresAt` (the
+provider-applied retention expiry) when the provider reports them.
+
 ## Provider References
 
 A `ProviderReference` is a `Record<string, string>` that maps provider names to
@@ -144,12 +169,12 @@ the request — each provider will find its own file ID.
 
 The following providers support `files()` and file uploads:
 
-| Provider  | Factory Method        |
-| --------- | --------------------- |
-| Anthropic | `anthropic.files()`   |
-| Google    | `google.files()`      |
-| OpenAI    | `openai.files()`      |
-| xAI       | `xai.files()`         |
+| Provider  | Factory Method      |
+| --------- | ------------------- |
+| Anthropic | `anthropic.files()` |
+| Google    | `google.files()`    |
+| OpenAI    | `openai.files()`    |
+| xAI       | `xai.files()`       |
 
 Providers without file upload support will throw an `UnsupportedFunctionalityError`
 if they encounter a provider reference in a message.

@@ -1,0 +1,57 @@
+data: {"type":"stream-start","warnings":[]}
+
+data: {"type":"response-metadata","id":"f9ec13fd-5069-9ec5-b44b-14e117089158","modelId":"grok-4.7","timestamp":"2026-10-15T00:43:34.000Z"}
+
+data: {"type":"reasoning-start","id":"reasoning-rs_f9ec13fd-5069-9ec5-b44b-14e117089158","providerMetadata":{"xai":{"itemId":"rs_f9ec13fd-5069-9ec5-b44b-14e117089158"}}}
+
+data: {"type":"reasoning-end","id":"reasoning-rs_f9ec13fd-5069-9ec5-b44b-14e117089158","providerMetadata":{"xai":{"reasoningEncryptedContent":"6g7PyKnYIeLprQDRxQCMvm0kRmQSszDME2ZEUKGi6uVpr92noW0myoYpsdqdH4xwmL+xsNUgdB962qPoKOwWKaC9wRXRwoINTaO7OEoVykw0uS7zvt8V8h2Aup0FpAWDyDOXSq0DvdOgL02vKzbapsGaZAnVr5+XTz4gDRfLWzTBip6DxfuMl78PGRvRzvOtSnVg9CDrmh+8WMWmkgkiC/4Rk3Dvz5EUXNX8w0hlWRU7S0rocao+j4JuCRrCTId7mAZYgELyysJEYYcCn8pyRUDxn+lmocx6Fo8XzPymWH4ZZTPDt74","itemId":"rs_f9ec13fd-5069-9ec5-b44b-14e117089158"}}}
+
+data: {"type":"text-start","id":"text-msg_f9ec13fd-5069-9ec5-b44b-14e117089158"}
+
+data: {"type":"text-delta","id":"text-msg_f9ec13fd-5069-9ec5-b44b-14e117089158","delta":"I'll"}
+
+data: {"type":"text-delta","id":"text-msg_f9ec13fd-5069-9ec5-b44b-14e117089158","delta":" run"}
+
+data: {"type":"text-delta","id":"text-msg_f9ec13fd-5069-9ec5-b44b-14e117089158","delta":" those"}
+
+data: {"type":"text-delta","id":"text-msg_f9ec13fd-5069-9ec5-b44b-14e117089158","delta":" three"}
+
+data: {"type":"text-delta","id":"text-msg_f9ec13fd-5069-9ec5-b44b-14e117089158","delta":" independent"}
+
+data: {"type":"text-delta","id":"text-msg_f9ec13fd-5069-9ec5-b44b-14e117089158","delta":" calls"}
+
+data: {"type":"text-delta","id":"text-msg_f9ec13fd-5069-9ec5-b44b-14e117089158","delta":" now"}
+
+data: {"type":"text-delta","id":"text-msg_f9ec13fd-5069-9ec5-b44b-14e117089158","delta":"."}
+
+data: {"type":"tool-input-start","id":"call-981f41d2-9753-4a25-9078-df6d570043dd-0","toolName":"bash"}
+
+data: {"type":"tool-input-delta","id":"call-981f41d2-9753-4a25-9078-df6d570043dd-0","delta":"{\"command\":\"printf MIXED > mixed.txt\"}"}
+
+data: {"type":"tool-input-end","id":"call-981f41d2-9753-4a25-9078-df6d570043dd-0"}
+
+data: {"type":"tool-call","toolCallId":"call-981f41d2-9753-4a25-9078-df6d570043dd-0","toolName":"bash","input":"{\"command\":\"printf MIXED > mixed.txt\"}"}
+
+data: {"type":"tool-input-start","id":"call-981f41d2-9753-4a25-9078-df6d570043dd-1","toolName":"weather"}
+
+data: {"type":"tool-input-delta","id":"call-981f41d2-9753-4a25-9078-df6d570043dd-1","delta":"{\"city\":\"Paris\"}"}
+
+data: {"type":"tool-input-end","id":"call-981f41d2-9753-4a25-9078-df6d570043dd-1"}
+
+data: {"type":"tool-call","toolCallId":"call-981f41d2-9753-4a25-9078-df6d570043dd-1","toolName":"weather","input":"{\"city\":\"Paris\"}"}
+
+data: {"type":"tool-input-start","id":"call-981f41d2-9753-4a25-9078-df6d570043dd-2","toolName":"automatic_weather"}
+
+data: {"type":"tool-input-delta","id":"call-981f41d2-9753-4a25-9078-df6d570043dd-2","delta":"{\"city\":\"Tokyo\"}"}
+
+data: {"type":"tool-input-end","id":"call-981f41d2-9753-4a25-9078-df6d570043dd-2"}
+
+data: {"type":"tool-call","toolCallId":"call-981f41d2-9753-4a25-9078-df6d570043dd-2","toolName":"automatic_weather","input":"{\"city\":\"Tokyo\"}"}
+
+data: {"type":"text-end","id":"text-msg_f9ec13fd-5069-9ec5-b44b-14e117089158"}
+
+data: {"type":"finish","finishReason":{"unified":"tool-calls","raw":"completed"},"usage":{"inputTokens":{"total":2269,"noCache":1117,"cacheRead":1152},"outputTokens":{"total":84,"text":40,"reasoning":44},"raw":{"input_tokens":2269,"output_tokens":84,"total_tokens":2353,"input_tokens_details":{"cached_tokens":1152},"output_tokens_details":{"reasoning_tokens":44},"num_sources_used":0,"num_server_side_tools_used":0,"cost_in_usd_ticks":33140000,"context_details":{"input_tokens":2269,"output_tokens":91}}},"providerMetadata":{"xai":{"costInUsdTicks":33140000,"serviceTier":"default"},"gateway":{"routing":{"originalModelId":"spacexai/grok-4.7","resolvedProvider":"xai","fallbacksAvailable":[],"planningReasoning":"System credentials planned for: xai. Total execution order: xai(system)","canonicalSlug":"xai/grok-4.7","finalProvider":"xai","modelAttemptCount":1,"modelAttempts":[{"canonicalSlug":"xai/grok-4.7","success":true,"providerAttemptCount":1,"providerAttempts":[{"provider":"xai","credentialType":"system","success":true,"startTime":1792025013982,"endTime":1792025015404,"providerRequestId":"f9ec13fd-5069-9ec5-b44b-14e117089158","statusCode":200,"providerResponseId":"f9ec13fd-5069-9ec5-b44b-14e117089158"}]}],"totalProviderAttemptCount":1,"affinity":{"outcome":"no_pin"},"clientSessionId":"EYApz3ybBUsI","clientSessionIdSource":"explicit"},"cost":"0.003314","marketCost":"0.003314","surchargeCost":"0.0001","gatewayCost":"0.003414","inferenceCost":"0.003314","inputInferenceCost":"0.00281","outputInferenceCost":"0.000504","providerAllowlistCost":"0.0001","generationId":"gen_01M4YG7BNWJZ6W7JH1HMGGTJMD"}}}
+
+DONE
+
+

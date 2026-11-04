@@ -1,6 +1,7 @@
-import type {
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
+import {
+  UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import type {
   DeepSeekFunctionTool,
@@ -10,9 +11,11 @@ import type {
 export function prepareTools({
   tools,
   toolChoice,
+  supportsStrictToolCalls,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
+  supportsStrictToolCalls?: boolean;
 }): {
   tools: undefined | Array<DeepSeekFunctionTool>;
   toolChoice: DeepSeekToolChoice;
@@ -25,6 +28,29 @@ export function prepareTools({
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
+  }
+
+  const functionTools = tools.filter(tool => tool.type === 'function');
+  const hasStrictTool = functionTools.some(tool => tool.strict === true);
+
+  if (hasStrictTool && supportsStrictToolCalls === false) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'DeepSeek strict tool calls',
+      message:
+        'DeepSeek strict tool calls require a beta base URL ending in `/beta`.',
+    });
+  }
+
+  if (
+    hasStrictTool &&
+    supportsStrictToolCalls === true &&
+    functionTools.some(tool => tool.strict !== true)
+  ) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'mixed DeepSeek strict and non-strict tool calls',
+      message:
+        'DeepSeek strict mode requires every function tool in the request to set `strict: true`.',
+    });
   }
 
   const deepseekTools: Array<DeepSeekFunctionTool> = [];

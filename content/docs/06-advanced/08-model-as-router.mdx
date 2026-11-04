@@ -24,7 +24,7 @@ When language models are provided with a set of function definitions and instruc
 const sendMessage = (prompt: string) =>
   generateText({
     model: __MODEL__,
-    system: 'you are a friendly weather assistant!',
+    instructions: 'you are a friendly weather assistant!',
     prompt,
     tools: {
       getWeather: {

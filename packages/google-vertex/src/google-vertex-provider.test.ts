@@ -78,6 +78,43 @@ describe('google-vertex-provider', () => {
     });
   });
 
+  it('passes project to createAuthTokenGenerator as projectId', async () => {
+    createVertexNode({
+      project: 'test-project',
+    });
+
+    expect(createGoogleVertexOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createGoogleVertexOriginal).mock
+      .calls[0][0];
+
+    await resolve(passedOptions?.headers); // call the headers function
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith({
+      projectId: 'test-project',
+    });
+  });
+
+  it('does not override explicit googleAuthOptions projectId', async () => {
+    createVertexNode({
+      project: 'provider-project',
+      googleAuthOptions: {
+        projectId: 'auth-project',
+        keyFile: 'path/to/key.json',
+      },
+    });
+
+    expect(createGoogleVertexOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createGoogleVertexOriginal).mock
+      .calls[0][0];
+
+    await resolve(passedOptions?.headers); // call the headers function
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith({
+      projectId: 'auth-project',
+      keyFile: 'path/to/key.json',
+    });
+  });
+
   it('should pass options through to base provider when apiKey is provided', async () => {
     createVertexNode({
       apiKey: 'test-api-key',

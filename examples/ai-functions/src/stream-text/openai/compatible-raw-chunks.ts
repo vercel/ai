@@ -14,14 +14,16 @@ run(async () => {
   const result = streamText({
     model: openaiCompatible.completionModel('gpt-3.5-turbo-instruct'),
     prompt: 'Hello, World!',
-    includeRawChunks: true,
+    include: {
+      rawChunks: true,
+    },
   });
 
   let textChunkCount = 0;
   let rawChunkCount = 0;
   let otherChunkCount = 0;
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     console.log('Chunk type:', chunk.type, 'Chunk:', JSON.stringify(chunk));
 
     if (chunk.type === 'text-delta') {

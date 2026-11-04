@@ -16,7 +16,7 @@ sdk.start();
 registerTelemetry(new LegacyOpenTelemetry());
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   instructions: 'You are a helpful assistant. Use the weather tool.',
   tools: {
     weather: tool({
@@ -35,11 +35,11 @@ const agent = new ToolLoopAgent({
     requestId: 'request-123',
     secretApiKey: 'sk-secret',
   },
-  sensitiveRuntimeContext: {
-    secretApiKey: true,
-  },
   telemetry: {
     functionId: 'my-awesome-agent',
+    includeRuntimeContext: {
+      requestId: true,
+    },
   },
 });
 

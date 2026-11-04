@@ -12,7 +12,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const { output } = await generateText({
     model: wrapLanguageModel({
-      model: gateway('google/gemini-3-flash'),
+      model: gateway('google/gemini-3.8-flash'),
       middleware: extractJsonMiddleware(),
     }),
     tools: {

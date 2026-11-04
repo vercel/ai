@@ -6,10 +6,8 @@ The **Cerebras provider** for the [AI SDK](https://ai-sdk.dev/docs) contains lan
 
 ## Setup
 
-The Cerebras provider is available in the `@ai-sdk/cerebras` module. You can install it with
-
 ```bash
-npm i @ai-sdk/cerebras
+npm i ai @ai-sdk/cerebras
 ```
 
 ## Skill for Coding Agents
@@ -20,36 +18,16 @@ If you use coding agents such as Claude Code or Cursor, we highly recommend addi
 npx skills add vercel/ai
 ```
 
-## Provider Instance
-
-You can import the default provider instance `cerebras` from `@ai-sdk/cerebras`:
-
-```ts
-import { cerebras } from '@ai-sdk/cerebras';
-```
-
-## Available Models
-
-Cerebras offers a variety of high-performance language models:
-https://inference-docs.cerebras.ai/models/overview
-
-## Example
+## Usage
 
 ```ts
 import { cerebras } from '@ai-sdk/cerebras';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: cerebras('llama-3.3-70b'),
+  model: cerebras('gpt-oss-120b'),
   prompt: 'Write a JavaScript function that sorts a list:',
 });
 ```
 
-## Documentation
-
-For more information about Cerebras' high-speed inference capabilities and API documentation, please visit:
-
-- [Cerebras Inference Documentation](https://inference-docs.cerebras.ai/introduction)
-- [Cerebras Website](https://cerebras.ai)
-
-Note: Due to high demand in the early launch phase, context windows are temporarily limited to 8192 tokens in the Free Tier.
+See the [Cerebras Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/cerebras) for more information.

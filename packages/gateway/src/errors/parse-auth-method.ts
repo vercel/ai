@@ -1,11 +1,10 @@
-import { z } from 'zod/v4';
+import { z } from '../zod';
 import {
   lazySchema,
   safeValidateTypes,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-
-export const GATEWAY_AUTH_METHOD_HEADER = 'ai-gateway-auth-method' as const;
+import { GATEWAY_AUTH_METHOD_HEADER } from '../gateway-headers';
 
 export async function parseAuthMethod(
   headers: Record<string, string | undefined>,

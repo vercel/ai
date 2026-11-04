@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 export const openaiImageGenerationAgent = new ToolLoopAgent({
-  model: openai('gpt-5-nano'),
+  model: openai('gpt-5.4-nano'),
   tools: {
     image: openai.tools.imageGeneration({
       partialImages: 3,

@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: googleVertex('gemini-2.5-pro'),
+    model: googleVertex('gemini-3.1-pro-preview'),
     tools: {
       weather: weatherTool,
       cityAttractions: {
@@ -16,7 +16,7 @@ run(async () => {
     prompt: 'What is the weather in San Francisco?',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta': {
         console.log('Text:', part.text);

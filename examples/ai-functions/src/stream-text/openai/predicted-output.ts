@@ -27,7 +27,8 @@ public class User
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-4o'),
+    // Predicted outputs require a supported Chat Completions model.
+    model: openai.chat('gpt-4o'),
     messages: [
       {
         role: 'user',
@@ -54,7 +55,7 @@ run(async () => {
   }
 
   const usage = await result.usage;
-  const openaiMetadata = (await result.providerMetadata)?.openai;
+  const openaiMetadata = (await result.finalStep).providerMetadata?.openai;
 
   console.log();
   console.log('Token usage:', {

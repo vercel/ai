@@ -36,9 +36,9 @@ const imageAnalysisTool = tool({
       type: 'content',
       value: [
         {
-          type: 'file-data',
+          type: 'file',
           mediaType: 'image/png',
-          data: output.base64Image!,
+          data: { type: 'data', data: output.base64Image! },
         },
       ],
     };
@@ -59,7 +59,7 @@ run(async () => {
     prompt: `Whats in this image?`,
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta':
         process.stdout.write(part.text);

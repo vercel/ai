@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: amazonBedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+    model: amazonBedrock('us.anthropic.claude-sonnet-5-5'),
     maxOutputTokens: 512,
     messages: [
       {
@@ -30,6 +30,6 @@ run(async () => {
   console.log('Token usage:', await result.usage);
   console.log(
     'Cache token usage:',
-    (await result.providerMetadata)?.bedrock?.usage,
+    (await result.finalStep).providerMetadata?.bedrock?.usage,
   );
 });

@@ -1,0 +1,467 @@
+---
+title: Pi
+description: Learn how to use the Pi harness adapter.
+---
+
+# Pi Harness
+
+The Pi harness adapter connects `HarnessAgent` to
+`@earendil-works/pi-coding-agent`. Pi runs in the host Node.js process and uses
+the sandbox as a remote filesystem and shell. It does not install a bridge
+inside the sandbox.
+
+<Note>
+  Harness packages are **experimental**. Expect breaking changes between
+  releases as this early API gets further refined.
+</Note>
+
+## Setup
+
+<InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-pi @ai-sdk/sandbox-vercel" />
+
+## Import
+
+```ts
+import { pi, createPi } from '@ai-sdk/harness-pi';
+```
+
+`pi` is equivalent to `createPi()` with its default configuration.
+
+## Basic Usage
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { pi } from '@ai-sdk/harness-pi';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
+
+const agent = new HarnessAgent({
+  harness: pi,
+  model: 'anthropic/claude-sonnet-4.6',
+});
+
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
+
+let exitCode = 0;
+try {
+  const result = await agent.stream({
+    session,
+    prompt: 'Check the test failures and fix the production code.',
+  });
+
+  for await (const part of result.stream) {
+    if (part.type === 'text-delta') {
+      process.stdout.write(part.text);
+    }
+  }
+} catch (err) {
+  exitCode = 1;
+  console.error(err);
+} finally {
+  await session.destroy();
+  await sandboxSession.destroy();
+  process.exit(exitCode);
+}
+```
+
+To use this agent, ensure environment variables include `VERCEL_OIDC_TOKEN` for
+Vercel Sandbox, and one of the variables listed under [authentication](#authentication)
+for Pi.
+
+## Adapter Settings
+
+Use `createPi()` to configure the runtime:
+
+```ts
+const harness = createPi({
+  thinkingLevel: 'medium',
+});
+```
+
+Settings:
+
+- `auth`: authentication mode (`auto`, `openai`, `anthropic`, `custom`, or
+  `ai-gateway`) or an isolated authentication environment.
+- `cacheRetention`: default prompt cache retention for model requests (`none`,
+  `short`, or `long`). For Anthropic models, `long` uses the 1-hour cache
+  instead of the 5-minute default.
+- `credentials`: application-owned Pi credential storage. This replaces the
+  file-backed `auth.json` store and supports persistent database-backed
+  credentials.
+- `extensionFactories`: trusted inline Pi extension factories that run in the
+  host Node.js process.
+- `fileToolPathPolicy`: extra sandbox roots Pi's native file tools can read or
+  write, and roots they must refuse. See [File Tool Paths](#file-tool-paths).
+- `mcpServers`: MCP servers keyed by server name, served by Pi's native MCP
+  support. Each entry is Pi's MCP server configuration, either stdio
+  (`command`, `args`, `env`, `cwd`) or streamable HTTP (`url`, `headers`).
+  Tools are named `mcp__<server>__<tool>`, with `-` in either name replaced by
+  `_`. `exposure` defaults to `direct`, which declares a server's tools to the
+  model; with `deferred`, the model finds them through Pi's `tool_search` tool
+  first. Pi's `codemode` exposure is not supported. An entry that uses it, or
+  that Pi rejects, fails session start. Pi truncates text results over 20 KB
+  and writes the full text to the host temp directory. The harness has no
+  sign-in flow, so an HTTP server that requires authentication must carry an
+  `Authorization` header or `auth.provider`.
+- `mcpSettings`: deprecated. Pi's native MCP has no tool prefix or output
+  guard settings, so a `toolPrefix` other than `mcp`, or `outputGuard: false`,
+  fails session start.
+- `providers`: explicit Pi provider configurations for custom models.
+- `reattachInProcess`: whether a suspended turn can reuse its live Pi session
+  in the current process. Defaults to `true`.
+- `resources`: skills in the sandbox that Pi lists to the model. See
+  [Project Resources](#project-resources).
+- `thinkingLevel`: Pi thinking level (`off`, `minimal`, `low`, `medium`,
+  `high`, `xhigh`, or `max`).
+
+## Project Resources
+
+Pi does not discover `AGENTS.md`, `CLAUDE.md`, or project skills on the host or
+in the sandbox. Put project context in `instructions`, and list skills that
+already exist in the sandbox through `resources`:
+
+```ts
+const harness = createPi({
+  resources: {
+    skills: [
+      {
+        name: 'brand-voice',
+        description: 'Rules for writing in the brand voice.',
+        filePath: '/vercel/sandbox/skills/brand-voice/SKILL.md',
+      },
+    ],
+  },
+});
+```
+
+- `skills`: skills listed to the model by name and description. The file at
+  `filePath` must already exist in the sandbox, because the model reads it with
+  the `read` tool. Pi's read-only file tools can read the skill's directory.
+
+Skills passed to `HarnessAgent` are written into the sandbox on each turn and
+do not need an entry here.
+
+## File Tool Paths
+
+By default, Pi's native file tools (`read`, `write`, `edit`, `ls`, `find`, and
+`grep`) are limited to the session workspace, and the read-only tools can also
+read the harness skill directory. Use `fileToolPathPolicy` to change what they
+can reach:
+
+```ts
+const harness = createPi({
+  fileToolPathPolicy: {
+    readableRoots: ['/home/vercel-sandbox'],
+    writableRoots: ['/tmp', '/mnt/artifacts'],
+    deniedRoots: ['/home/vercel-sandbox/.credentials'],
+  },
+});
+```
+
+- `readableRoots`: absolute sandbox directories that `read`, `ls`, `find`, and
+  `grep` can reach in addition to the defaults. They do not become writable.
+- `writableRoots`: absolute sandbox directories that `write` and `edit` can
+  reach in addition to the workspace. Writable roots are also readable.
+- `deniedRoots`: absolute sandbox directories that every native file tool
+  refuses, even inside the workspace or a readable root. Both requested paths
+  and denied roots are resolved in the sandbox, so symlinks pointing to or from
+  a denied root are refused. Configured roots are resolved again for each file
+  operation; canonical denied roots captured before the first native file tool
+  runs remain denied.
+  `find` and `grep` prune exact denied paths without following directory symlinks,
+  and `ls` hides directly denied entries. Other directories with the same name
+  remain accessible.
+
+Every configured root must be an absolute sandbox path. Denied roots take
+precedence over the workspace, harness skill directory, and allowed roots.
+Writes outside the workspace do not emit workspace `file-change` events.
+
+When the setting is present, a leading `~` in a tool path expands to the
+sandbox home directory.
+
+The policy applies to Pi's native file tools only. The `bash` tool is not
+restricted by it, so do not treat `deniedRoots` as a security boundary for
+commands the agent runs.
+
+## Inline Extensions
+
+Use `extensionFactories` to load trusted inline Pi extensions for each harness
+session:
+
+```ts
+const harness = createPi({
+  extensionFactories: [
+    pi => {
+      pi.on('agent_start', () => {
+        console.log('Pi agent started');
+      });
+    },
+  ],
+});
+```
+
+Each factory also receives the harness session it runs in as a second argument:
+
+- `sandboxSession`: the session's sandbox, restricted to the operations harness
+  tools may use.
+- `sessionWorkDir`: the sandbox directory the session works in.
+- `instructions()`: the instructions of the current turn. Instructions arrive
+  with each turn, so call it while a turn runs, not when the factory runs.
+
+```ts
+const harness = createPi({
+  extensionFactories: [
+    (pi, session) => {
+      pi.on('agent_start', async () => {
+        const { stdout } = await session.sandboxSession.run({
+          command: `git -C ${session.sessionWorkDir} status --short`,
+        });
+        console.log(session.instructions(), stdout);
+      });
+    },
+  ],
+});
+```
+
+Factories that take only the Pi API keep working unchanged.
+
+Routine resource refreshes between turns reuse the active extension runtime and
+do not reinitialize factories. If the underlying Pi session is rebuilt, the
+factories initialize again for the new Pi runtime.
+
+Extension factories execute in the host Node.js process with access to the host
+environment, so only pass factories you trust. This setting enables only the
+factories you explicitly provide. Filesystem extension discovery remains
+disabled, including user, project, and settings-based extensions. Themes and
+prompt templates also remain disabled. The host has no copy of the sandbox
+workspace, so an extension reads project files through the `sandboxSession` it
+receives.
+
+## Session Reattachment
+
+By default, Pi keeps a suspended turn alive for an efficient continuation in
+the same process when the incoming request has compatible settings and runtime
+resources. Changed request-scoped settings or sandbox handles cause a cold
+restore from persisted lifecycle state.
+
+For stateless or multi-replica applications, disable in-process reattachment so
+every continuation restores the persisted lifecycle state with the current
+request's settings:
+
+```ts
+const harness = createPi({
+  reattachInProcess: false,
+});
+```
+
+An incoming completed `resume-session` state always takes precedence over an
+older live suspended turn in the process.
+
+The lifecycle state carries the Pi session itself, its header followed by its
+entries. Nothing about the session is stored in the sandbox, so restoring a
+session reads no sandbox files. A state recorded before this format restores as
+a fresh session.
+
+## Session Storage
+
+The lifecycle state holds the whole session, including image bytes from tool
+results, so it grows with every turn. To keep it small, pass a `sessionStorage`
+that keeps the session in an append-only log somewhere else, such as an object
+store, a database table or a stream. The harness appends each new Pi session
+entry to the log, and the lifecycle state holds only `leafId`, the id of the
+entry the session ends at. Restoring a session reads the log and continues from
+that entry. Each entry's `data` is a Pi session entry, a JSON value; the harness
+checks each entry when it reads it.
+
+```ts
+import { createPi, type PiSessionStorage } from '@ai-sdk/harness-pi';
+
+const storage: PiSessionStorage = {
+  append: async ({ sessionId, entry }) => {
+    await db
+      .insert(piSessionEntries)
+      .values({ sessionId, ...entry })
+      .onConflictDoNothing();
+  },
+  read: async ({ sessionId }) =>
+    db
+      .select()
+      .from(piSessionEntries)
+      .where(eq(piSessionEntries.sessionId, sessionId))
+      .orderBy(piSessionEntries.position),
+};
+
+const harness = createPi({ sessionStorage: storage });
+```
+
+Entries are never changed or deleted. Pi sessions are trees: every entry points
+to the entry before it, its `parentEntryId`. A regenerated turn, a workflow step
+retried after a crash or a second turn resumed from the same state appends a new
+branch, and each lifecycle state's `leafId` selects its own branch, so the
+others are left out.
+
+Each entry also comes with `version`, the Pi session version it was written
+under, and `read` returns it with the rest of the entry, so the harness can
+migrate entries written by an older Pi. An entry whose `entryId` the log already
+holds is a retried append, so the example keeps `(sessionId, entryId)` unique and
+ignores the conflict. `read` may return every entry of the log, as above. To
+read less, return only the entries that lead to `leafId`: the entry whose
+`entryId` is `leafId`, then its `parentEntryId`, and so on, in the order they
+were appended. A database can
+follow that chain in one query, such as a recursive common table expression.
+
+A turn usually adds several entries. The harness appends them one at a time,
+unless the storage also implements the optional `appendMany`, which receives a
+turn's entries in one call:
+
+```ts
+const storage: PiSessionStorage = {
+  // append and read as above
+  appendMany: async ({ sessionId, entries }) => {
+    await db
+      .insert(piSessionEntries)
+      .values(entries.map(entry => ({ sessionId, ...entry })))
+      .onConflictDoNothing();
+  },
+};
+```
+
+A tool batch waiting on host input stays in the lifecycle state. A state
+recorded without a session storage still restores, and its entries are appended
+on the next stop. A state with a `leafId` fails to restore when `createPi` has
+no `sessionStorage`.
+
+## Authentication
+
+The `auth` setting selects which credentials Pi reads from the host environment:
+
+- `auto` (default): use AI Gateway credentials when available, then fall back
+  to all provider credentials found in the environment.
+- `openai`: use `OPENAI_API_KEY` and the optional `OPENAI_BASE_URL`.
+- `anthropic`: use `ANTHROPIC_API_KEY` and the optional
+  `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL`.
+- `custom`: register all providers configured through environment variables.
+- `ai-gateway`: use `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` and the
+  optional `AI_GATEWAY_BASE_URL`.
+
+If no applicable credential environment variable is set, the adapter attempts
+to resolve a native subscription from the host system unless AI Gateway
+authentication is selected.
+
+```ts
+const harness = createPi({ auth: 'ai-gateway' });
+```
+
+Pass an authentication environment to use programmatically resolved
+credentials without reading `process.env`:
+
+```ts
+const harness = createPi({
+  auth: {
+    MISTRAL_API_KEY: await resolveMistralToken(),
+    MISTRAL_BASE_URL: 'https://api.mistral.ai',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery. Pi parses provider API keys and base URLs from that record.
+
+For credentials managed outside environment variables or files, inject an
+application-owned credential store. Pi performs credential reads, refreshes,
+and updates through this interface:
+
+```ts
+import { createPi, type PiCredentialStore } from '@ai-sdk/harness-pi';
+
+declare const credentials: PiCredentialStore;
+
+const harness = createPi({
+  credentials,
+  reattachInProcess: false,
+});
+```
+
+`credentials` replaces Pi's `auth.json` storage. In request-scoped or
+multi-replica deployments, pair it with `reattachInProcess: false` so each
+continuation constructs a model runtime from the current request.
+
+With `custom`, standard providers use environment variables such as
+`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`, and
+`ANTHROPIC_BASE_URL`. Other providers use a `<PREFIX>_API_KEY` and matching
+`<PREFIX>_BASE_URL` pair.
+
+Authentication variables do not identify a provider's API protocol or models.
+Register that metadata explicitly when using a custom model:
+
+```ts
+const harness = createPi({
+  auth: {
+    MYPROVIDER_API_KEY: await resolveMyProviderToken(),
+    MYPROVIDER_BASE_URL: 'https://api.example.com/v1',
+  },
+  providers: {
+    myprovider: {
+      api: 'openai-completions',
+      models: [
+        {
+          id: 'my-custom-model',
+          name: 'My Custom Model',
+          reasoning: false,
+          input: ['text'],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: 128_000,
+          maxTokens: 16_384,
+        },
+      ],
+    },
+  },
+});
+```
+
+## Sandbox
+
+Pi needs a sandbox session but does not require exposed ports. You can create a
+Vercel network session or a local just-bash session:
+
+```ts
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  template: await agent.getSandboxTemplate(),
+});
+```
+
+## Built-in Tools
+
+The adapter exposes these common Pi built-ins through `agent.tools`:
+
+- `read`
+- `write`
+- `edit`
+- `bash`
+- `grep`
+- `glob`
+- `ls`
+
+Additional Pi built-ins may also appear in `agent.tools` when they do not fit a
+common tool shape.
+
+Pi supports built-in tool approval requests when `permissionMode` is
+`allow-reads` or `allow-edits`.
+
+## Known Limitations
+
+Pi does not support structured output. Supplying `output` to `HarnessAgent`
+causes the turn to throw `HarnessCapabilityUnsupportedError`.
+
+Pi does not support user messages with text parts after image parts; all text
+must appear before the first image.
+
+## Related
+
+- [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)
+- [Harness tools](/docs/ai-sdk-harnesses/tools)
+- [Harness adapters](/docs/ai-sdk-harnesses/harness-adapters)

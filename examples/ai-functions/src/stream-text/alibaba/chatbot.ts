@@ -19,7 +19,7 @@ run(async () => {
 
     const result = streamText({
       model: alibaba('qwen-plus'),
-      system: 'You are a helpful, respectful and honest assistant.',
+      instructions: 'You are a helpful, respectful and honest assistant.',
       messages,
       stopWhen: isStepCount(5),
       tools: {

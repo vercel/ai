@@ -2,6 +2,60 @@ import type { AmazonBedrockReasoningMetadata } from './amazon-bedrock-chat-langu
 import { convertToAmazonBedrockChatMessages } from './convert-to-amazon-bedrock-chat-messages';
 import { describe, it, expect } from 'vitest';
 
+describe('foreign provider history', () => {
+  it.each(['google', 'vertex', 'googleVertex'])(
+    'trims prefill before empty %s signature text',
+    async namespace => {
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'Answer  ' },
+            {
+              type: 'text',
+              text: '',
+              providerOptions: { [namespace]: { thoughtSignature: 'opaque' } },
+            },
+          ],
+        },
+      ]);
+      expect(messages).toEqual([
+        { role: 'assistant', content: [{ text: 'Answer' }] },
+      ]);
+    },
+  );
+
+  it.each(['google', 'vertex', 'googleVertex'])(
+    'omits empty %s signature text when reasoning is present',
+    async namespace => {
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Foreign reasoning',
+              providerOptions: {
+                [namespace]: { thoughtSignature: 'reasoning' },
+              },
+            },
+            { type: 'text', text: 'A' },
+            {
+              type: 'text',
+              text: '',
+              providerOptions: { [namespace]: { thoughtSignature: 'opaque' } },
+            },
+            { type: 'text', text: 'B' },
+          ],
+        },
+      ]);
+      expect(messages).toEqual([
+        { role: 'assistant', content: [{ text: 'A' }, { text: 'B' }] },
+      ]);
+    },
+  );
+});
+
 describe('system messages', () => {
   it('should combine multiple leading system messages into a single system message', async () => {
     const { system } = await convertToAmazonBedrockChatMessages([
@@ -112,6 +166,140 @@ describe('user messages', () => {
         ],
       },
     ]);
+  });
+
+  it('should convert image parts with S3 URLs', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe the image' },
+          {
+            type: 'file',
+            data: {
+              type: 'url' as const,
+              url: new URL('s3://my-test-bucket/path/to/image.png'),
+            },
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          { text: 'Describe the image' },
+          {
+            image: {
+              format: 'png',
+              source: {
+                s3Location: {
+                  uri: 's3://my-test-bucket/path/to/image.png',
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert messages with video parts', async () => {
+    const videoData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe the video' },
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(videoData).toString('base64'),
+            },
+            mediaType: 'video/mp4',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          { text: 'Describe the video' },
+          {
+            video: {
+              format: 'mp4',
+              source: { bytes: 'AAECAw==' },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert video parts with S3 URLs', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe the video' },
+          {
+            type: 'file',
+            data: {
+              type: 'url' as const,
+              url: new URL('s3://my-test-bucket/path/to/video.mp4'),
+            },
+            mediaType: 'video/mp4',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          { text: 'Describe the video' },
+          {
+            video: {
+              format: 'mp4',
+              source: {
+                s3Location: {
+                  uri: 's3://my-test-bucket/path/to/video.mp4',
+                },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw for unsupported video mime types', async () => {
+    await expect(
+      convertToAmazonBedrockChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: {
+                type: 'data' as const,
+                data: 'base64data',
+              },
+              mediaType: 'video/unsupported',
+            },
+          ],
+        },
+      ]),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[AI_UnsupportedFunctionalityError: Unsupported video mime type: video/unsupported, expected one of: video/x-matroska, video/quicktime, video/mp4, video/webm, video/x-flv, video/mpeg, video/mpg, video/wmv, video/x-ms-wmv, video/3gpp]`,
+    );
   });
 
   it('should convert messages with document parts', async () => {
@@ -239,6 +427,192 @@ describe('user messages', () => {
         },
       ]
     `);
+  });
+
+  it('should sanitize document filenames to Bedrock-compatible names', async () => {
+    const filenames = [
+      "John's report.txt",
+      'invoice #123.txt',
+      'a&b.txt',
+      'report,2026.txt',
+      'résumé.txt',
+      '분기보고서.txt',
+      'Report -  Final.txt',
+      'a\tb.txt',
+      `${'a'.repeat(201)}.txt`,
+      '.txt',
+      'report (final) [v2]_draft.txt',
+    ];
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: filenames.map(filename => ({
+          type: 'file' as const,
+          data: {
+            type: 'data' as const,
+            data: 'base64data',
+          },
+          mediaType: 'application/pdf',
+          filename,
+        })),
+      },
+    ]);
+
+    expect(
+      messages[0].content.map(content =>
+        'document' in content ? content.document.name : undefined,
+      ),
+    ).toEqual([
+      'Johns report',
+      'invoice 123',
+      'ab',
+      'report2026',
+      'rsum',
+      'document-1',
+      'Report - Final',
+      'a b',
+      'a'.repeat(200),
+      'document-2',
+      'report (final) [v2]draft',
+    ]);
+  });
+
+  it('should sanitize filenames for text document data', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'text', text: 'Hello' },
+            mediaType: 'text/plain',
+            filename: "John's  report.txt",
+          },
+        ],
+      },
+    ]);
+
+    expect(messages[0].content[0]).toEqual({
+      document: {
+        format: 'txt',
+        name: 'Johns report',
+        source: { bytes: 'SGVsbG8=' },
+      },
+    });
+  });
+
+  it('should make duplicate document names unique', async () => {
+    const filenames = [
+      'invoice.pdf',
+      'invoice.pdf',
+      'rates.v1.pdf',
+      'rates.v2.pdf',
+      '/workspace/.eve/attachments/ab12/a.pdf',
+      'invoice (2).pdf',
+      'document-1.pdf',
+      undefined,
+      `${'a'.repeat(201)}.pdf`,
+      `${'a'.repeat(201)}.pdf`,
+    ];
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: filenames.map(filename => ({
+          type: 'file' as const,
+          data: { type: 'data' as const, data: 'base64data' },
+          mediaType: 'application/pdf',
+          filename,
+        })),
+      },
+    ]);
+
+    expect(
+      messages[0].content.map(content =>
+        'document' in content ? content.document.name : undefined,
+      ),
+    ).toEqual([
+      'invoice',
+      'invoice (2)',
+      'rates',
+      'rates (2)',
+      'workspace',
+      'invoice (2) (2)',
+      'document-1',
+      'document-1 (2)',
+      'a'.repeat(200),
+      `${'a'.repeat(196)} (2)`,
+    ]);
+  });
+
+  it('should make document names unique across messages and tool results', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data', data: 'base64data' },
+            mediaType: 'application/pdf',
+            filename: 'invoice.pdf',
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-123',
+            toolName: 'read-file',
+            input: {},
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-123',
+            toolName: 'read-file',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: { type: 'data', data: 'base64data' },
+                  mediaType: 'application/pdf',
+                  filename: 'invoice.pdf',
+                },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data', data: 'base64data' },
+            mediaType: 'application/pdf',
+            filename: 'invoice.pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages[0].content[0]).toMatchObject({
+      document: { name: 'invoice' },
+    });
+    expect(messages[2].content[0]).toMatchObject({
+      toolResult: { content: [{ document: { name: 'invoice (2)' } }] },
+    });
+    expect(messages[2].content[1]).toMatchObject({
+      document: { name: 'invoice (3)' },
+    });
   });
 
   it('should use consistent document names for prompt cache effectiveness', async () => {
@@ -418,6 +792,268 @@ describe('user messages', () => {
     });
   });
 
+  it('should convert text part to guardContent when guardContent provider option is true', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Grounding text',
+            providerOptions: {
+              amazonBedrock: {
+                guardContent: true,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            guardContent: {
+              text: {
+                text: 'Grounding text',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert text part to guardContent with qualifiers', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Grounding text',
+            providerOptions: {
+              amazonBedrock: {
+                guardContent: true,
+                guardContentQualifiers: ['grounding_source'],
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            guardContent: {
+              text: {
+                text: 'Grounding text',
+                qualifiers: ['grounding_source'],
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert text part to guardContent with multiple qualifiers', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Query text',
+            providerOptions: {
+              amazonBedrock: {
+                guardContent: true,
+                guardContentQualifiers: ['grounding_source', 'query'],
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            guardContent: {
+              text: {
+                text: 'Query text',
+                qualifiers: ['grounding_source', 'query'],
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert text part as normal text when guardContent is false', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Normal text',
+            providerOptions: {
+              amazonBedrock: {
+                guardContent: false,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [{ text: 'Normal text' }],
+      },
+    ]);
+  });
+
+  it('should convert text part as normal text when no provider options', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Normal text' }],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [{ text: 'Normal text' }],
+      },
+    ]);
+  });
+
+  it('should convert image part to guardContent when guardContent provider option is true', async () => {
+    const imageData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(imageData).toString('base64'),
+            },
+            mediaType: 'image/png',
+            providerOptions: {
+              amazonBedrock: {
+                guardContent: true,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            guardContent: {
+              image: {
+                format: 'png',
+                source: { bytes: 'AAECAw==' },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert image part as normal image when guardContent is false', async () => {
+    const imageData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(imageData).toString('base64'),
+            },
+            mediaType: 'image/png',
+            providerOptions: {
+              amazonBedrock: {
+                guardContent: false,
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            image: {
+              format: 'png',
+              source: { bytes: 'AAECAw==' },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert image part as normal image when no provider options', async () => {
+    const imageData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(imageData).toString('base64'),
+            },
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            image: {
+              format: 'png',
+              source: { bytes: 'AAECAw==' },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should throw for file parts with provider references', async () => {
     await expect(
       convertToAmazonBedrockChatMessages([
@@ -439,9 +1075,211 @@ describe('user messages', () => {
       "'file parts with provider references' functionality not supported",
     );
   });
+
+  it('should add cache point to user content part when specified', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'text',
+            text: 'cached',
+            providerOptions: {
+              bedrock: { cachePoint: { type: 'default', ttl: '5m' } },
+            },
+          },
+          { type: 'text', text: 'World' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { text: 'Hello' },
+            { text: 'cached' },
+            { cachePoint: { type: 'default', ttl: '5m' } },
+            { text: 'World' },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
 });
 
 describe('assistant messages', () => {
+  it('should preserve the order of provider-executed tool calls and results', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Add 2 and 2, then add 3 and 3.' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Running the additions.' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'add',
+            input: { a: 2, b: 2 },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'add',
+            output: { type: 'json', value: { sum: 4 } },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'add',
+            input: { a: 3, b: 3 },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-2',
+            toolName: 'add',
+            output: { type: 'json', value: { sum: 6 } },
+          },
+          { type: 'text', text: 'The sums are 4 and 6.' },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Now add those sums together.' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      system: [],
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Add 2 and 2, then add 3 and 3.' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { text: 'Running the additions.' },
+            {
+              toolUse: {
+                toolUseId: 'call-1',
+                name: 'add',
+                input: { a: 2, b: 2 },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              toolResult: {
+                toolUseId: 'call-1',
+                content: [{ text: '{"sum":4}' }],
+              },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-2',
+                name: 'add',
+                input: { a: 3, b: 3 },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              toolResult: {
+                toolUseId: 'call-2',
+                content: [{ text: '{"sum":6}' }],
+              },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [{ text: 'The sums are 4 and 6.' }],
+        },
+        {
+          role: 'user',
+          content: [{ text: 'Now add those sums together.' }],
+        },
+      ],
+    });
+  });
+
+  it('should combine a trailing provider-executed tool result with the next user message', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'add',
+            input: { a: 2, b: 2 },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'add',
+            output: { type: 'json', value: { sum: 4 } },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Now double that.' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      system: [],
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-1',
+                name: 'add',
+                input: { a: 2, b: 2 },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              toolResult: {
+                toolUseId: 'call-1',
+                content: [{ text: '{"sum":4}' }],
+              },
+            },
+            { text: 'Now double that.' },
+          ],
+        },
+      ],
+    });
+  });
+
   it('should remove trailing whitespace from last assistant message when there is no further user message', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
@@ -624,6 +1462,40 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should add cache point to assistant content part when specified', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'text',
+            text: 'cached',
+            providerOptions: {
+              bedrock: { cachePoint: { type: 'default', ttl: '1h' } },
+            },
+          },
+          { type: 'text', text: 'World' },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            { text: 'Hello' },
+            { text: 'cached' },
+            { cachePoint: { type: 'default', ttl: '1h' } },
+            { text: 'World' },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
   it('should properly convert reasoning content type', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
@@ -703,6 +1575,46 @@ describe('assistant messages', () => {
                 redactedReasoning: {
                   data: reasoningData,
                 },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should replay reasoning redacted as `redactedContent`', async () => {
+    const redactedContent = 'encrypted-reasoning-payload';
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: '',
+            providerOptions: { bedrock: { redactedContent } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                redactedContent,
               },
             },
           ],
@@ -846,7 +1758,7 @@ describe('assistant messages', () => {
     `);
   });
 
-  it('should trim trailing whitespace from reasoning content without signature when it is the last part', async () => {
+  it('should omit reasoning content without signature', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
         role: 'user',
@@ -859,6 +1771,7 @@ describe('assistant messages', () => {
             type: 'reasoning',
             text: 'This is my reasoning with trailing space    ',
           },
+          { type: 'text', text: 'final answer' },
         ],
       },
     ]);
@@ -877,11 +1790,7 @@ describe('assistant messages', () => {
           {
             "content": [
               {
-                "reasoningContent": {
-                  "reasoningText": {
-                    "text": "This is my reasoning with trailing space",
-                  },
-                },
+                "text": "final answer",
               },
             ],
             "role": "assistant",
@@ -892,7 +1801,82 @@ describe('assistant messages', () => {
     `);
   });
 
-  it('should only trim last reasoning part when multiple reasoning parts have trailing spaces', async () => {
+  it('should omit an assistant message when unsigned reasoning is its only content', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Think hard then answer' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Let me consider the options',
+          },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello?' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Think hard then answer' }],
+        },
+        {
+          role: 'user',
+          content: [{ text: 'Hello?' }],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should omit an assistant message when only a cache point remains after filtering unsigned reasoning', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Think hard then answer' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Let me consider the options',
+          },
+        ],
+        providerOptions: {
+          bedrock: { cachePoint: { type: 'default' } },
+        },
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello?' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Think hard then answer' }],
+        },
+        {
+          role: 'user',
+          content: [{ text: 'Hello?' }],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should omit multiple reasoning parts without signatures', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
         role: 'user',
@@ -909,6 +1893,7 @@ describe('assistant messages', () => {
             type: 'reasoning',
             text: 'Second reasoning with trailing space    ',
           },
+          { type: 'text', text: 'final answer' },
         ],
       },
     ]);
@@ -927,21 +1912,90 @@ describe('assistant messages', () => {
           {
             "content": [
               {
-                "reasoningContent": {
-                  "reasoningText": {
-                    "text": "First reasoning with trailing space    ",
-                  },
-                },
+                "text": "final answer",
               },
+            ],
+            "role": "assistant",
+          },
+        ],
+        "system": [],
+      }
+    `);
+  });
+
+  it('should omit unsigned reasoning while preserving tool calls in multi-turn tool use', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'What is the weather?' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'I should call the weather tool.',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            input: { city: 'SF' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            output: { type: 'text', value: 'Sunny, 72F' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": [
               {
-                "reasoningContent": {
-                  "reasoningText": {
-                    "text": "Second reasoning with trailing space",
+                "text": "What is the weather?",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "toolUse": {
+                  "input": {
+                    "city": "SF",
                   },
+                  "name": "getWeather",
+                  "toolUseId": "call-1",
                 },
               },
             ],
             "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "toolResult": {
+                  "content": [
+                    {
+                      "text": "Sunny, 72F",
+                    },
+                  ],
+                  "toolUseId": "call-1",
+                },
+              },
+            ],
+            "role": "user",
           },
         ],
         "system": [],
@@ -1163,6 +2217,98 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should wrap non-object (invalid) tool call input in an object', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'cityAttractions',
+            // malformed JSON the model produced, kept as a raw string
+            input: '{ "city": "San Francisco", }',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              toolUse: {
+                toolUseId: 'call-1',
+                name: 'cityAttractions',
+                input: { rawInvalidInput: '{ "city": "San Francisco", }' },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should strip invalid characters from tool call names', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: '$READFILE',
+            input: {},
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'exchange_delivered_order_items<|channel|>',
+            input: {},
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-3',
+            toolName: '$',
+            input: {},
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            toolUse: {
+              toolUseId: 'call-1',
+              name: 'READFILE',
+              input: {},
+            },
+          },
+          {
+            toolUse: {
+              toolUseId: 'call-2',
+              name: 'exchange_delivered_order_itemschannel',
+              input: {},
+            },
+          },
+          {
+            toolUse: {
+              toolUseId: 'call-3',
+              name: '_',
+              input: {},
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should preserve empty text blocks when reasoning blocks are present', async () => {
     const result = await convertToAmazonBedrockChatMessages([
       {
@@ -1273,8 +2419,8 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'file-data',
-                  data: 'base64data',
+                  type: 'file',
+                  data: { type: 'data', data: 'base64data' },
                   mediaType: 'image/jpeg',
                 },
               ],
@@ -1304,6 +2450,198 @@ describe('tool messages', () => {
     });
   });
 
+  it('should convert tool result images with S3 URLs', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-123',
+            toolName: 'image-generator',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('s3://my-test-bucket/path/to/image.png'),
+                  },
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          toolResult: {
+            toolUseId: 'call-123',
+            content: [
+              {
+                image: {
+                  format: 'png',
+                  source: {
+                    s3Location: {
+                      uri: 's3://my-test-bucket/path/to/image.png',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
+  it('should convert tool result with content array containing video', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-123',
+            toolName: 'video-analyzer',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: { type: 'data', data: 'base64data' },
+                  mediaType: 'video/mp4',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          toolResult: {
+            toolUseId: 'call-123',
+            content: [
+              {
+                video: {
+                  format: 'mp4',
+                  source: { bytes: 'base64data' },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
+  it('should convert tool result videos with S3 URLs', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-123',
+            toolName: 'video-analyzer',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('s3://my-test-bucket/path/to/video.mp4'),
+                  },
+                  mediaType: 'video/mp4',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          toolResult: {
+            toolUseId: 'call-123',
+            content: [
+              {
+                video: {
+                  format: 'mp4',
+                  source: {
+                    s3Location: {
+                      uri: 's3://my-test-bucket/path/to/video.mp4',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
+  it('should convert tool result with content array containing PDF', async () => {
+    const result = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-123',
+            toolName: 'document-reader',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: { type: 'data', data: 'base64data' },
+                  mediaType: 'application/pdf',
+                  filename: "tool's  result.pdf",
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          toolResult: {
+            toolUseId: 'call-123',
+            content: [
+              {
+                document: {
+                  format: 'pdf',
+                  name: 'tools result',
+                  source: { bytes: 'base64data' },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
   it('should throw error for unsupported image format in tool result content', async () => {
     await expect(
       convertToAmazonBedrockChatMessages([
@@ -1318,8 +2656,8 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'file-data',
-                    data: 'base64data',
+                    type: 'file',
+                    data: { type: 'data', data: 'base64data' },
                     mediaType: 'image/avif', // unsupported format
                   },
                 ],
@@ -1333,7 +2671,7 @@ describe('tool messages', () => {
     );
   });
 
-  it('should throw error for unsupported mime type in tool result image content', async () => {
+  it('should throw error for unsupported mime type in tool result file content', async () => {
     await expect(
       convertToAmazonBedrockChatMessages([
         {
@@ -1347,8 +2685,8 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'file-data',
-                    data: 'base64data',
+                    type: 'file',
+                    data: { type: 'data', data: 'base64data' },
                     mediaType: 'unsupported/mime-type',
                   },
                 ],
@@ -1358,7 +2696,7 @@ describe('tool messages', () => {
         },
       ]),
     ).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[AI_UnsupportedFunctionalityError: 'media type: unsupported/mime-type' functionality not supported.]`,
+      `[AI_UnsupportedFunctionalityError: Unsupported file mime type: unsupported/mime-type, expected one of: application/pdf, text/csv, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/html, text/plain, text/markdown]`,
     );
   });
 
@@ -1688,7 +3026,7 @@ describe('Mistral tool call ID normalization', () => {
       content: [
         {
           toolResult: {
-            toolUseId: 'toolusebp',
+            toolUseId: '8eHypBDcw',
             content: [{ text: 'The result is 42' }],
           },
         },
@@ -1719,7 +3057,7 @@ describe('Mistral tool call ID normalization', () => {
       content: [
         {
           toolUse: {
-            toolUseId: 'toolusexy',
+            toolUseId: 'De61BW1Dz',
             name: 'test-tool',
             input: { query: 'test' },
           },
@@ -1797,6 +3135,9 @@ describe('top-level-only mediaType resolution', () => {
   const PDF_BYTES = new Uint8Array([
     0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34,
   ]);
+  const MP4_BYTES = new Uint8Array([
+    0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70,
+  ]);
 
   it('should pass through a full image mediaType unchanged', async () => {
     const { messages } = await convertToAmazonBedrockChatMessages([
@@ -1854,6 +3195,36 @@ describe('top-level-only mediaType resolution', () => {
           image: {
             format: 'png',
             source: { bytes: 'iVBORw0KGgo=' },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should detect subtype from inline bytes when mediaType is top-level-only (video)', async () => {
+    const { messages } = await convertToAmazonBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'data' as const,
+              data: Buffer.from(MP4_BYTES).toString('base64'),
+            },
+            mediaType: 'video',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages[0]).toEqual({
+      role: 'user',
+      content: [
+        {
+          video: {
+            format: 'mp4',
+            source: { bytes: 'AAAAGGZ0eXA=' },
           },
         },
       ],
@@ -1980,5 +3351,117 @@ describe('top-level-only mediaType resolution', () => {
         },
       ]),
     ).rejects.toThrowError(/media type "image".*could not be auto-detected/);
+  });
+
+  describe('tool input and output serialization resilience', () => {
+    it('parses valid JSON string tool input into structured object', async () => {
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'search',
+              input: '{"query":"bedrock converse","limit":5}',
+            },
+          ],
+        },
+      ]);
+
+      expect(messages[0]).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            toolUse: {
+              toolUseId: 'call-1',
+              name: 'search',
+              input: { query: 'bedrock converse', limit: 5 },
+            },
+          },
+        ],
+      });
+    });
+
+    it('falls back to rawInvalidInput for malformed JSON string tool input', async () => {
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-2',
+              toolName: 'search',
+              input: 'not-valid-json',
+            },
+          ],
+        },
+      ]);
+
+      expect(messages[0]).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            toolUse: {
+              toolUseId: 'call-2',
+              name: 'search',
+              input: { rawInvalidInput: 'not-valid-json' },
+            },
+          },
+        ],
+      });
+    });
+
+    it('safely serializes BigInt and circular structures in tool responses', async () => {
+      const cyclicOutput: any = { count: 999999999999999999n };
+      cyclicOutput.self = cyclicOutput;
+
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-3',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: cyclicOutput,
+              },
+            },
+          ],
+        },
+      ]);
+
+      const text = (messages[0].content[0] as any).toolResult.content[0].text;
+      expect(text).toContain('"count":"999999999999999999"');
+      expect(text).toContain('"self":"[Circular]"');
+    });
+
+    it('preserves reused non-circular objects in tool responses', async () => {
+      const shared = { city: 'Paris' };
+
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-4',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: { first: shared, second: shared },
+              },
+            },
+          ],
+        },
+      ]);
+
+      const text = (messages[0].content[0] as any).toolResult.content[0].text;
+      expect(text).toContain('"first":{"city":"Paris"}');
+      expect(text).toContain('"second":{"city":"Paris"}');
+      expect(text).not.toContain('[Circular]');
+    });
   });
 });

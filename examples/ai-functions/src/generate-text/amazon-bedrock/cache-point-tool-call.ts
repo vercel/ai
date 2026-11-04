@@ -123,7 +123,7 @@ const weatherData: Record<string, number> = {
 
 run(async () => {
   const result = await generateText({
-    model: amazonBedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+    model: amazonBedrock('us.anthropic.claude-sonnet-5-5'),
     tools: {
       weather: weatherTool,
     },
@@ -170,5 +170,5 @@ run(async () => {
 
   console.log(result.text);
   console.log(JSON.stringify(result.toolCalls, null, 2));
-  console.log(JSON.stringify(result.providerMetadata, null, 2));
+  console.log(JSON.stringify(result.finalStep.providerMetadata, null, 2));
 });

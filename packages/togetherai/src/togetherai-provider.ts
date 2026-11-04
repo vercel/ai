@@ -11,6 +11,8 @@ import type {
   RerankingModelV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -28,8 +30,9 @@ import { VERSION } from './version';
 export interface TogetherAIProviderSettings {
   /**
    * TogetherAI API key.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls.
    */
@@ -114,6 +117,12 @@ function loadDeprecatedApiKey(): string | undefined {
   return key;
 }
 
+export function getModelStructuredOutputSupport(
+  modelId: TogetherAIChatModelId,
+): boolean {
+  return modelId === 'deepseek-ai/DeepSeek-V4-Flash-0731';
+}
+
 export function createTogetherAI(
   options: TogetherAIProviderSettings = {},
 ): TogetherAIProvider {
@@ -121,22 +130,24 @@ export function createTogetherAI(
     options.baseURL ?? 'https://api.together.xyz/v1/',
   );
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey ?? loadDeprecatedApiKey(),
-          environmentVariableName: 'TOGETHER_API_KEY',
-          description: 'TogetherAI',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk/togetherai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey: apiKey ?? loadDeprecatedApiKey(),
+            environmentVariableName: 'TOGETHER_API_KEY',
+            description: 'TogetherAI',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-togetherai/${VERSION}`,
+      ),
     );
 
   interface CommonModelConfig {
     provider: string;
     url: ({ path }: { path: string }) => string;
-    headers: () => Record<string, string>;
+    headers: Resolvable<Record<string, string>>;
     fetch?: FetchFunction;
   }
 
@@ -148,17 +159,18 @@ export function createTogetherAI(
   });
 
   const createChatModel = (modelId: TogetherAIChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(
-      modelId,
-      getCommonModelConfig('chat'),
-    );
+    return new OpenAICompatibleChatLanguageModel(modelId, {
+      ...getCommonModelConfig('chat'),
+      includeUsage: true,
+      supportsStructuredOutputs: getModelStructuredOutputSupport(modelId),
+    });
   };
 
   const createCompletionModel = (modelId: TogetherAICompletionModelId) =>
-    new OpenAICompatibleCompletionLanguageModel(
-      modelId,
-      getCommonModelConfig('completion'),
-    );
+    new OpenAICompatibleCompletionLanguageModel(modelId, {
+      ...getCommonModelConfig('completion'),
+      includeUsage: true,
+    });
 
   const createEmbeddingModel = (modelId: TogetherAIEmbeddingModelId) =>
     new OpenAICompatibleEmbeddingModel(

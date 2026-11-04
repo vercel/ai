@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.8-flash'),
     messages: [
       {
         role: 'user',
@@ -24,7 +24,7 @@ run(async () => {
     process.stdout.write(textPart);
   }
 
-  const usageMetadata = (await result.providerMetadata)?.google
+  const usageMetadata = (await result.finalStep).providerMetadata?.google
     ?.usageMetadata as Record<string, unknown> | undefined;
 
   console.log();

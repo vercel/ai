@@ -20,7 +20,7 @@ run(async () => {
     },
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-start': {
         const phase = chunk.providerMetadata?.openai?.phase;

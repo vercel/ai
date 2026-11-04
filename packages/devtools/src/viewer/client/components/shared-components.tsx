@@ -29,21 +29,33 @@ import {
   getInputTokenBreakdown,
   getOutputTokenBreakdown,
 } from '../utils';
+import { MediaPreviewList } from './media-components';
 
 export function JsonBlock({
   data,
   compact = false,
   size = 'sm',
+  maxStringLength,
 }: {
   data: unknown;
   compact?: boolean;
   size?: 'sm' | 'base' | 'lg';
+  maxStringLength?: number;
 }) {
   const [copied, setCopied] = useState(false);
 
-  const jsonString = JSON.stringify(data, null, 2);
+  const replacer =
+    maxStringLength == null
+      ? undefined
+      : (_key: string, value: unknown) =>
+          typeof value === 'string' && value.length > maxStringLength
+            ? `${value.slice(0, maxStringLength)}… [${value.length - maxStringLength} characters omitted from the viewer]`
+            : value;
+  const jsonString = JSON.stringify(data, replacer, 2);
   const displayString =
-    compact && jsonString.length > 200 ? JSON.stringify(data) : jsonString;
+    compact && jsonString.length > 200
+      ? JSON.stringify(data, replacer)
+      : jsonString;
 
   const sizeClasses = {
     sm: 'text-xs',
@@ -77,6 +89,15 @@ export function JsonBlock({
       >
         {displayString}
       </pre>
+    </div>
+  );
+}
+
+export function MediaAwareValue({ data }: { data: unknown }) {
+  return (
+    <div className="space-y-3">
+      <MediaPreviewList data={data} />
+      <JsonBlock data={data} maxStringLength={16 * 1024} />
     </div>
   );
 }
@@ -326,27 +347,27 @@ export function ReasoningBlock({ content }: { content: string }) {
     content.length > 200 ? content.slice(0, 200) + '…' : content;
 
   return (
-    <div className="overflow-hidden rounded-md border border-amber-500/30">
+    <div className="overflow-hidden rounded-md border border-warning/30">
       <button
-        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-amber-500/10 hover:bg-amber-500/20"
+        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-warning/10 hover:bg-warning/20"
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
-          className={`size-3 text-amber-500 transition-transform shrink-0 ${
+          className={`size-3 text-warning transition-transform shrink-0 ${
             expanded ? 'rotate-90' : ''
           }`}
         />
-        <Brain className="text-amber-500 size-3 shrink-0" />
-        <span className="text-xs font-medium text-amber-500">Thinking</span>
+        <Brain className="text-warning size-3 shrink-0" />
+        <span className="text-xs font-medium text-warning">Thinking</span>
         {!expanded && (
-          <span className="text-[11px] text-amber-500/70 truncate ml-1">
+          <span className="text-[11px] text-warning truncate ml-1">
             {previewContent}
           </span>
         )}
       </button>
 
       {expanded && (
-        <div className="p-3 border-t bg-card/50 border-amber-500/30">
+        <div className="p-3 border-t bg-card/50 border-warning/30">
           <div className="text-xs leading-relaxed whitespace-pre-wrap text-foreground/80">
             {content}
           </div>
@@ -371,11 +392,11 @@ export function TextBlock({
   const previewContent =
     content.length > 200 ? content.slice(0, 200) + '…' : content;
 
-  const borderColor = isSystem ? 'border-blue-500/30' : 'border-border';
-  const bgColor = isSystem ? 'bg-blue-500/10' : 'bg-muted/30';
-  const hoverBgColor = isSystem ? 'hover:bg-blue-500/20' : 'hover:bg-muted/50';
-  const iconColor = isSystem ? 'text-blue-400' : 'text-muted-foreground';
-  const labelColor = isSystem ? 'text-blue-400' : 'text-foreground';
+  const borderColor = isSystem ? 'border-info/30' : 'border-border';
+  const bgColor = isSystem ? 'bg-info/10' : 'bg-muted/30';
+  const hoverBgColor = isSystem ? 'hover:bg-info/20' : 'hover:bg-muted/50';
+  const iconColor = isSystem ? 'text-info' : 'text-muted-foreground';
+  const labelColor = isSystem ? 'text-info' : 'text-foreground';
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -399,7 +420,7 @@ export function TextBlock({
         <span className={`text-xs font-medium ${labelColor}`}>Text</span>
         {!expanded && (
           <span
-            className={`text-[11px] ${isSystem ? 'text-blue-400/70' : 'text-muted-foreground'} truncate ml-1`}
+            className={`text-[11px] ${isSystem ? 'text-info' : 'text-muted-foreground'} truncate ml-1`}
           >
             {previewContent}
           </span>
@@ -433,14 +454,16 @@ export function TextBlock({
 export function ToolItem({ tool }: { tool: ToolDefinition }) {
   const [expanded, setExpanded] = useState(false);
 
+  const hasExpandableContent = tool.parameters || tool.description;
+
   return (
     <div className="overflow-hidden rounded-md border border-border bg-background">
       <button
         className="w-full flex items-center justify-between p-2.5 hover:bg-accent/50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
-        <span className="font-mono text-sm text-purple">{tool.name}</span>
-        {tool.parameters && (
+        <span className="font-mono text-sm text-tool">{tool.name}</span>
+        {hasExpandableContent && (
           <ChevronRight
             className={`size-3 text-muted-foreground transition-transform ${
               expanded ? 'rotate-90' : ''
@@ -448,21 +471,23 @@ export function ToolItem({ tool }: { tool: ToolDefinition }) {
           />
         )}
       </button>
-      {expanded && tool.parameters && (
-        <div className="px-2.5 pb-2.5 border-t border-border">
-          {tool.description && (
-            <p className="pt-2 mb-2 text-xs text-muted-foreground">
-              {tool.description}
-            </p>
-          )}
-          <JsonBlock data={tool.parameters} compact />
-        </div>
-      )}
       {!expanded && tool.description && (
-        <div className="px-2.5 pb-2 -mt-1">
+        <div className="px-2.5 pb-2">
           <p className="text-[11px] text-muted-foreground truncate">
             {tool.description}
           </p>
+        </div>
+      )}
+      {expanded && hasExpandableContent && (
+        <div className="px-2.5 pb-2.5 border-t border-border">
+          {tool.description && (
+            <p
+              className={`pt-2 text-xs text-muted-foreground ${tool.parameters ? 'mb-2' : ''}`}
+            >
+              {tool.description}
+            </p>
+          )}
+          {tool.parameters && <JsonBlock data={tool.parameters} compact />}
         </div>
       )}
     </div>
@@ -482,25 +507,25 @@ export function CollapsibleToolCall({
   const parsedData = typeof data === 'string' ? safeParseJson(data) : data;
 
   return (
-    <div className="overflow-hidden rounded-md border border-purple/30">
+    <div className="overflow-hidden rounded-md border border-tool/30">
       <button
-        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-purple/10 hover:bg-purple/20"
+        className="flex gap-2 items-center px-3 py-2 w-full transition-colors bg-tool/10 hover:bg-tool/20"
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
-          className={`size-3 text-purple transition-transform shrink-0 ${
+          className={`size-3 text-tool transition-transform shrink-0 ${
             expanded ? 'rotate-90' : ''
           }`}
         />
-        <Wrench className="size-3 text-purple shrink-0" />
-        <span className="font-mono text-xs font-medium text-purple">
+        <Wrench className="size-3 text-tool shrink-0" />
+        <span className="font-mono text-xs font-medium text-tool">
           {toolName}
         </span>
         {!expanded &&
           parsedData != null &&
           typeof parsedData === 'object' &&
           !Array.isArray(parsedData) && (
-            <span className="text-[11px] font-mono text-purple/70 truncate">
+            <span className="text-[11px] font-mono text-tool truncate">
               {formatToolParams(parsedData as Record<string, unknown>)}
             </span>
           )}
@@ -511,8 +536,8 @@ export function CollapsibleToolCall({
         )}
       </button>
       {expanded && (
-        <div className="p-3 border-t bg-card/50 border-purple/30">
-          <JsonBlock data={parsedData} />
+        <div className="p-3 border-t bg-card/50 border-tool/30">
+          <MediaAwareValue data={parsedData} />
         </div>
       )}
     </div>
@@ -555,7 +580,7 @@ export function CollapsibleToolResult({
       </button>
       {expanded && (
         <div className="p-3 border-t bg-card/50 border-success/30">
-          <JsonBlock data={data} />
+          <MediaAwareValue data={data} />
         </div>
       )}
     </div>

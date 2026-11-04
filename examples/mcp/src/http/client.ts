@@ -16,13 +16,13 @@ async function main() {
     const tools = await mcpClient.tools();
 
     const { text: answer } = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools,
       stopWhen: isStepCount(10),
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },
-      system: 'You are a helpful chatbot',
+      instructions: 'You are a helpful chatbot',
       prompt: 'Look up information about user with the ID foo_123',
     });
 

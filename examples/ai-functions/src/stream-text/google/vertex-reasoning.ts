@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: googleVertex('gemini-2.5-flash'),
+    model: googleVertex('gemini-3.8-flash'),
     prompt:
       "Describe the most unusual or striking architectural feature you've ever seen in a building or structure.",
     reasoning: 'medium',
@@ -18,7 +18,7 @@ run(async () => {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'reasoning-delta') {
       process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
     } else if (part.type === 'text-delta') {

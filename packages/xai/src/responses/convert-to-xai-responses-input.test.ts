@@ -325,7 +325,7 @@ describe('convertToXaiResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "arguments": "{\"query\":\"latest news\"}",
+            "arguments": "{"query":"latest news"}",
             "call_id": "call_ws",
             "id": "call_ws",
             "name": "web_search",
@@ -415,6 +415,59 @@ describe('convertToXaiResponsesInput', () => {
           {
             "call_id": "call_123",
             "output": "sunny, 72 degrees",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should preserve image URLs in content output', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'inspectImage',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'The requested image is attached.',
+                    },
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/image.png'),
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "text": "The requested image is attached.",
+                "type": "input_text",
+              },
+              {
+                "image_url": "https://example.com/image.png",
+                "type": "input_image",
+              },
+            ],
             "type": "function_call_output",
           },
         ]

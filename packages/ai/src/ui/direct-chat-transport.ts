@@ -1,12 +1,17 @@
+import type { Context, Tool, ToolSet } from '@ai-sdk/provider-utils';
 import type { Agent } from '../agent/agent';
 import type { Output } from '../generate-text/output';
 import type { UIMessageStreamOptions } from '../generate-text/stream-text-result';
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import { toUIMessageStream } from '../ui-message-stream/to-ui-message-stream';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { ChatTransport } from './chat-transport';
 import { convertToModelMessages } from './convert-to-model-messages';
-import type { InferUITools, UIMessage } from './ui-messages';
-import { validateUIMessages } from './validate-ui-messages';
+import type {
+  InferUIMessageTools,
+  InferUITools,
+  UIMessage,
+} from './ui-messages';
+import { validateUIMessagesForAgent } from './validate-ui-messages';
 
 /**
  * Options for the `DirectChatTransport` class.
@@ -88,9 +93,16 @@ export class DirectChatTransport<
     ReadableStream<UIMessageChunk>
   > {
     // Validate the incoming UI messages
-    const validatedMessages = await validateUIMessages<UI_MESSAGE>({
+    const validatedMessages = await validateUIMessagesForAgent<UI_MESSAGE>({
       messages,
-      tools: this.agent.tools,
+      // tools are compatible; the casting is required because the context param is
+      // not available in ui messages
+      tools: this.agent.tools as unknown as {
+        [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: Tool<
+          InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
+          InferUIMessageTools<UI_MESSAGE>[NAME]['output']
+        >;
+      },
     });
 
     // Convert UI messages to model messages
@@ -110,7 +122,13 @@ export class DirectChatTransport<
     >[0]);
 
     // Return the UI message stream
-    return result.toUIMessageStream(this.uiMessageStreamOptions);
+    return toUIMessageStream({
+      ...this.uiMessageStreamOptions,
+      originalMessages:
+        this.uiMessageStreamOptions.originalMessages ?? validatedMessages,
+      stream: result.stream,
+      tools: this.agent.tools,
+    });
   }
 
   /**

@@ -29,7 +29,7 @@ run(async () => {
   await printFullStream({ result });
 
   const anthropicContainer = (
-    (await result.providerMetadata)
+    (await result.finalStep).providerMetadata
       ?.anthropic as unknown as AnthropicMessageMetadata
   )?.container;
 

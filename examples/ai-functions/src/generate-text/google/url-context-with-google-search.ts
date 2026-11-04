@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.8-flash'),
     messages: [
       {
         role: 'user',
@@ -29,5 +29,5 @@ run(async () => {
   console.log(result.sources);
   console.log();
   console.log('PROVIDER METADATA');
-  console.log(result.providerMetadata?.google);
+  console.log(result.finalStep.providerMetadata?.google);
 });

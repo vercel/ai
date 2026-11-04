@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 run(async () => {
   try {
     const { textStream } = streamText({
-      model: openai('gpt-3.5-turbo'),
+      model: openai('gpt-6-luna'),
       prompt: 'Write a short story about a robot learning to love:\n\n',
       abortSignal: AbortSignal.timeout(3000),
     });

@@ -1,0 +1,613 @@
+---
+title: MiniMax
+description: Learn how to use MiniMax with AI Gateway and the direct provider.
+---
+
+# MiniMax Provider
+
+The [MiniMax](https://www.minimax.io) provider offers access to the MiniMax-M
+series of language models through the MiniMax API, including models with
+reasoning capabilities, as well as video generation with the MiniMax-H series.
+You can use MiniMax models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/minimax`.
+
+```ts provider="minimax" model="minimax/minimax-m3"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/minimax`
+
+For direct access to MiniMax, install `ai` and `@ai-sdk/minimax`:
+
+<InstallPackages packages="ai @ai-sdk/minimax" />
+
+Set your MiniMax API credential in the `MINIMAX_API_KEY` environment variable:
+
+```bash
+export MINIMAX_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/minimax`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/minimax` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
+
+API keys can be obtained from the [MiniMax Platform](https://platform.minimax.io).
+
+## Provider Instance
+
+You can import the default provider instance `minimax` from `@ai-sdk/minimax`:
+
+```ts
+import { minimax } from '@ai-sdk/minimax';
+```
+
+For custom configuration, you can import `createMiniMax` and create a provider instance with your settings:
+
+```ts
+import { createMiniMax } from '@ai-sdk/minimax';
+
+const minimax = createMiniMax({
+  apiKey: process.env.MINIMAX_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the MiniMax provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls. This provider speaks MiniMax's
+  Anthropic-compatible protocol, so the default prefix is
+  `https://api.minimax.io/anthropic/v1` — not the OpenAI-compatible
+  `https://api.minimax.io/v1`.
+
+- **videoBaseURL** _string_
+
+  Use a different URL prefix for video generation API calls. The video API uses
+  the MiniMax V2 native endpoint (not the Anthropic-compatible endpoint).
+  The default prefix is `https://api.minimax.io`.
+
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  API key for the MiniMax API. It defaults to the `MINIMAX_API_KEY` environment
+  variable. Language models send it in the `x-api-key` header (the
+  Anthropic-compatible protocol); video models send it as
+  `Authorization: Bearer`.
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation
+
+## Language Models
+
+You can create language models using a provider instance:
+
+```ts
+import { minimax } from '@ai-sdk/minimax';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: minimax('minimax-m3'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+You can also use the `.chat()` or `.languageModel()` factory methods:
+
+```ts
+const model = minimax.chat('minimax-m3');
+// or
+const model = minimax.languageModel('minimax-m3');
+```
+
+MiniMax language models can be used in the `streamText` function
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+### Sampling Parameters
+
+For MiniMax M3.1 and later model IDs, `temperature` accepts values from `0` to `2`, and
+`topP` accepts values from `0` to `1`. Both are forwarded when adaptive thinking
+is explicitly enabled or when using the top-level `reasoning` setting.
+Omit them to use MiniMax's defaults.
+
+```ts
+const { text } = await generateText({
+  model: minimax('minimax-m3.1-flash'),
+  temperature: 1.5,
+  topP: 0.9,
+  reasoning: 'low',
+  maxOutputTokens: 16384,
+  prompt: 'Invent three names for a café on the moon.',
+});
+```
+
+### Prompt Caching
+
+For MiniMax M3.1 and later model IDs, mark stable text with
+`providerOptions.minimax.cacheControl`. The provider forwards it as
+`cache_control` on the corresponding API content block. You can also set it on
+a system message, or on a user message to mark its final content block.
+
+```ts
+import { minimax, type MiniMaxCacheControlOptions } from '@ai-sdk/minimax';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: minimax('minimax-m3.1-flash'),
+  reasoning: 'low',
+  maxOutputTokens: 16384,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Long reference material reused across requests...',
+          providerOptions: {
+            minimax: {
+              cacheControl: { type: 'ephemeral' },
+            } satisfies MiniMaxCacheControlOptions,
+          },
+        },
+        { type: 'text', text: 'Summarize the reference material.' },
+      ],
+    },
+  ],
+});
+
+console.log(result.usage.inputTokenDetails.cacheReadTokens);
+console.log(result.usage.inputTokenDetails.cacheWriteTokens);
+```
+
+Keep the stable prefix unchanged and place the changing question after it.
+A cache marker does not guarantee a hit; inspect cache-read token usage to check
+whether cached content was reused. This option does not specify a cache lifetime.
+
+Existing `providerOptions.anthropic.cacheControl` settings continue to work.
+When both namespaces specify cache control on the same block, `minimax` takes
+precedence.
+
+### Image and Video Input
+
+MiniMax M3.1 and later model IDs accept images and videos in user messages with both
+`generateText` and `streamText`. Pass file bytes, base64 data, or a public HTTP(S)
+URL. URLs are sent directly to MiniMax.
+
+```ts
+import { minimax, type MiniMaxVideoPartOptions } from '@ai-sdk/minimax';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: minimax('minimax-m3.1-flash'),
+  maxOutputTokens: 16384,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Summarize this video.' },
+        {
+          type: 'file',
+          mediaType: 'video/mp4',
+          data: new URL('https://example.com/video.mp4'),
+          providerOptions: {
+            minimax: { fps: 1 } satisfies MiniMaxVideoPartOptions,
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
+Set media options on each file part under `providerOptions.minimax`:
+
+- **Video `fps`** _number_: Frame sampling rate from `0.2` to `5`. Omit it to use
+  the server default. The recommended starting value is `1`.
+- **Image `detail`** _'low' | 'default' | 'high'_: Image processing detail. Higher
+  detail can use more tokens. Use `MiniMaxImagePartOptions` for this option.
+
+For example, an image part can specify
+`providerOptions: { minimax: { detail: 'high' } }` with `mediaType: 'image/png'`.
+
+For videos already uploaded to MiniMax, pass a provider reference:
+
+```ts
+const videoPart = {
+  type: 'file' as const,
+  mediaType: 'video/mp4',
+  data: {
+    type: 'reference' as const,
+    reference: { minimax: 'your-uploaded-file-id' },
+  },
+  providerOptions: { minimax: { fps: 1 } },
+};
+```
+
+The reference becomes `mm_file://your-uploaded-file-id`. A reference already
+starting with `mm_file://` is also accepted. Use the reference object rather than
+passing an `mm_file://` string as file data. Uploads are managed separately through
+the MiniMax Files API; this provider does not upload the file automatically.
+
+MiniMax documents JPEG, PNG, GIF, and WebP images (up to 10 MB), and MP4, AVI,
+MOV, and MKV videos (up to 50 MB for inline or URL input). Uploaded videos can be
+up to 512 MB. The request body limit is 64 MB, including base64 overhead. Audio
+input is not supported. See the
+[MiniMax API docs](https://platform.minimax.io/docs/api-reference/text-anthropic-api)
+for details.
+
+### Reasoning
+
+MiniMax-M models can produce intermediate reasoning ("thinking") before their
+final response. You control this behavior through provider options. The reasoning
+output is streamed through the standard AI SDK reasoning parts.
+
+```ts
+import { minimax, type MiniMaxLanguageModelOptions } from '@ai-sdk/minimax';
+import { generateText } from 'ai';
+
+const { text, reasoningText } = await generateText({
+  model: minimax('minimax-m3'),
+  providerOptions: {
+    minimax: {
+      thinking: { type: 'adaptive' },
+    } satisfies MiniMaxLanguageModelOptions,
+  },
+  prompt: 'How many "r"s are in the word "strawberry"?',
+});
+
+console.log(reasoningText);
+console.log(text);
+```
+
+See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on how to integrate reasoning into your chatbot.
+
+#### Reasoning Effort
+
+MiniMax M3.1 Flash always reasons. Use `effort` to control reasoning depth:
+
+```ts
+import { minimax, type MiniMaxLanguageModelOptions } from '@ai-sdk/minimax';
+import { generateText } from 'ai';
+
+const { text, reasoningText } = await generateText({
+  model: minimax('minimax-m3.1-flash'),
+  maxOutputTokens: 16384,
+  providerOptions: {
+    minimax: {
+      effort: 'low',
+    } satisfies MiniMaxLanguageModelOptions,
+  },
+  prompt:
+    'What is the smallest positive integer divisible by every integer from 1 to 10?',
+});
+
+console.log(reasoningText);
+console.log(text);
+```
+
+The output token budget includes both reasoning and the final answer. Higher
+effort levels may need a larger budget.
+
+You can also use the top-level `reasoning` setting with MiniMax M3.1 and later model IDs:
+
+```ts
+const { text } = await generateText({
+  model: minimax('minimax-m3.1-flash'),
+  reasoning: 'high',
+  maxOutputTokens: 16384,
+  prompt:
+    'What is the smallest positive integer divisible by every integer from 1 to 10?',
+});
+```
+
+The levels `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'` map directly to
+MiniMax's effort levels. `'minimal'` maps to `'low'` with a compatibility warning.
+For M3.1 and later model IDs, `'none'` also maps to `'low'` with a
+compatibility warning. Omitting `reasoning` or setting it to `'provider-default'`
+leaves the server default unchanged. An explicit `providerOptions.minimax.effort`
+takes precedence over `reasoning`.
+
+### Provider Options
+
+The following optional provider options are available for MiniMax language models:
+
+- **effort** _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
+
+  Controls reasoning depth for MiniMax M3.1 and later model IDs. Higher levels can use more
+  reasoning tokens and increase latency. Maps to `output_config.effort` in the
+  MiniMax API. When omitted, the server uses its default (`'max'` for M3.1 Flash).
+
+- **thinking** _object_
+
+  Controls the model's reasoning ("thinking") behavior.
+  - **type** _'adaptive' | 'disabled'_
+    - `'adaptive'`: the model decides when to reason (deep reasoning enabled)
+    - `'disabled'`: the model responds directly without reasoning, for higher
+      throughput and lower latency
+
+  When omitted, the model uses its provider-side default.
+
+  <Note>
+    Thinking control is only supported on `minimax-m3`. The M2.x models always
+    think, so `'disabled'` has no effect on them. `MiniMax-M3.1-Flash` always
+    thinks and returns an error if `'disabled'` is sent.
+  </Note>
+
+## Video Models
+
+You can generate videos with the MiniMax-H3 and MiniMax-H3-Max models using
+the [`experimental_generateVideo`](/docs/reference/ai-sdk-core/generate-video)
+function. MiniMax-H3-Max is the faster variant: it renders at lower resolutions
+and serves every mode except reference-to-video.
+
+```ts
+import { minimax, type MiniMaxVideoModelOptions } from '@ai-sdk/minimax';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: minimax.video('MiniMax-H3'),
+  prompt: 'A white kitten chases a butterfly across a sunlit garden.',
+  aspectRatio: '16:9',
+  duration: 5,
+  providerOptions: {
+    minimax: {
+      resolution: '768P',
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies MiniMaxVideoModelOptions,
+  },
+});
+```
+
+Both models generate one video per call. Generation is asynchronous — by default,
+the model creates a task and polls until it completes, then returns the resulting
+MP4 URL.
+Status polls trust the configured MiniMax API origin for the first request and
+validate every redirect to another origin before following it.
+
+`duration` accepts a whole number of seconds and defaults to 5. MiniMax-H3
+supports 4 to 15 seconds; MiniMax-H3-Max supports 5 to 15 seconds. A fractional
+value is rounded and an out-of-range value is clamped, each with a warning.
+MiniMax-H3 supports `768P` and `2K` output, while MiniMax-H3-Max supports `480P`
+and `768P`.
+
+The API takes a named tier rather than a frame size, so a top-level `resolution`
+is matched against a fixed table of one frame size per tier per aspect ratio:
+
+| Tier   | Accepted `resolution` values                                                 |
+| ------ | ---------------------------------------------------------------------------- |
+| `480P` | `480x480`, `1120x480`, `854x480`, `640x480`, `480x854`, `480x640`            |
+| `768P` | `768x768`, `1792x768`, `1366x768`, `1024x768`, `768x1366`, `768x1024`        |
+| `2K`   | `2048x2048`, `2560x1080`, `2560x1440`, `2048x1536`, `1440x2560`, `1536x2048` |
+
+Anything outside the table, or a tier the selected model does not support, warns
+and falls back to the model default. `providerOptions.minimax.resolution` names
+the tier exactly and wins over the top-level value, which is reported as ignored.
+
+For **text-to-video**, `aspectRatio` defaults to `16:9` when omitted. The MiniMax
+API requires a concrete ratio for text-only requests and does not accept
+`adaptive`. For **reference-to-video**, the API default is `adaptive` when
+`aspectRatio` is omitted. For **image-to-video** with frame images, the aspect
+ratio follows the input image.
+
+<Note>
+  Result URLs are time-limited. Download and persist the video to your own
+  storage promptly after generation.
+</Note>
+
+### Asynchronous Generation
+
+To let the SDK manage the start/status flow, pass `poll` to `generateVideo`:
+
+```ts
+import { minimax } from '@ai-sdk/minimax';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: minimax.video('MiniMax-H3'),
+  prompt: 'A white kitten chases a butterfly across a sunlit garden.',
+  poll: { intervalMs: 10000, timeoutMs: 600000 },
+});
+```
+
+Without `poll` or `webhook`, generation continues to use the provider's
+`pollIntervalMs` and `pollTimeoutMs` options. With `poll`, the SDK's polling
+settings apply instead.
+
+MiniMax does not implement the generic webhook hook. Passing `webhook` to
+`generateVideo` falls back to SDK polling without invoking the factory. MiniMax's
+challenge handshake and progress notifications require a protocol-aware receiver
+and are incompatible with the generic SDK and Workflow webhook receivers.
+
+For caller-managed scheduling, use `experimental_startVideo` to submit one task
+without polling and `experimental_getVideoStatus` to check it once, returning
+`pending`, `completed`, or `error`. Persist the complete JSON-serializable
+`operation` from `experimental_startVideo` and pass it unchanged to
+`experimental_getVideoStatus` on a model with the same configuration.
+Its `resolvedInputs` contains `imageCount` and `referenceVideoIndices`: zero-based
+positions of accepted URL-video references in the original mixed `inputReferences`
+array. Inline videos count toward the cap but are omitted from the indices;
+duplicate references keep separate indices. Neither the operation nor status
+metadata retains input URLs, prompts, inline data, or API credentials.
+Status metadata uses these indices instead of `referenceVideoUrls`; ordinary
+`generateVideo` calls without `poll` or `webhook` retain the existing URL metadata.
+See the
+[start/status example](https://github.com/vercel/ai/blob/main/examples/ai-functions/src/generate-video/minimax/start-status.ts).
+
+For application-managed callbacks, pass an explicit `webhookUrl` to
+`experimental_startVideo`:
+
+```ts
+import { minimax } from '@ai-sdk/minimax';
+import {
+  experimental_startVideo as startVideo,
+  experimental_getVideoStatus as getVideoStatus,
+} from 'ai';
+
+const model = minimax.video('MiniMax-H3');
+const { operation } = await startVideo({
+  model,
+  prompt: 'A white kitten chases a butterfly across a sunlit garden.',
+  webhookUrl: 'https://example.com/api/minimax/callback',
+});
+
+// Persist operation, then check it from your application's callback handler.
+const status = await getVideoStatus(model, { operation });
+```
+
+Your application hosts the callback endpoint and handles MiniMax's callback
+protocol; the adapter only forwards `webhookUrl` as MiniMax's `callback_url`.
+The endpoint must echo the verification `challenge` unchanged within 3 seconds
+and filter out `queued`/`running` progress updates. Handle terminal notifications
+when `task.status` is `succeeded`, `failed`, or `cancelled`, then use
+`getVideoStatus` with the persisted operation to retrieve the outcome. Neither
+the challenge nor a progress update signals completion. See the
+[MiniMax V2 API reference](https://platform.minimax.io/docs/api-reference/video-generation-v2-create.md)
+for the callback contract.
+
+### Generation modes
+
+The generation mode is inferred from the inputs you pass:
+
+- **Text-to-video** — `prompt` only.
+- **First-frame image-to-video** — pass `image` (or a `frameImages` entry with
+  `frameType: 'first_frame'`) to animate a starting image.
+- **First-to-last keyframes** — pass `frameImages` with both a `first_frame` and
+  a `last_frame` to control the transition.
+- **Reference-to-video (MiniMax-H3 only)** — pass `inputReferences` (images
+  and/or videos, routed by media type) to keep a subject/style or follow motion.
+  Frame images and references are mutually exclusive. MiniMax-H3-Max does not
+  support reference-to-video inputs.
+
+When a frame image is supplied, the aspect ratio follows the image and any
+explicit `aspectRatio` is ignored.
+
+### Video Provider Options
+
+The following optional provider options are available for MiniMax video models:
+
+- **resolution** _'480P' | '768P' | '2K'_
+
+  Output resolution. MiniMax-H3 supports `'768P'` and `'2K'` (the default).
+  MiniMax-H3-Max supports `'480P'` and `'768P'` (the default).
+
+- **ratio** _'adaptive' | '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16'_
+
+  Aspect ratio of the generated video. Overrides the top-level `aspectRatio`.
+
+- **referenceAudioUrls** _string[]_
+
+  Reference audio URLs (or `mm_file://` handles) for MiniMax-H3
+  reference-to-video generation. Must be paired with at least one reference
+  image or video. Up to 3. MiniMax-H3-Max does not support reference audio.
+
+- **aigcWatermark** _boolean_
+
+  Whether to embed an AIGC watermark in the output. Defaults to `false`.
+
+- **pollIntervalMs** _number_
+
+  Interval in milliseconds between task status polls. Default: `10000`.
+
+- **pollTimeoutMs** _number_
+
+  Maximum time in milliseconds to poll before timing out. Default: `600000`.
+
+<Note>
+  MiniMax `mm_file://` handles are only forwarded as-is for
+  `referenceAudioUrls`. They cannot be used for `image`, `frameImages`, or
+  `inputReferences`: those inputs go through the AI SDK's file handling, which
+  base64-decodes any string that is not an `http(s)://` or `data:` URL. Pass
+  those inputs as public URLs, data URIs, or binary data instead.
+</Note>
+
+### Video Provider Metadata
+
+MiniMax video results include `providerMetadata.minimax`:
+
+- **taskId** _string_
+
+  ID of the MiniMax generation task.
+
+- **videoUrl** _string_
+
+  The MiniMax-hosted MP4 URL (the same URL as `video`). Time-limited.
+
+- **resolvedInputs** _object_
+
+  The inputs that were actually sent, after the caps and rejections H3 imposes
+  (warnings report that an input was dropped, but not how many survived).
+  - **imageCount** _number_ — number of images sent (frame images or reference
+    images).
+  - **referenceVideoUrls** _string[]_ — the URLs of the reference videos sent.
+    Inline video data is omitted, since it is sent as a data URI.
+
+- **duration** _number_
+
+  Duration of the generated video in seconds, when reported by the API.
+
+- **ratio** _string_
+
+  Aspect ratio of the generated video, when reported by the API.
+
+- **resolution** _string_
+
+  Resolution tier of the generated video, when reported by the API.
+
+- **usage** _object_
+
+  Billed seconds, when reported by the API: `totalSeconds`, `inputSeconds`,
+  and `outputSeconds`.
+
+## Model Capabilities
+
+| Model                    | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| ------------------------ | ----------- | ----------------- | ---------- | -------------- |
+| `MiniMax-M3.1-Flash`     | <Check />   | <Check />         | <Check />  | <Check />      |
+| `minimax-m3`             | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `minimax-m2.7`           | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `minimax-m2.7-highspeed` | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `minimax-m2.5`           | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `minimax-m2.5-highspeed` | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `minimax-m2.1`           | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `minimax-m2.1-highspeed` | <Cross />   | <Check />         | <Check />  | <Check />      |
+| `minimax-m2`             | <Cross />   | <Check />         | <Check />  | <Check />      |
+
+<Note>
+  Please see the [MiniMax docs](https://platform.minimax.io/docs) for a full
+  list of available models. You can also pass any available provider model ID as
+  a string if needed.
+</Note>
