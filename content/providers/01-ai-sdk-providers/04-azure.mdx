@@ -759,15 +759,15 @@ The code interpreter tool can be configured with:
 Use `azure.tools.customTool` to send OpenAI-style
 [custom tools](https://developers.openai.com/api/docs/guides/function-calling/#custom-tools)
 with Azure Responses models. Availability depends on your Azure model deployment
-and API version; see Microsoft's [reasoning model documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/reasoning).
+and API version; see Microsoft's [reasoning model documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/reasoning).
 Custom tool calls contain a raw string input instead of JSON, optionally constrained
 to a regex or Lark grammar. This is useful for SQL queries, code snippets, or other
 text that must match a specific pattern.
 
 <Note>
   Replace `your-deployment-name` below with an Azure deployment that supports
-  custom tools. These tools use the Responses API, rather than `azure.chat`
-  or `azure.completion`.
+  custom tools. These tools use the Responses API, rather than `azure.chat` or
+  `azure.completion`.
 </Note>
 
 ```ts
