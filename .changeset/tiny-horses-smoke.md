@@ -3,4 +3,4 @@
 '@ai-sdk/azure': patch
 ---
 
-add shell and local_shell in azure responses built in tools
+Expose `azure.tools.shell` for local and hosted shell execution through the Azure Responses API.
