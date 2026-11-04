@@ -3152,6 +3152,7 @@ class DefaultStreamTextResult<
                     case 'tool-input-end':
                     case 'tool-input-delta':
                     case 'tool-approval-request':
+                    case 'ping':
                     case 'tool-output-denied': {
                       enqueueStepPart(controller, chunk);
                       break;

@@ -1712,6 +1712,9 @@ exports[`AnthropicLanguageModel > doStream > agent skills > should stream code e
     "type": "text-delta",
   },
   {
+    "type": "ping",
+  },
+  {
     "delta": " energy sources. Let me first read the",
     "id": "0",
     "type": "text-delta",
@@ -2270,6 +2273,9 @@ Now let me create the HTML slides and convert them to Power",
     "delta": "tml"",
     "id": "srvtoolu_01HmzCUHHBGvJF25VA1Zv4p8",
     "type": "tool-input-delta",
+  },
+  {
+    "type": "ping",
   },
   {
     "delta": ", "fil",
@@ -3196,6 +3202,9 @@ Now let me create the HTML slides and convert them to Power",
     "providerExecuted": true,
     "toolName": "code_execution",
     "type": "tool-input-start",
+  },
+  {
+    "type": "ping",
   },
   {
     "delta": "{"type": "text_editor_code_execution","comma",
@@ -4209,6 +4218,9 @@ Now let me create the HTML slides and convert them to Power",
     "type": "tool-call",
   },
   {
+    "type": "ping",
+  },
+  {
     "result": {
       "content": [],
       "return_code": 0,
@@ -5086,6 +5098,9 @@ Error: PDF conversion failed
     "type": "tool-call",
   },
   {
+    "type": "ping",
+  },
+  {
     "result": {
       "content": [
         {
@@ -5466,6 +5481,9 @@ exports[`AnthropicLanguageModel > doStream > code execution 20250825 tool > shou
     "delta": " you create a Python script to calculate Fibonacci numbers,",
     "id": "0",
     "type": "text-delta",
+  },
+  {
+    "type": "ping",
   },
   {
     "delta": " execute it to find the 10th Fibonacci number",
@@ -9956,6 +9974,9 @@ Let's",
     "type": "tool-call",
   },
   {
+    "type": "ping",
+  },
+  {
     "result": {
       "is_file_update": false,
       "type": "text_editor_code_execution_create_result",
@@ -10562,6 +10583,9 @@ exports[`AnthropicLanguageModel > doStream > code execution 20250825 tool > shou
     "delta": " Fibonacci numbers and then execute it to fin",
     "id": "0",
     "type": "text-delta",
+  },
+  {
+    "type": "ping",
   },
   {
     "delta": "d the 10th Fibonacci number.",
@@ -11904,6 +11928,9 @@ exports[`AnthropicLanguageModel > doStream > code execution 20260120 tool > shou
     "type": "text-delta",
   },
   {
+    "type": "ping",
+  },
+  {
     "delta": "d the 10th Fibonacci number.",
     "id": "0",
     "type": "text-delta",
@@ -13244,6 +13271,9 @@ exports[`AnthropicLanguageModel > doStream > json schema response format with ou
     "type": "text-delta",
   },
   {
+    "type": "ping",
+  },
+  {
     "delta": ":[{"name":"Th",
     "id": "0",
     "type": "text-delta",
@@ -14058,6 +14088,9 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
     "delta": " this",
     "id": "0",
     "type": "text-delta",
+  },
+  {
+    "type": "ping",
   },
   {
     "delta": " game between",
@@ -16295,6 +16328,9 @@ Player 2 had better results - likely using the loaded die! 🎲
     "type": "text-delta",
   },
   {
+    "type": "ping",
+  },
+  {
     "delta": " Results",
     "id": "1",
     "type": "text-delta",
@@ -16791,6 +16827,9 @@ exports[`AnthropicLanguageModel > doStream > tool search tool > bm25 variant > s
     "type": "text-delta",
   },
   {
+    "type": "ping",
+  },
+  {
     "delta": "-",
     "id": "0",
     "type": "text-delta",
@@ -17033,6 +17072,9 @@ exports[`AnthropicLanguageModel > doStream > tool search tool > bm25 variant > s
     "delta": " current",
     "id": "0",
     "type": "text-delta",
+  },
+  {
+    "type": "ping",
   },
   {
     "delta": " weather in San Francisco,",
@@ -17418,6 +17460,9 @@ exports[`AnthropicLanguageModel > doStream > tool search tool > regex variant > 
     "type": "text-delta",
   },
   {
+    "type": "ping",
+  },
+  {
     "delta": " weather data for San Francisco:
 
 -",
@@ -17575,6 +17620,9 @@ exports[`AnthropicLanguageModel > doStream > web fetch 20260209 tool > input pro
     "providerExecuted": true,
     "toolName": "code_execution",
     "type": "tool-input-start",
+  },
+  {
+    "type": "ping",
   },
   {
     "delta": "{"type": "programmatic-tool-call","code": "\\nimport json",
@@ -17965,14 +18013,23 @@ exports[`AnthropicLanguageModel > doStream > web fetch tool > txt response > sho
     "type": "text-delta",
   },
   {
+    "type": "ping",
+  },
+  {
     "id": "0",
     "type": "text-end",
+  },
+  {
+    "type": "ping",
   },
   {
     "id": "srvtoolu_01VNMRfQny2LCrLKEdYaVcCe",
     "providerExecuted": true,
     "toolName": "web_fetch",
     "type": "tool-input-start",
+  },
+  {
+    "type": "ping",
   },
   {
     "delta": "{"url": ",
