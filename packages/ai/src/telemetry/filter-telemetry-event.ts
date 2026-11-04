@@ -113,9 +113,28 @@ export function filterTelemetryEvent<EVENT>(
         ? filtered.error
         : new Error('AI SDK operation failed'),
   });
+  for (const key of ['toolCall', 'toolOutput'] as const) {
+    const toolEvent = filtered[key];
+    if (toolEvent != null && typeof toolEvent === 'object') {
+      filtered[key] = {
+        ...toolEvent,
+        providerMetadata: undefined,
+        ...('error' in toolEvent
+          ? {
+              error:
+                toolEvent.error == null
+                  ? toolEvent.error
+                  : new Error('AI SDK operation failed'),
+            }
+          : {}),
+      };
+    }
+  }
   for (const key of ['request', 'response'] as const) {
-    const metadata = filtered[key];
-    if (metadata != null && typeof metadata === 'object') {
+    const filterMetadata = (metadata: unknown) => {
+      if (metadata == null || typeof metadata !== 'object') {
+        return metadata;
+      }
       const filteredMetadata: Record<string, unknown> = { ...metadata };
       delete filteredMetadata.body;
       if (key === 'request' ? hideInputs : hideOutputs) {
@@ -123,7 +142,13 @@ export function filterTelemetryEvent<EVENT>(
         if ('instructions' in metadata)
           filteredMetadata.instructions = undefined;
       }
-      filtered[key] = filteredMetadata;
+      return filteredMetadata;
+    };
+    const metadata = filtered[key];
+    if (metadata != null) {
+      filtered[key] = Array.isArray(metadata)
+        ? metadata.map(filterMetadata)
+        : filterMetadata(metadata);
     }
   }
 
