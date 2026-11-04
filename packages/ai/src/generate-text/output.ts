@@ -10,6 +10,7 @@ import {
   safeParseJSON,
   safeValidateTypes,
   type FlexibleSchema,
+  type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
@@ -81,22 +82,15 @@ export const text = (): Output<string, string, never> => ({
   },
 });
 
-/**
- * Output specification for typed object generation using schemas.
- * When the model generates a text response, it will return an object that matches the schema.
- *
- * @param schema - The schema of the object to generate.
- * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
- * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
- *
- * @returns An output specification for generating objects with the specified schema.
- */
-export const object = <OBJECT>({
-  schema: inputSchema,
-  name,
-  description,
-}: {
-  schema: FlexibleSchema<OBJECT>;
+type ValidatedSchema<SCHEMA> = [SCHEMA] extends [FlexibleSchema]
+  ? SCHEMA
+  : never;
+
+type ObjectOptions<SCHEMA> = {
+  /**
+   * The schema of the object to generate.
+   */
+  schema: SCHEMA;
   /**
    * Optional name of the output that should be generated.
    * Used by some providers for additional LLM guidance, e.g. via tool or schema name.
@@ -107,7 +101,33 @@ export const object = <OBJECT>({
    * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
    */
   description?: string;
-}): Output<OBJECT, DeepPartial<OBJECT>, never> => {
+};
+
+/**
+ * Output specification for typed object generation using schemas.
+ * When the model generates a text response, it will return an object that matches the schema.
+ *
+ * @param schema - The schema of the object to generate.
+ * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+ * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+ *
+ * @returns An output specification for generating objects with the specified schema.
+ */
+export function object<SCHEMA>(
+  options: ObjectOptions<ValidatedSchema<SCHEMA>>,
+): Output<InferSchema<SCHEMA>, DeepPartial<InferSchema<SCHEMA>>, never>;
+export function object<OBJECT>(
+  options: ObjectOptions<FlexibleSchema<OBJECT>>,
+): Output<OBJECT, DeepPartial<OBJECT>, never>;
+export function object<OBJECT>({
+  schema: inputSchema,
+  name,
+  description,
+}: ObjectOptions<FlexibleSchema<OBJECT>>): Output<
+  OBJECT,
+  DeepPartial<OBJECT>,
+  never
+> {
   const schema = asSchema(inputSchema);
 
   return {
@@ -183,28 +203,13 @@ export const object = <OBJECT>({
       return undefined;
     },
   };
-};
+}
 
-/**
- * Output specification for array generation.
- * When the model generates a text response, it will return an array of elements.
- *
- * @param element - The schema of the array elements to generate.
- * @param minItems - Optional minimum number of elements to generate.
- * @param maxItems - Optional maximum number of elements to generate.
- * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
- * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
- *
- * @returns An output specification for generating an array of elements.
- */
-export const array = <ELEMENT>({
-  element: inputElementSchema,
-  minItems,
-  maxItems,
-  name,
-  description,
-}: {
-  element: FlexibleSchema<ELEMENT>;
+type ArrayOptions<SCHEMA> = {
+  /**
+   * The schema of the array elements to generate.
+   */
+  element: SCHEMA;
   /**
    * Optional minimum number of elements to generate.
    */
@@ -223,7 +228,41 @@ export const array = <ELEMENT>({
    * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
    */
   description?: string;
-}): Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT> => {
+};
+
+/**
+ * Output specification for array generation.
+ * When the model generates a text response, it will return an array of elements.
+ *
+ * @param element - The schema of the array elements to generate.
+ * @param minItems - Optional minimum number of elements to generate.
+ * @param maxItems - Optional maximum number of elements to generate.
+ * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+ * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+ *
+ * @returns An output specification for generating an array of elements.
+ */
+export function array<SCHEMA>(
+  options: ArrayOptions<ValidatedSchema<SCHEMA>>,
+): Output<
+  Array<InferSchema<SCHEMA>>,
+  Array<InferSchema<SCHEMA>>,
+  InferSchema<SCHEMA>
+>;
+export function array<ELEMENT>(
+  options: ArrayOptions<FlexibleSchema<ELEMENT>>,
+): Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT>;
+export function array<ELEMENT>({
+  element: inputElementSchema,
+  minItems,
+  maxItems,
+  name,
+  description,
+}: ArrayOptions<FlexibleSchema<ELEMENT>>): Output<
+  Array<ELEMENT>,
+  Array<ELEMENT>,
+  ELEMENT
+> {
   validateArrayBound({ name: 'minItems', value: minItems });
   validateArrayBound({ name: 'maxItems', value: maxItems });
 
@@ -435,7 +474,7 @@ export const array = <ELEMENT>({
       });
     },
   };
-};
+}
 
 function validateArrayBound({
   name,
