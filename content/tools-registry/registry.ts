@@ -928,4 +928,35 @@ console.log(text);`,
     websiteUrl: 'https://cleave.fi',
     npmUrl: 'https://www.npmjs.com/package/@cleave-protocol/ai-sdk',
   },
+  {
+    slug: 'oceanalt',
+    name: 'OceanAlt',
+    description:
+      'Pre-payment checks for agents that pay. Before money moves, OceanAlt checks the payee address or payment URL and returns allow, review or decline with evidence. Includes advisory tools and a guard that wraps your own payment tool and fails closed. The free tools need no API key. OceanAlt holds no keys and moves no funds.',
+    packageName: '@oceanalt/vercel-ai',
+    tags: ['payments', 'security', 'x402', 'compliance'],
+    installCommand: {
+      pnpm: 'pnpm add @oceanalt/vercel-ai ai zod',
+      npm: 'npm install @oceanalt/vercel-ai ai zod',
+      yarn: 'yarn add @oceanalt/vercel-ai ai zod',
+      bun: 'bun add @oceanalt/vercel-ai ai zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { oceanaltTools } from '@oceanalt/vercel-ai';
+
+// Free tools, no API key. The model calls checkPayee before it pays.
+// To enforce the check on your own transfer tool, wrap it with guardPaymentTool.
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: oceanaltTools(),
+  stopWhen: isStepCount(3),
+  prompt:
+    'Before paying 2 USDC on Base to 0x000000000000000000000000000000000000dEaD, check the payee and tell me whether to proceed.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://oceanalt.com/en/developers/vercel-ai-sdk',
+    websiteUrl: 'https://oceanalt.com',
+    npmUrl: 'https://www.npmjs.com/package/@oceanalt/vercel-ai',
+  },
 ];
