@@ -2,14 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { prepareTools } from './mistral-prepare-tools';
 
 describe('prepareTools', () => {
-  const tools = [
+  const tools: Parameters<typeof prepareTools>[0]['tools'] = [
     {
-      type: 'function' as const,
+      type: 'function',
       name: 'weather',
       inputSchema: { type: 'object', properties: {} },
     },
     {
-      type: 'function' as const,
+      type: 'function',
       name: 'attractions',
       inputSchema: { type: 'object', properties: {} },
     },
