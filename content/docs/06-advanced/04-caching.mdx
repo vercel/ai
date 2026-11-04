@@ -14,6 +14,7 @@ and the [`simulateReadableStream`](/docs/reference/ai-sdk-core/simulate-readable
 
 Language model middleware is a way to enhance the behavior of language models by intercepting and modifying the calls to the language model.
 Let's see how you can use language model middleware to cache responses.
+Include the provider and model ID in the cache key alongside the call parameters to keep cached responses separate across models and providers.
 
 ```ts filename="ai/middleware.ts"
 import { Redis } from '@upstash/redis';
@@ -30,8 +31,12 @@ const redis = new Redis({
 });
 
 export const cacheMiddleware: LanguageModelV2Middleware = {
-  wrapGenerate: async ({ doGenerate, params }) => {
-    const cacheKey = JSON.stringify(params);
+  wrapGenerate: async ({ doGenerate, params, model }) => {
+    const cacheKey = JSON.stringify({
+      provider: model.provider,
+      modelId: model.modelId,
+      params,
+    });
 
     const cached = (await redis.get(cacheKey)) as Awaited<
       ReturnType<LanguageModelV2['doGenerate']>
@@ -55,8 +60,12 @@ export const cacheMiddleware: LanguageModelV2Middleware = {
 
     return result;
   },
-  wrapStream: async ({ doStream, params }) => {
-    const cacheKey = JSON.stringify(params);
+  wrapStream: async ({ doStream, params, model }) => {
+    const cacheKey = JSON.stringify({
+      provider: model.provider,
+      modelId: model.modelId,
+      params,
+    });
 
     // Check if the result is in the cache
     const cached = await redis.get(cacheKey);
