@@ -21,19 +21,9 @@ run(async () => {
       'Simulate rolling two dice 10000 times and, return the sum of all the results, and upload the result to a file.',
   });
 
-  type CallCodeInterpreterToolCall = {
-    type: 'tool-call';
-    toolCallId: string;
-    toolName: 'code_interpreter';
-    input: {
-      code: string;
-      containerId: string;
-    };
-  };
-  const codeInterpreter = result.content.find(
-    content =>
-      content.type === 'tool-call' && content.toolName === 'code_interpreter',
-  ) as CallCodeInterpreterToolCall | undefined;
+  const codeInterpreter = result.staticToolCalls.find(
+    call => call.toolName === 'code_interpreter',
+  );
   if (!codeInterpreter) {
     console.log('container failed');
     return;
