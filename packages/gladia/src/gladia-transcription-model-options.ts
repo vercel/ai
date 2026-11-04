@@ -220,7 +220,7 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
           /**
            * Translation model to use.
            */
-          model: z.enum(['base', 'enhanced']).nullish(),
+          model: z.enum(['base', 'batch', 'enhanced']).nullish(),
           /**
            * Whether to match original utterances in translation.
            */

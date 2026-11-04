@@ -639,3 +639,43 @@ it.each(['default', 'solaria-1', 'future-gladia-model'])(
     else expect(body.model).toBe(modelId);
   },
 );
+
+it('forwards current translation and audio-to-LLM options', async () => {
+  prepareJsonFixtureResponse();
+  await model.doGenerate({
+    audio: audioData,
+    mediaType: 'audio/mp3',
+    providerOptions: {
+      gladia: {
+        translation: true,
+        translationConfig: {
+          targetLanguages: ['fr'],
+          model: 'batch',
+          lipsync: false,
+          contextAdaptation: true,
+          context: 'Science',
+          informal: false,
+        },
+        audioToLlm: true,
+        audioToLlmConfig: {
+          prompts: ['Summarize'],
+          model: 'openai/gpt-5.4-nano',
+        },
+      },
+    },
+  });
+  expect(await server.calls[1].requestBodyJson).toMatchObject({
+    translation_config: {
+      target_languages: ['fr'],
+      model: 'batch',
+      lipsync: false,
+      context_adaptation: true,
+      context: 'Science',
+      informal: false,
+    },
+    audio_to_llm_config: {
+      prompts: ['Summarize'],
+      model: 'openai/gpt-5.4-nano',
+    },
+  });
+});

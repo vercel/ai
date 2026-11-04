@@ -55,7 +55,7 @@ export type GladiaTranscriptionInitiateAPITypes = {
   /** Configuration for translation */
   translation_config?: {
     target_languages: string[];
-    model?: 'base' | 'enhanced';
+    model?: 'base' | 'batch' | 'enhanced';
     match_original_utterances?: boolean;
     lipsync?: boolean;
     context_adaptation?: boolean;
