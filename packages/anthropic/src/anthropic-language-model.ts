@@ -3441,8 +3441,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
       let result = await firstChunkReader.read();
 
-      // when raw chunks are enabled, the first chunk is a raw chunk, so we need to read the next chunk
-      if (result.value?.type === 'raw') {
+      // Ignore transport-only parts while checking the first provider event.
+      while (result.value?.type === 'raw' || result.value?.type === 'ping') {
         result = await firstChunkReader.read();
       }
 

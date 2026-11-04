@@ -12623,6 +12623,31 @@ describe('AnthropicLanguageModel', () => {
       }
     });
 
+    it.each([false, true])(
+      'preserves startup error handling after pings (raw: %s)',
+      async includeRawChunks => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            'data: {"type":"ping"}\n\n',
+            'data: {"type":"ping"}\n\n',
+            'data: {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}\n\n',
+          ],
+        };
+        await expect(
+          model.doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks,
+            providerOptions: { anthropic: { includePings: true } },
+          }),
+        ).rejects.toMatchObject({
+          name: 'AI_APICallError',
+          isRetryable: true,
+          message: 'Overloaded',
+        });
+      },
+    );
+
     it('should throw an api error when the first stream chunk is an overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
