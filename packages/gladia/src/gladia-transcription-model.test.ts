@@ -526,9 +526,12 @@ describe('legacy vocabulary validation', () => {
       },
     ]);
   });
-  it.each([[], [null, { value: 'Invalid', intensity: 'high' }]])(
-    'omits vocabulary configuration when no valid legacy entries remain: %j',
-    async customVocabulary => {
+  it.each([
+    { customVocabulary: [] },
+    { customVocabulary: [null, { value: 'Invalid', intensity: 'high' }] },
+  ])(
+    'omits vocabulary configuration when no valid legacy entries remain: $customVocabulary',
+    async ({ customVocabulary }) => {
       await model.doGenerate({
         audio: audioData,
         mediaType: 'audio/mp3',
