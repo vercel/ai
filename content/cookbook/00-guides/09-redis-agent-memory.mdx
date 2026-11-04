@@ -59,11 +59,12 @@ Create a `.env` file:
 
 ```env filename=".env"
 AI_GATEWAY_API_KEY=your_ai_gateway_api_key
+AGENT_MEMORY_URL=your_agent_memory_endpoint
 AGENT_MEMORY_API_KEY=your_agent_memory_api_key
 AGENT_MEMORY_STORE_ID=your_agent_memory_store_id
 ```
 
-If your store uses a different endpoint from the package's default, also set `AGENT_MEMORY_URL` to the endpoint provided by Redis Cloud.
+Set `AGENT_MEMORY_URL` to the endpoint provided by Redis Cloud for your store. It is required.
 
 Add `.env` and `node_modules/` to `.gitignore`:
 
