@@ -565,6 +565,51 @@ describe('streamLanguageModelCall', () => {
       `);
     });
 
+    it('retains provisional usage when cancelled before finish', async () => {
+      const cancel = vi.fn();
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: new ReadableStream<LanguageModelV4StreamPart>({
+            start(controller) {
+              controller.enqueue({ type: 'stream-start', warnings: [] });
+              controller.enqueue({
+                type: 'response-metadata',
+                id: 'early-response',
+                usage: testUsage,
+              });
+            },
+            cancel,
+          }),
+        }),
+      });
+      const { stream } = await streamLanguageModelCall({
+        model,
+        prompt: 'test',
+      });
+      const reader = stream.getReader();
+      const types: string[] = [];
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) throw new Error('Stream ended before response metadata');
+          types.push(value.type);
+          if (value.type === 'model-call-response-metadata') {
+            expect(value.usage).toMatchObject({
+              inputTokens: 3,
+              outputTokens: 10,
+              totalTokens: 13,
+            });
+            break;
+          }
+        }
+        await reader.cancel('stop-after-metadata');
+      } finally {
+        reader.releaseLock();
+      }
+      await vi.waitFor(() => expect(cancel).toHaveBeenCalled());
+      expect(types).not.toContain('model-call-end');
+    });
+
     it('should omit usage on model-call-response-metadata when the provider does not send it', async () => {
       const result = await streamLanguageModelCallResult({
         tools: undefined,
