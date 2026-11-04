@@ -80,9 +80,7 @@ export class GoogleRealtimeEventMapper {
   private hasText = false;
   private hasTranscript = false;
   private turnClosed = false;
-  private closedTurnHasUsage = false;
   private inputAudioRate = 16000;
-  private pendingUsage: RealtimeModelV4Usage | undefined;
 
   private get responseId(): string {
     return `google-resp-${this.turnCounter}`;
@@ -105,7 +103,6 @@ export class GoogleRealtimeEventMapper {
     this.hasAudio = false;
     this.hasText = false;
     this.hasTranscript = false;
-    this.closedTurnHasUsage = false;
     this.turnClosed = false;
     // Once the next response starts, its completion must delimit its own
     // input even if the interrupted response never sent a turnComplete.
@@ -169,6 +166,37 @@ export class GoogleRealtimeEventMapper {
   parseServerEvent(
     raw: unknown,
   ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[] {
+    const events = this.parseEvent(raw);
+    const usage = mapGoogleUsage(
+      (raw as GoogleRealtimeWireEvent).usageMetadata,
+    );
+    if (usage == null) return events;
+    const list = Array.isArray(events) ? events : [events];
+    // Only a shared wire frame establishes an association with a completion.
+    if (list.some(event => event.type === 'response-done')) {
+      const mapped = list.map(event =>
+        event.type === 'response-done' ? { ...event, usage } : event,
+      );
+      return Array.isArray(events) ? mapped : mapped[0];
+    }
+    const update: RealtimeModelV4ServerEvent = {
+      type: 'custom',
+      rawType: 'usageMetadata',
+      usage,
+      raw,
+    };
+    if (
+      list.length === 1 &&
+      list[0].type === 'custom' &&
+      list[0].rawType === 'usageMetadata'
+    )
+      return update;
+    return [...list, update];
+  }
+
+  private parseEvent(
+    raw: unknown,
+  ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[] {
     const data = raw as GoogleRealtimeWireEvent;
 
     if (data.setupComplete != null) {
@@ -227,11 +255,7 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (data.serverContent != null) {
-      return this.parseServerContent(
-        data.serverContent,
-        raw,
-        data.usageMetadata,
-      );
+      return this.parseServerContent(data.serverContent, raw);
     }
 
     if (data.inputTranscription != null) {
@@ -247,48 +271,14 @@ export class GoogleRealtimeEventMapper {
       }
     }
 
-    if (data.usageMetadata != null) {
-      return this.parseUsageMetadata(raw, data.usageMetadata);
-    }
-
     return { type: 'custom', rawType: String(Object.keys(data)[0]), raw };
-  }
-
-  private parseUsageMetadata(
-    raw: unknown,
-    usageMetadata: GoogleRealtimeUsageMetadata,
-  ): RealtimeModelV4ServerEvent {
-    const usage = mapGoogleUsage(usageMetadata);
-    if (usage == null) {
-      return { type: 'custom', rawType: 'usageMetadata', raw };
-    }
-
-    if (this.turnClosed) {
-      if (this.closedTurnHasUsage) {
-        return { type: 'custom', rawType: 'usageMetadata', raw };
-      }
-
-      this.closedTurnHasUsage = true;
-      return {
-        type: 'response-done',
-        responseId: this.responseId,
-        status: 'completed',
-        usage,
-        raw,
-      };
-    }
-
-    this.pendingUsage = usage;
-    return { type: 'custom', rawType: 'usageMetadata', raw };
   }
 
   private parseServerContent(
     serverContent: GoogleRealtimeServerContent,
     raw: unknown,
-    usageMetadata?: GoogleRealtimeUsageMetadata,
   ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[] {
     const events: RealtimeModelV4ServerEvent[] = [];
-    const usage = mapGoogleUsage(usageMetadata);
 
     if (serverContent.interrupted) {
       // A barge-in ends the current user utterance; the next input
@@ -414,14 +404,10 @@ export class GoogleRealtimeEventMapper {
           raw,
         });
       }
-      const completedUsage = usage ?? this.pendingUsage;
-      this.pendingUsage = undefined;
-      this.closedTurnHasUsage = completedUsage != null;
       events.push({
         type: 'response-done',
         responseId: this.responseId,
         status: 'completed',
-        ...(completedUsage != null ? { usage: completedUsage } : {}),
         raw,
       });
       // Mark the turn closed but defer advancing the counter until the next
@@ -438,8 +424,6 @@ export class GoogleRealtimeEventMapper {
           this.inputTranscriptionBoundary = 'turn-complete';
         }
       }
-    } else if (usage != null) {
-      this.pendingUsage = usage;
     }
 
     if (events.length === 0) {

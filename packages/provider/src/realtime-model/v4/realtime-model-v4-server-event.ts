@@ -247,5 +247,7 @@ export type RealtimeModelV4ServerEvent =
        * The original event type string from the provider.
        */
       rawType: string;
+      /** Provider usage snapshot without an inferred response association. */
+      usage?: RealtimeModelV4Usage;
       raw: unknown;
     };

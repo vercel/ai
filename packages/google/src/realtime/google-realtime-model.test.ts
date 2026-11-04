@@ -11,7 +11,7 @@ describe('GoogleRealtimeModel', () => {
     });
     const first = model.createServerEventParser();
     const second = model.createServerEventParser();
-    first({
+    const firstUsage = first({
       usageMetadata: {
         promptTokensDetails: [{ modality: 'TEXT', tokenCount: 12 }],
       },
@@ -28,12 +28,25 @@ describe('GoogleRealtimeModel', () => {
     expect(
       Array.isArray(secondDone) ? secondDone : [secondDone],
     ).not.toContainEqual(expect.objectContaining({ usage: expect.anything() }));
+    expect(firstUsage).toMatchObject({
+      type: 'custom',
+      rawType: 'usageMetadata',
+      usage: { inputTextTokens: 12 },
+    });
     const firstDone = first({ serverContent: { turnComplete: true } });
-    expect(Array.isArray(firstDone) ? firstDone : [firstDone]).toContainEqual(
+    expect(
+      Array.isArray(firstDone) ? firstDone : [firstDone],
+    ).not.toContainEqual(expect.objectContaining({ usage: expect.anything() }));
+    first({ serverContent: { modelTurn: { parts: [{ text: 'next' }] } } });
+    const secondTurn = second({
+      serverContent: { modelTurn: { parts: [{ text: 'independent' }] } },
+    });
+    expect(
+      Array.isArray(secondTurn) ? secondTurn : [secondTurn],
+    ).toContainEqual(
       expect.objectContaining({
-        type: 'response-done',
-        responseId: 'google-resp-0',
-        usage: { inputTextTokens: 12 },
+        type: 'text-delta',
+        responseId: 'google-resp-1',
       }),
     );
   });

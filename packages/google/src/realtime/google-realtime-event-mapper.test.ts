@@ -1833,83 +1833,75 @@ describe('GoogleRealtimeEventMapper usage', () => {
     `);
   });
 
-  it('buffers standalone usage until turnComplete arrives', () => {
+  it.each([
+    { setupComplete: true },
+    { toolCall: { functionCalls: [{ id: 'call', name: 'tool' }] } },
+    { toolCallCancellation: { ids: ['call'] } },
+    { inputTranscription: { text: 'hello' } },
+    { serverContent: { interrupted: true } },
+  ])('retains usage alongside non-terminal messages: %j', frame => {
     const mapper = new GoogleRealtimeEventMapper();
-
-    expect(
-      mapper.parseServerEvent({
-        usageMetadata: {
-          promptTokensDetails: [{ modality: 'TEXT', tokenCount: 12 }],
-          responseTokensDetails: [{ modality: 'TEXT', tokenCount: 34 }],
-        },
-      }),
-    ).toEqual({
-      type: 'custom',
-      rawType: 'usageMetadata',
-      raw: {
-        usageMetadata: {
-          promptTokensDetails: [{ modality: 'TEXT', tokenCount: 12 }],
-          responseTokensDetails: [{ modality: 'TEXT', tokenCount: 34 }],
-        },
-      },
-    });
-
-    const events = mapper.parseServerEvent({
-      serverContent: { turnComplete: true },
-    });
-
-    const list = Array.isArray(events) ? events : [events];
-    const done = list.find(e => e.type === 'response-done');
-    expect(done?.type === 'response-done' && done.usage).toEqual({
-      inputTextTokens: 12,
-      outputTextTokens: 34,
-    });
-  });
-
-  it('emits usage on a terminal event when usage arrives after turnComplete', () => {
-    const mapper = new GoogleRealtimeEventMapper();
-    mapper.parseServerEvent({ serverContent: { turnComplete: true } });
-
-    const event = mapper.parseServerEvent({
+    const raw = {
+      ...frame,
       usageMetadata: {
-        promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 50 }],
-        responseTokensDetails: [{ modality: 'AUDIO', tokenCount: 200 }],
+        promptTokensDetails: [{ modality: 'TEXT', tokenCount: 12 }],
       },
-    });
-
-    expect(event).toEqual({
-      type: 'response-done',
-      responseId: 'google-resp-0',
-      status: 'completed',
-      usage: {
-        inputAudioTokens: 50,
-        outputAudioTokens: 200,
-      },
-      raw: {
-        usageMetadata: {
-          promptTokensDetails: [{ modality: 'AUDIO', tokenCount: 50 }],
-          responseTokensDetails: [{ modality: 'AUDIO', tokenCount: 200 }],
-        },
-      },
-    });
-  });
-
-  it('does not emit duplicate usage for an already-accounted turn', () => {
-    const mapper = new GoogleRealtimeEventMapper();
-    mapper.parseServerEvent({
-      serverContent: { turnComplete: true },
-      usageMetadata: { promptTokenCount: 12, responseTokenCount: 34 },
-    });
-
-    expect(
-      mapper.parseServerEvent({
-        usageMetadata: { promptTokenCount: 12, responseTokenCount: 34 },
-      }),
-    ).toEqual({
+    };
+    const result = mapper.parseServerEvent(raw);
+    const list = Array.isArray(result) ? result : [result];
+    expect(list).toContainEqual({
       type: 'custom',
       rawType: 'usageMetadata',
-      raw: { usageMetadata: { promptTokenCount: 12, responseTokenCount: 34 } },
+      usage: { inputTextTokens: 12 },
+      raw,
     });
+    expect(list.some(event => event.type === 'response-done')).toBe(false);
+  });
+
+  it('keeps unassociated usage snapshots separate from completion and later turns', () => {
+    const mapper = new GoogleRealtimeEventMapper();
+    const snapshot = (count: number) => ({
+      usageMetadata: {
+        promptTokensDetails: [{ modality: 'TEXT', tokenCount: count }],
+      },
+    });
+    expect(mapper.parseServerEvent(snapshot(12))).toMatchObject({
+      type: 'custom',
+      usage: { inputTextTokens: 12 },
+    });
+    const done = mapper.parseServerEvent({
+      serverContent: { turnComplete: true },
+    });
+    const list = Array.isArray(done) ? done : [done];
+    expect(list).toContainEqual(
+      expect.objectContaining({ type: 'response-done' }),
+    );
+    expect(list.some(event => 'usage' in event)).toBe(false);
+    // A late final snapshot is retained instead of discarded as a duplicate.
+    expect(mapper.parseServerEvent(snapshot(15))).toMatchObject({
+      type: 'custom',
+      rawType: 'usageMetadata',
+      usage: { inputTextTokens: 15 },
+    });
+    mapper.parseServerEvent({ toolCall: { functionCalls: [] } });
+    expect(mapper.parseServerEvent(snapshot(16))).toMatchObject({
+      type: 'custom',
+      usage: { inputTextTokens: 16 },
+    });
+    mapper.parseServerEvent({ serverContent: { interrupted: true } });
+    expect(mapper.parseServerEvent(snapshot(17))).toMatchObject({
+      type: 'custom',
+      usage: { inputTextTokens: 17 },
+    });
+    const next = mapper.parseServerEvent({
+      serverContent: {
+        modelTurn: { parts: [{ text: 'next' }] },
+        turnComplete: true,
+      },
+    });
+    expect(
+      (Array.isArray(next) ? next : [next]).some(event => 'usage' in event),
+    ).toBe(false);
   });
 
   it('omits usage when no usageMetadata is present', () => {
