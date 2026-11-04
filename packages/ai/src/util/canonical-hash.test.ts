@@ -24,6 +24,18 @@ describe('canonicalJSON', () => {
     expect(canonicalJSON([undefined])).toBe('[null]');
     expect(canonicalJSON({ values: [undefined] })).toBe('{"values":[null]}');
   });
+
+  it('throws for NaN and Infinity', () => {
+    expect(() => canonicalJSON(NaN)).toThrow(
+      'Cannot serialize NaN or Infinity to canonical JSON',
+    );
+    expect(() => canonicalJSON(Infinity)).toThrow(
+      'Cannot serialize NaN or Infinity to canonical JSON',
+    );
+    expect(() => canonicalJSON({ value: NaN })).toThrow(
+      'Cannot serialize NaN or Infinity to canonical JSON',
+    );
+  });
 });
 
 describe('hashCanonical', () => {
