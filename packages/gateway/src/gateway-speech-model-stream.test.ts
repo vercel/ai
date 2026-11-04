@@ -95,6 +95,25 @@ describe('GatewaySpeechModel.doStream', () => {
     MockWebSocket.instances = [];
   });
 
+  it('rejects a late regional hosting option before forwarding its text frame', async () => {
+    const result = await createStreamingTestModel().doStream({
+      text: convertArrayToReadableStream<SpeechModelV4StreamTextPart>([
+        {
+          type: 'text',
+          text: 'Hello',
+          providerOptions: { gateway: { regionalHosting: 'eu' } },
+        },
+      ]),
+    });
+    const chunks = convertReadableStreamToArray(result.stream);
+    const rejected = expect(chunks).rejects.toThrow('regionalHosting');
+    const socket = lastSocket();
+    socket.open();
+    await rejected;
+    expect(socket.sentFrames()).toEqual([{ type: 'speech-stream.start' }]);
+    expect(socket.close).toHaveBeenCalled();
+  });
+
   it('should speak the speech-stream envelope over the gateway WebSocket', async () => {
     const result = await createStreamingTestModel({
       _internal: { currentDate: () => new Date(2024, 0, 1) },

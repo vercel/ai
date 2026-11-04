@@ -190,3 +190,19 @@ it('types conditional decision model fallbacks', () => {
   void conditionalAfterString;
   void multipleConditionals;
 });
+
+it('types regional hosting as a scalar region only', () => {
+  expectTypeOf<GatewayProviderOptions['regionalHosting']>().toEqualTypeOf<
+    'au' | 'eu' | 'us' | undefined
+  >();
+  const supported = { regionalHosting: 'eu' } satisfies GatewayProviderOptions;
+  expectTypeOf(supported.regionalHosting).toEqualTypeOf<'eu'>();
+  // @ts-expect-error Only allowlisted regions are supported.
+  const invalid: GatewayProviderOptions = { regionalHosting: 'ap' };
+  const object: GatewayProviderOptions = {
+    // @ts-expect-error Object assertions and inference pinning are not supported.
+    regionalHosting: { region: 'eu', pinInference: true },
+  };
+  void invalid;
+  void object;
+});

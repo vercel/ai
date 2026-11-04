@@ -1,3 +1,4 @@
+import { rejectRegionalHosting } from './gateway-regional-hosting';
 import {
   InvalidArgumentError,
   UnsupportedFunctionalityError,
@@ -59,7 +60,11 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
   }: BatchV4StartOptions<{
     text: GatewayModelId;
   }>): Promise<BatchV4StartResult> {
+    rejectRegionalHosting(providerOptions);
     assertTextBatchRequests(requests);
+    for (const request of requests) {
+      rejectRegionalHosting(request.options.providerOptions);
+    }
     const modelId = validateSingleModel(requests);
 
     const resolvedHeaders = this.config.headers
@@ -131,7 +136,9 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
     batchId,
     headers,
     abortSignal,
+    providerOptions,
   }: BatchV4OperationOptions): Promise<BatchV4Status> {
+    rejectRegionalHosting(providerOptions);
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
@@ -179,7 +186,9 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
     batchId,
     headers,
     abortSignal,
+    providerOptions,
   }: BatchV4OperationOptions): Promise<ReadableStream<BatchV4ItemResult>> {
+    rejectRegionalHosting(providerOptions);
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
@@ -224,7 +233,9 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
     batchId,
     headers,
     abortSignal,
+    providerOptions,
   }: BatchV4OperationOptions): Promise<BatchV4CancelResult> {
+    rejectRegionalHosting(providerOptions);
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
