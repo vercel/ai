@@ -1748,7 +1748,8 @@ console.log(await result.output);
 
 The opt-in applies to `structuredOutputMode: 'auto'` (the default) for versioned
 Claude model IDs from 4.5 onward, including Vertex IDs with an `@` suffix.
-Older models and unrecognized IDs continue to use the JSON response tool.
+Older models and IDs without a recognizable Claude version, such as custom
+deployment names, continue to use the JSON response tool.
 The setting is available in both the Node.js and Edge providers.
 In `'auto'` mode, schemas that native output cannot safely represent, such as
 open objects, circular references, or schemas with too many optional properties,
@@ -1768,6 +1769,8 @@ You can still set `providerOptions.anthropic.structuredOutputMode` per request:
   the Anthropic provider's existing behavior of switching to native output when
   the model supports it and the schema can be represented, even without this
   opt-in. This fallback also applies in `'auto'` mode with the opt-in disabled.
+  Models such as `claude-opus-5-5`, `claude-sonnet-5-5`, and `claude-fable-5-1`
+  therefore require the `structured_outputs` policy regardless of this setting.
 - `'outputFormat'` explicitly requests native output, bypassing the opt-in and
   model detection. The API rejects unsupported or policy-denied requests.
 
