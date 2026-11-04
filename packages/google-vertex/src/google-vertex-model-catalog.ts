@@ -15,6 +15,95 @@ import type { GoogleVertexEmbeddingModelOptions } from './google-vertex-embeddin
 import type { GoogleVertexTranscriptionModelOptions } from './google-vertex-transcription-model-options';
 import type { GoogleVertexTranscriptionModelGeminiOptions } from './gemini-transcription/google-vertex-gemini-transcription-model-options';
 import type { GoogleVertexSpeechModelOptions } from './google-vertex-speech-model-options';
+const documentedImageDetails: Record<
+  string,
+  { imageGeneration: boolean; aspectRatios: readonly string[] }
+> = {
+  'gemini-nano-banana-2.1': {
+    imageGeneration: true,
+    aspectRatios: [
+      '1:1',
+      '2:3',
+      '3:2',
+      '3:4',
+      '4:3',
+      '4:5',
+      '5:4',
+      '9:16',
+      '16:9',
+      '21:9',
+      '1:8',
+      '8:1',
+      '1:4',
+      '4:1',
+    ],
+  },
+  'gemini-3.1-flash-image-preview': {
+    imageGeneration: true,
+    aspectRatios: [
+      '1:1',
+      '2:3',
+      '3:2',
+      '3:4',
+      '4:3',
+      '4:5',
+      '5:4',
+      '9:16',
+      '16:9',
+      '21:9',
+    ],
+  },
+  'gemini-3-pro-image-preview': {
+    imageGeneration: true,
+    aspectRatios: [
+      '1:1',
+      '2:3',
+      '3:2',
+      '3:4',
+      '4:3',
+      '4:5',
+      '5:4',
+      '9:16',
+      '16:9',
+      '21:9',
+    ],
+  },
+  'gemini-2.5-flash-image': {
+    imageGeneration: true,
+    aspectRatios: [
+      '1:1',
+      '2:3',
+      '3:2',
+      '3:4',
+      '4:3',
+      '4:5',
+      '5:4',
+      '9:16',
+      '16:9',
+      '21:9',
+    ],
+  },
+};
+const documentedTranscriptionDetails: Record<
+  string,
+  { wordTimestampDescription: string; languageDetectionDescription: string }
+> = {
+  chirp_2: {
+    wordTimestampDescription:
+      'Available with a potential quality and speed tradeoff',
+    languageDetectionDescription: "Auto detection with `['auto']`",
+  },
+  chirp_3: {
+    wordTimestampDescription:
+      'Available with a potential transcription quality tradeoff',
+    languageDetectionDescription: "Auto detection with `['auto']`",
+  },
+  telephony: {
+    wordTimestampDescription: 'Available',
+    languageDetectionDescription:
+      'Explicit supported language codes, with alternative language detection support',
+  },
+};
 
 export const googleVertexProviderOptions = {
   language: googleProviderOptions.language,
@@ -108,6 +197,7 @@ export function getGoogleVertexImageModelEntry(modelId: string): VertexEntry {
         fileInput: known ? true : 'unknown',
         maskInput: known ? false : 'unknown',
         maxImagesPerCall: 1,
+        ...documentedImageDetails[modelId],
       },
     },
     providerOptions: {
@@ -134,6 +224,13 @@ function embeddingEntry(modelId: string): VertexEntry {
       embedding: {
         defaultDimensions: gemini ? 3072 : 768,
         customDimensions: 'unknown',
+        ...{
+          maxEmbeddingsPerCall:
+            requestConfig(modelId).embedding!.maxEmbeddingsPerCall,
+          supportsParallelCalls: true,
+          multimodal:
+            requestConfig(modelId).embedding!.endpoint === 'embedContent',
+        },
       },
     },
     providerOptions: {
@@ -151,7 +248,9 @@ function embeddingEntry(modelId: string): VertexEntry {
 function speechEntry(modelId: string): VertexEntry {
   const chirp = requestConfig(modelId).speech?.api === 'cloud-tts';
   return {
-    capabilities: { speech: { instructions: !chirp } },
+    capabilities: {
+      speech: { instructions: !chirp, ...{ multiSpeaker: !chirp } },
+    },
     providerOptions: {
       speech: {
         multiSpeakerVoiceConfig: chirp ? false : true,
@@ -178,6 +277,7 @@ function transcriptionEntry(modelId: string): VertexEntry {
           ? false
           : { condition: 'Requires word timestamps.' },
         language: true,
+        ...documentedTranscriptionDetails[modelId],
       },
     },
     providerOptions: {
@@ -339,3 +439,148 @@ export const googleVertexModelCatalog: Readonly<Record<string, VertexEntry>> =
     };
     return catalog;
   }, {});
+
+const vertexAnthropicModels = {
+  'claude-fable-5-1': {
+    image: true,
+    objectGeneration: true,
+    tools: true,
+    streaming: true,
+    computerUse: true,
+  },
+  'claude-3-7-sonnet@20250219': {
+    image: true,
+    objectGeneration: true,
+    tools: true,
+    streaming: true,
+    computerUse: true,
+  },
+  'claude-3-5-sonnet-v2@20241022': {
+    image: true,
+    objectGeneration: true,
+    tools: true,
+    streaming: true,
+    computerUse: true,
+  },
+  'claude-3-5-sonnet@20240620': {
+    image: true,
+    objectGeneration: true,
+    tools: true,
+    streaming: true,
+    computerUse: false,
+  },
+  'claude-3-5-haiku@20241022': {
+    image: false,
+    objectGeneration: true,
+    tools: true,
+    streaming: true,
+    computerUse: false,
+  },
+  'claude-3-sonnet@20240229': {
+    image: true,
+    objectGeneration: true,
+    tools: true,
+    streaming: true,
+    computerUse: false,
+  },
+  'claude-3-haiku@20240307': {
+    image: true,
+    objectGeneration: true,
+    tools: true,
+    streaming: true,
+    computerUse: false,
+  },
+  'claude-3-opus@20240229': {
+    image: true,
+    objectGeneration: true,
+    tools: true,
+    streaming: true,
+    computerUse: false,
+  },
+};
+export const googleVertexAnthropicModelCatalog = Object.fromEntries(
+  Object.entries(vertexAnthropicModels).map(([id, support]) => {
+    const entry = {
+      capabilities: {
+        language: {
+          inputs: { image: support.image, audio: false },
+          objectGeneration: support.objectGeneration,
+          tools: {
+            usage: support.tools,
+            streaming: support.streaming,
+            computerUse: support.computerUse,
+          },
+          reasoning: { support: 'unknown' },
+          sampling: {
+            temperature: 'unknown',
+            topP: 'unknown',
+            logprobs: false,
+          },
+        },
+      },
+    } as const;
+    return [id, entry satisfies ModelEntry];
+  }),
+);
+const vertexXaiModels = {
+  'xai/grok-4.20-reasoning': { reasoning: true },
+  'xai/grok-4.20-non-reasoning': { reasoning: false },
+  'xai/grok-4.1-fast-reasoning': { reasoning: true },
+  'xai/grok-4.1-fast-non-reasoning': { reasoning: false },
+};
+export const googleVertexXaiModelCatalog = Object.fromEntries(
+  Object.entries(vertexXaiModels).map(([id, support]) => {
+    const entry = {
+      capabilities: {
+        language: {
+          inputs: { image: 'unknown', audio: 'unknown' },
+          objectGeneration: 'unknown',
+          tools: { usage: 'unknown', streaming: 'unknown' },
+          reasoning: { support: support.reasoning },
+          sampling: {
+            temperature: 'unknown',
+            topP: 'unknown',
+            logprobs: 'unknown',
+          },
+        },
+      },
+    } as const;
+    return [id, entry satisfies ModelEntry];
+  }),
+);
+const vertexMaasModels = {
+  'deepseek-ai/deepseek-r1-0528-maas': { publisher: 'DeepSeek' },
+  'deepseek-ai/deepseek-v3.1-maas': { publisher: 'DeepSeek' },
+  'deepseek-ai/deepseek-v3.2-maas': { publisher: 'DeepSeek' },
+  'openai/gpt-oss-120b-maas': { publisher: 'OpenAI' },
+  'openai/gpt-oss-20b-maas': { publisher: 'OpenAI' },
+  'meta/llama-4-maverick-17b-128e-instruct-maas': { publisher: 'Meta' },
+  'meta/llama-4-scout-17b-16e-instruct-maas': { publisher: 'Meta' },
+  'minimax/minimax-m2-maas': { publisher: 'MiniMax' },
+  'qwen/qwen3-coder-480b-a35b-instruct-maas': { publisher: 'Qwen' },
+  'qwen/qwen3-next-80b-a3b-instruct-maas': { publisher: 'Qwen' },
+  'qwen/qwen3-next-80b-a3b-thinking-maas': { publisher: 'Qwen' },
+  'moonshotai/kimi-k2-thinking-maas': { publisher: 'Moonshot' },
+};
+export const googleVertexMaasModelCatalog = Object.fromEntries(
+  Object.entries(vertexMaasModels).map(([id, support]) => {
+    const entry = {
+      capabilities: {
+        language: {
+          inputs: { image: 'unknown', audio: 'unknown' },
+          objectGeneration: 'unknown',
+          tools: { usage: 'unknown', streaming: 'unknown' },
+          reasoning: { support: 'unknown' },
+          sampling: {
+            temperature: 'unknown',
+            topP: 'unknown',
+            logprobs: 'unknown',
+          },
+          publisher: support.publisher,
+        },
+      },
+      requestConfig: requestConfig(id),
+    } as const;
+    return [id, entry satisfies ModelEntry<VertexRequestConfig>];
+  }),
+);
