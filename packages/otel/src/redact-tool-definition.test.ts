@@ -15,6 +15,49 @@ describe('redactToolDefinition', () => {
     expect(redactToolDefinition(tool)).toEqual(tool);
   });
 
+  it('redacts shell environment domain secrets without mutating provider arguments', () => {
+    const tool = {
+      type: 'provider',
+      id: 'openai.shell',
+      name: 'terminal',
+      args: {
+        environment: {
+          type: 'containerAuto',
+          memoryLimit: '4g',
+          networkPolicy: {
+            type: 'allowlist',
+            allowedDomains: ['example.com'],
+            domainSecrets: [
+              {
+                domain: 'example.com',
+                name: 'KEY',
+                value: 'shell-private-key',
+              },
+            ],
+          },
+        },
+      },
+    };
+    const original = structuredClone(tool);
+    expect(redactToolDefinition(tool)).toEqual({
+      ...tool,
+      args: {
+        environment: {
+          type: 'containerAuto',
+          memoryLimit: '4g',
+          networkPolicy: {
+            type: 'allowlist',
+            allowedDomains: ['example.com'],
+            domainSecrets: [
+              { domain: 'example.com', name: 'KEY', value: '[redacted]' },
+            ],
+          },
+        },
+      },
+    });
+    expect(tool).toEqual(original);
+  });
+
   it('preserves unrelated tool definitions', () => {
     const args = {
       container: {

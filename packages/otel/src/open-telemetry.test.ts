@@ -941,6 +941,27 @@ describe('OpenTelemetry', () => {
               },
             },
           },
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'terminal',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets: [
+                    {
+                      domain: 'example.com',
+                      name: 'KEY',
+                      value: 'shell-private-key',
+                    },
+                  ],
+                },
+              },
+            },
+          },
           { type: 'function', name: 'weather', description: 'Get weather' },
         ];
         const originalTools = structuredClone(tools);
