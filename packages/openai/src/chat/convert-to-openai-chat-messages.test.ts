@@ -1183,3 +1183,208 @@ it('serializes tool results with BigInt and real cycles', async () => {
     '{"count":"42","self":"[Circular]"}',
   );
 });
+
+describe('message names', () => {
+  it('preserves names on plain user and assistant messages', async () => {
+    const result = await convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+          providerOptions: { openai: { name: 'alice' } },
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hi' }],
+          providerOptions: { openai: { name: 'bot' } },
+        },
+      ],
+    });
+    expect(result.messages).toEqual([
+      { role: 'user', content: 'Hello', name: 'alice' },
+      { role: 'assistant', content: 'Hi', name: 'bot', tool_calls: undefined },
+    ]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('preserves names on user parts and assistant tool-only messages', async () => {
+    const result = await convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Hello' },
+            { type: 'text', text: ' there' },
+          ],
+          providerOptions: { openai: { name: 'alice' } },
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'lookup',
+              input: {},
+            },
+          ],
+          providerOptions: { openai: { name: 'bot' } },
+        },
+      ],
+    });
+    expect(result.messages[0]).toEqual({
+      role: 'user',
+      name: 'alice',
+      content: [
+        { type: 'text', text: 'Hello' },
+        { type: 'text', text: ' there' },
+      ],
+    });
+    expect(result.messages[1]).toEqual({
+      role: 'assistant',
+      name: 'bot',
+      content: null,
+      tool_calls: [
+        {
+          id: 'call-1',
+          type: 'function',
+          function: { name: 'lookup', arguments: '{}' },
+        },
+      ],
+    });
+  });
+
+  it.each(['system', 'developer'] as const)(
+    'preserves names and cache breakpoints in %s mode',
+    async systemMessageMode => {
+      const result = await convertToOpenAIChatMessages({
+        systemMessageMode,
+        prompt: [
+          {
+            role: 'system',
+            content: 'Be helpful',
+            providerOptions: {
+              openai: {
+                name: 'instructions',
+                promptCacheBreakpoint: { mode: 'explicit' },
+              },
+            },
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hi',
+                providerOptions: {
+                  openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+                },
+              },
+            ],
+            providerOptions: { openai: { name: 'bot' } },
+          },
+        ],
+      });
+      expect(result.messages).toEqual([
+        {
+          role: systemMessageMode,
+          name: 'instructions',
+          content: [
+            {
+              type: 'text',
+              text: 'Be helpful',
+              prompt_cache_breakpoint: { mode: 'explicit' },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          name: 'bot',
+          content: [
+            {
+              type: 'text',
+              text: 'Hi',
+              prompt_cache_breakpoint: { mode: 'explicit' },
+            },
+          ],
+          tool_calls: undefined,
+        },
+      ]);
+    },
+  );
+
+  it('removes named system messages in remove mode', async () => {
+    const result = await convertToOpenAIChatMessages({
+      systemMessageMode: 'remove',
+      prompt: [
+        {
+          role: 'system',
+          content: 'Be helpful',
+          providerOptions: { openai: { name: 'instructions' } },
+        },
+      ],
+    });
+    expect(result.messages).toEqual([]);
+    expect(result.warnings).toEqual([
+      { type: 'other', message: 'system messages are removed for this model' },
+    ]);
+  });
+
+  it('warns and omits names on tool messages', async () => {
+    const result = await convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'tool',
+          providerOptions: { openai: { name: 'ignored' } },
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'lookup',
+              output: { type: 'text', value: 'result' },
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.messages).toEqual([
+      { role: 'tool', tool_call_id: 'call-1', content: 'result' },
+    ]);
+    expect(result.warnings).toEqual([
+      { type: 'unsupported', feature: 'message name on tool messages' },
+    ]);
+  });
+
+  it.each([null, 42, true, {}, []])('rejects invalid names: %j', async name => {
+    await expect(
+      convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+            providerOptions: { openai: { name } },
+          },
+        ],
+      }),
+    ).rejects.toThrow('providerOptions');
+  });
+
+  it('ignores names from unrelated namespaces and content parts', async () => {
+    const result = await convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Hello',
+              providerOptions: { openai: { name: 'part-name' } },
+            },
+          ],
+          providerOptions: { other: { name: 'other-name' } },
+        },
+      ],
+    });
+    expect(result.messages).toEqual([{ role: 'user', content: 'Hello' }]);
+  });
+});
