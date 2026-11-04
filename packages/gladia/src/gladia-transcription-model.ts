@@ -151,9 +151,9 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
       body.punctuation_enhanced =
         gladiaOptions.punctuationEnhanced ?? undefined;
 
-      const customVocabularyConfig = gladiaOptions.customVocabularyConfig ?? {};
+      const customVocabularyConfig = gladiaOptions.customVocabularyConfig;
       const vocabulary =
-        customVocabularyConfig.vocabulary ?? customVocabularyFromArray;
+        customVocabularyConfig?.vocabulary ?? customVocabularyFromArray;
 
       if (vocabulary) {
         body.custom_vocabulary_config = {
@@ -167,7 +167,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
             };
           }),
           default_intensity:
-            customVocabularyConfig.defaultIntensity ?? undefined,
+            customVocabularyConfig?.defaultIntensity ?? undefined,
         };
       }
 
