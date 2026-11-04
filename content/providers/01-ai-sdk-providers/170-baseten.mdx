@@ -317,3 +317,42 @@ try {
   For more information about Baseten models and deployment options, see the
   [Baseten documentation](https://docs.baseten.co/).
 </Note>
+
+## Model Capabilities
+
+{/* model-capabilities:baseten-language:start */}
+
+| Model                                 | Image Input | Object Generation | Tool Usage | Tool Streaming | JSON Schema |
+| ------------------------------------- | ----------- | ----------------- | ---------- | -------------- | ----------- |
+| `deepseek-ai/DeepSeek-R1-0528`        | Unknown     | Unknown           | Unknown    | Unknown        | <Check />   |
+| `deepseek-ai/DeepSeek-V3-0324`        | Unknown     | Unknown           | Unknown    | Unknown        | <Check />   |
+| `deepseek-ai/DeepSeek-V3.1`           | Unknown     | Unknown           | Unknown    | Unknown        | <Check />   |
+| `moonshotai/Kimi-K2-Instruct-0905`    | Unknown     | Unknown           | Unknown    | Unknown        | <Check />   |
+| `moonshotai/Kimi-K2-Thinking`         | Unknown     | Unknown           | Unknown    | Unknown        | <Check />   |
+| `Qwen/Qwen3-235B-A22B-Instruct-2507`  | Unknown     | Unknown           | Unknown    | Unknown        | <Check />   |
+| `Qwen/Qwen3-Coder-480B-A35B-Instruct` | Unknown     | Unknown           | Unknown    | Unknown        | <Check />   |
+| `openai/gpt-oss-120b`                 | Unknown     | Unknown           | Unknown    | Unknown        | <Check />   |
+| `zai-org/GLM-4.6`                     | Unknown     | Unknown           | Unknown    | Unknown        | <Check />   |
+| `zai-org/GLM-4.7`                     | Unknown     | Unknown           | Unknown    | Unknown        | <Check />   |
+
+{/* model-capabilities:baseten-language:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:baseten-provider-options:start */}
+
+| Operation | Option             | Description                                                                                                                                                                                                     |
+| --------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| language  | `user`             | A unique identifier representing your end-user, which can help providers to monitor and detect abuse.                                                                                                           |
+| language  | `reasoningEffort`  | Reasoning effort for reasoning models. Defaults to `medium`.  Set to `null` to send `"reasoning_effort": null`, for providers that treat an explicit `null` differently from an omitted field.                  |
+| language  | `textVerbosity`    | Controls the verbosity of the generated text. Defaults to `medium`.                                                                                                                                             |
+| language  | `strictJsonSchema` | Whether to use strict JSON schema validation. When true, the model uses constrained decoding to guarantee schema compliance. Only used when the provider supports structured outputs and a schema is provided.  |
+| language  | `echo`             | Echo back the prompt in addition to the completion.                                                                                                                                                             |
+| language  | `logitBias`        | Modify the likelihood of specified tokens appearing in the completion.  Accepts a JSON object that maps tokens (specified by their token ID in the GPT tokenizer) to an associated bias value from -100 to 100. |
+| language  | `suffix`           | The suffix that comes after a completion of inserted text.                                                                                                                                                      |
+| embedding | `dimensions`       | The number of dimensions the resulting output embeddings should have. Only supported in text-embedding-3 and later models.                                                                                      |
+| embedding | `user`             | A unique identifier representing your end-user, which can help providers to monitor and detect abuse.                                                                                                           |
+
+{/* model-capabilities:baseten-provider-options:end */}
