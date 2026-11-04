@@ -86,7 +86,7 @@ run(async () => {
   ) as CallCodeInterpreterToolCall | undefined;
 
   if (!codeInterpreter) {
-    console.dir(result, { depth: Infinity });
+    console.log('Answer:', result.text);
     console.log('container failed');
     return;
   }
@@ -98,7 +98,13 @@ run(async () => {
 
     console.log(`containerId: ${containerId}`);
     console.log();
-    console.log('container network policy: ', container.network_policy);
+    console.log('container network policy:', {
+      type: container.network_policy?.type,
+      allowedDomains:
+        container.network_policy?.type === 'allowlist'
+          ? container.network_policy.allowed_domains
+          : undefined,
+    });
     console.log();
     console.log('Answer: ', result.text);
   } finally {

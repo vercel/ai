@@ -45,7 +45,6 @@ run(async () => {
   try {
     const container = await retrieveAzureContainer(containerId);
     console.log('container memory_limit:', container.memory_limit);
-    console.log('container detail:', container);
   } finally {
     await deleteAzureContainer(containerId);
   }
