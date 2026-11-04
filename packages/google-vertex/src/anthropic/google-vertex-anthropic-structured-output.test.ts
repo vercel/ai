@@ -167,7 +167,13 @@ describe.each(['generate', 'stream'] as const)('%s policy errors', method => {
         method === 'generate'
           ? model.doGenerate(options)
           : model.doStream(options),
-      ).rejects.toMatchObject({ statusCode: 400, message, isRetryable: false });
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        isRetryable: false,
+        ...(format === 'anthropic'
+          ? { message }
+          : { responseBody: expect.stringContaining(message) }),
+      });
       expect(fetch).toHaveBeenCalledTimes(1);
     },
   );
