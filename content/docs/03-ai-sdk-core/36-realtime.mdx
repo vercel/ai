@@ -86,13 +86,16 @@ The public types are `Experimental_RealtimeServerConnection`,
 `Experimental_RealtimeSessionIntent` and `Experimental_RealtimeUsage` from `ai`.
 
 OpenAI Realtime and xAI expose reported usage on `response-done` and input
-transcription completions. AI Gateway preserves normalized upstream events.
+transcription completions. AI Gateway passes through normalized usage only when
+the Gateway route includes it in its events.
 OpenAI Live retains its existing duration snapshots on `session-usage` and
 `session-closed`.
 
 Google attaches usage to `response-done` only when the same wire frame contains
 `turnComplete` and `usageMetadata`. Otherwise it emits an existing `custom` event
-with `rawType: 'usageMetadata'` and typed `usage`. These are provider snapshots;
+with `rawType: 'usageMetadata'` and typed `usage`. Google gross input totals include
+reported tool-use prompt counts, and gross output totals include reported thinking
+counts. These are provider snapshots;
 they do not repeat completion, imply a response association, or represent increments
 to sum. A later snapshot can revise an earlier one. The original provider payload
 remains available in `raw`.

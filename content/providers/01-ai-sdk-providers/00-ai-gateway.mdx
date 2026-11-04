@@ -568,7 +568,7 @@ const result = streamSpeech({
 
 ## Realtime Models
 
-For a trusted [server-owned connection](/docs/ai-sdk-core/realtime#server-owned-connections), `getServerWebSocketConfig()` reuses Gateway HTTP authentication, protocol, team and custom headers. Only the conversation intent is supported. The identity codec preserves upstream normalized usage; credentials in connection settings remain on your server.
+For a trusted [server-owned connection](/docs/ai-sdk-core/realtime#server-owned-connections), `getServerWebSocketConfig()` reuses Gateway HTTP authentication, protocol, team and custom headers. Only the conversation intent is supported. The identity codec passes through normalized usage only when the Gateway route includes it in its events; credentials in connection settings remain on your server.
 
 <Note type="warning">
   Realtime support is experimental and the API may change in patch releases.
