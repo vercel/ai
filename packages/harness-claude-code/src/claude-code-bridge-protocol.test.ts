@@ -70,7 +70,19 @@ describe('outboundMessageSchema', () => {
     it(`accepts ${sample.type}`, () => {
       expect(() => outboundMessageSchema.parse(sample)).not.toThrow();
     });
+    it(`preserves the turn identifier on ${sample.type}`, () => {
+      expect(
+        outboundMessageSchema.parse({ ...sample, startId: 'turn-1' }),
+      ).toEqual({ ...sample, startId: 'turn-1' });
+    });
   }
+
+  it('rejects a non-string turn identifier', () => {
+    expect(
+      outboundMessageSchema.safeParse({ type: 'stream-start', startId: 7 })
+        .success,
+    ).toBe(false);
+  });
 
   it('rejects unknown types', () => {
     expect(() =>

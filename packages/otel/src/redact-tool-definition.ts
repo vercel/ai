@@ -26,8 +26,6 @@ export function redactToolDefinition(
     };
   }
 
-  // Keep Code Interpreter handling defensive until its schema supports networking.
-  // This also preserves parity with the container-options work in #12968.
   const containerKey =
     tool.id === 'openai.code_interpreter'
       ? 'container'
