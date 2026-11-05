@@ -1,5 +1,5 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { APICallError } from '@ai-sdk/provider';
+import { APICallError, InvalidArgumentError } from '@ai-sdk/provider';
 import { createDeepgram } from './deepgram-provider';
 import { DeepgramSpeechModel } from './deepgram-speech-model';
 import { describe, it, expect, vi } from 'vitest';
@@ -248,8 +248,6 @@ describe('doGenerate', () => {
           encoding: 'mp3',
           bitRate: 48000,
           container: 'wav',
-          callback: 'https://example.com/callback',
-          callbackMethod: 'POST',
           mipOptOut: true,
           tag: 'test-tag',
         },
@@ -261,12 +259,80 @@ describe('doGenerate', () => {
     expect(url.searchParams.get('bit_rate')).toBe('48000');
     // mp3 doesn't support container, so it should be removed
     expect(url.searchParams.get('container')).toBeNull();
-    expect(url.searchParams.get('callback')).toBe(
-      'https://example.com/callback',
-    );
-    expect(url.searchParams.get('callback_method')).toBe('POST');
     expect(url.searchParams.get('mip_opt_out')).toBe('true');
     expect(url.searchParams.get('tag')).toBe('test-tag');
+  });
+
+  it('should reject the callback provider option because Deepgram returns a JSON acknowledgement instead of audio', async () => {
+    await expect(
+      model.doGenerate({
+        text: 'Hello, welcome to Deepgram!',
+        voice: 'helena',
+        providerOptions: {
+          deepgram: { callback: 'https://example.com/callback' },
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) => {
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect((error as InvalidArgumentError).argument).toBe(
+        'providerOptions.deepgram.callback',
+      );
+      expect((error as Error).message).toContain(
+        'returns a JSON acknowledgement instead of audio',
+      );
+      return true;
+    });
+
+    // the request is rejected before any API call is made
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('should reject the callback provider option when callbackMethod is also set', async () => {
+    await expect(
+      model.doGenerate({
+        text: 'Hello, welcome to Deepgram!',
+        voice: 'helena',
+        providerOptions: {
+          deepgram: {
+            callback: 'https://example.com/callback',
+            callbackMethod: 'PUT',
+          },
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) => {
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect((error as InvalidArgumentError).argument).toBe(
+        'providerOptions.deepgram.callback',
+      );
+      return true;
+    });
+
+    // the request is rejected before any API call is made
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('should warn about a callbackMethod without callback', async () => {
+    prepareAudioResponse();
+
+    const result = await model.doGenerate({
+      text: 'Hello, welcome to Deepgram!',
+      voice: 'helena',
+      providerOptions: {
+        deepgram: { callbackMethod: 'PUT' },
+      },
+    });
+
+    const url = new URL(server.calls[0].requestUrl);
+    expect(url.searchParams.get('callback_method')).toBeNull();
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "providerOptions.deepgram.callbackMethod is only used together with \`callback\`, which is not supported by the AI SDK. Callback method was ignored.",
+          "feature": "providerOptions.deepgram.callbackMethod",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should handle array tag', async () => {
