@@ -316,7 +316,7 @@ transcription. The AI SDK exposes the parsed Gladia response on
 `result.providerMetadata.gladia`, so the outputs remain accessible when you
 enable an option:
 
-```ts highlight="12"
+```ts highlight="11-12"
 const result = await transcribe({
   model: gladia.transcription(),
   audio: await readFile('audio.mp3'),
@@ -327,13 +327,16 @@ const result = await transcribe({
   },
 });
 
-console.log(result.providerMetadata.gladia.result?.summarization?.results);
+const gladiaResult = result.providerMetadata.gladia.result as
+  | { summarization?: { results?: string | null } }
+  | undefined;
+console.log(gladiaResult?.summarization?.results);
 ```
 
 The following values are available under `providerMetadata.gladia`:
 
-- **status** _'queued' | 'processing' | 'done' | 'error'_ — Job status.
-- **error_code** _number_ — Gladia error code when the job failed.
+- **status** _'done'_ — Job status. Metadata is only returned for completed
+  jobs; a failed job throws instead. See the error behavior below.
 - **result.metadata** — `audio_duration`, `number_of_distinct_channels`,
   `billing_time`, and `transcription_time`.
 - **result.transcription** — `full_transcript`, `languages`, and `utterances`,
@@ -350,9 +353,11 @@ The following values are available under `providerMetadata.gladia`:
   `result.transcription.sentences`.
 
 Each add-on reports `success`, `is_empty`, `exec_time`, and `error` alongside its
-`results`; check them before reading the results. When Gladia reports
-`status: 'error'`, `transcribe` throws an error that includes Gladia's
-`error_code` in the message.
+`results`; check them before reading the results. Add-on payloads are passed
+through as Gladia returns them. When Gladia reports `status: 'error'`,
+`transcribe` throws an error whose message and `cause` contain Gladia's
+`error_code`, the HTTP status code (400–599) of the failed request. In returned
+metadata `error_code` is always `null`.
 
 ### Deprecated Options
 

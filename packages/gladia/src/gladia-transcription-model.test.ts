@@ -532,6 +532,113 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should pass through add-ons that do not match the documented shape', async () => {
+      const sentences = [
+        'Galileo was an American robotic space program.',
+        'It studied the planet Jupiter.',
+      ];
+      const entities = [{ entity_type: 'ORIGIN', start: 1.02, end: 1.48 }];
+
+      server.urls[initiateFixture.result_url].response = {
+        type: 'json-value',
+        body: {
+          ...resultFixture,
+          result: {
+            ...resultFixture.result,
+            named_entity_recognition: {
+              success: true,
+              is_empty: false,
+              exec_time: 0.5,
+              error: { status_code: 500, message: 'Upstream failure' },
+              results: entities,
+            },
+            sentences: {
+              success: true,
+              is_empty: false,
+              exec_time: 0.4,
+              error: null,
+              results: sentences,
+            },
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.text).toBe(
+        resultFixture.result.transcription.full_transcript,
+      );
+      expect(result.providerMetadata?.gladia).toMatchObject({
+        result: {
+          named_entity_recognition: {
+            error: { status_code: 500, message: 'Upstream failure' },
+            results: entities,
+          },
+          sentences: {
+            results: sentences,
+          },
+        },
+      });
+    });
+
+    it('should preserve audio-to-LLM item fields in provider metadata', async () => {
+      const audioToLlmResults = [
+        {
+          prompt: 'What is this about?',
+          response: 'A space program.',
+          success: true,
+          is_empty: false,
+          exec_time: 1.4,
+          error: null,
+        },
+        {
+          prompt: 'Who is speaking?',
+          response: null,
+          success: false,
+          is_empty: true,
+          exec_time: 0.2,
+          error: {
+            status_code: 400,
+            exception: 'BadRequest',
+            message: 'Prompt rejected',
+          },
+        },
+      ];
+
+      server.urls[initiateFixture.result_url].response = {
+        type: 'json-value',
+        body: {
+          ...resultFixture,
+          result: {
+            ...resultFixture.result,
+            audio_to_llm: {
+              success: true,
+              is_empty: false,
+              exec_time: 1.6,
+              error: null,
+              results: audioToLlmResults,
+            },
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.providerMetadata?.gladia).toMatchObject({
+        result: {
+          audio_to_llm: {
+            results: audioToLlmResults,
+          },
+        },
+      });
+    });
+
     it('should include the Gladia error code in the error message', async () => {
       server.urls[initiateFixture.result_url].response = {
         type: 'json-value',
