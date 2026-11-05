@@ -1,5 +1,6 @@
 import {
   AISDKError,
+  type JSONObject,
   type TranscriptionModelV4,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -407,7 +408,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
 
       if (transcriptionResult.status === 'error') {
         throw new AISDKError({
-          message: 'Transcription job failed',
+          message:
+            transcriptionResult.error_code == null
+              ? 'Transcription job failed'
+              : `Transcription job failed with error code ${transcriptionResult.error_code}`,
           name: 'TranscriptionJobFailed',
           cause: transcriptionResult,
         });
@@ -452,7 +456,9 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         headers: transcriptionResultHeaders,
       },
       providerMetadata: {
-        gladia: transcriptionResult,
+        // The result comes from parsed JSON; loose objects pass provider
+        // add-ons through without validating them.
+        gladia: transcriptionResult as JSONObject,
       },
       warnings,
     };
@@ -479,32 +485,25 @@ const gladiaTranscriptionResultResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       status: z.enum(['queued', 'processing', 'done', 'error']),
+      // HTTP status code of the failed request, reported for `status: 'error'`.
+      error_code: z.number().nullish(),
+      // Validate only the fields that `doGenerate` reads. The audio-intelligence
+      // add-ons (translation, summarization, named entity recognition, sentiment
+      // analysis, audio-to-LLM, sentences, subtitles, ...) are passed through as
+      // returned, so an unexpected add-on payload cannot fail the transcription.
       result: z
-        .object({
-          metadata: z.object({
+        .looseObject({
+          metadata: z.looseObject({
             audio_duration: z.number(),
           }),
-          transcription: z.object({
+          transcription: z.looseObject({
             full_transcript: z.string(),
             languages: z.array(z.string()),
             utterances: z.array(
-              z.object({
+              z.looseObject({
                 start: z.number(),
                 end: z.number(),
                 text: z.string(),
-                speaker: z.union([z.string(), z.number()]).nullish(),
-                confidence: z.number().nullish(),
-                language: z.string().nullish(),
-                words: z
-                  .array(
-                    z.object({
-                      word: z.string(),
-                      start: z.number(),
-                      end: z.number(),
-                      confidence: z.number().nullish(),
-                    }),
-                  )
-                  .nullish(),
               }),
             ),
           }),
