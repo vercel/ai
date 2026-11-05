@@ -1587,12 +1587,14 @@ describe('createClaudeCode adapter', () => {
   ])(
     'passes the host disconnect timeout to the bridge (%o)',
     async (settings, expected) => {
+      const spawns: string[] = [];
       const spawnEnvs: Array<Record<string, string | undefined>> = [];
       const harness = createClaudeCode(settings);
       const session = await harness.doStart({
         sessionId: 's1',
         sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
           bridgePortUrl: 'ws://127.0.0.1:1',
+          spawns,
           spawnEnvs,
           writes: [],
           runs: [],
@@ -1600,7 +1602,12 @@ describe('createClaudeCode adapter', () => {
         sessionWorkDir: '/vercel/sandbox/claude-code-s1',
       });
 
-      expect(spawnEnvs[0]?.BRIDGE_HOST_DISCONNECT_TIMEOUT_MS).toBe(expected);
+      expect(
+        spawns[0]?.match(/--host-disconnect-timeout-ms '?(\d+)'?/)?.[1],
+      ).toBe(expected);
+      expect(spawnEnvs[0]).not.toHaveProperty(
+        'BRIDGE_HOST_DISCONNECT_TIMEOUT_MS',
+      );
 
       await session.doDestroy();
     },

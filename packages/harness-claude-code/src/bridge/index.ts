@@ -153,6 +153,9 @@ let lastClaudeSessionId: string | undefined;
 await runBridge<StartMessage>({
   bridgeType: 'claude-code',
   bridgeStateDir,
+  ...(args.hostDisconnectTimeoutMs !== undefined
+    ? { hostDisconnectTimeoutMs: args.hostDisconnectTimeoutMs }
+    : {}),
   onStart: async (start, turn) => {
     const emit: BridgeTurn['emit'] = event => {
       if (turn.abortSignal.aborted) return;
@@ -1515,13 +1518,23 @@ function addUsage(
 function parseArgs(args: string[]): {
   workdir?: string;
   bridgeStateDir?: string;
+  hostDisconnectTimeoutMs?: number;
 } {
-  const out: { workdir?: string; bridgeStateDir?: string } = {};
+  const out: {
+    workdir?: string;
+    bridgeStateDir?: string;
+    hostDisconnectTimeoutMs?: number;
+  } = {};
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--workdir' && i + 1 < args.length) {
       out.workdir = args[++i];
     } else if (args[i] === '--bridge-state-dir' && i + 1 < args.length) {
       out.bridgeStateDir = args[++i];
+    } else if (
+      args[i] === '--host-disconnect-timeout-ms' &&
+      i + 1 < args.length
+    ) {
+      out.hostDisconnectTimeoutMs = Number(args[++i]);
     }
   }
   return out;

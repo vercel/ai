@@ -378,8 +378,8 @@ describe('runBridge', () => {
       },
     );
 
-    it('keeps the turn running when the timeout env is not a number', async () => {
-      process.env.BRIDGE_HOST_DISCONNECT_TIMEOUT_MS = '20s';
+    it('ignores a host disconnect timeout set through the environment', async () => {
+      process.env.BRIDGE_HOST_DISCONNECT_TIMEOUT_MS = '50';
       try {
         const aborts: string[] = [];
         const turn = runUntilAborted(aborts);

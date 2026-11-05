@@ -348,8 +348,7 @@ export interface RunBridgeOptions<TStart extends { type: 'start' }> {
   /**
    * Abort the running turn when its host disconnects and no host reconnects
    * within this many milliseconds. A host that suspends the turn is exempt.
-   * Defaults to `BRIDGE_HOST_DISCONNECT_TIMEOUT_MS` env. Unset keeps the turn
-   * running until it finishes.
+   * Unset keeps the turn running until it finishes.
    */
   hostDisconnectTimeoutMs?: number;
   /** Called with the bound port once the server is listening. */
@@ -401,19 +400,14 @@ export async function runBridge<TStart extends { type: 'start' }>(
 ): Promise<BridgeHandle> {
   const { bridgeType, bridgeStateDir, onStart, onStop, onDestroy } = options;
   const teardownGraceMs = options.turnTeardownGraceMs ?? 10_000;
-  const configuredHostDisconnectTimeoutMs =
-    options.hostDisconnectTimeoutMs ??
-    (procEnv.BRIDGE_HOST_DISCONNECT_TIMEOUT_MS
-      ? Number(procEnv.BRIDGE_HOST_DISCONNECT_TIMEOUT_MS)
-      : undefined);
   // Only a positive finite timeout enables it. An invalid value keeps the turn
   // running instead of aborting it on every disconnect, and longer values are
   // capped at the largest delay setTimeout supports.
   const hostDisconnectTimeoutMs =
-    configuredHostDisconnectTimeoutMs != null &&
-    Number.isFinite(configuredHostDisconnectTimeoutMs) &&
-    configuredHostDisconnectTimeoutMs > 0
-      ? Math.min(configuredHostDisconnectTimeoutMs, 2_147_483_647)
+    options.hostDisconnectTimeoutMs != null &&
+    Number.isFinite(options.hostDisconnectTimeoutMs) &&
+    options.hostDisconnectTimeoutMs > 0
+      ? Math.min(options.hostDisconnectTimeoutMs, 2_147_483_647)
       : undefined;
   let hostDisconnectTimer: ReturnType<typeof setTimeout> | undefined;
   const clearHostDisconnectTimer = (): void => {
