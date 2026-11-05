@@ -311,12 +311,13 @@ export interface GatewayProviderSettings {
    * header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
    * A callback is resolved before each request and must return a non-empty key.
    *
-   * If neither `apiKey` nor `AI_GATEWAY_API_KEY` is set, the provider
-   * authenticates with the Vercel OIDC token instead, obtained for each request
-   * with `getVercelOidcToken()` from `@vercel/oidc`. On Vercel deployments this
-   * requires no configuration. For local development, run `vercel env pull` or
-   * `vercel dev` to get a token. A configured API key is always used instead of
-   * OIDC, even if the key is invalid.
+   * If neither `apiKey` nor `AI_GATEWAY_API_KEY` is set to a non-empty value,
+   * the provider authenticates with the Vercel OIDC token instead, resolved for
+   * each request. On Vercel deployments this requires no configuration. For
+   * local development, run `vercel env pull` or `vercel dev` to get a token.
+   * A non-empty configured API key is always used instead of OIDC, even if the
+   * key is invalid. If no OIDC token is available either, requests fail with a
+   * `GatewayAuthenticationError` ("No authentication provided").
    */
   apiKey?: Resolvable<string>;
 
@@ -807,7 +808,10 @@ export const gateway = createGateway();
  *    automatically on Vercel deployments, and locally after `vercel env pull`
  *    or under `vercel dev`.
  *
- * A configured API key is never replaced by OIDC, even if the key is invalid.
+ * A non-empty configured API key is never replaced by OIDC, even if the key is
+ * invalid. An empty string option or environment variable falls through to
+ * OIDC; a callback must return a non-empty key. Callers wrap a failure here in a
+ * `GatewayAuthenticationError` ("No authentication provided").
  */
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
