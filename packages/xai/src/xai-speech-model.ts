@@ -19,6 +19,7 @@ import {
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
 import { xaiSpeechModelOptionsSchema } from './xai-speech-model-options';
+import { getXaiSpeechModelEntry } from './xai-model-catalog';
 
 interface XaiSpeechModelConfig {
   provider: string;
@@ -31,6 +32,8 @@ interface XaiSpeechModelConfig {
 }
 
 type XaiSpeechCodec = 'mp3' | 'wav' | 'pcm' | 'mulaw' | 'alaw';
+
+const speechDefaults = getXaiSpeechModelEntry().requestConfig.speech;
 
 export class XaiSpeechModel implements SpeechModelV4 {
   readonly specificationVersion = 'v4';
@@ -60,11 +63,11 @@ export class XaiSpeechModel implements SpeechModelV4 {
 
   private async getArgs({
     text,
-    voice = 'eve',
-    outputFormat = 'mp3',
+    voice = speechDefaults.voice,
+    outputFormat = speechDefaults.outputFormat,
     instructions,
     speed,
-    language = 'auto',
+    language = speechDefaults.language,
     providerOptions,
   }: Parameters<SpeechModelV4['doGenerate']>[0]) {
     const warnings: SharedV4Warning[] = [];
@@ -74,8 +77,9 @@ export class XaiSpeechModel implements SpeechModelV4 {
       schema: xaiSpeechModelOptionsSchema,
     });
 
-    let codec: XaiSpeechCodec = 'mp3';
-    if (['mp3', 'wav', 'pcm', 'mulaw', 'alaw'].includes(outputFormat)) {
+    const { speech } = getXaiSpeechModelEntry().capabilities;
+    let codec = speechDefaults.outputFormat as XaiSpeechCodec;
+    if (speech.outputFormats.includes(outputFormat)) {
       codec = outputFormat as XaiSpeechCodec;
     } else {
       warnings.push({
@@ -85,7 +89,7 @@ export class XaiSpeechModel implements SpeechModelV4 {
       });
     }
 
-    if (instructions != null) {
+    if (speech.instructions === false && instructions != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'instructions',

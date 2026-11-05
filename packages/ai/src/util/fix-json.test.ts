@@ -130,6 +130,14 @@ describe('array', () => {
   test('should handle closing array', () => {
     assert.strictEqual(fixJson('[[], 123'), '[[], 123]');
   });
+
+  test('should handle incomplete negative number as first element', () => {
+    assert.strictEqual(fixJson('[-'), '[]');
+    assert.strictEqual(fixJson('[ -'), '[]');
+    assert.strictEqual(fixJson('[[1], [-'), '[[1], []]');
+    assert.strictEqual(fixJson('{"a": [-'), '{"a": []}');
+    assert.strictEqual(fixJson('[-1'), '[-1]');
+  });
 });
 
 describe('object', () => {

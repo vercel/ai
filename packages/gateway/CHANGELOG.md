@@ -1,5 +1,121 @@
 # @ai-sdk/gateway
 
+## 4.0.136
+
+### Patch Changes
+
+- 722d4a9: chore(provider/gateway): update gateway model settings files
+- acea2b5: chore(provider/gateway): update gateway model settings files
+- 89aff56: Add opt-in streaming decoding of large generated images to reduce peak memory.
+
+  Set `providerOptions.gateway.experimental_streamingImageDecoding` to `true` to decode canonical base64 images of at least 64 KiB while reading the response. Extracted images are returned as `Uint8Array`; smaller images stay base64 strings, and mixed results are normalized to bytes. The client option is not forwarded to the service.
+
+  Default behavior preserves the API's base64 representation. Opting in changes the model result representation and replaces large image data with placeholders in validation errors. Accessing `GeneratedFile.base64` can require re-encoding the extracted bytes.
+
+- 41465fd: Preserve optional normalized word timings returned by transcription responses and warn when shared timestampGranularities requests are not forwarded by the gateway adapter.
+- 2e44144: Accept explicit uploaded-video outcomes in video generation and status responses.
+- ef2dfb5: fix: pass through `seed: 0` instead of dropping it in image and video models. KlingAI now reports `seed: 0` as an unsupported setting like any other seed.
+- 892af4d: feat (provider/gateway): implement server-side realtime connection descriptors
+
+  `GatewayRealtimeModel` now implements `getServerWebSocketConfig()`, returning the AI Gateway realtime WebSocket URL plus `Authorization` header auth and optional team scoping for trusted server-side clients. Unsupported endpoint intents are rejected on the normalized realtime route.
+
+  Server WebSockets reuse HTTP authentication, protocol, team and custom headers, including OIDC auth-method metadata.
+
+- 32acf43: Add marketCost, surchargeCost, and gatewayCost fields to getGenerationInfo() results, surfacing the corresponding fields from the AI Gateway generation lookup API.
+
+  The cost breakdown fields are optional and omitted when unavailable, preserving compatibility with older responses and distinguishing missing data from a zero cost.
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 4.0.135
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 4.0.134
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 4.0.133
+
+### Patch Changes
+
+- 2099d45: feat(provider/gateway): add DeepSeek Search and Fetch tools
+
+  Share lazy tool-error validation across DeepSeek, Parallel, and Tako while preserving additional error fields.
+
+  Tako tool errors also accept `gateway_rate_limit` and `unknown`; exhaustive error switches may need to handle these cases. Parallel and Tako errors gain optional `retryAfter` and `statusText` fields.
+
+- d05ff62: chore(provider/gateway): update gateway model settings files
+
+## 4.0.132
+
+### Patch Changes
+
+- cbc9ac0: chore(provider/gateway): update gateway model settings files
+
+## 4.0.131
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- f850782: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 4.0.130
+
+### Patch Changes
+
+- 9ca8bcf: fix(gateway): Preserve AbortError and TimeoutError cancellation reasons instead of wrapping them in retryable GatewayResponseError errors with status 500. Propagate these errors from speech and transcription input streams to their output streams without leaving reads pending or causing unhandled rejections.
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
+## 4.0.129
+
+### Patch Changes
+
+- 9f19c79: chore(provider/gateway): update gateway model settings files
+
+## 4.0.128
+
+### Patch Changes
+
+- 01d7a03: feat(openai): add GPT-6.1 Terra model support
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 4.0.127
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
 ## 4.0.126
 
 ### Patch Changes

@@ -9,6 +9,7 @@ import type {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -227,7 +228,10 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: args,
       failedResponseHandler: alibabaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -298,7 +302,10 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: alibabaFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -521,7 +528,7 @@ function resolveAlibabaThinking({
 
   return {
     enable_thinking: true,
-    ...(thinkingBudget != null ? { thinking_budget: thinkingBudget } : {}),
+    thinking_budget: thinkingBudget,
   };
 }
 

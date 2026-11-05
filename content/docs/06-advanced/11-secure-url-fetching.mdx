@@ -124,7 +124,7 @@ is still validated before the redirected request is sent.
 Install the optional transport:
 
 ```sh
-npm install guarded-fetch
+npm install guarded-fetch@^0.3.0
 ```
 
 Pass it to providers that fetch untrusted URLs:
@@ -153,6 +153,10 @@ connector. If any result falls in a range rejected by the SDK's URL validator,
 it rejects the request. The connector uses those same checked results to open
 the socket, preventing a second DNS resolution between checking and connecting.
 It also validates literal-IP URLs, which do not invoke DNS lookup.
+
+The guarded connector resolves A and AAAA records directly through DNS. It does
+not use `/etc/hosts` or DNS search domains. Explicitly trusted origins use the
+runtime's normal resolver instead.
 
 `createGuardedFetch()` returns a fetch function with a `close(): Promise<void>`
 method. Reuse one instance across requests and close it at application shutdown,

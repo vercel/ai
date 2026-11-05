@@ -59,6 +59,14 @@ export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
   /** Enables automatic caching behavior when supported by the Gateway. */
   caching?: 'auto';
 
+  /**
+   * Experimental, image models only: decode large base64 images while reading
+   * the response to reduce peak memory. Extracted images are returned as bytes;
+   * if a result mixes extracted and small images, all are returned as bytes.
+   * Defaults to false. Image models remove this client option from requests.
+   */
+  experimental_streamingImageDecoding?: boolean;
+
   /** Filter to providers that do not train on prompt data. */
   disallowPromptTraining?: boolean;
 

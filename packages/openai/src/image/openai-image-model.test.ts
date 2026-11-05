@@ -30,6 +30,8 @@ describe('image editing capabilities', () => {
     'gpt-image-1-mini',
     'gpt-image-1.5',
     'gpt-image-2',
+    'gpt-image-2.6-flare',
+    'gpt-image-2.6-sunburst',
     'gpt-image-2.5-flare',
     'gpt-image-2.5-flare-2026-09-08',
     'gpt-image-2.5-sunburst',
@@ -674,8 +676,128 @@ describe('doGenerate', () => {
   });
 });
 
+describe('doGenerate - GPT Image 2.6 options', () => {
+  it('should map complexity, gif and safety options for /images/generations', async () => {
+    prepareJsonFixtureResponse('openai-image');
+
+    await provider.image('gpt-image-2.6-flare').doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        openai: {
+          complexity: 'low',
+          outputFormat: 'gif',
+          frameCount: 12,
+          frameDurationMs: 100,
+          safetyIdentifier: 'hashed-user',
+        } satisfies OpenAIImageModelGenerationOptions,
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-image-2.6-flare',
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      complexity: 'low',
+      output_format: 'gif',
+      frame_count: 12,
+      frame_duration_ms: 100,
+      safety_identifier: 'hashed-user',
+    });
+  });
+
+  it('should reject gif for edits', async () => {
+    prepareEditFixtureResponse('openai-image-edit');
+
+    await expect(
+      provider.image('gpt-image-2.6-flare').doGenerate({
+        prompt,
+        files: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: new Uint8Array([137, 80, 78, 71]),
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: { openai: { outputFormat: 'gif' } },
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('should send complexity, safety identifier and markup for /images/edits', async () => {
+    prepareEditFixtureResponse('openai-image-edit');
+
+    await provider.image('gpt-image-2.6-flare').doGenerate({
+      prompt,
+      files: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: new Uint8Array([137, 80, 78, 71]),
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        openai: {
+          complexity: 'medium',
+          safetyIdentifier: 'hashed-user',
+          markup: `data:image/png;base64,${Buffer.from([137, 80, 78, 71]).toString('base64')}`,
+        } satisfies OpenAIImageModelEditOptions,
+      },
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body).toMatchObject({
+      complexity: 'medium',
+      safety_identifier: 'hashed-user',
+    });
+    const markup = body?.markup as File;
+    expect(markup).toBeInstanceOf(File);
+    expect(markup.type).toBe('image/png');
+  });
+
+  it('should throw when markup and mask are both provided', async () => {
+    const file = {
+      type: 'file' as const,
+      mediaType: 'image/png',
+      data: new Uint8Array([137, 80, 78, 71]),
+    };
+
+    await expect(
+      provider.image('gpt-image-2.6-flare').doGenerate({
+        prompt,
+        files: [file],
+        mask: file,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          openai: { markup: 'data:image/png;base64,iVBORw0KGgo=' },
+        },
+      }),
+    ).rejects.toThrow('`markup` cannot be combined with `mask`.');
+    expect(server.calls).toHaveLength(0);
+  });
+});
+
 describe('doGenerate - image editing', () => {
-  it.each(['image', 'mask'] as const)(
+  it.each(['image', 'mask', 'markup'] as const)(
     'should use the configured fetch and abort signal when downloading a URL %s',
     async downloadTarget => {
       const controller = new AbortController();
@@ -745,7 +867,10 @@ describe('doGenerate - image editing', () => {
           size: undefined,
           aspectRatio: undefined,
           seed: undefined,
-          providerOptions: {},
+          providerOptions:
+            downloadTarget === 'markup'
+              ? { openai: { markup: 'https://example.com/markup.png' } }
+              : {},
           abortSignal: controller.signal,
         })
         .then(
@@ -966,6 +1091,7 @@ describe('doGenerate - image editing', () => {
       providerOptions: {
         openai: {
           inputFidelity: 'high',
+          moderation: 'low',
           outputFormat: 'webp',
           outputCompression: 80,
           user: 'user-123',
@@ -975,6 +1101,7 @@ describe('doGenerate - image editing', () => {
 
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
       input_fidelity: 'high',
+      moderation: 'low',
       output_format: 'webp',
       output_compression: '80',
       user: 'user-123',

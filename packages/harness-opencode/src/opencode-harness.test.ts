@@ -214,7 +214,7 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (filePath.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
       if (filePath.endsWith('/bridge/host-tool-mcp.mjs'))
         return '// mock host-tool-mcp\n';
-      if (filePath.endsWith('/bridge/pnpm-lock.yaml'))
+      if (filePath.endsWith('/bridge/pnpm-lockfile.yaml'))
         return 'lockfileVersion: "9.0"\n';
       return actual.readFile(...args);
     }),
@@ -629,6 +629,107 @@ describe('createOpenCode adapter', () => {
     await olderSession.doDetach();
   });
 
+  it('restricts direct GitLab credentials to the chat exchange on startup and resume', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const spawnEnvironments: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const emptyStream = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async spawn({ env }: { env: Record<string, string | undefined> }) {
+        spawnEnvironments.push(env);
+        return {
+          stdout: emptyStream(),
+          stderr: emptyStream(),
+          async wait() {},
+          async kill() {},
+        };
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      addRequestTransformations,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+    const harness = createOpenCode({
+      provider: 'gitlab',
+      auth: {
+        GITLAB_TOKEN: 'gitlab-secret',
+        GITLAB_INSTANCE_URL: 'https://gitlab.example',
+      },
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+    const placeholder = spawnEnvironments[0]?.GITLAB_TOKEN;
+    expect(placeholder).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+    expect(JSON.stringify(spawnEnvironments)).not.toContain('gitlab-secret');
+    const expectedTransformations = [
+      {
+        match: {
+          host: 'gitlab.example',
+          path: { exact: '/api/v4/ai/third_party_agents/direct_access' },
+          method: ['POST'],
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: `Bearer ${placeholder}` },
+            },
+          ],
+        },
+        transform: { headers: { Authorization: 'Bearer gitlab-secret' } },
+      },
+    ];
+    expect(addRequestTransformations).toHaveBeenCalledExactlyOnceWith(
+      expectedTransformations,
+    );
+
+    const resumeFrom = await session.doDetach();
+    expect(
+      (
+        resumeFrom.data as {
+          sandboxCredentialEnvironment: Record<string, string>;
+        }
+      ).sandboxCredentialEnvironment,
+    ).toEqual({ GITLAB_TOKEN: placeholder });
+    const resumedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+      resumeFrom,
+    });
+    expect(addRequestTransformations).toHaveBeenCalledTimes(2);
+    expect(addRequestTransformations).toHaveBeenNthCalledWith(
+      2,
+      expectedTransformations,
+    );
+    expect(spawnEnvironments).toHaveLength(1);
+    await resumedSession.doDetach();
+  });
+
   it('keeps GitLab OAuth and AI access tokens outside a brokered sandbox', async () => {
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const dataDirectory = await mkdtemp(join(tmpdir(), 'opencode-data-'));
@@ -951,6 +1052,12 @@ describe('createOpenCode adapter', () => {
       ]),
     );
     expect(skillWrites).toHaveLength(2);
+    expect(harnessUtilsMocks.channels.at(-1)?.sent).toContainEqual(
+      expect.objectContaining({
+        type: 'start',
+        readableSkillRoots: ['/home/vercel-sandbox/.agents/skills/demo'],
+      }),
+    );
     expect(writes.some(write => write.path.includes('/.opencode/'))).toBe(
       false,
     );

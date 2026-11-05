@@ -292,7 +292,12 @@ const googleVertex = createGoogleVertex({
 
 ##### Optional Provider Settings
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a callback to resolve the API key before each request. The callback can
+  return a string or a promise; token caching and renewal are handled by the caller.
+  A callback or promise selects API key authentication and must resolve to a
+  non-empty string; lookup failures do not switch authentication methods.
 
   The API key for Google Vertex AI. When provided, the provider uses express mode with API key authentication instead of OAuth.
   It uses the `GOOGLE_VERTEX_API_KEY` environment variable by default.
@@ -763,6 +768,33 @@ const { text } = await generateText({
   for `gs://` URLs. You can use the Google Cloud Storage API to upload larger
   files to that location.
 </Note>
+
+For video file parts, pass `videoMetadata` through `providerOptions.googleVertex`
+to control clipping and frame rate. It works with Cloud Storage URLs and inline
+video data:
+
+```ts
+import type { FilePart } from 'ai';
+
+const videoPart = {
+  type: 'file',
+  data: new URL('gs://my-bucket/video.mp4'),
+  mediaType: 'video/mp4',
+  providerOptions: {
+    googleVertex: {
+      videoMetadata: {
+        startOffset: '60s',
+        endOffset: '120s',
+        fps: 1,
+      },
+    },
+  },
+} satisfies FilePart;
+```
+
+All three fields are optional. `startOffset` and `endOffset` are durations in
+seconds, such as `'60s'` or `'3.5s'`. `fps` must be in the range `(0, 24]` and
+defaults to `1`.
 
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
 
@@ -1360,6 +1392,10 @@ The `voice` argument accepts one of Gemini's [30 prebuilt voices](https://ai.goo
 (e.g. `Kore`, `Puck`, `Zephyr`); it defaults to `Kore`. Multi-speaker dialogue is available via
 `providerOptions.googleVertex.multiSpeakerVoiceConfig`.
 
+Set `language` to a supported BCP-47 code such as `en-US` to send
+`speechConfig.languageCode` for single- or multi-speaker Gemini speech. Omit it or
+use `language: 'auto'` for automatic detection.
+
 By default the audio is returned as a playable WAV (Gemini returns raw PCM, which the provider
 wraps). Set `outputFormat: 'pcm'` for the raw signed 16-bit little-endian mono bytes; the sample
 rate is reported in `result.providerMetadata.google.sampleRate`.
@@ -1374,6 +1410,23 @@ rate is reported in `result.providerMetadata.google.sampleRate`.
 | `gemini-3.1-flash-tts-preview`      | <Check />     | <Check />              |
 
 ### Transcription Models
+
+#### Gemini transcription
+
+Gemini transcription models such as `gemini-3.5-transcribe` also support
+`googleVertex.transcription()`. Request word timing with the shared
+`timestampGranularities: ['word']` setting. An explicit
+`providerOptions.googleVertex.wordTimestamp` takes precedence, including
+`false`, which disables word timestamps and produces a warning if word timing
+was requested through the shared setting.
+
+Returned words are exposed in the optional `result.words` array. For
+compatibility, `result.segments` continues to contain the same word timings.
+Gemini does not provide separate caption segments and warns if `'segment'` is
+requested. These shared timing controls currently apply to Gemini transcription;
+Chirp and telephony use their provider settings below.
+
+#### Speech-to-Text transcription
 
 You can transcribe audio with Google Cloud Speech-to-Text models using the
 `.transcription()` factory method together with
@@ -1494,6 +1547,15 @@ const vertexAnthropic = createVertexAnthropic({
 ##### Optional Provider Settings
 
 You can use the following optional settings to customize the Google Vertex Anthropic provider instance:
+
+- **supportsNativeStructuredOutput** _boolean_
+
+  Optional. Defaults to `false`. Set to `true` to let
+  `providerOptions.anthropic.structuredOutputMode: 'auto'` use native structured
+  output for Claude 4.5 and newer model IDs. The Google Cloud organization policy
+  must allow `structured_outputs` for every model used with native output.
+  This setting does not enable strict tool input schemas.
+  See [Native Structured Output](#native-structured-output).
 
 - **project** _string_
 
@@ -1669,6 +1731,65 @@ The following optional provider options are available for Anthropic models:
 
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
   - `userId` _string_ - An external identifier for the end-user.
+
+### Native Structured Output
+
+Vertex Anthropic normally uses a JSON response tool to generate structured
+output. If your Google Cloud organization policy permits native structured output,
+you can opt in for a provider instance:
+
+```ts
+import { createGoogleVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { Output, streamText } from 'ai';
+import { z } from 'zod';
+
+const vertexAnthropic = createGoogleVertexAnthropic({
+  supportsNativeStructuredOutput: true,
+});
+
+const result = streamText({
+  model: vertexAnthropic('claude-sonnet-4-6'),
+  output: Output.object({
+    schema: z.object({ name: z.string(), ingredients: z.array(z.string()) }),
+  }),
+  prompt: 'Create a vegetarian lasagna recipe.',
+});
+
+console.log(await result.output);
+```
+
+The opt-in applies to `structuredOutputMode: 'auto'` (the default) for versioned
+Claude model IDs from 4.5 onward, including Vertex IDs with an `@` suffix.
+Older models and IDs without a recognizable Claude version, such as custom
+deployment names, continue to use the JSON response tool.
+The setting is available in both the Node.js and Edge providers.
+In `'auto'` mode, schemas that native output cannot safely represent, such as
+open objects, circular references, or schemas with too many optional properties,
+continue to use the JSON response tool.
+
+Google Cloud denies the feature by default through
+`constraints/vertexai.allowedPartnerModelFeatures`. Allow the
+`structured_outputs` feature for each model you use.
+See [Google Cloud's structured output documentation](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude/structured-outputs)
+for supported models and policy configuration. Enabling the SDK setting does not
+change that policy. API errors, including policy rejections, are returned without
+automatically falling back to tool emulation.
+
+You can still set `providerOptions.anthropic.structuredOutputMode` per request:
+
+- `'jsonTool'` selects tool emulation. Models that reject forced tool use retain
+  the Anthropic provider's existing behavior of switching to native output when
+  the model supports it and the schema can be represented, even without this
+  opt-in. This fallback also applies in `'auto'` mode with the opt-in disabled.
+  Models such as `claude-opus-5-5`, `claude-sonnet-5-5`, and `claude-fable-5-1`
+  therefore require the `structured_outputs` policy regardless of this setting.
+- `'outputFormat'` explicitly requests native output, bypassing the opt-in and
+  model detection. The API rejects unsupported or policy-denied requests.
+
+Native output constrains the final response generated with `Output.object`.
+Ordinary tool arguments use separate input schemas; this opt-in does not enable
+`strict: true` for Vertex tools. The SDK still validates generated output against
+your original schema, including constraints that the native API cannot enforce.
 
 ### Billing Labels
 

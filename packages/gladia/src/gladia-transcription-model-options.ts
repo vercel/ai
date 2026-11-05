@@ -6,17 +6,22 @@ import {
 import { z } from 'zod/v4';
 
 // https://docs.gladia.io/api-reference/v2/pre-recorded/init
+// Source of truth: https://api.gladia.io/openapi.json → InitTranscriptionRequest
 export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       /**
        * Optional context prompt to guide the transcription.
+       *
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       contextPrompt: z.string().nullish(),
 
       /**
        * Custom vocabulary to improve transcription accuracy.
        * Can be a boolean or an array of custom terms.
+       *
+       * @deprecated Passing an array is deprecated. Use `customVocabulary: true` with `customVocabularyConfig` instead.
        */
       customVocabulary: z.union([z.boolean(), z.array(z.any())]).nullish(),
 
@@ -60,16 +65,22 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
 
       /**
        * Whether to automatically detect the language of the audio.
+       *
+       * @deprecated Use `languageConfig` instead.
        */
       detectLanguage: z.boolean().nullish(),
 
       /**
        * Whether to enable code switching (multiple languages in the same audio).
+       *
+       * @deprecated Use `languageConfig.codeSwitching` instead.
        */
       enableCodeSwitching: z.boolean().nullish(),
 
       /**
        * Configuration for code switching.
+       *
+       * @deprecated Use `languageConfig` instead.
        */
       codeSwitchingConfig: z
         .object({
@@ -82,8 +93,26 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
 
       /**
        * Specific language for transcription.
+       *
+       * @deprecated Use `languageConfig.languages` instead.
        */
       language: z.string().nullish(),
+
+      /**
+       * Language configuration for transcription.
+       */
+      languageConfig: z
+        .object({
+          /**
+           * Languages to use for transcription. If empty, language is auto-detected.
+           */
+          languages: z.array(z.string()).optional(),
+          /**
+           * If true, language is auto-detected on each utterance.
+           */
+          codeSwitching: z.boolean().optional(),
+        })
+        .optional(),
 
       /**
        * Whether to enable callback when transcription is complete.
@@ -167,6 +196,8 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
           maxSpeakers: z.number().nullish(),
           /**
            * Whether to use enhanced diarization.
+           *
+           * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
            */
           enhanced: z.boolean().nullish(),
         })
@@ -189,11 +220,27 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
           /**
            * Translation model to use.
            */
-          model: z.enum(['base', 'enhanced']).nullish(),
+          model: z.enum(['base', 'batch', 'enhanced']).nullish(),
           /**
            * Whether to match original utterances in translation.
            */
           matchOriginalUtterances: z.boolean().nullish(),
+          /**
+           * Whether to enable lip sync for translated audio.
+           */
+          lipsync: z.boolean().optional(),
+          /**
+           * Whether to adapt translation to the context.
+           */
+          contextAdaptation: z.boolean().optional(),
+          /**
+           * Context prompt for translation.
+           */
+          context: z.string().optional(),
+          /**
+           * Whether to use informal translation style.
+           */
+          informal: z.boolean().optional(),
         })
         .nullish(),
 
@@ -216,6 +263,8 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
 
       /**
        * Whether to enable content moderation.
+       *
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       moderation: z.boolean().nullish(),
 
@@ -226,11 +275,15 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
 
       /**
        * Whether to enable automatic chapter creation.
+       *
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       chapterization: z.boolean().nullish(),
 
       /**
        * Whether to ensure consistent naming of entities.
+       *
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       nameConsistency: z.boolean().nullish(),
 
@@ -253,11 +306,15 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
 
       /**
        * Whether to extract structured data from the transcription.
+       *
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       structuredDataExtraction: z.boolean().nullish(),
 
       /**
        * Configuration for structured data extraction.
+       *
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       structuredDataExtractionConfig: z
         .object({
@@ -287,8 +344,33 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
            * Prompts to send to the language model.
            */
           prompts: z.array(z.string()),
+          /**
+           * Language model to use for processing.
+           */
+          model: z.string().optional(),
         })
         .nullish(),
+
+      /**
+       * Whether to enable PII redaction.
+       */
+      piiRedaction: z.boolean().optional(),
+
+      /**
+       * Configuration for PII redaction.
+       */
+      piiRedactionConfig: z
+        .object({
+          /**
+           * Entity types to redact.
+           */
+          entityTypes: z.array(z.string()).optional(),
+          /**
+           * How redacted text should be represented.
+           */
+          processedTextType: z.enum(['MARKER', 'MASK']).optional(),
+        })
+        .optional(),
 
       /**
        * Custom metadata to include with the transcription.
@@ -302,6 +384,8 @@ export const gladiaTranscriptionModelOptionsSchema = lazySchema(() =>
 
       /**
        * Whether to enable display mode.
+       *
+       * @deprecated No longer supported by the Gladia v2 API. The field is ignored with an unsupported warning.
        */
       displayMode: z.boolean().nullish(),
 

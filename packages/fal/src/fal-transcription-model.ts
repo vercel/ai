@@ -4,6 +4,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -117,7 +118,10 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
         path: `https://queue.fal.run/fal-ai/${this.modelId}`,
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: {
         ...body,
         audio_url: audioUrl,
@@ -150,7 +154,10 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
             modelId: this.modelId,
           }),
           validateUrl: false,
-          headers: combineHeaders(this.config.headers?.(), options.headers),
+          headers: combineHeaders(
+            await resolve(this.config.headers),
+            options.headers,
+          ),
           failedResponseHandler: async ({
             requestBodyValues,
             response,

@@ -94,12 +94,15 @@ You can use the following optional settings to customize the MiniMax provider in
   the MiniMax V2 native endpoint (not the Anthropic-compatible endpoint).
   The default prefix is `https://api.minimax.io`.
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key for the MiniMax API. It defaults to the `MINIMAX_API_KEY` environment
   variable. Language models send it in the `x-api-key` header (the
   Anthropic-compatible protocol); video models send it as
   `Authorization: Bearer`.
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -347,6 +350,19 @@ The following optional provider options are available for MiniMax language model
   Controls reasoning depth for MiniMax M3.1 and later model IDs. Higher levels can use more
   reasoning tokens and increase latency. Maps to `output_config.effort` in the
   MiniMax API. When omitted, the server uses its default (`'max'` for M3.1 Flash).
+
+- **serviceTier** _'standard' | 'priority'_
+
+  Request admission tier, sent as `service_tier`. Priority admission is billed
+  at 1.5x the standard price. Omit this option to use the API's default tier.
+  Anthropic-only tier values are omitted with an unsupported-setting warning.
+  See [MiniMax Messages](https://platform.minimax.io/docs/api-reference/messages-create#body-service-tier).
+
+  When the API returns its applied tier, it is exposed as
+  `providerMetadata.minimax.serviceTier` if `providerOptions.minimax` was
+  supplied. The canonical `providerMetadata.anthropic.serviceTier` also contains
+  the returned tier, including when no MiniMax options were supplied. An omitted
+  response tier is not inferred from the requested tier.
 
 - **thinking** _object_
 

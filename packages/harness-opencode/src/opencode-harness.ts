@@ -1026,6 +1026,9 @@ function createSession({
           ? { instructions: promptOpts.instructions }
           : {}),
         skillsChanged: skillWriteResult.changed,
+        readableSkillRoots: promptOpts.skills.map(
+          skill => `${sandboxHomeDir}/.agents/skills/${skill.name}`,
+        ),
         ...startBase(turnModel),
       });
       pendingResumeSessionId = undefined;
@@ -1055,6 +1058,9 @@ function createSession({
             ? { instructions: continueOpts.instructions }
             : {}),
           skillsChanged: skillWriteResult.changed,
+          readableSkillRoots: continueOpts.skills.map(
+            skill => `${sandboxHomeDir}/.agents/skills/${skill.name}`,
+          ),
           ...startBase(turnModel),
         });
         pendingResumeSessionId = undefined;

@@ -84,10 +84,13 @@ You can use the following optional settings to customize the Moonshot AI provide
   Use a different URL prefix for API calls.
   The default prefix is `https://api.moonshot.ai/v1`
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key that is being sent using the `Authorization` header. It defaults to
   the `MOONSHOT_API_KEY` environment variable
+
+  A function is called before each request and may return a promise. Use it to
+  supply refreshed credentials; a promise value resolves to the same key each time.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -561,8 +564,7 @@ The following optional provider options are available for Moonshot AI language m
 - **reasoningEffort** _'low' | 'high' | 'max'_
 
   Reasoning effort for Kimi K3 and Kimi K3.1 Pro. Defaults to `'max'`. You can also use the
-  generic `reasoning` setting. Portable `reasoning: 'max'` is sent directly;
-  `minimal` maps to `low`, while `medium` and `high` map to `high`.
+  generic `reasoning` setting. Kimi K3 reasoning cannot be disabled.
 
 - **prediction** _&#123; type: 'content'; content: string | Array&lt;&#123; type: 'text'; text: string &#125;&gt; &#125;_
 

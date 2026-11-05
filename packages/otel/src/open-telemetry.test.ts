@@ -1,10 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
 import {
   context,
+  createTraceState,
+  metrics,
   SpanKind,
   SpanStatusCode,
   trace,
@@ -18,6 +20,13 @@ import {
   InMemorySpanExporter,
   SimpleSpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
+import {
+  AggregationTemporality,
+  DataPointType,
+  InMemoryMetricExporter,
+  MeterProvider,
+  PeriodicExportingMetricReader,
+} from '@opentelemetry/sdk-metrics';
 import { z } from 'zod/v4';
 import {
   embed,
@@ -36,6 +45,7 @@ import {
   MockEmbeddingModelV4,
   MockLanguageModelV4,
 } from 'ai/test';
+import { OpenTelemetryIdGenerator } from './durable-span-ids';
 import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
 type MockSpan = Span & {
@@ -225,7 +235,9 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     ...telemetryFields(),
     runtimeContext: {},
     ...overrides,
-  } as Parameters<NonNullable<Telemetry['onStart']>>[0];
+  } as Parameters<
+    NonNullable<Telemetry['experimental_durable']>['captureContext']
+  >[0];
 }
 
 function makeStepStartEvent(overrides?: Record<string, unknown>) {
@@ -468,11 +480,241 @@ function makeToolCallFinishEvent(
 describe('OpenTelemetry', () => {
   let tracer: MockTracer;
   let integration: Telemetry;
+  let meterProvider: MeterProvider | undefined;
 
   beforeEach(() => {
     tracer = createMockTracer();
     callId = `test-call-${++callIdCounter}`;
     integration = new OpenTelemetry({ tracer });
+  });
+
+  afterEach(async () => {
+    if (meterProvider != null) {
+      metrics.disable();
+      await meterProvider.shutdown();
+      meterProvider = undefined;
+    }
+    vi.restoreAllMocks();
+  });
+
+  function createMetricReader() {
+    const reader = new PeriodicExportingMetricReader({
+      exporter: new InMemoryMetricExporter(AggregationTemporality.CUMULATIVE),
+      exportIntervalMillis: 60_000,
+    });
+    meterProvider = new MeterProvider({ readers: [reader] });
+    metrics.setGlobalMeterProvider(meterProvider);
+    return reader;
+  }
+
+  async function collectInferenceDuration(
+    reader: PeriodicExportingMetricReader,
+  ) {
+    const { resourceMetrics, errors } = await reader.collect();
+    expect(errors).toEqual([]);
+    const metric = resourceMetrics.scopeMetrics
+      .flatMap(scope => scope.metrics)
+      .find(
+        metric => metric.descriptor.name === 'gen_ai.client.inference.duration',
+      );
+    expect(metric?.dataPointType).toBe(DataPointType.HISTOGRAM);
+    if (metric?.dataPointType !== DataPointType.HISTOGRAM) {
+      throw new Error('Missing inference duration histogram');
+    }
+    return metric;
+  }
+
+  describe('provider endpoint attributes', () => {
+    it.each(['generate', 'stream', 'generateObject', 'streamObject'] as const)(
+      'records the endpoint reported by a %s call without URL secrets',
+      async mode => {
+        const request = {
+          url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+        };
+        const usage = {
+          inputTokens: { total: 2, noCache: 2, cacheRead: 0, cacheWrite: 0 },
+          outputTokens: { total: 1, text: 1, reasoning: 0 },
+        };
+        const finishReason = { unified: 'stop' as const, raw: 'stop' };
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: '{"value":"hello"}' }],
+            finishReason,
+            usage,
+            warnings: [],
+            request,
+          }),
+          doStream: async () => ({
+            request,
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              { type: 'text-start', id: 'text' },
+              { type: 'text-delta', id: 'text', delta: '{"value":"hello"}' },
+              { type: 'text-end', id: 'text' },
+              { type: 'finish', finishReason, usage },
+            ]),
+          }),
+        });
+        const onLanguageModelCallEnd = vi.fn();
+        const options = {
+          model,
+          prompt: 'hello',
+          onLanguageModelCallEnd,
+          telemetry: {
+            integrations: integration,
+            recordInputs: false,
+            recordOutputs: false,
+          },
+        };
+        if (mode === 'generate') await generateText(options);
+        else if (mode === 'stream') await streamText(options).consumeStream();
+        else if (mode === 'generateObject')
+          await generateObject({
+            ...options,
+            schema: z.object({ value: z.string() }),
+          });
+        else
+          await convertAsyncIterableToArray(
+            streamObject({
+              ...options,
+              schema: z.object({ value: z.string() }),
+            }).partialObjectStream,
+          );
+
+        const span = tracer.spans.find(
+          span => span.name === 'chat mock-model-id',
+        );
+        expect(span?.attributes).toMatchObject({
+          'server.address': 'model.example.test',
+          'server.port': 8443,
+        });
+        expect(JSON.stringify(span?.attributes)).not.toMatch(
+          /password|private|secret|fragment/,
+        );
+        if (mode === 'generate' || mode === 'stream') {
+          expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+            expect.objectContaining({
+              request: { url: 'https://model.example.test:8443' },
+            }),
+          );
+        }
+      },
+    );
+
+    it('does not guess an endpoint from a provider name', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      const span = tracer.spans.find(span => span.name === 'chat gpt-4');
+      expect(span?.attributes).not.toHaveProperty('server.address');
+      expect(span?.attributes).not.toHaveProperty('server.port');
+    });
+  });
+
+  describe('inference duration metrics', () => {
+    it('exports seconds and model attributes with a meter registered after initialization', async () => {
+      metrics.disable();
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+
+      const reader = createMetricReader();
+      const endEvent = makeLanguageModelCallEndEvent({
+        modelId: 'response-model',
+      });
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!({
+        ...endEvent,
+        performance: { ...endEvent.performance, responseTimeMs: 1234 },
+      });
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onEnd!(makeFinishEvent());
+
+      const histogram = await collectInferenceDuration(reader);
+      expect(histogram.descriptor.unit).toBe('s');
+      expect(histogram.dataPoints).toMatchObject([
+        {
+          attributes: {
+            'gen_ai.operation.name': 'chat',
+            'gen_ai.provider.name': 'openai',
+            'gen_ai.request.model': 'gpt-4',
+            'gen_ai.response.model': 'response-model',
+          },
+          value: {
+            count: 1,
+            sum: 1.234,
+            buckets: {
+              boundaries: [
+                0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12,
+                10.24, 20.48, 40.96, 81.92,
+              ],
+            },
+          },
+        },
+      ]);
+      expect(histogram.dataPoints[0].attributes).not.toHaveProperty(
+        'error.type',
+      );
+    });
+
+    it('records the full streamed response duration once', async () => {
+      let now = 0;
+      vi.spyOn(performance, 'now').mockImplementation(() => now);
+      const reader = createMetricReader();
+      let finish!: () => void;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              start(controller) {
+                now += 200;
+                controller.enqueue({ type: 'text-start', id: '0' });
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: '0',
+                  delta: 'hello',
+                });
+                finish = () => {
+                  now += 1400;
+                  controller.enqueue({ type: 'text-end', id: '0' });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: {
+                      inputTokens: {
+                        total: 2,
+                        noCache: 2,
+                        cacheRead: 0,
+                        cacheWrite: 0,
+                      },
+                      outputTokens: { total: 1, text: 1, reasoning: 0 },
+                    },
+                  });
+                  controller.close();
+                };
+              },
+            }),
+          }),
+        }),
+        prompt: 'hello',
+        telemetry: { integrations: integration },
+      });
+      const streamReader = result.stream.getReader();
+      while ((await streamReader.read()).value?.type !== 'text-delta') {}
+      expect((await reader.collect()).resourceMetrics.scopeMetrics).toEqual([]);
+      finish();
+      while (!(await streamReader.read()).done) {}
+      streamReader.releaseLock();
+
+      expect(
+        (await collectInferenceDuration(reader)).dataPoints[0].value,
+      ).toMatchObject({
+        count: 1,
+        sum: 1.6,
+      });
+    });
   });
 
   describe('onStart (generateText)', () => {
@@ -668,6 +910,118 @@ describe('OpenTelemetry', () => {
         }
       `);
     });
+
+    it.each([undefined, false])(
+      'redacts domain secrets in initial and observed tool definitions with recordInputs=%s',
+      recordInputs => {
+        const tools = [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'python',
+            args: {
+              container: {
+                memoryLimit: '4g',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets: [
+                    {
+                      domain: 'example.com',
+                      name: 'API_KEY',
+                      value: 'private-key',
+                    },
+                    {
+                      domain: 'example.com',
+                      name: 'TOKEN',
+                      value: 'private-token',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'terminal',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets: [
+                    {
+                      domain: 'example.com',
+                      name: 'KEY',
+                      value: 'shell-private-key',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'remote_tools',
+            args: {
+              serverLabel: 'example',
+              serverUrl: 'https://example.com/mcp',
+              authorization: 'mcp-private-token',
+              headers: { 'X-Custom-Key': 'mcp-private-key' },
+            },
+          },
+          { type: 'function', name: 'weather', description: 'Get weather' },
+        ];
+        const originalTools = structuredClone(tools);
+        integration.onStart!(makeOnStartEvent({ recordInputs }));
+        integration.onStepStart!(makeStepStartEvent());
+        integration.onLanguageModelCallStart!(
+          makeLanguageModelCallStartEvent({ tools }),
+        );
+        const initialDefinitions = getStartSpanAttributes(tracer, 2)[
+          'gen_ai.tool.definitions'
+        ];
+
+        integration.onLanguageModelCallEnd!(
+          makeLanguageModelCallEndEvent({
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tc1',
+                toolName: 'mcp.search',
+                input: {},
+                providerExecuted: true,
+                dynamic: true,
+              },
+            ],
+          }),
+        );
+        const finalDefinitions =
+          tracer.spans[2].attributes['gen_ai.tool.definitions'];
+
+        for (const definitions of [initialDefinitions, finalDefinitions]) {
+          if (recordInputs === false) {
+            expect(definitions).toBeUndefined();
+          } else {
+            expect(definitions).not.toContain('private-key');
+            expect(definitions).not.toContain('private-token');
+            expect(definitions).toContain('[redacted]');
+            expect(definitions).toContain('example.com');
+            expect(definitions).toContain('API_KEY');
+            expect(definitions).toContain('TOKEN');
+            expect(definitions).toContain('4g');
+            expect(definitions).toContain('Get weather');
+          }
+        }
+        if (recordInputs !== false) {
+          expect(finalDefinitions).toContain('mcp.search');
+        }
+        expect(tools).toEqual(originalTools);
+      },
+    );
 
     it('sets gen_ai.tool.definitions when tools provided', () => {
       const tools = [
@@ -2241,6 +2595,56 @@ describe('OpenTelemetry', () => {
     });
   });
 
+  describe('onStepError', () => {
+    it('records error on step and chat spans and keeps the root span open for onEnd', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+
+      integration.onStepError!({
+        ...makeStepStartEvent(),
+        error: new Error('step failed'),
+      } as any);
+
+      expect(
+        tracer.spans.map(s => ({
+          name: s.name,
+          status: s.status,
+          ended: s.ended,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": false,
+            "name": "invoke_agent gpt-4",
+            "status": undefined,
+          },
+          {
+            "ended": true,
+            "name": "step 1",
+            "status": {
+              "code": 2,
+              "message": "step failed",
+            },
+          },
+          {
+            "ended": true,
+            "name": "chat gpt-4",
+            "status": {
+              "code": 2,
+              "message": "step failed",
+            },
+          },
+        ]
+      `);
+
+      integration.onEnd!(makeFinishEvent());
+
+      expect(tracer.spans[0].ended).toBe(true);
+      expect(tracer.spans[0].status).toBeUndefined();
+    });
+  });
+
   describe('onError', () => {
     it('records error on root, step, and chat spans', () => {
       integration.onStart!(makeOnStartEvent());
@@ -2701,6 +3105,7 @@ describe('OpenTelemetry', () => {
 
   describe('abort', () => {
     it('closes streamText spans when AbortController aborts the stream', async () => {
+      const reader = createMetricReader();
       const abortController = new AbortController();
       let pullCalls = 0;
 
@@ -2773,11 +3178,93 @@ describe('OpenTelemetry', () => {
           },
         ]
       `);
+      expect((await collectInferenceDuration(reader)).dataPoints).toMatchObject(
+        [
+          {
+            attributes: { 'error.type': 'AbortError' },
+            value: { count: 1 },
+          },
+        ],
+      );
     });
   });
 
   describe('stream errors', () => {
+    it.each([0, 1])(
+      'records failed stream attempts when streamRetries is %i',
+      async streamRetries => {
+        let now = 0;
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        const reader = createMetricReader();
+        const model = new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'test-model',
+          doStream: async () => ({
+            stream: new ReadableStream({
+              start(controller) {
+                const failed = model.doStreamCalls.length === 1;
+                now += failed ? 500 : 750;
+                if (failed) {
+                  controller.enqueue({
+                    type: 'error',
+                    error: new Error('provider failed'),
+                  });
+                } else {
+                  controller.enqueue({ type: 'text-start', id: '0' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '0',
+                    delta: 'recovered',
+                  });
+                  controller.enqueue({ type: 'text-end', id: '0' });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: {
+                      inputTokens: {
+                        total: 2,
+                        noCache: 2,
+                        cacheRead: 0,
+                        cacheWrite: 0,
+                      },
+                      outputTokens: { total: 1, text: 1, reasoning: 0 },
+                    },
+                  });
+                }
+                controller.close();
+              },
+            }),
+          }),
+        });
+        const result = streamText({
+          model,
+          prompt: 'hello',
+          maxRetries: 0,
+          streamRetries,
+          onError: () => {},
+          telemetry: { integrations: integration },
+        });
+        await result.consumeStream();
+
+        expect(model.doStreamCalls).toHaveLength(streamRetries + 1);
+        const histogram = await collectInferenceDuration(reader);
+        expect(histogram.dataPoints).toHaveLength(streamRetries + 1);
+        const failure = histogram.dataPoints.find(
+          point => point.attributes['error.type'] === '_OTHER',
+        );
+        expect(failure?.value).toMatchObject({ count: 1, sum: 0.5 });
+        if (streamRetries === 1) {
+          expect(await result.text).toBe('recovered');
+          const success = histogram.dataPoints.find(
+            point => point.attributes['error.type'] == null,
+          );
+          expect(success?.value).toMatchObject({ count: 1, sum: 0.75 });
+        }
+      },
+    );
+
     it('records and exports streamText spans when the provider stream errors', async () => {
+      const reader = createMetricReader();
       const sdkTrace = createSdkTracer();
       const sdkIntegration = new OpenTelemetry({ tracer: sdkTrace.tracer });
       let pullCalls = 0;
@@ -2842,6 +3329,14 @@ describe('OpenTelemetry', () => {
       );
       expect(chatSpan.parentSpanContext?.spanId).toBe(
         stepSpan.spanContext().spanId,
+      );
+      expect((await collectInferenceDuration(reader)).dataPoints).toMatchObject(
+        [
+          {
+            attributes: { 'error.type': 'Error' },
+            value: { count: 1 },
+          },
+        ],
       );
     });
   });
@@ -3149,6 +3644,215 @@ describe('OpenTelemetry', () => {
           expect(key).not.toMatch(/^ai\./);
         }
       }
+    });
+  });
+
+  describe('durable telemetry', () => {
+    function getSpanTimes(exporter: InMemorySpanExporter) {
+      const toMs = ([seconds, nanoseconds]: [number, number]) =>
+        seconds * 1000 + nanoseconds / 1e6;
+      return Object.fromEntries(
+        exporter
+          .getFinishedSpans()
+          .map(span => [span.name, [toMs(span.startTime), toMs(span.endTime)]]),
+      );
+    }
+
+    it('uses event timestamps for span start and end times', () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      // Epoch times before the process time origin must not be treated as
+      // performance.now() values.
+      integration.onStart!(makeOnStartEvent({ timestamp: 1_000 }));
+      integration.onStepStart!(makeStepStartEvent({ timestamp: 1_100 }));
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({ timestamp: 1_200 }),
+      );
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({ timestamp: 1_300 }),
+      );
+      integration.onToolExecutionStart!(
+        makeToolCallStartEvent({ timestamp: 1_400 }),
+      );
+      integration.onToolExecutionEnd!(
+        makeToolCallFinishEvent(true, { timestamp: 1_500 }),
+      );
+      integration.onStepEnd!(makeStepFinishEvent({ timestamp: 1_600 }));
+      integration.onEnd!(makeFinishEvent({ timestamp: 1_700 }));
+
+      expect(getSpanTimes(sdkTrace.exporter)).toEqual({
+        [`invoke_agent ${model.modelId}`]: [1_000, 1_700],
+        'step 1': [1_100, 1_600],
+        [`chat ${model.modelId}`]: [1_200, 1_300],
+        'execute_tool myTool': [1_400, 1_500],
+      });
+    });
+
+    function createDurableTracer(
+      sampler?: ConstructorParameters<typeof OpenTelemetryIdGenerator>[0],
+    ) {
+      const durable = new OpenTelemetryIdGenerator(sampler);
+      const exporter = new InMemorySpanExporter();
+      const provider = new BasicTracerProvider({
+        idGenerator: durable,
+        sampler: durable,
+        spanProcessors: [new SimpleSpanProcessor(exporter)],
+      });
+      return { exporter, tracer: provider.getTracer('test-tracer'), durable };
+    }
+
+    it('preserves the parent trace and sampler trace state', async () => {
+      const parent = {
+        traceId: 'a'.repeat(32),
+        spanId: 'b'.repeat(16),
+        traceFlags: 1,
+        traceState: createTraceState('vendor=parent'),
+      };
+      const parentContext = trace.setSpanContext(context.active(), parent);
+      const active = vi.spyOn(context, 'active').mockReturnValue(parentContext);
+      const { tracer, exporter, durable } = createDurableTracer({
+        sampler: {
+          shouldSample: () => ({
+            decision: 2 as const,
+            traceState: createTraceState('vendor=sampled'),
+            attributes: { 'sampling.attribute': 'preserved' },
+          }),
+        },
+      });
+      integration = new OpenTelemetry({ tracer, durable });
+      const run =
+        (await integration.experimental_durable!.captureContext(
+          makeOnStartEvent(),
+        ))!;
+      active.mockRestore();
+      expect(run).toMatchObject({
+        traceId: parent.traceId,
+        traceFlags: 1,
+        traceState: 'vendor=sampled',
+        parentSpanContext: { spanId: parent.spanId },
+      });
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
+          durableContext: { run, phase: 'live', stepNumber: 0 },
+        }),
+      );
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      integration.onStart!(
+        makeOnStartEvent({ durableContext: { run, phase: 'replay' } }),
+      );
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onStepEnd!(makeStepFinishEvent());
+      integration.onEnd!(makeFinishEvent());
+
+      const spans = exporter.getFinishedSpans();
+      expect(spans).toHaveLength(3);
+      for (const span of spans) {
+        expect(span.spanContext().traceId).toBe(parent.traceId);
+        expect(span.spanContext().traceState?.serialize()).toBe(
+          'vendor=sampled',
+        );
+      }
+      const root = spans.find(span => span.name.startsWith('invoke_agent'))!;
+      expect(root.parentSpanContext?.spanId).toBe(parent.spanId);
+      expect(root.attributes['sampling.attribute']).toBe('preserved');
+    });
+
+    it('preserves filtered context and headers on live model spans', async () => {
+      const { tracer, exporter, durable } = createDurableTracer();
+      const enrich = vi.fn(() => undefined);
+      integration = new OpenTelemetry({
+        tracer,
+        durable,
+        runtimeContext: true,
+        headers: true,
+        enrichSpan: enrich,
+      });
+      const run =
+        (await integration.experimental_durable!.captureContext(
+          makeOnStartEvent(),
+        ))!;
+      const runtimeContext = { traceIdentity: { sessionId: 'session-1' } };
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
+          durableContext: {
+            run,
+            phase: 'live',
+            stepNumber: 0,
+            runtimeContext,
+            headers: { 'x-test': 'value' },
+          },
+        }),
+      );
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      expect(enrich).toHaveBeenCalledWith(
+        expect.objectContaining({ spanType: 'languageModel', runtimeContext }),
+      );
+      const chat = exporter.getFinishedSpans()[0];
+      expect(chat.attributes['ai.request.headers.x-test']).toBe('value');
+    });
+
+    it('reuses the captured sampling decision for model and tool spans', async () => {
+      const shouldSample = vi.fn(() => ({ decision: 2 as const }));
+      const { tracer, exporter, durable } = createDurableTracer({
+        sampler: { shouldSample },
+      });
+      const live = new OpenTelemetry({ tracer, durable });
+      const run =
+        (await live.experimental_durable.captureContext(makeOnStartEvent()))!;
+      live.onLanguageModelCallStart(
+        makeLanguageModelCallStartEvent({
+          durableContext: { run, phase: 'live', stepNumber: 0 },
+        }),
+      );
+      live.onLanguageModelCallEnd(
+        makeLanguageModelCallEndEvent({
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'provider-tool',
+              toolName: 'search',
+              input: {},
+              providerExecuted: true,
+            },
+          ],
+        }),
+      );
+      integration = new OpenTelemetry({ tracer, durable });
+      integration.onStart!(
+        makeOnStartEvent({ durableContext: { run, phase: 'replay' } }),
+      );
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
+      integration.onStepEnd!(makeStepFinishEvent());
+      integration.onEnd!(makeFinishEvent());
+      expect(shouldSample).toHaveBeenCalledOnce();
+      expect(exporter.getFinishedSpans()).toHaveLength(5);
+    });
+
+    it('closes failed durable attempts and a failed retry', async () => {
+      const { tracer, exporter, durable } = createDurableTracer();
+      const live = new OpenTelemetry({ tracer, durable });
+      const run =
+        (await live.experimental_durable.captureContext(makeOnStartEvent()))!;
+      const event = makeLanguageModelCallStartEvent({
+        durableContext: { run, phase: 'live', stepNumber: 0 },
+        timestamp: 1_000,
+      });
+      live.onLanguageModelCallStart(event);
+      live.onLanguageModelCallStart({ ...event, timestamp: 1_100 });
+      live.onError({ callId, error: new Error('rejected'), timestamp: 1_200 });
+      const [failed, retried] = exporter.getFinishedSpans();
+      expect(exporter.getFinishedSpans()).toHaveLength(2);
+      expect(failed.status.code).toBe(SpanStatusCode.ERROR);
+      expect(retried.status.code).toBe(SpanStatusCode.ERROR);
+      expect(retried.endTime).toEqual([1, 200_000_000]);
+      expect(failed.endTime).toEqual(retried.startTime);
+      expect(failed.parentSpanContext).toEqual(retried.parentSpanContext);
+      expect(failed.spanContext().spanId).not.toBe(
+        retried.spanContext().spanId,
+      );
     });
   });
 });

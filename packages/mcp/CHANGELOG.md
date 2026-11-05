@@ -1,5 +1,75 @@
 # @ai-sdk/mcp
 
+## 2.0.91
+
+### Patch Changes
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 2.0.90
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 2.0.89
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 2.0.88
+
+### Patch Changes
+
+- c3af430: Handle MCP 2026-07-28 input-required results through the registered elicitation handler and retry the original tool, prompt, or resource request with its answers and request state.
+
+  Preserve the browser fetch receiver in MCP HTTP and SSE transports to prevent illegal-invocation errors.
+
+- 1afa510: Graduate `StdioMCPTransport`, `MCPClient.listPrompts`, `MCPClient.getPrompt`, and `MCPAppRenderer` to stable APIs. Deprecate their experimental names while retaining them as compatible aliases. MCP events remain experimental.
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 2.0.87
+
+### Patch Changes
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
+## 2.0.86
+
+### Patch Changes
+
+- ade2a33: Improve unsupported-version discovery errors when a server advertises a compatible legacy version. Include the requested and advertised versions and explain how to explicitly select legacy initialization with `protocolVersionDiscovery: false`, while preserving the original error details and avoiding automatic legacy fallback.
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 2.0.85
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
 ## 2.0.84
 
 ### Patch Changes

@@ -1,5 +1,112 @@
 # @ai-sdk/angular
 
+## 3.0.163
+
+### Patch Changes
+
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+  - @ai-sdk/provider-utils@5.0.75
+
+## 3.0.162
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+- Updated dependencies [857ca45]
+- Updated dependencies [4d6d830]
+  - @ai-sdk/provider-utils@5.0.74
+  - ai@7.0.162
+
+## 3.0.161
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - ai@7.0.161
+  - @ai-sdk/provider-utils@5.0.73
+
+## 3.0.160
+
+### Patch Changes
+
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
+## 3.0.159
+
+### Patch Changes
+
+- ai@7.0.159
+
+## 3.0.158
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [5c247e9]
+  - @ai-sdk/provider-utils@5.0.72
+  - ai@7.0.158
+
+## 3.0.157
+
+### Patch Changes
+
+- Updated dependencies [0cc4921]
+- Updated dependencies [61a315e]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+  - @ai-sdk/provider-utils@5.0.71
+
+## 3.0.156
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 3.0.155
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [b6b9dca]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - ai@7.0.155
+
+## 3.0.154
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [e64ed82]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+  - @ai-sdk/provider-utils@5.0.69
+
 ## 3.0.153
 
 ### Patch Changes

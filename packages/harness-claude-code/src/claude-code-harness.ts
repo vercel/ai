@@ -46,9 +46,11 @@ import {
   waitForBridgeReady,
   writeSkills,
   type BridgeHello,
+  type SandboxChannelDebugEvent,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
+  generateId,
   tool,
   type Experimental_SandboxSession as SandboxSession,
   type Experimental_SandboxProcess,
@@ -99,10 +101,55 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly mcpServers?: Record<string, unknown>;
   /**
+   * Claude Code hints for host tools, keyed by tool name.
+   *
+   * - `readOnly`: the tool has no side effects. Claude Code can run read-only
+   *   tool calls in parallel, and runs each call to any other host tool on
+   *   its own. It also allows read-only tools in plan mode, so mark only
+   *   tools that change nothing.
+   * - `alwaysLoad`: when Claude Code's tool search is on, it defers MCP tools
+   *   until the model looks them up; this sends the tool's definition from
+   *   the first request instead.
+   */
+  readonly toolHints?: Readonly<
+    Record<
+      string,
+      { readonly readOnly?: boolean; readonly alwaysLoad?: boolean }
+    >
+  >;
+  /**
    * Hard cap on how many internal turns the CLI can take before yielding
    * back to the caller. Unset means the CLI's default.
    */
   readonly maxTurns?: number;
+  /**
+   * Overrides how named skills are exposed to Claude Code. Unspecified skills
+   * retain their Claude Code defaults.
+   */
+  readonly skillOverrides?: Readonly<
+    Record<string, 'on' | 'name-only' | 'user-invocable-only' | 'off'>
+  >;
+  /**
+   * Maximum estimated spend in USD for each Claude query. When it is exceeded,
+   * the query stops and the turn ends with an error. Unset means no limit.
+   */
+  readonly maxBudgetUsd?: number;
+  /**
+   * Only use the MCP servers configured with `mcpServers`, and ignore any other
+   * MCP configuration such as a project `.mcp.json` or user settings.
+   */
+  readonly strictMcpConfig?: boolean;
+  /**
+   * Maximum milliseconds Claude waits for an answer to an `AskUserQuestion`
+   * question before the question fails. Unset means the Claude Code default.
+   */
+  readonly questionTimeoutMs?: number;
+  /**
+   * Moves per-session sections (working directory, memory, git status) out of
+   * the Claude Code system prompt and into the first user message, so the
+   * system prompt can be cached across sessions.
+   */
+  readonly excludeDynamicSections?: boolean;
   /**
    * Enables periodic AI-generated progress summaries for running subagents.
    * The summaries are forwarded in raw `task_progress` stream parts.
@@ -142,6 +189,8 @@ export type ClaudeCodeHarnessSettings = {
   readonly portEndpoint?: HarnessV1PortEndpoint;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /** Maximum milliseconds to wait for the first turn event. Defaults to 120000. */
+  readonly turnStartTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
@@ -149,6 +198,14 @@ export type ClaudeCodeHarnessSettings = {
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
+   * Called with bridge connection lifecycle events: reconnect attempts,
+   * successful reconnects, and `reconnect-failed` once the connection is
+   * closed for good. Hosts that cache idle sessions can use it to reattach
+   * before sending the next prompt. The `cause` of a failed reconnect can
+   * contain connection details, so avoid logging it as is.
+   */
+  readonly onDebug?: (event: SandboxChannelDebugEvent) => void;
   /**
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
@@ -804,6 +861,7 @@ const claudeCodeBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
+  startId: z.string().optional(),
   sandboxId: z.string().optional(),
 });
 
@@ -996,7 +1054,9 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
       });
       let supportsUserMessageResponses = false;
+      let bridgeHello: BridgeHello | undefined;
       const onHello = (hello: BridgeHello) => {
+        bridgeHello = hello;
         supportsUserMessageResponses =
           hello.capabilities?.experimental_userMessageResponses === true;
       };
@@ -1028,6 +1088,7 @@ export function createClaudeCode(
             onDiagnostic,
             onBridgeError,
             reconnect: settings.reconnect,
+            onDebug: settings.onDebug,
           });
           const finishListenerAttachment = isContinue
             ? attachChannel.beginListenerAttachment()
@@ -1041,6 +1102,7 @@ export function createClaudeCode(
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
+            startId: coords.startId,
             finishListenerAttachment,
             ...(resumeSessionId ? { resumeSessionId } : {}),
             // The live bridge was spawned by another process; this one owns no
@@ -1048,6 +1110,11 @@ export function createClaudeCode(
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
+            skillOverrides: settings.skillOverrides,
+            maxBudgetUsd: settings.maxBudgetUsd,
+            strictMcpConfig: settings.strictMcpConfig,
+            questionTimeoutMs: settings.questionTimeoutMs,
+            excludeDynamicSections: settings.excludeDynamicSections,
             agentProgressSummaries: settings.agentProgressSummaries,
             forwardSubagentText: settings.forwardSubagentText,
             env: sandboxClaudeEnvironment,
@@ -1066,7 +1133,10 @@ export function createClaudeCode(
             sandbox: toolSafeSandboxSession,
             sandboxHomeDir,
             mcpServers: settings.mcpServers,
+            toolHints: settings.toolHints,
             supportsUserMessageResponses: () => supportsUserMessageResponses,
+            getBridgeHello: () => bridgeHello,
+            turnStartTimeoutMs: settings.turnStartTimeoutMs ?? 120_000,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -1191,6 +1261,7 @@ export function createClaudeCode(
         onDiagnostic,
         onBridgeError,
         reconnect: settings.reconnect,
+        onDebug: settings.onDebug,
         // In replay mode the respawned bridge reloaded the finished turn from
         // disk; seed the cursor and resume so it streams the tail (incl.
         // `finish`) rather than starting empty.
@@ -1215,8 +1286,14 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
         channel,
         finishListenerAttachment,
+        startId: respawnStrategy === 'replay' ? coords?.startId : undefined,
         proc,
         maxTurns: settings.maxTurns,
+        skillOverrides: settings.skillOverrides,
+        maxBudgetUsd: settings.maxBudgetUsd,
+        strictMcpConfig: settings.strictMcpConfig,
+        questionTimeoutMs: settings.questionTimeoutMs,
+        excludeDynamicSections: settings.excludeDynamicSections,
         agentProgressSummaries: settings.agentProgressSummaries,
         forwardSubagentText: settings.forwardSubagentText,
         env: sandboxClaudeEnvironment,
@@ -1226,6 +1303,15 @@ export function createClaudeCode(
         continueOnFirstPrompt: respawnStrategy !== undefined,
         ...(resumeSessionId ? { resumeSessionId } : {}),
         rerunContinue: respawnStrategy === 'rerun',
+        ...(respawnStrategy === 'rerun'
+          ? {
+              deferredToolUseId: (
+                startOpts.continueFrom ?? startOpts.resumeFrom?.continueFrom
+              )?.pendingToolApprovals?.find(
+                approval => approval.kind === 'builtin',
+              )?.toolCallId,
+            }
+          : {}),
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
@@ -1236,7 +1322,10 @@ export function createClaudeCode(
         sandbox: toolSafeSandboxSession,
         sandboxHomeDir,
         mcpServers: settings.mcpServers,
+        toolHints: settings.toolHints,
         supportsUserMessageResponses: () => supportsUserMessageResponses,
+        getBridgeHello: () => bridgeHello,
+        turnStartTimeoutMs: settings.turnStartTimeoutMs ?? 120_000,
       });
     },
   };
@@ -1252,9 +1341,15 @@ export function createClaudeCode(
 function createSession({
   sessionId,
   channel,
+  startId,
   finishListenerAttachment,
   proc,
   maxTurns,
+  skillOverrides,
+  maxBudgetUsd,
+  strictMcpConfig,
+  questionTimeoutMs,
+  excludeDynamicSections,
   agentProgressSummaries,
   forwardSubagentText,
   env,
@@ -1264,6 +1359,7 @@ function createSession({
   continueOnFirstPrompt,
   resumeSessionId,
   rerunContinue,
+  deferredToolUseId,
   bridgePort,
   bridgeToken,
   sandboxId,
@@ -1274,14 +1370,23 @@ function createSession({
   sandbox,
   sandboxHomeDir,
   mcpServers,
+  toolHints,
   supportsUserMessageResponses,
+  getBridgeHello,
+  turnStartTimeoutMs,
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
+  startId?: string;
   finishListenerAttachment: (() => void) | undefined;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
+  skillOverrides: ClaudeCodeHarnessSettings['skillOverrides'];
+  maxBudgetUsd: number | undefined;
+  strictMcpConfig: boolean | undefined;
+  questionTimeoutMs: number | undefined;
+  excludeDynamicSections: boolean | undefined;
   agentProgressSummaries: boolean | undefined;
   forwardSubagentText: boolean | undefined;
   env: Readonly<Record<string, string>> | undefined;
@@ -1296,6 +1401,12 @@ function createSession({
    */
   resumeSessionId?: string;
   rerunContinue: boolean;
+  /**
+   * Built-in tool call the previous bridge deferred while it waited for host
+   * approval. The respawned bridge resumes it once the host answers instead
+   * of starting a new turn.
+   */
+  deferredToolUseId?: string;
   bridgePort: number;
   bridgeToken: string;
   sandboxId: string | undefined;
@@ -1306,7 +1417,10 @@ function createSession({
   sandbox: SandboxSession;
   sandboxHomeDir: string;
   mcpServers: Record<string, unknown> | undefined;
+  toolHints: ClaudeCodeHarnessSettings['toolHints'];
   supportsUserMessageResponses: () => boolean;
+  getBridgeHello: () => BridgeHello | undefined;
+  turnStartTimeoutMs: number;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -1326,6 +1440,7 @@ function createSession({
    * stop/detach must record for exact resume.
    */
   let lastClaudeSessionId = resumeSessionId;
+  let activeStartId = startId;
 
   /*
    * Wire the channel into one turn's worth of events and return the control
@@ -1337,31 +1452,55 @@ function createSession({
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
-  }): HarnessV1PromptControl => {
+    startId?: string;
+  }): {
+    control: HarnessV1PromptControl;
+    sendStart: (message: Extract<InboundMessage, { type: 'start' }>) => void;
+  } => {
+    activeStartId = turnOpts.startId;
+    let expectedStartId = turnOpts.startId;
+    let isSettled = false;
+    const belongsToTurn = (event: { startId?: string }): boolean => {
+      if (isSettled) return false;
+      if (event.startId == null) return true;
+      if (expectedStartId == null) {
+        expectedStartId = event.startId;
+        activeStartId = event.startId;
+      }
+      return event.startId === expectedStartId;
+    };
     let pendingResolve: (() => void) | undefined;
     let pendingReject: ((err: unknown) => void) | undefined;
     const done = new Promise<void>((resolve, reject) => {
       pendingResolve = resolve;
       pendingReject = reject;
     });
-    const userMessageSubmitter = supportsUserMessageResponses()
-      ? experimental_createBridgeUserMessageSubmitter({
-          send: message => channel.send(message),
-          onResponse: listener => channel.on('user-message-response', listener),
-          onReconnect: listener => channel.onReconnect(listener),
-        })
-      : undefined;
     const unsubs: Array<() => void> = [];
-    const forward = (event: HarnessV1StreamPart) => {
+    let pendingStart: Extract<InboundMessage, { type: 'start' }> | undefined;
+    let awaitingStartSend = false;
+    let startCursor = 0;
+    let startTimer: ReturnType<typeof setTimeout> | undefined;
+    const clearPendingStart = () => {
+      pendingStart = undefined;
+      clearTimeout(startTimer);
+    };
+    const forward = (event: HarnessV1StreamPart & { startId?: string }) => {
+      clearPendingStart();
+      /*
+       * Keep the event object: the channel attaches a non-enumerable replay
+       * checkpoint that must reach the consumer for step-boundary suspension.
+       * Only the adapter's wire-level turn identifier is removed.
+       */
+      delete event.startId;
       try {
         turnOpts.emit(event);
       } catch {}
     };
 
-    let isSettled = false;
     const settleSuccess = () => {
       if (isSettled) return;
       isSettled = true;
+      clearPendingStart();
       userMessageSubmitter?.close();
       for (const u of unsubs) u();
       pendingResolve!();
@@ -1369,10 +1508,67 @@ function createSession({
     const settleError = (err: unknown) => {
       if (isSettled) return;
       isSettled = true;
+      clearPendingStart();
       userMessageSubmitter?.close(err);
       for (const u of unsubs) u();
       pendingReject!(err);
     };
+
+    const sendPendingStart = () => {
+      if (pendingStart == null) return;
+      awaitingStartSend = true;
+      try {
+        channel.send(pendingStart, {
+          onSent: () => {
+            awaitingStartSend = false;
+          },
+        });
+      } catch (error) {
+        awaitingStartSend = false;
+        throw error;
+      }
+    };
+    const failStart = (error: Error) => {
+      settleError(error);
+      channel.beginClose();
+      try {
+        channel.send({ type: 'abort' });
+      } catch {}
+      channel.close();
+    };
+    unsubs.push(
+      channel.onReconnect(() => {
+        if (pendingStart == null || isSettled || awaitingStartSend) return;
+        const hello = getBridgeHello();
+        if (hello?.capabilities?.idempotentStart === true) {
+          sendPendingStart();
+          return;
+        }
+        if (
+          hello?.state !== 'waiting' ||
+          hello.lastSeq == null ||
+          hello.lastSeq > startCursor
+        ) {
+          return;
+        }
+        failStart(
+          new Error(
+            'claude-code bridge is waiting for a start after reconnect and does not support safe start retries.',
+          ),
+        );
+      }),
+    );
+
+    // Retry the turn start before the submitter replays pending steering.
+    const userMessageSubmitter = supportsUserMessageResponses()
+      ? experimental_createBridgeUserMessageSubmitter({
+          // The submitter owns replay, after the turn start has been retried.
+          send: message =>
+            channel.send(message, { queueIfDisconnected: false }),
+          onResponse: listener => channel.on('user-message-response', listener),
+          onReconnect: listener => channel.onReconnect(listener),
+        })
+      : undefined;
 
     const eventTypes = [
       'stream-start',
@@ -1395,12 +1591,14 @@ function createSession({
     for (const type of eventTypes) {
       unsubs.push(
         channel.on(type, msg => {
+          if (!belongsToTurn(msg)) return;
           forward(msg);
         }),
       );
     }
     unsubs.push(
       channel.on('finish', msg => {
+        if (!belongsToTurn(msg)) return;
         const metadata = (
           msg as {
             harnessMetadata?: { 'claude-code'?: { sessionId?: unknown } };
@@ -1415,6 +1613,7 @@ function createSession({
     );
     unsubs.push(
       channel.on('error', msg => {
+        if (!belongsToTurn(msg)) return;
         forward(msg);
         settleError(msg.error);
       }),
@@ -1460,7 +1659,7 @@ function createSession({
       }
     }
 
-    return {
+    const control: HarnessV1PromptControl = {
       submitToolResult: async input => {
         channel.send({
           type: 'tool-result',
@@ -1489,6 +1688,35 @@ function createSession({
           }),
       done,
     };
+    return {
+      control,
+      sendStart: message => {
+        if (isSettled) return;
+        startCursor = Math.max(
+          channel.lastSeenEventId ?? 0,
+          getBridgeHello()?.lastSeq ?? 0,
+        );
+        pendingStart = { ...message, startId: expectedStartId };
+        startTimer = setTimeout(() => {
+          if (isSettled || pendingStart == null) return;
+          failStart(
+            new Error(
+              `claude-code bridge did not emit a turn event within ${turnStartTimeoutMs}ms.`,
+            ),
+          );
+        }, turnStartTimeoutMs);
+        startTimer.unref?.();
+        try {
+          sendPendingStart();
+        } catch (error) {
+          // The caller never receives control when the initial send throws.
+          // Consume its rejection and remove the timer and turn listeners.
+          void done.catch(() => {});
+          settleError(error);
+          throw error;
+        }
+      },
+    };
   };
 
   const prepareTurn = async (turnOpts: {
@@ -1496,7 +1724,8 @@ function createSession({
     skills: ReadonlyArray<HarnessV1Skill>;
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
-  }): Promise<HarnessV1PromptControl> => {
+    startId?: string;
+  }): Promise<ReturnType<typeof wireTurn>> => {
     if (
       turnOpts.responseFormat?.type === 'json' &&
       turnOpts.responseFormat.schema == null
@@ -1522,6 +1751,7 @@ function createSession({
     return wireTurn({
       emit: turnOpts.emit,
       abortSignal: turnOpts.abortSignal,
+      startId: turnOpts.startId,
     });
   };
 
@@ -1529,7 +1759,10 @@ function createSession({
     sessionId,
     isResume,
     doPromptTurn: async promptOpts => {
-      const control = await prepareTurn(promptOpts);
+      const { control, sendStart } = await prepareTurn({
+        ...promptOpts,
+        startId: generateId(),
+      });
 
       /*
        * A signal that was already aborted has settled the turn inside
@@ -1559,6 +1792,13 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
+        ...(skillOverrides !== undefined ? { skillOverrides } : {}),
+        ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+        ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
+        ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
+        ...(excludeDynamicSections !== undefined
+          ? { excludeDynamicSections }
+          : {}),
         ...(agentProgressSummaries !== undefined
           ? { agentProgressSummaries }
           : {}),
@@ -1567,9 +1807,15 @@ function createSession({
         thinking,
         ...(effort !== undefined ? { effort } : {}),
         ...(promptOpts.skills.length > 0
-          ? { skills: promptOpts.skills.map(skill => skill.name) }
+          ? {
+              skills: promptOpts.skills.map(skill => skill.name),
+              readableSkillRoots: promptOpts.skills.map(
+                skill => `${sandboxHomeDir}/.claude/skills/${skill.name}`,
+              ),
+            }
           : {}),
         ...(mcpServers == null ? {} : { mcpServers }),
+        ...(toolHints == null ? {} : { toolHints }),
         ...(permissionMode ? { permissionMode } : {}),
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(debug ? { debug } : {}),
@@ -1582,12 +1828,15 @@ function createSession({
       pendingResumeFlag = false;
       // Recovery starts a native turn once. Later continuations attach to it.
       rerunContinue = false;
-      channel.send(startMessage);
+      sendStart(startMessage);
 
       return control;
     },
     doContinueTurn: async continueOpts => {
-      const control = await prepareTurn(continueOpts);
+      const { control, sendStart } = await prepareTurn({
+        ...continueOpts,
+        startId: rerunContinue ? generateId() : activeStartId,
+      });
 
       /*
        * attach / replay: the still-running (or disk-replayed) turn streams into
@@ -1607,7 +1856,7 @@ function createSession({
       if (rerunContinue && !continueOpts.abortSignal?.aborted) {
         rerunContinue = false;
         pendingResumeFlag = false;
-        channel.send({
+        sendStart({
           type: 'start' as const,
           /*
            * A continuation nudge rather than an empty prompt: `continue: true`
@@ -1630,6 +1879,13 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
+          ...(skillOverrides !== undefined ? { skillOverrides } : {}),
+          ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+          ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
+          ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
+          ...(excludeDynamicSections !== undefined
+            ? { excludeDynamicSections }
+            : {}),
           ...(agentProgressSummaries !== undefined
             ? { agentProgressSummaries }
             : {}),
@@ -1638,15 +1894,22 @@ function createSession({
           thinking,
           ...(effort !== undefined ? { effort } : {}),
           ...(continueOpts.skills.length > 0
-            ? { skills: continueOpts.skills.map(skill => skill.name) }
+            ? {
+                skills: continueOpts.skills.map(skill => skill.name),
+                readableSkillRoots: continueOpts.skills.map(
+                  skill => `${sandboxHomeDir}/.claude/skills/${skill.name}`,
+                ),
+              }
             : {}),
           ...(mcpServers == null ? {} : { mcpServers }),
+          ...(toolHints == null ? {} : { toolHints }),
           ...(permissionMode ? { permissionMode } : {}),
           ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
           ...(debug ? { debug } : {}),
           ...(lastClaudeSessionId
             ? { resumeSessionId: lastClaudeSessionId }
             : { continue: true }),
+          ...(deferredToolUseId != null ? { deferredToolUseId } : {}),
         });
       }
 
@@ -1686,6 +1949,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
+            ...(activeStartId == null ? {} : { startId: activeStartId }),
             ...(sandboxId == null ? {} : { sandboxId }),
           },
           ...(lastClaudeSessionId
@@ -1845,6 +2109,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
+            ...(activeStartId == null ? {} : { startId: activeStartId }),
             ...(sandboxId == null ? {} : { sandboxId }),
           },
           ...(lastClaudeSessionId

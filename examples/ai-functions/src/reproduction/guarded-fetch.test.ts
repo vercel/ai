@@ -39,6 +39,13 @@ function create(options?: Parameters<typeof createGuardedFetch>[0]) {
 }
 
 function resolveTo(addresses: dns.LookupAddress[]) {
+  // Guarded connections use c-ares; explicitly trusted origins use the OS resolver.
+  vi.spyOn(dns.promises.Resolver.prototype, 'resolve4').mockResolvedValue(
+    addresses.filter(entry => entry.family === 4).map(entry => entry.address),
+  );
+  vi.spyOn(dns.promises.Resolver.prototype, 'resolve6').mockResolvedValue(
+    addresses.filter(entry => entry.family === 6).map(entry => entry.address),
+  );
   return vi
     .spyOn(dns, 'lookup')
     .mockImplementation(((
@@ -85,7 +92,7 @@ afterEach(async () => {
   await new Promise<void>(resolve => server.close(() => resolve()));
 });
 
-describe('AI SDK with the patched standalone guarded-fetch', () => {
+describe('AI SDK with standalone guarded-fetch', () => {
   it('preserves every IP literal block in the SDK URL validation corpus', () => {
     const source = readFileSync(
       new URL(
@@ -126,6 +133,10 @@ describe('AI SDK with the patched standalone guarded-fetch', () => {
         { address: '8.8.8.8', family: 4 },
         { address: '169.254.169.254', family: 4 },
       ],
+      [
+        { address: '8.8.8.8', family: 4 },
+        { address: '::1', family: 6 },
+      ],
       [{ address: '::1', family: 6 }],
       [],
       [{ address: '8.8.8.8', family: 6 }],
@@ -138,6 +149,12 @@ describe('AI SDK with the patched standalone guarded-fetch', () => {
       await expect(
         download({ url: new URL(`${fileOrigin}/file`) }),
       ).rejects.toThrow();
+      expect(dns.promises.Resolver.prototype.resolve4).toHaveBeenCalledWith(
+        'files.example.com',
+      );
+      expect(dns.promises.Resolver.prototype.resolve6).toHaveBeenCalledWith(
+        'files.example.com',
+      );
       expect(received).not.toHaveBeenCalled();
     },
   );

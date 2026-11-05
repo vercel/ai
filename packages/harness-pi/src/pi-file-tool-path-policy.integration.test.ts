@@ -1,24 +1,11 @@
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
 import { shellQuote } from '@ai-sdk/harness/utils';
 import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createPiPathMapper } from './pi-paths';
 import { createPiRemoteOps } from './pi-remote-ops';
 
 const sandboxWorkDir = '/sandbox/workspace';
 const artifactRoot = '/tmp/pi-artifacts';
-
-let hostWorkDir: string;
-
-beforeEach(() => {
-  hostWorkDir = mkdtempSync(path.join(tmpdir(), 'pi-path-policy-'));
-});
-
-afterEach(() => {
-  rmSync(hostWorkDir, { recursive: true, force: true });
-});
 
 describe('Pi file-tool path policy with JustBash', () => {
   it('preserves embedded and trailing newlines in configured roots', async () => {
@@ -46,7 +33,6 @@ describe('Pi file-tool path policy with JustBash', () => {
       const operations = createPiRemoteOps({
         sandbox,
         paths: createPiPathMapper({
-          hostWorkDir,
           sandboxWorkDir,
           readableRoots: [{ sandboxDir: readableRoot }],
           writableRoots: [writableRoot],
@@ -97,7 +83,6 @@ describe('Pi file-tool path policy with JustBash', () => {
       });
 
       const paths = createPiPathMapper({
-        hostWorkDir,
         sandboxWorkDir,
         writableRoots: [artifactRoot],
         deniedRoots: [`${artifactRoot}/private`],
@@ -175,7 +160,6 @@ describe('Pi file-tool path policy with JustBash', () => {
       });
 
       const paths = createPiPathMapper({
-        hostWorkDir,
         sandboxWorkDir,
         readableRoots: [{ sandboxDir: deniedTarget }],
         writableRoots: [allowedAlias],

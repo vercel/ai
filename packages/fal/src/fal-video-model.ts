@@ -8,6 +8,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -174,7 +175,7 @@ export class FalVideoModel implements VideoModelV4 {
       body.duration = `${options.duration}s`;
     }
 
-    if (options.seed) {
+    if (options.seed != null) {
       body.seed = options.seed;
     }
 
@@ -233,7 +234,10 @@ export class FalVideoModel implements VideoModelV4 {
     });
     const { value: queueResponse } = await postJsonToApi({
       url: submitUrl,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler:
@@ -278,7 +282,7 @@ export class FalVideoModel implements VideoModelV4 {
       validateUrl: true,
       credentialedOrigin: submitUrl,
       trustedOrigin: submitUrl,
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       failedResponseHandler: async ({ response, url, requestBodyValues }) => {
         const body = await response.clone().json();
 
