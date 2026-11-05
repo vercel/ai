@@ -153,7 +153,41 @@ let lastClaudeSessionId: string | undefined;
 await runBridge<StartMessage>({
   bridgeType: 'claude-code',
   bridgeStateDir,
-  onStart: runTurn,
+  onStart: async (start, turn) => {
+    const emit: BridgeTurn['emit'] = event => {
+      if (turn.abortSignal.aborted) return;
+      turn.emit({
+        ...event,
+        ...(start.startId == null ? {} : { startId: start.startId }),
+      });
+    };
+    /*
+     * The shared emitError closes over its own emitter, so wrapping turn.emit
+     * cannot attach startId to errors or suppress them after abort. Duplicating
+     * its stderr logging and error serialization here is an adapter-local
+     * workaround to keep errors scoped to their turn without changing the
+     * shared bridge. Keep this duplication aligned with shared error handling.
+     */
+    const emitError: BridgeTurn['emitError'] = ({ error, message }) => {
+      if (turn.abortSignal.aborted) return;
+      console.error(
+        `[harness:claude-code:error] ${message ?? 'bridge error'}:`,
+        error,
+      );
+      emit({
+        type: 'error',
+        error:
+          error instanceof Error
+            ? { name: error.name, message: error.message, stack: error.stack }
+            : error,
+      });
+    };
+    try {
+      await runTurn(start, { ...turn, emit, emitError });
+    } catch (error) {
+      emitError({ error, message: 'claude-code turn failed' });
+    }
+  },
   // Claude Code's conversation state lives in the runtime's own store, keyed
   // by working directory. The resume payload names the exact conversation so a
   // later resume does not have to fall back to "most recent in this workdir".
@@ -222,6 +256,7 @@ function createPermissionOptions(input: {
           inactiveNativeTools,
           cwd: input.toolCwds.get(options.toolUseID) ?? '',
           readableSkillRoots: input.start.readableSkillRoots ?? [],
+          additionalDirectories: input.start.additionalDirectories ?? [],
           blockedPath: options.blockedPath,
         }))
       ) {
@@ -402,8 +437,9 @@ function toGatewayModelOverride(
 
 /**
  * The `ANTHROPIC_DEFAULT_*_MODEL` variables point Claude Code's model aliases
- * at other ids, which it misreads the same way. `model` comes last so that its
- * entry wins a key it shares with an alias.
+ * at other ids and `CLAUDE_CODE_SUBAGENT_MODEL` sets the model of subagents,
+ * which it misreads the same way. `model` comes last so that its entry wins a
+ * key it shares with one of them.
  */
 function createGatewayModelOverrides(
   model: string | undefined,
@@ -413,6 +449,7 @@ function createGatewayModelOverrides(
     ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_OPUS_MODEL),
     ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_SONNET_MODEL),
     ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_HAIKU_MODEL),
+    ...toGatewayModelOverride(env.CLAUDE_CODE_SUBAGENT_MODEL),
     ...toGatewayModelOverride(model),
   };
   return Object.keys(overrides).length > 0 ? overrides : undefined;
@@ -423,6 +460,7 @@ async function needsHostApproval(input: {
   toolInput: unknown;
   cwd: string;
   readableSkillRoots: readonly string[];
+  additionalDirectories: readonly string[];
   blockedPath?: string;
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
   inactiveNativeTools: ReadonlySet<string>;
@@ -483,6 +521,7 @@ async function needsHostApproval(input: {
     paths,
     access,
     readableSkillRoots: input.readableSkillRoots,
+    additionalDirectories: input.additionalDirectories,
   }));
 }
 
@@ -500,6 +539,7 @@ function createApprovalPreToolUseHook(input: {
   deferredToolUseIds: Set<string>;
   nativeToolCallNames: Map<string, string>;
   readableSkillRoots: readonly string[];
+  additionalDirectories: readonly string[];
   toolCwds: Map<string, string>;
 }): HookCallback {
   return async (hookInput, toolUseID): Promise<HookJSONOutput> => {
@@ -537,6 +577,7 @@ function createApprovalPreToolUseHook(input: {
         toolInput: hookInput.tool_input,
         cwd: hookInput.cwd,
         readableSkillRoots: input.readableSkillRoots,
+        additionalDirectories: input.additionalDirectories,
         permissionMode: input.permissionMode,
         inactiveNativeTools: input.inactiveNativeTools,
       }))
@@ -570,7 +611,16 @@ function nativeToolRequiresApproval(input: {
 }
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
-  const emit: Emit = msg => turn.emit(msg as BridgeEvent);
+  /*
+   * The host settles an aborted turn before its query finishes interrupting.
+   * Keep draining the query for graceful shutdown, but do not send its remaining
+   * events to listeners that may already belong to the next turn.
+   */
+  const emit: Emit = msg => {
+    if (!turn.abortSignal.aborted) {
+      turn.emit(msg as BridgeEvent);
+    }
+  };
 
   // Local controller for the Claude query. Aborted either by the host (via the
   // shared runtime's `turn.abortSignal`) or by us on a terminal error.
@@ -769,6 +819,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const approvalPreToolUseHook = createApprovalPreToolUseHook({
     toolCwds,
     readableSkillRoots: start.readableSkillRoots ?? [],
+    additionalDirectories: start.additionalDirectories ?? [],
     permissionMode,
     inactiveNativeTools: new Set(inactiveNativeTools),
     decisions: approvalDecisions,
@@ -799,6 +850,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
       ...(start.maxBudgetUsd !== undefined
         ? { maxBudgetUsd: start.maxBudgetUsd }
+        : {}),
+      ...(start.additionalDirectories !== undefined
+        ? { additionalDirectories: start.additionalDirectories }
         : {}),
       ...(start.strictMcpConfig !== undefined
         ? { strictMcpConfig: start.strictMcpConfig }

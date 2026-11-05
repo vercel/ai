@@ -1072,12 +1072,14 @@ export const anthropicResponseSchema = lazySchema(() =>
       ),
       stop_reason: z.string().nullish(),
       stop_sequence: z.string().nullish(),
+      service_tier: z.string().nullish(),
       stop_details: anthropicStopDetailsSchema().nullish(),
       input_transformations: z
         .array(anthropicInputTransformationSchema())
         .nullish(),
       safeguard_results: z.array(anthropicSafeguardResultSchema()).nullish(),
       usage: z.looseObject({
+        service_tier: z.string().nullish(),
         input_tokens: z.number(),
         output_tokens: z.number(),
         output_tokens_details: z
@@ -1156,7 +1158,9 @@ export const anthropicChunkSchema = lazySchema(() =>
           id: z.string().nullish(),
           model: z.string().nullish(),
           role: z.string().nullish(),
+          service_tier: z.string().nullish(),
           usage: z.looseObject({
+            service_tier: z.string().nullish(),
             input_tokens: z.number(),
             cache_creation_input_tokens: z.number().nullish(),
             cache_read_input_tokens: z.number().nullish(),
@@ -1508,6 +1512,7 @@ export const anthropicChunkSchema = lazySchema(() =>
             .nullish(),
         }),
         usage: z.looseObject({
+          service_tier: z.string().nullish(),
           input_tokens: z.number().nullish(),
           output_tokens: z.number(),
           output_tokens_details: z

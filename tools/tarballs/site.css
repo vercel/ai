@@ -1,0 +1,184 @@
+/* Page composition uses the public API at https://vercel.com/design.md. */
+.vbg-custom-main {
+  display: grid;
+  gap: var(--vbg-space-8);
+  min-width: 0;
+}
+
+.vbg-custom-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  align-items: end;
+  gap: var(--vbg-space-10);
+  padding-block: var(--vbg-space-6) var(--vbg-space-4);
+}
+
+.vbg-custom-revision {
+  display: grid;
+  gap: var(--vbg-space-5);
+  min-width: 0;
+  margin: 0;
+}
+
+.vbg-custom-revision-field {
+  display: grid;
+  gap: var(--vbg-space-2);
+  min-width: 0;
+}
+
+.vbg-custom-revision-field dd {
+  margin: 0;
+}
+
+.vbg-custom-identifier {
+  overflow-wrap: anywhere;
+}
+
+.vbg-custom-command {
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: var(--vbg-space-4) 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  overflow-x: auto;
+  font-size: var(--vbg-type-compact);
+  line-height: var(--vbg-leading-body);
+  white-space: pre;
+}
+
+.vbg-custom-manager,
+.vbg-custom-pnpm-note {
+  min-width: 0;
+}
+
+.vbg-custom-manager summary,
+.vbg-custom-pnpm-note summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.vbg-custom-install-notes {
+  display: grid;
+  gap: var(--vbg-space-2);
+  color: var(--vbg-text-secondary);
+  font-size: var(--vbg-type-compact);
+  line-height: var(--vbg-leading-body);
+}
+
+.vbg-custom-pnpm-note p {
+  max-width: 75ch;
+  margin-top: var(--vbg-space-3);
+  overflow-wrap: anywhere;
+}
+
+.vbg-custom-catalog {
+  display: grid;
+  gap: var(--vbg-space-5);
+  min-width: 0;
+  padding-top: var(--vbg-space-6);
+}
+
+.vbg-custom-catalog-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vbg-space-4) var(--vbg-space-8);
+}
+
+.vbg-custom-packages {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vbg-custom-package-item {
+  border-top: 1px solid var(--vbg-border-subtle);
+}
+
+.vbg-custom-package-item:last-child {
+  border-bottom: 1px solid var(--vbg-border-subtle);
+}
+
+.vbg-custom-package {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.vbg-custom-package summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vbg-space-3);
+  padding-block: var(--vbg-space-4);
+  cursor: pointer;
+  list-style: none;
+}
+
+.vbg-custom-package summary::-webkit-details-marker {
+  display: none;
+}
+
+.vbg-custom-package summary::before {
+  content: "+";
+  flex: 0 0 1ch;
+  color: var(--vbg-text-secondary);
+}
+
+.vbg-custom-package[open] summary::before {
+  content: "−";
+}
+
+.vbg-custom-package summary:hover {
+  color: var(--vbg-text-secondary);
+}
+
+.vbg-custom-package-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.vbg-custom-package-content {
+  display: grid;
+  gap: var(--vbg-space-3);
+  min-width: 0;
+  padding-block: var(--vbg-space-2) var(--vbg-space-6);
+}
+
+.vbg-custom-package-content a {
+  width: fit-content;
+  overflow-wrap: anywhere;
+}
+
+.vbg-custom-command:focus-visible,
+.vbg-custom-package summary:focus-visible,
+.vbg-custom-manager summary:focus-visible,
+.vbg-custom-pnpm-note summary:focus-visible {
+  outline: 2px solid var(--vbg-focus);
+  outline-offset: 4px;
+}
+
+@media (max-width: 760px) {
+  .vbg-custom-intro {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: var(--vbg-space-6);
+  }
+
+  .vbg-custom-revision {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--vbg-space-5);
+  }
+}
+
+@media (max-width: 480px) {
+  .vbg-custom-revision {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

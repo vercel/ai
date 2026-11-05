@@ -12,6 +12,7 @@ We use [changesets](https://github.com/changesets/action) for automated releases
 
 - The [Changesets action](https://github.com/changesets/action) automatically creates a **Version Packages** PR.
 - Merging this PR triggers the release workflow, which publishes the npm packages.
+- The release job uses the `npm-release` environment, which only permits `main` and maintenance branches.
 
 ## Maintenance Releases
 
@@ -31,13 +32,20 @@ Quick reference:
 - Exit beta mode: `pnpm changeset pre exit`
 - Backport fixes: add the `backport` label to the merged PR
 
-## Snapshot Releases
+## Pull Request Package Previews
 
-For test purposes (e.g. to validate whether a certain PR fixes a downstream bug), you can trigger snapshot releases based on the PR branch.
+To test a PR in a downstream application, install its
+[package preview](./package-previews.md). Tarball previews replace the npm snapshot
+releases previously dispatched through `release.yml`; the release workflow now
+only handles regular npm releases.
 
-Manually dispatch the [release workflow](https://github.com/vercel/ai/actions/workflows/release.yml), selecting the PR branch and enabling the checkbox to ensure it is a snapshot release.
+Vercel's Git integration builds the tarballs and updates its PR deployment
+comment. Fork PRs require a Vercel team member's deployment authorization,
+separately from GitHub CI approval. Deployments do not wait for GitHub CI to pass.
+Packages are installed directly from immutable deployment URLs.
 
-Snapshot releases from PR branches are currently not available. The release job runs in the `npm-release` environment, which only allows `main` and maintenance branches.
+Complete the [maintainer setup](./package-previews.md#maintainer-setup) to connect
+the project. There is no manual snapshot option in the release workflow.
 
 ## New Major Releases
 

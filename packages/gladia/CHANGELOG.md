@@ -1,5 +1,23 @@
 # @ai-sdk/gladia
 
+## 3.0.75
+
+### Patch Changes
+
+- c8875b7: Add Gladia v2 `languageConfig`, PII redaction, translation options (including the `batch` model), audio-to-LLM model selection, and transcription model IDs. Keep legacy options compatible: translate language and vocabulary aliases with deprecation warnings and warn when obsolete options are ignored. Preserve selected model IDs in responses and workflow serialization, and validate options before audio upload. The registry-facing `transcriptionModel(id)` alias now forwards non-default IDs; `default` still lets Gladia choose its model.
+- c8875b7: Add the `x-gladia-version` header to identify AI SDK requests while preserving custom headers and the existing user-agent suffix.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 3.0.74
 
 ### Patch Changes

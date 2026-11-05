@@ -412,6 +412,10 @@ const providerMetadataEntrySchema = () =>
 const gatewayVideoDataSchema = () =>
   z.union([
     z.object({
+      type: z.literal('uploaded'),
+      mediaType: z.string(),
+    }),
+    z.object({
       type: z.literal('url'),
       url: z.string(),
       mediaType: z.string(),

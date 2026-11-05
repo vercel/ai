@@ -178,16 +178,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
-      {
+    const { messages, warnings: messageWarnings } =
+      await convertToOpenAIChatMessages({
         prompt,
         systemMessageMode:
           openaiOptions.systemMessageMode ??
           (isReasoningModel
             ? 'developer'
             : modelRequestConfig.systemMessageMode),
-      },
-    );
+      });
 
     warnings.push(...messageWarnings);
 
@@ -448,13 +447,22 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const content: Array<LanguageModelV4Content> = [];
 
-    // text content:
+    // text content. When the model refuses to answer, the API returns the
+    // refusal in `refusal` and sets `content` to null, so surface it as text
+    // instead of dropping it. Content and refusal are both returned when the
+    // model refuses after answering, so keep both:
     const text =
       choice.message.content != null && choice.message.content.length > 0
         ? choice.message.content
         : choice.message.audio?.transcript;
     if (text != null && text.length > 0) {
       content.push({ type: 'text', text });
+    }
+
+    const refusal = choice.message.refusal;
+    const hasRefusal = refusal != null && refusal.length > 0;
+    if (hasRefusal) {
+      content.push({ type: 'text', text: refusal });
     }
 
     // tool calls:
@@ -496,7 +504,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     return {
       content,
       finishReason: {
-        unified: mapOpenAIFinishReason(choice.finish_reason),
+        unified: mapOpenAIFinishReason({
+          finishReason: choice.finish_reason,
+          hasRefusal,
+        }),
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertOpenAIChatUsage(response.usage),
@@ -563,6 +574,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     let usage: OpenAIChatUsage | undefined = undefined;
     let metadataExtracted = false;
     let isActiveText = false;
+    let hasRefusal = false;
 
     const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
 
@@ -642,7 +654,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
             if (choice?.finish_reason != null) {
               finishReason = {
-                unified: mapOpenAIFinishReason(choice.finish_reason),
+                unified: mapOpenAIFinishReason({
+                  finishReason: choice.finish_reason,
+                  hasRefusal,
+                }),
                 raw: choice.finish_reason,
               };
             }
@@ -657,7 +672,24 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
             const delta = choice.delta;
 
-            if (delta.content != null) {
+            // When the model refuses to answer, the API streams the refusal in
+            // `refusal` instead of `content`. Content and refusal deltas can
+            // both occur, so append each to the same text part instead of
+            // dropping one:
+            const textDeltas: string[] = [];
+            if (delta.content != null && delta.content.length > 0) {
+              textDeltas.push(delta.content);
+            }
+            if (delta.refusal != null && delta.refusal.length > 0) {
+              hasRefusal = true;
+              textDeltas.push(delta.refusal);
+            }
+            // empty `content: ""` deltas keep their previous behavior:
+            if (textDeltas.length === 0 && delta.content === '') {
+              textDeltas.push(delta.content);
+            }
+
+            for (const textDelta of textDeltas) {
               if (!isActiveText) {
                 controller.enqueue({ type: 'text-start', id: '0' });
                 isActiveText = true;
@@ -666,7 +698,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({
                 type: 'text-delta',
                 id: '0',
-                delta: delta.content,
+                delta: textDelta,
               });
             }
 
@@ -724,6 +756,7 @@ function isOpenAIChatOutputChunk(chunk: OpenAIChatChunk): boolean {
 
     return (
       (delta?.content != null && delta.content.length > 0) ||
+      (delta?.refusal != null && delta.refusal.length > 0) ||
       (delta?.tool_calls != null && delta.tool_calls.length > 0) ||
       (delta?.annotations != null && delta.annotations.length > 0)
     );

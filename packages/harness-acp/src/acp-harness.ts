@@ -73,6 +73,7 @@ export type ACPHarnessSettings<
   readonly credentialEnv?: ACPV1Settings['credentialEnv'];
   readonly credentialBrokering?: ACPV1Settings['credentialBrokering'];
   readonly authenticationFiles?: ACPV1Settings['authenticationFiles'];
+  readonly prepareSandbox?: ACPV1Settings['prepareSandbox'];
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can

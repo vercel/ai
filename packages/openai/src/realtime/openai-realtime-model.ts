@@ -1,6 +1,8 @@
 import {
   type Resolvable,
   resolve,
+  resolveWith,
+  removeUndefinedEntries,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import type {
@@ -8,8 +10,10 @@ import type {
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ClientSecretOptions as RealtimeModelV4ClientSecretOptions,
   Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
+  Experimental_RealtimeModelV4ServerConnection as RealtimeModelV4ServerConnection,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
 import {
   buildOpenAISessionConfig,
@@ -26,6 +30,11 @@ export type OpenAIRealtimeModelConfig = {
 
 export class OpenAIRealtimeModel implements RealtimeModelV4 {
   readonly specificationVersion = 'v4' as const;
+  readonly capabilities = {
+    conversation: 'turn-based',
+    transports: ['websocket'],
+    connections: ['client-secret-websocket', 'server-websocket'],
+  } as const;
   readonly provider: string;
   readonly modelId: string;
 
@@ -99,17 +108,62 @@ export class OpenAIRealtimeModel implements RealtimeModelV4 {
     };
   }
 
+  getServerWebSocketConfig(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }):
+    | RealtimeModelV4ServerConnection
+    | PromiseLike<RealtimeModelV4ServerConnection> {
+    return resolveWith(this.config.headers, headers => ({
+      url: buildServerUrl(
+        this.config.baseURL,
+        this.modelId,
+        options?.intent ?? 'conversation',
+      ),
+      headers: removeUndefinedEntries(headers),
+    }));
+  }
+
   parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent {
     return parseOpenAIRealtimeServerEvent(raw);
   }
 
-  serializeClientEvent(event: RealtimeModelV4ClientEvent): unknown {
-    return serializeOpenAIRealtimeClientEvent(event, this.modelId);
+  serializeClientEvent(
+    event: RealtimeModelV4ClientEvent,
+    options?: { intent?: RealtimeModelV4SessionIntent },
+  ): unknown {
+    return serializeOpenAIRealtimeClientEvent(event, this.modelId, options);
   }
 
   buildSessionConfig(
     config: RealtimeModelV4SessionConfig,
+    options?: { intent?: RealtimeModelV4SessionIntent },
   ): Record<string, unknown> {
-    return buildOpenAISessionConfig(config, this.modelId);
+    return buildOpenAISessionConfig(config, this.modelId, options);
+  }
+}
+
+/**
+ * Builds the upstream realtime WebSocket URL for a server-initiated connection.
+ * Transcription keeps the model in `session.update`; a `?model=` here would
+ * open a voice session instead.
+ */
+function buildServerUrl(
+  baseURL: string,
+  modelId: string,
+  intent: RealtimeModelV4SessionIntent,
+): string {
+  const url = new URL(baseURL);
+  const protocol = url.protocol === 'http:' ? 'ws:' : 'wss:';
+  const base = `${protocol}//${url.host}${url.pathname.replace(/\/$/, '')}`;
+
+  switch (intent) {
+    case 'transcription':
+      return `${base}/realtime?intent=transcription`;
+    case 'conversation':
+      return `${base}/realtime?model=${encodeURIComponent(modelId)}`;
+    default:
+      throw new Error(
+        `OpenAI realtime session intent '${intent}' is not supported.`,
+      );
   }
 }

@@ -235,7 +235,7 @@ describe('Codex bridge config', () => {
         "features": {
           "multi_agent": false,
         },
-        "model_reasoning_summary": "detailed",
+        "model_reasoning_summary": "none",
         "model_verbosity": "low",
       }
     `);
@@ -250,6 +250,43 @@ describe('Codex bridge config', () => {
       }
     `);
   });
+
+  test.each(
+    [
+      { model: 'gpt-5.5', gateway: false },
+      { model: 'gpt-5.5', gateway: true },
+      { model: 'openai/gpt-5.5', gateway: true },
+      { model: '@cf/openai/gpt-oss-20b', gateway: true },
+      { model: '@cf/openai/gpt-oss-120b', gateway: true },
+    ].flatMap(({ model, gateway }) =>
+      [undefined, 'none', 'concise', 'detailed'].map(summary => ({
+        model,
+        gateway,
+        summary,
+      })),
+    ),
+  )(
+    'respects reasoning summary $summary for $model (gateway $gateway)',
+    async ({ model, gateway, summary }) => {
+      state.startModel = model;
+      state.startCodexConfig =
+        summary === undefined
+          ? undefined
+          : { model_reasoning_summary: summary };
+      if (gateway) {
+        process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.test/v1';
+      }
+
+      await import('./index');
+
+      expect(state.emittedErrors).toEqual([]);
+      expect(state.appServerOptions).toHaveLength(1);
+      const actual = state.appServerOptions[0]!;
+      expect(actual.codexConfig.model_reasoning_summary).toBe(
+        summary ?? 'detailed',
+      );
+    },
+  );
 
   test.each(['xhigh', 'max'] as const)(
     'passes %s reasoning effort to app-server',
@@ -367,7 +404,7 @@ describe('Codex bridge config', () => {
     expect(state.appServerOptions[0]?.threadId).toBe('thread-previous');
   });
 
-  test('uses the creator-qualified model and forces summaries for AI Gateway', async () => {
+  test('uses the creator-qualified model and defaults to detailed summaries for AI Gateway', async () => {
     process.env.AI_GATEWAY_API_KEY = 'gateway-key';
     process.env.AI_GATEWAY_BASE_URL = 'https://ai-gateway.test/v1';
 
@@ -377,14 +414,10 @@ describe('Codex bridge config', () => {
       model: state.appServerOptions[0]?.codexModel,
       reasoningSummary:
         state.appServerOptions[0]?.codexConfig.model_reasoning_summary,
-      supportsReasoningSummaries:
-        state.appServerOptions[0]?.codexConfig
-          .model_supports_reasoning_summaries,
     }).toMatchInlineSnapshot(`
       {
         "model": "openai/gpt-5.5",
         "reasoningSummary": "detailed",
-        "supportsReasoningSummaries": true,
       }
     `);
   });

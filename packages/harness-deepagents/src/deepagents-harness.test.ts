@@ -1,10 +1,12 @@
 import type {
+  HarnessV1BuiltinTool,
   HarnessV1NetworkSandboxSession,
   HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
+import { asSchema } from '@ai-sdk/provider-utils';
 import type * as NodeFsPromises from 'node:fs/promises';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { createDeepAgents } from './deepagents-harness';
 
 // Captures the wireTurn `onClose` handler so tests can fire a close with a chosen reason.
@@ -221,6 +223,27 @@ describe('createDeepAgents', () => {
     expect(harness.harnessId).toBe('deepagents');
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
     expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
+  });
+
+  it('registers the native delete tool as a mutation', async () => {
+    const harness = createDeepAgents();
+    const deleteTool = harness.builtinTools.delete;
+    expectTypeOf(deleteTool).toEqualTypeOf<
+      HarnessV1BuiltinTool<{ file_path: string }, any>
+    >();
+    expect(deleteTool).toBeDefined();
+    expect(deleteTool.toolUseKind).toBe('edit');
+    expect(deleteTool).not.toHaveProperty('commonName');
+    expect(deleteTool).not.toHaveProperty('nativeName');
+    const schema = asSchema(deleteTool.inputSchema!);
+    await expect(
+      schema.validate!({ file_path: '/workspace/file.txt' }),
+    ).resolves.toEqual({
+      success: true,
+      value: { file_path: '/workspace/file.txt' },
+    });
+    expect((await schema.validate!({})).success).toBe(false);
+    expect((await schema.validate!({ file_path: 1 })).success).toBe(false);
   });
 
   it('ships bridge dependencies and installs them in its bootstrap', async () => {
@@ -587,6 +610,34 @@ describe('createDeepAgents', () => {
       type: 'start',
       mcpServers,
     });
+    await session.doDestroy();
+  });
+
+  it('forwards individual active skill directories as readable roots', async () => {
+    sentMessages.length = 0;
+    const session = await createDeepAgents().doStart({
+      sessionId: 'test-session',
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      sandboxSession: fakeSandboxSession(),
+    });
+    await session.doPromptTurn({
+      skills: [
+        {
+          name: 'demo',
+          description: 'Demo skill.',
+          content: 'Read reference.md.',
+        },
+      ],
+      tools: [],
+      prompt: 'Use demo.',
+      emit: () => {},
+    });
+    expect(sentMessages[0]).toEqual(
+      expect.objectContaining({
+        type: 'start',
+        readableSkillRoots: ['/home/vercel-sandbox/.agents/skills/demo'],
+      }),
+    );
     await session.doDestroy();
   });
 

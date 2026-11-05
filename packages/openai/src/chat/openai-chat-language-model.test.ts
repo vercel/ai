@@ -187,6 +187,150 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract a refusal as text content', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-refusal',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-4o-2024-08-06',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              refusal: "I'm sorry, I can't assist with that request.",
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      {
+        type: 'text',
+        text: "I'm sorry, I can't assist with that request.",
+      },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'content-filter',
+      raw: 'stop',
+    });
+  });
+
+  it('should extract a refusal from a real response as text content', async () => {
+    prepareJsonFixtureResponse('openai-refusal');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      {
+        type: 'text',
+        text: "I'm very sorry, but I can't assist with that request.",
+      },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'content-filter',
+      raw: 'stop',
+    });
+  });
+
+  it('should extract content and refusal as text content', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-content-and-refusal',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-4o-2024-08-06',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Here is the first part. ',
+              refusal: 'I cannot continue with the rest.',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      { type: 'text', text: 'Here is the first part. ' },
+      { type: 'text', text: 'I cannot continue with the rest.' },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'content-filter',
+      raw: 'stop',
+    });
+  });
+
+  it('should keep the tool call finish reason when a refusal is present', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-refusal-tool-call',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-4o-2024-08-06',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              refusal: 'Let me look that up.',
+              tool_calls: [
+                {
+                  id: 'call-1',
+                  type: 'function',
+                  function: {
+                    name: 'test-tool',
+                    arguments: '{"value":"Spark"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      { type: 'text', text: 'Let me look that up.' },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: '{"value":"Spark"}',
+      },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'tool-calls',
+      raw: 'tool_calls',
+    });
+  });
+
   it('should extract an audio transcript alongside tool calls', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'json-value',
@@ -2849,6 +2993,281 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should stream a refusal as text deltas', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":null,"refusal":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":"I'm"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":" sorry, but I can't assist with that request."},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-refusal",
+          "modelId": "gpt-4o-2024-08-06",
+          "timestamp": 1970-01-01T00:00:01.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "I'm",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " sorry, but I can't assist with that request.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": {
+            "raw": "stop",
+            "unified": "content-filter",
+          },
+          "providerMetadata": {
+            "openai": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should stream a refusal from a real response as text deltas', async () => {
+    prepareChunksFixtureResponse('openai-refusal');
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-Egi9csIJjpCxGlUk8ywkdX7vmz6Si",
+          "modelId": "gpt-4o-2024-08-06",
+          "timestamp": 2026-11-05T03:10:12.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "I'm",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " very",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " sorry",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": ",",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " but",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " I",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " can't",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " assist",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " with",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " that",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": ".",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": {
+            "raw": "stop",
+            "unified": "content-filter",
+          },
+          "providerMetadata": {
+            "openai": {
+              "acceptedPredictionTokens": 0,
+              "rejectedPredictionTokens": 0,
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 74,
+              "total": 74,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 12,
+              "total": 12,
+            },
+            "raw": {
+              "completion_tokens": 12,
+              "completion_tokens_details": {
+                "accepted_prediction_tokens": 0,
+                "reasoning_tokens": 0,
+                "rejected_prediction_tokens": 0,
+              },
+              "prompt_tokens": 74,
+              "prompt_tokens_details": {
+                "cached_tokens": 0,
+              },
+              "total_tokens": 86,
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should append refusal deltas to streamed content', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-content-and-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":"Here is the first part."},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-and-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":" I cannot continue."},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-and-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-content-and-refusal",
+          "modelId": "gpt-4o-2024-08-06",
+          "timestamp": 1970-01-01T00:00:01.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Here is the first part.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " I cannot continue.",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": {
+            "raw": "stop",
+            "unified": "content-filter",
+          },
+          "providerMetadata": {
+            "openai": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
+          },
+        },
+      ]
+    `);
+  });
+
   it('should stream text deltas', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
@@ -3907,6 +4326,90 @@ describe('doStream', () => {
     `);
   });
 
+  it('should forward error stream parts after a refusal has started', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-refusal-error","object":"chat.completion.chunk","created":1702657020,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":null,"refusal":"I'm sorry"},"finish_reason":null}]}\n\n`,
+        `data: {"error":{"message":"stream failed after refusal","type":"server_error","param":null,"code":null}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-refusal-error",
+          "modelId": "gpt-4o-2024-08-06",
+          "timestamp": 2023-12-15T16:17:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "0",
+          "type": "text-start",
+        },
+        {
+          "delta": "I'm sorry",
+          "id": "0",
+          "type": "text-delta",
+        },
+        {
+          "error": {
+            "code": undefined,
+            "data": {
+              "code": null,
+              "message": "stream failed after refusal",
+              "param": null,
+              "type": "server_error",
+            },
+            "isRetryable": true,
+            "message": "stream failed after refusal",
+            "statusCode": 500,
+            "type": "server_error",
+          },
+          "type": "error",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
+          "providerMetadata": {
+            "openai": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
+          },
+        },
+      ]
+    `);
+  });
+
   it('should handle unparsable stream parts', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
@@ -4681,3 +5184,40 @@ it.each(['generate', 'stream'] as const)(
     expect(fetch.mock.calls[0][0]).toBe(url);
   },
 );
+
+describe('message name request bodies', () => {
+  it.each(['generate', 'stream'] as const)(
+    'serializes names in %s requests',
+    async mode => {
+      if (mode === 'generate') prepareJsonFixtureResponse('openai-text');
+      else prepareChunksFixtureResponse('openai-text');
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+          providerOptions: { openai: { name: 'alice' } },
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hi' }],
+          providerOptions: { openai: { name: 'bot' } },
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Say OK' }],
+          providerOptions: { openai: { name: 'bob' } },
+        },
+      ];
+      if (mode === 'generate') await model.doGenerate({ prompt });
+      else {
+        const { stream } = await model.doStream({ prompt });
+        await convertReadableStreamToArray(stream);
+      }
+      expect((await server.calls[0].requestBodyJson).messages).toEqual([
+        { role: 'user', content: 'Hello', name: 'alice' },
+        { role: 'assistant', content: 'Hi', name: 'bot' },
+        { role: 'user', content: 'Say OK', name: 'bob' },
+      ]);
+    },
+  );
+});

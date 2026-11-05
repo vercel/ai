@@ -1,5 +1,74 @@
 # ai
 
+## 7.0.163
+
+### Patch Changes
+
+- 5d18351: fix(ai): detect downloaded audio types from bytes when servers return a generic or non-audio content type such as application/octet-stream
+- 8da48db: Respect `recordInputs` and `recordOutputs` when delivering telemetry events to integrations and the `ai:telemetry` channel. Filter nested content and omit raw span results when content recording is disabled, while preserving application results.
+- fd7e8a7: Preserve the order of text and complete function calls in streamed Google responses, including standalone thought signatures on empty text or reasoning parts.
+
+  Keep provider metadata on empty text parts when converting results to response messages so it can be passed back in subsequent requests.
+
+  Omit foreign-provider empty signature text when replaying history through Anthropic or Bedrock, preserving Bedrock’s existing native reasoning-history handling.
+
+- 36802d4: Support native URL transcription with an optional provider capability, keeping existing file-generation contracts unchanged. Groq sends HTTP(S) audio URLs through its `url` parameter without downloading and re-uploading them, avoiding the attachment upload limit. Supplying a custom `download` function retains local download behavior.
+
+  For telemetry integrations, `TranscriptionEndEvent.audio.byteLength` and `audio.mediaType` can now be `undefined` when a provider fetches the audio URL natively. Check for missing values before using them as a number or string. Downloaded and inline audio continue to report their metadata; streaming transcription metadata is unchanged.
+
+  Strip media fragments before sending URLs to Groq. If Groq rejects a redirect, fall back to the existing secure local downloader and file upload rather than failing previously working URL inputs. Other provider errors are preserved.
+
+- 933dae3: fix (ai): download deprecated `file-url` and `image-url` tool result content
+
+  Tool result content parts that use the deprecated `file-url` and `image-url`
+  types were converted to `file` parts with `{ type: 'url' }` data, but they were
+  never passed to the download function. When the model does not support the URL,
+  the provider received a bare URL instead of the file contents, even though the
+  replacement `file` part with `{ type: 'url' }` data was downloaded and inlined.
+
+  Downloaded legacy URL parts now use the same media type normalization as file
+  parts, resolving generic types from the response header or image bytes.
+  Legacy base64 data URLs also normalize to inline data with the media type from
+  their data URL, matching replacement file parts.
+
+- e0143b0: feat(ai): support provider-owned realtime transports
+
+  Add an optional `createTransport` interface and `provider` connection capability.
+
+- 934100c: Report the actual OpenAI Chat HTTP endpoint (also used by Azure Chat and Bedrock Mantle Chat) through optional request metadata and model-call end events. Record its host and port on OpenTelemetry chat spans without exposing URL credentials, paths, queries, or fragments. Expose only the sanitized HTTP origin in text and object generation results and step/finish callbacks. Providers that do not report an endpoint leave these attributes unset.
+- c389374: fix(ai): infer union output types when passing a union of schemas to `Output.object` and `Output.array`
+
+  Previously, passing a schema whose type is a union of schemas (e.g. a schema selected from a map at runtime) failed to type-check because the output type was inferred from the first union member only. The output type is now inferred as the union of the schemas' output types.
+
+- 892af4d: feat (ai): re-export realtime server-connection and usage types
+
+  Adds `Experimental_RealtimeServerConnection`, `Experimental_RealtimeSessionIntent`, and `Experimental_RealtimeUsage` aliases for the new experimental `RealtimeModelV4` server-side spec types.
+
+- 1a1da8d: stream steering messages to the ui and keep them in converted messages
+- 41465fd: Expose optional transcription word timings separately from segments and accept shared timestampGranularities. Explicit provider timing settings take precedence. OpenAI now sends timestamp_granularities only with verbose_json and warns when a requested timing is unavailable or excluded.
+- 9754014: Add typed streaming heartbeat parts. Anthropic emits them only with `includePings: true` (disabled by default), without requiring raw chunks. Core forwards pings through stream retries without storing them as generated content or sending them to UI message streams. Consumers with exhaustive stream-part switches must handle the new `ping` union variant when upgrading, even when the opt-in is disabled. Typed pings do not flush partial words during stream smoothing.
+- 2e44144: Represent videos delivered directly to caller-managed storage with an explicit uploaded outcome. Video generation reports `uploadedVideos` without downloading or synthesizing video bytes; access `video` only when `videos` is nonempty.
+- Updated dependencies [722d4a9]
+- Updated dependencies [acea2b5]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [2e44144]
+- Updated dependencies [36802d4]
+- Updated dependencies [ef2dfb5]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [32acf43]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/gateway@4.0.136
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 7.0.162
 
 ### Patch Changes
