@@ -7,12 +7,14 @@ export type GladiaConfig = {
   fetch?: FetchFunction;
   generateId?: () => string;
   /**
+   * Interval in milliseconds between transcription job status checks.
+   * Defaults to 1000 (1 second).
+   */
+  pollIntervalMs?: number;
+  /**
    * Maximum time in milliseconds to wait for an asynchronous transcription job
    * to finish before throwing a `TranscriptionJobPollingTimedOut` error.
+   * Defaults to 600000 (10 minutes).
    */
-  pollingTimeoutMs?: number;
-  /**
-   * Interval in milliseconds between transcription job status checks.
-   */
-  pollingIntervalMs?: number;
+  pollTimeoutMs?: number;
 };
