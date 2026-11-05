@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { isLocalDevelopmentRequest } from '../../is-local-development-request';
 
 const dynamic = 'force-dynamic';
