@@ -18,18 +18,18 @@ export const deepgramSpeechModelOptionsSchema = lazySchema(() =>
       /** Sample rate for the output audio in Hz (8000, 16000, 24000, 44100, 48000). */
       sampleRate: z.number().nullish(),
       /**
-       * URL to which we'll make the callback request.
+       * URL to which Deepgram would deliver the audio asynchronously.
        *
-       * Not supported by the AI SDK: Deepgram answers callback requests
-       * asynchronously with a JSON acknowledgement instead of audio, so
-       * `generateSpeech` rejects this option.
+       * Deepgram answers callback requests with a JSON acknowledgement instead
+       * of audio, so `generateSpeech` rejects this option.
+       *
+       * @deprecated Not supported by generateSpeech: throws InvalidArgumentError.
        */
       callback: z.string().url().nullish(),
       /**
        * HTTP method by which the callback request will be made (POST or PUT).
        *
-       * Only used together with `callback`, which is not supported by the AI
-       * SDK. The option is ignored.
+       * @deprecated Ignored (with a warning).
        */
       callbackMethod: z.enum(['POST', 'PUT']).nullish(),
       /** Opts out requests from the Deepgram Model Improvement Program. */

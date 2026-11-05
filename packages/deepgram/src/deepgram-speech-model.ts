@@ -87,7 +87,7 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
     if (deepgramOptions?.callbackMethod != null) {
       warnings.push({
         type: 'unsupported',
-        feature: 'providerOptions',
+        feature: 'providerOptions.deepgram.callbackMethod',
         details:
           'providerOptions.deepgram.callbackMethod is only used together with `callback`, which is not supported by the AI SDK. Callback method was ignored.',
       });

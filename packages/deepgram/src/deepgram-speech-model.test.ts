@@ -264,8 +264,6 @@ describe('doGenerate', () => {
   });
 
   it('should reject the callback provider option because Deepgram returns a JSON acknowledgement instead of audio', async () => {
-    prepareAudioResponse();
-
     await expect(
       model.doGenerate({
         text: 'Hello, welcome to Deepgram!',
@@ -281,6 +279,30 @@ describe('doGenerate', () => {
       );
       expect((error as Error).message).toContain(
         'returns a JSON acknowledgement instead of audio',
+      );
+      return true;
+    });
+
+    // the request is rejected before any API call is made
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('should reject the callback provider option when callbackMethod is also set', async () => {
+    await expect(
+      model.doGenerate({
+        text: 'Hello, welcome to Deepgram!',
+        voice: 'helena',
+        providerOptions: {
+          deepgram: {
+            callback: 'https://example.com/callback',
+            callbackMethod: 'PUT',
+          },
+        },
+      }),
+    ).rejects.toSatisfy((error: unknown) => {
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect((error as InvalidArgumentError).argument).toBe(
+        'providerOptions.deepgram.callback',
       );
       return true;
     });
@@ -306,7 +328,7 @@ describe('doGenerate', () => {
       [
         {
           "details": "providerOptions.deepgram.callbackMethod is only used together with \`callback\`, which is not supported by the AI SDK. Callback method was ignored.",
-          "feature": "providerOptions",
+          "feature": "providerOptions.deepgram.callbackMethod",
           "type": "unsupported",
         },
       ]
