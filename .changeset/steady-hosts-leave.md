@@ -10,4 +10,4 @@
 '@ai-sdk/harness-opencode': patch
 ---
 
-abort a running turn when its host disconnects for good
+fix(harness): abort a running turn when its host disconnects for good
