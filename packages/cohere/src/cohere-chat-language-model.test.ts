@@ -1390,17 +1390,17 @@ describe('doStream', () => {
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'What are AI benefits?' },
+              { type: 'text', text: 'What is the capital of Zephyria?' },
               {
                 type: 'file',
                 data: {
                   type: 'data' as const,
                   data: Buffer.from(
-                    'AI provides automation and efficiency.',
+                    'Zephyria is a fictional country. Its capital city is Marrowdale, a coastal city known for its lighthouses.',
                   ).toString('base64'),
                 },
                 mediaType: 'text/plain',
-                filename: 'ai-benefits.txt',
+                filename: 'zephyria.txt',
               },
             ],
           },
@@ -1408,7 +1408,38 @@ describe('doStream', () => {
         includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      expect(
+        (await convertReadableStreamToArray(stream)).filter(
+          part => part.type === 'source',
+        ),
+      ).toStrictEqual([
+        {
+          type: 'source',
+          sourceType: 'document',
+          id: 'test-citation-id',
+          mediaType: 'text/plain',
+          title: 'zephyria.txt',
+          providerMetadata: {
+            cohere: {
+              start: 49,
+              end: 60,
+              text: 'Marrowdale.',
+              sources: [
+                {
+                  type: 'document',
+                  id: 'doc:0',
+                  document: {
+                    id: 'doc:0',
+                    text: 'Zephyria is a fictional country. Its capital city is Marrowdale, a coastal city known for its lighthouses.',
+                    title: 'zephyria.txt',
+                  },
+                },
+              ],
+              citationType: 'TEXT_CONTENT',
+            },
+          },
+        },
+      ]);
     });
 
     it('should stream a source for each citation in a citation-start event', async () => {
@@ -1492,7 +1523,9 @@ describe('doStream', () => {
           type: 'citation-start',
           index: 0,
           delta: {
-            message: { citations: { sources: [{ type: 'document' }] } },
+            message: {
+              citations: { sources: [{ type: 'document', document: {} }] },
+            },
           },
         },
         { type: 'citation-end', index: 0 },
@@ -1509,7 +1542,7 @@ describe('doStream', () => {
       const parts = await convertReadableStreamToArray(stream);
 
       expect(parts.some(part => part.type === 'error')).toBe(false);
-      expect(parts.filter(part => part.type === 'source')).toMatchObject([
+      expect(parts.filter(part => part.type === 'source')).toStrictEqual([
         {
           type: 'source',
           sourceType: 'document',
@@ -1518,14 +1551,171 @@ describe('doStream', () => {
           title: 'Document',
           providerMetadata: {
             cohere: {
-              start: null,
-              end: null,
-              text: null,
-              sources: [{ type: 'document' }],
+              sources: [{ type: 'document', document: {} }],
             },
           },
         },
       ]);
+    });
+
+    it('should tolerate a citation-start event without citations', async () => {
+      prepareChunkLinesResponse([
+        { type: 'citation-start', index: 0 },
+        { type: 'citation-end', index: 0 },
+        {
+          type: 'message-end',
+          delta: {
+            finish_reason: 'COMPLETE',
+            usage: { tokens: { input_tokens: 5, output_tokens: 2 } },
+          },
+        },
+      ]);
+
+      const testProvider = createCohere({ apiKey: 'test-api-key' });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      expect(parts.some(part => part.type === 'source')).toBe(false);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'stop' },
+      });
+    });
+
+    it('should skip tool-only citations', async () => {
+      prepareChunkLinesResponse([
+        {
+          type: 'citation-start',
+          index: 0,
+          delta: {
+            message: {
+              citations: {
+                start: 6,
+                end: 11,
+                text: 'sunny',
+                sources: [
+                  {
+                    type: 'tool',
+                    id: 'getWeather:0',
+                    tool_output: { city: 'Berlin', condition: 'sunny' },
+                  },
+                ],
+                type: 'TEXT_CONTENT',
+              },
+            },
+          },
+        },
+        { type: 'citation-end', index: 0 },
+      ]);
+
+      const testProvider = createCohere({ apiKey: 'test-api-key' });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      expect(parts.some(part => part.type === 'source')).toBe(false);
+    });
+
+    it('should emit a source with a distinct id for each citation-start event', async () => {
+      const citation = {
+        start: 49,
+        end: 60,
+        text: 'Marrowdale.',
+        sources: [
+          {
+            type: 'document',
+            id: 'doc:0',
+            document: {
+              id: 'doc:0',
+              text: 'Zephyria is a fictional country.',
+              title: 'zephyria.txt',
+            },
+          },
+        ],
+        type: 'TEXT_CONTENT',
+      };
+      prepareChunkLinesResponse([
+        {
+          type: 'citation-start',
+          index: 0,
+          delta: { message: { citations: citation } },
+        },
+        { type: 'citation-end', index: 0 },
+        {
+          type: 'citation-start',
+          index: 0,
+          delta: { message: { citations: citation } },
+        },
+        { type: 'citation-end', index: 0 },
+      ]);
+
+      const mockGenerateId = vi
+        .fn()
+        .mockReturnValueOnce('test-citation-id-1')
+        .mockReturnValueOnce('test-citation-id-2');
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: mockGenerateId,
+      });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({ prompt: TEST_PROMPT });
+      const sources = (await convertReadableStreamToArray(stream)).filter(
+        part => part.type === 'source',
+      );
+
+      expect(
+        sources.map(source => (source as { id: string }).id),
+      ).toStrictEqual(['test-citation-id-1', 'test-citation-id-2']);
+      expect(sources).toMatchObject([
+        { sourceType: 'document', title: 'zephyria.txt' },
+        { sourceType: 'document', title: 'zephyria.txt' },
+      ]);
+    });
+
+    it('should use a fallback title for untitled documents', async () => {
+      prepareChunkLinesResponse([
+        {
+          type: 'citation-start',
+          index: 0,
+          delta: {
+            message: {
+              citations: {
+                start: 0,
+                end: 4,
+                text: 'text',
+                sources: [
+                  {
+                    type: 'document',
+                    id: 'doc:0',
+                    document: { id: 'doc:0', text: 'text' },
+                  },
+                ],
+                type: 'TEXT_CONTENT',
+              },
+            },
+          },
+        },
+        { type: 'citation-end', index: 0 },
+      ]);
+
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-citation-id',
+      });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({ prompt: TEST_PROMPT });
+      const sources = (await convertReadableStreamToArray(stream)).filter(
+        part => part.type === 'source',
+      );
+
+      expect(sources).toMatchObject([{ title: 'Document' }]);
     });
   });
 
