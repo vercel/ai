@@ -21,10 +21,16 @@ describe.each([
   });
 
   describe.each(['GET', 'POST'] as const)('%s', method => {
-    const download = (url: string, headers?: HeadersInit) =>
-      route[method](new Request(url, { method, headers }), {
-        params: Promise.resolve({ file: 'file_test' }),
-      });
+    const download = (url: string, headers?: Record<string, string>) =>
+      route[method](
+        new Request(url, {
+          method,
+          headers: { host: new URL(url).host, ...headers },
+        }),
+        {
+          params: Promise.resolve({ file: 'file_test' }),
+        },
+      );
 
     it.each(['production', 'test', undefined])(
       'rejects NODE_ENV=%s before accessing provider credentials',
