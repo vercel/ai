@@ -49,6 +49,11 @@ const index = await fetch(origin, {
   signal: AbortSignal.timeout(60_000),
 });
 assert(index.ok && (await index.text()).includes('JSON catalog for agents'));
+assert.equal(index.headers.get('x-content-type-options'), 'nosniff');
+assert.match(
+  index.headers.get('content-security-policy') ?? '',
+  /default-src 'none'/,
+);
 const temp = await realpath(
   await mkdtemp(join(tmpdir(), 'ai-tarballs-smoke-')),
 );
@@ -61,6 +66,12 @@ try {
       signal: AbortSignal.timeout(60_000),
     });
     assert(response.ok, `${pkg.name}: HTTP ${response.status}`);
+    assert.equal(
+      response.headers.get('content-type'),
+      'application/octet-stream',
+    );
+    assert.equal(response.headers.get('content-disposition'), 'attachment');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
     const bytes = Buffer.from(await response.arrayBuffer());
     assert.equal(integrity(bytes), pkg.integrity);
     const file = join(temp, packageFile(pkg.name));

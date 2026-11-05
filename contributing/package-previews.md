@@ -141,7 +141,9 @@ VERCEL_GIT_COMMIT_REF=$(git branch --show-current) \
 node tools/tarballs/build.mjs
 ```
 
-Serve `tools/tarballs/dist/` over HTTPS at that origin, then check it with:
+Serve `tools/tarballs/dist/` over HTTPS at that origin, applying the response
+headers declared in `vercel.json`. The smoke check validates those headers as
+well as package contents:
 
 ```sh
 TARBALLS_URL=https://localhost:8443 \
