@@ -5,6 +5,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { GatewayLanguageModel } from './gateway-language-model';
 import type { GatewayConfig } from './gateway-config';
@@ -1911,6 +1912,205 @@ describe('GatewayLanguageModel', () => {
       expect(requestBody.prompt[0].content[0].data).toEqual({
         type: 'url',
         url: 'https://example.com/a.png',
+      });
+    });
+  });
+
+  describe('generated files with experimental streaming decoding', () => {
+    function bytesOf(length: number, seed = 1) {
+      const bytes = new Uint8Array(length);
+      let state = seed;
+      for (let index = 0; index < length; index++) {
+        state = (state * 1103515245 + 12345) >>> 0;
+        bytes[index] = state >>> 24;
+      }
+      return bytes;
+    }
+
+    const large = bytesOf(70_000, 1);
+    const largeBase64 = convertUint8ArrayToBase64(large);
+    const small = bytesOf(1_000, 2);
+    const smallBase64 = convertUint8ArrayToBase64(small);
+
+    const fileOf = (data: string | Uint8Array) => ({
+      type: 'file',
+      mediaType: 'image/png',
+      data: { type: 'data', data },
+    });
+
+    const responseOf = (content: unknown[]) => ({
+      content,
+      finishReason: { unified: 'stop', raw: 'STOP' },
+      usage: {
+        inputTokens: { total: 7, noCache: 7 },
+        outputTokens: { total: 9, text: 9 },
+      },
+      warnings: [],
+      providerMetadata: { gateway: { cost: '0.04' } },
+    });
+
+    function respondWith(content: unknown[]) {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'json-value',
+        body: responseOf(content),
+      };
+    }
+
+    const decoding = {
+      gateway: { experimental_streamingImageDecoding: true },
+    };
+
+    it.each([undefined, false])(
+      'should preserve base64 file data when the option is %s',
+      async enabled => {
+        respondWith([fileOf(largeBase64)]);
+
+        const result = await createTestModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions:
+            enabled === undefined
+              ? {}
+              : { gateway: { experimental_streamingImageDecoding: enabled } },
+        });
+
+        expect(result.content).toEqual([fileOf(largeBase64)]);
+      },
+    );
+
+    it('should return generated files of 64 KiB and more as Uint8Array', async () => {
+      respondWith([
+        { type: 'text', text: 'Here is the image' },
+        fileOf(largeBase64),
+        fileOf(smallBase64),
+      ]);
+
+      const result = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: decoding,
+      });
+
+      expect(result.content).toEqual([
+        { type: 'text', text: 'Here is the image' },
+        fileOf(large),
+        fileOf(smallBase64),
+      ]);
+      expect(result.content[1]).toMatchObject({
+        data: { data: expect.any(Uint8Array) },
+      });
+    });
+
+    it('should keep file data that is not canonical base64 as a string', async () => {
+      const base64Url = largeBase64.replace(/\+/g, '-').replace(/\//g, '_');
+      respondWith([fileOf(base64Url)]);
+
+      const result = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: decoding,
+      });
+
+      expect(result.content).toEqual([fileOf(base64Url)]);
+    });
+
+    it('should read a body that arrives in small chunks', async () => {
+      const body = JSON.stringify(
+        responseOf([fileOf(largeBase64), fileOf(smallBase64)]),
+      );
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        headers: { 'Content-Type': 'application/json' },
+        chunks: body.match(/[\s\S]{1,1999}/g) ?? [],
+      };
+
+      const result = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: decoding,
+      });
+
+      expect(result.content).toEqual([fileOf(large), fileOf(smallBase64)]);
+    });
+
+    it('should not change the other fields of the result and keep the raw response body small', async () => {
+      respondWith([fileOf(largeBase64)]);
+
+      const result = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: decoding,
+      });
+
+      expect(result).toMatchObject({
+        finishReason: { unified: 'stop', raw: 'STOP' },
+        usage: {
+          inputTokens: { total: 7, noCache: 7 },
+          outputTokens: { total: 9, text: 9 },
+        },
+        providerMetadata: { gateway: { cost: '0.04' } },
+        warnings: [],
+      });
+      const rawBody = JSON.stringify(result.response?.body);
+      expect(rawBody).toContain('[binary data: 70000 bytes');
+      expect(rawBody.length).toBeLessThan(2000);
+    });
+
+    it.each([true, false])(
+      'should remove the client option set to %s while preserving service options',
+      async enabled => {
+        respondWith([fileOf(smallBase64)]);
+        const providerOptions = {
+          gateway: {
+            experimental_streamingImageDecoding: enabled,
+            tags: ['images'],
+          },
+          google: { responseModalities: ['TEXT', 'IMAGE'] },
+        };
+
+        await createTestModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions,
+        });
+
+        expect((await server.calls[0].requestBodyJson).providerOptions).toEqual(
+          {
+            gateway: { tags: ['images'] },
+            google: { responseModalities: ['TEXT', 'IMAGE'] },
+          },
+        );
+        expect(
+          providerOptions.gateway.experimental_streamingImageDecoding,
+        ).toBe(enabled);
+      },
+    );
+
+    it('should omit providerOptions when the client option is its only entry', async () => {
+      respondWith([fileOf(smallBase64)]);
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: decoding,
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).providerOptions,
+      ).toBeUndefined();
+    });
+
+    it('should remove the client option from streaming requests', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ type: 'finish', finishReason: 'stop' })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: { experimental_streamingImageDecoding: true, tags: ['x'] },
+        },
+      });
+      await convertReadableStreamToArray(stream);
+
+      expect((await server.calls[0].requestBodyJson).providerOptions).toEqual({
+        gateway: { tags: ['x'] },
       });
     });
   });
