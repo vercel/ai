@@ -2,11 +2,11 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import {
+  copyFile,
   mkdtemp,
   mkdir,
   readFile,
   readdir,
-  rename,
   rm,
   writeFile,
 } from 'node:fs/promises';
@@ -72,7 +72,8 @@ export async function pack(root, output, value) {
         assert.equal(files.length, 1);
         assert(files[0].endsWith('.tgz'));
         const target = join(output, packageFile(manifest.name));
-        await rename(join(temp, files[0]), target);
+        // Vercel's temporary directory and checkout can be separate mounts.
+        await copyFile(join(temp, files[0]), target);
         metadata.push({
           name: manifest.name,
           version: rewritten.version,

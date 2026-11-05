@@ -6,6 +6,7 @@ import {
   readFile,
   readdir,
   rm,
+  stat,
   symlink,
   writeFile,
 } from 'node:fs/promises';
@@ -200,9 +201,11 @@ test('site rejects injected files, symlinks, false versions, and corrupted bytes
   }
 });
 
-test('real pack lifecycle embeds preview versions before build and rewrites packed dependencies', async () => {
+async function checkPackLifecycle(outputParent) {
   const root = await mkdtemp(join(tmpdir(), 'ai-tarball-pack-'));
-  const output = join(root, 'tarballs');
+  const output = outputParent
+    ? await mkdtemp(join(outputParent, 'ai-tarball-output-'))
+    : join(root, 'tarballs');
   try {
     const definitions = [
       {
@@ -286,8 +289,34 @@ for (const dir of readdirSync('packages')) {
     await assemble(output, join(root, 'site'), c);
   } finally {
     await rm(root, { recursive: true, force: true });
+    if (outputParent) await rm(output, { recursive: true, force: true });
   }
-});
+}
+
+test('real pack lifecycle embeds preview versions before build and rewrites packed dependencies', () =>
+  checkPackLifecycle());
+
+test(
+  'packing supports an output directory on another filesystem',
+  {
+    skip: process.platform !== 'linux',
+  },
+  async t => {
+    let outputStat;
+    try {
+      outputStat = await stat('/dev/shm');
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      t.skip('A separate temporary filesystem is unavailable');
+      return;
+    }
+    if (outputStat.dev === (await stat(tmpdir())).dev) {
+      t.skip('Temporary and output directories share a filesystem');
+      return;
+    }
+    await checkPackLifecycle('/dev/shm');
+  },
+);
 
 test('failed builds restore the original package manifests', async () => {
   const root = await mkdtemp(join(tmpdir(), 'ai-tarball-fail-'));
