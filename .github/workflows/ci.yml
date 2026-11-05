@@ -38,6 +38,9 @@ jobs:
       - name: Run ultracite check
         run: pnpm run check
 
+      - name: Test package preview tooling
+        run: node --test tools/tarballs/*.test.mjs
+
   build-examples_matrix:
     name: 'Build Examples (${{ matrix.shard }})'
     runs-on: ubuntu-latest
