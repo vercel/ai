@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
+    "test:downloads": "vitest run --config vitest.downloads.config.ts",
     "start": "next start"
   },
   "dependencies": {
