@@ -17,7 +17,10 @@ import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type { AnthropicLanguageModelOptions } from './anthropic-language-model-options';
-import { getModelCapabilities } from './anthropic-language-model';
+import {
+  AnthropicLanguageModel,
+  getModelCapabilities,
+} from './anthropic-language-model';
 import type { AnthropicTextProviderMetadata } from './anthropic-provider-metadata';
 import { anthropic, createAnthropic } from './anthropic-provider';
 
@@ -61,6 +64,18 @@ describe('AnthropicLanguageModel', () => {
       chunks,
     };
   }
+
+  it('ignores typed ping opt-in for non-streaming requests', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { anthropic: { includePings: true } },
+    });
+    expect(result.content.some(part => part.type === 'text')).toBe(true);
+    expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+      'includePings',
+    );
+  });
 
   describe('initial per-message effort', () => {
     it.each([
@@ -10732,6 +10747,67 @@ describe('AnthropicLanguageModel', () => {
         `);
     });
 
+    it.each(
+      [undefined, false, true].flatMap(includePings =>
+        [false, true].flatMap(includeRawChunks =>
+          ['anthropic', 'vertex'].map(providerKey => ({
+            includePings,
+            includeRawChunks,
+            providerKey,
+          })),
+        ),
+      ),
+    )(
+      'only emits typed pings when enabled ($includePings, raw: $includeRawChunks, key: $providerKey)',
+      async ({ includePings, includeRawChunks, providerKey }) => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+            `data: {"type":"ping"}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":2}}\n\n`,
+            `data: {"type":"message_stop"}\n\n`,
+          ],
+        };
+
+        const currentModel =
+          providerKey === 'anthropic'
+            ? model
+            : new AnthropicLanguageModel('claude-3-haiku-20240307', {
+                provider: 'vertex.anthropic',
+                baseURL: 'https://api.anthropic.com/v1',
+                headers: {},
+              });
+        const { stream } = await currentModel.doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks,
+          providerOptions: { [providerKey]: { includePings } },
+        });
+
+        const chunks = await convertReadableStreamToArray(stream);
+
+        expect(chunks.filter(chunk => chunk.type === 'ping')).toEqual(
+          includePings ? [{ type: 'ping' }] : [],
+        );
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'includePings',
+        );
+        expect(
+          chunks.filter(
+            chunk =>
+              chunk.type === 'raw' &&
+              chunk.rawValue != null &&
+              typeof chunk.rawValue === 'object' &&
+              'type' in chunk.rawValue &&
+              chunk.rawValue.type === 'ping',
+          ),
+        ).toHaveLength(includeRawChunks ? 1 : 0);
+      },
+    );
+
     describe('raw chunks', () => {
       it('should include raw chunks when includeRawChunks is enabled', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
@@ -12589,6 +12665,31 @@ describe('AnthropicLanguageModel', () => {
         `);
       }
     });
+
+    it.each([false, true])(
+      'preserves startup error handling after pings (raw: %s)',
+      async includeRawChunks => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            'data: {"type":"ping"}\n\n',
+            'data: {"type":"ping"}\n\n',
+            'data: {"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}\n\n',
+          ],
+        };
+        await expect(
+          model.doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks,
+            providerOptions: { anthropic: { includePings: true } },
+          }),
+        ).rejects.toMatchObject({
+          name: 'AI_APICallError',
+          isRetryable: true,
+          message: 'Overloaded',
+        });
+      },
+    );
 
     it('should throw an api error when the first stream chunk is an overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {

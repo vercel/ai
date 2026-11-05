@@ -2,6 +2,7 @@ import {
   APICallError,
   InvalidArgumentError,
   InvalidResponseDataError,
+  UnsupportedFunctionalityError,
   type JSONObject,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
@@ -272,6 +273,8 @@ export type AnthropicLanguageModelConfig = {
   generateId?: () => string;
   supportsNativeStructuredOutput?: boolean;
   supportsStrictTools?: boolean;
+  /** Opt in only for platforms that support Anthropic message threads. */
+  supportsMessageThreads?: boolean;
   /** Maximum temperature for compatible providers. Defaults to 1. */
   maxTemperature?: number;
   /** Preserve temperature and topP with thinking for compatible providers. */
@@ -618,9 +621,32 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       });
     }
 
+    const thread = anthropicOptions?.thread;
+    if (thread != null && config.supportsMessageThreads !== true) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'Anthropic message threads',
+        message: `${config.provider} does not support Anthropic message threads.`,
+      });
+    }
+    if (
+      thread != null &&
+      (compaction != null ||
+        contextManagement?.edits.some(
+          edit =>
+            edit.type !== 'clear_thinking_20251015' || edit.keep !== 'all',
+        ))
+    ) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.anthropic.thread',
+        message:
+          'Anthropic message threads do not support compaction or context editing, except clear_thinking_20251015 with keep: "all".',
+      });
+    }
+
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator(
       config.cacheControlProviderOptionsName,
+      thread != null && anthropicOptions?.cacheControl != null ? 1 : 0,
     );
 
     const toolNameMapping = createToolNameMapping({
@@ -663,6 +689,35 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       toolsetNames,
       convertMediaPart: config.convertMediaPart,
     });
+
+    if (thread != null) {
+      const unpinnedBetas = [...betas].filter(
+        beta =>
+          !userSuppliedBetas.has(beta) &&
+          !anthropicOptions?.anthropicBeta?.includes(beta),
+      );
+      if (unpinnedBetas.length > 0) {
+        warnings.push({
+          type: 'compatibility',
+          feature: 'providerOptions.anthropic.thread',
+          details:
+            `Message content enabled beta headers: ${unpinnedBetas.join(', ')}. ` +
+            'Thread requests require the same beta set on every turn. Pin these values with anthropicBeta on every request, or start a new thread when the set changes.',
+        });
+      }
+      if (
+        thread.type === 'continue' &&
+        (messagesPrompt.system != null || (tools?.length ?? 0) > 0)
+      ) {
+        warnings.push({
+          type: 'compatibility',
+          feature: 'providerOptions.anthropic.thread',
+          details:
+            'Continuation uses the system prompt and tool definitions stored by the create request; supplied definitions are omitted from the wire request. ' +
+            'Supply identical tools for local tool handling and fixed request settings. To change system instructions or tools, start a new thread.',
+        });
+      }
+    }
 
     /*
      * Map top-level `reasoning` to Anthropic thinking/effort when provider
@@ -917,7 +972,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }),
 
       // prompt:
-      system: messagesPrompt.system,
+      system: thread?.type === 'continue' ? undefined : messagesPrompt.system,
+      ...(thread != null && {
+        thread:
+          thread.type === 'create'
+            ? { type: 'create' as const }
+            : {
+                type: 'continue' as const,
+                previous_message_id: thread.previousMessageId,
+              },
+      }),
       messages: messagesPrompt.messages,
 
       ...(anthropicOptions?.safeguards &&
@@ -1198,18 +1262,22 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     return {
       args: {
         ...baseArgs,
-        tools: anthropicTools,
+        tools: thread?.type === 'continue' ? undefined : anthropicTools,
         tool_choice: anthropicToolChoice,
         stream: stream === true ? true : undefined, // do not send when not streaming
       },
       warnings: [...warnings, ...toolWarnings, ...cacheWarnings],
       betas: new Set([
+        ...(thread != null ? ['message-threads-2026-08-12'] : []),
         ...betas,
         ...toolsBetas,
         ...userSuppliedBetas,
         ...(anthropicOptions?.anthropicBeta ?? []),
       ]),
+      markCodeExecutionDynamic:
+        hasDynamicFilteringWebToolWithoutCodeExecution(anthropicTools),
       usesJsonResponseTool: jsonResponseTool != null,
+      includePings: stream === true && anthropicOptions?.includePings === true,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -1337,6 +1405,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings,
       betas,
       usesJsonResponseTool,
+      markCodeExecutionDynamic,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -1353,9 +1422,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const citationDocuments = [
       ...this.extractCitationDocuments(options.prompt),
     ];
-
-    const markCodeExecutionDynamic =
-      hasDynamicFilteringWebToolWithoutCodeExecution(args.tools);
 
     const {
       responseHeaders,
@@ -2004,6 +2070,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings,
       betas,
       usesJsonResponseTool,
+      markCodeExecutionDynamic,
+      includePings,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -2020,9 +2088,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const citationDocuments = [
       ...this.extractCitationDocuments(options.prompt),
     ];
-
-    const markCodeExecutionDynamic =
-      hasDynamicFilteringWebToolWithoutCodeExecution(body.tools);
 
     const url = this.buildRequestUrl(true);
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -2168,7 +2233,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
           switch (value.type) {
             case 'ping': {
-              return; // ignored
+              if (includePings) controller.enqueue({ type: 'ping' });
+              return;
             }
 
             case 'content_block_start': {
@@ -3438,8 +3504,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
       let result = await firstChunkReader.read();
 
-      // when raw chunks are enabled, the first chunk is a raw chunk, so we need to read the next chunk
-      if (result.value?.type === 'raw') {
+      // Ignore transport-only parts while checking the first provider event.
+      while (result.value?.type === 'raw' || result.value?.type === 'ping') {
         result = await firstChunkReader.read();
       }
 

@@ -772,6 +772,7 @@ export function createGateway(
       baseURL,
       teamIdOrSlug: options.teamIdOrSlug,
       createClientSecret: mintClientSecret,
+      getHeaders,
     });
   provider.experimental_realtime = Object.assign(
     (modelId: GatewayRealtimeModelId) => createRealtimeModel(modelId),
