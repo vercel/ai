@@ -25,7 +25,8 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   if (!isNonEmptyObject(tools)) {
     return {
       tools: undefined,
-      toolChoice: undefined,
+      // Providers can configure native tools without SDK tools.
+      toolChoice: toolChoice === 'none' ? { type: 'none' } : undefined,
     };
   }
 
