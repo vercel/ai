@@ -13,12 +13,14 @@ export function prepareRetries({
   additionalRetryableError,
   parameter = 'maxRetries',
   defaultMaxRetries = 2,
+  initialDelayInMs,
 }: {
   maxRetries: number | undefined;
   abortSignal: AbortSignal | undefined;
   additionalRetryableError?: ShouldRetryFunction;
   parameter?: string;
   defaultMaxRetries?: number;
+  initialDelayInMs?: number;
 }): {
   maxRetries: number;
   retry: RetryFunction;
@@ -47,6 +49,7 @@ export function prepareRetries({
     maxRetries: maxRetriesResult,
     retry: retryWithExponentialBackoffRespectingRetryHeaders({
       maxRetries: maxRetriesResult,
+      initialDelayInMs,
       abortSignal,
       additionalRetryableError,
     }),
