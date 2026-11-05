@@ -750,7 +750,11 @@ export async function convertToAnthropicPrompt({
         for (let j = 0; j < block.messages.length; j++) {
           const message = block.messages[j];
           const isLastMessage = j === block.messages.length - 1;
-          const { content } = message;
+          // Filter before calculating the last part so message cache control
+          // and assistant prefill trimming apply to content actually sent.
+          const content = message.content.filter(
+            part => part.type !== 'text' || part.text.length > 0,
+          );
 
           for (let k = 0; k < content.length; k++) {
             const part = content[k];

@@ -1,5 +1,57 @@
 # @ai-sdk/workflow
 
+## 2.0.95
+
+### Patch Changes
+
+- 85b920f: feat(workflow): remove `experimental_transform` from `WorkflowAgent.stream()`
+
+  Stream transforms cannot reliably run across workflow step boundaries, so the option has been removed along with the `StreamTextTransform` type export.
+
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 2.0.94
+
+### Patch Changes
+
+- 4d6d830: Support a single telemetry operation for durable `WorkflowAgent` runs, including the prompt, final output, steps, and tools. Events recorded in the workflow are reported on completion or suspension with their original timestamps. For OpenTelemetry, pass the same `OpenTelemetryIdGenerator` instance as the tracer provider's `idGenerator` and `sampler` and as `new OpenTelemetry({ durable })`. This explicit bridge carries parent trace context and sampling across steps, reports model spans live with provider requests nested beneath them, and reconstructs the enclosing `invoke_agent` tree when the run completes. Without the bridge, existing live per-model tracing is preserved. Add typed experimental durable context hooks for telemetry integrations; remove reliance on process-global ID-generator detection.
+- Updated dependencies [fa15312]
+- Updated dependencies [857ca45]
+- Updated dependencies [4d6d830]
+  - @ai-sdk/provider-utils@5.0.74
+  - ai@7.0.162
+
+## 2.0.93
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - ai@7.0.161
+  - @ai-sdk/provider-utils@5.0.73
+
 ## 2.0.92
 
 ### Patch Changes

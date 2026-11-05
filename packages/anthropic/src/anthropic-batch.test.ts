@@ -112,6 +112,44 @@ describe('Anthropic batch', () => {
     expect(server.calls).toHaveLength(0);
   });
 
+  it('exposes the applied service tier from batch result usage', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          custom_id: 'tier',
+          result: {
+            type: 'succeeded',
+            message: {
+              ...messageResultBody('OK'),
+              usage: {
+                input_tokens: 1,
+                output_tokens: 1,
+                service_tier: 'batch',
+              },
+            },
+          },
+        }) + '\n',
+      ],
+    };
+    const batch = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+    const [result] = await convertReadableStreamToArray(
+      await batch.doGetBatchResults({ batchId: 'msgbatch_123' }),
+    );
+    expect(result.status).toBe('succeeded');
+    if (result.status !== 'succeeded')
+      throw new Error('Expected a succeeded result');
+    expect(result.result.providerMetadata).toMatchObject({
+      anthropic: { serviceTier: 'batch' },
+    });
+  });
+
   it('rejects unsupported request types before making an API request', async () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',

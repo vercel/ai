@@ -20,7 +20,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { Experimental_DecisionLanguageModel as DecisionLanguageModel } from '@ai-sdk/provider-utils/experimental-decision';
-import { AnthropicFiles } from './anthropic-files';
+import { AnthropicFiles } from './files/anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
 import { AnthropicBatch } from './anthropic-batch';
 import type { AnthropicModelId } from './anthropic-language-model-options';

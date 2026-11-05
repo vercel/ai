@@ -1,5 +1,60 @@
 # @ai-sdk/azure
 
+## 4.0.117
+
+### Patch Changes
+
+- 27528db: Expose `customTool` through `azure.tools` for Azure Responses models, sharing the OpenAI custom tool factory and its raw string input support.
+- bf10079: Expose `azure.tools.applyPatch` for client-executed file edits through the Azure Responses API.
+- 934100c: Report the actual OpenAI Chat HTTP endpoint (also used by Azure Chat and Bedrock Mantle Chat) through optional request metadata and model-call end events. Record its host and port on OpenTelemetry chat spans without exposing URL credentials, paths, queries, or fragments. Expose only the sanitized HTTP origin in text and object generation results and step/finish callbacks. Providers that do not report an endpoint leave these attributes unset.
+- 5cc6d28: Expose `azure.tools.shell` for local and hosted shell execution through the Azure Responses API.
+- 41465fd: Expose optional transcription word timings separately from segments and accept shared timestampGranularities. Explicit provider timing settings take precedence. OpenAI now sends timestamp_granularities only with verbose_json and warns when a requested timing is unavailable or excluded.
+- Updated dependencies [27528db]
+- Updated dependencies [7139593]
+- Updated dependencies [7bb309d]
+- Updated dependencies [7a90522]
+- Updated dependencies [36802d4]
+- Updated dependencies [6549344]
+- Updated dependencies [5f9bb8e]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [243bf22]
+- Updated dependencies [5cc6d28]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/openai@4.0.109
+  - @ai-sdk/deepseek@3.0.80
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 4.0.116
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/deepseek@3.0.79
+  - @ai-sdk/openai@4.0.108
+
+## 4.0.115
+
+### Patch Changes
+
+- Updated dependencies [4ae6986]
+- Updated dependencies [4ae6986]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [226b7da]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/deepseek@3.0.78
+  - @ai-sdk/openai@4.0.107
+  - @ai-sdk/provider-utils@5.0.73
+
 ## 4.0.114
 
 ### Patch Changes

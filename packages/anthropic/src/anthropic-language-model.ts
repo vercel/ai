@@ -469,6 +469,26 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       customProviderOptions ?? {},
     );
 
+    if (anthropicOptions.serviceTier != null) {
+      const supportedTiers =
+        providerOptionsName === 'anthropic'
+          ? ['auto', 'standard_only']
+          : providerOptionsName === 'minimax'
+            ? ['standard', 'priority']
+            : undefined;
+      if (
+        supportedTiers != null &&
+        !supportedTiers.includes(anthropicOptions.serviceTier)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'serviceTier',
+          details: `serviceTier "${anthropicOptions.serviceTier}" is not supported by ${providerOptionsName}. Use ${supportedTiers.map(tier => `"${tier}"`).join(' or ')}.`,
+        });
+        anthropicOptions.serviceTier = undefined;
+      }
+    }
+
     const {
       maxOutputTokens: maxOutputTokensForModel,
       supportsStructuredOutput: modelSupportsStructuredOutput,
@@ -1257,6 +1277,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       markCodeExecutionDynamic:
         hasDynamicFilteringWebToolWithoutCodeExecution(anthropicTools),
       usesJsonResponseTool: jsonResponseTool != null,
+      includePings: stream === true && anthropicOptions?.includePings === true,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -1967,10 +1988,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       warnings,
       providerMetadata: (() => {
         const stopDetails = mapAnthropicStopDetails(response.stop_details);
+        const serviceTier =
+          response.usage.service_tier ?? response.service_tier;
 
         const anthropicMetadata = {
           usage: response.usage as JSONObject,
           stopSequence: response.stop_sequence ?? null,
+          ...(serviceTier != null ? { serviceTier } : {}),
           ...(stopDetails != null ? { stopDetails } : {}),
           ...(response.input_transformations != null
             ? { inputTransformations: response.input_transformations }
@@ -2047,6 +2071,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       betas,
       usesJsonResponseTool,
       markCodeExecutionDynamic,
+      includePings,
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
@@ -2129,6 +2154,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       | null = null;
     let rawUsage: JSONObject | undefined = undefined;
     let stopSequence: string | null = null;
+    let serviceTier: string | null = null;
     let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let inputTransformations: AnthropicMessageMetadata['inputTransformations'];
     let safeguardResults: AnthropicMessageMetadata['safeguardResults'];
@@ -2207,7 +2233,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
           switch (value.type) {
             case 'ping': {
-              return; // ignored
+              if (includePings) controller.enqueue({ type: 'ping' });
+              return;
             }
 
             case 'content_block_start': {
@@ -3119,6 +3146,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 return;
               }
 
+              serviceTier =
+                value.message.usage.service_tier ??
+                value.message.service_tier ??
+                null;
               isMessageOpen = true;
               activeMessageId = value.message.id;
               heldBackTextByIndex.clear();
@@ -3287,6 +3318,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 safeguardResults = value.delta.safeguard_results;
               }
 
+              serviceTier = value.usage.service_tier ?? serviceTier;
+
               rawUsage = {
                 ...rawUsage,
                 ...(value.usage as JSONObject),
@@ -3302,6 +3335,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
                 stopSequence,
+                ...(serviceTier != null ? { serviceTier } : {}),
                 ...(stopDetails != null ? { stopDetails } : {}),
                 ...(inputTransformations != null
                   ? { inputTransformations }
@@ -3470,8 +3504,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
       let result = await firstChunkReader.read();
 
-      // when raw chunks are enabled, the first chunk is a raw chunk, so we need to read the next chunk
-      if (result.value?.type === 'raw') {
+      // Ignore transport-only parts while checking the first provider event.
+      while (result.value?.type === 'raw' || result.value?.type === 'ping') {
         result = await firstChunkReader.read();
       }
 

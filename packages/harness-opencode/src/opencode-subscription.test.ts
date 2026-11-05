@@ -155,6 +155,50 @@ describe('readOpenCodeSubscription', () => {
       enterpriseUrl: 'https://gitlab.example.com',
     });
   });
+
+  it('reads the OpenCode data directory auth store on Windows', async () => {
+    const homeDirectory = await mkdtemp(join(tmpdir(), 'opencode-auth-'));
+    const authDirectory = join(homeDirectory, '.local', 'share', 'opencode');
+    await mkdir(authDirectory, { recursive: true });
+    await writeFile(
+      join(authDirectory, 'auth.json'),
+      JSON.stringify({ xai: { type: 'api', key: 'xai-key' } }),
+    );
+
+    await expect(
+      readOpenCodeSubscription({
+        providerId: 'xai',
+        env: {},
+        homeDirectory,
+        platform: 'win32',
+      }),
+    ).resolves.toEqual({ providerId: 'xai', accessToken: 'xai-key' });
+  });
+
+  it('falls back to the GitLab plugin auth store on Windows for providers missing from the data directory', async () => {
+    const homeDirectory = await mkdtemp(join(tmpdir(), 'opencode-auth-'));
+    const dataDirectory = join(homeDirectory, '.local', 'share', 'opencode');
+    const pluginDirectory = join(homeDirectory, '.opencode');
+    await mkdir(dataDirectory, { recursive: true });
+    await mkdir(pluginDirectory, { recursive: true });
+    await writeFile(
+      join(dataDirectory, 'auth.json'),
+      JSON.stringify({ xai: { type: 'api', key: 'xai-key' } }),
+    );
+    await writeFile(
+      join(pluginDirectory, 'auth.json'),
+      JSON.stringify({ gitlab: { type: 'api', key: 'gitlab-key' } }),
+    );
+
+    await expect(
+      readOpenCodeSubscription({
+        providerId: 'gitlab',
+        env: {},
+        homeDirectory,
+        platform: 'win32',
+      }),
+    ).resolves.toEqual({ providerId: 'gitlab', accessToken: 'gitlab-key' });
+  });
 });
 
 describe('OpenCode GitLab direct access', () => {

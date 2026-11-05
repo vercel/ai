@@ -1,5 +1,40 @@
 # @ai-sdk/cohere
 
+## 4.0.76
+
+### Patch Changes
+
+- 64ac130: Migrate Cohere chat, embedding and reranking models to a shared capability catalog, preserving request behavior and generating their capability tables from the catalog.
+- 27c4487: Normalize streamed null tool arguments to an empty object so tools without parameters can execute, matching non-streaming calls.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 4.0.75
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 4.0.74
+
+### Patch Changes
+
+- 4ae6986: fix(cohere): preserve string tool call arguments and safely serialize BigInt and circular structures in tool calls and outputs
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
 ## 4.0.73
 
 ### Patch Changes

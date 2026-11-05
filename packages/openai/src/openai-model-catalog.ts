@@ -461,6 +461,8 @@ function createGptImageEntry(
 
 const openaiImageModelEntries: Readonly<Record<string, OpenAIImageModelEntry>> =
   {
+    'gpt-image-2.6-flare': createGptImageEntry(customImageSizes),
+    'gpt-image-2.6-sunburst': createGptImageEntry(customImageSizes),
     'gpt-image-2.5-flare': createGptImageEntry(customImageSizes),
     'gpt-image-2.5-sunburst': createGptImageEntry(customImageSizes),
     'gpt-image-2': createGptImageEntry(gptImageSizes),
@@ -757,7 +759,7 @@ const realtimeModelEntry = {
     realtime: {
       conversation: 'turn-based',
       transports: ['websocket'],
-      connections: ['client-secret-websocket'],
+      connections: ['client-secret-websocket', 'server-websocket'],
     },
   },
   requestConfig: {

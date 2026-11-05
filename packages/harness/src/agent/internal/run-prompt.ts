@@ -433,8 +433,9 @@ export function runPrompt<
      * An approval request or a pending client tool result does not end the
      * response right away: the rest of the step (other tool calls, native
      * results, host tool executions) still has to be surfaced. The pause
-     * happens at the next `finish-step`. Unless a built-in approval blocks
-     * the runtime, host tools must first be echoed back by the runtime.
+     * happens at the next `finish-step`. A pending approval can block the
+     * runtime from handling other host tools, so do not wait for their echoes
+     * while any approval remains pending.
      */
     let hostInputPauseRequested = false;
     let deferredPauseFinishStep: FinishStepPart | undefined;
@@ -831,6 +832,7 @@ export function runPrompt<
       }
 
       settledHostToolCallIds.add(approval.toolCallId);
+      rawToolCallsByToolCallId.set(approval.toolCallId, rawToolCall);
       if (!continuation.approved) {
         const output = {
           type: 'execution-denied' as const,
@@ -1079,9 +1081,7 @@ export function runPrompt<
             await waitForOutstandingHostToolExecutions();
             if (
               hostToolCallIdsAwaitingEcho.size === 0 ||
-              [...pendingApprovalsByApprovalId.values()].some(
-                approval => approval.kind === 'builtin',
-              )
+              pendingApprovalsByApprovalId.size > 0
             ) {
               await pauseForHostInput(value);
               return;

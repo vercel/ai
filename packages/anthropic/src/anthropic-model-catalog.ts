@@ -17,6 +17,7 @@ export const anthropicProviderOptions = {
   language: {
     thread: { description: 'Create or continue a short-lived message thread.' },
     sendReasoning: { description: 'Whether to send reasoning to the model.' },
+    includePings: { description: 'Include transient ping events in streams.' },
     structuredOutputMode: {
       description: 'How structured outputs are generated.',
     },
@@ -337,6 +338,7 @@ function createAnthropicLanguageModelEntry(
         anthropicProviderOptions.language,
         declared ? true : 'unknown',
         {
+          includePings: true,
           thinking: reasoningSupport,
           effort: documented?.effort ?? 'unknown',
           // Fast mode is documented for claude-opus-4-6 only.

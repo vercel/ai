@@ -18,6 +18,7 @@ import {
 } from './tracing-channel-publisher';
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 import type { TelemetryOptions } from './telemetry-options';
+import { filterTelemetryEvent } from './filter-telemetry-event';
 
 /**
  * The subset of `TelemetryDispatcher` keys whose values are Callback callbacks.
@@ -100,7 +101,7 @@ function augmentEvent<EVENT>(
     }
   }
 
-  return augmentedEvent;
+  return filterTelemetryEvent(augmentedEvent, telemetry);
 }
 
 /**
@@ -141,6 +142,9 @@ export function createTelemetryDispatcher({
     includeRuntimeContext: telemetry?.includeRuntimeContext,
     includeToolsContext: telemetry?.includeToolsContext,
   };
+  // Raw operation results may contain both inputs and outputs.
+  const recordResult =
+    telemetry?.recordInputs !== false && telemetry?.recordOutputs !== false;
 
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
@@ -199,6 +203,7 @@ export function createTelemetryDispatcher({
           event: augmentEvent(event, telemetryMetadata, true),
         },
         execute,
+        recordResult,
       ),
 
     startTracingChannelContext: ({ type, event, completion }) =>
@@ -208,6 +213,7 @@ export function createTelemetryDispatcher({
           event: augmentEvent(event, telemetryMetadata, true),
         },
         completion,
+        recordResult,
       }),
 
     onStart: mergeTelemetryCallback('onStart'),
@@ -276,6 +282,7 @@ export function createTelemetryDispatcher({
       return await runWithTracingChannelSpan(
         { type: 'languageModelCall', event: augmentedEvent },
         wrappedExecute,
+        recordResult,
       );
     },
 

@@ -1,5 +1,34 @@
 # @ai-sdk/harness-acp
 
+## 1.0.114
+
+### Patch Changes
+
+- deeb2bf: feat(harness-acp): add optional `prepareSandbox` callback support on `createACP()`
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+
+## 1.0.113
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+
+## 1.0.112
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+
 ## 1.0.111
 
 ### Patch Changes

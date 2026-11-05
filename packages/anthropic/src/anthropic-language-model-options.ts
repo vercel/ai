@@ -174,6 +174,9 @@ export const anthropicLanguageModelOptions = lazySchema(() =>
         .enum(['outputFormat', 'jsonTool', 'auto'])
         .optional(),
 
+      /** Emit typed streaming heartbeat parts. Disabled by default. */
+      includePings: z.boolean().optional(),
+
       /**
        * Configuration for enabling Claude's extended thinking.
        *
@@ -359,8 +362,14 @@ export const anthropicLanguageModelOptions = lazySchema(() =>
        */
       speed: z.enum(['fast', 'standard']).optional(),
 
-      /** Selects Anthropic's service tier for the request. */
-      serviceTier: z.enum(['auto', 'standard_only']).optional(),
+      /**
+       * Request admission tier. Anthropic accepts `auto` and `standard_only`;
+       * MiniMax accepts `standard` and `priority`. Values for another known
+       * provider are omitted with an unsupported-setting warning.
+       */
+      serviceTier: z
+        .enum(['auto', 'standard_only', 'standard', 'priority'])
+        .optional(),
 
       /**
        * Controls where model inference runs for this request.
