@@ -1317,7 +1317,7 @@ The Tako Search tool supports these optional configuration options:
   - Tako checks each card's maximum charge (`content.export_pricing.variable_cost_max_usd`) in rank order. A card that doesn't fit comes back as a placeholder with `reason: 'over_cap'`, even if its actual charge would have fit.
   - `0` returns only the cards whose charge the base price already covers.
   - It can't be combined with `variableCost: false`.
-- **extraBody** _Record<string, unknown>_ - Extra Tako request fields, in snake_case, deep-merged into the request body last. Objects merge, and scalars and arrays replace. Use it for Tako parameters this tool doesn't model yet. Its limits:
+- **extraBody** _Record&lt;string, unknown&gt;_ - Extra Tako request fields, in snake_case, deep-merged into the request body last. Objects merge, and scalars and arrays replace. Use it for Tako parameters this tool doesn't model yet. Its limits:
   - It can't set a field the tool already models, including the `sources.data` variable-cost fields. The gateway answers `invalid_input`.
   - Tako rejects unknown keys, so a typo comes back as an `api_error`.
   - It's limited to 16,384 serialized characters.
