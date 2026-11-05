@@ -8,8 +8,6 @@ export type DeepgramSpeechAPITypes = {
   sample_rate?: number;
   bit_rate?: number | string;
   container?: string;
-  callback?: string;
-  callback_method?: 'POST' | 'PUT';
   mip_opt_out?: boolean;
   tag?: string | string[];
 };
