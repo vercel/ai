@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.137
+
+### Patch Changes
+
+- afde897: feat(openai): support GPT Image 2.6 models with `complexity`, markup-guided edits (`markup`), animated GIF output (`outputFormat: 'gif'`, `frameCount`, `frameDurationMs`), and `safetyIdentifier` for image models
+
 ## 3.0.136
 
 ### Patch Changes
