@@ -539,6 +539,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 await runBridge<StartMessage>({
   bridgeType: 'deepagents',
   bridgeStateDir: bridgeStateDir!,
+  ...(args.hostDisconnectTimeoutMs !== undefined
+    ? { hostDisconnectTimeoutMs: Number(args.hostDisconnectTimeoutMs) }
+    : {}),
   onStart: async (start, turn) => {
     try {
       await runTurn(start, turn);

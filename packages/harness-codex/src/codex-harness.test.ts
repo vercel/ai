@@ -472,6 +472,31 @@ describe('createCodex adapter', () => {
     await session.doDestroy();
   });
 
+  it.each([
+    [60_000, '60000'],
+    [undefined, undefined],
+  ])(
+    'passes hostDisconnectTimeoutMs %s to the bridge',
+    async (hostDisconnectTimeoutMs, expected) => {
+      const spawns: string[] = [];
+      const session = await createCodex({ hostDisconnectTimeoutMs }).doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          runs: [],
+          spawns,
+          writes: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/codex-s1',
+      });
+
+      expect(
+        spawns.at(0)?.match(/--host-disconnect-timeout-ms '?(\d+)'?/)?.[1],
+      ).toBe(expected);
+      await session.doDestroy();
+    },
+  );
+
   it('falls back to the default model, overridden by the per-turn model', async () => {
     const session = await createCodex().doStart({
       sessionId: 's1',
