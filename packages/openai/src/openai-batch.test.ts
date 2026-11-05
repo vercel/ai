@@ -774,6 +774,56 @@ describe('OpenAI batch service', () => {
     ]);
   });
 
+  it('preserves refusal content parts and maps the finish reason to content-filter', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse({ output_file_id: 'file-output' }),
+    };
+    server.urls[urls.output].response = {
+      type: 'stream-chunks',
+      chunks: [
+        resultLine({
+          id: 'refusal',
+          body: {
+            ...responsesResultBody('unused'),
+            output: [
+              {
+                type: 'message',
+                role: 'assistant',
+                id: 'msg_123',
+                phase: null,
+                content: [
+                  {
+                    type: 'refusal',
+                    refusal: "I'm sorry, I can't assist with that.",
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      ],
+    };
+    const batch = createOpenAI({ apiKey: 'test-api-key' }).experimental_batch();
+
+    const stream = await batch.doGetBatchResults({
+      batchId: 'batch_123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
+      {
+        id: 'refusal',
+        status: 'succeeded',
+        result: {
+          content: [
+            { type: 'text', text: "I'm sorry, I can't assist with that." },
+          ],
+          finishReason: { unified: 'content-filter', raw: undefined },
+        },
+      },
+    ]);
+  });
+
   it('forwards the abort signal when retrieving results', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
