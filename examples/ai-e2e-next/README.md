@@ -35,8 +35,9 @@ To run the example locally you need to:
 
 ## Code execution file downloads
 
-Anthropic code execution file downloads (including Anthropic on Microsoft) are
-available only in local development. `pnpm dev` binds to `127.0.0.1`; keep the
+Anthropic code execution file downloads (including Anthropic on Microsoft) and
+OpenAI/Azure container file downloads are available only in local development.
+`pnpm dev` binds to `127.0.0.1`; keep the
 development server on loopback and open `http://127.0.0.1:3000`. Download routes
 reject production, Vercel deployments (including `vercel dev`), non-loopback Host
 headers, forwarded external clients, and cross-origin browser requests before
