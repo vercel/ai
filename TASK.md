@@ -86,7 +86,13 @@ The steps are below:
 
 18. [ ] Add support for (system) instructions to the new `HarnessAgent` and the two adapters.
 19. [ ] Add support for skills to the new `HarnessAgent` and the two adapters.
-20. [ ] Implement `packages/harness-claude-code-v2`, a new from-scratch reimplementation of the Claude Code harness. Keep it minimal, but follow the key harness requirements. For now, the only thing that it will support is custom `tools`, `instructions`, and `skills`.
+20. [ ] Add support for a new `HarnessAgent` option (only actually support in the new `HarnessAgent` implementation!) that configures whether the agent's workDir can be trusted (i.e. project-level trust).
+
+- Harness adapters must receive awareness of this configuration.
+- If trusted, the harness adapter should use the workDir to discover and process instructions (e.g. `AGENTS.md`), skills (e.g. `.agents/skills/*`), configuration (e.g. `./claude/settings.json`), hooks (e.g. `.codex/hooks.json`), and MCP servers (e.g. `.mcp.json`) as far as the trust is configured.
+- If not trusted (default), the harness adapter must completely ignore ALL of the above files even if present in the workDir.
+
+21. [ ] Implement `packages/harness-claude-code-v2`, a new from-scratch reimplementation of the Claude Code harness. Keep it minimal, but follow the key harness requirements. For now, the only thing that it will support is custom `tools`, `instructions`, and `skills`.
 
 - Ignore existing harnesses' code structure and architectural conventions. We'll want to build this as ideal as it is for the new architecture.
 - As part of this, ensure the new `HarnessAgent` class properly supports a harness's bootstrap recipe.
