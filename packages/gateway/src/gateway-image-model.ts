@@ -71,7 +71,7 @@ export class GatewayImageModel implements ImageModelV3 {
           n,
           ...(size && { size }),
           ...(aspectRatio && { aspectRatio }),
-          ...(seed && { seed }),
+          ...(seed != null && { seed }),
           ...(providerOptions && { providerOptions }),
           ...(files && {
             files: files.map(file => maybeEncodeImageFile(file)),
@@ -187,3 +187,4 @@ const gatewayImageResponseSchema = lazySchema(() =>
     }),
   ),
 );
+
