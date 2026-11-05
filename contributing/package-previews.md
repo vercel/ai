@@ -115,6 +115,10 @@ vercel-labs](https://vercel.com/vercel-labs/ai-tarballs):
    installs. After merge, verify dispatch-triggered smoke checks on another PR,
    including a fork that requires Vercel authorization.
 
+The root `package.json` also declares supported Node.js versions. Vercel may
+select a newer version allowed by `engines.node` over the project's setting;
+check the deployment build logs for the actual runtime.
+
 The former `TARBALLS_ENABLED`, `TARBALLS_VERCEL_*` GitHub variables and `tarballs`
 GitHub environment are unused. No Vercel CLI OIDC policy or audience is required
 for this setup. An existing unused OIDC policy can be removed by its owner.
