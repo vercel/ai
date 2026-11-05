@@ -1,0 +1,57 @@
+{
+  "id": "resp_refusal_1",
+  "object": "response",
+  "created_at": 1793842477,
+  "status": "completed",
+  "model": "gpt-4o-2024-08-06",
+  "output": [
+    {
+      "id": "msg_refusal_1",
+      "type": "message",
+      "status": "completed",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "refusal",
+          "refusal": "I'm sorry, I can't assist with that."
+        }
+      ]
+    }
+  ],
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "json_schema",
+      "name": "response",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "properties": {
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["steps"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "tool_choice": "auto",
+  "tools": [],
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 62,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 11,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 73
+  }
+}

@@ -7659,9 +7659,73 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
       );
     });
+
+    it('should surface a refusal content part as text and map the finish reason to content-filter', async () => {
+      prepareJsonFixtureResponse('openai-refusal.1');
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'response',
+          schema: {
+            type: 'object',
+            properties: { steps: { type: 'array', items: { type: 'string' } } },
+            required: ['steps'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: "I'm sorry, I can't assist with that.",
+          providerMetadata: {
+            openai: {
+              itemId: 'msg_refusal_1',
+            },
+          },
+        },
+      ]);
+      expect(result.structuredOutputText).toBeUndefined();
+      expect(result.finishReason).toEqual({
+        unified: 'content-filter',
+        raw: undefined,
+      });
+    });
   });
 
   describe('doStream', () => {
+    it('should stream refusal content parts as text and map the finish reason to content-filter', async () => {
+      prepareChunksFixtureResponse('openai-refusal.1');
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'response',
+          schema: {
+            type: 'object',
+            properties: { steps: { type: 'array', items: { type: 'string' } } },
+            required: ['steps'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const textDeltas = parts.flatMap(part =>
+        part.type === 'text-delta' ? [part.delta] : [],
+      );
+
+      expect(textDeltas.join('')).toBe("I'm sorry, I can't assist with that.");
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'content-filter', raw: undefined },
+      });
+    });
+
     it.each([
       [undefined, undefined, 'interrupted'],
       ['response.completed', undefined, 'stop'],

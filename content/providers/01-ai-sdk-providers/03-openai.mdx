@@ -2380,6 +2380,28 @@ The metadata includes the following fields:
 - **itemId** _string_ — The ID of the compaction item in the Responses API
 - **encryptedContent** _string_ (optional) — The encrypted compaction state. This is automatically sent back to the API when the message is included in subsequent requests.
 
+#### Refusals
+
+When OpenAI declines a request, the Responses API returns a `refusal` content
+part instead of `output_text`. The provider surfaces the refusal explanation as
+text and reports a `content-filter` finish reason in both `generateText` and
+`streamText`:
+
+```ts
+const { text, finishReason } = await generateText({
+  model: openai.responses('gpt-4o'),
+  prompt: '...',
+});
+
+if (finishReason === 'content-filter') {
+  // `text` contains the model's refusal explanation
+}
+```
+
+When you request structured output, a refusal means that no object can be
+generated: `generateText` throws `NoObjectGeneratedError` with the refusal text
+on `error.text` and `error.finishReason` set to `'content-filter'`.
+
 ### Batch
 
 <Note type="warning">
