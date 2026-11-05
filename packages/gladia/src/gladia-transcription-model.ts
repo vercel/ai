@@ -37,6 +37,11 @@ interface GladiaTranscriptionModelConfig extends GladiaConfig {
   };
 }
 
+// Async pre-recorded jobs can take several minutes for long audio files or
+// when audio intelligence add-ons are enabled, so the default is generous.
+const DEFAULT_POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const DEFAULT_POLL_INTERVAL_MS = 1000; // 1 second
+
 export class GladiaTranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -282,6 +287,8 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     return {
       body,
       warnings,
+      pollIntervalMs: gladiaOptions?.pollIntervalMs ?? undefined,
+      pollTimeoutMs: gladiaOptions?.pollTimeoutMs ?? undefined,
     };
   }
 
@@ -289,7 +296,8 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { body, warnings } = await this.getArgs(options);
+    const { body, warnings, pollIntervalMs, pollTimeoutMs } =
+      await this.getArgs(options);
 
     // Create form data with base fields
     const formData = new FormData();
@@ -351,15 +359,22 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     const apiOrigin = this.config.url({ modelId: this.modelId, path: '' });
     let transcriptionResult;
     let transcriptionResultHeaders;
-    const timeoutMs = 60 * 1000; // 60 seconds timeout
+    const timeoutMs =
+      pollTimeoutMs ?? this.config.pollTimeoutMs ?? DEFAULT_POLL_TIMEOUT_MS;
+    const pollingInterval =
+      pollIntervalMs ?? this.config.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
     const startTime = Date.now();
-    const pollingInterval = 1000;
 
     while (true) {
+      // Stop before polling again when the caller aborted the request. Use
+      // `throwIfAborted` so a custom abort reason, such as the `TimeoutError`
+      // from `AbortSignal.timeout`, is preserved.
+      options.abortSignal?.throwIfAborted();
+
       // Check if we've exceeded the timeout
       if (Date.now() - startTime > timeoutMs) {
         throw new AISDKError({
-          message: 'Transcription job polling timed out',
+          message: `Transcription job polling timed out after ${timeoutMs} ms`,
           name: 'TranscriptionJobPollingTimedOut',
           cause: transcriptionResult,
         });
@@ -398,8 +413,17 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         });
       }
 
-      // Wait for the configured polling interval before checking again
-      await delay(pollingInterval);
+      // Wait for the configured polling interval before checking again. The
+      // wait is cancellable; prefer the caller's abort reason over the generic
+      // error that `delay` throws when the signal aborts.
+      try {
+        await delay(pollingInterval, { abortSignal: options.abortSignal });
+      } catch (error) {
+        if (options.abortSignal?.aborted) {
+          options.abortSignal.throwIfAborted();
+        }
+        throw error;
+      }
     }
 
     if (!transcriptionResult.result) {

@@ -1,7 +1,9 @@
 import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
 import { createGladia } from './gladia-provider';
@@ -407,6 +409,262 @@ describe('doGenerate', () => {
       expect(result.response.modelId).toBe('default');
     });
   });
+});
+
+describe('polling', () => {
+  beforeEach(() => prepareJsonFixtureResponse());
+
+  it('polls queued and processing jobs until the job is done', async () => {
+    let pollCount = 0;
+    server.urls[initiateFixture.result_url].response = () => {
+      pollCount++;
+      return pollCount === 1
+        ? { type: 'json-value', body: { status: 'queued' } }
+        : pollCount === 2
+          ? { type: 'json-value', body: { status: 'processing' } }
+          : { type: 'json-value', body: resultFixture };
+    };
+
+    const fastProvider = createGladia({
+      apiKey: 'test-api-key',
+      pollIntervalMs: 10,
+    });
+
+    const result = await fastProvider.transcription().doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mp3',
+    });
+
+    expect(result.text).toBe(
+      resultFixture.result.transcription.full_transcript,
+    );
+    expect(pollCount).toBe(3);
+  });
+
+  it('does not send polling settings to the Gladia API', async () => {
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mp3',
+      providerOptions: {
+        gladia: {
+          pollIntervalMs: 1,
+          pollTimeoutMs: 1000,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).not.toHaveProperty('pollIntervalMs');
+    expect(requestBody).not.toHaveProperty('pollTimeoutMs');
+  });
+
+  it('throws TranscriptionJobPollingTimedOut after the configured pollTimeoutMs', async () => {
+    // Advance a mocked clock instead of waiting for real time so the test does
+    // not depend on machine speed.
+    let now = 0;
+    const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    let pollCount = 0;
+
+    server.urls[initiateFixture.result_url].response = () => {
+      pollCount++;
+      now += 15;
+      return { type: 'json-value', body: { status: 'processing' } };
+    };
+
+    try {
+      const shortTimeoutProvider = createGladia({
+        apiKey: 'test-api-key',
+        pollTimeoutMs: 20,
+        pollIntervalMs: 1,
+      });
+
+      await expect(
+        shortTimeoutProvider.transcription().doGenerate({
+          audio: audioData,
+          mediaType: 'audio/mp3',
+        }),
+      ).rejects.toMatchObject({
+        name: 'TranscriptionJobPollingTimedOut',
+        message: 'Transcription job polling timed out after 20 ms',
+      });
+
+      expect(pollCount).toBe(2);
+    } finally {
+      dateNow.mockRestore();
+    }
+  });
+
+  it('resolves polling settings from providerOptions.gladia before provider settings', async () => {
+    // Advance a mocked clock instead of waiting for real time so the test does
+    // not depend on machine speed.
+    let now = 0;
+    const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    let pollCount = 0;
+
+    server.urls[initiateFixture.result_url].response = () => {
+      pollCount++;
+      now += 12;
+      return { type: 'json-value', body: { status: 'processing' } };
+    };
+
+    try {
+      const slowProvider = createGladia({
+        apiKey: 'test-api-key',
+        pollIntervalMs: 600_000,
+        pollTimeoutMs: 600_000,
+      });
+
+      await expect(
+        slowProvider.transcription().doGenerate({
+          audio: audioData,
+          mediaType: 'audio/mp3',
+          providerOptions: {
+            gladia: {
+              pollIntervalMs: 1,
+              pollTimeoutMs: 20,
+            },
+          },
+        }),
+      ).rejects.toMatchObject({
+        name: 'TranscriptionJobPollingTimedOut',
+        message: 'Transcription job polling timed out after 20 ms',
+      });
+
+      expect(pollCount).toBe(2);
+    } finally {
+      dateNow.mockRestore();
+    }
+  });
+
+  it('throws InvalidArgumentError for invalid per-call polling settings', async () => {
+    await expect(
+      model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mp3',
+        providerOptions: {
+          gladia: {
+            pollTimeoutMs: 0,
+          },
+        },
+      }),
+    ).rejects.toBeInstanceOf(InvalidArgumentError);
+  });
+
+  it('stops before the first poll when the signal is already aborted', async () => {
+    const reason = new DOMException('The operation timed out.', 'TimeoutError');
+    const controller = new AbortController();
+    controller.abort(reason);
+
+    // The custom fetch ignores the abort signal so the request would still
+    // succeed if the polling loop did not check it.
+    const abortIgnoringProvider = createGladia({
+      apiKey: 'test-api-key',
+      fetch: fetchWithoutAbortSignal,
+    });
+
+    await expect(
+      abortIgnoringProvider.transcription().doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mp3',
+        abortSignal: controller.signal,
+      }),
+    ).rejects.toBe(reason);
+
+    expect(
+      server.calls.filter(
+        call => call.requestUrl === initiateFixture.result_url,
+      ),
+    ).toHaveLength(0);
+  });
+
+  it('cancels the wait between polls when the signal is aborted', async () => {
+    const controller = new AbortController();
+    let pollCount = 0;
+
+    server.urls[initiateFixture.result_url].response = () => {
+      pollCount++;
+      controller.abort();
+      return { type: 'json-value', body: { status: 'processing' } };
+    };
+
+    // Ignore the abort signal so the response still arrives and the abort
+    // happens while the loop waits for the next poll.
+    const abortIgnoringProvider = createGladia({
+      apiKey: 'test-api-key',
+      fetch: fetchWithoutAbortSignal,
+    });
+
+    await expect(
+      abortIgnoringProvider.transcription().doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mp3',
+        abortSignal: controller.signal,
+        providerOptions: {
+          gladia: {
+            pollIntervalMs: 600_000,
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+
+    expect(pollCount).toBe(1);
+  });
+
+  it('keeps polling settings through workflow serialization', async () => {
+    const configured = createGladia({
+      apiKey: 'test-api-key',
+      pollIntervalMs: 1,
+      pollTimeoutMs: 20,
+    }).transcription() as GladiaTranscriptionModel;
+
+    const restored = GladiaTranscriptionModel[WORKFLOW_DESERIALIZE](
+      GladiaTranscriptionModel[WORKFLOW_SERIALIZE](
+        configured,
+      ) as unknown as Parameters<
+        (typeof GladiaTranscriptionModel)[typeof WORKFLOW_DESERIALIZE]
+      >[0],
+    );
+
+    server.urls[initiateFixture.result_url].response = {
+      type: 'json-value',
+      body: { status: 'processing' },
+    };
+
+    await expect(
+      restored.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mp3',
+      }),
+    ).rejects.toMatchObject({
+      name: 'TranscriptionJobPollingTimedOut',
+      message: 'Transcription job polling timed out after 20 ms',
+    });
+  });
+});
+
+const fetchWithoutAbortSignal: FetchFunction = (input, init) => {
+  const { signal: _signal, ...rest } = init ?? {};
+  return globalThis.fetch(input, rest);
+};
+
+describe('polling settings validation', () => {
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects pollIntervalMs = %s',
+    value => {
+      expect(() =>
+        createGladia({ apiKey: 'test-api-key', pollIntervalMs: value }),
+      ).toThrow(InvalidArgumentError);
+    },
+  );
+
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects pollTimeoutMs = %s',
+    value => {
+      expect(() =>
+        createGladia({ apiKey: 'test-api-key', pollTimeoutMs: value }),
+      ).toThrow(InvalidArgumentError);
+    },
+  );
 });
 
 describe('legacy option warnings', () => {
