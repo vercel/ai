@@ -3564,6 +3564,8 @@ const { images } = await generateImage({
 
 | Model                    | Sizes                                  |
 | ------------------------ | -------------------------------------- |
+| `gpt-image-2.6-flare`    | Standard presets and custom dimensions |
+| `gpt-image-2.6-sunburst` | Standard presets and custom dimensions |
 | `gpt-image-2.5-flare`    | Standard presets and custom dimensions |
 | `gpt-image-2.5-sunburst` | Standard presets and custom dimensions |
 | `gpt-image-2`            | 1024x1024, 1536x1024, 1024x1536        |
@@ -3609,6 +3611,28 @@ const { image } = await generateImage({
   },
 });
 ```
+
+The `gpt-image-2.6-flare` and `gpt-image-2.6-sunburst` models support these additional options:
+
+- **complexity** _'low' | 'medium' | 'high'_ - how much detail the model puts into the image (generation and editing). The API defaults to `high`.
+- **outputFormat: 'gif'** _(generation only)_ - generates an animated GIF. Use **frameCount** (2-64, API default 9) and **frameDurationMs** (20-2000, API default 200) to control the animation.
+- **markup** _string_ _(editing only)_ - a transparent PNG (HTTPS URL or base64 data URL) overlaid on the first input image to mark up the regions to change. Supported by `gpt-image-2.5-*` and `gpt-image-2.6-*` models. It cannot be combined with `mask`; providing both throws an error.
+
+```ts
+const { image } = await generateImage({
+  model: openai.image('gpt-image-2.6-flare'),
+  prompt: 'A red panda waving hello, flat illustration',
+  providerOptions: {
+    openai: {
+      outputFormat: 'gif',
+      frameCount: 9,
+      frameDurationMs: 200,
+    } satisfies OpenAIImageModelGenerationOptions,
+  },
+});
+```
+
+All image options also accept `safetyIdentifier` (max 128 characters) to help OpenAI detect abuse by your end users.
 
 For more on `generateImage()` see [Image Generation](/docs/ai-sdk-core/image-generation).
 
