@@ -26,6 +26,10 @@ import {
   type CohereChatModelId,
   cohereChatModelOptions,
 } from './cohere-chat-options';
+import {
+  cohereCitationSchema,
+  mapCohereCitationToSource,
+} from './cohere-citations';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
@@ -174,22 +178,15 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
     // citations:
     for (const citation of response.message.citations ?? []) {
-      content.push({
-        type: 'source',
-        sourceType: 'document',
-        id: this.config.generateId(),
-        mediaType: 'text/plain',
-        title: citation.sources[0]?.document?.title || 'Document',
-        providerMetadata: {
-          cohere: {
-            start: citation.start,
-            end: citation.end,
-            text: citation.text,
-            sources: citation.sources,
-            ...(citation.type && { citationType: citation.type }),
-          },
-        },
-      });
+      // Tool-sourced citations (e.g. citations of tool results in a follow-up
+      // step) have no document to point at, so they are not emitted as sources.
+      const source = mapCohereCitationToSource(citation, () =>
+        this.config.generateId(),
+      );
+
+      if (source != null) {
+        content.push(source);
+      }
     }
 
     // tool calls:
@@ -207,13 +204,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     return {
       content,
       finishReason: mapCohereFinishReason(response.finish_reason),
-      usage: {
-        inputTokens: response.usage.tokens.input_tokens,
-        outputTokens: response.usage.tokens.output_tokens,
-        totalTokens:
-          response.usage.tokens.input_tokens +
-          response.usage.tokens.output_tokens,
-      },
+      usage: convertCohereUsage(response.usage),
       request: { body: args },
       response: {
         // TODO timestamp, model id
@@ -243,11 +234,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     });
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
-    const usage: LanguageModelV2Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let rawUsage: CohereUsage | undefined = undefined;
 
     let pendingToolCall: {
       id: string;
@@ -257,6 +244,8 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     } | null = null;
 
     let isActiveReasoning = false;
+
+    const generateId = this.config.generateId;
 
     return {
       stream: response.pipeThrough(
@@ -337,6 +326,29 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
                 return;
               }
 
+              case 'citation-start': {
+                const citations = value.delta?.message?.citations;
+                if (citations == null) {
+                  return;
+                }
+
+                for (const citation of Array.isArray(citations)
+                  ? citations
+                  : [citations]) {
+                  // Tool-only citations have no document, so they are not
+                  // emitted as sources (matching doGenerate).
+                  const source = mapCohereCitationToSource(
+                    citation,
+                    generateId,
+                  );
+
+                  if (source != null) {
+                    controller.enqueue(source);
+                  }
+                }
+                return;
+              }
+
               case 'tool-call-start': {
                 const toolId = value.delta.message.tool_calls.id;
                 const toolName = value.delta.message.tool_calls.function.name;
@@ -413,11 +425,9 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
               case 'message-end': {
                 finishReason = mapCohereFinishReason(value.delta.finish_reason);
-                const tokens = value.delta.usage.tokens;
-
-                usage.inputTokens = tokens.input_tokens;
-                usage.outputTokens = tokens.output_tokens;
-                usage.totalTokens = tokens.input_tokens + tokens.output_tokens;
+                // `usage` and its token counts are optional in the API
+                // specification, so missing data yields undefined counts.
+                rawUsage = value.delta.usage ?? undefined;
                 return;
               }
 
@@ -430,7 +440,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertCohereUsage(rawUsage),
             });
           },
         }),
@@ -439,6 +449,45 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+// Loose, nested objects included: the parsed value is returned in the stream.
+// All fields are optional in the API specification, so every field is nullish.
+const cohereUsageSchema = () =>
+  z.looseObject({
+    billed_units: z
+      .looseObject({
+        input_tokens: z.number().nullish(),
+        output_tokens: z.number().nullish(),
+      })
+      .nullish(),
+    tokens: z
+      .looseObject({
+        input_tokens: z.number().nullish(),
+        output_tokens: z.number().nullish(),
+      })
+      .nullish(),
+  });
+
+type CohereUsage = InferSchema<ReturnType<typeof cohereUsageSchema>>;
+
+function convertCohereUsage(
+  usage: CohereUsage | undefined | null,
+): LanguageModelV2Usage {
+  // `tokens` is the only measure that matches the unified token counts.
+  // `billed_units` count billed units rather than tokens, so they are never
+  // used as token counts.
+  const inputTokens = usage?.tokens?.input_tokens ?? undefined;
+  const outputTokens = usage?.tokens?.output_tokens ?? undefined;
+
+  return {
+    inputTokens,
+    outputTokens,
+    totalTokens:
+      inputTokens != null && outputTokens != null
+        ? inputTokens + outputTokens
+        : undefined,
+  };
 }
 
 const cohereChatResponseSchema = lazySchema(() =>
@@ -474,39 +523,10 @@ const cohereChatResponseSchema = lazySchema(() =>
             }),
           )
           .nullish(),
-        citations: z
-          .array(
-            z.object({
-              start: z.number(),
-              end: z.number(),
-              text: z.string(),
-              sources: z.array(
-                z.object({
-                  type: z.string().optional(),
-                  id: z.string().optional(),
-                  document: z.object({
-                    id: z.string().optional(),
-                    text: z.string(),
-                    title: z.string(),
-                  }),
-                }),
-              ),
-              type: z.string().optional(),
-            }),
-          )
-          .nullish(),
+        citations: z.array(cohereCitationSchema).nullish(),
       }),
       finish_reason: z.string(),
-      usage: z.object({
-        billed_units: z.object({
-          input_tokens: z.number(),
-          output_tokens: z.number(),
-        }),
-        tokens: z.object({
-          input_tokens: z.number(),
-          output_tokens: z.number(),
-        }),
-      }),
+      usage: cohereUsageSchema().nullish(),
     }),
   ),
 );
@@ -516,8 +536,22 @@ const cohereChatResponseSchema = lazySchema(() =>
 const cohereChatChunkSchema = lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('type', [
+      // `citation-start` events can arrive without citations, and a single
+      // citation may be sent instead of an array.
       z.object({
         type: z.literal('citation-start'),
+        index: z.number().nullish(),
+        delta: z
+          .object({
+            message: z
+              .object({
+                citations: z
+                  .union([cohereCitationSchema, z.array(cohereCitationSchema)])
+                  .nullish(),
+              })
+              .nullish(),
+          })
+          .nullish(),
       }),
       z.object({
         type: z.literal('citation-end'),
@@ -568,12 +602,7 @@ const cohereChatChunkSchema = lazySchema(() =>
         type: z.literal('message-end'),
         delta: z.object({
           finish_reason: z.string(),
-          usage: z.object({
-            tokens: z.object({
-              input_tokens: z.number(),
-              output_tokens: z.number(),
-            }),
-          }),
+          usage: cohereUsageSchema().nullish(),
         }),
       }),
       // https://docs.cohere.com/v2/docs/streaming#tool-use-stream-events-for-tool-calling

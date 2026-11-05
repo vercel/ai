@@ -208,6 +208,75 @@ async function main() {
 main().catch(console.error);
 ```
 
+#### Sources
+
+You can ground a Cohere response in documents by adding text files to the prompt
+as file parts. When the model cites one of these documents, the provider returns
+the cited text span as a source.
+
+With `generateText`, cited documents are available in `result.sources`:
+
+```ts
+import { cohere } from '@ai-sdk/cohere';
+import { generateText } from 'ai';
+import { readFileSync } from 'node:fs';
+
+const model = cohere('command-a-03-2025');
+
+const { text, sources } = await generateText({
+  model,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is the capital of Zephyria?' },
+        {
+          type: 'file',
+          mediaType: 'text/plain',
+          filename: 'zephyria.txt',
+          data: readFileSync('./data/zephyria.txt'),
+        },
+      ],
+    },
+  ],
+});
+
+console.log(sources);
+```
+
+With `streamText`, the same citations are emitted as `source` stream parts:
+
+```ts
+import { streamText } from 'ai';
+
+const result = streamText({
+  model,
+  messages: [
+    // same messages as above
+  ],
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'source') {
+    console.log(part.sourceType); // 'document'
+    console.log(part.title);
+    console.log(part.providerMetadata?.cohere);
+  }
+}
+```
+
+Each source has `sourceType: 'document'`, the document title (`'Document'` when
+Cohere does not return one), and citation details in `providerMetadata.cohere`:
+
+- `start` / `end` _number_ - character offsets of the cited text in the response.
+- `text` _string_ - the cited text.
+- `sources` _array_ - the raw Cohere sources, including each document's `id`, `text`, and `title`.
+- `citationType` _string_ - the Cohere citation type, e.g. `'TEXT_CONTENT'`.
+
+Keys that Cohere omits are absent from `providerMetadata.cohere`. Citations that
+only reference tool output have no document to cite and are not emitted as
+sources.
+
 ## Embedding Models
 
 You can create models that call the [Cohere embed API](https://docs.cohere.com/v2/reference/embed)
