@@ -41,6 +41,7 @@ import {
   warnIfDeprecatedProviderOptionsKey,
 } from '../utils/to-camel-case';
 import {
+  createOpenAICompatibleStreamError,
   defaultOpenAICompatibleErrorStructure,
   type ProviderErrorStructure,
 } from '../openai-compatible-error';
@@ -642,7 +643,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
-                error: chunk.value.error,
+                error: createOpenAICompatibleStreamError(chunk.value.error),
               });
               return;
             }
