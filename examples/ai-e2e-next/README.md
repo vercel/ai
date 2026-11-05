@@ -33,6 +33,21 @@ To run the example locally you need to:
 5. `pnpm install` to install the required dependencies.
 6. `pnpm dev` to launch the development server.
 
+## Code execution file downloads
+
+Anthropic code execution file downloads (including Anthropic on Microsoft) are
+available only in local development. `pnpm dev` binds to `127.0.0.1`; keep the
+development server on loopback and open `http://127.0.0.1:3000`. Download routes
+reject production, Vercel deployments, non-loopback URLs, and cross-origin browser
+requests before using provider credentials. Do not expose the development server
+through a public interface or tunnel.
+
+To support downloads in a deployed application, add authentication and verify
+that the requested file belongs to a chat the user can access before contacting
+the provider. A file ID alone does not authorize a download.
+
+Run the download route regression tests with `pnpm test:downloads`.
+
 ## Learn More
 
 To learn more about OpenAI, Next.js, and the AI SDK take a look at the following resources:
