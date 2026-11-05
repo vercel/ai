@@ -155,6 +155,28 @@ Only enable `supportsMultiPartToolContent` when the provider accepts content
 arrays for messages with the `tool` role. The default stringifies multi-part
 tool results for compatibility with the OpenAI Chat Completions API.
 
+### Refusals
+
+Some OpenAI-compatible providers, including OpenAI itself, can return a
+`refusal` instead of content when the model declines a request. The refusal
+explanation is surfaced as text in both `generateText` and `streamText`. When a
+non-empty refusal is received and the provider reports a `stop` finish reason,
+the finish reason is `content-filter`:
+
+```ts
+const { text, finishReason } = await generateText({
+  model: provider('model-id'),
+  prompt: '...',
+});
+
+if (finishReason === 'content-filter') {
+  // `text` contains the model's refusal explanation
+}
+```
+
+When a response contains both content and a refusal, the content text is emitted
+first, followed by the refusal text.
+
 ### Example
 
 You can use provider language models to generate text with the `generateText` function:

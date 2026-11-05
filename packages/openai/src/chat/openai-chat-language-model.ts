@@ -53,6 +53,15 @@ import {
 import { prepareChatTools } from './openai-chat-prepare-tools';
 import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 
+type OpenAIChatLogprob = NonNullable<
+  NonNullable<
+    Extract<
+      OpenAIChatChunk,
+      { choices: unknown }
+    >['choices'][number]['logprobs']
+  >['content']
+>[number];
+
 type OpenAIChatConfig = {
   provider: string;
   /** Model ID sent to the API. Defaults to the model's reported ID. */
@@ -497,8 +506,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       providerMetadata.openai.rejectedPredictionTokens =
         completionTokenDetails?.rejected_prediction_tokens;
     }
-    if (choice.logprobs?.content != null) {
-      providerMetadata.openai.logprobs = choice.logprobs.content;
+    // logprobs either follow the text content (content) or the refusal, so
+    // combine them in the order the text is emitted above:
+    const logprobs = [
+      ...(choice.logprobs?.content ?? []),
+      ...(choice.logprobs?.refusal ?? []),
+    ];
+    if (logprobs.length > 0) {
+      providerMetadata.openai.logprobs = logprobs;
     }
 
     return {
@@ -575,6 +590,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     let metadataExtracted = false;
     let isActiveText = false;
     let hasRefusal = false;
+    let hasRefusalLogprobs = false;
+
+    // logprobs of the streamed text and refusal tokens, in emission order:
+    const streamedLogprobs: OpenAIChatLogprob[] = [];
 
     const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
 
@@ -662,8 +681,25 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
               };
             }
 
-            if (choice?.logprobs?.content != null) {
-              providerMetadata.openai.logprobs = choice.logprobs.content;
+            // logprobs either follow the text content (content) or the refusal.
+            // Refusal logprobs are streamed one token per chunk, so collect
+            // them and report all emitted tokens at the end of the stream:
+            if (choice?.logprobs != null) {
+              const contentLogprobs = choice.logprobs.content ?? [];
+              const refusalLogprobs = choice.logprobs.refusal ?? [];
+
+              if (refusalLogprobs.length > 0) {
+                hasRefusalLogprobs = true;
+              }
+
+              const logprobs = [...contentLogprobs, ...refusalLogprobs];
+              if (logprobs.length > 0) {
+                streamedLogprobs.push(...logprobs);
+
+                // keep the previous per-chunk behavior for responses without
+                // refusal logprobs:
+                providerMetadata.openai.logprobs = logprobs;
+              }
             }
 
             if (choice?.delta == null) {
@@ -728,6 +764,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
             }
 
             toolCallTracker.flush();
+
+            // refusal logprobs are streamed one token per chunk, so report all
+            // of them (content logprobs followed by refusal logprobs) instead
+            // of only the last chunk:
+            if (hasRefusalLogprobs) {
+              providerMetadata.openai.logprobs = streamedLogprobs;
+            }
 
             controller.enqueue({
               type: 'finish',
