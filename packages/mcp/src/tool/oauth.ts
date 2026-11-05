@@ -135,6 +135,11 @@ export interface OAuthClientProvider {
   state?(): string | Promise<string>;
   saveState?(state: string): void | Promise<void>;
   storedState?(): string | undefined | Promise<string | undefined>;
+  /**
+   * Overrides protected resource validation and selection. Return a resource URL
+   * or throw to reject it. Returning undefined uses the canonical MCP server URL
+   * with its fragment removed, so OAuth requests always include a resource.
+   */
   validateResourceURL?(
     serverUrl: string | URL,
     resource?: string,
@@ -1329,18 +1334,19 @@ export async function selectResourceURL(
   serverUrl: string | URL,
   provider: OAuthClientProvider,
   resourceMetadata?: OAuthProtectedResourceMetadata,
-): Promise<URL | undefined> {
+): Promise<URL> {
   const defaultResource = resourceUrlFromServerUrl(serverUrl);
 
   if (provider.validateResourceURL) {
-    return await provider.validateResourceURL(
+    const resource = await provider.validateResourceURL(
       defaultResource,
       resourceMetadata?.resource,
     );
+    return resource ?? defaultResource;
   }
 
   if (!resourceMetadata) {
-    return undefined;
+    return defaultResource;
   }
 
   if (
@@ -1445,7 +1451,7 @@ async function authInternal(
   }
 
   /** Validate and select the resource value sent to the AS */
-  const resource: URL | undefined = await selectResourceURL(
+  const resource = await selectResourceURL(
     serverUrl,
     provider,
     resourceMetadata,
