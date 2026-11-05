@@ -323,6 +323,20 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
           .nullish(),
       }),
       z.object({
+        type: z.literal('response.refusal.delta'),
+        item_id: z.string(),
+        output_index: z.number().nullish(),
+        content_index: z.number().nullish(),
+        delta: z.string(),
+      }),
+      z.object({
+        type: z.literal('response.refusal.done'),
+        item_id: z.string(),
+        output_index: z.number().nullish(),
+        content_index: z.number().nullish(),
+        refusal: z.string(),
+      }),
+      z.object({
         type: z.enum(['response.completed', 'response.incomplete']),
         response: z.object({
           incomplete_details: z.object({ reason: z.string() }).nullish(),
@@ -648,59 +662,66 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
               role: z.literal('assistant'),
               id: z.string(),
               phase: z.enum(['commentary', 'final_answer']).nullish(),
+              // the API returns either text or a refusal as content parts:
               content: z.array(
-                z.object({
-                  type: z.literal('output_text'),
-                  text: z.string(),
-                  logprobs: z
-                    .array(
-                      z.object({
-                        token: z.string(),
-                        logprob: z.number(),
-                        top_logprobs: z.array(
-                          z.object({
-                            token: z.string(),
-                            logprob: z.number(),
-                          }),
-                        ),
-                      }),
-                    )
-                    .nullish(),
-                  annotations: z.array(
-                    z.discriminatedUnion('type', [
-                      z.object({
-                        type: z.literal('url_citation'),
-                        start_index: z.number(),
-                        end_index: z.number(),
-                        url: z.string(),
-                        title: z.string(),
-                      }),
-                      z.object({
-                        type: z.literal('file_citation'),
-                        file_id: z.string(),
-                        filename: z.string().nullish(),
-                        index: z.number().nullish(),
-                        start_index: z.number().nullish(),
-                        end_index: z.number().nullish(),
-                        quote: z.string().nullish(),
-                      }),
-                      z.object({
-                        type: z.literal('container_file_citation'),
-                        container_id: z.string(),
-                        file_id: z.string(),
-                        filename: z.string().nullish(),
-                        start_index: z.number().nullish(),
-                        end_index: z.number().nullish(),
-                        index: z.number().nullish(),
-                      }),
-                      z.object({
-                        type: z.literal('file_path'),
-                        file_id: z.string(),
-                        index: z.number().nullish(),
-                      }),
-                    ]),
-                  ),
-                }),
+                z.discriminatedUnion('type', [
+                  z.object({
+                    type: z.literal('output_text'),
+                    text: z.string(),
+                    logprobs: z
+                      .array(
+                        z.object({
+                          token: z.string(),
+                          logprob: z.number(),
+                          top_logprobs: z.array(
+                            z.object({
+                              token: z.string(),
+                              logprob: z.number(),
+                            }),
+                          ),
+                        }),
+                      )
+                      .nullish(),
+                    annotations: z.array(
+                      z.discriminatedUnion('type', [
+                        z.object({
+                          type: z.literal('url_citation'),
+                          start_index: z.number(),
+                          end_index: z.number(),
+                          url: z.string(),
+                          title: z.string(),
+                        }),
+                        z.object({
+                          type: z.literal('file_citation'),
+                          file_id: z.string(),
+                          filename: z.string().nullish(),
+                          index: z.number().nullish(),
+                          start_index: z.number().nullish(),
+                          end_index: z.number().nullish(),
+                          quote: z.string().nullish(),
+                        }),
+                        z.object({
+                          type: z.literal('container_file_citation'),
+                          container_id: z.string(),
+                          file_id: z.string(),
+                          filename: z.string().nullish(),
+                          start_index: z.number().nullish(),
+                          end_index: z.number().nullish(),
+                          index: z.number().nullish(),
+                        }),
+                        z.object({
+                          type: z.literal('file_path'),
+                          file_id: z.string(),
+                          index: z.number().nullish(),
+                        }),
+                      ]),
+                    ),
+                  }),
+                  z.object({
+                    type: z.literal('refusal'),
+                    refusal: z.string(),
+                  }),
+                ]),
               ),
             }),
             z.object({
