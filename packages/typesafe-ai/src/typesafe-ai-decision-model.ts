@@ -107,7 +107,7 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
         question.type === 'score' &&
         (question.criteria.length === 0 ||
           question.criteria.length > 10 ||
-          question.criteria.some(level => level === null))
+          question.criteria.some(level => level == null))
       ) {
         throw new InvalidArgumentError({
           argument: `questions.${id}.criteria`,

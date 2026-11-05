@@ -231,6 +231,19 @@ it.each([
   expect(server.calls).toHaveLength(0);
 });
 
+it.each([{ criteria: [undefined] }, { criteria: ['Low', undefined] }])(
+  'rejects undefined score levels before HTTP: $criteria',
+  async ({ criteria }) => {
+    await expect(
+      model.doDecide({
+        state: [{ type: 'text', text: 'test' }],
+        questions: { rating: { type: 'score', criteria: criteria as never } },
+      }),
+    ).rejects.toBeInstanceOf(InvalidArgumentError);
+    expect(server.calls).toHaveLength(0);
+  },
+);
+
 describe('HTTP errors', () => {
   it.each([401, 422, 429, 529])(
     'preserves status and retryability for %s',
