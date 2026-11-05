@@ -1,232 +1,149 @@
-# Pull request package previews
+# Package previews
 
-Package previews let contributors and agents install the packages built from a
-pull request before an npm release. A single bot comment on the PR shows progress,
-then links to the package browser and install commands when verification passes.
+Install unpublished AI SDK packages directly from a pull request's Vercel
+preview deployment. These tarballs replace the npm snapshot release option
+previously available in `release.yml`. They are never published to npm.
 
-These previews replace the npm snapshot release option previously available in
-`release.yml`. To test a PR, use the preview linked in its comment instead of
-manually dispatching a snapshot release or installing from npm's `snapshot` tag.
-The release workflow continues to publish regular npm releases.
+## Install a preview
 
-For external contributors, a maintainer must first approve the GitHub Actions CI
-run. **All CI jobs must pass** before the preview workflow creates a deployment
-or posts its first comment. Opening a PR alone does not deploy anything.
+1. Open the Vercel bot comment on the PR and select the **ai-tarballs** deployment.
+2. Open the package browser and copy its generated npm or pnpm install command.
+3. Use the deployment's unique URL when sharing a specific revision. A branch
+   alias follows subsequent pushes and should not be saved in dependencies.
 
-## Installing a preview
-
-Use the URL in the PR comment. For example:
+For example, substituting the deployment's actual origin:
 
 ```sh
-npm install ai@https://pr-12345-fix-provider-options-0123456789ab.tarballs.ai-sdk.dev/pkg/ai.tgz @ai-sdk/openai@https://pr-12345-fix-provider-options-0123456789ab.tarballs.ai-sdk.dev/pkg/ai-sdk/openai.tgz
+npm install ai@https://ai-tarballs-abc123-vercel-labs.vercel.app/pkg/ai.tgz @ai-sdk/openai@https://ai-tarballs-abc123-vercel-labs.vercel.app/pkg/ai-sdk/openai.tgz
 ```
 
-The browser lists every public package with npm and pnpm commands. Commands for
-packages with internal peer dependencies include the matching peers explicitly.
-Internal runtime and optional dependencies already point to the same preview, so
-installing a provider also installs its preview of `@ai-sdk/provider-utils` and
-`@ai-sdk/provider`. External dependencies retain their normal version ranges.
+Downloads use `/pkg/ai.tgz` for `ai` and `/pkg/ai-sdk/<name>.tgz` for scoped
+packages such as `@ai-sdk/openai`. The browser lists every public package and
+provides install commands including any required internal peer packages.
+`/catalog.json` exposes the same metadata, commit SHA, integrity hashes, download
+URLs, and install commands for agents.
 
-pnpm 12 blocks transitive tarball URLs by default. The generated pnpm commands
-include `--config.blockExoticSubdeps=false` to allow the preview's internal tarball
-dependencies for that invocation. This also permits other transitive URL/git
-dependencies during that install, so review the PR and dependency changes first.
-It does not change persistent pnpm settings. Use the same flag for subsequent
-pnpm installs while consuming a preview, or use npm. Remove the preview dependencies
-when returning to released packages.
+Each package has version `0.0.0-preview.<full Git commit SHA>`. Internal runtime
+and optional dependencies point to tarballs from that same immutable Vercel
+deployment. Internal peers use the matching preview version; generated install
+commands include those peers explicitly.
 
-For agents, fetch `<preview-origin>/catalog.json`. It contains the PR number,
-branch, head SHA, tested merge SHA, originating CI run and attempt, package names,
-versions, URLs, SHA-512 integrity values, sizes, dependency relationships, and
-per-package install commands. Package paths are stable:
+pnpm 12 blocks transitive tarball URLs by default. Generated pnpm commands
+include `--config.blockExoticSubdeps=false` for that installation. This does not
+change persistent pnpm settings. Review the PR before installing its packages.
 
-| Package                  | Download path                    |
-| ------------------------ | -------------------------------- |
-| `ai`                     | `/pkg/ai.tgz`                    |
-| `@ai-sdk/openai`         | `/pkg/ai-sdk/openai.tgz`         |
-| `@ai-sdk/provider-utils` | `/pkg/ai-sdk/provider-utils.tgz` |
+To return to a release, replace the preview URL dependencies with npm versions
+and reinstall. Keep preview packages out of production applications.
 
-Preview packages are unreleased PR code. Review the changes before installing.
-They use `0.0.0-pr.<number>.<full-tested-sha>` versions and are never published to
-the npm registry. Restore released versions when finished testing.
+## Approval and deployment lifecycle
 
-## URL identity and retries
+The project follows [`vercel/workflow`'s tarball
+setup](https://github.com/vercel/workflow/tree/main/tarballs): Vercel's Git
+integration builds on branch pushes and manages the PR deployment comment.
+The comment shows the pending/building, ready, or failed deployment state. Open
+its ai-tarballs URL for install commands.
 
-The hostname is:
+**Git Fork Protection must remain enabled.** A Vercel team member must authorize
+fork PR deployments through Vercel. This approval is separate from approving
+GitHub Actions. The build can run alongside GitHub CI and does not wait for CI
+to pass. A ready deployment means the tarball build succeeded; consult the PR's
+CI results and package preview checks separately before relying on a preview.
 
-```text
-pr-<PR number>-<normalized branch>-<12-character tested SHA>.tarballs.ai-sdk.dev
-```
+Vercel packages the Git commit identified by `VERCEL_GIT_COMMIT_SHA`, rather than
+GitHub's synthetic PR merge commit. The catalog records that exact commit and,
+when available, the branch and PR number. Builds made before a PR is opened,
+and production-branch builds, also have a package browser.
 
-Branch names become lowercase ASCII letters, digits, and single hyphens. Leading
-and trailing hyphens are removed; an empty result becomes `branch`. Only the
-branch segment is truncated to fit DNS's 63-character label limit.
+Use the generated immutable deployment URL. The custom
+`pr-<number>-<branch>-<sha>.tarballs.ai-sdk.dev` aliases are no longer assigned.
+Vercel's generated branch aliases may change their destination on later pushes;
+all internal tarball links always use the immutable `VERCEL_URL` origin.
+Deployments remain available according to the project's deployment retention
+policy, so preview URLs are intended for temporary testing.
 
-The SHA identifies the exact synthetic merge commit tested by PR CI, including
-the current base branch. It can differ from the PR head SHA; both are shown in the
-catalog and comment. Updating the PR or its base requires a new passing CI run.
-An obsolete run cannot update the current PR comment or publish a stale revision.
+After each successful deployment, Vercel sends a `vercel.deployment.success`
+repository dispatch. `.github/workflows/tarballs.yml` filters events to the
+ai-tarballs project, downloads all packages, checks their integrity and manifests,
+and verifies isolated npm/pnpm installs and runtime imports. This workflow has
+read-only GitHub permissions and no Vercel credentials. Its result is separate
+from Vercel's build status. Automatic dispatch checks start once the workflow is
+on the default branch. After that, `workflow_dispatch` accepts a deployment URL
+and its full commit SHA for manual checks and retries. Before the first merge,
+run the smoke script locally against the public deployment URL.
 
-Once assigned, a hostname is immutable. A retry verifies and reuses the existing
-preview. It refuses to retarget an unavailable alias or one with different full
-commit identities, including a short-SHA collision. The old successful preview
-remains linked with its SHA while a newer preview is preparing or has failed.
-Deployment retention in Vercel still applies: immutability does not guarantee
-indefinite availability.
+## Build process
 
-Retrying only the publisher reuses the immutable artifact ID exported by the
-successful pack job, even when GitHub increments the preview workflow attempt.
-If that artifact has expired (it is retained for three days), rerun all preview
-workflow jobs to rebuild it. CI and the current PR revision are checked again
-before any upload or alias reuse.
+The project's root directory is `tools/tarballs`. Its `vercel.json` installs the
+workspace dependencies from the repository root and runs `node build.mjs`.
+Enable Vercel's **Include source files outside of the Root Directory** setting so
+the build can access `packages/`, the root lockfile, and workspace configuration.
 
-## How publishing works
+`build.mjs` reads Vercel's system Git variables and unique deployment URL.
+`pack.mjs` sets preview versions before building because the bundler embeds
+package versions, builds the public packages, rewrites internal dependency URLs,
+and runs `pnpm pack`. Original package manifests are restored even on failure.
+The initial install verifies the frozen lockfile. While manifests contain
+temporary preview versions, packaging disables pnpm's automatic dependency
+reinstallation for its build and pack subprocesses.
+`site.mjs` writes the tarballs, package browser, and catalog into `dist/`. The
+result is a static deployment with no runtime functions.
 
-The design follows the static tarball previews in
-[`vercel/workflow`](https://github.com/vercel/workflow/tree/9d0f748a1cccf67b275ad5b902123d6ca714c2c9/tarballs),
-with publishing gated on approved, passing AI SDK CI instead of automatic Git
-deployments.
-
-1. `CI` records the PR head, base, tested merge, and run identity in an artifact.
-   This context job performs no checkout and executes no PR code.
-2. `.github/workflows/tarballs.yml` runs on `workflow_run: completed` from the
-   **default branch**. It accepts successful pull-request `CI` runs only. It
-   verifies the run's repository, workflow path, attempt, head repository and
-   branch, current open PR head/base, merge commit parents, and the successful
-   aggregate `test` job through the GitHub API. Artifact metadata alone cannot
-   authorize a deployment. Partial reruns without a successful aggregate `test`
-   job and a context artifact for that attempt fail closed; rerun **all jobs**.
-3. A trusted job creates or updates one `github-actions[bot]` PR comment to show
-   that the preview is preparing. Comment state prevents an older CI run or
-   attempt from overwriting a newer status. Closed or updated PRs are skipped.
-4. A separate runner checks out the verified merge commit, installs the frozen
-   lockfile, sets preview versions **before** building (the version is embedded
-   by tsdown), then rewrites package dependencies and runs `pnpm pack` for every
-   public package. This runner has no publishing credentials, write token,
-   OIDC permission, remote Turbo cache, or protected environment.
-5. A fresh trusted runner rechecks CI and the current PR, validates the artifact
-   filenames, sizes, versions, and hashes, and constructs its own Vercel Build
-   Output API directory. It copies only `.tgz` bytes and generates the HTML,
-   catalog, routing config, and project link itself. Symlinks and unexpected files
-   are rejected. It never extracts tarballs or executes PR code. After CI
-   revalidation, the runner exchanges its GitHub OIDC identity for a short-lived
-   Vercel token, available to the subsequent static upload/alias step.
-6. A fresh runner without deployment credentials downloads every public tarball,
-   checks integrity and package manifests, and runs isolated npm and pnpm installs
-   plus runtime imports of `ai` and `@ai-sdk/openai`. It also exercises internal
-   peer dependencies through `@ai-sdk/code-mode` when present. Install scripts are
-   disabled. Only then does a separate trusted job mark the comment ready. Failure
-   and cancellation update the same comment with a workflow link.
-
-Publishing is serialized per source repository/branch. No untrusted artifact,
-cache, Vercel function, `vercel.json`, lifecycle hook, or generated script is
-executed on the credentialed publisher. Only default-branch tooling is trusted;
-changes to this tooling require maintainer review before merging.
-
-## Deployment authentication
-
-The trusted `publish` job exchanges its GitHub OIDC identity for a short-lived
-Vercel CLI access token in an inline workflow step (OAuth 2.0 token exchange
-against `https://api.vercel.com/login/oauth/token`). The step uses
-`TARBALLS_VERCEL_ORG_ID` as the team and exports `VERCEL_ORG_ID` and
-`VERCEL_TOKEN` for the subsequent upload step. No persistent Vercel token needs
-to be stored in GitHub.
-Only `publish` has `id-token: write`; the runner executing PR code remains
-unprivileged. Authentication happens after the publisher revalidates CI and the
-current PR revision, immediately before the static upload.
-
-Create a **Vercel CLI OIDC policy** on `vercel-labs` restricted to GitHub
-repository `vercel/ai`, workflow `PR package previews` (the workflow's `name:`,
-not its file path), branch `main`, and the dedicated `ai-tarballs` project. Keep
-the GitHub `tarballs` environment restricted to `main`. Because the job uses that
-environment, its default OIDC subject is
-`repo:vercel/ai:environment:tarballs`; the separate `ref` claim is
-`refs/heads/main`. The publisher runs from the default branch for approved fork
-PRs as well; the policy must recognize the trusted publisher's identity.
-
-Leave the optional policy and audience variables unset when one policy matches
-and it accepts GitHub's default audience. If multiple policies match, set
-`TARBALLS_VERCEL_OIDC_POLICY_ID` to the intended policy ID. If the policy specifies
-a custom audience, set `TARBALLS_VERCEL_OIDC_AUDIENCE` to that exact value. The
-workflow passes these values to the token request and exchange when set.
-
-Before rollout, confirm team enablement. Verify the complete publisher flow with
-the restricted identity: project and environment checks, missing/existing alias
-lookups, prebuilt deployment through `READY`, custom alias assignment, and retry
-reuse.
-Successful token exchange alone is insufficient. Keep previews disabled until
-the policy is configured and the publisher is ready for verification; do not
-fall back to a persistent token when authentication or authorization fails.
+There is no GitHub-to-Vercel token exchange, deploy action, custom alias step, or
+static deployment token. Keep this dedicated project free of application
+credentials and third-party integrations: builds execute contribution code.
 
 ## Maintainer setup
 
-Keep `TARBALLS_ENABLED` unset or `false` until every step below is complete.
+Use the existing [ai-tarballs project in
+vercel-labs](https://vercel.com/vercel-labs/ai-tarballs):
 
-1. In repository **Settings → Actions → General → Approval for running fork pull
-   request workflows from contributors**, choose **Require approval for all
-   external contributors**. The API value is `all_external_contributors`:
+1. Connect its Git repository to **vercel/ai**. Use production branch **main**,
+   root directory **tools/tarballs**, framework **Other**, and Node.js **22.x**.
+2. Enable **Include source files outside of the Root Directory** and automatic
+   exposure of system environment variables. Use the install/build/output
+   settings from `tools/tarballs/vercel.json`; remove older dashboard overrides
+   that disabled installation or building.
+3. Keep **Git Fork Protection enabled**. Review a fork contribution before
+   authorizing its deployment. GitHub CI approvals remain independent.
+4. Keep deployment downloads public, including previews, so npm and pnpm can
+   fetch packages without login or a bypass secret. Keep build logs and source
+   protection enabled. Do not add application secrets to the project.
+5. Keep Vercel's PR comments and repository dispatch events enabled. The smoke
+   workflow filters the dedicated project ID. Update that filter if the project
+   is ever replaced. `changeset-release/*` branches are excluded in `vercel.json`.
+6. Deploy this PR and verify its package browser, public downloads, and isolated
+   installs. After merge, verify dispatch-triggered smoke checks on another PR,
+   including a fork that requires Vercel authorization.
 
-   ```sh
-   gh api repos/vercel/ai/actions/permissions/fork-pr-contributor-approval \
-     -X PUT -f approval_policy=all_external_contributors
-   gh api repos/vercel/ai/actions/permissions/fork-pr-contributor-approval
-   ```
-
-   First-time-only approval policies do not satisfy this requirement. Keep the
-   setting enforced operationally; `GITHUB_TOKEN` cannot read this administration
-   setting during publishing. Do not enable write tokens or secrets for fork PR
-   CI. Approving CI is the maintainer's authorization to build that contribution.
-
-2. Use **[`ai-tarballs` in `vercel-labs`](https://vercel.com/vercel-labs/ai-tarballs)**
-   (or create it when bootstrapping), with framework **Other**, **no Git
-   repository integration**, and no build/runtime environment variables. Disable
-   Vercel Authentication, password protection, and other deployment protection
-   for this dedicated public package project. Never connect automatic Git builds
-   or put application secrets in this project.
-3. Add `*.tarballs.ai-sdk.dev` to the project. Complete ownership verification and
-   the DNS/nameserver configuration Vercel requests, including wildcard TLS.
-   Wildcard domains can require Vercel nameservers or delegation; confirm the
-   wildcard is verified rather than adding a CNAME alone. Individual deployments
-   receive individual aliases under this wildcard.
-4. Create a GitHub environment named **`tarballs`**. Restrict deployment branches
-   to **`main`** using a custom branch policy; the `workflow_run` publisher runs on
-   the default branch even for fork PRs. Additional environment reviewers are
-   optional because the build and credentialed upload run on separate runners.
-5. In that environment, configure these variables:
-
-   | Name                             | Value                                      |
-   | -------------------------------- | ------------------------------------------ |
-   | `TARBALLS_VERCEL_ORG_ID`         | Canonical `vercel-labs` team ID (`team_…`) |
-   | `TARBALLS_VERCEL_PROJECT_ID`     | `ai-tarballs` project ID                   |
-   | `TARBALLS_VERCEL_OIDC_POLICY_ID` | Optional policy ID when multiple match     |
-   | `TARBALLS_VERCEL_OIDC_AUDIENCE`  | Optional custom audience matching policy   |
-
-6. Configure the [Vercel CLI OIDC policy](#deployment-authentication) and verify
-   that short-lived credentials support every publisher operation. Vercel CLI
-   is pinned in the workflow; review and test version updates before enabling
-   them.
-7. Merge the workflow/tooling to `main`, then set the **repository variable**
-   `TARBALLS_ENABLED=true`. `workflow_run` cannot bootstrap itself from this PR.
-   Rerun **all jobs** of a test PR's CI after merge so that the context artifact
-   and aggregate `test` result belong to the same attempt.
-8. Verify an external PR remains awaiting approval without a preview/comment;
-   approve CI and verify the preparing → ready comment and public npm/pnpm
-   downloads. Also verify failed CI creates no deployment, and a new commit
-   cannot reuse or overwrite an older commit's hostname.
-
-Disable new previews immediately by setting `TARBALLS_ENABLED=false`. Existing
-public deployments remain available. Manage expiry/deletion in the dedicated
-Vercel project; do not reassign an old hostname to new package bytes.
+The former `TARBALLS_ENABLED`, `TARBALLS_VERCEL_*` GitHub variables and `tarballs`
+GitHub environment are unused. No Vercel CLI OIDC policy or audience is required
+for this setup. An existing unused OIDC policy can be removed by its owner.
+The wildcard `*.tarballs.ai-sdk.dev` domain is also unnecessary for generated
+Vercel deployment URLs.
 
 ## Local validation
 
 ```sh
 node --test tools/tarballs/*.test.mjs
-pnpm type-check:full
 ```
 
-The tests cover hostname/path validation, dependency and peer rewriting,
-GitHub run/revision gating, comment transitions, static artifact rejection,
-HTML escaping, and a real build/`pnpm pack` fixture with embedded preview versions.
-End-to-end public download and install checks run in the preview workflow after
-the project, domain, and environment have been configured.
+To build locally after `pnpm install`, provide the same public metadata that
+Vercel supplies. Use an origin that will serve the resulting files:
+
+```sh
+VERCEL_URL=localhost:8443 \
+VERCEL_GIT_COMMIT_SHA=$(git rev-parse HEAD) \
+VERCEL_GIT_COMMIT_REF=$(git branch --show-current) \
+node tools/tarballs/build.mjs
+```
+
+Serve `tools/tarballs/dist/` over HTTPS at that origin, then check it with:
+
+```sh
+TARBALLS_URL=https://localhost:8443 \
+TARBALLS_SHA=$(git rev-parse HEAD) \
+node tools/tarballs/smoke.mjs
+```
+
+Use a trusted local certificate for both the Node.js fetches and package
+managers. Neither command needs a Vercel token.

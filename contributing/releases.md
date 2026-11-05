@@ -38,13 +38,13 @@ To test a PR in a downstream application, install its
 releases previously dispatched through `release.yml`; the release workflow now
 only handles regular npm releases.
 
-For external contributors, a maintainer must approve CI first. After all PR CI
-jobs pass, the preview workflow builds public package tarballs and updates one PR
-comment from preparing to ready with install commands. Packages are installed
-directly from the preview URLs and are never published to the npm registry.
+Vercel's Git integration builds the tarballs and updates its PR deployment
+comment. Fork PRs require a Vercel team member's deployment authorization,
+separately from GitHub CI approval. Deployments do not wait for GitHub CI to pass.
+Packages are installed directly from immutable deployment URLs.
 
-Complete the [maintainer setup](./package-previews.md#maintainer-setup) before
-enabling previews. There is no manual snapshot option in the release workflow.
+Complete the [maintainer setup](./package-previews.md#maintainer-setup) to connect
+the project. There is no manual snapshot option in the release workflow.
 
 ## New Major Releases
 

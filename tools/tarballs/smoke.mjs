@@ -1,17 +1,37 @@
-// Download and execute package code only on a runner without publishing tokens.
+// Download and execute packages on a runner without publishing credentials.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, realpath, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { context, hostname, installNames, integrity, packageFile, packageUrl, previewVersion, sameRevision } from './shared.mjs';
+import {
+  context,
+  installNames,
+  integrity,
+  packageFile,
+  packageUrl,
+  previewVersion,
+} from './shared.mjs';
 
-const c = context(JSON.parse(process.env.TARBALLS_CONTEXT));
-const origin = `https://${hostname(c)}`;
+const origin = process.env.TARBALLS_URL;
+assert(origin, 'Set TARBALLS_URL to the immutable deployment origin');
+const url = new URL(origin);
+assert.equal(url.protocol, 'https:');
+assert.equal(url.origin, origin);
+assert(!url.username && !url.password);
+const expectedSha = process.env.TARBALLS_SHA;
+assert.match(
+  expectedSha,
+  /^[a-f0-9]{40}$/,
+  'Set TARBALLS_SHA to the deployed commit',
+);
 let catalog;
 for (let attempt = 0; attempt < 6; attempt++) {
   try {
-    const response = await fetch(`${origin}/catalog.json`, { redirect: 'error', signal: AbortSignal.timeout(60_000) });
+    const response = await fetch(`${origin}/catalog.json`, {
+      redirect: 'error',
+      signal: AbortSignal.timeout(60_000),
+    });
     assert(response.ok, `Catalog HTTP ${response.status}`);
     catalog = await response.json();
     break;
@@ -20,29 +40,56 @@ for (let attempt = 0; attempt < 6; attempt++) {
     await new Promise(resolve => setTimeout(resolve, 10_000));
   }
 }
-assert(sameRevision(context(catalog.context), c));
+const c = context(catalog.context);
+assert.equal(c.sha, expectedSha);
+assert.equal(c.origin, origin);
 assert.equal(catalog.origin, origin);
-const index = await fetch(origin, { redirect: 'error', signal: AbortSignal.timeout(60_000) });
+const index = await fetch(origin, {
+  redirect: 'error',
+  signal: AbortSignal.timeout(60_000),
+});
 assert(index.ok && (await index.text()).includes('JSON catalog for agents'));
-const temp = await realpath(await mkdtemp(join(tmpdir(), 'ai-tarballs-smoke-')));
+const temp = await realpath(
+  await mkdtemp(join(tmpdir(), 'ai-tarballs-smoke-')),
+);
 try {
   const names = new Set(catalog.packages.map(p => p.name));
   for (const pkg of catalog.packages) {
     assert.equal(pkg.url, packageUrl(c, pkg.name));
-    const response = await fetch(pkg.url, { redirect: 'error', signal: AbortSignal.timeout(60_000) });
+    const response = await fetch(pkg.url, {
+      redirect: 'error',
+      signal: AbortSignal.timeout(60_000),
+    });
     assert(response.ok, `${pkg.name}: HTTP ${response.status}`);
     const bytes = Buffer.from(await response.arrayBuffer());
     assert.equal(integrity(bytes), pkg.integrity);
     const file = join(temp, packageFile(pkg.name));
     await writeFile(file, bytes);
-    const manifest = JSON.parse(execFileSync('tar', ['-xOzf', file, 'package/package.json'], { maxBuffer: 1024 * 1024, encoding: 'utf8' }));
+    const manifest = JSON.parse(
+      execFileSync('tar', ['-xOzf', file, 'package/package.json'], {
+        maxBuffer: 1024 * 1024,
+        encoding: 'utf8',
+      }),
+    );
     assert.equal(manifest.name, pkg.name);
     assert.equal(manifest.version, previewVersion(c));
-    for (const section of ['dependencies', 'optionalDependencies', 'peerDependencies']) {
+    for (const section of [
+      'dependencies',
+      'optionalDependencies',
+      'peerDependencies',
+    ]) {
       for (const [name, spec] of Object.entries(manifest[section] ?? {})) {
-        assert(!spec.startsWith('workspace:'), 'Unresolved workspace dependency');
+        assert(
+          !spec.startsWith('workspace:'),
+          'Unresolved workspace dependency',
+        );
         if (names.has(name)) {
-          assert.equal(spec, section === 'peerDependencies' ? previewVersion(c) : packageUrl(c, name));
+          assert.equal(
+            spec,
+            section === 'peerDependencies'
+              ? previewVersion(c)
+              : packageUrl(c, name),
+          );
         }
       }
     }
@@ -53,15 +100,29 @@ try {
     const consumer = join(temp, manager);
     await mkdir(consumer);
     const install = installNames(catalog, selected);
-    const dependencies = Object.fromEntries(install.map(name => [name, packageUrl(c, name)]));
-    await writeFile(join(consumer, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies }));
-    const args = manager === 'npm'
-      ? ['install', '--ignore-scripts', '--no-audit', '--no-fund']
-      : ['install', '--ignore-scripts', '--config.blockExoticSubdeps=false', '--store-dir', join(temp, 'store')];
+    const dependencies = Object.fromEntries(
+      install.map(name => [name, packageUrl(c, name)]),
+    );
+    await writeFile(
+      join(consumer, 'package.json'),
+      JSON.stringify({ private: true, type: 'module', dependencies }),
+    );
+    const args =
+      manager === 'npm'
+        ? ['install', '--ignore-scripts', '--no-audit', '--no-fund']
+        : [
+            'install',
+            '--ignore-scripts',
+            '--config.blockExoticSubdeps=false',
+            '--store-dir',
+            join(temp, 'store'),
+          ];
     execFileSync(manager, args, { cwd: consumer, stdio: 'inherit' });
     // Check actual resolution, runtime imports, and dependency versions from
     // an isolated consumer outside the checked-out monorepo.
-    await writeFile(join(consumer, 'verify.mjs'), `
+    await writeFile(
+      join(consumer, 'verify.mjs'),
+      `
 import assert from 'node:assert/strict';
 import { realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -83,10 +144,13 @@ const ai = await import('ai');
 const openai = await import('@ai-sdk/openai');
 assert.equal(typeof ai.generateText, 'function');
 assert.equal(typeof openai.createOpenAI, 'function');
-`);
+`,
+    );
     execFileSync('node', ['verify.mjs'], { cwd: consumer, stdio: 'inherit' });
   }
-  console.log(`Verified ${catalog.packages.length} public downloads and isolated npm/pnpm installs.`);
+  console.log(
+    `Verified ${catalog.packages.length} public downloads and isolated npm/pnpm installs.`,
+  );
 } finally {
   await rm(temp, { recursive: true, force: true });
 }
