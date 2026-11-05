@@ -149,6 +149,7 @@ test('package browser emits static downloads and escapes branch markup', async (
       branch: '<img src=x onerror=alert(1)>',
     });
     assert.deepEqual((await readdir(f.output)).sort(), [
+      'assets',
       'catalog.json',
       'index.html',
       'pkg',
@@ -157,6 +158,11 @@ test('package browser emits static downloads and escapes branch markup', async (
     assert(!html.includes('<img'));
     assert(html.includes('&lt;img'));
     assert(!html.includes('<script'));
+    assert(html.includes(`href="${c.origin}/pkg/ai.tgz" download`));
+    assert.equal(
+      await readFile(join(f.output, 'assets', 'site.css'), 'utf8'),
+      await readFile(new URL('./site.css', import.meta.url), 'utf8'),
+    );
     const catalog = JSON.parse(
       await readFile(join(f.output, 'catalog.json'), 'utf8'),
     );

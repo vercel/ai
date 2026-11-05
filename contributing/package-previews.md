@@ -7,7 +7,8 @@ previously available in `release.yml`. They are never published to npm.
 ## Install a preview
 
 1. Open the Vercel bot comment on the PR and select the **ai-tarballs** deployment.
-2. Open the package browser and copy its generated npm or pnpm install command.
+2. Open the package browser and copy its generated npm install command, or expand
+   **Use pnpm**. Expand any package in the catalog for its download and commands.
 3. Use the deployment's unique URL when sharing a specific revision. A branch
    alias follows subsequent pushes and should not be saved in dependencies.
 
@@ -87,6 +88,12 @@ temporary preview versions, packaging disables pnpm's automatic dependency
 reinstallation for its build and pack subprocesses.
 `site.mjs` writes the tarballs, package browser, and catalog into `dist/`. The
 result is a static deployment with no runtime functions.
+
+The script-free package browser follows [Vercel's design
+guidance](https://vercel.com/design.md), using the published brand stylesheet,
+Geist fonts, automatic light and dark themes, and native disclosures. Its
+Content Security Policy allows only the page stylesheet and the specified brand
+and font assets; scripts remain blocked.
 
 There is no GitHub-to-Vercel token exchange, deploy action, custom alias step, or
 static deployment token. Keep this dedicated project free of application

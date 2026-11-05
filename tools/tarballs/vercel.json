@@ -23,7 +23,7 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"
+          "value": "default-src 'none'; style-src 'self' https://vercel.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src https://py8fhxnkzwtsqdo9.public.blob.vercel-storage.com; base-uri 'none'; frame-ancestors 'none'"
         }
       ]
     }

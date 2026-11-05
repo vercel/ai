@@ -1,6 +1,13 @@
 // Generate a static package browser and catalog from the packed packages.
 import assert from 'node:assert/strict';
-import { mkdir, readFile, readdir, lstat, writeFile } from 'node:fs/promises';
+import {
+  copyFile,
+  mkdir,
+  readFile,
+  readdir,
+  lstat,
+  writeFile,
+} from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import {
   context,
@@ -93,25 +100,113 @@ export async function assemble(input, output, value) {
     join(output, 'catalog.json'),
     JSON.stringify(catalog, null, 2),
   );
+  await mkdir(join(output, 'assets'), { recursive: true });
+  await copyFile(
+    new URL('./site.css', import.meta.url),
+    join(output, 'assets', 'site.css'),
+  );
   await writeFile(join(output, 'index.html'), render(catalog));
   return catalog;
 }
 
 export function render(catalog) {
   const c = catalog.context;
+  const revision = c.pr ? `PR #${c.pr}` : 'Branch preview';
+  const command = (value, label) =>
+    `<pre class="vbg-custom-command" tabindex="0" role="region" aria-label="${h(label)}"><code>${h(value.replace(/ (?=(?:ai|@ai-sdk\/[^@ ]+)@https:)/g, ' \\\n  '))}</code></pre>`;
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI SDK ${c.pr ? `PR #${c.pr}` : 'preview'} packages</title>
-<style>body{font:16px system-ui;max-width:1100px;margin:3rem auto;padding:0 1rem;line-height:1.5}pre{overflow:auto;background:#f3f3f3;padding:1rem}code{font-size:.85rem}td,th{text-align:left;padding:.75rem;border-bottom:1px solid #ddd}table{width:100%;border-collapse:collapse}a{color:#075ac9}</style></head>
-<body><h1>AI SDK ${c.pr ? `PR #${c.pr}` : 'preview'} packages</h1>
-<p>Unreleased packages built from this Git commit. Review the changes before installing.</p>
-<p>${c.pr ? `<a href="https://github.com/vercel/ai/pull/${c.pr}">Pull request #${c.pr}</a> · ` : ''}branch <code>${h(c.branch)}</code><br>
-Commit: <a href="https://github.com/vercel/ai/commit/${c.sha}"><code>${c.sha}</code></a></p>
-<p><a href="/catalog.json">JSON catalog for agents</a></p>
-<h2>Try AI SDK with OpenAI</h2><pre>${h(installCommand(catalog, ['ai', '@ai-sdk/openai']))}</pre>
-<p>Each command includes the matching internal peer packages. Runtime dependencies use tarballs from this same preview.</p>
-<p>The pnpm command opts into transitive tarball URLs for this installation using <code>--config.blockExoticSubdeps=false</code>. Review the PR before running it; this does not change your persistent pnpm configuration.</p>
-<h2>Packages</h2><table><thead><tr><th>Package</th><th>Install</th></tr></thead><tbody>
-${catalog.packages.map(pkg => `<tr><td><a href="${pkg.path}">${h(pkg.name)}</a><br><code>${pkg.version}</code></td><td><pre>${h(pkg.install.npm)}</pre><pre>${h(pkg.install.pnpm)}</pre></td></tr>`).join('\n')}
-</tbody></table></body></html>`;
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Install unpublished AI SDK packages from a specific Git revision, with matching dependencies and a JSON catalog for agents.">
+  <title>AI SDK ${c.pr ? `PR #${c.pr}` : 'preview'} packages</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&amp;family=Geist+Mono:wght@400..600&amp;display=swap" rel="stylesheet" referrerpolicy="no-referrer">
+  <link href="https://vercel.com/geist/vercel-brand.css" rel="stylesheet" referrerpolicy="no-referrer">
+  <link href="/assets/site.css" rel="stylesheet">
+</head>
+<body class="vbg-report">
+  <div class="vbg-shell">
+    <a class="vbg-skip-link" href="#main">Skip to content</a>
+    <header class="vbg-header">
+      <div class="vbg-masthead">
+        <span class="vbg-identity"><span class="vbg-wordmark" role="img" aria-label="Vercel"></span></span>
+        <div class="vbg-document-meta">
+          <span>AI SDK</span>
+          ${c.pr ? `<a href="https://github.com/vercel/ai/pull/${c.pr}">${revision}</a>` : `<span>${revision}</span>`}
+        </div>
+      </div>
+    </header>
+    <main id="main" class="vbg-custom-main">
+      <section class="vbg-custom-intro" aria-labelledby="title">
+        <div class="vbg-stack">
+          <h1 id="title" class="vbg-title">Try this AI SDK revision</h1>
+          <p class="vbg-lede">Install unreleased packages from this commit. Every download and command uses the same revision.</p>
+        </div>
+        <dl class="vbg-custom-revision">
+          <div class="vbg-custom-revision-field">
+            <dt class="vbg-label">Branch</dt>
+            <dd class="vbg-custom-identifier"><code>${h(c.branch)}</code></dd>
+          </div>
+          <div class="vbg-custom-revision-field">
+            <dt class="vbg-label">Commit</dt>
+            <dd class="vbg-custom-identifier"><a href="https://github.com/vercel/ai/commit/${c.sha}" aria-label="View commit ${c.sha}"><code>${c.sha}</code></a></dd>
+          </div>
+        </dl>
+      </section>
+      <section class="vbg-band" data-tone="contrast" aria-labelledby="install-title">
+        <div class="vbg-stack">
+          <h2 id="install-title" class="vbg-heading-24">Install AI SDK with OpenAI</h2>
+          <p>Run in your project to try this revision.</p>
+          ${command(installCommand(catalog, ['ai', '@ai-sdk/openai']), 'npm install command')}
+          <details class="vbg-custom-manager">
+            <summary>Use pnpm</summary>
+            ${command(installCommand(catalog, ['ai', '@ai-sdk/openai'], 'pnpm'), 'pnpm install command')}
+          </details>
+        </div>
+      </section>
+      <div class="vbg-custom-install-notes">
+        <p>Commands include matching AI SDK peers. Runtime dependencies come from this same preview.</p>
+        <p>Review the changes before installing. Preview packages are intended for testing.</p>
+        <details class="vbg-custom-pnpm-note">
+          <summary>About the pnpm option</summary>
+          <p>pnpm 12 blocks transitive tarball URLs by default. <code>--config.blockExoticSubdeps=false</code> allows them for this installation without changing your persistent pnpm configuration.</p>
+        </details>
+      </div>
+      <section class="vbg-custom-catalog" aria-labelledby="packages-title">
+        <div class="vbg-custom-catalog-heading">
+          <div class="vbg-stack">
+            <h2 id="packages-title" class="vbg-heading-24">Browse all ${catalog.packages.length} packages</h2>
+            <p>Choose a package for its download and install commands.</p>
+          </div>
+          <a href="/catalog.json">JSON catalog for agents</a>
+        </div>
+        <p class="vbg-meta">Package version <code class="vbg-custom-identifier">${previewVersion(c)}</code></p>
+        <ul class="vbg-custom-packages">
+          ${catalog.packages
+            .map(
+              pkg => `<li class="vbg-custom-package-item">
+            <details class="vbg-custom-package">
+              <summary><span class="vbg-custom-package-name"><code>${h(pkg.name)}</code></span><span class="vbg-meta">${(pkg.size / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })} kB</span></summary>
+              <div class="vbg-custom-package-content">
+                <a href="${h(pkg.url)}" download>Download <code>${h(pkg.path)}</code></a>
+                <p class="vbg-label">npm</p>
+                ${command(pkg.install.npm, `npm install ${pkg.name}`)}
+                <p class="vbg-label">pnpm</p>
+                ${command(pkg.install.pnpm, `pnpm install ${pkg.name}`)}
+              </div>
+            </details>
+          </li>`,
+            )
+            .join('\n')}
+        </ul>
+      </section>
+    </main>
+    <footer class="vbg-footer">
+      <span class="vbg-logo" role="img" aria-label="Vercel"></span>
+      <span><a href="https://github.com/vercel/ai">vercel/ai</a></span>
+    </footer>
+  </div>
+</body>
+</html>`;
 }
