@@ -8,6 +8,17 @@
   "jsPlugins": ["./tools/oxlint-plugin-ai-sdk/index.mjs"],
   "overrides": [
     {
+      "files": [
+        "packages/harness/src/agent/v2/**",
+        "packages/harness/src/v2/**",
+        "packages/harness-ai-sdk/**",
+        "packages/harness-*-v2/**"
+      ],
+      "rules": {
+        "ai-sdk/require-docblock": "error"
+      }
+    },
+    {
       "files": ["packages/codemod/src/test/__testfixtures__/**"],
       "rules": {
         "no-redeclare": "off"
@@ -16,7 +27,8 @@
     {
       "files": ["examples/**", "**/*.test.ts"],
       "rules": {
-        "no-unused-vars": "off"
+        "no-unused-vars": "off",
+        "ai-sdk/require-docblock": "off"
       }
     },
     {
@@ -31,17 +43,6 @@
       "files": ["packages/vue/**"],
       "rules": {
         "react-hooks/rules-of-hooks": "off"
-      }
-    },
-    {
-      "files": [
-        "packages/harness/src/agent/v2/**",
-        "packages/harness/src/v2/**",
-        "packages/harness-ai-sdk/**",
-        "packages/harness-*-v2/**"
-      ],
-      "rules": {
-        "ai-sdk/require-docblock": "error"
       }
     }
   ],

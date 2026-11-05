@@ -67,7 +67,7 @@ const requireDocblock = {
   meta: {
     type: 'problem',
     docs: {
-      description: 'Require docblocks on selected declarations.',
+      description: 'Require multiline docblocks on selected declarations.',
     },
   },
   create(context) {
@@ -115,17 +115,31 @@ const requireDocblock = {
     };
 
     const reportIfMissingDocblock = node => {
-      const hasDocblock = context.sourceCode
-        .getCommentsBefore(node)
-        .some(
+      const commentTarget =
+        node.parent?.type === 'ExportNamedDeclaration' ||
+        node.parent?.type === 'ExportDefaultDeclaration'
+          ? node.parent
+          : node;
+      const docblocks = context.sourceCode
+        .getCommentsBefore(commentTarget)
+        .filter(
           comment =>
             comment.type === 'Block' && comment.value.startsWith('*'),
         );
 
-      if (!hasDocblock) {
+      const docblock = docblocks[docblocks.length - 1];
+      if (docblock === undefined) {
         context.report({
           node,
           message: 'Add a JSDoc comment immediately before this declaration.',
+        });
+      } else if (
+        !/^\*[\t ]*\r?\n[\s\S]*\r?\n[\t ]*$/.test(docblock.value)
+      ) {
+        context.report({
+          node,
+          message:
+            'Use a multiline JSDoc comment with the opening and closing delimiters on separate lines.',
         });
       }
     };
