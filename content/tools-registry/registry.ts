@@ -1000,4 +1000,34 @@ console.log(text);`,
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
+  {
+    slug: 'zambo',
+    name: 'Zambo',
+    description:
+      '153 AI tools behind one remote MCP endpoint: live prices, research, audits, memory, and cross-AI handover. Every executed call returns a verifiable AER-1 execution receipt. No API key: every tool free once a day, plus 3 continue calls. One free wrap-up handover per day, and pickup is always free.',
+    packageName: 'zambo',
+    tags: ['mcp', 'tools', 'memory', 'receipts'],
+    installCommand: {
+      pnpm: 'pnpm add zambo',
+      npm: 'npm install zambo',
+      yarn: 'yarn add zambo',
+      bun: 'bun add zambo',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createZamboTools } from 'zambo/ai-sdk';
+
+const tools = await createZamboTools();
+
+const { text } = await generateText({
+  model: 'openai/gpt-5',
+  prompt: 'Check the live price of ETH and save it to memory.',
+  tools,
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://rambozambodotdev.gitlab.io/aer1-hub/vercel-ai-sdk-zambo.html',
+    websiteUrl: 'https://zambo.dev',
+    npmUrl: 'https://www.npmjs.com/package/zambo',
+  },
 ];
