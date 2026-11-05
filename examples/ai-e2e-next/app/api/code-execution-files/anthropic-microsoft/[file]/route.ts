@@ -13,10 +13,13 @@ const execute = async (
   },
 ) => {
   if (!isLocalDevelopmentRequest(req)) {
-    return new Response('File downloads are only available in local development.', {
-      status: 403,
-      headers: { 'Cache-Control': 'no-store' },
-    });
+    return new Response(
+      'File downloads are only available in local development.',
+      {
+        status: 403,
+        headers: { 'Cache-Control': 'no-store' },
+      },
+    );
   }
 
   const { file } = await params;
