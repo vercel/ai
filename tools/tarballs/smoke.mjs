@@ -1,4 +1,4 @@
-// Download and execute packages on a runner without publishing credentials.
+// Download and execute packages inside the credential-free smoke container.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, realpath, writeFile, rm } from 'node:fs/promises';
@@ -12,6 +12,19 @@ import {
   packageUrl,
   previewVersion,
 } from './shared.mjs';
+
+assert(
+  ![
+    'ACTIONS_RUNTIME_TOKEN',
+    'ACTIONS_CACHE_URL',
+    'ACTIONS_RESULTS_URL',
+    'ACTIONS_ID_TOKEN_REQUEST_TOKEN',
+    'GITHUB_TOKEN',
+    'GH_TOKEN',
+    'VERCEL_TOKEN',
+  ].some(name => process.env[name]),
+  'Run preview checks with smoke-container.sh; runner credentials must not reach preview code',
+);
 
 const origin = process.env.TARBALLS_URL;
 assert(origin, 'Set TARBALLS_URL to the immutable deployment origin');

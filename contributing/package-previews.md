@@ -65,12 +65,19 @@ policy, so preview URLs are intended for temporary testing.
 After each successful deployment, Vercel sends a `vercel.deployment.success`
 repository dispatch. `.github/workflows/tarballs.yml` filters events to the
 ai-tarballs project, downloads all packages, checks their integrity and manifests,
-and verifies isolated npm/pnpm installs and runtime imports. This workflow has
-read-only GitHub permissions and no Vercel credentials. Its result is separate
+and verifies isolated npm/pnpm installs and runtime imports. The workflow uses
+tooling from the default branch and runs preview code in a separate, non-root
+Docker container with a read-only root filesystem and temporary package stores.
+Only the public deployment URL and SHA enter the container. Actions runtime/cache
+tokens, OIDC credentials, host caches, action directories, and the Docker socket
+are not shared. Workflow commands are disabled while consuming container output.
+Read-only `GITHUB_TOKEN` permissions alone would not protect Actions runtime/cache
+credentials, so do not move preview execution onto the host runner. Vercel builds
+also run outside GitHub Actions and cannot write its caches. Its result is separate
 from Vercel's build status. Automatic dispatch checks start once the workflow is
 on the default branch. After that, `workflow_dispatch` accepts a deployment URL
 and its full commit SHA for manual checks and retries. Before the first merge,
-run the smoke script locally against the public deployment URL.
+run the container check locally against the public deployment URL.
 
 ## Build process
 
@@ -150,13 +157,17 @@ node tools/tarballs/build.mjs
 
 Serve `tools/tarballs/dist/` over HTTPS at that origin, applying the response
 headers declared in `vercel.json`. The smoke check validates those headers as
-well as package contents:
+well as package contents. For a public deployment, run the same container used
+by CI (requires Docker):
 
 ```sh
-TARBALLS_URL=https://localhost:8443 \
+TARBALLS_URL=https://<immutable-deployment-host> \
 TARBALLS_SHA=$(git rev-parse HEAD) \
-node tools/tarballs/smoke.mjs
+bash tools/tarballs/smoke-container.sh
 ```
 
-Use a trusted local certificate for both the Node.js fetches and package
-managers. Neither command needs a Vercel token.
+For local HTTPS validation, `node tools/tarballs/smoke.mjs` can run directly on a
+credential-free development machine with `TARBALLS_URL=https://localhost:8443`.
+Use a trusted local certificate for both Node.js fetches and package managers.
+Never run the direct command on an Actions host or a machine holding credentials
+when testing untrusted code. Neither command needs a Vercel token.

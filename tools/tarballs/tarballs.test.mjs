@@ -77,6 +77,31 @@ test('package paths cannot escape static downloads', () => {
   }
 });
 
+test('smoke checks reject inherited runner credentials before fetching or executing packages', () => {
+  for (const name of [
+    'ACTIONS_RUNTIME_TOKEN',
+    'ACTIONS_CACHE_URL',
+    'ACTIONS_RESULTS_URL',
+    'ACTIONS_ID_TOKEN_REQUEST_TOKEN',
+    'GITHUB_TOKEN',
+    'GH_TOKEN',
+    'VERCEL_TOKEN',
+  ]) {
+    assert.throws(
+      () =>
+        execFileSync('node', [resolve('tools/tarballs/smoke.mjs')], {
+          env: { PATH: process.env.PATH, [name]: 'synthetic-test-value' },
+          stdio: 'pipe',
+        }),
+      error =>
+        error.status !== 0 &&
+        error.stderr
+          .toString()
+          .includes('runner credentials must not reach preview code'),
+    );
+  }
+});
+
 test('runtime dependencies use preview URLs, peers use semver, external specs stay intact', () => {
   const manifest = {
     name: '@ai-sdk/tool',
