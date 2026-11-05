@@ -159,6 +159,13 @@ export interface ChatState<UI_MESSAGE extends UIMessage> {
   popMessage: () => void;
   replaceMessage: (index: number, message: UI_MESSAGE) => void;
 
+  /**
+   * Experimental. Messages that are waiting to be sent when
+   * `experimental_queue` is enabled. States that don't implement it keep the
+   * queue in the chat, without change notifications.
+   */
+  experimental_queuedMessages?: UI_MESSAGE[];
+
   snapshot: <T>(thing: T) => T;
 }
 
@@ -246,6 +253,16 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   sendAutomaticallyWhen?: (options: {
     messages: UI_MESSAGE[];
   }) => boolean | PromiseLike<boolean>;
+
+  /**
+   * Experimental. Queue messages that are sent while a response is in progress
+   * or while the assistant waits for a tool result or approval, and send them
+   * one at a time after each response finishes. Stopping or an error pauses
+   * the queue until the next message is sent.
+   *
+   * @default false
+   */
+  experimental_queue?: boolean;
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
@@ -271,6 +288,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
   private onData?: ChatInit<UI_MESSAGE>['onData'];
   private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
+  private queueEnabled: boolean;
+  private queuedMessagesFallback: UI_MESSAGE[] = [];
+  private queuedMessageOptions = new Map<string, ChatRequestOptions>();
+  // a stop or an error pauses the queue. a paused response is not waiting for
+  // the user, so resuming the queue skips that check:
+  private isQueuePaused = false;
 
   private pendingMessagePreparations = new Set<AbortController>();
   private pendingApprovalMessageId: string | undefined;
@@ -298,6 +321,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     onFinish,
     onData,
     sendAutomaticallyWhen,
+    experimental_queue = false,
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
@@ -312,6 +336,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.onFinish = onFinish;
     this.onData = onData;
     this.sendAutomaticallyWhen = sendAutomaticallyWhen;
+    this.queueEnabled = experimental_queue;
   }
 
   /**
@@ -354,6 +379,107 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   get lastMessage(): UI_MESSAGE | undefined {
     return this.state.messages[this.state.messages.length - 1];
+  }
+
+  /**
+   * Experimental. Messages that wait to be sent when `experimental_queue` is
+   * enabled, in the order they will be sent.
+   */
+  get experimental_queuedMessages(): UI_MESSAGE[] {
+    return (
+      this.state.experimental_queuedMessages ?? this.queuedMessagesFallback
+    );
+  }
+
+  private setQueuedMessages(experimental_queuedMessages: UI_MESSAGE[]) {
+    if ('experimental_queuedMessages' in this.state) {
+      this.state.experimental_queuedMessages = experimental_queuedMessages;
+    } else {
+      this.queuedMessagesFallback = experimental_queuedMessages;
+    }
+  }
+
+  /**
+   * Experimental. Removes a queued message so it is not sent.
+   */
+  experimental_removeQueuedMessage = (id: string): void => {
+    this.queuedMessageOptions.delete(id);
+    this.setQueuedMessages(
+      this.experimental_queuedMessages.filter(message => message.id !== id),
+    );
+  };
+
+  /**
+   * Experimental. Stops the response in progress and sends the queued message
+   * with the given id next. The rest of the queue is sent after it.
+   */
+  experimental_sendQueuedMessageNow = async (id: string): Promise<void> => {
+    const message = this.experimental_queuedMessages.find(
+      message => message.id === id,
+    );
+
+    if (message == null) {
+      return;
+    }
+
+    this.setQueuedMessages([
+      message,
+      ...this.experimental_queuedMessages.filter(queued => queued.id !== id),
+    ]);
+
+    await this.stop();
+    await this.sendNextQueuedMessage({ force: true });
+  };
+
+  private isRequestInProgress(): boolean {
+    return (
+      this.activeResponse != null ||
+      this.status === 'submitted' ||
+      this.status === 'streaming'
+    );
+  }
+
+  // the assistant waits for the user when the last message has a tool call
+  // without a result or an approval that has not been sent yet:
+  private isWaitingForUser(): boolean {
+    const lastMessage = this.lastMessage;
+
+    return (
+      lastMessage?.role === 'assistant' &&
+      lastMessage.parts.some(
+        part =>
+          isToolUIPart(part) &&
+          (part.state === 'approval-requested' ||
+            part.state === 'approval-responded' ||
+            (!part.providerExecuted &&
+              (part.state === 'input-streaming' ||
+                part.state === 'input-available'))),
+      )
+    );
+  }
+
+  private async sendNextQueuedMessage({
+    force = false,
+  }: { force?: boolean } = {}): Promise<void> {
+    const [message, ...rest] = this.experimental_queuedMessages;
+
+    if (
+      message == null ||
+      this.isRequestInProgress() ||
+      (!force && !this.isQueuePaused && this.isWaitingForUser())
+    ) {
+      return;
+    }
+
+    this.isQueuePaused = false;
+
+    const options = this.queuedMessageOptions.get(message.id);
+    this.queuedMessageOptions.delete(message.id);
+    this.setQueuedMessages(rest);
+
+    this.state.pushMessage(message);
+
+    await this.makeRequest({ trigger: 'submit-message', ...options });
   }
 
   set messages(messages: UI_MESSAGE[]) {
@@ -454,6 +580,33 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       } as UI_MESSAGE;
     } else {
       uiMessage = message;
+    }
+
+    if (
+      this.queueEnabled &&
+      message.messageId == null &&
+      (this.isRequestInProgress() ||
+        this.isWaitingForUser() ||
+        this.experimental_queuedMessages.length > 0)
+    ) {
+      const queuedMessage = {
+        ...uiMessage,
+        id: uiMessage.id ?? this.generateId(),
+        role: uiMessage.role ?? 'user',
+        metadata: message.metadata,
+      } as UI_MESSAGE;
+
+      if (options != null) {
+        this.queuedMessageOptions.set(queuedMessage.id, options);
+      }
+      this.setQueuedMessages([
+        ...this.experimental_queuedMessages,
+        queuedMessage,
+      ]);
+
+      // a paused queue (after a stop or an error) resumes with the next message:
+      await this.sendNextQueuedMessage();
+      return;
     }
 
     if (message.messageId != null) {
@@ -829,12 +982,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private async runAutomaticRequest(
     request: () => Promise<void>,
     shouldSend?: boolean,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const stopGeneration = this.stopGeneration;
     const startedWhileStopping = this.activeStopCount > 0;
 
     if (!(shouldSend ?? (await this.shouldSendAutomatically()))) {
-      return;
+      return false;
     }
 
     // A stop invalidates automatic requests that were pending when it started,
@@ -844,10 +997,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       stopGeneration !== this.stopGeneration ||
       this.activeStopCount > 0
     ) {
-      return;
+      return false;
     }
 
     await request();
+    return true;
   }
 
   private async makeRequestForToolApproval({
@@ -1216,6 +1370,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           });
         }
       } finally {
+        this.isQueuePaused = isAbort || isError;
+
         if (this.activeResponse === activeResponse) {
           this.activeResponse = undefined;
         }
@@ -1230,7 +1386,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       !isError &&
       activeResponse?.state.finishReason !== 'interrupted'
     ) {
-      await this.runAutomaticRequest(() =>
+      const sentAutomatically = await this.runAutomaticRequest(() =>
         this.makeRequest({
           trigger: 'submit-message',
           messageId: this.lastMessage?.id,
@@ -1239,6 +1395,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           body,
         }),
       );
+
+      // the automatic request sends the next queued message when it finishes:
+      if (!sentAutomatically && this.queueEnabled) {
+        await this.sendNextQueuedMessage();
+      }
     }
   }
 }

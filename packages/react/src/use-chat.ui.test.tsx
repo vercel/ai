@@ -4184,4 +4184,118 @@ describe('use-chat', () => {
       });
     });
   });
+
+  describe('experimental_queue', () => {
+    afterEach(cleanup);
+
+    it('should render queued messages and send them after the response finishes', async () => {
+      const controllers: ReadableStreamDefaultController<UIMessageChunk>[] = [];
+      const transport: ChatTransport<UIMessage> = {
+        sendMessages: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controllers.push(controller);
+            },
+          }),
+        reconnectToStream: async () => null,
+      };
+
+      const Test = () => {
+        const {
+          messages,
+          experimental_queuedMessages,
+          sendMessage,
+          experimental_removeQueuedMessage,
+        } = useChat({ transport, experimental_queue: true });
+
+        return (
+          <div>
+            <div data-testid="messages">
+              {messages
+                .map(message =>
+                  message.parts
+                    .map(part => (part.type === 'text' ? part.text : ''))
+                    .join(''),
+                )
+                .join('|')}
+            </div>
+            <div data-testid="queued">
+              {experimental_queuedMessages
+                .map(message =>
+                  message.parts
+                    .map(part => (part.type === 'text' ? part.text : ''))
+                    .join(''),
+                )
+                .join('|')}
+            </div>
+            <button
+              data-testid="send-first"
+              onClick={() => sendMessage({ text: 'first' })}
+            />
+            <button
+              data-testid="send-second"
+              onClick={() => sendMessage({ text: 'second' })}
+            />
+            <button
+              data-testid="send-third"
+              onClick={() => sendMessage({ text: 'third' })}
+            />
+            <button
+              data-testid="remove-third"
+              onClick={() =>
+                experimental_removeQueuedMessage(
+                  experimental_queuedMessages[1].id,
+                )
+              }
+            />
+          </div>
+        );
+      };
+
+      render(<Test />);
+
+      const answer = (index: number, text: string) => {
+        const controller = controllers[index];
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'text-start', id: `t-${index}` });
+        controller.enqueue({
+          type: 'text-delta',
+          id: `t-${index}`,
+          delta: text,
+        });
+        controller.enqueue({ type: 'text-end', id: `t-${index}` });
+        controller.enqueue({ type: 'finish' });
+        controller.close();
+      };
+
+      await userEvent.click(screen.getByTestId('send-first'));
+      await vi.waitFor(() => expect(controllers).toHaveLength(1));
+
+      await userEvent.click(screen.getByTestId('send-second'));
+      await userEvent.click(screen.getByTestId('send-third'));
+
+      await vi.waitFor(() =>
+        expect(screen.getByTestId('queued')).toHaveTextContent('second|third'),
+      );
+
+      await userEvent.click(screen.getByTestId('remove-third'));
+      await vi.waitFor(() =>
+        expect(screen.getByTestId('queued')).toHaveTextContent(/^second$/),
+      );
+
+      await act(async () => answer(0, 'one'));
+      await vi.waitFor(() => expect(controllers).toHaveLength(2));
+      await vi.waitFor(() =>
+        expect(screen.getByTestId('queued')).toBeEmptyDOMElement(),
+      );
+
+      await act(async () => answer(1, 'two'));
+      await vi.waitFor(() =>
+        expect(screen.getByTestId('messages')).toHaveTextContent(
+          'first|one|second|two',
+        ),
+      );
+      expect(controllers).toHaveLength(2);
+    });
+  });
 });

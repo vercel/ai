@@ -5828,4 +5828,507 @@ describe('Chat', () => {
       `);
     });
   });
+
+  describe('experimental_queue', () => {
+    function createQueueTransport() {
+      const requests: Array<{
+        messages: string[];
+        body: unknown;
+        controller: ReadableStreamDefaultController<UIMessageChunk>;
+      }> = [];
+
+      const transport: ChatTransport<UIMessage> = {
+        sendMessages: async ({ messages, body }) =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              requests.push({
+                messages: messages.map(
+                  message => `${message.role}: ${getMessageText(message)}`,
+                ),
+                body,
+                controller,
+              });
+            },
+          }),
+        reconnectToStream: async () => null,
+      };
+
+      const startAnswer = (index: number, text: string) => {
+        const { controller } = requests[index];
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({ type: 'text-start', id: `text-${index}` });
+        controller.enqueue({
+          type: 'text-delta',
+          id: `text-${index}`,
+          delta: text,
+        });
+      };
+
+      const finishAnswer = (index: number) => {
+        const { controller } = requests[index];
+        controller.enqueue({ type: 'text-end', id: `text-${index}` });
+        controller.enqueue({ type: 'finish-step' });
+        controller.enqueue({ type: 'finish', finishReason: 'stop' });
+        controller.close();
+      };
+
+      const answer = (index: number, text: string) => {
+        startAnswer(index, text);
+        finishAnswer(index);
+      };
+
+      const waitForRequest = (count: number) =>
+        vi.waitFor(() => expect(requests).toHaveLength(count));
+
+      return {
+        transport,
+        requests,
+        startAnswer,
+        finishAnswer,
+        answer,
+        waitForRequest,
+      };
+    }
+
+    function createQueueChat(
+      transport: ChatTransport<UIMessage>,
+      init: Partial<ChatInit<UIMessage>> = {},
+    ) {
+      return new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport,
+        experimental_queue: true,
+        ...init,
+      });
+    }
+
+    const conversation = (chat: TestChat) =>
+      chat.messages.map(
+        message => `${message.role}: ${getMessageText(message)}`,
+      );
+
+    it('should send a message right away when nothing is in progress', async () => {
+      const { transport, requests, answer, waitForRequest } =
+        createQueueTransport();
+      const chat = createQueueChat(transport);
+
+      const sent = chat.sendMessage({ text: 'first' });
+      await waitForRequest(1);
+      expect(chat.experimental_queuedMessages).toEqual([]);
+
+      answer(0, 'answer one');
+      await sent;
+
+      expect(requests[0].messages).toEqual(['user: first']);
+      expect(chat.status).toBe('ready');
+    });
+
+    it('should queue messages sent during a response and send them one at a time in order', async () => {
+      const {
+        transport,
+        requests,
+        startAnswer,
+        finishAnswer,
+        answer,
+        waitForRequest,
+      } = createQueueTransport();
+      const chat = createQueueChat(transport);
+
+      const sent = chat.sendMessage({ text: 'first' });
+      await waitForRequest(1);
+      startAnswer(0, 'answer one');
+      await vi.waitFor(() => expect(chat.status).toBe('streaming'));
+
+      await chat.sendMessage({ text: 'second' });
+      await chat.sendMessage({ text: 'third' });
+
+      expect(requests).toHaveLength(1);
+      expect(chat.status).toBe('streaming');
+      expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+        'second',
+        'third',
+      ]);
+      expect(conversation(chat)).toEqual([
+        'user: first',
+        'assistant: answer one',
+      ]);
+
+      finishAnswer(0);
+      await waitForRequest(2);
+      expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+        'third',
+      ]);
+
+      answer(1, 'answer two');
+      await waitForRequest(3);
+      expect(chat.experimental_queuedMessages).toEqual([]);
+
+      answer(2, 'answer three');
+      await sent;
+      await vi.waitFor(() => expect(chat.status).toBe('ready'));
+
+      expect(requests.map(request => request.messages)).toEqual([
+        ['user: first'],
+        ['user: first', 'assistant: answer one', 'user: second'],
+        [
+          'user: first',
+          'assistant: answer one',
+          'user: second',
+          'assistant: answer two',
+          'user: third',
+        ],
+      ]);
+      expect(conversation(chat)).toEqual([
+        'user: first',
+        'assistant: answer one',
+        'user: second',
+        'assistant: answer two',
+        'user: third',
+        'assistant: answer three',
+      ]);
+    });
+
+    it('should send the request options of each queued message with it', async () => {
+      const {
+        transport,
+        requests,
+        startAnswer,
+        finishAnswer,
+        answer,
+        waitForRequest,
+      } = createQueueTransport();
+      const chat = createQueueChat(transport);
+
+      const sent = chat.sendMessage({ text: 'first' });
+      await waitForRequest(1);
+      startAnswer(0, 'answer one');
+
+      await chat.sendMessage({ text: 'second' }, { body: { mode: 'fast' } });
+
+      finishAnswer(0);
+      await waitForRequest(2);
+      answer(1, 'answer two');
+      await sent;
+
+      expect(requests[1].body).toMatchObject({ mode: 'fast' });
+    });
+
+    it('should not send a removed message', async () => {
+      const { transport, requests, startAnswer, finishAnswer, waitForRequest } =
+        createQueueTransport();
+      const chat = createQueueChat(transport);
+
+      const sent = chat.sendMessage({ text: 'first' });
+      await waitForRequest(1);
+      startAnswer(0, 'answer one');
+
+      await chat.sendMessage({ text: 'second' });
+      chat.experimental_removeQueuedMessage(
+        chat.experimental_queuedMessages[0].id,
+      );
+      expect(chat.experimental_queuedMessages).toEqual([]);
+
+      finishAnswer(0);
+      await sent;
+      await vi.waitFor(() => expect(chat.status).toBe('ready'));
+
+      expect(requests).toHaveLength(1);
+      expect(conversation(chat)).toEqual([
+        'user: first',
+        'assistant: answer one',
+      ]);
+    });
+
+    it('should pause the queue on stop and resume it in order with the next message', async () => {
+      const { transport, requests, startAnswer, answer, waitForRequest } =
+        createQueueTransport();
+      const chat = createQueueChat(transport);
+
+      void chat.sendMessage({ text: 'first' });
+      await waitForRequest(1);
+      startAnswer(0, 'answer one');
+      await vi.waitFor(() => expect(chat.status).toBe('streaming'));
+
+      await chat.sendMessage({ text: 'second' });
+      await chat.stop();
+
+      expect(chat.status).toBe('ready');
+      expect(requests).toHaveLength(1);
+      expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+        'second',
+      ]);
+
+      const resumed = chat.sendMessage({ text: 'third' });
+      await waitForRequest(2);
+      expect(requests[1].messages.at(-1)).toBe('user: second');
+      expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+        'third',
+      ]);
+
+      answer(1, 'answer two');
+      await waitForRequest(3);
+      answer(2, 'answer three');
+      await resumed;
+
+      expect(requests[2].messages.at(-1)).toBe('user: third');
+    });
+
+    it('should pause the queue when a response fails', async () => {
+      const { transport, requests, startAnswer, waitForRequest } =
+        createQueueTransport();
+      const chat = createQueueChat(transport);
+
+      const sent = chat.sendMessage({ text: 'first' });
+      await waitForRequest(1);
+      startAnswer(0, 'answer one');
+
+      await chat.sendMessage({ text: 'second' });
+      requests[0].controller.error(new Error('boom'));
+      await sent;
+
+      expect(chat.status).toBe('error');
+      expect(requests).toHaveLength(1);
+      expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+        'second',
+      ]);
+    });
+
+    it('should stop the response and send a queued message now', async () => {
+      const { transport, requests, startAnswer, answer, waitForRequest } =
+        createQueueTransport();
+      const chat = createQueueChat(transport);
+
+      void chat.sendMessage({ text: 'first' });
+      await waitForRequest(1);
+      startAnswer(0, 'answer one');
+      await vi.waitFor(() => expect(chat.status).toBe('streaming'));
+
+      await chat.sendMessage({ text: 'second' });
+      await chat.sendMessage({ text: 'third' });
+
+      const sentNow = chat.experimental_sendQueuedMessageNow(
+        chat.experimental_queuedMessages[1].id,
+      );
+      await waitForRequest(2);
+      expect(requests[1].messages.at(-1)).toBe('user: third');
+      expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+        'second',
+      ]);
+
+      answer(1, 'answer three');
+      await waitForRequest(3);
+      answer(2, 'answer two');
+      await sentNow;
+
+      expect(requests[2].messages.at(-1)).toBe('user: second');
+    });
+
+    it('should wait for a tool approval and send queued messages after the approved request', async () => {
+      const { transport, requests, answer, waitForRequest } =
+        createQueueTransport();
+      const chat = createQueueChat(transport, {
+        sendAutomaticallyWhen:
+          lastAssistantMessageIsCompleteWithApprovalResponses,
+      });
+
+      const sent = chat.sendMessage({ text: 'delete the file' });
+      await waitForRequest(1);
+      const { controller } = requests[0];
+      controller.enqueue({ type: 'start' });
+      controller.enqueue({ type: 'start-step' });
+      controller.enqueue({
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'deleteFile',
+        input: { path: 'a.txt' },
+      });
+      controller.enqueue({
+        type: 'tool-approval-request',
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+      });
+      controller.enqueue({ type: 'finish-step' });
+      controller.enqueue({ type: 'finish' });
+      controller.close();
+      await sent;
+
+      await chat.sendMessage({ text: 'then list the files' });
+      expect(requests).toHaveLength(1);
+      expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+        'then list the files',
+      ]);
+
+      const approved = chat.addToolApprovalResponse({
+        id: 'approval-1',
+        approved: true,
+      });
+      await waitForRequest(2);
+      expect(requests[1].messages.at(-1)).toBe('assistant: ');
+
+      requests[1].controller.enqueue({
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: 'deleted',
+      });
+      answer(1, 'deleted');
+      await waitForRequest(3);
+      expect(requests[2].messages.at(-1)).toBe('user: then list the files');
+
+      answer(2, 'no files left');
+      await approved;
+      await vi.waitFor(() => expect(chat.status).toBe('ready'));
+      expect(chat.experimental_queuedMessages).toEqual([]);
+    });
+
+    it('should wait for a client tool result and send queued messages after the tool result request', async () => {
+      const { transport, requests, answer, waitForRequest } =
+        createQueueTransport();
+      const chat = createQueueChat(transport, {
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+      });
+
+      const sent = chat.sendMessage({ text: 'where am i' });
+      await waitForRequest(1);
+      const { controller } = requests[0];
+      controller.enqueue({ type: 'start' });
+      controller.enqueue({ type: 'start-step' });
+      controller.enqueue({
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'getLocation',
+        input: {},
+      });
+      controller.enqueue({ type: 'finish-step' });
+      controller.enqueue({ type: 'finish' });
+      controller.close();
+      await sent;
+
+      await chat.sendMessage({ text: 'and the weather there' });
+      expect(requests).toHaveLength(1);
+
+      void chat.addToolOutput({
+        tool: 'getLocation',
+        toolCallId: 'call-1',
+        output: 'Paris',
+      });
+      await waitForRequest(2);
+      expect(requests[1].messages.at(-1)).toBe('assistant: ');
+
+      answer(1, 'you are in Paris');
+      await waitForRequest(3);
+      expect(requests[2].messages.at(-1)).toBe('user: and the weather there');
+    });
+
+    it('should queue a message sent right after another one while idle', async () => {
+      const { transport, requests, answer, waitForRequest } =
+        createQueueTransport();
+      const chat = createQueueChat(transport);
+
+      const first = chat.sendMessage({ text: 'first' });
+      const second = chat.sendMessage({ text: 'second' });
+      await waitForRequest(1);
+      await second;
+
+      expect(requests).toHaveLength(1);
+      expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+        'second',
+      ]);
+
+      answer(0, 'answer one');
+      await waitForRequest(2);
+      answer(1, 'answer two');
+      await first;
+
+      expect(requests[1].messages.at(-1)).toBe('user: second');
+    });
+
+    it('should resume the queue after a stop during a partial tool call', async () => {
+      const { transport, requests, answer, waitForRequest } =
+        createQueueTransport();
+      const chat = createQueueChat(transport);
+
+      void chat.sendMessage({ text: 'first' });
+      await waitForRequest(1);
+      const { controller } = requests[0];
+      controller.enqueue({ type: 'start' });
+      controller.enqueue({ type: 'start-step' });
+      controller.enqueue({
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'weather',
+      });
+      await vi.waitFor(() => expect(chat.status).toBe('streaming'));
+
+      await chat.sendMessage({ text: 'second' });
+      await chat.stop();
+      expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+        'second',
+      ]);
+
+      const resumed = chat.sendMessage({ text: 'third' });
+      await waitForRequest(2);
+      expect(requests[1].messages.at(-1)).toBe('user: second');
+
+      answer(1, 'answer two');
+      await waitForRequest(3);
+      answer(2, 'answer three');
+      await resumed;
+    });
+
+    it('should still wait for a tool approval after an earlier stop', async () => {
+      const { transport, requests, startAnswer, waitForRequest } =
+        createQueueTransport();
+      const chat = createQueueChat(transport);
+
+      void chat.sendMessage({ text: 'first' });
+      await waitForRequest(1);
+      startAnswer(0, 'answer one');
+      await chat.stop();
+
+      const sent = chat.sendMessage({ text: 'delete the file' });
+      await waitForRequest(2);
+      const { controller } = requests[1];
+      controller.enqueue({ type: 'start' });
+      controller.enqueue({ type: 'start-step' });
+      controller.enqueue({
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'deleteFile',
+        input: { path: 'a.txt' },
+      });
+      controller.enqueue({
+        type: 'tool-approval-request',
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+      });
+      controller.enqueue({ type: 'finish-step' });
+      controller.enqueue({ type: 'finish' });
+      controller.close();
+      await sent;
+
+      await chat.sendMessage({ text: 'then list the files' });
+
+      expect(requests).toHaveLength(2);
+      expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+        'then list the files',
+      ]);
+    });
+
+    it('should send right away while a response is in progress when the queue is disabled', async () => {
+      const { transport, requests, startAnswer, waitForRequest } =
+        createQueueTransport();
+      const chat = new TestChat({ id: '123', generateId: mockId(), transport });
+
+      void chat.sendMessage({ text: 'first' });
+      await waitForRequest(1);
+      startAnswer(0, 'answer one');
+
+      void chat.sendMessage({ text: 'second' });
+      await waitForRequest(2);
+
+      expect(chat.experimental_queuedMessages).toEqual([]);
+    });
+  });
 });
