@@ -4,6 +4,7 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { getAzureModelEntry } from './azure-model-catalog';
 import { azureMaiTranscriptionModelOptionsShape } from './azure-mai-transcription-model-options';
 import { azureSpeechTranscriptionModelOptionsShape } from './azure-speech-transcription-model-options';
 
@@ -25,20 +26,15 @@ export type AzureTranscriptionModelOptions = InferSchema<
   typeof azureTranscriptionModelOptions
 >;
 
-// Azure Speech model names by lowercase model ID. MAI-Transcribe-1.5 only
-// accepts Azure's default timestamps (`none`).
-const maiTranscribeModels = new Map([
-  ['mai-transcribe-2', { name: 'MAI-Transcribe-2', supportsTimestamps: true }],
-  [
-    'mai-transcribe-1.5',
-    { name: 'MAI-Transcribe-1.5', supportsTimestamps: false },
-  ],
-]);
-
 export function getMAITranscribeModel(modelId: string) {
-  return maiTranscribeModels.get(modelId.toLowerCase());
+  const config = getAzureModelEntry(modelId)?.requestConfig?.transcription;
+  return config?.api === 'speech'
+    ? { name: config.name, supportsTimestamps: config.supportsTimestamps }
+    : undefined;
 }
 
 export function isMAITranscribeStreaming(modelId: string): boolean {
-  return modelId.toLowerCase() === 'mai-transcribe-2-streaming';
+  return (
+    getAzureModelEntry(modelId)?.requestConfig?.transcription?.api === 'mai'
+  );
 }
