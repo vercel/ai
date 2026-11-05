@@ -1,4 +1,8 @@
-import type { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  type SpeechModelV3,
+  type SharedV3Warning,
+} from '@ai-sdk/provider';
 import {
   lazySchema,
   zodSchema,
@@ -25,9 +29,20 @@ const deepgramSpeechModelOptionsSchema = lazySchema(() =>
       encoding: z.string().nullish(),
       /** Sample rate for the output audio in Hz (8000, 16000, 24000, 44100, 48000). */
       sampleRate: z.number().nullish(),
-      /** URL to which we'll make the callback request. */
+      /**
+       * URL to which Deepgram would deliver the audio asynchronously.
+       *
+       * Deepgram answers callback requests with a JSON acknowledgement instead
+       * of audio, so `generateSpeech` rejects this option.
+       *
+       * @deprecated Not supported by generateSpeech: throws InvalidArgumentError.
+       */
       callback: z.string().url().nullish(),
-      /** HTTP method by which the callback request will be made (POST or PUT). */
+      /**
+       * HTTP method by which the callback request will be made (POST or PUT).
+       *
+       * @deprecated Ignored (with a warning).
+       */
       callbackMethod: z.enum(['POST', 'PUT']).nullish(),
       /** Opts out requests from the Deepgram Model Improvement Program. */
       mipOptOut: z.boolean().nullish(),
@@ -76,6 +91,26 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
       providerOptions,
       schema: deepgramSpeechModelOptionsSchema,
     });
+
+    // With a `callback` URL Deepgram processes the request asynchronously and
+    // answers with a JSON acknowledgement (`{"request_id": "..."}`) instead of
+    // audio, so the audio can never be returned from `generateSpeech`.
+    if (deepgramOptions?.callback != null) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.deepgram.callback',
+        message:
+          'Deepgram processes speech requests with a `callback` URL asynchronously: it returns a JSON acknowledgement instead of audio and delivers the audio to the callback URL. `generateSpeech` requires the audio response, so `providerOptions.deepgram.callback` is not supported. Remove the option to receive the audio, or call the Deepgram REST API directly when you need asynchronous callback delivery.',
+      });
+    }
+
+    if (deepgramOptions?.callbackMethod != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.deepgram.callbackMethod',
+        details:
+          'providerOptions.deepgram.callbackMethod is only used together with `callback`, which is not supported by the AI SDK. Callback method was ignored.',
+      });
+    }
 
     // Create request body
     const requestBody = {
@@ -399,12 +434,6 @@ export class DeepgramSpeechModel implements SpeechModelV3 {
         }
       }
 
-      if (deepgramOptions.callback) {
-        queryParams.callback = deepgramOptions.callback;
-      }
-      if (deepgramOptions.callbackMethod) {
-        queryParams.callback_method = deepgramOptions.callbackMethod;
-      }
       if (deepgramOptions.mipOptOut != null) {
         queryParams.mip_opt_out = String(deepgramOptions.mipOptOut);
       }
