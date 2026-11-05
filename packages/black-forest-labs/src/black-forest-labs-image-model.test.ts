@@ -905,6 +905,220 @@ describe('BlackForestLabsImageModel', () => {
       expect(attempts).toBe(3);
     });
 
+    it('retries get_result when the poll response status is Task not found', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+
+      let attempts = 0;
+      server.urls['https://api.example.com/v1/get_result'].response = () => {
+        attempts += 1;
+        if (attempts === 1) {
+          return {
+            type: 'json-value',
+            body: { id: 'req-webhook', status: 'Task not found' },
+          };
+        }
+        return {
+          type: 'json-value',
+          body: {
+            id: 'req-webhook',
+            status: 'Ready',
+            result: { sample: 'https://api.example.com/image.png' },
+          },
+        };
+      };
+
+      const result = await createBasicModel({
+        pollIntervalMillis: 10,
+        pollTimeoutMillis: 1000,
+      }).doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      expect(result.images).toHaveLength(1);
+      expect(attempts).toBe(2);
+    });
+
+    it('fails with a clear error when get_result keeps answering 404 Task not found', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+      server.urls['https://api.example.com/v1/get_result'].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          id: 'req-webhook',
+          status: 'Task not found',
+        }),
+      };
+
+      await expect(
+        createBasicModel({
+          pollIntervalMillis: 10,
+          pollTimeoutMillis: 100,
+        }).doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          seed: undefined,
+          aspectRatio: '1:1',
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Black Forest Labs task req-webhook was not found via get_result before timing out',
+      );
+    });
+
+    it('gives up on Task not found without waiting for the overall poll timeout', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+      server.urls['https://api.example.com/v1/get_result'].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          id: 'req-webhook',
+          status: 'Task not found',
+        }),
+      };
+
+      // The not-found grace period must end long before this timeout, so the
+      // test would fail on its 2s deadline if the cap were not enforced.
+      await expect(
+        createBasicModel({
+          pollIntervalMillis: 5,
+          pollTimeoutMillis: 5000,
+        }).doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          seed: undefined,
+          aspectRatio: '1:1',
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Black Forest Labs task req-webhook was not found via get_result before timing out',
+      );
+    }, 2000);
+
+    it('does not retry get_result 404 responses that are not Task not found', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+      server.urls['https://api.example.com/v1/get_result'].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({ message: 'Unknown request id' }),
+      };
+
+      await expect(
+        createBasicModel({
+          pollIntervalMillis: 10,
+          pollTimeoutMillis: 1000,
+        }).doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          seed: undefined,
+          aspectRatio: '1:1',
+          providerOptions: {},
+        }),
+      ).rejects.toMatchObject({
+        message: 'Unknown request id',
+        statusCode: 404,
+      });
+
+      const getResultCalls = server.calls.filter(
+        c =>
+          c.requestMethod === 'GET' &&
+          c.requestUrl.startsWith('https://api.example.com/v1/get_result'),
+      );
+      expect(getResultCalls).toHaveLength(1);
+    });
+
+    it('rejects with AbortError when aborted during the not-found retry delay', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+      server.urls['https://api.example.com/v1/get_result'].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          id: 'req-webhook',
+          status: 'Task not found',
+        }),
+      };
+
+      const abortController = new AbortController();
+      const pending = createBasicModel({
+        pollIntervalMillis: 500,
+        pollTimeoutMillis: 5000,
+      }).doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+        abortSignal: abortController.signal,
+      });
+
+      // Abort once the not-found retry delay is in progress.
+      await vi.waitFor(() => {
+        expect(
+          server.calls.filter(
+            c =>
+              c.requestMethod === 'GET' &&
+              c.requestUrl.startsWith('https://api.example.com/v1/get_result'),
+          ),
+        ).toHaveLength(1);
+      });
+      abortController.abort();
+
+      await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    });
+
     it('enforces pollTimeoutMillis while a polling request is pending', async () => {
       let pollingSignal: AbortSignal | null | undefined;
       const fetch: FetchFunction = async (input, init) => {

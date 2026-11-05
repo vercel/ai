@@ -409,7 +409,7 @@ Black Forest Labs image models support flexible provider options through the `pr
 - **safetyTolerance** _number_ - Moderation level for inputs and outputs (0 = most strict). FLUX 3 Image models accept 0–7 and default to 2; the endpoint and organization determine the approved maximum. Legacy models accept 0–6.
 - **pollIntervalMillis** _number_ - Interval in milliseconds between polling attempts (default 500ms).
 - **pollTimeoutMillis** _number_ - Overall timeout in milliseconds for polling before timing out (default 60s).
-- **webhookUrl** _string_ - URL for asynchronous completion notification. Must be a valid HTTP/HTTPS URL. When set, Black Forest Labs returns a submit response without a polling URL; `generateImage` then polls the `get_result` endpoint by request id so the call still returns the image.
+- **webhookUrl** _string_ - URL for asynchronous completion notification. Must be a valid HTTP/HTTPS URL. When set, Black Forest Labs returns a submit response without a polling URL. The webhook is delivered as configured, and `generateImage` still waits for completion (subject to `pollTimeoutMillis`) by polling the `get_result` endpoint by request id. Polling `get_result` without a `polling_url` is a best-effort fallback: the task must become visible on that endpoint before the poll timeout.
 - **webhookSecret** _string_ - Secret for webhook signature verification, sent in the `X-Webhook-Secret` header.
 
 <Note>
