@@ -2,17 +2,17 @@ export function renderCapabilityTable(
   entries,
   { capability, columns, formatModelId, filter },
 ) {
-  return renderTable(
-    ['Model', ...columns.map(([heading]) => heading)],
-    renderCapabilityRows(
-      filter == null
-        ? entries
-        : entries.filter(([id, entry]) => filter(entry, id)),
-      capability,
-      columns,
-      formatModelId,
-    ),
+  const rows = renderCapabilityRows(
+    filter == null
+      ? entries
+      : entries.filter(([id, entry]) => filter(entry, id)),
+    capability,
+    columns,
+    formatModelId,
   );
+  return rows.length === 0
+    ? ''
+    : renderTable(['Model', ...columns.map(([heading]) => heading)], rows);
 }
 
 export function renderProviderOptionTable(options, section) {
@@ -72,12 +72,20 @@ function renderCapabilityRows(
 ) {
   return entries
     .filter(([, { capabilities }]) => capabilities[capability] != null)
-    .map(([modelId, { capabilities }]) => [
-      `\`${formatModelId(modelId)}\``,
-      ...columns.map(([, path, format = formatSupport]) =>
-        format(readPath(capabilities[capability], path)),
-      ),
-    ]);
+    .flatMap(([modelId, { capabilities }]) => {
+      const values = columns.map(([, path]) =>
+        readPath(capabilities[capability], path),
+      );
+      if (values.includes('unknown')) return [];
+
+      const cells = columns.map(([, , format = formatSupport], index) =>
+        format(values[index]),
+      );
+      // Optional capabilities can also be formatted as unknown.
+      if (cells.includes('Unknown')) return [];
+
+      return [[`\`${formatModelId(modelId)}\``, ...cells]];
+    });
 }
 
 function readPath(value, path) {
