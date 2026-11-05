@@ -1,4 +1,5 @@
 import {
+  APICallError,
   UnsupportedFunctionalityError,
   type ImageModelV4,
   type SharedV4Warning,
@@ -24,6 +25,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  bflErrorSchema,
   bflFailedResponseHandler,
   isTrustedUrl,
 } from './black-forest-labs-api';
@@ -389,8 +391,13 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       fetch: this.config.fetch,
     });
 
-    const pollUrl = submit.value.polling_url;
+    // BFL responds with a webhook-shaped object (no `polling_url`) when a
+    // webhook is registered for the request. The task can still be polled via
+    // the documented `get_result` endpoint using the configured base URL.
+    const pollUrl =
+      submit.value.polling_url ?? `${this.config.baseURL}/get_result`;
     const requestId = submit.value.id;
+    const usesGetResultFallback = submit.value.polling_url == null;
 
     const {
       imageUrl,
@@ -401,6 +408,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     } = await this.pollForImageUrl({
       pollUrl,
       requestId,
+      allowTaskNotFound: usesGetResultFallback,
       headers: getHeaders,
       abortSignal,
       pollOverrides: {
@@ -465,12 +473,14 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
   private async pollForImageUrl({
     pollUrl,
     requestId,
+    allowTaskNotFound = false,
     headers,
     abortSignal,
     pollOverrides,
   }: {
     pollUrl: string;
     requestId: string;
+    allowTaskNotFound?: boolean;
     headers: Resolvable<Record<string, string | undefined>>;
     abortSignal: AbortSignal | undefined;
     pollOverrides?: {
@@ -509,22 +519,40 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
         ? timeoutController.signal
         : AbortSignal.any([abortSignal, timeoutController.signal]);
 
+    const fetchPollResult = async () => {
+      const { value } = await getFromApi({
+        url: url.toString(),
+        // The polling URL comes from the provider response; validate it.
+        validateUrl: true,
+        trustedOrigin: this.config.baseURL,
+        // Only send credentials when it stays on a trusted provider host.
+        headers: isTrustedUrl(url.toString(), this.config.baseURL)
+          ? await resolve(headers)
+          : undefined,
+        failedResponseHandler: bflFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
+        abortSignal: pollingAbortSignal,
+        fetch: this.config.fetch,
+      });
+      return value;
+    };
+
     try {
       while (true) {
-        const { value } = await getFromApi({
-          url: url.toString(),
-          // The polling URL comes from the provider response; validate it.
-          validateUrl: true,
-          trustedOrigin: this.config.baseURL,
-          // Only send credentials when it stays on a trusted provider host.
-          headers: isTrustedUrl(url.toString(), this.config.baseURL)
-            ? await resolve(headers)
-            : undefined,
-          failedResponseHandler: bflFailedResponseHandler,
-          successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
-          abortSignal: pollingAbortSignal,
-          fetch: this.config.fetch,
-        });
+        let value: Awaited<ReturnType<typeof fetchPollResult>>;
+        try {
+          value = await fetchPollResult();
+        } catch (error) {
+          // Webhook jobs are registered asynchronously: `get_result` can
+          // briefly answer HTTP 404 "Task not found" after submission.
+          if (allowTaskNotFound && isTaskNotFoundError(error)) {
+            await delay(pollIntervalMillis, {
+              abortSignal: pollingAbortSignal,
+            });
+            continue;
+          }
+          throw error;
+        }
 
         const status = value.status;
         if (status === 'Ready') {
@@ -540,6 +568,10 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
           throw new Error(
             'Black Forest Labs poll response is Ready but missing result.sample',
           );
+        }
+        if (status === 'Task not found' && allowTaskNotFound) {
+          await delay(pollIntervalMillis, { abortSignal: pollingAbortSignal });
+          continue;
         }
         if (status === 'Error' || status === 'Failed') {
           throw new Error('Black Forest Labs generation failed.');
@@ -596,11 +628,24 @@ function gcd(a: number, b: number): number {
   return x;
 }
 
+function isTaskNotFoundError(error: unknown): boolean {
+  if (!APICallError.isInstance(error) || error.statusCode !== 404) {
+    return false;
+  }
+
+  const parsed = bflErrorSchema.safeParse(error.data);
+  return (
+    parsed.success &&
+    (parsed.data.status ?? parsed.data.state) === 'Task not found'
+  );
+}
+
 const bflSubmitSchema = lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),
-      polling_url: z.url(),
+      // Absent for webhook-shaped responses (`AsyncWebhookResponse`).
+      polling_url: z.url().nullish(),
       cost: z.number().nullish(),
       input_mp: z.number().nullish(),
       output_mp: z.number().nullish(),

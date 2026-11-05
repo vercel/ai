@@ -95,6 +95,18 @@ describe('BlackForestLabsImageModel', () => {
         },
       },
     },
+    'https://api.example.com/v1/get_result': {
+      response: {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          status: 'Ready',
+          result: {
+            sample: 'https://api.example.com/image.png',
+          },
+        },
+      },
+    },
     'https://api.example.com/image.png': {
       response: {
         type: 'binary',
@@ -797,6 +809,100 @@ describe('BlackForestLabsImageModel', () => {
           c.requestUrl.startsWith('https://api.example.com/poll'),
       );
       expect(pollCalls.length).toBe(3);
+    });
+
+    it('polls get_result by id when the submit response has no polling_url', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+      server.urls['https://api.example.com/v1/get_result'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'Ready',
+          result: {
+            sample: 'https://api.example.com/image.png',
+            seed: 42,
+          },
+        },
+      };
+
+      const result = await createBasicModel().doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      expect(result.images).toHaveLength(1);
+      expect(server.calls[1].requestMethod).toBe('GET');
+      expect(server.calls[1].requestUrl).toBe(
+        'https://api.example.com/v1/get_result?id=req-webhook',
+      );
+      expect(server.calls[1].requestHeaders['x-key']).toBe('test-key');
+      expect(result.providerMetadata?.blackForestLabs.images[0]).toMatchObject({
+        seed: 42,
+      });
+    });
+
+    it('retries get_result while a webhook job is not yet registered', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+
+      let attempts = 0;
+      server.urls['https://api.example.com/v1/get_result'].response = () => {
+        attempts += 1;
+        if (attempts <= 2) {
+          return {
+            type: 'error',
+            status: 404,
+            body: JSON.stringify({
+              id: 'req-webhook',
+              status: 'Task not found',
+            }),
+          };
+        }
+        return {
+          type: 'json-value',
+          body: {
+            id: 'req-webhook',
+            status: 'Ready',
+            result: { sample: 'https://api.example.com/image.png' },
+          },
+        };
+      };
+
+      const result = await createBasicModel({
+        pollIntervalMillis: 10,
+        pollTimeoutMillis: 1000,
+      }).doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      expect(result.images).toHaveLength(1);
+      expect(attempts).toBe(3);
     });
 
     it('enforces pollTimeoutMillis while a polling request is pending', async () => {
