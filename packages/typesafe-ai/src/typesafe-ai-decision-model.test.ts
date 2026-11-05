@@ -75,7 +75,10 @@ it('preserves native scores, probabilities, confidence metadata, and usage', asy
   });
   expect(result.rounding).toEqual({ probabilityDecimals: 2, scoreDecimals: 2 });
   expect(result.providerMetadata).toEqual({
-    typesafe: { confidence: { department: 1, severity: 0.64 } },
+    typesafe: {
+      confidence: { department: 1, severity: 0.64 },
+      legend: { severity: nativeResponse.answers.severity.legend },
+    },
   });
   expect(result.usage).toEqual({ inputTokens: 471, outputTokens: 71 });
   expect(result.response?.modelId).toBe('jev-1.13.0');
@@ -202,6 +205,7 @@ describe('long context', () => {
 });
 
 it.each([
+  { type: 'choice', criteria: {} },
   {
     type: 'choice',
     instructions: 'Pick',
@@ -214,6 +218,9 @@ it.each([
     instructions: 'Rate',
     criteria: Array.from({ length: 11 }, (_, index) => `Level ${index}`),
   },
+  { type: 'score', criteria: [] },
+  { type: 'score', criteria: [null] },
+  { type: 'score', criteria: ['Low', null] },
 ] as const)('rejects provider limits before HTTP for $type', async question => {
   await expect(
     model.doDecide({
@@ -330,7 +337,48 @@ it('accepts null optional metadata without inventing usage', async () => {
     outputTokens: undefined,
   });
   expect(result.response?.modelId).toBe('jev-latest');
-  expect(result.providerMetadata).toEqual({ typesafe: { confidence: {} } });
+  expect(result.providerMetadata).toEqual({
+    typesafe: { confidence: {}, legend: {} },
+  });
+});
+
+it.each([undefined, null])(
+  'accepts a nullish score legend: %j',
+  async legend => {
+    server.urls[url].response = {
+      type: 'json-value',
+      body: {
+        ...nativeResponse,
+        answers: {
+          ...nativeResponse.answers,
+          severity: { ...nativeResponse.answers.severity, legend },
+        },
+      },
+    };
+    const result = await model.doDecide(options);
+    expect(result.providerMetadata?.typesafe?.legend).toEqual({});
+  },
+);
+
+it('preserves structured score legends in provider metadata and the raw response', async () => {
+  const legend = {
+    '0': { meaning: 'Cosmetic', examples: ['Color mismatch'] },
+    '1': ['Workaround exists', { impact: 'Limited' }],
+    '2': 'Blocking',
+  };
+  const response = {
+    ...nativeResponse,
+    answers: {
+      ...nativeResponse.answers,
+      severity: { ...nativeResponse.answers.severity, legend },
+    },
+  };
+  server.urls[url].response = { type: 'json-value', body: response };
+  const result = await model.doDecide(options);
+  expect(result.providerMetadata?.typesafe?.legend).toEqual({
+    severity: legend,
+  });
+  expect(result.response?.body).toEqual(response);
 });
 
 it('forwards cancellation to fetch', async () => {
@@ -787,6 +835,104 @@ it.each([{ nested: { amount: 49 }, history: ['refund'] }, [1, null]])(
     expect(await server.calls[0].requestBodyJson).toMatchObject({
       state: value,
     });
+  },
+);
+
+it.each([null, true, false, 0, 42])(
+  'serializes a primitive JSON state part as text: %j',
+  async value => {
+    await model.doDecide({ ...options, state: [{ type: 'json', value }] });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      state: JSON.stringify(value),
+    });
+  },
+);
+
+it('preserves a single JSON string state without adding quotes', async () => {
+  await model.doDecide({
+    ...options,
+    state: [{ type: 'json', value: 'Customer requests a refund.' }],
+  });
+  expect(await server.calls[0].requestBodyJson).toMatchObject({
+    state: 'Customer requests a refund.',
+  });
+});
+
+it.each([1, 10])('supports %i non-null score levels', async length => {
+  const criteria = Array.from({ length }, (_, index) => `Level ${index}`);
+  const legend = Object.fromEntries(
+    criteria.map((level, index) => [index, level]),
+  );
+  server.urls[url].response = {
+    type: 'json-value',
+    body: {
+      ...nativeResponse,
+      answers: {
+        rating: {
+          type: 'score',
+          score: 0,
+          probabilities: Object.fromEntries(
+            criteria.map((_, index) => [index, index === 0 ? 1 : 0]),
+          ),
+          confidence: 1,
+          legend,
+        },
+      },
+    },
+  };
+  const result = await model.doDecide({
+    ...options,
+    questions: { rating: { type: 'score', criteria } },
+  });
+  expect(await server.calls[0].requestBodyJson).toMatchObject({
+    questions: { rating: { type: 'score', criteria } },
+  });
+  expect(result.answers.rating).toMatchObject({ type: 'score', score: 0 });
+  expect(result.providerMetadata?.typesafe?.legend).toEqual({ rating: legend });
+});
+
+it('forwards null boolean criteria', async () => {
+  await model.doDecide({
+    ...options,
+    questions: {
+      ...questions,
+      requestsRefund: {
+        type: 'boolean',
+        instructions: 'Refund?',
+        criteria: null,
+      },
+    },
+  });
+  expect(await server.calls[0].requestBodyJson).toMatchObject({
+    questions: {
+      requestsRefund: { type: 'noul', instructions: 'Refund?', criteria: null },
+    },
+  });
+});
+
+it.each([{}, { instructions: undefined }, { instructions: null }])(
+  'forwards optional box instructions: %j',
+  async question => {
+    const box = { top: 0.25, bottom: 0.82, left: 0.44, right: 0.84 };
+    server.urls[url].response = {
+      type: 'json-value',
+      body: {
+        ...nativeResponse,
+        answers: { target: { type: 'box', box, confidence: null } },
+      },
+    };
+    const result = await model.doDecide({
+      ...options,
+      questions: { target: { type: 'box', ...question } },
+    });
+    expect((await server.calls[0].requestBodyJson).questions.target).toEqual({
+      type: 'box',
+      ...(question.instructions === null && { instructions: null }),
+    });
+    expect(server.calls[0].requestHeaders['typesafe-danger-zone-images']).toBe(
+      'true',
+    );
+    expect(result.answers.target).toEqual({ type: 'box', box });
   },
 );
 
