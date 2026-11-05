@@ -233,3 +233,31 @@ Pass an `Idempotency-Key` through the standard `headers` option when retrying th
 Submission and in-progress operation metadata exposes `videoId`, `mode`, and `resolution` directly under `providerMetadata.heygen`. Failed or cancelled operations also expose `failureCode` when HeyGen reports it.
 
 The current HeyGen video endpoint does not document token counts or credit consumption in its generation response. The provider returns the reported duration and dimensions without estimating those quantities. Reported inference timing is preserved per video.
+
+## Model Capabilities
+
+{/* model-capabilities:heygen-video:start */}
+
+| Model            | Image Input | First Frame | Last Frame | Reference Images | Reference Video | Audio                                                                | Aspect Ratio                                            | Resolution                                              | Duration  | FPS                           | Seed      |
+| ---------------- | ----------- | ----------- | ---------- | ---------------- | --------------- | -------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------- | --------- | ----------------------------- | --------- |
+| `heygen-video-1` | <Check />   | <Check />   | <Cross />  | <Check />        | <Check />       | Conditional: Audio is always generated; disabling it is unsupported. | Conditional: Supported outside reference-to-video mode. | Conditional: Supported outside reference-to-video mode. | <Check /> | Conditional: Fixed at 24 fps. | <Check /> |
+
+{/* model-capabilities:heygen-video:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:heygen-provider-options:start */}
+
+| Operation | Option              | Description                                                                                |
+| --------- | ------------------- | ------------------------------------------------------------------------------------------ |
+| video     | `mode`              | Inferred from the supplied image and references when omitted.                              |
+| video     | `resolution`        | Output size class. Takes precedence over the standard resolution option.                   |
+| video     | `promptEnhancement` | Defaults to quality. Use disabled to preserve the original prompt.                         |
+| video     | `image`             | First frame, including an existing HeyGen asset. Cannot be combined with a standard image. |
+| video     | `referenceImages`   | Additional references, appended after standard inputReferences of the same kind.           |
+| video     | `referenceVideos`   | referenceVideos                                                                            |
+| video     | `referenceAudio`    | referenceAudio                                                                             |
+
+{/* model-capabilities:heygen-provider-options:end */}

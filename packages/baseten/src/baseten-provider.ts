@@ -1,3 +1,4 @@
+import { basetenRequestDefaults } from './baseten-model-catalog';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleEmbeddingModel,
@@ -28,7 +29,8 @@ import { VERSION } from './version';
  * performance client's own default `batchSize`. `embedMany` splits larger
  * inputs into chunks of this size and runs them in parallel.
  */
-const MAX_EMBEDDINGS_PER_CALL = 128;
+const MAX_EMBEDDINGS_PER_CALL =
+  basetenRequestDefaults.embedding.maxEmbeddingsPerCall;
 
 /**
  * The part of `@basetenlabs/performance-client` we use, declared structurally to
@@ -208,7 +210,8 @@ export function createBaseten(
           errorStructure: basetenErrorStructure,
           // Or stream_options.include_usage is omitted and streams report no usage.
           includeUsage: true,
-          supportsStructuredOutputs: true,
+          supportsStructuredOutputs:
+            basetenRequestDefaults.language.supportsStructuredOutputs,
         });
       } else if (customURL.includes('/predict')) {
         throw new Error(
@@ -221,7 +224,8 @@ export function createBaseten(
       ...getCommonModelConfig('chat'),
       errorStructure: basetenErrorStructure,
       includeUsage: true,
-      supportsStructuredOutputs: true,
+      supportsStructuredOutputs:
+        basetenRequestDefaults.language.supportsStructuredOutputs,
     });
   };
 

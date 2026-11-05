@@ -1358,6 +1358,8 @@ When the serialized batch creation body is under 20 MB, the provider sends the r
 
 ## Realtime Models
 
+For a trusted [server-owned connection](/docs/ai-sdk-core/realtime#server-owned-connections), `getServerWebSocketConfig()` uses the unconstrained Gemini Live endpoint with resolved API-key headers. Use `createServerEventParser()` once per socket. Completion-frame usage is attached to `response-done`; independently delivered usage uses `custom` events with `rawType: 'usageMetadata'` and typed `usage`, without inferring a response association. Gross totals never substitute for missing modality counts.
+
 <Note type="warning">Realtime is an experimental feature.</Note>
 
 You can create models that call the [Gemini Live API](https://ai.google.dev/gemini-api/docs/live)

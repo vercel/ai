@@ -1,5 +1,37 @@
 # @ai-sdk/harness
 
+## 1.0.174
+
+### Patch Changes
+
+- 3bf70f8: Recover Claude Code turn starts lost on a dropped WebSocket connection using idempotent start identifiers. Bound the wait for the first turn event with `turnStartTimeoutMs` (120 seconds by default), and fail safely when reconnecting to an older bridge that has not accepted the start.
+
+  Preserve first delivery of turns submitted during an idle reconnect, including on older bridges, without sending duplicate starts or treating an unsent start as lost.
+
+  Clean up failed initial sends without leaving a delayed unhandled rejection, and replay pending steering only after the recovered start.
+
+  `SandboxChannel.send` accepts `queueIfDisconnected: false` for callers that own reconnect replay; discarded frames do not invoke `onSent`. The default continues queueing frames.
+
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 1.0.173
 
 ### Patch Changes

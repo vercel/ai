@@ -1525,12 +1525,21 @@ console.log(image);
 
 ### Model Capabilities
 
-Azure OpenAI supports DALL-E 2 and DALL-E 3 models through deployments. The capabilities depend on which model version your deployment is using:
+The table lists supported DALL-E backing models and Azure MAI image IDs. For OpenAI-backed deployments, the supported sizes depend on the model version behind your deployment.
 
-| Model Version | Sizes                           |
-| ------------- | ------------------------------- |
-| DALL-E 3      | 1024x1024, 1792x1024, 1024x1792 |
-| DALL-E 2      | 256x256, 512x512, 1024x1024     |
+{/* model-capabilities:azure-image:start */}
+
+| Model                 | Sizes                                                  |
+| --------------------- | ------------------------------------------------------ |
+| `dall-e-3`            | 1024x1024, 1792x1024, 1024x1792                        |
+| `dall-e-2`            | 256x256, 512x512, 1024x1024                            |
+| `mai-image-2.5`       | Sides must be multiples of 16 and at least 768 pixels. |
+| `mai-image-2.5-flash` | Sides must be multiples of 16 and at least 768 pixels. |
+| `mai-image-2.5-pro`   | Sides must be multiples of 16 and at least 768 pixels. |
+| `mai-image-2.6`       | Sides must be multiples of 16 and at least 768 pixels. |
+| `mai-image-2.6-flash` | Sides must be multiples of 16 and at least 768 pixels. |
+
+{/* model-capabilities:azure-image:end */}
 
 Azure deployment names are user-defined and do not identify the backing model.
 Consequently, `supportsFileInputs` and `supportsMaskInputs` are `undefined`
@@ -1862,14 +1871,18 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                        | Transcription         | Duration  | Segments  | Language  |
-| ---------------------------- | --------------------- | --------- | --------- | --------- |
-| `whisper-1`                  | <Check />             | <Check /> | <Check /> | <Check /> |
-| `gpt-4o-mini-transcribe`     | <Check />             | <Cross /> | <Cross /> | <Cross /> |
-| `gpt-4o-transcribe`          | <Check />             | <Cross /> | <Cross /> | <Cross /> |
-| `mai-transcribe-2`           | <Check />             | <Check /> | <Check /> | <Check /> |
-| `mai-transcribe-1.5`         | <Check />             | <Check /> | <Check /> | <Check /> |
-| `mai-transcribe-2-streaming` | <Check /> (streaming) | <Check /> | <Cross /> | <Cross /> |
+{/* model-capabilities:azure-transcription:start */}
+
+| Model                        | Transcription | Streaming | Duration                                                      | Segments  | Language                                           |
+| ---------------------------- | ------------- | --------- | ------------------------------------------------------------- | --------- | -------------------------------------------------- |
+| `whisper-1`                  | <Check />     | <Cross /> | <Check />                                                     | <Check /> | <Check />                                          |
+| `gpt-4o-mini-transcribe`     | <Check />     | <Cross /> | <Cross />                                                     | <Cross /> | <Cross />                                          |
+| `gpt-4o-transcribe`          | <Check />     | <Cross /> | <Cross />                                                     | <Cross /> | <Cross />                                          |
+| `mai-transcribe-2`           | <Check />     | <Cross /> | <Check />                                                     | <Check /> | <Check />                                          |
+| `mai-transcribe-1.5`         | <Check />     | <Cross /> | <Check />                                                     | <Cross /> | <Check />                                          |
+| `mai-transcribe-2-streaming` | <Cross />     | <Check /> | Conditional: Requires an audio format with a known byte rate. | <Cross /> | Conditional: Reports the configured language hint. |
+
+{/* model-capabilities:azure-transcription:end */}
 
 ## Speech Models
 
@@ -1928,13 +1941,21 @@ The following provider options are available:
 
 ### Model Capabilities
 
-Azure OpenAI supports TTS models through deployments. The capabilities depend on which model version your deployment is using:
+The table lists OpenAI TTS backing models and Azure MAI voice IDs. For OpenAI-backed deployments, instruction support depends on the model version behind your deployment.
 
-| Model Version     | Instructions |
-| ----------------- | ------------ |
-| `tts-1`           | <Cross />    |
-| `tts-1-hd`        | <Cross />    |
-| `gpt-4o-mini-tts` | <Check />    |
+{/* model-capabilities:azure-speech:start */}
+
+| Model                 | Instructions |
+| --------------------- | ------------ |
+| `tts-1`               | <Cross />    |
+| `tts-1-hd`            | <Cross />    |
+| `gpt-4o-mini-tts`     | <Check />    |
+| `mai-voice-2.1-flash` | <Cross />    |
+| `mai-voice-2.1`       | <Cross />    |
+| `mai-voice-2-flash`   | <Cross />    |
+| `mai-voice-2`         | <Cross />    |
+
+{/* model-capabilities:azure-speech:end */}
 
 ### MAI-Voice
 
@@ -2009,3 +2030,27 @@ The following options are available through `providerOptions.azure`:
 
 Text is always spoken as plain text; SSML input is not supported.
 The models are in public preview. AI Gateway forwards these provider options, including `azure.api`.
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:azure-provider-options:start */}
+
+| Operation     | Option            | Description                                     |
+| ------------- | ----------------- | ----------------------------------------------- |
+| image         | `api`             | Select the OpenAI or MAI image API.             |
+| image         | `autoAspectRatio` | Choose the aspect ratio automatically.          |
+| image         | `webGrounding`    | Ground image generation in web search.          |
+| speech        | `api`             | Select the OpenAI or Azure Speech API.          |
+| speech        | `style`           | Speaking style supported by the selected voice. |
+| speech        | `styleDegree`     | Intensity of the speaking style.                |
+| transcription | `api`             | Select the OpenAI, Azure Speech, or MAI API.    |
+| transcription | `language`        | Language hint for MAI streaming transcription.  |
+| transcription | `timestamps`      | Word, segment, or no timestamps.                |
+| transcription | `transcribeStyle` | Verbatim or cleaned transcription.              |
+| transcription | `locales`         | Language to use for transcription.              |
+| transcription | `diarization`     | Enable speaker diarization.                     |
+| transcription | `phraseList`      | Phrases to bias transcription toward.           |
+
+{/* model-capabilities:azure-provider-options:end */}

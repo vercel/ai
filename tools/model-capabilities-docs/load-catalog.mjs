@@ -2,13 +2,25 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
+// Shared metadata is loaded from source, without evaluating provider clients or
+// requiring built packages. Only these pure catalog modules may cross packages.
+const sharedCatalogs = new Map(
+  ['openai', 'anthropic', 'google'].map(provider => [
+    `@ai-sdk/${provider}/internal`,
+    new URL(
+      `../../packages/${provider}/src/${provider}-model-catalog.ts`,
+      import.meta.url,
+    ),
+  ]),
+);
+
 export async function loadCatalog(entryUrl) {
   const compiled = new Map();
   const sourceRoot = new URL('./', entryUrl);
 
   // Load the local TypeScript graph in memory. This works before package builds
   // and on the repository's minimum Node.js version without a custom TS loader.
-  async function compile(url, ancestors = []) {
+  async function compile(url, ancestors = [], root = sourceRoot) {
     if (ancestors.includes(url.href)) {
       throw new Error(`Circular catalog dependency: ${fileURLToPath(url)}`);
     }
@@ -51,6 +63,20 @@ export async function loadCatalog(entryUrl) {
       const specifier = statement.moduleSpecifier;
       if (specifier == null) continue;
       const name = specifier.text;
+      const sharedCatalog = sharedCatalogs.get(name);
+      if (sharedCatalog != null) {
+        const dependencyUrl = await compile(
+          sharedCatalog,
+          [...ancestors, url.href],
+          new URL('./', sharedCatalog),
+        );
+        replacements.push({
+          start: specifier.getStart(module),
+          end: specifier.getEnd(),
+          value: JSON.stringify(dependencyUrl),
+        });
+        continue;
+      }
       if (!name.startsWith('./') && !name.startsWith('../')) {
         throw new Error(`Catalog runtime imports must be local: ${name}`);
       }
@@ -60,12 +86,16 @@ export async function loadCatalog(entryUrl) {
           ? dependency.pathname.slice(0, -3) + '.ts'
           : dependency.pathname + '.ts';
       }
-      if (!dependency.href.startsWith(sourceRoot.href)) {
+      if (!dependency.href.startsWith(root.href)) {
         throw new Error(
           `Catalog dependency is outside provider sources: ${name}`,
         );
       }
-      const dependencyUrl = await compile(dependency, [...ancestors, url.href]);
+      const dependencyUrl = await compile(
+        dependency,
+        [...ancestors, url.href],
+        root,
+      );
       replacements.push({
         start: specifier.getStart(module),
         end: specifier.getEnd(),

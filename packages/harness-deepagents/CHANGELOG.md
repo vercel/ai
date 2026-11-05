@@ -1,5 +1,15 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.174
+
+### Patch Changes
+
+- bb8aa09: fix(harness-deepagents): require approval when accessing files outside of workDir with permission modes `allow-reads` and `allow-edits`
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 1.0.173
 
 ### Patch Changes

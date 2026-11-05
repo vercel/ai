@@ -1,3 +1,4 @@
+import { getGoogleVertexRequestConfig } from '../google-vertex-model-catalog-config';
 import { InvalidArgumentError } from '@ai-sdk/provider';
 import {
   createOpenAICompatible,
@@ -13,13 +14,9 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexMaasModelId } from './google-vertex-maas-options';
 
-const maxOutputTokensByModel: Record<string, number | undefined> = {
-  'meta/llama-4-maverick-17b-128e-instruct-maas': 8192,
-  'meta/llama-4-scout-17b-16e-instruct-maas': 8192,
-};
-
 function transformGoogleVertexMaasRequestBody(args: Record<string, any>) {
-  const maxOutputTokens = maxOutputTokensByModel[args.model];
+  const maxOutputTokens = getGoogleVertexRequestConfig(args.model).language
+    ?.maxOutputTokens;
 
   return maxOutputTokens != null && args.max_tokens === undefined
     ? { ...args, max_tokens: maxOutputTokens }

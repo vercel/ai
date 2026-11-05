@@ -195,6 +195,7 @@ export function createAnthropic(
 
   const languageModelConfig = {
     provider: providerName,
+    supportsMessageThreads: true,
     baseURL,
     headers: getHeaders,
     fetch: options.fetch,

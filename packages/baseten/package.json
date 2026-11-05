@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/baseten",
-  "version": "2.1.62",
+  "version": "2.1.63",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

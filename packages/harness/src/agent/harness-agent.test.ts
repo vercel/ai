@@ -5150,6 +5150,172 @@ describe('HarnessAgent', () => {
     }
   });
 
+  test('retains a host approval result across a subsequent approval pause and session resume', async () => {
+    const firstExecute = vi.fn(async ({ value }: { value: string }) => ({
+      value,
+    }));
+    const secondExecute = vi.fn(async ({ value }: { value: string }) => ({
+      value,
+    }));
+    let continuationCount = 0;
+    const { harness, toolResults } = mockHarness({
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'host-1',
+          toolName: 'first_write',
+          input: JSON.stringify({ value: 'first' }),
+        },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'tool-calls', raw: 'host-input' },
+          usage: zeroUsage(),
+        },
+      ],
+      continueScript: () => {
+        continuationCount++;
+        if (continuationCount === 1) {
+          return [
+            {
+              type: 'tool-call',
+              toolCallId: 'host-2',
+              toolName: 'second_write',
+              input: JSON.stringify({ value: 'second' }),
+            },
+            {
+              type: 'finish-step',
+              finishReason: { unified: 'tool-calls', raw: 'host-input' },
+              usage: zeroUsage(),
+            },
+          ];
+        }
+        return finishEvents();
+      },
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: {
+        first_write: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: firstExecute,
+        }),
+        second_write: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: secondExecute,
+        }),
+      },
+      toolApproval: {
+        first_write: 'user-approval',
+        second_write: 'user-approval',
+      },
+    });
+    const sandboxSession = makeSandboxSession();
+    let session = await agent.createSession({ sandboxSession });
+    try {
+      const first = await agent.stream({
+        session,
+        prompt: 'Write both values.',
+      });
+      let firstApprovalId: string | undefined;
+      for await (const part of first.fullStream) {
+        if (part.type === 'tool-approval-request') {
+          firstApprovalId = part.approvalId;
+        }
+      }
+      expect(firstApprovalId).toBeDefined();
+
+      const continued = await agent.stream({
+        session,
+        messages: [
+          ...(await first.responseMessages),
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: firstApprovalId!,
+                approved: true,
+              },
+            ],
+          },
+        ],
+      });
+      let secondApprovalId: string | undefined;
+      for await (const part of continued.fullStream) {
+        if (part.type === 'tool-approval-request') {
+          secondApprovalId = part.approvalId;
+        }
+      }
+      expect(secondApprovalId).toBeDefined();
+      expect(firstExecute).toHaveBeenCalledOnce();
+      expect(secondExecute).not.toHaveBeenCalled();
+      expect(toolResults).toEqual([
+        expect.objectContaining({
+          toolCallId: 'host-1',
+          output: { value: 'first' },
+        }),
+      ]);
+
+      const resumeFrom = await session.detach();
+      expect(resumeFrom.continueFrom?.pendingToolApprovals).toEqual([
+        expect.objectContaining({
+          toolCallId: 'host-2',
+          toolName: 'second_write',
+          kind: 'custom',
+        }),
+      ]);
+      expect(resumeFrom.continueFrom?.pendingToolResults).toEqual([
+        expect.objectContaining({
+          toolCallId: 'host-1',
+          toolName: 'first_write',
+          input: JSON.stringify({ value: 'first' }),
+          completedResult: expect.objectContaining({
+            output: { value: 'first' },
+          }),
+        }),
+      ]);
+
+      session = await agent.createSession({
+        sandboxSession,
+        resumeFrom: structuredClone(resumeFrom),
+      });
+      const completed = await agent.stream({
+        session,
+        messages: [
+          ...(await continued.responseMessages),
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: secondApprovalId!,
+                approved: true,
+              },
+            ],
+          },
+        ],
+      });
+      await completed.consumeStream();
+
+      expect(firstExecute).toHaveBeenCalledOnce();
+      expect(secondExecute).toHaveBeenCalledOnce();
+      expect(
+        toolResults.filter(result => result.toolCallId === 'host-1'),
+      ).toHaveLength(2);
+      expect(
+        toolResults.filter(result => result.toolCallId === 'host-2'),
+      ).toEqual([
+        expect.objectContaining({
+          toolCallId: 'host-2',
+          output: { value: 'second' },
+        }),
+      ]);
+      expect(session.hasUnfinishedTurn()).toBe(false);
+    } finally {
+      await session.destroy();
+    }
+  });
+
   test('session.detach() after a tool approval pause returns resume state with nested continuation state', async () => {
     const { harness, doDetach, doSuspendTurn } = mockHarness({
       script: () => [
