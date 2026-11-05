@@ -1,7 +1,8 @@
-import type {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
+import {
+  InvalidArgumentError,
+  type ImageModelV3,
+  type ImageModelV3File,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -86,6 +87,13 @@ export class OpenAIImageModel implements ImageModelV3 {
           schema: openaiImageModelEditOptions,
         })) ?? {};
 
+      if (mask != null && openaiOptions.markup != null) {
+        throw new InvalidArgumentError({
+          argument: 'providerOptions.openai.markup',
+          message: '`markup` cannot be combined with `mask`.',
+        });
+      }
+
       const { value: response, responseHeaders } = await postFormDataToApi({
         url: this.config.url({
           path: '/images/edits',
@@ -114,14 +122,20 @@ export class OpenAIImageModel implements ImageModelV3 {
             ),
           ),
           mask: mask != null ? await fileToBlob(mask) : undefined,
+          markup:
+            openaiOptions.markup != null
+              ? await markupToBlob(openaiOptions.markup)
+              : undefined,
           n,
           size,
           quality: openaiOptions.quality,
           background: openaiOptions.background,
           output_format: openaiOptions.outputFormat,
           output_compression: openaiOptions.outputCompression,
+          complexity: openaiOptions.complexity,
           input_fidelity: openaiOptions.inputFidelity,
           user: openaiOptions.user,
+          safety_identifier: openaiOptions.safetyIdentifier,
         }),
         failedResponseHandler: openaiFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
@@ -193,7 +207,11 @@ export class OpenAIImageModel implements ImageModelV3 {
         moderation: openaiOptions.moderation,
         output_format: openaiOptions.outputFormat,
         output_compression: openaiOptions.outputCompression,
+        complexity: openaiOptions.complexity,
+        frame_count: openaiOptions.frameCount,
+        frame_duration_ms: openaiOptions.frameDurationMs,
         user: openaiOptions.user,
+        safety_identifier: openaiOptions.safetyIdentifier,
         ...(!hasDefaultResponseFormat(this.modelId)
           ? { response_format: 'b64_json' }
           : {}),
@@ -284,15 +302,37 @@ type OpenAIImageEditInput = {
   prompt?: string;
   image: Blob | Blob[];
   mask?: Blob;
+  markup?: Blob;
   n?: number;
   size?: `${number}x${number}`;
   quality?: OpenAIImageModelEditOptions['quality'];
   background?: OpenAIImageModelEditOptions['background'];
   output_format?: OpenAIImageModelEditOptions['outputFormat'];
   output_compression?: OpenAIImageModelEditOptions['outputCompression'];
+  complexity?: OpenAIImageModelEditOptions['complexity'];
   input_fidelity?: OpenAIImageModelEditOptions['inputFidelity'];
   user?: OpenAIImageModelEditOptions['user'];
+  safety_identifier?: OpenAIImageModelEditOptions['safetyIdentifier'];
 };
+
+async function markupToBlob(markup: string): Promise<Blob> {
+  const dataUrl = /^data:([^;,]*)(;base64)?,(.*)$/s.exec(markup);
+
+  if (dataUrl == null) {
+    return downloadBlob(markup);
+  }
+
+  if (dataUrl[2] == null) {
+    throw new InvalidArgumentError({
+      argument: 'providerOptions.openai.markup',
+      message: '`markup` data URLs must be base64 encoded.',
+    });
+  }
+
+  return new Blob([convertBase64ToUint8Array(dataUrl[3]) as BlobPart], {
+    type: dataUrl[1] || 'image/png',
+  });
+}
 
 async function fileToBlob(
   file: ImageModelV3File | undefined,
