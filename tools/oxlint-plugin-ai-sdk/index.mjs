@@ -63,11 +63,100 @@ const requireValidateUrl = {
   },
 };
 
+const requireDocblock = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description: 'Require docblocks on selected declarations.',
+    },
+  },
+  create(context) {
+    const functionLikeTypes = new Set([
+      'FunctionDeclaration',
+      'FunctionExpression',
+      'ArrowFunctionExpression',
+      'MethodDefinition',
+      'TSDeclareMethod',
+      'TSAbstractMethodDefinition',
+      'TSFunctionType',
+      'TSMethodSignature',
+      'TSCallSignatureDeclaration',
+      'TSConstructSignatureDeclaration',
+    ]);
+
+    const isInsideFunctionOrMethod = node => {
+      let ancestor = node.parent;
+
+      while (ancestor !== undefined && ancestor !== null) {
+        if (functionLikeTypes.has(ancestor.type)) return true;
+        ancestor = ancestor.parent;
+      }
+
+      return false;
+    };
+
+    const isDeclaredTypeProperty = node => {
+      let ancestor = node.parent;
+
+      while (ancestor !== undefined && ancestor !== null) {
+        if (functionLikeTypes.has(ancestor.type)) return false;
+
+        if (
+          ancestor.type === 'TSTypeAliasDeclaration' ||
+          ancestor.type === 'TSInterfaceDeclaration'
+        ) {
+          return true;
+        }
+
+        ancestor = ancestor.parent;
+      }
+
+      return false;
+    };
+
+    const reportIfMissingDocblock = node => {
+      const hasDocblock = context.sourceCode
+        .getCommentsBefore(node)
+        .some(
+          comment =>
+            comment.type === 'Block' && comment.value.startsWith('*'),
+        );
+
+      if (!hasDocblock) {
+        context.report({
+          node,
+          message: 'Add a JSDoc comment immediately before this declaration.',
+        });
+      }
+    };
+
+    return {
+      FunctionDeclaration(node) {
+        if (!isInsideFunctionOrMethod(node)) {
+          reportIfMissingDocblock(node);
+        }
+      },
+      ClassDeclaration: reportIfMissingDocblock,
+      MethodDefinition: reportIfMissingDocblock,
+      TSDeclareMethod: reportIfMissingDocblock,
+      TSAbstractMethodDefinition: reportIfMissingDocblock,
+      TSInterfaceDeclaration: reportIfMissingDocblock,
+      TSTypeAliasDeclaration: reportIfMissingDocblock,
+      TSPropertySignature(node) {
+        if (isDeclaredTypeProperty(node)) {
+          reportIfMissingDocblock(node);
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'ai-sdk',
   },
   rules: {
     'require-validate-url': requireValidateUrl,
+    'require-docblock': requireDocblock,
   },
 };

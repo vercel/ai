@@ -32,6 +32,17 @@
       "rules": {
         "react-hooks/rules-of-hooks": "off"
       }
+    },
+    {
+      "files": [
+        "packages/harness/src/agent/v2/**",
+        "packages/harness/src/v2/**",
+        "packages/harness-ai-sdk/**",
+        "packages/harness-*-v2/**"
+      ],
+      "rules": {
+        "ai-sdk/require-docblock": "error"
+      }
     }
   ],
   "rules": {

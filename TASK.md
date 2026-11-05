@@ -116,6 +116,7 @@ You must adhere to these at every single step of this task.
 - DO NOT touch the `Agent` contract from `packages/ai`. In fact, DO NOT touch `packages/ai` at all.
 - DO NOT refer to `durable-harness` in any code or documentation or artifacts you write to this repository.
 - For implementing a harness adapter (i.e. `packages/harness-*` code), follow [HARNESS-ADAPTER-REQUIREMENTS.md](./HARNESS-ADAPTER-REQUIREMENTS.md). DO NOT read these when working on `packages/harness`.
+- Provide doc blocks for all class and type declarations, their method declarations, and for every object type's property declarations. Also provide doc blocks for exported functions. For obvious symbols, keep the doc block very concise, a single descriptive statement. This almost always applies to properties, and to simple functions or methods. Whenever there is important nuance to document though, do that as needed, so that a future person or agent reviewing or modifying this code that lacks all your context still can get the shared understanding.
 
 ## Detail specs already agreed upon and open questions
 
