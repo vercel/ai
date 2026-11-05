@@ -9,6 +9,7 @@ import type { HarnessAgentSettings } from '../harness-agent-settings';
 import { describe, expect, test, vi } from 'vitest';
 import type { HarnessAgentSession } from './harness-agent-session';
 import { HarnessAgent } from './harness-agent';
+import { InMemoryWorld } from './in-memory-world';
 import { HarnessAgent as PublicHarnessAgent } from '../harness-agent';
 
 const harness: HarnessV2 = {
@@ -92,9 +93,17 @@ describe('HarnessAgent', () => {
   test('marks the agent non-durable when no world is provided', () => {
     const agent = new HarnessAgent({ harness, getSandboxSession });
 
-    expect(
-      (agent as unknown as { world: World | undefined }).world,
-    ).toBeUndefined();
+    expect((agent as unknown as { world: World }).world).toBeInstanceOf(
+      InMemoryWorld,
+    );
+    expect((agent as unknown as { isDurable: boolean }).isDurable).toBe(false);
+  });
+
+  test('treats an explicitly provided InMemoryWorld as non-durable', () => {
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({ harness, world, getSandboxSession });
+
+    expect((agent as unknown as { world: World }).world).toBe(world);
     expect((agent as unknown as { isDurable: boolean }).isDurable).toBe(false);
   });
 

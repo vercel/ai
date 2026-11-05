@@ -2,6 +2,7 @@ import {
   generateId,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
+  type SerializableValue,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import type {
@@ -16,10 +17,10 @@ import {
   DurableHarnessAgentSession,
   type HarnessAgentSession,
 } from './harness-agent-session';
+import { InMemoryWorld } from './in-memory-world';
 import type { HarnessAgentSettings } from '../harness-agent-settings';
 import type { HarnessV2 } from '../../v2/harness-v2';
 import type { HarnessV2NetworkSandboxSession } from '../../v2/harness-v2-network-sandbox-session';
-import type { HarnessV2SerializableValue } from '../../v2/harness-v2-serializable-value';
 import type { World } from '@workflow/world';
 
 interface HarnessAgentCallExtensions {
@@ -44,7 +45,7 @@ export class HarnessAgent<
   readonly hasOutput = false;
 
   private readonly harness: HarnessV2<THarness['builtinTools']>;
-  private readonly world: World | undefined;
+  private readonly world: World;
   private readonly isDurable: boolean;
   private readonly getSandboxSession: NonNullable<
     HarnessAgentSettings['getSandboxSession']
@@ -86,8 +87,8 @@ export class HarnessAgent<
       );
     }
 
-    this.world = settings.world;
-    this.isDurable = settings.world !== undefined;
+    this.world = settings.world ?? new InMemoryWorld();
+    this.isDurable = !(this.world instanceof InMemoryWorld);
     this.getSandboxSession = settings.getSandboxSession;
     this.id = settings.id;
     this.harnessId = this.harness.harnessId;
@@ -216,7 +217,7 @@ function assertCallOptionsSerializable(input: { options: object }): void {
 function isHarnessSerializableValue(input: {
   value: unknown;
   ancestors: WeakSet<object>;
-}): input is { value: HarnessV2SerializableValue; ancestors: WeakSet<object> } {
+}): input is { value: SerializableValue; ancestors: WeakSet<object> } {
   const { value, ancestors } = input;
 
   if (

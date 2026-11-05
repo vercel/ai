@@ -31,6 +31,7 @@ export type {
   HarnessSandboxTemplate,
 } from './harness-agent-types';
 export { HarnessAgentSession } from './harness-agent-session';
+export { InMemoryWorld } from './v2/in-memory-world';
 export { collectHarnessAgentToolApprovalContinuations } from './harness-agent-tool-approval-continuation';
 export { collectHarnessAgentToolResultContinuations } from './harness-agent-tool-result-continuation';
 export {

@@ -1,5 +1,5 @@
 import type { HarnessV2Effect } from './harness-v2-effect';
-import type { HarnessV2SerializableValue } from './harness-v2-serializable-value';
+import type { SerializableValue } from '@ai-sdk/provider-utils';
 import type { HarnessV2Submission } from './harness-v2-submission';
 
 export type HarnessV2LogEvent =
@@ -23,7 +23,7 @@ export type HarnessV2LogEvent =
     }
   | {
       readonly type: `harness:${string}`;
-      readonly data: HarnessV2SerializableValue;
+      readonly data: SerializableValue;
       readonly id?: string;
     };
 

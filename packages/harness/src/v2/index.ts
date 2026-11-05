@@ -15,7 +15,7 @@ export type {
   HarnessV2EffectContext,
   HarnessV2EffectOutput,
 } from './harness-v2-effect';
-export type { HarnessV2SerializableValue } from './harness-v2-serializable-value';
+export type { SerializableValue } from '@ai-sdk/provider-utils';
 export type {
   HarnessV2NetworkPolicy,
   HarnessV2NetworkSandboxSession,

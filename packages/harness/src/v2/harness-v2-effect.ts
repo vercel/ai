@@ -1,7 +1,7 @@
-import type { HarnessV2SerializableValue } from './harness-v2-serializable-value';
+import type { SerializableValue } from '@ai-sdk/provider-utils';
 
 export type HarnessV2EffectOutput<
-  T extends HarnessV2SerializableValue = HarnessV2SerializableValue,
+  T extends SerializableValue = SerializableValue,
 > =
   | {
       readonly type: 'result';
@@ -19,7 +19,7 @@ export type HarnessV2Effect = {
   readonly attempt: number;
   readonly name: string;
   readonly replay: 'safe' | 'never';
-  readonly input: HarnessV2SerializableValue;
+  readonly input: SerializableValue;
   readonly deliveredSubmissionIds: readonly string[];
   readonly output?: HarnessV2EffectOutput;
 };

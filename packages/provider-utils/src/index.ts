@@ -111,6 +111,11 @@ export {
   type ValidationResult,
 } from './schema';
 export { serializeModelOptions } from './serialize-model-options';
+export {
+  cloneSerializableValue,
+  jsonDecodeSerializableValue,
+  jsonEncodeSerializableValue,
+} from './serializable-value';
 export { SerializationError } from './serialization-error';
 export { secureJsonParse } from './secure-json-parse';
 export {

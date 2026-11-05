@@ -37,7 +37,7 @@ The steps are below:
    - Implement a `DefaultHarnessAgentSession` class implementing the type, storing the sandbox session in memory (e.g. in a class property).
    - Implement a `DurableHarnessAgentSession` class implementing the type, relying on the `getSandboxSession` callback from the new `HarnessAgent`'s constructor.
    - Create an instance of one of the two classes depending on whether the `HarnessAgent` is used as durable or not (`!!isDurable`).
-6. [ ] Implement and configure `InMemoryWorld` as a non-durable `World`-compatible implementation.
+6. [x] Implement and configure `InMemoryWorld` as a non-durable `World`-compatible implementation.
    - Ideally this can use something that already exists as part of the `workflow` SDK and its `@workflow/*` packages; if that's not an option, we have to implement it ourselves.
    - In the new `HarnessAgent` constructor, change the private `world` property to no longer be optional; when the constructor doesn't receive it, it should then instantiate an `InMemoryWorld` and set it in that property.
 7. [ ] Scaffold `packages/harness/src/v2/internal/create-log.ts` with function `createLog(input): HarnessAgentLog`.

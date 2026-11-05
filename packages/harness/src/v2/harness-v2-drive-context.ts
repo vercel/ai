@@ -1,4 +1,7 @@
-import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import type {
+  Experimental_SandboxSession as SandboxSession,
+  SerializableValue,
+} from '@ai-sdk/provider-utils';
 import type {
   HarnessV2Effect,
   HarnessV2EffectContext,
@@ -6,11 +9,10 @@ import type {
 } from './harness-v2-effect';
 import type { HarnessV2Log } from './harness-v2-log';
 import type { HarnessV2NetworkSandboxSession } from './harness-v2-network-sandbox-session';
-import type { HarnessV2SerializableValue } from './harness-v2-serializable-value';
 import type { HarnessV2StreamPart } from './harness-v2-stream-part';
 
 export type HarnessV2ToolExecutionOutput<
-  T extends HarnessV2SerializableValue = HarnessV2SerializableValue,
+  T extends SerializableValue = SerializableValue,
 > =
   | HarnessV2EffectOutput<T>
   | {
@@ -43,15 +45,13 @@ export type HarnessV2ToolGateOutput =
 
 export interface HarnessV2DriveContext {
   log: HarnessV2Log;
-  effect<T extends HarnessV2SerializableValue = HarnessV2SerializableValue>(
+  effect<T extends SerializableValue = SerializableValue>(
     key: string,
     options: Pick<HarnessV2Effect, 'name' | 'replay' | 'input'> &
       Partial<Pick<HarnessV2Effect, 'deliveredSubmissionIds'>>,
     fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>,
   ): Promise<HarnessV2EffectOutput<T>>;
-  executeHostTool<
-    T extends HarnessV2SerializableValue = HarnessV2SerializableValue,
-  >(call: {
+  executeHostTool<T extends SerializableValue = SerializableValue>(call: {
     toolCallId: string;
     toolName: string;
     input: unknown;
