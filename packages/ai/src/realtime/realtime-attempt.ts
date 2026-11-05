@@ -1,6 +1,7 @@
 /** Cancellation and settlement belong to one connection attempt. */
 export class RealtimeAttempt {
   readonly abort = new AbortController();
+  readonly reportedTransportErrors = new WeakSet<Error>();
   private timers = new Map<string, ReturnType<typeof setTimeout>>();
   private settleClose?: () => void;
   closePromise?: Promise<void>;

@@ -60,7 +60,9 @@ import {
 } from './gen-ai-format-messages';
 import { stringifyDecisionStateForTelemetry } from './stringify-for-telemetry';
 import { recordErrorOnSpan } from './record-span';
+import { redactToolDefinition } from './redact-tool-definition';
 import { getProviderUsageAttributes } from './provider-usage-attributes';
+import { getServerAttributes } from './server-attributes';
 import { sanitizeAttributes } from './sanitize-attribute-value';
 import { selectAttributes } from './select-attributes';
 import {
@@ -886,6 +888,7 @@ export class OpenTelemetry implements Telemetry {
 
     state.inferenceSpan.setAttributes(
       selectAttributes(telemetry, {
+        ...getServerAttributes(event.request.url),
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.response.id': event.response.id,
         'gen_ai.response.model': event.response.modelId,
@@ -1083,7 +1086,8 @@ export class OpenTelemetry implements Telemetry {
 
     const { telemetry } = state;
     const providerName = mapProviderName(event.provider);
-    state.inferenceToolDefinitions = event.tools;
+    const toolDefinitions = event.tools?.map(redactToolDefinition);
+    state.inferenceToolDefinitions = toolDefinitions;
     state.inferenceMetrics = {
       startTime: performance.now(),
       startTimestamp: getEventTimestamp(event),
@@ -1133,7 +1137,8 @@ export class OpenTelemetry implements Telemetry {
         },
       },
       'gen_ai.tool.definitions': {
-        input: () => (event.tools ? JSON.stringify(event.tools) : undefined),
+        input: () =>
+          toolDefinitions ? JSON.stringify(toolDefinitions) : undefined,
       },
     });
 
@@ -1207,6 +1212,7 @@ export class OpenTelemetry implements Telemetry {
     state.inferenceSpan.setAttributes(
       selectAttributes(telemetry, {
         ...getGenAIClientPerformanceAttributes(event.performance),
+        ...getServerAttributes(event.request?.url),
         'gen_ai.provider.name': providerName,
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.response.id': event.responseId,

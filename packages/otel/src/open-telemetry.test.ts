@@ -524,6 +524,94 @@ describe('OpenTelemetry', () => {
     return metric;
   }
 
+  describe('provider endpoint attributes', () => {
+    it.each(['generate', 'stream', 'generateObject', 'streamObject'] as const)(
+      'records the endpoint reported by a %s call without URL secrets',
+      async mode => {
+        const request = {
+          url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+        };
+        const usage = {
+          inputTokens: { total: 2, noCache: 2, cacheRead: 0, cacheWrite: 0 },
+          outputTokens: { total: 1, text: 1, reasoning: 0 },
+        };
+        const finishReason = { unified: 'stop' as const, raw: 'stop' };
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: '{"value":"hello"}' }],
+            finishReason,
+            usage,
+            warnings: [],
+            request,
+          }),
+          doStream: async () => ({
+            request,
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              { type: 'text-start', id: 'text' },
+              { type: 'text-delta', id: 'text', delta: '{"value":"hello"}' },
+              { type: 'text-end', id: 'text' },
+              { type: 'finish', finishReason, usage },
+            ]),
+          }),
+        });
+        const onLanguageModelCallEnd = vi.fn();
+        const options = {
+          model,
+          prompt: 'hello',
+          onLanguageModelCallEnd,
+          telemetry: {
+            integrations: integration,
+            recordInputs: false,
+            recordOutputs: false,
+          },
+        };
+        if (mode === 'generate') await generateText(options);
+        else if (mode === 'stream') await streamText(options).consumeStream();
+        else if (mode === 'generateObject')
+          await generateObject({
+            ...options,
+            schema: z.object({ value: z.string() }),
+          });
+        else
+          await convertAsyncIterableToArray(
+            streamObject({
+              ...options,
+              schema: z.object({ value: z.string() }),
+            }).partialObjectStream,
+          );
+
+        const span = tracer.spans.find(
+          span => span.name === 'chat mock-model-id',
+        );
+        expect(span?.attributes).toMatchObject({
+          'server.address': 'model.example.test',
+          'server.port': 8443,
+        });
+        expect(JSON.stringify(span?.attributes)).not.toMatch(
+          /password|private|secret|fragment/,
+        );
+        if (mode === 'generate' || mode === 'stream') {
+          expect(onLanguageModelCallEnd).toHaveBeenCalledWith(
+            expect.objectContaining({
+              request: { url: 'https://model.example.test:8443' },
+            }),
+          );
+        }
+      },
+    );
+
+    it('does not guess an endpoint from a provider name', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
+      const span = tracer.spans.find(span => span.name === 'chat gpt-4');
+      expect(span?.attributes).not.toHaveProperty('server.address');
+      expect(span?.attributes).not.toHaveProperty('server.port');
+    });
+  });
+
   describe('inference duration metrics', () => {
     it('exports seconds and model attributes with a meter registered after initialization', async () => {
       metrics.disable();
@@ -822,6 +910,118 @@ describe('OpenTelemetry', () => {
         }
       `);
     });
+
+    it.each([undefined, false])(
+      'redacts domain secrets in initial and observed tool definitions with recordInputs=%s',
+      recordInputs => {
+        const tools = [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'python',
+            args: {
+              container: {
+                memoryLimit: '4g',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets: [
+                    {
+                      domain: 'example.com',
+                      name: 'API_KEY',
+                      value: 'private-key',
+                    },
+                    {
+                      domain: 'example.com',
+                      name: 'TOKEN',
+                      value: 'private-token',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'terminal',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets: [
+                    {
+                      domain: 'example.com',
+                      name: 'KEY',
+                      value: 'shell-private-key',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'remote_tools',
+            args: {
+              serverLabel: 'example',
+              serverUrl: 'https://example.com/mcp',
+              authorization: 'mcp-private-token',
+              headers: { 'X-Custom-Key': 'mcp-private-key' },
+            },
+          },
+          { type: 'function', name: 'weather', description: 'Get weather' },
+        ];
+        const originalTools = structuredClone(tools);
+        integration.onStart!(makeOnStartEvent({ recordInputs }));
+        integration.onStepStart!(makeStepStartEvent());
+        integration.onLanguageModelCallStart!(
+          makeLanguageModelCallStartEvent({ tools }),
+        );
+        const initialDefinitions = getStartSpanAttributes(tracer, 2)[
+          'gen_ai.tool.definitions'
+        ];
+
+        integration.onLanguageModelCallEnd!(
+          makeLanguageModelCallEndEvent({
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tc1',
+                toolName: 'mcp.search',
+                input: {},
+                providerExecuted: true,
+                dynamic: true,
+              },
+            ],
+          }),
+        );
+        const finalDefinitions =
+          tracer.spans[2].attributes['gen_ai.tool.definitions'];
+
+        for (const definitions of [initialDefinitions, finalDefinitions]) {
+          if (recordInputs === false) {
+            expect(definitions).toBeUndefined();
+          } else {
+            expect(definitions).not.toContain('private-key');
+            expect(definitions).not.toContain('private-token');
+            expect(definitions).toContain('[redacted]');
+            expect(definitions).toContain('example.com');
+            expect(definitions).toContain('API_KEY');
+            expect(definitions).toContain('TOKEN');
+            expect(definitions).toContain('4g');
+            expect(definitions).toContain('Get weather');
+          }
+        }
+        if (recordInputs !== false) {
+          expect(finalDefinitions).toContain('mcp.search');
+        }
+        expect(tools).toEqual(originalTools);
+      },
+    );
 
     it('sets gen_ai.tool.definitions when tools provided', () => {
       const tools = [

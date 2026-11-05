@@ -30,9 +30,26 @@ const createTestModel = (
     baseURL,
     ...(teamIdOrSlug !== undefined && { teamIdOrSlug }),
     createClientSecret: async () => ({ token }),
+    getHeaders: async () => ({
+      Authorization: `Bearer ${token}`,
+      ...(teamIdOrSlug != null
+        ? { 'x-vercel-ai-gateway-team': teamIdOrSlug }
+        : {}),
+    }),
   });
 
 describe('GatewayRealtimeModel', () => {
+  it('rejects unsupported intents during serialization as well as connection setup', () => {
+    const target = createTestModel();
+    const options = { intent: 'transcription' } as const;
+    expect(() =>
+      target.serializeClientEvent({ type: 'response-create' }, options),
+    ).toThrow(/does not support/);
+    expect(() => target.buildSessionConfig({}, options)).toThrow(
+      /does not support/,
+    );
+  });
+
   it('exposes the v4 specification, provider, and model id', () => {
     const model = createTestModel();
     expect(model.specificationVersion).toBe('v4');
@@ -77,6 +94,7 @@ describe('GatewayRealtimeModel', () => {
         provider: 'gateway.realtime',
         baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
         createClientSecret,
+        getHeaders: async () => ({}),
       });
 
       const result = await model.doCreateClientSecret({
@@ -126,6 +144,37 @@ describe('GatewayRealtimeModel', () => {
       expect(getGatewayRealtimeTeamIdOrSlug(config.protocols?.join(', '))).toBe(
         'team_123',
       );
+    });
+  });
+
+  describe('getServerWebSocketConfig', () => {
+    it('returns a header-authenticated Gateway WebSocket connection', async () => {
+      const connection = await createTestModel().getServerWebSocketConfig();
+
+      expect(connection).toEqual({
+        url: 'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
+        headers: { Authorization: 'Bearer vcst_test-secret' },
+      });
+    });
+
+    it('includes team scoping as a header for server-side connections', async () => {
+      const connection = await createTestModel(
+        'openai/gpt-realtime',
+        'https://ai-gateway.vercel.sh/v4/ai',
+        'vck_test-token',
+        'my-team',
+      ).getServerWebSocketConfig();
+
+      expect(connection.headers).toEqual({
+        Authorization: 'Bearer vck_test-token',
+        'x-vercel-ai-gateway-team': 'my-team',
+      });
+    });
+
+    it('rejects unsupported endpoint intents', async () => {
+      await expect(
+        createTestModel().getServerWebSocketConfig({ intent: 'transcription' }),
+      ).rejects.toThrow("does not support the 'transcription' session intent");
     });
   });
 
@@ -322,6 +371,24 @@ serverOnlyDescribe('gateway.experimental_realtime auth errors', () => {
       process.env.AI_GATEWAY_API_KEY = previousApiKey;
     }
     vi.clearAllMocks();
+  });
+
+  it('reuses HTTP auth headers for OIDC server connections', async () => {
+    vi.mocked(getVercelOidcToken).mockResolvedValue('oidc-test-token');
+    const gateway = createGateway({
+      teamIdOrSlug: 'team-example',
+      headers: { 'x-custom': 'example' },
+    });
+    const model = gateway.experimental_realtime('openai/gpt-realtime');
+    const descriptor = await model.getServerWebSocketConfig!();
+    expect(descriptor.headers).toMatchObject({
+      authorization: 'Bearer oidc-test-token',
+      'ai-gateway-auth-method': 'oidc',
+      'ai-gateway-protocol-version': '0.0.1',
+      'x-vercel-ai-gateway-team': 'team-example',
+      'x-custom': 'example',
+    });
+    expect(descriptor.headers['user-agent']).toContain('ai-sdk-gateway/');
   });
 
   it('wraps getToken auth failures in a GatewayAuthenticationError', async () => {

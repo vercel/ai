@@ -1,5 +1,26 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.85
+
+### Patch Changes
+
+- add01ab: fix(openai-compatible): keep raw `verbosity` provider option when `textVerbosity` is not set
+
+  Previously, an unset `textVerbosity` always wrote `verbosity: undefined` to the request body, which silently dropped a raw `verbosity` passed through provider options. `verbosity` is now only written from `textVerbosity` when it has a value; `textVerbosity` still takes precedence when both are set.
+
+- 5f19ea5: Accept inline text file data as text content, matching text files supplied as bytes or base64.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 3.0.84
 
 ### Patch Changes

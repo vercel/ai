@@ -140,6 +140,11 @@ export function smoothStream<TOOLS extends ToolSet>({
 
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
+        if (chunk.type === 'ping') {
+          controller.enqueue(chunk);
+          return;
+        }
+
         // Handle non-smoothable chunks: flush buffer and pass through
         if (chunk.type !== 'text-delta' && chunk.type !== 'reasoning-delta') {
           flushBuffer(controller);

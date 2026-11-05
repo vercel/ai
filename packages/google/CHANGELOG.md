@@ -1,5 +1,33 @@
 # @ai-sdk/google
 
+## 4.0.112
+
+### Patch Changes
+
+- fd7e8a7: Preserve the order of text and complete function calls in streamed Google responses, including standalone thought signatures on empty text or reasoning parts.
+
+  Keep provider metadata on empty text parts when converting results to response messages so it can be passed back in subsequent requests.
+
+  Omit foreign-provider empty signature text when replaying history through Anthropic or Bedrock, preserving Bedrock’s existing native reasoning-history handling.
+
+- ef2dfb5: fix: pass through `seed: 0` instead of dropping it in image and video models. KlingAI now reports `seed: 0` as an unsupported setting like any other seed.
+- 892af4d: feat (provider/google): implement server-side realtime extensions
+
+  `GoogleRealtimeModel` supports the existing `getServerWebSocketConfig()` contract, returning the unconstrained Gemini Live endpoint with resolved credential headers. Each server connection can create its own event parser. Reported gross token totals include thinking and tool-use counts, with cached input portions and available modality counts normalized without guessing missing values. Usage in a completion frame is attached to `response-done`; other snapshots use `custom` events with `rawType: 'usageMetadata'` and typed `usage`, preserving lifecycle ordering without inferring response associations.
+
+- 3c6fb43: Forward explicit speech language codes to Gemini TTS for single- and multi-speaker requests, including the shared Vertex Gemini adapter. Omitted languages and `language: 'auto'` retain automatic detection without an unsupported-language warning.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 4.0.111
 
 ### Patch Changes

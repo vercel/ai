@@ -97,6 +97,35 @@ function makeChannel(
 }
 
 describe('SandboxChannel', () => {
+  it('notifies sends asynchronously and after reconnect handlers for queued frames', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    const notifications: string[] = [];
+    channel.send(
+      { type: 'start' },
+      { onSent: () => notifications.push('start') },
+    );
+    expect(notifications).toEqual([]);
+    await flush();
+    expect(notifications).toEqual(['start']);
+
+    connector.current().drop();
+    channel.send(
+      { type: 'abort' },
+      { onSent: () => notifications.push('abort') },
+    );
+    channel.onReconnect(() => notifications.push('reconnected'));
+    expect(notifications).toEqual(['start']);
+    await flush();
+    expect(notifications).toEqual(['start', 'reconnected', 'abort']);
+    expect(connector.current().sent).toEqual([
+      JSON.stringify({ type: 'resume', lastSeenEventId: 0 }),
+      JSON.stringify({ type: 'abort' }),
+    ]);
+    channel.close();
+  });
+
   it('dispatches outbound messages by type', async () => {
     const connector = makeConnector();
     const channel = makeChannel(connector);
@@ -430,6 +459,28 @@ describe('SandboxChannel', () => {
     ]);
   });
 
+  it.each(['disconnected', 2, 3] as const)(
+    'lets the caller own replay when the socket is %s',
+    async state => {
+      const connector = makeConnector();
+      const channel = makeChannel(connector);
+      await channel.open();
+      const first = connector.current();
+      if (state === 'disconnected') first.drop();
+      else first.setReadyState(state);
+      const onSent = vi.fn();
+      channel.send({ type: 'abort' }, { onSent, queueIfDisconnected: false });
+      if (state !== 'disconnected') first.drop();
+      await flush();
+      expect(first.sent).toEqual([]);
+      expect(connector.current().sent).toEqual([
+        JSON.stringify({ type: 'resume', lastSeenEventId: 0 }),
+      ]);
+      expect(onSent).not.toHaveBeenCalled();
+      channel.close();
+    },
+  );
+
   it.each([2, 3])(
     'queues sends before the close event at readyState %s',
     async readyState => {
@@ -439,8 +490,10 @@ describe('SandboxChannel', () => {
       const first = connector.current();
       first.setReadyState(readyState);
 
-      channel.send({ type: 'abort' });
+      const onSent = vi.fn();
+      channel.send({ type: 'abort' }, { onSent });
       expect(first.sent).toEqual([]);
+      expect(onSent).not.toHaveBeenCalled();
 
       first.drop();
       await flush();
@@ -448,6 +501,7 @@ describe('SandboxChannel', () => {
         JSON.stringify({ type: 'resume', lastSeenEventId: 0 }),
         JSON.stringify({ type: 'abort' }),
       ]);
+      expect(onSent).toHaveBeenCalledExactlyOnceWith();
     },
   );
 
@@ -460,7 +514,10 @@ describe('SandboxChannel', () => {
       throw error;
     });
 
-    expect(() => channel.send({ type: 'abort' })).toThrow(error);
+    const onSent = vi.fn();
+    expect(() => channel.send({ type: 'abort' }, { onSent })).toThrow(error);
+    await flush();
+    expect(onSent).not.toHaveBeenCalled();
   });
 
   it.each(['closing', 'throwing'] as const)(
@@ -487,9 +544,12 @@ describe('SandboxChannel', () => {
       });
       await channel.open();
       first.drop();
-      channel.send({ type: 'start' });
-      channel.send({ type: 'abort' });
-      channel.send({ type: 'start' });
+      const onFirstStartSent = vi.fn();
+      const onAbortSent = vi.fn();
+      const onLastStartSent = vi.fn();
+      channel.send({ type: 'start' }, { onSent: onFirstStartSent });
+      channel.send({ type: 'abort' }, { onSent: onAbortSent });
+      channel.send({ type: 'start' }, { onSent: onLastStartSent });
       await flush();
 
       const resume = JSON.stringify({ type: 'resume', lastSeenEventId: 0 });
@@ -500,6 +560,9 @@ describe('SandboxChannel', () => {
       }
       expect(connections).toBe(3);
       expect(third.sent).toEqual([resume, abort, start]);
+      expect(onFirstStartSent).toHaveBeenCalledExactlyOnceWith();
+      expect(onAbortSent).toHaveBeenCalledExactlyOnceWith();
+      expect(onLastStartSent).toHaveBeenCalledExactlyOnceWith();
     },
   );
 

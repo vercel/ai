@@ -382,7 +382,7 @@ export class KlingAIVideoModel implements VideoModelV4 {
       });
     }
 
-    if (options.seed) {
+    if (options.seed != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'seed',
