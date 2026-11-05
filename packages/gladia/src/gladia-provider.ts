@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   NoSuchModelError,
   type TranscriptionModelV3,
   type ProviderV3,
@@ -8,7 +9,10 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { GladiaTranscriptionModel } from './gladia-transcription-model';
+import {
+  GladiaTranscriptionModel,
+  gladiaPollingOptionsShape,
+} from './gladia-transcription-model';
 import { VERSION } from './version';
 
 export interface GladiaProvider extends ProviderV3 {
@@ -43,6 +47,39 @@ export interface GladiaProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Interval in milliseconds between transcription job status checks.
+   * Defaults to 1000 (1 second).
+   */
+  pollIntervalMs?: number;
+
+  /**
+   * Maximum time in milliseconds to wait for an asynchronous transcription job
+   * to finish before throwing a `TranscriptionJobPollingTimedOut` error.
+   * Defaults to 600000 (10 minutes). Raise it for long audio files or when
+   * audio intelligence add-ons make processing take longer.
+   */
+  pollTimeoutMs?: number;
+}
+
+function validatePollingSettings(settings: GladiaProviderSettings) {
+  const shape = gladiaPollingOptionsShape();
+
+  for (const argument of ['pollIntervalMs', 'pollTimeoutMs'] as const) {
+    const value = settings[argument];
+
+    if (value == null) {
+      continue;
+    }
+
+    if (!shape[argument].safeParse(value).success) {
+      throw new InvalidArgumentError({
+        argument,
+        message: `${argument} must be a positive integer number of milliseconds`,
+      });
+    }
+  }
 }
 
 /**
@@ -51,6 +88,8 @@ export interface GladiaProviderSettings {
 export function createGladia(
   options: GladiaProviderSettings = {},
 ): GladiaProvider {
+  validatePollingSettings(options);
+
   const getHeaders = () =>
     withUserAgentSuffix(
       {
@@ -70,6 +109,8 @@ export function createGladia(
       url: ({ path }) => `https://api.gladia.io${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      pollIntervalMs: options.pollIntervalMs,
+      pollTimeoutMs: options.pollTimeoutMs,
     });
 
   const provider = function () {
