@@ -25,6 +25,10 @@ import {
   cohereLanguageModelOptions,
   type CohereChatModelId,
 } from './cohere-chat-options';
+import {
+  cohereCitationSchema,
+  mapCohereCitationToSource,
+} from './cohere-citations';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { prepareTools } from './cohere-prepare-tools';
 import { convertCohereUsage, type CohereUsage } from './convert-cohere-usage';
@@ -174,22 +178,15 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
 
     // citations:
     for (const citation of response.message.citations ?? []) {
-      content.push({
-        type: 'source',
-        sourceType: 'document',
-        id: this.config.generateId(),
-        mediaType: 'text/plain',
-        title: citation.sources[0]?.document?.title || 'Document',
-        providerMetadata: {
-          cohere: {
-            start: citation.start,
-            end: citation.end,
-            text: citation.text,
-            sources: citation.sources,
-            ...(citation.type && { citationType: citation.type }),
-          },
-        },
-      });
+      // Tool-sourced citations (e.g. citations of tool results in a follow-up
+      // step) have no document to point at, so they are not emitted as sources.
+      const source = mapCohereCitationToSource(citation, () =>
+        this.config.generateId(),
+      );
+
+      if (source != null) {
+        content.push(source);
+      }
     }
 
     // tool calls:
@@ -439,18 +436,21 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
 }
 
 // Loose, nested objects included: the parsed value is returned as `usage.raw`.
+// All fields are optional in the API specification, so every field is nullish.
 const cohereUsageSchema = () =>
   z.looseObject({
     billed_units: z
       .looseObject({
-        input_tokens: z.number(),
-        output_tokens: z.number(),
+        input_tokens: z.number().nullish(),
+        output_tokens: z.number().nullish(),
       })
       .nullish(),
-    tokens: z.looseObject({
-      input_tokens: z.number(),
-      output_tokens: z.number(),
-    }),
+    tokens: z
+      .looseObject({
+        input_tokens: z.number().nullish(),
+        output_tokens: z.number().nullish(),
+      })
+      .nullish(),
     cached_tokens: z.number().nullish(),
   });
 
@@ -487,30 +487,10 @@ const cohereChatResponseSchema = lazySchema(() =>
             }),
           )
           .nullish(),
-        citations: z
-          .array(
-            z.object({
-              start: z.number(),
-              end: z.number(),
-              text: z.string(),
-              sources: z.array(
-                z.object({
-                  type: z.string().optional(),
-                  id: z.string().optional(),
-                  document: z.object({
-                    id: z.string().optional(),
-                    text: z.string(),
-                    title: z.string(),
-                  }),
-                }),
-              ),
-              type: z.string().optional(),
-            }),
-          )
-          .nullish(),
+        citations: z.array(cohereCitationSchema).nullish(),
       }),
       finish_reason: z.string(),
-      usage: cohereUsageSchema(),
+      usage: cohereUsageSchema().nullish(),
     }),
   ),
 );
