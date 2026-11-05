@@ -13829,6 +13829,196 @@ describe('mid-conversation tool changes', () => {
     );
   });
 
+  it('should keep the response name of a declared computer toolset when an inline computer tool is ignored', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: {
+        id: 'msg_1',
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-opus-4-8',
+        content: [
+          {
+            type: 'tool_use',
+            id: 'toolu_1',
+            name: 'left_click',
+            input: { coordinate: [1, 2] },
+            toolset_name: 'computer',
+          },
+        ],
+        stop_reason: 'tool_use',
+        stop_sequence: null,
+        usage: { input_tokens: 1, output_tokens: 1 },
+      },
+    };
+
+    const { content } = await provider('claude-opus-4-8').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Click.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'provider',
+                    id: 'anthropic.computer_20251124',
+                    name: 'otherComputer',
+                    args: { displayWidthPx: 1024, displayHeightPx: 768 },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+      tools: [
+        {
+          type: 'provider',
+          id: 'anthropic.computer_toolset_20260801',
+          name: 'myComputer',
+          args: {},
+        },
+      ],
+    });
+
+    expect(content).toMatchObject([
+      { type: 'tool-call', toolName: 'myComputer' },
+    ]);
+  });
+
+  it('should keep the response name of a declared provider tool when an inline provider tool has the same provider name', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: {
+        id: 'msg_1',
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-opus-4-8',
+        content: [
+          {
+            type: 'server_tool_use',
+            id: 'srvtoolu_1',
+            name: 'web_search',
+            input: { query: 'weather' },
+          },
+        ],
+        stop_reason: 'pause_turn',
+        stop_sequence: null,
+        usage: { input_tokens: 1, output_tokens: 1 },
+      },
+    };
+
+    const { content } = await provider('claude-opus-4-8').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Search.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'provider',
+                    id: 'anthropic.web_search_20260209',
+                    name: 'inlineSearch',
+                    args: {},
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+      tools: [
+        {
+          type: 'provider',
+          id: 'anthropic.web_search_20260209',
+          name: 'declaredSearch',
+          args: {},
+        },
+      ],
+    });
+
+    expect(content).toMatchObject([
+      { type: 'tool-call', toolName: 'declaredSearch' },
+    ]);
+  });
+
+  it('should send the tool choice and disabled parallel tool use when all tools are added by value', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const inlineToolChange = {
+      role: 'system' as const,
+      content: '',
+      providerOptions: {
+        anthropic: {
+          toolChanges: [
+            {
+              type: 'tool_addition',
+              tool: {
+                type: 'function',
+                name: 'get_forecast',
+                inputSchema: { type: 'object' },
+              },
+            },
+          ],
+        },
+      },
+    };
+    const prompt: LanguageModelV4Prompt = [
+      { role: 'user', content: [{ type: 'text', text: 'Say OK.' }] },
+      inlineToolChange,
+    ];
+
+    await provider('claude-opus-4-8').doGenerate({
+      prompt,
+      toolChoice: { type: 'none' },
+    });
+    await provider('claude-opus-4-8').doGenerate({
+      prompt,
+      providerOptions: { anthropic: { disableParallelToolUse: true } },
+    });
+    await provider('claude-opus-4-8').doGenerate({
+      prompt,
+      toolChoice: { type: 'tool', toolName: 'get_forecast' },
+    });
+
+    const bodies = await Promise.all(
+      server.calls.map(call => call.requestBodyJson),
+    );
+
+    // the tools only exist in the message, so there is no top-level list:
+    expect(bodies.map(body => body.tools)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+    expect(bodies.map(body => body.tool_choice)).toEqual([
+      { type: 'none' },
+      { type: 'auto', disable_parallel_tool_use: true },
+      { type: 'tool', name: 'get_forecast' },
+    ]);
+  });
+
+  it('should not send a tool choice without any tools', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-opus-4-8').doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Say OK.' }] }],
+      toolChoice: { type: 'none' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tool_choice).toBeUndefined();
+    expect(requestBody.tools).toBeUndefined();
+  });
+
   it('should send separate effort updates and turn-scoped reminders with their beta headers', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 

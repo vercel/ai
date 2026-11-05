@@ -631,7 +631,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const inlineTools = await getInlineToolsFromPrompt(prompt);
 
     const toolNameMapping = createToolNameMapping({
-      tools: [...(tools ?? []), ...inlineTools],
+      // later entries win when provider tool names collide, so the declared
+      // tools go last and an inline tool cannot take over their mapping:
+      tools: [...inlineTools, ...(tools ?? [])],
       providerToolNames: {
         'anthropic.code_execution_20250522': 'code_execution',
         'anthropic.code_execution_20250825': 'code_execution',
@@ -1208,6 +1210,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         : {
             tools: tools ?? [],
             toolChoice,
+            // tool changes can add tools when `tools` is empty, so the tool
+            // choice and parallel tool use settings still apply:
+            hasInlineTools: inlineTools.length > 0,
             disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
             cacheControlValidator,
             supportsStructuredOutput,

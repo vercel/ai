@@ -92,9 +92,18 @@ export type AnthropicMediaPartConverter = (
   | undefined
 >;
 
+// The computer use tools cannot be defined in a message (the API rejects
+// them), they must be declared in `tools` and added by reference.
+function isComputerTool(
+  tool: LanguageModelV4FunctionTool | LanguageModelV4ProviderTool,
+): boolean {
+  return tool.type === 'provider' && tool.id.startsWith('anthropic.computer_');
+}
+
 /**
  * Collects the tools that mid-conversation tool changes add by value, so they
  * can take part in tool name mapping like the tools of the `tools` option.
+ * Tools that cannot be added by value are left out because they are ignored.
  */
 export async function getInlineToolsFromPrompt(
   prompt: LanguageModelV4Prompt,
@@ -116,11 +125,13 @@ export async function getInlineToolsFromPrompt(
 
     for (const toolChange of options?.toolChanges ?? []) {
       if ('tool' in toolChange) {
-        inlineTools.push(
-          toolChange.tool as
-            | LanguageModelV4FunctionTool
-            | LanguageModelV4ProviderTool,
-        );
+        const tool = toolChange.tool as
+          | LanguageModelV4FunctionTool
+          | LanguageModelV4ProviderTool;
+
+        if (!isComputerTool(tool)) {
+          inlineTools.push(tool);
+        }
       }
     }
   }
@@ -279,16 +290,11 @@ export async function convertToAnthropicPrompt({
                 | LanguageModelV4FunctionTool
                 | LanguageModelV4ProviderTool;
 
-              // The computer use tools cannot be defined in a message (the
-              // API rejects them), they must be declared in `tools`.
-              if (
-                tool.type === 'provider' &&
-                tool.id.startsWith('anthropic.computer_')
-              ) {
+              if (isComputerTool(tool)) {
                 warnings.push({
                   type: 'other',
                   message:
-                    `The tool '${tool.name}' (${tool.id}) cannot be added by value in a tool change. ` +
+                    `The tool '${tool.name}' cannot be added by value in a tool change. ` +
                     'Declare it in the tools option and add it by reference with toolName. ' +
                     'The tool change has been ignored.',
                 });
