@@ -117,6 +117,131 @@ describe('loadPiRepositoryResources', () => {
     ]);
   });
 
+  it.each([
+    {
+      description: 'outside the workDir',
+      target: '/sandbox/outside/secret.txt',
+      deniedRoots: [],
+    },
+    {
+      description: 'inside a denied root',
+      target: `${workDir}/private/secret.txt`,
+      deniedRoots: [`${workDir}/private`],
+    },
+  ])('skips AGENTS.md symlinks targeting $description', async input => {
+    await sandbox.writeTextFile({
+      path: input.target,
+      content: 'Sensitive instructions',
+    });
+    const link = await sandbox.run({
+      command: `ln -s '${input.target}' '${workDir}/AGENTS.md'`,
+    });
+    expect(link.exitCode).toBe(0);
+    const readTextFile = vi.spyOn(sandbox, 'readTextFile');
+
+    const resources = await loadPiRepositoryResources({
+      sandbox,
+      workDir,
+      deniedRoots: input.deniedRoots,
+    });
+
+    expect(resources.agentsFiles).toEqual([]);
+    expect(readTextFile).not.toHaveBeenCalledWith(
+      expect.objectContaining({ path: input.target }),
+    );
+  });
+
+  it.each([
+    {
+      description: 'outside the workDir',
+      target: '/sandbox/outside',
+      deniedRoots: [],
+      linkCommand: `mkdir -p '${workDir}/.agents' && ln -s '/sandbox/outside' '${skillsRoot}'`,
+    },
+    {
+      description: 'inside a denied root',
+      target: `${workDir}/.agents/skills-private`,
+      deniedRoots: [`${workDir}/.agents/skills-private`],
+      linkCommand: `mkdir -p '${workDir}/.agents' && ln -s '${workDir}/.agents/skills-private' '${skillsRoot}'`,
+    },
+  ])('does not list skill roots targeting $description', async input => {
+    await sandbox.writeTextFile({
+      path: `${input.target}/stock/SKILL.md`,
+      content: '---\ndescription: Sensitive skill\n---\nSensitive data',
+    });
+    const link = await sandbox.run({ command: input.linkCommand });
+    expect(link.exitCode).toBe(0);
+    const listDirectory = vi.spyOn(sandbox, 'listDirectory');
+
+    const resources = await loadPiRepositoryResources({
+      sandbox,
+      workDir,
+      deniedRoots: input.deniedRoots,
+    });
+
+    expect(resources.skills).toEqual([]);
+    expect(listDirectory).not.toHaveBeenCalledWith(
+      expect.objectContaining({ path: input.target }),
+    );
+  });
+
+  it('checks symlinked skill ancestors before listing them', async () => {
+    const outsideSkillsRoot = '/sandbox/outside/skills';
+    await sandbox.writeTextFile({
+      path: `${outsideSkillsRoot}/stock/SKILL.md`,
+      content: '---\ndescription: Sensitive skill\n---\nSensitive data',
+    });
+    const link = await sandbox.run({
+      command: `ln -s '/sandbox/outside' '${workDir}/.agents'`,
+    });
+    expect(link.exitCode).toBe(0);
+    const listDirectory = vi.spyOn(sandbox, 'listDirectory');
+
+    const resources = await loadPiRepositoryResources({ sandbox, workDir });
+
+    expect(resources.skills).toEqual([]);
+    expect(listDirectory).not.toHaveBeenCalledWith(
+      expect.objectContaining({ path: outsideSkillsRoot }),
+    );
+  });
+
+  it('loads an AGENTS.md symlink whose target stays within the workDir', async () => {
+    await sandbox.writeTextFile({
+      path: `${workDir}/instructions.md`,
+      content: 'Always respond in French.',
+    });
+    const link = await sandbox.run({
+      command: `ln -s '${workDir}/instructions.md' '${workDir}/AGENTS.md'`,
+    });
+    expect(link.exitCode).toBe(0);
+
+    const resources = await loadPiRepositoryResources({ sandbox, workDir });
+
+    expect(resources.agentsFiles).toEqual([
+      {
+        path: `${workDir}/AGENTS.md`,
+        content: 'Always respond in French.',
+      },
+    ]);
+  });
+
+  it('does not read a SKILL.md inside a denied root', async () => {
+    const skillPath = `${skillsRoot}/stock-price/SKILL.md`;
+    await writeSkill({ directory: 'stock-price' });
+    const readTextFile = vi.spyOn(sandbox, 'readTextFile');
+
+    const resources = await loadPiRepositoryResources({
+      sandbox,
+      workDir,
+      deniedRoots: [skillPath],
+    });
+
+    expect(resources.skills).toEqual([]);
+    expect(readTextFile).not.toHaveBeenCalledWith(
+      expect.objectContaining({ path: skillPath }),
+    );
+  });
+
   it('reports malformed frontmatter and missing descriptions without hiding valid skills', async () => {
     await writeSkill({ directory: 'invalid-yaml', frontmatter: 'name: [' });
     await writeSkill({
@@ -224,6 +349,7 @@ describe('loadPiRepositoryResources', () => {
   it('stops discovery when aborted during a sandbox read', async () => {
     const controller = new AbortController();
     const error = new Error('Cancelled');
+    const run = vi.spyOn(sandbox, 'run');
     vi.spyOn(sandbox, 'readTextFile').mockImplementationOnce(async () => {
       controller.abort(error);
       return 'Instructions';
@@ -237,6 +363,9 @@ describe('loadPiRepositoryResources', () => {
         abortSignal: controller.signal,
       }),
     ).rejects.toBe(error);
+    expect(run).toHaveBeenCalledWith(
+      expect.objectContaining({ abortSignal: controller.signal }),
+    );
     expect(list).not.toHaveBeenCalled();
   });
 });

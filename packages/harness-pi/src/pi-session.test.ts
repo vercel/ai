@@ -39,7 +39,10 @@ import {
   type PiHarnessExtensionSession,
 } from './pi-session';
 import { truncatePiToolOutputHead } from './pi-tool-result';
-import { createEmptyRepositorySandboxSession } from './test-helpers';
+import {
+  createEmptyRepositorySandboxSession,
+  mockCanonicalPathResolution,
+} from './test-helpers';
 
 type FakePiTool = Pick<ToolDefinition, 'name' | 'execute'>;
 type FakeExtensionsResult = {
@@ -1323,7 +1326,16 @@ describe('createPiSession', () => {
       vi.mocked(sandboxSession.run).mockClear();
       vi.mocked(sandboxSession.readTextFile).mockClear();
       await runTurn([]);
-      expect(sandboxSession.run).not.toHaveBeenCalled();
+      expect(vi.mocked(sandboxSession.run).mock.calls.length).toBeGreaterThan(
+        0,
+      );
+      expect(
+        vi
+          .mocked(sandboxSession.run)
+          .mock.calls.every(([{ command }]) =>
+            command.includes('realpath_marker'),
+          ),
+      ).toBe(true);
       expect(sandboxSession.readTextFile).toHaveBeenCalledOnce();
       expect(sandboxSession.readTextFile).toHaveBeenCalledWith(
         expect.objectContaining({ path: '/sandbox/work/AGENTS.md' }),
@@ -1384,7 +1396,16 @@ describe('createPiSession', () => {
     try {
       vi.mocked(sandboxSession.run).mockClear();
       await runTurn(second, []);
-      expect(sandboxSession.run).not.toHaveBeenCalled();
+      expect(vi.mocked(sandboxSession.run).mock.calls.length).toBeGreaterThan(
+        0,
+      );
+      expect(
+        vi
+          .mocked(sandboxSession.run)
+          .mock.calls.every(([{ command }]) =>
+            command.includes('realpath_marker'),
+          ),
+      ).toBe(true);
 
       readTool = true;
       await runTurn(second, []);
@@ -1735,15 +1756,22 @@ describe('createPiSession', () => {
     const alias = '/sandbox/home/blocked';
     const sandboxSession = createSandboxSession();
     const run = vi.mocked(sandboxSession.run);
-    run.mockImplementation(async ({ command }) => ({
-      stdout: command.startsWith(`target='${alias}'`)
-        ? '__PI_REALPATH_FAILED__\n'
-        : command === 'printf "%s" "$HOME"'
-          ? '/sandbox/home'
-          : '',
-      stderr: '',
-      exitCode: command.startsWith(`target='${alias}'`) ? 3 : 0,
-    }));
+    run.mockImplementation(async ({ command }) => {
+      if (command.startsWith(`target='${alias}'`)) {
+        return {
+          stdout: '__PI_REALPATH_FAILED__\n',
+          stderr: '',
+          exitCode: 3,
+        };
+      }
+      return (
+        mockCanonicalPathResolution({ command }) ?? {
+          stdout: command === 'printf "%s" "$HOME"' ? '/sandbox/home' : '',
+          stderr: '',
+          exitCode: 0,
+        }
+      );
+    });
     const readErrors: unknown[] = [];
     piMock.session = createFakePiSession({
       promptImplementation: async () => {
@@ -1779,7 +1807,7 @@ describe('createPiSession', () => {
         run.mock.calls.filter(([{ command }]) =>
           command.startsWith(`target='${alias}'`),
         ),
-      ).toHaveLength(2);
+      ).toHaveLength(3);
       expect(sandboxSession.readBinaryFile).not.toHaveBeenCalled();
     } finally {
       await session.doDestroy();
@@ -4667,6 +4695,9 @@ function createSandboxSession({
     ),
     restricted: vi.fn(() => sandbox),
     run: vi.fn(async ({ command }: { command: string }) => {
+      const pathResolution = mockCanonicalPathResolution({ command });
+      if (pathResolution != null) return pathResolution;
+
       const manifestMove = command.match(/^mv -f '([^']+)' '([^']+)'$/);
       if (manifestMove != null) {
         const content = textFiles.get(manifestMove[1]!);
@@ -4695,7 +4726,6 @@ function expectOnlyRepositoryResourcesRead(
   expect(sandboxSession.readTextFile).toHaveBeenCalled();
   expect(sandboxSession.listDirectory).toHaveBeenCalled();
   for (const method of [
-    sandboxSession.run,
     sandboxSession.spawn,
     sandboxSession.readFile,
     sandboxSession.readBinaryFile,
@@ -4708,5 +4738,8 @@ function expectOnlyRepositoryResourcesRead(
     sandboxSession.getPortUrl,
   ]) {
     expect(method).not.toHaveBeenCalled();
+  }
+  for (const [{ command }] of vi.mocked(sandboxSession.run).mock.calls) {
+    expect(command).toContain('realpath_marker');
   }
 }

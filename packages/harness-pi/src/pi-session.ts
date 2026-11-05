@@ -1498,6 +1498,7 @@ export async function createPiSession(
     const nextRepositoryResources = await loadPiRepositoryResources({
       sandbox: toolSafeSandboxSession,
       workDir: sessionWorkDir,
+      deniedRoots: fileToolPathPolicy?.deniedRoots,
       abortSignal: turnOpts.abortSignal,
     });
     const repositoryResourcesChanged =
