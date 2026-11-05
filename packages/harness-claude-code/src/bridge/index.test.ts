@@ -511,9 +511,10 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
   });
 
-  test('passes strict MCP config and the budget limit to the Agent SDK', async () => {
+  test('passes additional directories, strict MCP config, and the budget limit to the Agent SDK', async () => {
     state.start = {
       ...state.start,
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     };
@@ -521,15 +522,17 @@ describe('Claude Code bridge configuration', () => {
     await import('./index');
 
     expect(state.queryArgs[0]?.options).toMatchObject({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
   });
 
-  test('omits strict MCP config and the budget limit when not configured', async () => {
+  test('omits additional directories, strict MCP config, and the budget limit when not configured', async () => {
     await import('./index');
 
     const options = state.queryArgs[0]?.options;
+    expect(options).not.toHaveProperty('additionalDirectories');
     expect(options).not.toHaveProperty('strictMcpConfig');
     expect(options).not.toHaveProperty('maxBudgetUsd');
   });
@@ -939,6 +942,103 @@ describe('Claude Code bridge configuration', () => {
         },
       });
       await rm(directory, { recursive: true, force: true });
+    },
+  );
+
+  test.each([
+    {
+      name: 'reads in an additional directory',
+      toolName: 'Read',
+      target: 'shared/file.txt',
+      approved: true,
+    },
+    {
+      name: 'edits in an additional directory',
+      toolName: 'Write',
+      target: 'shared/new.txt',
+      approved: true,
+    },
+    {
+      name: 'edits next to an additional directory',
+      toolName: 'Write',
+      target: 'other/new.txt',
+      approved: false,
+    },
+    {
+      name: 'a symlink out of an additional directory',
+      toolName: 'Read',
+      target: 'shared/escape/file.txt',
+      approved: false,
+    },
+  ])(
+    'trusts additional directories like the work directory: $name',
+    async ({ toolName, target, approved }) => {
+      const directory = await mkdtemp(
+        path.join(tmpdir(), 'claude-additional-directories-'),
+      );
+      try {
+        const workDir = path.join(directory, 'workspace');
+        const shared = path.join(directory, 'shared');
+        await mkdir(workDir);
+        await mkdir(shared);
+        await mkdir(path.join(directory, 'other'));
+        await symlink(
+          path.join(directory, 'other'),
+          path.join(shared, 'escape'),
+        );
+        process.argv[process.argv.indexOf('--workdir') + 1] = workDir;
+        state.start = {
+          ...state.start,
+          permissionMode: 'allow-edits',
+          additionalDirectories: [shared],
+        };
+        state.requestToolApproval = vi.fn(async () => ({ approved: false }));
+        await import('./index');
+        const options = state.queryArgs[0]!.options;
+        expect(options.additionalDirectories).toEqual([shared]);
+        const toolInput = { file_path: path.join(directory, target) };
+        const hooks = options.hooks as {
+          PreToolUse: Array<{
+            matcher?: string;
+            hooks: Array<
+              (input: Record<string, unknown>, id: string) => Promise<unknown>
+            >;
+          }>;
+        };
+        const hook = hooks.PreToolUse.find(entry => entry.matcher == null)!
+          .hooks[0];
+        await expect(
+          hook(
+            {
+              hook_event_name: 'PreToolUse',
+              cwd: workDir,
+              tool_name: toolName,
+              tool_input: toolInput,
+            },
+            'file-call',
+          ),
+        ).resolves.toEqual(
+          approved
+            ? {}
+            : {
+                hookSpecificOutput: {
+                  hookEventName: 'PreToolUse',
+                  permissionDecision: 'defer',
+                },
+              },
+        );
+        const callback = options.canUseTool as (
+          name: string,
+          input: Record<string, unknown>,
+          options: { toolUseID: string; blockedPath?: string },
+        ) => Promise<{ behavior: string }>;
+        expect(
+          (await callback(toolName, toolInput, { toolUseID: 'file-call' }))
+            .behavior,
+        ).toBe(approved ? 'allow' : 'deny');
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
     },
   );
 
