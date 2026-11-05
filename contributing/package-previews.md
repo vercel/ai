@@ -125,21 +125,22 @@ changes to this tooling require maintainer review before merging.
 
 ## Deployment authentication
 
-The trusted `publish` job uses
-[`vercel/authenticate-cli-action`](https://github.com/vercel/authenticate-cli-action/blob/34fa13671fee771a9f656d6dda34148f8dce0c8d/README.md),
-pinned to that revision, to exchange its GitHub OIDC identity for a short-lived
-Vercel CLI access token. The action receives `TARBALLS_VERCEL_ORG_ID` as its
-`team` input and exports `VERCEL_ORG_ID` and `VERCEL_TOKEN` for the subsequent
-upload step. No persistent Vercel token needs to be stored in GitHub.
+The trusted `publish` job exchanges its GitHub OIDC identity for a short-lived
+Vercel CLI access token in an inline workflow step (OAuth 2.0 token exchange
+against `https://api.vercel.com/login/oauth/token`). The step uses
+`TARBALLS_VERCEL_ORG_ID` as the team and exports `VERCEL_ORG_ID` and
+`VERCEL_TOKEN` for the subsequent upload step. No persistent Vercel token needs
+to be stored in GitHub.
 Only `publish` has `id-token: write`; the runner executing PR code remains
 unprivileged. Authentication happens after the publisher revalidates CI and the
 current PR revision, immediately before the static upload.
 
 Create a **Vercel CLI OIDC policy** on `vercel-labs` restricted to GitHub
-repository `vercel/ai`, workflow `.github/workflows/tarballs.yml`, branch `main`,
-and the dedicated `ai-tarballs` project. Keep the GitHub `tarballs` environment
-restricted to `main`. Because the job uses that environment, its default OIDC
-subject is `repo:vercel/ai:environment:tarballs`; the separate `ref` claim is
+repository `vercel/ai`, workflow `PR package previews` (the workflow's `name:`,
+not its file path), branch `main`, and the dedicated `ai-tarballs` project. Keep
+the GitHub `tarballs` environment restricted to `main`. Because the job uses that
+environment, its default OIDC subject is
+`repo:vercel/ai:environment:tarballs`; the separate `ref` claim is
 `refs/heads/main`. The publisher runs from the default branch for approved fork
 PRs as well; the policy must recognize the trusted publisher's identity.
 
@@ -147,12 +148,12 @@ Leave the optional policy and audience variables unset when one policy matches
 and it accepts GitHub's default audience. If multiple policies match, set
 `TARBALLS_VERCEL_OIDC_POLICY_ID` to the intended policy ID. If the policy specifies
 a custom audience, set `TARBALLS_VERCEL_OIDC_AUDIENCE` to that exact value. The
-workflow passes these values as the action's `policy` and `audience` inputs.
+workflow passes these values to the token request and exchange when set.
 
-Before rollout, confirm team enablement and that this public repository can use
-the pinned action. Verify the complete publisher flow with the restricted
-identity: project and environment checks, missing/existing alias lookups,
-prebuilt deployment through `READY`, custom alias assignment, and retry reuse.
+Before rollout, confirm team enablement. Verify the complete publisher flow with
+the restricted identity: project and environment checks, missing/existing alias
+lookups, prebuilt deployment through `READY`, custom alias assignment, and retry
+reuse.
 Successful token exchange alone is insufficient. Keep previews disabled until
 the policy is configured and the publisher is ready for verification; do not
 fall back to a persistent token when authentication or authorization fails.
@@ -201,10 +202,9 @@ Keep `TARBALLS_ENABLED` unset or `false` until every step below is complete.
    | `TARBALLS_VERCEL_OIDC_AUDIENCE`  | Optional custom audience matching policy   |
 
 6. Configure the [Vercel CLI OIDC policy](#deployment-authentication) and verify
-   that short-lived credentials support every publisher operation. Ensure this
-   public repository can use the pinned authentication action. Vercel CLI and
-   the action are pinned in the workflow; review and test version updates before
-   enabling them.
+   that short-lived credentials support every publisher operation. Vercel CLI
+   is pinned in the workflow; review and test version updates before enabling
+   them.
 7. Merge the workflow/tooling to `main`, then set the **repository variable**
    `TARBALLS_ENABLED=true`. `workflow_run` cannot bootstrap itself from this PR.
    Rerun **all jobs** of a test PR's CI after merge so that the context artifact

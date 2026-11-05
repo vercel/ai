@@ -134,11 +134,73 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
       - name: Authenticate Vercel CLI with GitHub OIDC
-        uses: vercel/authenticate-cli-action@34fa13671fee771a9f656d6dda34148f8dce0c8d
-        with:
-          team: ${{ vars.TARBALLS_VERCEL_ORG_ID }}
-          policy: ${{ vars.TARBALLS_VERCEL_OIDC_POLICY_ID }}
-          audience: ${{ vars.TARBALLS_VERCEL_OIDC_AUDIENCE }}
+        # Exchange this job's GitHub OIDC token for a short-lived Vercel CLI
+        # access token. Inlined because public repositories cannot use actions
+        # stored in internal repositories.
+        env:
+          VERCEL_APP_ID: cl_HYyOPBNtFMfHhaUn9L4QPfTZz6TP47bp
+          TEAM: ${{ vars.TARBALLS_VERCEL_ORG_ID }}
+          POLICY_ID: ${{ vars.TARBALLS_VERCEL_OIDC_POLICY_ID }}
+          AUDIENCE: ${{ vars.TARBALLS_VERCEL_OIDC_AUDIENCE }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" || -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]]; then
+            echo "::error::OIDC environment variables are missing. The job needs \"permissions: id-token: write\"."
+            exit 1
+          fi
+
+          # The Vercel CLI requires a canonical team ID in VERCEL_ORG_ID, not a slug.
+          if [[ "${TEAM:-}" != team_* ]]; then
+            echo "::error::TARBALLS_VERCEL_ORG_ID must be a canonical Vercel team ID (team_…), not a slug."
+            exit 1
+          fi
+
+          # Both responses below are flat JSON whose values contain no escaped quotes.
+          json_field() {
+            tr -d '\n\r\t' | sed -nE "s/.*\"$1\" *: *\"([^\"]*)\".*/\1/p"
+          }
+
+          audience_args=()
+          if [[ -n "${AUDIENCE:-}" ]]; then
+            audience_args=(--data-urlencode "audience=$AUDIENCE")
+          fi
+
+          oidc_token=$(curl -sS -f -G \
+            --retry 3 --retry-connrefused --max-time 30 \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            ${audience_args[@]+"${audience_args[@]}"} \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL" \
+            | json_field value)
+          if [[ -z "$oidc_token" || "$oidc_token" == "null" ]]; then
+            echo "::error::Failed to obtain GitHub OIDC ID token"
+            exit 1
+          fi
+          echo "::add-mask::$oidc_token"
+
+          policy_args=()
+          if [[ -n "${POLICY_ID:-}" ]]; then
+            policy_args=(--data-urlencode "policy_id=$POLICY_ID")
+          fi
+
+          access_token=$(curl -sS -f -X POST https://api.vercel.com/login/oauth/token \
+            --retry 3 --retry-connrefused --max-time 30 \
+            --data "grant_type=urn:ietf:params:oauth:grant-type:token-exchange" \
+            --data "client_id=$VERCEL_APP_ID" \
+            --data "subject_token_type=urn:ietf:params:oauth:token-type:id_token" \
+            --data "requested_token_type=urn:ietf:params:oauth:token-type:access_token" \
+            --data-urlencode "team_id_or_slug=$TEAM" \
+            ${policy_args[@]+"${policy_args[@]}"} \
+            --data-urlencode "subject_token=$oidc_token" \
+            | json_field access_token)
+          if [[ -z "$access_token" || "$access_token" == "null" ]]; then
+            echo "::error::Failed to exchange OIDC token for Vercel access token"
+            exit 1
+          fi
+          echo "::add-mask::$access_token"
+
+          echo "VERCEL_TOKEN=$access_token" >> "$GITHUB_ENV"
+          echo "VERCEL_ORG_ID=$TEAM" >> "$GITHUB_ENV"
       - name: Upload static preview and assign immutable alias
         id: publish
         run: node tools/tarballs/publish.mjs tarballs
