@@ -1304,6 +1304,9 @@ importers:
         specifier: 1.9.0
         version: 1.9.0
     devDependencies:
+      '@ai-sdk/perplexity':
+        specifier: workspace:*
+        version: link:../perplexity
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server

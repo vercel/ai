@@ -28,6 +28,19 @@ const mockToolsWithProviderDefined = {
 };
 
 describe('prepareToolsAndToolChoice', () => {
+  it.each([undefined, {}])(
+    'preserves toolChoice none when tools is %j',
+    async tools => {
+      expect(
+        await prepareToolsAndToolChoice({
+          tools,
+          toolChoice: 'none',
+          activeTools: undefined,
+        }),
+      ).toEqual({ tools: undefined, toolChoice: { type: 'none' } });
+    },
+  );
+
   it('should return undefined for both tools and toolChoice when tools is not provided', () => {
     const result = prepareToolsAndToolChoice({
       tools: undefined,
