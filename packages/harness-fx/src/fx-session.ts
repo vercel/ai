@@ -213,7 +213,43 @@ export async function createFxSession(options: {
       });
     }
     let emitTarget = opts.emit;
+    let pinnedCheckpoint:
+      | {
+          emittedKeys: string[];
+          modelCursors: Array<
+            Pick<FxModelRecord, 'emittedParts' | 'emittedOutput'>
+          >;
+        }
+      | undefined;
     const emit = (part: HarnessV1StreamPart) => {
+      if (part.type === 'finish-step') {
+        const checkpoint = {
+          emittedKeys: [...turnState.emittedKeys],
+          modelCursors: turnState.models.map(model => ({
+            emittedParts: model.emittedParts,
+            emittedOutput: model.emittedOutput
+              ? { ...model.emittedOutput }
+              : undefined,
+          })),
+        };
+        // The harness reads one event past a step boundary before suspending.
+        // Use its channel checkpoint protocol so that lookahead is replayed.
+        Object.defineProperty(
+          part,
+          Symbol.for('vercel.ai.harness.sandboxChannelEventCheckpoint'),
+          {
+            value: {
+              pin: () => {
+                pinnedCheckpoint = checkpoint;
+                return () => {
+                  if (pinnedCheckpoint === checkpoint)
+                    pinnedCheckpoint = undefined;
+                };
+              },
+            },
+          },
+        );
+      }
       if (!suspending) emitTarget(part);
     };
     function emitOnce(input: { key: string; part: HarnessV1StreamPart }) {
@@ -875,6 +911,16 @@ export async function createFxSession(options: {
         runtimeTurn?.cancel();
         notify();
         await done;
+        if (pinnedCheckpoint) {
+          // Rewind display cursors only. Recorded model responses and tool
+          // outcomes stay intact, so replay never repeats completed operations.
+          turnState.emittedKeys = pinnedCheckpoint.emittedKeys;
+          for (const [index, model] of turnState.models.entries()) {
+            const cursor = pinnedCheckpoint.modelCursors[index];
+            model.emittedParts = cursor?.emittedParts ?? 0;
+            model.emittedOutput = cursor?.emittedOutput;
+          }
+        }
       },
     };
     return control;
