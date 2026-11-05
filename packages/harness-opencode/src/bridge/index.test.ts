@@ -139,6 +139,25 @@ describe('OpenCode bridge turn settlement', () => {
     delete process.env.OPENCODE_DISABLE_PROJECT_CONFIG;
   });
 
+  it.each([
+    [['--host-disconnect-timeout-ms', '60000'], 60_000],
+    [[], undefined],
+  ])(
+    'passes the host disconnect timeout argument to the bridge (%j)',
+    async (extraArgs, expected) => {
+      const { runBridge } = await import('@ai-sdk/harness/bridge');
+      vi.mocked(runBridge).mockImplementationOnce(async () => ({}) as never);
+      setBridgeArgv();
+      process.argv.push(...extraArgs);
+
+      await import('./index');
+
+      expect(
+        vi.mocked(runBridge).mock.lastCall?.[0].hostDisconnectTimeoutMs,
+      ).toBe(expected);
+    },
+  );
+
   it('preserves native manual compaction as one normalized completion event', async () => {
     const emitted: Array<Record<string, unknown>> = [];
     const emitError = vi.fn();

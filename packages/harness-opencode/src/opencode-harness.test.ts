@@ -228,8 +228,15 @@ function getBuiltinToolMetadata(tool: unknown): {
   return tool as { nativeName?: string; commonName?: string };
 }
 
-async function startOpenCodeSession({ resumed = false } = {}) {
+async function startOpenCodeSession({
+  resumed = false,
+  settings = {},
+}: {
+  resumed?: boolean;
+  settings?: Parameters<typeof createOpenCode>[0];
+} = {}) {
   harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+  const spawns: string[] = [];
   const sandbox = {
     async run({ command }: { command: string }) {
       return command === 'printf "%s" "$HOME"'
@@ -240,11 +247,12 @@ async function startOpenCodeSession({ resumed = false } = {}) {
       return null;
     },
     async writeTextFile() {},
-    async spawn() {
+    async spawn({ command }: { command: string }) {
+      spawns.push(command);
       return { async wait() {}, async kill() {} } as never;
     },
   };
-  const session = await createOpenCode().doStart({
+  const session = await createOpenCode(settings).doStart({
     sessionId: 's1',
     sandboxSession: {
       id: 'test-sandbox',
@@ -271,7 +279,7 @@ async function startOpenCodeSession({ resumed = false } = {}) {
         }
       : {}),
   });
-  return { session, channel: harnessUtilsMocks.channels.at(-1)! };
+  return { session, spawns, channel: harnessUtilsMocks.channels.at(-1)! };
 }
 
 describe('createOpenCode adapter', () => {
@@ -1118,6 +1126,23 @@ describe('createOpenCode adapter', () => {
     await turn.done;
     await session.doDestroy();
   });
+
+  it.each([
+    [60_000, '60000'],
+    [undefined, undefined],
+  ])(
+    'passes hostDisconnectTimeoutMs %s to the bridge',
+    async (hostDisconnectTimeoutMs, expected) => {
+      const { session, spawns } = await startOpenCodeSession({
+        settings: { hostDisconnectTimeoutMs },
+      });
+
+      expect(
+        spawns.at(0)?.match(/--host-disconnect-timeout-ms '?(\d+)'?/)?.[1],
+      ).toBe(expected);
+      await session.doDestroy();
+    },
+  );
 
   it('passes native config through prompts, compaction, and resumed sessions', async () => {
     harnessUtilsMocks.channels.length = 0;
