@@ -560,6 +560,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
 
+    // flag that checks if the model refused to answer:
+    let hasRefusal = false;
+
     // map response content to content array (defined when there is no error)
     for (const part of response.output!) {
       switch (part.type) {
@@ -626,6 +629,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
         case 'message': {
           for (const contentPart of part.content) {
+            if (contentPart.type === 'refusal') {
+              hasRefusal = true;
+
+              content.push({
+                type: 'text',
+                text: contentPart.refusal,
+                providerMetadata: {
+                  [providerKey]: {
+                    itemId: part.id,
+                    ...(part.phase != null && { phase: part.phase }),
+                  },
+                },
+              });
+
+              continue;
+            }
+
             if (
               options.providerOptions?.openai?.logprobs &&
               contentPart.logprobs
@@ -860,6 +880,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       finishReason: mapOpenAIResponseFinishReason({
         finishReason: response.incomplete_details?.reason,
         hasFunctionCall,
+        hasRefusal,
       }),
       usage: {
         inputTokens: usage.input_tokens,
@@ -948,6 +969,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
+
+    // flag that checks if the model refused to answer:
+    let hasRefusal = false;
 
     const activeReasoning: Record<
       string,
@@ -1354,6 +1378,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               if (options.providerOptions?.openai?.logprobs && value.logprobs) {
                 logprobs.push(value.logprobs);
               }
+            } else if (isRefusalDeltaChunk(value)) {
+              hasRefusal = true;
+
+              controller.enqueue({
+                type: 'text-delta',
+                id: value.item_id,
+                delta: value.delta,
+              });
+            } else if (isRefusalDoneChunk(value)) {
+              hasRefusal = true;
             } else if (value.type === 'response.reasoning_summary_part.added') {
               // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk
               if (value.summary_index > 0) {
@@ -1433,6 +1467,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
                 hasFunctionCall,
+                hasRefusal,
               });
               usage.inputTokens = value.response.usage.input_tokens;
               usage.outputTokens = value.response.usage.output_tokens;
@@ -1526,6 +1561,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function isRefusalDeltaChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.refusal.delta' } {
+  return chunk.type === 'response.refusal.delta';
+}
+
+function isRefusalDoneChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.refusal.done' } {
+  return chunk.type === 'response.refusal.done';
 }
 
 function isTextDeltaChunk(
