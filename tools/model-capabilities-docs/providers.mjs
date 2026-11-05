@@ -1,3 +1,4 @@
+import { alibabaDocs } from './providers/alibaba.mjs';
 import { openResponsesDocs } from './providers/open-responses.mjs';
 import { openaiCompatibleDocs } from './providers/openai-compatible.mjs';
 import { anthropicAwsDocs } from './providers/anthropic-aws.mjs';
@@ -10,6 +11,7 @@ import { formatSupport } from './render-tables.mjs';
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
+  alibabaDocs,
   openResponsesDocs,
   openaiCompatibleDocs,
   anthropicAwsDocs,
