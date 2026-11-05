@@ -38,9 +38,12 @@ To run the example locally you need to:
 Anthropic code execution file downloads are
 available only in local development. `pnpm dev` binds to `127.0.0.1`; keep the
 development server on loopback and open `http://127.0.0.1:3000`. Download routes
-reject production, Vercel deployments, non-loopback URLs, and cross-origin browser
-requests before using provider credentials. Do not expose the development server
-through a public interface or tunnel.
+reject production, Vercel deployments (including `vercel dev`), non-loopback Host
+headers, forwarded external clients, and cross-origin browser requests before
+using provider credentials. The loopback bind is the network access control;
+request headers cannot prove that a non-browser client is local. Do not expose
+the development server through a public interface or tunnel, including a proxy
+that rewrites the client address and Host to loopback values.
 
 To support downloads in a deployed application, add authentication and verify
 that the requested file belongs to a chat the user can access before contacting
