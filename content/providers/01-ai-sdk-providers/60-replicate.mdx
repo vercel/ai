@@ -315,3 +315,15 @@ Common provider options for image generation:
 - **strength** _number (0-1)_ - Strength of the transformation for img2img. Lower values keep more of the original image.
 
 For more details, see the [Replicate models page](https://replicate.com/explore).
+
+### Cancellation
+
+A prediction keeps running — and billing — on Replicate until it reaches a
+terminal status. When a call is abandoned, the provider stops waiting and sends
+a best-effort request to the prediction's cancel endpoint:
+
+- the call is aborted through `abortSignal` (image and video models), or
+- polling gives up because `maxPollAttempts` was reached (image models).
+
+The cancel request is not retried, does not receive the aborted signal, and
+failures are ignored, so it never replaces the abort or timeout error.

@@ -342,6 +342,157 @@ describe('doGenerate', () => {
     );
   });
 
+  it('should cancel the prediction when the caller aborts while polling', async () => {
+    const controller = new AbortController();
+    const requests: Array<{
+      url: string;
+      method: string;
+      headers: Record<string, string>;
+    }> = [];
+
+    const prediction = {
+      id: 'aborted-prediction',
+      status: 'processing',
+      output: null,
+      error: null,
+      urls: {
+        get: 'https://api.replicate.com/v1/predictions/aborted-prediction',
+        cancel:
+          'https://api.replicate.com/v1/predictions/aborted-prediction/cancel',
+      },
+    };
+
+    let statusRequests = 0;
+
+    const abortingModel = new ReplicateImageModel(
+      'black-forest-labs/flux-schnell',
+      {
+        provider: 'replicate',
+        baseURL: 'https://api.replicate.com/v1',
+        headers: { Authorization: 'Bearer test-api-token' },
+        fetch: async (url, init) => {
+          requests.push({
+            url: String(url),
+            method: init?.method ?? 'GET',
+            headers: (init?.headers ?? {}) as Record<string, string>,
+          });
+
+          if (String(url).endsWith('/cancel')) {
+            return Response.json({ ...prediction, status: 'canceled' });
+          }
+
+          if (init?.method === 'POST') {
+            return Response.json(prediction);
+          }
+
+          statusRequests++;
+          if (statusRequests === 2) {
+            // abort while the call is polling
+            controller.abort();
+          }
+
+          return Response.json(prediction);
+        },
+      },
+    );
+
+    await expect(
+      abortingModel.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          replicate: {
+            pollIntervalMillis: 1,
+            maxPollAttempts: 10,
+          },
+        },
+        abortSignal: controller.signal,
+      }),
+    ).rejects.toThrow();
+
+    await vi.waitFor(() => {
+      expect(
+        requests.filter(request => request.url.endsWith('/cancel')),
+      ).toHaveLength(1);
+    });
+
+    const cancelRequest = requests.find(request =>
+      request.url.endsWith('/cancel'),
+    );
+
+    expect(cancelRequest?.method).toBe('POST');
+    expect(cancelRequest?.headers.Authorization).toBe('Bearer test-api-token');
+  });
+
+  it('should cancel the prediction when the maximum polling attempts are reached', async () => {
+    const requests: Array<{ url: string; method: string }> = [];
+
+    const prediction = {
+      id: 'timed-out-prediction',
+      status: 'processing',
+      output: null,
+      error: null,
+      urls: {
+        get: 'https://api.replicate.com/v1/predictions/timed-out-prediction',
+        cancel:
+          'https://api.replicate.com/v1/predictions/timed-out-prediction/cancel',
+      },
+    };
+
+    const timingOutModel = new ReplicateImageModel(
+      'black-forest-labs/flux-schnell',
+      {
+        provider: 'replicate',
+        baseURL: 'https://api.replicate.com/v1',
+        headers: { Authorization: 'Bearer test-api-token' },
+        fetch: async (url, init) => {
+          requests.push({ url: String(url), method: init?.method ?? 'GET' });
+
+          if (String(url).endsWith('/cancel')) {
+            return Response.json({ ...prediction, status: 'canceled' });
+          }
+
+          return Response.json(prediction);
+        },
+      },
+    );
+
+    await expect(
+      timingOutModel.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          replicate: {
+            pollIntervalMillis: 1,
+            maxPollAttempts: 2,
+          },
+        },
+      }),
+    ).rejects.toThrow(
+      'Replicate image generation did not complete after 2 polling attempts.',
+    );
+
+    await vi.waitFor(() => {
+      expect(
+        requests.filter(request => request.url.endsWith('/cancel')),
+      ).toHaveLength(1);
+    });
+
+    expect(
+      requests.find(request => request.url.endsWith('/cancel'))?.method,
+    ).toBe('POST');
+  });
+
   it('should not send credentials to a polling URL on a different origin', async () => {
     server.urls['https://api.replicate.com/*'].response = {
       type: 'json-value',
