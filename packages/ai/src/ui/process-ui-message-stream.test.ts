@@ -278,6 +278,79 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('steering-message', () => {
+    it('adds steering messages before the step that received them and keeps them when the step is reset', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start-step' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'It is sunny.' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        {
+          type: 'steering-message',
+          id: 'steer-1',
+          parts: [{ type: 'text', text: 'I meant Paris, Texas.' }],
+        },
+        { type: 'start-step' },
+        { type: 'text-start', id: 'stale-text' },
+        { type: 'text-delta', id: 'stale-text', delta: 'It is' },
+        { type: 'reset-step' },
+        { type: 'text-start', id: 'text-2' },
+        { type: 'text-delta', id: 'text-2', delta: 'It is hot in Texas.' },
+        { type: 'text-end', id: 'text-2' },
+        { type: 'finish-step' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "It is sunny.",
+            "type": "text",
+          },
+          {
+            "id": "steer-1",
+            "parts": [
+              {
+                "text": "I meant Paris, Texas.",
+                "type": "text",
+              },
+            ],
+            "type": "steering-message",
+          },
+          {
+            "type": "step-start",
+          },
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "It is hot in Texas.",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('text', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

@@ -1,5 +1,25 @@
 # @ai-sdk/deepseek
 
+## 3.0.80
+
+### Patch Changes
+
+- 7139593: Centralize DeepSeek model capabilities and endpoint policies in a shared catalog, preserving request behavior and generating the model capability table from the catalog.
+
+  Preserve unspecified strict-tool support for endpoints such as Azure, allowing strict tools through while retaining explicit endpoint restrictions.
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 3.0.79
 
 ### Patch Changes

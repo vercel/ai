@@ -65,6 +65,7 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
     audio,
     mediaType,
     providerOptions,
+    timestampGranularities,
     headers,
     abortSignal,
   }: Parameters<TranscriptionModelV4['doGenerate']>[0]): Promise<
@@ -108,6 +109,14 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
       const warnings = [
         ...(responseBody.warnings ?? []),
       ] as Array<SharedV4Warning>;
+      if (timestampGranularities?.length) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details:
+            'The AI Gateway adapter does not forward the shared timestampGranularities option.',
+        });
+      }
       if (
         isXaiTranscriptionModel(this.modelId) &&
         requestsXaiDiarization(providerOptions) &&
@@ -124,6 +133,7 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
       return {
         text: responseBody.text,
         segments: responseBody.segments ?? [],
+        ...(responseBody.words != null && { words: responseBody.words }),
         language: responseBody.language ?? undefined,
         durationInSeconds: responseBody.durationInSeconds ?? undefined,
         warnings,
@@ -497,6 +507,15 @@ const gatewayTranscriptionResponseSchema = lazySchema(() =>
           }),
         )
         .optional(),
+      words: z
+        .array(
+          z.object({
+            text: z.string(),
+            startSecond: z.number(),
+            endSecond: z.number(),
+          }),
+        )
+        .nullish(),
       language: z.string().nullish(),
       durationInSeconds: z.number().nullish(),
       warnings: z.array(gatewayTranscriptionWarningSchema()).optional(),

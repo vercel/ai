@@ -2642,11 +2642,33 @@ class DefaultStreamTextResult<
 
           // steering messages are delivered when they are in the messages that
           // are sent to the model after prepareStep:
-          currentStepSteeringMessages =
+          const deliveredSteeringMessages =
             steeringRun?.resolveTakenMessages({
               stepNumber: currentStep,
               sentMessages: stepMessages,
             }) ?? [];
+          currentStepSteeringMessages = deliveredSteeringMessages.map(
+            ({ message }) => message,
+          );
+
+          // delivered steering messages are streamed before the step output:
+          if (deliveredSteeringMessages.length > 0) {
+            self.addStream(
+              new ReadableStream<InternalTextStreamPart<TOOLS>>({
+                start(controller) {
+                  for (const { id, message } of deliveredSteeringMessages) {
+                    controller.enqueue({
+                      type: 'steering-message',
+                      id,
+                      message,
+                      stepNumber: currentStep,
+                    });
+                  }
+                  controller.close();
+                },
+              }),
+            );
+          }
           const stepInstructions =
             prepareStepResult?.instructions ??
             prepareStepResult?.system ??
@@ -2863,6 +2885,7 @@ class DefaultStreamTextResult<
                 if (
                   shouldBufferToolParts &&
                   value.type !== 'error' &&
+                  value.type !== 'ping' &&
                   (isToolPart || bufferedAttemptParts.length > 0)
                 ) {
                   bufferedAttemptParts.push(value);
@@ -3130,6 +3153,7 @@ class DefaultStreamTextResult<
                     case 'tool-input-end':
                     case 'tool-input-delta':
                     case 'tool-approval-request':
+                    case 'ping':
                     case 'tool-output-denied': {
                       enqueueStepPart(controller, chunk);
                       break;

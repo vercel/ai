@@ -148,34 +148,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
           role: 'user',
           content: message.parts
             .map((part): TextPart | FilePart | undefined => {
-              // Process text parts
-              if (isTextUIPart(part)) {
-                return {
-                  type: 'text' as const,
-                  text: part.text,
-                  ...(part.providerMetadata != null
-                    ? { providerOptions: part.providerMetadata }
-                    : {}),
-                };
-              }
-
-              // Process file parts
-              if (isFileUIPart(part)) {
-                return {
-                  type: 'file' as const,
-                  mediaType: part.mediaType,
-                  filename: part.filename,
-                  data:
-                    part.providerReference != null
-                      ? {
-                          type: 'reference' as const,
-                          reference: part.providerReference,
-                        }
-                      : { type: 'url' as const, url: new URL(part.url) },
-                  ...(part.providerMetadata != null
-                    ? { providerOptions: part.providerMetadata }
-                    : {}),
-                };
+              if (isTextUIPart(part) || isFileUIPart(part)) {
+                return convertUserContentUIPart(part);
               }
 
               // Process data parts with converter if provided
@@ -481,6 +455,13 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               block.push(part as (typeof block)[number]);
             } else if (part.type === 'step-start') {
               await processBlock();
+            } else if (part.type === 'steering-message') {
+              // steering messages were added to the run between two steps:
+              await processBlock();
+              modelMessages.push({
+                role: 'user',
+                content: part.parts.map(convertUserContentUIPart),
+              });
             }
           }
 
@@ -503,4 +484,31 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
   }
 
   return modelMessages;
+}
+
+function convertUserContentUIPart(
+  part: TextUIPart | FileUIPart,
+): TextPart | FilePart {
+  if (part.type === 'text') {
+    return {
+      type: 'text',
+      text: part.text,
+      ...(part.providerMetadata != null
+        ? { providerOptions: part.providerMetadata }
+        : {}),
+    };
+  }
+
+  return {
+    type: 'file',
+    mediaType: part.mediaType,
+    filename: part.filename,
+    data:
+      part.providerReference != null
+        ? { type: 'reference', reference: part.providerReference }
+        : { type: 'url', url: new URL(part.url) },
+    ...(part.providerMetadata != null
+      ? { providerOptions: part.providerMetadata }
+      : {}),
+  };
 }
