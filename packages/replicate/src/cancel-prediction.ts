@@ -1,57 +1,46 @@
 import {
-  isSameOrigin,
-  validateDownloadUrl,
+  combineHeaders,
+  encodePathSegment,
+  postToApi,
+  resolve,
   type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
+import { replicateFailedResponseHandler } from './replicate-error';
 
 /**
  * Best-effort request to cancel a running prediction.
  *
- * The `cancel` URL comes from the prediction response body, so the request is
- * only sent with the configured credentials when it stays on the provider
- * origin. Credentials are withheld from any other host, and such a host is
- * validated before it is requested (see `contributing/secure-url-handling.md`).
+ * The URL is built from the configured base URL and the prediction ID, so the
+ * configured credentials are only ever sent to the provider origin. No
+ * prediction response data (such as `urls.cancel`) is used as a request target.
  *
  * Cancellation never receives an abort signal and never throws: it must not
  * mask, replace, or delay the abort or timeout error that triggered it.
  */
 export async function cancelReplicatePrediction({
-  cancelUrl,
-  headers,
   baseURL,
+  predictionId,
+  headers,
   fetch,
 }: {
-  cancelUrl: string | null | undefined;
-  headers: Record<string, string | undefined>;
   baseURL: string;
+  predictionId: string;
+  headers: Resolvable<Record<string, string | undefined> | undefined>;
   fetch?: FetchFunction;
 }): Promise<void> {
-  if (cancelUrl == null) {
-    return;
-  }
-
   try {
-    const credentialed = isSameOrigin(cancelUrl, baseURL);
-
-    if (!credentialed) {
-      validateDownloadUrl(cancelUrl);
-    }
-
-    await (fetch ?? globalThis.fetch)(cancelUrl, {
-      method: 'POST',
-      headers: credentialed ? toHeaders(headers) : undefined,
+    await postToApi({
+      url: `${baseURL}/predictions/${encodePathSegment(predictionId)}/cancel`,
+      // Fresh provider headers only: the create call's per-request headers and
+      // idempotency key must not be repeated on the cancel request.
+      headers: combineHeaders(await resolve(headers)),
+      body: { content: '', values: undefined },
+      successfulResponseHandler: async () => ({ value: undefined }),
+      failedResponseHandler: replicateFailedResponseHandler,
+      fetch,
     });
   } catch {
     // Best-effort only: the original abort or timeout error wins.
   }
-}
-
-function toHeaders(
-  headers: Record<string, string | undefined>,
-): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(headers).filter(
-      (entry): entry is [string, string] => entry[1] != null,
-    ),
-  );
 }

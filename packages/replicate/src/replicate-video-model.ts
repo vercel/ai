@@ -13,14 +13,12 @@ import {
   createJsonResponseHandler,
   type FetchFunction,
   getFromApi,
-  type InferSchema,
   parseProviderOptions,
   postJsonToApi,
   type Resolvable,
   resolve,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { cancelReplicatePrediction } from './cancel-prediction';
 import { replicateFailedResponseHandler } from './replicate-error';
 import {
   replicateVideoModelOptionsSchema,
@@ -41,13 +39,6 @@ interface ReplicateVideoModelConfig {
 export class ReplicateVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1; // Replicate video models support 1 video at a time
-
-  // Cancellations registered for running predictions, keyed by the
-  // prediction's cancel URL so concurrent calls stay independent.
-  private readonly pendingCancellations = new Map<
-    string,
-    PendingCancellation
-  >();
 
   get provider(): string {
     return this.config.provider;
@@ -203,14 +194,12 @@ export class ReplicateVideoModel implements VideoModelV4 {
         ? `${this.config.baseURL}/predictions`
         : `${this.config.baseURL}/models/${modelId}/predictions`;
 
-    const headers = combineHeaders(
-      await resolve(this.config.headers),
-      options.headers,
-    );
-
     const { value: prediction, responseHeaders } = await postJsonToApi({
       url: predictionUrl,
-      headers,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: {
         input,
         ...(version != null ? { version } : {}),
@@ -229,22 +218,8 @@ export class ReplicateVideoModel implements VideoModelV4 {
       fetch: this.config.fetch,
     });
 
-    const cancelUrl = prediction.urls.cancel;
-
-    // The SDK orchestrates polling for this model, so an abort can arrive while
-    // it waits between status checks. Register the cancellation up front to
-    // still stop the prediction on Replicate when that happens.
-    this.registerCancellation({
-      cancelUrl,
-      abortSignal: options.abortSignal,
-      headers,
-    });
-
     return {
-      operation: {
-        getUrl: prediction.urls.get,
-        ...(cancelUrl != null ? { cancelUrl } : {}),
-      },
+      operation: { getUrl: prediction.urls.get },
       warnings,
       response: {
         timestamp: currentDate,
@@ -258,59 +233,25 @@ export class ReplicateVideoModel implements VideoModelV4 {
     options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
   ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { getUrl, cancelUrl } = options.operation as {
-      getUrl: string;
-      cancelUrl?: string;
-    };
+    const { getUrl } = options.operation as { getUrl: string };
 
-    const headers = combineHeaders(
-      await resolve(this.config.headers),
-      options.headers,
-    );
-
-    const pendingCancellation =
-      cancelUrl != null ? this.pendingCancellations.get(cancelUrl) : undefined;
-
-    let prediction: ReplicateVideoPrediction;
-    let responseHeaders: Record<string, string> | undefined;
-
-    try {
-      const result = await getFromApi({
-        url: getUrl,
-        // getUrl comes from the provider response body.
-        validateUrl: true,
-        credentialedOrigin: this.config.baseURL,
-        trustedOrigin: this.config.baseURL,
-        headers,
-        successfulResponseHandler: createJsonResponseHandler(
-          replicatePredictionSchema,
-        ),
-        failedResponseHandler: replicateFailedResponseHandler,
-        abortSignal: options.abortSignal,
-        fetch: this.config.fetch,
-      });
-      prediction = result.value;
-      responseHeaders = result.responseHeaders;
-    } catch (error) {
-      // The status request was aborted (caller abort or poll timeout): cancel
-      // the prediction so it does not keep running (and billing) on Replicate.
-      if (options.abortSignal?.aborted && pendingCancellation?.fired !== true) {
-        this.cancelPrediction({ cancelUrl, headers });
-      }
-
-      this.clearCancellation(cancelUrl);
-
-      throw error;
-    }
-
-    if (
-      prediction.status === 'failed' ||
-      prediction.status === 'canceled' ||
-      prediction.status === 'succeeded'
-    ) {
-      // The prediction reached a terminal state: nothing left to cancel.
-      this.clearCancellation(cancelUrl);
-    }
+    const { value: prediction, responseHeaders } = await getFromApi({
+      url: getUrl,
+      // getUrl comes from the provider response body.
+      validateUrl: true,
+      credentialedOrigin: this.config.baseURL,
+      trustedOrigin: this.config.baseURL,
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
+      successfulResponseHandler: createJsonResponseHandler(
+        replicatePredictionSchema,
+      ),
+      failedResponseHandler: replicateFailedResponseHandler,
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
 
     if (prediction.status === 'failed') {
       return {
@@ -375,62 +316,6 @@ export class ReplicateVideoModel implements VideoModelV4 {
       },
     };
   }
-
-  private registerCancellation({
-    cancelUrl,
-    abortSignal,
-    headers,
-  }: {
-    cancelUrl: string | null | undefined;
-    abortSignal: AbortSignal | undefined;
-    headers: Record<string, string | undefined>;
-  }): void {
-    if (cancelUrl == null || abortSignal == null) {
-      return;
-    }
-
-    const pending: PendingCancellation = {
-      abortSignal,
-      fired: false,
-      listener: () => {
-        pending.fired = true;
-        this.pendingCancellations.delete(cancelUrl);
-        this.cancelPrediction({ cancelUrl, headers });
-      },
-    };
-
-    abortSignal.addEventListener('abort', pending.listener, { once: true });
-    this.pendingCancellations.set(cancelUrl, pending);
-  }
-
-  private clearCancellation(cancelUrl?: string): void {
-    if (cancelUrl == null) {
-      return;
-    }
-
-    const pending = this.pendingCancellations.get(cancelUrl);
-    if (pending == null) {
-      return;
-    }
-
-    pending.abortSignal.removeEventListener('abort', pending.listener);
-    this.pendingCancellations.delete(cancelUrl);
-  }
-
-  private cancelPrediction({
-    cancelUrl,
-    headers,
-  }: {
-    cancelUrl: string | undefined;
-    headers: Record<string, string | undefined>;
-  }): void {
-    void cancelReplicatePrediction({
-      cancelUrl,
-      headers,
-      baseURL: this.config.baseURL,
-      fetch: this.config.fetch,
-    });
-  }
 }
 
 const replicatePredictionSchema = lazySchema(() =>
@@ -448,7 +333,6 @@ const replicatePredictionSchema = lazySchema(() =>
       error: z.string().nullish(),
       urls: z.object({
         get: z.string(),
-        cancel: z.string().nullish(),
       }),
       metrics: z
         .object({
@@ -458,11 +342,3 @@ const replicatePredictionSchema = lazySchema(() =>
     }),
   ),
 );
-
-type ReplicateVideoPrediction = InferSchema<typeof replicatePredictionSchema>;
-
-type PendingCancellation = {
-  abortSignal: AbortSignal;
-  listener: () => void;
-  fired: boolean;
-};

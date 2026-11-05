@@ -319,7 +319,7 @@ export class ReplicateImageModel implements ImageModelV4 {
         // The caller aborted: cancel the prediction so it does not keep
         // running (and billing) on Replicate after we return.
         if (abortSignal?.aborted) {
-          this.cancelPrediction(currentPrediction, headers);
+          this.cancelPrediction(currentPrediction);
         }
 
         throw error;
@@ -332,29 +332,22 @@ export class ReplicateImageModel implements ImageModelV4 {
     }
 
     // Polling gave up: cancel the prediction instead of leaving it running.
-    this.cancelPrediction(currentPrediction, headers);
+    this.cancelPrediction(currentPrediction);
 
     throw new Error(
       `Replicate image generation did not complete after ${maxPollAttempts} polling attempts.`,
     );
   }
 
-  private cancelPrediction(
-    prediction: ReplicateImagePrediction,
-    headers: Resolvable<Record<string, string | undefined>>,
-  ): void {
-    void resolve(headers)
-      .then(resolvedHeaders =>
-        cancelReplicatePrediction({
-          cancelUrl: prediction.urls.cancel,
-          headers: resolvedHeaders,
-          baseURL: this.config.baseURL,
-          fetch: this.config.fetch,
-        }),
-      )
-      .catch(() => {
-        // Best-effort only: cancellation never masks the abort/timeout error.
-      });
+  private cancelPrediction(prediction: ReplicateImagePrediction): void {
+    // Fire-and-forget: cancellation must never mask, replace, or delay the
+    // abort or timeout error that is about to be thrown.
+    void cancelReplicatePrediction({
+      baseURL: this.config.baseURL,
+      predictionId: prediction.id,
+      headers: this.config.headers,
+      fetch: this.config.fetch,
+    }).catch(() => {});
   }
 
   private getCompletedPrediction(
@@ -376,6 +369,7 @@ export class ReplicateImageModel implements ImageModelV4 {
 const replicateImageResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      id: z.string(),
       status: z.enum([
         'starting',
         'processing',
@@ -387,7 +381,6 @@ const replicateImageResponseSchema = lazySchema(() =>
       error: z.string().nullish(),
       urls: z.object({
         get: z.string(),
-        cancel: z.string().nullish(),
       }),
     }),
   ),

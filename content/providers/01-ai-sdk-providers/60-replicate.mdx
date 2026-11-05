@@ -319,11 +319,17 @@ For more details, see the [Replicate models page](https://replicate.com/explore)
 ### Cancellation
 
 A prediction keeps running — and billing — on Replicate until it reaches a
-terminal status. When a call is abandoned, the provider stops waiting and sends
-a best-effort request to the prediction's cancel endpoint:
+terminal status. When an image generation call is abandoned after its prediction
+has been created, the provider stops waiting and sends a best-effort cancel
+request to `POST /predictions/{prediction_id}/cancel`:
 
-- the call is aborted through `abortSignal` (image and video models), or
-- polling gives up because `maxPollAttempts` was reached (image models).
+- the call is aborted through `abortSignal` while polling, or
+- polling gives up because `maxPollAttempts` was reached.
 
-The cancel request is not retried, does not receive the aborted signal, and
-failures are ignored, so it never replaces the abort or timeout error.
+Cancellation applies only while the provider polls for a result, which happens
+after the create request has returned. It is not attempted during the initial
+create request, because no prediction ID is available yet. The cancel URL is
+built from the configured `baseURL` (never from the prediction response), and
+the request carries only the provider's configured headers. It is not retried,
+does not receive the aborted signal, and failures are ignored, so it never
+replaces the abort or timeout error.
