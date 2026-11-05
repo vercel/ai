@@ -7,6 +7,7 @@
 // Node-only (binds real sockets); excluded from the edge run via the
 // `**/src/bridge/**` pattern in vitest.edge.config.js.
 
+import { createConnection, createServer, type Socket } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
@@ -119,6 +120,169 @@ describe('SandboxChannel ↔ runBridge reconnect', () => {
     expect(sockets.length).toBe(2); // exactly one reconnect
     expect(debug).toContain('reconnected');
     expect(closedCode).toBeUndefined(); // transient drop never surfaced as close
+  });
+
+  it.each([
+    'before-close-event',
+    'remote-fin',
+    'after-detected-close',
+    'after-reconnect',
+  ] as const)('delivers a host tool result completed %s', async timing => {
+    let release!: () => void;
+    const toolFinished = new Promise<void>(resolve => (release = resolve));
+    let starts = 0;
+    let waiterResolved = false;
+    const handle = await startBridge(async (_start, turn) => {
+      starts++;
+      turn.emit({ type: 'tool-call', toolCallId: 'host-1' });
+      const result = await turn.requestToolResult('host-1');
+      waiterResolved = true;
+      turn.emit({ type: 'tool-result', output: result.output });
+      turn.emit({ type: 'finish' });
+    });
+
+    let port = handle.port;
+    const peers: Socket[] = [];
+    if (timing === 'remote-fin') {
+      const relaySockets: Socket[] = [];
+      const relay = createServer(peer => {
+        const upstream = createConnection({
+          host: '127.0.0.1',
+          port: handle.port,
+        });
+        peers.push(peer);
+        relaySockets.push(peer, upstream);
+        peer.on('error', () => upstream.destroy());
+        upstream.on('error', () => peer.destroy());
+        peer.pipe(upstream);
+        upstream.pipe(peer);
+      });
+      cleanups.push(async () => {
+        for (const socket of relaySockets) socket.destroy();
+        await new Promise<void>((resolve, reject) => {
+          relay.close(error => {
+            if (error) {
+              reject(error);
+              return;
+            }
+            resolve();
+          });
+        });
+      });
+      await new Promise<void>(resolve => relay.listen(0, '127.0.0.1', resolve));
+      const address = relay.address();
+      if (!address || typeof address === 'string') {
+        throw new Error('Expected relay TCP address');
+      }
+      port = address.port;
+    }
+
+    const sockets: WebSocket[] = [];
+    const debug: string[] = [];
+    const channel = new SandboxChannel<
+      | { type: 'bridge-hello' }
+      | { type: 'tool-call'; toolCallId: string }
+      | { type: 'tool-result'; output: unknown }
+      | { type: 'finish' },
+      Inbound | { type: 'tool-result'; toolCallId: string; output: number }
+    >({
+      connect: () =>
+        new Promise<WebSocket>((resolve, reject) => {
+          const socket = new WebSocket(
+            `ws://127.0.0.1:${port}/?agent_bridge_token=${TOKEN}`,
+          );
+          sockets.push(socket);
+          socket.once('open', () => resolve(socket));
+          socket.once('error', reject);
+        }),
+      outboundSchema: z.discriminatedUnion('type', [
+        z.object({ type: z.literal('bridge-hello') }),
+        z.object({ type: z.literal('tool-call'), toolCallId: z.string() }),
+        z.object({ type: z.literal('tool-result'), output: z.unknown() }),
+        z.object({ type: z.literal('finish') }),
+      ]),
+      reconnect: { initialDelayMs: 5, maxDelayMs: 20, maxElapsedMs: 2000 },
+      onDebug: event => debug.push(event.event),
+    });
+    cleanups.push(() => {
+      channel.close();
+      for (const socket of sockets) socket.terminate();
+    });
+
+    const received: unknown[] = [];
+    const sendErrors: unknown[] = [];
+    let executions = 0;
+    let stateAtSend: number | undefined;
+    let closedCode: number | undefined;
+    let closeDetected = false;
+    let closeDetectedAtSend = false;
+    let callSeen = false;
+    let finishes = 0;
+    channel.onClose(code => (closedCode = code));
+    channel.on('tool-result', event => received.push(event.output));
+    channel.on('finish', () => finishes++);
+    channel.on('tool-call', () => {
+      callSeen = true;
+      void toolFinished.then(() => {
+        executions++;
+        stateAtSend = sockets.at(-1)!.readyState;
+        closeDetectedAtSend = closeDetected;
+        try {
+          channel.send({
+            type: 'tool-result',
+            toolCallId: 'host-1',
+            output: 42,
+          });
+        } catch (error) {
+          sendErrors.push(error);
+        }
+      });
+    });
+    await channel.open();
+    channel.send({ type: 'start' });
+    await waitUntil(() => callSeen);
+    const closed = new Promise<void>(resolve =>
+      sockets[0].once('close', () => {
+        closeDetected = true;
+        resolve();
+      }),
+    );
+    if (timing === 'remote-fin') {
+      const tcp = (sockets[0] as WebSocket & { _socket: Socket })._socket;
+      tcp.once('end', release);
+      peers[0].end();
+    } else {
+      sockets[0].terminate();
+      if (timing === 'after-detected-close') await closed;
+      if (timing === 'after-reconnect') {
+        await waitUntil(() => debug.includes('reconnected'));
+      }
+      release();
+    }
+    await waitUntil(() => debug.includes('reconnected'));
+    await expect.poll(() => received).toEqual([42]);
+    await waitUntil(() => finishes === 1);
+
+    if (timing === 'before-close-event' || timing === 'remote-fin') {
+      expect(stateAtSend).toBe(WebSocket.CLOSING);
+      expect(closeDetectedAtSend).toBe(false);
+    } else if (timing === 'after-reconnect') {
+      expect(stateAtSend).toBe(WebSocket.OPEN);
+    }
+    expect(sendErrors).toEqual([]);
+    expect(executions).toBe(1);
+    expect(starts).toBe(1);
+    expect(waiterResolved).toBe(true);
+    expect(sockets).toHaveLength(2);
+    expect(closedCode).toBeUndefined();
+    expect(received).toEqual([42]);
+    expect(finishes).toBe(1);
+
+    channel.close();
+    await waitUntil(() => channel.isClosed());
+    expect(() =>
+      channel.send({ type: 'tool-result', toolCallId: 'host-1', output: 42 }),
+    ).toThrow(/closed/);
   });
 
   it('suspends mid-turn, then a fresh-process channel attaches and continues exactly once', async () => {

@@ -8,10 +8,6 @@ import {
 import { posix } from 'node:path';
 import { z } from 'zod/v4';
 
-type BashInput = z.infer<typeof inputSchema>;
-
-type BashOutput = z.infer<typeof outputSchema>;
-
 const inputSchema = z.object({
   command: z.string().describe('The Bash command or script to execute.'),
 });
@@ -21,6 +17,10 @@ const outputSchema = z.object({
   stderr: z.string(),
   exitCode: z.number(),
 });
+
+type BashInput = z.infer<typeof inputSchema>;
+
+type BashOutput = z.infer<typeof outputSchema>;
 
 function limitOutput(output: string, maxLength: number): string {
   if (output.length <= maxLength) {

@@ -30,3 +30,28 @@ export async function resolve<T>(value: Resolvable<T>): Promise<T> {
   // Otherwise just resolve whatever we got (value or promise)
   return value as T;
 }
+
+/**
+ * Resolves and transforms a value, preserving synchronous results. This allows
+ * synchronous credentials to remain usable by workflow serialization while
+ * asynchronous credentials are awaited by request handlers.
+ */
+export function resolveWith<T, U>(
+  value: Resolvable<T>,
+  transform: (value: T) => U,
+): U | Promise<Awaited<U>> {
+  const resolved =
+    typeof value === 'function'
+      ? (value as () => MaybePromiseLike<T>)()
+      : value;
+
+  if (
+    resolved != null &&
+    (typeof resolved === 'object' || typeof resolved === 'function') &&
+    typeof (resolved as PromiseLike<T>).then === 'function'
+  ) {
+    return Promise.resolve(resolved).then(transform) as Promise<Awaited<U>>;
+  }
+
+  return transform(resolved as T);
+}

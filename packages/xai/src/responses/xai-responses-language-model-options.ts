@@ -24,9 +24,9 @@ export const xaiLanguageModelResponsesOptions = lazySchema(() =>
       /**
        * Constrains how hard a reasoning model thinks before responding.
        * Possible values are `none` (disables reasoning entirely; supported by
-       * `grok-4.3` and newer reasoning models), `low` (uses fewer reasoning
-       * tokens), `medium`, `high` (uses more reasoning tokens), and `xhigh`
-       * (supported by `grok-4.6`).
+       * `grok-4.3`), `low` (uses fewer reasoning tokens), `medium`, `high`
+       * (uses more reasoning tokens), and `xhigh`
+       * (supported by `grok-4.6` and `grok-4.7`).
        *
        * @see https://docs.x.ai/docs/guides/reasoning
        */

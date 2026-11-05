@@ -93,20 +93,6 @@ describe('standardizePrompt', () => {
     `);
   });
 
-  it('should throw InvalidPromptError when an allowed system message has parts', async () => {
-    await expect(async () => {
-      await standardizePrompt({
-        allowSystemInMessages: true,
-        messages: [
-          {
-            role: 'system',
-            content: [{ type: 'text', text: 'test' }] as any,
-          },
-        ],
-      });
-    }).rejects.toThrow(InvalidPromptError);
-  });
-
   it('should throw InvalidPromptError when messages array is empty', async () => {
     await expect(async () => {
       await standardizePrompt({

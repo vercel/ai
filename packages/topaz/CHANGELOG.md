@@ -1,5 +1,84 @@
 # @ai-sdk/topaz
 
+## 3.0.22
+
+### Patch Changes
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 3.0.20
+
+### Patch Changes
+
+- c66402d: Reject redirects when uploading input videos to Topaz and use the DNS-pinned fetch for untrusted upload URLs, preventing redirects and DNS rebinding from bypassing URL validation.
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 3.0.19
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 3.0.15
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+
 ## 3.0.14
 
 ### Patch Changes

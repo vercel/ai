@@ -4,6 +4,7 @@ import {
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -102,7 +103,7 @@ export class AlibabaEmbeddingModel implements EmbeddingModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/services/embeddings/text-embedding/text-embedding`,
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         input: {

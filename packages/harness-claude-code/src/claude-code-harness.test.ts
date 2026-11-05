@@ -7,18 +7,23 @@ import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { z } from 'zod/v4';
 
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
 const reconnects: Array<unknown> = [];
+const debugHooks: Array<unknown> = [];
 const subscribedEventTypes: string[] = [];
 const channelListeners = new Map<
   string,
   Set<(event: Record<string, unknown>) => void>
 >();
 let connectOnOpen = false;
+let channelSendError: Error | undefined;
 
 function dispatchChannelEvent(event: Record<string, unknown>): void {
   for (const listener of channelListeners.get(String(event.type)) ?? []) {
@@ -30,15 +35,12 @@ const wsMock = vi.hoisted(() => {
   type Handler = (...args: unknown[]) => void;
   const sockets: FakeWebSocket[] = [];
   const scripts: Array<(socket: FakeWebSocket) => void> = [];
-  const unhandledErrors: unknown[] = [];
 
   class FakeWebSocket {
     readonly url: string;
     readonly headers: Record<string, string> | undefined;
     readonly handlers = new Map<string, Set<Handler>>();
-    closed = false;
     terminated = false;
-    emitErrorOnTerminate = false;
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       this.url = url;
@@ -61,33 +63,14 @@ const wsMock = vi.hoisted(() => {
 
     emit(event: string, ...args: unknown[]): void {
       const handlers = this.handlers.get(event) ?? new Set<Handler>();
-      if (event === 'error' && handlers.size === 0) {
-        unhandledErrors.push(args[0]);
-        return;
-      }
+      if (event === 'error' && handlers.size === 0) throw args[0];
       for (const handler of handlers) {
         handler(...args);
       }
     }
 
-    close(): void {
-      this.closed = true;
-      this.emit('close');
-    }
-
     terminate(): void {
       this.terminated = true;
-      if (this.emitErrorOnTerminate) {
-        queueMicrotask(() => {
-          this.emit(
-            'error',
-            new Error(
-              'WebSocket was closed before the connection was established',
-            ),
-          );
-          this.close();
-        });
-      }
     }
   }
 
@@ -95,11 +78,9 @@ const wsMock = vi.hoisted(() => {
     FakeWebSocket,
     sockets,
     scripts,
-    unhandledErrors,
     reset: () => {
       sockets.length = 0;
       scripts.length = 0;
-      unhandledErrors.length = 0;
     },
   };
 });
@@ -109,23 +90,33 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   class FakeSandboxChannel {
     private readonly connect: (options: {
       abortSignal: AbortSignal;
+      reason: 'open' | 'reconnect';
     }) => Promise<unknown>;
 
     constructor({
       connect,
       reconnect,
+      onDebug,
     }: {
-      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
       reconnect?: unknown;
+      onDebug?: unknown;
     }) {
       this.connect = connect;
       reconnects.push(reconnect);
+      debugHooks.push(onDebug);
     }
 
     async open(opts?: { resume?: boolean }): Promise<void> {
       openCalls.push(opts);
       if (connectOnOpen) {
-        await this.connect({ abortSignal: new AbortController().signal });
+        await this.connect({
+          abortSignal: new AbortController().signal,
+          reason: 'open',
+        });
       }
     }
     beginListenerAttachment(): () => void {
@@ -149,8 +140,13 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       return () => {};
     }
     onClose(): void {}
-    send(msg: Record<string, unknown>): void {
+    send(
+      msg: Record<string, unknown>,
+      { onSent }: { onSent?: () => void } = {},
+    ): void {
+      if (channelSendError != null) throw channelSendError;
       sentMessages.push(msg);
+      if (onSent) queueMicrotask(onSent);
     }
     beginClose(): void {}
     isClosed(): boolean {
@@ -161,7 +157,11 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     }
     close(): void {}
   }
-  return { ...actual, SandboxChannel: FakeSandboxChannel };
+  return {
+    ...actual,
+    SandboxChannel: FakeSandboxChannel,
+    readMacOSKeychainPassword: vi.fn(async () => undefined),
+  };
 });
 
 vi.mock('ws', () => ({ WebSocket: wsMock.FakeWebSocket }));
@@ -174,7 +174,7 @@ vi.mock('node:fs/promises', async importOriginal => {
       const path = typeof input === 'string' ? input : String(input);
       if (path.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
       if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
-      if (path.endsWith('/bridge/pnpm-lock.yaml'))
+      if (path.endsWith('/bridge/pnpm-lockfile.yaml'))
         return 'lockfileVersion: "9.0"\n';
       if (path.endsWith('/bridge/pnpm-workspace.yaml'))
         return "allowBuilds:\n  '@anthropic-ai/claude-code': true\n";
@@ -311,9 +311,11 @@ function lastStart(): Record<string, unknown> {
   return start;
 }
 
-async function startWithFakeBridgeSocket(startupTimeoutMs = 50) {
+async function startWithFakeBridgeSocket(
+  settings?: Parameters<typeof createClaudeCode>[0],
+) {
   connectOnOpen = true;
-  const harness = createClaudeCode({ startupTimeoutMs });
+  const harness = createClaudeCode(settings);
   return harness.doStart({
     sessionId: 's1',
     sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -326,18 +328,48 @@ async function startWithFakeBridgeSocket(startupTimeoutMs = 50) {
 }
 
 describe('createClaudeCode adapter', () => {
-  beforeEach(() => {
+  let homeDirectory: string;
+
+  beforeEach(async () => {
+    homeDirectory = await mkdtemp(join(tmpdir(), 'claude-code-harness-'));
+    vi.stubEnv('HOME', homeDirectory);
+    vi.stubEnv('USERPROFILE', homeDirectory);
+    vi.stubEnv('CLAUDE_CONFIG_DIR', homeDirectory);
+    for (const name of [
+      'AI_GATEWAY_API_KEY',
+      'VERCEL_OIDC_TOKEN',
+      'ANTHROPIC_API_KEY',
+      'ANTHROPIC_AUTH_TOKEN',
+      'CLAUDE_CODE_OAUTH_TOKEN',
+      'ANTHROPIC_BASE_URL',
+    ]) {
+      vi.stubEnv(name, undefined);
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        throw new Error(
+          'Unexpected network request in Claude Code adapter test',
+        );
+      }),
+    );
     sentMessages.length = 0;
     openCalls.length = 0;
     reconnects.length = 0;
+    debugHooks.length = 0;
     subscribedEventTypes.length = 0;
     channelListeners.clear();
     connectOnOpen = false;
+    channelSendError = undefined;
     wsMock.reset();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    await rm(homeDirectory, { recursive: true, force: true });
   });
 
   it('declares the harness id and builtin tools', () => {
@@ -466,7 +498,7 @@ describe('createClaudeCode adapter', () => {
         sandboxSession,
         sessionWorkDir: '/vercel/sandbox/claude-code-s1',
       }),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+    ).rejects.toSatisfy(HarnessCapabilityUnsupportedError.isInstance);
   });
 
   it('quotes dynamic startup paths in shell commands', async () => {
@@ -997,6 +1029,32 @@ describe('createClaudeCode adapter', () => {
     await attachedSession.doDetach();
   });
 
+  it('forwards channel debug events for fresh and attached sessions', async () => {
+    const onDebug = vi.fn();
+    const harness = createClaudeCode({ onDebug });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    const resumeFrom = await session.doDetach();
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+
+    expect(debugHooks).toEqual([onDebug, onDebug]);
+    await attachedSession.doDetach();
+  });
+
   it('resumes the exact conversation after detaching and attaching', async () => {
     const harness = createClaudeCode();
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
@@ -1097,6 +1155,51 @@ describe('createClaudeCode adapter', () => {
     await attachedSession.doDetach();
   });
 
+  it('makes a single attempt when attaching and falls back to respawning', async () => {
+    connectOnOpen = true;
+    const openWithHello = (socket: {
+      emit: (event: string, ...args: unknown[]) => void;
+    }) => {
+      queueMicrotask(() => {
+        socket.emit('open');
+        socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+      });
+    };
+    wsMock.scripts.push(
+      openWithHello,
+      socket => {
+        queueMicrotask(() => {
+          socket.emit('error', new Error('mock attach failure'));
+        });
+      },
+      openWithHello,
+    );
+    const harness = createClaudeCode({ mintBridgeToken: () => 'bridge-token' });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    const resumeFrom = await session.doDetach();
+    const resumedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+
+    expect(wsMock.sockets).toHaveLength(3);
+    expect(wsMock.sockets[1].terminated).toBe(true);
+    expect(wsMock.sockets[2].terminated).toBe(false);
+    await resumedSession.doDetach();
+  });
+
   it('does not set the client app for direct Anthropic auth', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const harness = createClaudeCode({
@@ -1142,6 +1245,36 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('sends strict MCP config and the budget limit to the bridge', async () => {
+    const harness = createClaudeCode({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+
+    await session.doDestroy();
+  });
+
   it('sends configured MCP servers to the bridge', async () => {
     const mcpServers = {
       context7: { type: 'http', url: 'https://mcp.context7.com/mcp' },
@@ -1165,6 +1298,60 @@ describe('createClaudeCode adapter', () => {
     void Promise.resolve(control.done).catch(() => {});
 
     expect(lastStart()).toMatchObject({ mcpServers });
+
+    await session.doDestroy();
+  });
+
+  it('sends skill overrides and host tool hints to the bridge', async () => {
+    const skillOverrides = {
+      'update-config': 'off',
+      'fewer-permission-prompts': 'off',
+      init: 'off',
+    } as const;
+    const toolHints = { search: { readOnly: true, alwaysLoad: true } };
+    const harness = createClaudeCode({ skillOverrides, toolHints });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Search the docs.',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ skillOverrides, toolHints });
+
+    await session.doDestroy();
+  });
+
+  it('omits skill overrides when they are not configured', async () => {
+    const harness = createClaudeCode();
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'inspect the project',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).not.toHaveProperty('skillOverrides');
 
     await session.doDestroy();
   });
@@ -1220,6 +1407,145 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('ignores an aborted turn tail while the next turn waits for its own answer', async () => {
+    const harness = createClaudeCode({ auth: { ANTHROPIC_API_KEY: 'test' } });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const abort = new AbortController();
+    const first = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Count.',
+      emit: () => {},
+      abortSignal: abort.signal,
+    });
+    const firstId = lastStart().startId;
+    const firstDone = expect(first.done).rejects.toThrow('cancelled');
+    abort.abort(new Error('cancelled'));
+    await firstDone;
+
+    const events: unknown[] = [];
+    const second = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Answer pineapple.',
+      emit: event => events.push(event),
+    });
+    const secondId = lastStart().startId;
+    expect(secondId).not.toBe(firstId);
+    const stale = [
+      { type: 'stream-start' },
+      { type: 'text-start', id: 'old' },
+      { type: 'text-delta', id: 'old', delta: 'two' },
+      { type: 'text-end', id: 'old' },
+      { type: 'reasoning-start', id: 'old-reasoning' },
+      { type: 'reasoning-delta', id: 'old-reasoning', delta: 'old' },
+      { type: 'reasoning-end', id: 'old-reasoning' },
+      { type: 'tool-input-start', id: 'old-tool', toolName: 'bash' },
+      { type: 'tool-input-delta', id: 'old-tool', delta: '{}' },
+      { type: 'tool-input-end', id: 'old-tool' },
+      {
+        type: 'tool-call',
+        toolCallId: 'old-tool',
+        toolName: 'bash',
+        input: '{}',
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'old-tool',
+        toolName: 'bash',
+        result: 'old',
+      },
+      {
+        type: 'tool-approval-request',
+        toolCallId: 'old-tool',
+        approvalId: 'old-approval',
+      },
+      { type: 'compaction', phase: 'start' },
+      { type: 'raw', rawValue: 'old' },
+      { type: 'finish-step', finishReason: { unified: 'stop' }, usage: {} },
+      {
+        type: 'finish',
+        harnessMetadata: { 'claude-code': { sessionId: 'wrong-conversation' } },
+      },
+      { type: 'error', error: 'old failure' },
+    ];
+    for (const event of stale)
+      dispatchChannelEvent({ ...event, startId: firstId });
+    const settled = vi.fn();
+    void Promise.resolve(second.done).then(settled, settled);
+    await Promise.resolve();
+    expect(events).toEqual([]);
+    expect(settled).not.toHaveBeenCalled();
+
+    for (const event of [
+      { type: 'stream-start' },
+      { type: 'text-start', id: 'new' },
+      { type: 'text-delta', id: 'new', delta: 'pineapple' },
+      { type: 'text-end', id: 'new' },
+      { type: 'finish' },
+    ])
+      dispatchChannelEvent({ ...event, startId: secondId });
+    await second.done;
+    expect(events).toEqual([
+      { type: 'stream-start' },
+      { type: 'text-start', id: 'new' },
+      { type: 'text-delta', id: 'new', delta: 'pineapple' },
+      { type: 'text-end', id: 'new' },
+      { type: 'finish' },
+    ]);
+    const third = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Again.',
+      emit: () => {},
+    });
+    expect(lastStart()).not.toHaveProperty('resumeSessionId');
+    dispatchChannelEvent({ type: 'finish', startId: lastStart().startId });
+    await third.done;
+    await session.doDestroy();
+  });
+
+  it('does not clear the startup deadline for events from another turn', async () => {
+    const harness = createClaudeCode({
+      auth: { ANTHROPIC_API_KEY: 'test' },
+      turnStartTimeoutMs: 100,
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sessionWorkDir: '/w',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+    });
+    vi.useFakeTimers();
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    const done = expect(control.done).rejects.toThrow(
+      'did not emit a turn event within 100ms',
+    );
+    dispatchChannelEvent({ type: 'stream-start', startId: 'previous-turn' });
+    dispatchChannelEvent({ type: 'finish', startId: 'previous-turn' });
+    await vi.advanceTimersByTimeAsync(100);
+    await done;
+    expect(sentMessages).toContainEqual({ type: 'abort' });
+    expect(vi.getTimerCount()).toBe(0);
+    await session.doDestroy();
+  });
+
   it('does not start a bridge turn when the signal is already aborted', async () => {
     const harness = createClaudeCode();
     const session = await harness.doStart({
@@ -1255,9 +1581,10 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends environment configuration when rerunning a continued turn', async () => {
+  it('sends environment configuration and tool hints when rerunning a continued turn', async () => {
     const env = { DEPLOYMENT_ENV: 'staging' };
-    const harness = createClaudeCode({ env });
+    const toolHints = { search: { readOnly: true } };
+    const harness = createClaudeCode({ env, toolHints });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -1280,9 +1607,272 @@ describe('createClaudeCode adapter', () => {
     });
     void Promise.resolve(control.done).catch(() => {});
 
-    expect(lastStart()).toMatchObject({ env, continue: true });
+    expect(lastStart()).toMatchObject({ env, toolHints, continue: true });
 
     await session.doDestroy();
+  });
+
+  it('sends skill overrides when rerunning a continued turn', async () => {
+    const skillOverrides = { init: 'off' } as const;
+    const harness = createClaudeCode({ skillOverrides });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    const control = await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({ skillOverrides, continue: true });
+
+    await session.doDestroy();
+  });
+
+  it('sends strict MCP config and the budget limit when rerunning a continued turn', async () => {
+    const harness = createClaudeCode({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    const control = await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+      continue: true,
+    });
+
+    await session.doDestroy();
+  });
+
+  it('sends strict MCP config and the budget limit after attaching', async () => {
+    const harness = createClaudeCode({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const resumeFrom = await session.doDetach();
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+    const control = await attachedSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'hello again',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+
+    await attachedSession.doDestroy();
+  });
+
+  it('sends the question timeout and excludeDynamicSections to the bridge', async () => {
+    const harness = createClaudeCode({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    });
+
+    await session.doDestroy();
+  });
+
+  it('sends the question timeout and excludeDynamicSections when rerunning a continued turn', async () => {
+    const harness = createClaudeCode({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    const control = await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+      continue: true,
+    });
+
+    await session.doDestroy();
+  });
+
+  it.each(['continueFrom', 'resumeFrom'] as const)(
+    'resumes a deferred approval when rerunning a continued turn (%s)',
+    async lifecycle => {
+      const continueFrom = {
+        type: 'continue-turn' as const,
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1' as const,
+        data: {},
+        pendingToolApprovals: [
+          {
+            approvalId: 'call-1',
+            toolCallId: 'call-1',
+            toolName: 'bash',
+            input: '{"command":"pwd"}',
+            kind: 'builtin' as const,
+            providerExecuted: true,
+            nativeName: 'Bash',
+          },
+        ],
+      };
+      const harness = createClaudeCode();
+      const session = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          writes: [],
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+        permissionMode: 'allow-reads',
+        ...(lifecycle === 'continueFrom'
+          ? { continueFrom }
+          : {
+              resumeFrom: {
+                type: 'resume-session' as const,
+                harnessId: 'claude-code',
+                specificationVersion: 'harness-v1' as const,
+                data: {},
+                continueFrom,
+              },
+            }),
+      });
+      const control = await session.doContinueTurn({
+        skills: [],
+        tools: [],
+        emit: () => {},
+      });
+      void Promise.resolve(control.done).catch(() => {});
+
+      expect(lastStart()).toMatchObject({ deferredToolUseId: 'call-1' });
+
+      await session.doDestroy();
+    },
+  );
+
+  it('sends the question timeout and excludeDynamicSections after attaching', async () => {
+    const harness = createClaudeCode({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    });
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      writes: [],
+      runs: [],
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const resumeFrom = await session.doDetach();
+    const attachedSession = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom,
+    });
+    const control = await attachedSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'hello again',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    });
+
+    await attachedSession.doDestroy();
   });
 
   it('writes standard Claude skill files and enables their names on start', async () => {
@@ -1325,6 +1915,10 @@ describe('createClaudeCode adapter', () => {
 
     expect(lastStart()).toMatchObject({
       skills: ['weather-forecast', 'weather-codes'],
+      readableSkillRoots: [
+        '/home/vercel-sandbox/.claude/skills/weather-forecast',
+        '/home/vercel-sandbox/.claude/skills/weather-codes',
+      ],
     });
 
     const skillWrites = writes.filter(write =>
@@ -1580,25 +2174,112 @@ describe('createClaudeCode adapter', () => {
   });
 
   describe('bridge WebSocket startup', () => {
-    let now: number;
-
-    beforeEach(() => {
-      now = 1_000;
-      vi.spyOn(Date, 'now').mockImplementation(() => now);
-    });
-
-    it('does not miss bridge-hello emitted immediately after open', async () => {
+    it('cleans up a turn whose initial start cannot be sent', async () => {
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {
           socket.emit('open');
           socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
         });
       });
+      const session = await startWithFakeBridgeSocket({
+        turnStartTimeoutMs: 100,
+      });
+      vi.useFakeTimers();
+      channelSendError = new Error('channel is closed');
+      await expect(
+        session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: 'Hello',
+          emit: () => {},
+        }),
+      ).rejects.toThrow('channel is closed');
+      expect(vi.getTimerCount()).toBe(0);
+      expect(
+        [...channelListeners.values()].every(listeners => listeners.size === 0),
+      ).toBe(true);
+      await vi.advanceTimersByTimeAsync(200);
+      channelSendError = undefined;
+      await session.doDestroy();
+    });
 
-      const session = await startWithFakeBridgeSocket();
+    it('clears the startup deadline when the caller aborts', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+      const session = await startWithFakeBridgeSocket({
+        turnStartTimeoutMs: 100,
+      });
+      vi.useFakeTimers();
+      const abort = new AbortController();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: () => {},
+        abortSignal: abort.signal,
+      });
+      const done = expect(control.done).rejects.toThrow('cancelled');
+      abort.abort(new Error('cancelled'));
+      await done;
+      await vi.advanceTimersByTimeAsync(200);
+      expect(vi.getTimerCount()).toBe(0);
+      await session.doDestroy();
+    });
 
-      expect(wsMock.sockets).toHaveLength(1);
-      expect(wsMock.sockets[0].terminated).toBe(false);
+    it('fails a silent turn after the startup deadline', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+      const session = await startWithFakeBridgeSocket({
+        turnStartTimeoutMs: 100,
+      });
+      vi.useFakeTimers();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: () => {},
+      });
+      const done = expect(control.done).rejects.toThrow(
+        'did not emit a turn event within 100ms',
+      );
+      await vi.advanceTimersByTimeAsync(100);
+      await done;
+      expect(sentMessages).toContainEqual({ type: 'abort' });
+      expect(vi.getTimerCount()).toBe(0);
+      await session.doDestroy();
+    });
+
+    it('clears the startup deadline on the first bridge event', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+      const session = await startWithFakeBridgeSocket({
+        turnStartTimeoutMs: 100,
+      });
+      vi.useFakeTimers();
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: () => {},
+      });
+      dispatchChannelEvent({ type: 'text-delta', id: 'm', delta: 'Hello' });
+      await vi.advanceTimersByTimeAsync(200);
+      expect(vi.getTimerCount()).toBe(0);
+      expect(sentMessages).not.toContainEqual({ type: 'abort' });
+      dispatchChannelEvent({ type: 'finish' });
+      await control.done;
       await session.doDestroy();
     });
 
@@ -1718,81 +2399,6 @@ describe('createClaudeCode adapter', () => {
       dispatchChannelEvent({ type: 'finish' });
       await expect(control.done).resolves.toBeUndefined();
       await session.doDestroy();
-    });
-
-    it('rejects when the socket opens but bridge-hello never arrives', async () => {
-      wsMock.scripts.push(socket => {
-        queueMicrotask(() => {
-          socket.emit('open');
-          now = 1_020;
-        });
-      });
-
-      await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
-        'claude-code bridge did not send bridge-hello',
-      );
-      expect(wsMock.sockets[0].terminated).toBe(true);
-    });
-
-    it('uses the remaining startup deadline for bridge-hello after open', async () => {
-      wsMock.scripts.push(socket => {
-        queueMicrotask(() => {
-          now = 1_015;
-          socket.emit('open');
-          now = 1_020;
-        });
-      });
-
-      await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
-        'claude-code bridge did not send bridge-hello within 5ms',
-      );
-      expect(wsMock.sockets[0].terminated).toBe(true);
-    });
-
-    it('rejects when the socket closes before bridge-hello arrives', async () => {
-      wsMock.scripts.push(socket => {
-        queueMicrotask(() => {
-          socket.emit('open');
-          now = 1_020;
-          socket.close();
-        });
-      });
-
-      await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
-        'claude-code bridge closed before sending bridge-hello',
-      );
-      expect(wsMock.sockets[0].terminated).toBe(true);
-    });
-
-    it('rejects when the socket does not open in time', async () => {
-      wsMock.scripts.push(() => {
-        queueMicrotask(() => {
-          now = 1_020;
-        });
-      });
-
-      await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
-        'WebSocket open timed out after',
-      );
-      expect(wsMock.sockets[0].terminated).toBe(true);
-    });
-
-    it('preserves the startup timeout when terminating a connecting socket', async () => {
-      wsMock.scripts.push(socket => {
-        socket.emitErrorOnTerminate = true;
-        queueMicrotask(() => {
-          now = 1_020;
-        });
-      });
-
-      await expect(startWithFakeBridgeSocket(20)).rejects.toThrow(
-        'WebSocket open timed out after',
-      );
-      await new Promise(resolve => setImmediate(resolve));
-
-      expect(wsMock.unhandledErrors).toEqual([]);
-      expect(wsMock.sockets[0].terminated).toBe(true);
-      expect(wsMock.sockets[0].closed).toBe(true);
     });
   });
 

@@ -1,4 +1,6 @@
 export type GatewayRealtimeModelId =
+  | 'elevenlabs/eleven-realtime-v1-max'
+  | 'elevenlabs/eleven-realtime-v1-mini'
   | 'google/gemini-3.8-live'
   | 'google/gemini-3.8-live-extended-thinking'
   | 'openai/gpt-live-1'

@@ -16,6 +16,7 @@ type ToolCall = Extract<TextStreamPart<typeof tools>, { type: 'tool-call' }>;
 describe('validateToolCall', () => {
   it('parses a valid tool-call input against the merged tool schema', async () => {
     const result = await validateToolCall<typeof tools>({
+      harnessId: 'claude-code',
       event: {
         type: 'tool-call',
         toolCallId: 'c1',
@@ -33,6 +34,7 @@ describe('validateToolCall', () => {
       toolName: 'bash',
       input: { command: 'ls' },
       providerExecuted: true,
+      providerMetadata: { 'claude-code': { nativeToolName: 'Bash' } },
     });
     expect(
       (result as ToolCall & { invalid?: boolean }).invalid,
@@ -41,6 +43,7 @@ describe('validateToolCall', () => {
 
   it('marks the part invalid when the input fails the schema', async () => {
     const result = await validateToolCall<typeof tools>({
+      harnessId: 'claude-code',
       event: {
         type: 'tool-call',
         toolCallId: 'c2',
@@ -57,6 +60,7 @@ describe('validateToolCall', () => {
       toolCallId: 'c2',
       toolName: 'bash',
       invalid: true,
+      providerMetadata: { 'claude-code': { nativeToolName: 'Bash' } },
     });
     // raw parsed JSON preserved on the invalid path
     expect((result as ToolCall & { input: unknown }).input).toEqual({
@@ -66,6 +70,7 @@ describe('validateToolCall', () => {
 
   it('marks the part invalid and dynamic when the tool is not declared', async () => {
     const result = await validateToolCall<typeof tools>({
+      harnessId: 'fake',
       event: {
         type: 'tool-call',
         toolCallId: 'c3',
@@ -89,6 +94,7 @@ describe('validateToolCall', () => {
 
   it('accepts an undeclared provider-executed dynamic tool', async () => {
     const result = await validateToolCall<typeof tools>({
+      harnessId: 'fake',
       event: {
         type: 'tool-call',
         toolCallId: 'c4',
@@ -115,6 +121,7 @@ describe('validateToolCall', () => {
 
   it('parses a provider-executed dynamic tool without a static tool set', async () => {
     const result = await validateToolCall<typeof tools>({
+      harnessId: 'fake',
       event: {
         type: 'tool-call',
         toolCallId: 'c4-replacement',
@@ -139,6 +146,7 @@ describe('validateToolCall', () => {
 
   it('marks malformed provider-executed dynamic input invalid without a static tool set', async () => {
     const result = await validateToolCall<typeof tools>({
+      harnessId: 'fake',
       event: {
         type: 'tool-call',
         toolCallId: 'c4-malformed',
@@ -161,6 +169,7 @@ describe('validateToolCall', () => {
 
   it('omits providerExecuted when the bridge did not set it', async () => {
     const result = await validateToolCall<typeof tools>({
+      harnessId: 'fake',
       event: {
         type: 'tool-call',
         toolCallId: 'c5',
@@ -183,6 +192,7 @@ describe('validateToolCall', () => {
     } as const satisfies ToolSet;
 
     const result = await validateToolCall<typeof noArgsTool>({
+      harnessId: 'fake',
       event: {
         type: 'tool-call',
         toolCallId: 'c6',
@@ -199,4 +209,75 @@ describe('validateToolCall', () => {
       input: {},
     });
   });
+
+  it('merges the native tool name into the harness namespace without mutating existing metadata', async () => {
+    const providerMetadata = {
+      runtime: { existing: 'value' },
+      other: { existing: 'other value' },
+    };
+    const result = await validateToolCall<typeof tools>({
+      harnessId: 'runtime',
+      event: {
+        type: 'tool-call',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        input: '{"command":"echo hello"}',
+        nativeName: 'Bash',
+        providerExecuted: true,
+        providerMetadata,
+      },
+      tools,
+    });
+
+    expect(result).toMatchObject({
+      providerMetadata: {
+        runtime: { existing: 'value', nativeToolName: 'Bash' },
+        other: { existing: 'other value' },
+      },
+    });
+    expect(providerMetadata).toEqual({
+      runtime: { existing: 'value' },
+      other: { existing: 'other value' },
+    });
+  });
+
+  it.each([undefined, 'bash'])(
+    'preserves existing metadata when nativeName is %s',
+    async nativeName => {
+      const providerMetadata = { runtime: { existing: 'value' } };
+      const result = await validateToolCall<typeof tools>({
+        harnessId: 'runtime',
+        event: {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'bash',
+          input: '{"command":"echo hello"}',
+          nativeName,
+          providerMetadata,
+        },
+        tools,
+      });
+
+      expect((result as ToolCall).providerMetadata).toEqual(providerMetadata);
+    },
+  );
+
+  it.each([undefined, 'bash'])(
+    'does not add metadata when nativeName is %s',
+    async nativeName => {
+      const result = await validateToolCall<typeof tools>({
+        harnessId: 'runtime',
+        event: {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'bash',
+          input: '{"command":"echo hello"}',
+          nativeName,
+        },
+        tools,
+      });
+
+      expect((result as ToolCall).providerMetadata).toBeUndefined();
+    },
+  );
 });

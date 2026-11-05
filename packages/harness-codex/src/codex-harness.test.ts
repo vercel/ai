@@ -14,7 +14,10 @@ const channelMocks = vi.hoisted(() => ({
   connectOnOpen: false,
   channels: [] as Array<{ emit(type: string, message: unknown): void }>,
   connects: [] as Array<
-    (options: { abortSignal: AbortSignal }) => Promise<unknown>
+    (options: {
+      abortSignal: AbortSignal;
+      reason: 'open' | 'reconnect';
+    }) => Promise<unknown>
   >,
   reconnects: [] as Array<unknown>,
 }));
@@ -24,13 +27,22 @@ const webSocketMocks = vi.hoisted(() => {
     url: string;
     headers: Record<string, string> | undefined;
   }> = [];
-
   class FakeWebSocket {
     private readonly listeners = new Map<string, Set<Listener>>();
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       calls.push({ url, headers: options?.headers });
-      queueMicrotask(() => this.emit('open'));
+      queueMicrotask(() => {
+        this.emit('open');
+        this.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+      });
+    }
+
+    on(type: string, listener: Listener): this {
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(listener);
+      this.listeners.set(type, listeners);
+      return this;
     }
 
     once(type: string, listener: Listener): this {
@@ -72,7 +84,10 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       connect,
       reconnect,
     }: {
-      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      connect: (options: {
+        abortSignal: AbortSignal;
+        reason: 'open' | 'reconnect';
+      }) => Promise<unknown>;
       reconnect?: unknown;
     }) {
       channelMocks.connects.push(connect);
@@ -83,6 +98,7 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
       if (channelMocks.connectOnOpen) {
         await channelMocks.connects.at(-1)!({
           abortSignal: new AbortController().signal,
+          reason: 'open',
         });
       }
     }
@@ -122,7 +138,7 @@ vi.mock('node:fs/promises', async importOriginal => {
       const path = typeof input === 'string' ? input : String(input);
       if (path.endsWith('/bridge/index.mjs')) return '// mock bridge\n';
       if (path.endsWith('/bridge/package.json')) return '{"name":"mock"}';
-      if (path.endsWith('/bridge/pnpm-lock.yaml'))
+      if (path.endsWith('/bridge/pnpm-lockfile.yaml'))
         return 'lockfileVersion: "9.0"\n';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (actual.readFile as any)(input, ...rest);
@@ -334,7 +350,7 @@ describe('createCodex adapter', () => {
         sandboxSession,
         sessionWorkDir: '/vercel/sandbox/codex-s1',
       }),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
+    ).rejects.toSatisfy(HarnessCapabilityUnsupportedError.isInstance);
   });
 
   it('requires explicit bridge settings for a basic sandbox session', async () => {

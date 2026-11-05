@@ -6,6 +6,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
@@ -70,7 +72,7 @@ export interface CohereProviderSettings {
    * API key that is being send using the `Authorization` header.
    * It defaults to the `COHERE_API_KEY` environment variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -99,16 +101,18 @@ export function createCohere(
     withoutTrailingSlash(options.baseURL) ?? 'https://api.cohere.com/v2';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'COHERE_API_KEY',
-          description: 'Cohere',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-cohere/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'COHERE_API_KEY',
+            description: 'Cohere',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-cohere/${VERSION}`,
+      ),
     );
 
   const createChatModel = (modelId: CohereChatModelId) =>

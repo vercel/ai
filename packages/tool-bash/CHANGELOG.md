@@ -1,5 +1,115 @@
 # @ai-sdk/tool-bash
 
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [857ca45]
+- Updated dependencies [4d6d830]
+  - ai@7.0.162
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+  - ai@7.0.161
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
+## 1.0.13
+
+### Patch Changes
+
+- ai@7.0.159
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [5c247e9]
+  - ai@7.0.158
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [0cc4921]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+
+## 1.0.10
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [b6b9dca]
+  - ai@7.0.155
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+
+## 1.0.7
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+  - ai@7.0.153
+
+## 1.0.6
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 1.0.5
+
+### Patch Changes
+
+- ai@7.0.151
+
 ## 1.0.4
 
 ### Patch Changes
