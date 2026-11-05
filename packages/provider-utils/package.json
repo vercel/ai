@@ -55,7 +55,7 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
-    "@workflow/serde": "^4.1.0 || ^5.0.0",
+    "@workflow/serde": "^5.0.0",
     "eventsource-parser": "^3.0.8",
     "undici": "^7.29.1"
   },

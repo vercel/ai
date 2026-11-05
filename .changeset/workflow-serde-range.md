@@ -2,4 +2,4 @@
 "@ai-sdk/provider-utils": patch
 ---
 
-Accept `@workflow/serde` 4.1 or 5 instead of pinning 4.1.0, so apps on Workflow SDK v5 share one copy instead of installing both.
+Depend on `@workflow/serde` 5 (the Workflow SDK v5 line) instead of pinning 4.1.0, so apps on Workflow SDK v5 install one copy instead of two.
