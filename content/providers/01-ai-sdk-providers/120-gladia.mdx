@@ -96,6 +96,18 @@ You can use the following optional settings to customize the Gladia provider ins
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **pollingTimeoutMs** _number_
+
+  Maximum time in milliseconds to wait for an asynchronous transcription job to
+  finish before throwing a `TranscriptionJobPollingTimedOut` error. Defaults to
+  `600000` (10 minutes). Raise it when you transcribe long audio files or enable
+  audio intelligence add-ons that make a job take longer.
+
+- **pollingIntervalMs** _number_
+
+  Interval in milliseconds between transcription job status checks. Defaults to
+  `1000` (1 second).
+
 ## Transcription Models
 
 You can create models that call the [Gladia transcription API](https://docs.gladia.io/chapters/pre-recorded-stt/getting-started)

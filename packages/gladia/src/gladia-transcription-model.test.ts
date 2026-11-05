@@ -409,6 +409,94 @@ describe('doGenerate', () => {
   });
 });
 
+describe('polling', () => {
+  beforeEach(() => prepareJsonFixtureResponse());
+
+  it('polls queued and processing jobs until the job is done', async () => {
+    let pollCount = 0;
+    server.urls[initiateFixture.result_url].response = () => {
+      pollCount++;
+      return pollCount === 1
+        ? { type: 'json-value', body: { status: 'queued' } }
+        : pollCount === 2
+          ? { type: 'json-value', body: { status: 'processing' } }
+          : { type: 'json-value', body: resultFixture };
+    };
+
+    const fastProvider = createGladia({
+      apiKey: 'test-api-key',
+      pollingIntervalMs: 10,
+    });
+
+    const result = await fastProvider.transcription().doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mp3',
+    });
+
+    expect(result.text).toBe(
+      resultFixture.result.transcription.full_transcript,
+    );
+    expect(pollCount).toBe(3);
+  });
+
+  it('throws TranscriptionJobPollingTimedOut after the configured pollingTimeoutMs', async () => {
+    server.urls[initiateFixture.result_url].response = {
+      type: 'json-value',
+      body: { status: 'processing' },
+    };
+
+    const shortTimeoutProvider = createGladia({
+      apiKey: 'test-api-key',
+      pollingTimeoutMs: 20,
+      pollingIntervalMs: 5,
+    });
+
+    await expect(
+      shortTimeoutProvider.transcription().doGenerate({
+        audio: audioData,
+        mediaType: 'audio/mp3',
+      }),
+    ).rejects.toMatchObject({
+      name: 'TranscriptionJobPollingTimedOut',
+      message: 'Transcription job polling timed out after 20 ms',
+    });
+  });
+
+  it('stops polling when the abort signal is aborted', async () => {
+    server.urls[initiateFixture.result_url].response = {
+      type: 'json-value',
+      body: { status: 'processing' },
+    };
+
+    const controller = new AbortController();
+    const startedAt = Date.now();
+    const promise = provider.transcription().doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mp3',
+      abortSignal: controller.signal,
+    });
+    setTimeout(() => controller.abort(), 20);
+
+    await expect(promise).rejects.toMatchObject({ name: 'AbortError' });
+    expect(Date.now() - startedAt).toBeLessThan(750);
+  });
+
+  it('keeps polling settings through workflow serialization', () => {
+    const configured = createGladia({
+      apiKey: 'test-api-key',
+      pollingTimeoutMs: 1234,
+      pollingIntervalMs: 56,
+    }).transcription() as GladiaTranscriptionModel;
+
+    const snapshot = GladiaTranscriptionModel[WORKFLOW_SERIALIZE](configured);
+
+    expect(snapshot.config).toMatchObject({
+      pollingTimeoutMs: 1234,
+      pollingIntervalMs: 56,
+    });
+  });
+});
+
 describe('legacy option warnings', () => {
   beforeEach(() => prepareJsonFixtureResponse());
   it.each([

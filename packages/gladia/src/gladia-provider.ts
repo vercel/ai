@@ -50,6 +50,20 @@ export interface GladiaProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Maximum time in milliseconds to wait for an asynchronous transcription job
+   * to finish before throwing a `TranscriptionJobPollingTimedOut` error.
+   * Defaults to 600000 (10 minutes). Raise it for long audio files or when
+   * audio intelligence add-ons make processing take longer.
+   */
+  pollingTimeoutMs?: number;
+
+  /**
+   * Interval in milliseconds between transcription job status checks.
+   * Defaults to 1000 (1 second).
+   */
+  pollingIntervalMs?: number;
 }
 
 /**
@@ -82,6 +96,8 @@ export function createGladia(
       url: ({ path }) => `https://api.gladia.io${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      pollingTimeoutMs: options.pollingTimeoutMs,
+      pollingIntervalMs: options.pollingIntervalMs,
     });
 
   const provider = function () {
