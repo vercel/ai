@@ -1,4 +1,6 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { InvalidArgumentError } from '@ai-sdk/provider';
+import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { GladiaTranscriptionModel } from './gladia-transcription-model';
 import { createGladia } from './gladia-provider';
 import { readFile } from 'node:fs/promises';
@@ -134,6 +136,29 @@ describe('doGenerate', () => {
         },
       },
     };
+  }
+
+  // Prepare the default successful response and override parts of the job
+  // result or the job body. The response object is mutated in place so the
+  // test server keeps its `json-value` shape.
+  function prepareResponse(
+    resultOverrides: Record<string, unknown> = {},
+    bodyOverrides: Record<string, unknown> = {},
+  ) {
+    prepareJsonResponse();
+
+    const response = server.urls[
+      'https://api.gladia.io/v2/transcription/test-id'
+    ].response as unknown as { body: Record<string, unknown> };
+
+    Object.assign(response.body, bodyOverrides);
+
+    if (response.body.result != null) {
+      Object.assign(
+        response.body.result as Record<string, unknown>,
+        resultOverrides,
+      );
+    }
   }
 
   it('should pass the model', async () => {
@@ -294,4 +319,569 @@ describe('doGenerate', () => {
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
     expect(result.response.modelId).toBe('default');
   });
+  it('should preserve audio intelligence results in provider metadata', async () => {
+    prepareResponse({
+      metadata: {
+        audio_duration: 60,
+        number_of_distinct_channels: 1,
+        billing_time: 36.74,
+        transcription_time: 12.5,
+      },
+      transcription: {
+        full_transcript: 'Smoke from hundreds of wildfires.',
+        languages: ['en'],
+        utterances: [
+          {
+            start: 0,
+            end: 3,
+            text: 'Smoke from hundreds of wildfires.',
+          },
+        ],
+        sentences: [
+          {
+            sentence: 'Smoke from hundreds of wildfires.',
+            start: 0,
+            end: 3,
+            words: [],
+          },
+        ],
+        subtitles: [
+          {
+            format: 'srt',
+            subtitles: '1\n00:00:00.000 --> 00:00:03.000\nSmoke',
+          },
+        ],
+      },
+      translation: {
+        success: true,
+        is_empty: false,
+        exec_time: 2.4,
+        error: null,
+        results: [
+          {
+            languages: ['fr'],
+            full_transcript: 'Fumée de centaines de feux de forêt.',
+            utterances: [
+              {
+                start: 0,
+                end: 3,
+                text: 'Fumée de centaines de feux de forêt.',
+                language: 'fr',
+                channel: 0,
+                confidence: 0.9,
+                words: [],
+              },
+            ],
+          },
+        ],
+      },
+      summarization: {
+        success: true,
+        is_empty: false,
+        exec_time: 1.2,
+        error: null,
+        results: 'A summary of the transcription.',
+      },
+      named_entity_recognition: {
+        success: true,
+        is_empty: false,
+        exec_time: 0.5,
+        error: null,
+        results: [
+          {
+            entity_type: 'MISC',
+            text: 'wildfires',
+            start: 1.02,
+            end: 1.48,
+          },
+        ],
+      },
+      sentiment_analysis: {
+        success: true,
+        is_empty: false,
+        exec_time: 0.6,
+        error: null,
+        results: [
+          {
+            text: 'Smoke from hundreds of wildfires.',
+            sentiment: 'neutral',
+            emotion: 'interest',
+            start: 0,
+            end: 3,
+            channel: 0,
+          },
+        ],
+      },
+      audio_to_llm: {
+        success: true,
+        is_empty: false,
+        exec_time: 3.1,
+        error: null,
+        results: [
+          {
+            results: {
+              model: 'openai/gpt-5.4-nano',
+              prompt: 'What is this about?',
+              response: 'Wildfires.',
+            },
+          },
+        ],
+      },
+      sentences: {
+        success: true,
+        is_empty: false,
+        exec_time: 0.4,
+        error: null,
+        results: [
+          {
+            sentence: 'Smoke from hundreds of wildfires.',
+            start: 0,
+            end: 3,
+            words: [],
+          },
+        ],
+      },
+    });
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.providerMetadata?.gladia).toMatchObject({
+      result: {
+        metadata: {
+          audio_duration: 60,
+          number_of_distinct_channels: 1,
+          billing_time: 36.74,
+          transcription_time: 12.5,
+        },
+        transcription: {
+          subtitles: [
+            {
+              format: 'srt',
+              subtitles: '1\n00:00:00.000 --> 00:00:03.000\nSmoke',
+            },
+          ],
+          sentences: [
+            {
+              sentence: 'Smoke from hundreds of wildfires.',
+            },
+          ],
+        },
+        translation: {
+          results: [
+            {
+              languages: ['fr'],
+              full_transcript: 'Fumée de centaines de feux de forêt.',
+              utterances: [
+                expect.objectContaining({
+                  text: 'Fumée de centaines de feux de forêt.',
+                  channel: 0,
+                }),
+              ],
+            },
+          ],
+        },
+        summarization: {
+          results: 'A summary of the transcription.',
+        },
+        named_entity_recognition: {
+          results: [
+            {
+              entity_type: 'MISC',
+              text: 'wildfires',
+              start: 1.02,
+              end: 1.48,
+            },
+          ],
+        },
+        sentiment_analysis: {
+          results: [
+            expect.objectContaining({
+              sentiment: 'neutral',
+              emotion: 'interest',
+            }),
+          ],
+        },
+        audio_to_llm: {
+          results: [
+            {
+              results: {
+                model: 'openai/gpt-5.4-nano',
+                prompt: 'What is this about?',
+                response: 'Wildfires.',
+              },
+            },
+          ],
+        },
+        sentences: {
+          results: [
+            {
+              sentence: 'Smoke from hundreds of wildfires.',
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it('should pass through add-ons that do not match the documented shape', async () => {
+    const sentences = [
+      'Smoke from hundreds of wildfires.',
+      'It spread quickly.',
+    ];
+    const entities = [{ entity_type: 'MISC', start: 1.02, end: 1.48 }];
+
+    prepareResponse({
+      named_entity_recognition: {
+        success: true,
+        is_empty: false,
+        exec_time: 0.5,
+        error: { status_code: 500, message: 'Upstream failure' },
+        results: entities,
+      },
+      sentences: {
+        success: true,
+        is_empty: false,
+        exec_time: 0.4,
+        error: null,
+        results: sentences,
+      },
+    });
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.text).toBe('Smoke from hundreds of wildfires.');
+    expect(result.providerMetadata?.gladia).toMatchObject({
+      result: {
+        named_entity_recognition: {
+          error: { status_code: 500, message: 'Upstream failure' },
+          results: entities,
+        },
+        sentences: {
+          results: sentences,
+        },
+      },
+    });
+  });
+
+  it('should preserve audio-to-LLM item fields in provider metadata', async () => {
+    const audioToLlmResults = [
+      {
+        prompt: 'What is this about?',
+        response: 'Wildfires.',
+        success: true,
+        is_empty: false,
+        exec_time: 1.4,
+        error: null,
+      },
+      {
+        prompt: 'Who is speaking?',
+        response: null,
+        success: false,
+        is_empty: true,
+        exec_time: 0.2,
+        error: {
+          status_code: 400,
+          exception: 'BadRequest',
+          message: 'Prompt rejected',
+        },
+      },
+    ];
+
+    prepareResponse({
+      audio_to_llm: {
+        success: true,
+        is_empty: false,
+        exec_time: 1.6,
+        error: null,
+        results: audioToLlmResults,
+      },
+    });
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.providerMetadata?.gladia).toMatchObject({
+      result: {
+        audio_to_llm: {
+          results: audioToLlmResults,
+        },
+      },
+    });
+  });
+
+  it('should include the Gladia error code in the error message', async () => {
+    prepareResponse({}, { status: 'error', error_code: 400, result: null });
+
+    await expect(
+      model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      }),
+    ).rejects.toThrow('Transcription job failed with error code 400');
+  });
+
+  it('should keep polling queued and processing jobs until the job is done', async () => {
+    prepareJsonResponse();
+
+    let pollCount = 0;
+    server.urls['https://api.gladia.io/v2/transcription/test-id'].response =
+      () => {
+        pollCount++;
+        return pollCount === 1
+          ? { type: 'json-value', body: { status: 'queued' } }
+          : pollCount === 2
+            ? { type: 'json-value', body: { status: 'processing' } }
+            : {
+                type: 'json-value',
+                body: {
+                  status: 'done',
+                  result: {
+                    metadata: { audio_duration: 60 },
+                    transcription: {
+                      full_transcript: 'Smoke from hundreds of wildfires.',
+                      languages: ['en'],
+                      utterances: [
+                        {
+                          start: 0,
+                          end: 3,
+                          text: 'Smoke from hundreds of wildfires.',
+                        },
+                      ],
+                    },
+                  },
+                },
+              };
+      };
+
+    const fastProvider = createGladia({
+      apiKey: 'test-api-key',
+      pollIntervalMs: 10,
+    });
+
+    const result = await fastProvider.transcription().doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.text).toBe('Smoke from hundreds of wildfires.');
+    expect(pollCount).toBe(3);
+  });
+
+  it('should not send polling settings to the Gladia API', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        gladia: {
+          pollIntervalMs: 1,
+          pollTimeoutMs: 1000,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).not.toHaveProperty('pollIntervalMs');
+    expect(requestBody).not.toHaveProperty('pollTimeoutMs');
+  });
+
+  it('should throw TranscriptionJobPollingTimedOut after the configured pollTimeoutMs', async () => {
+    prepareJsonResponse();
+
+    // Advance a mocked clock instead of waiting for real time so the test does
+    // not depend on machine speed.
+    let now = 0;
+    const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    let pollCount = 0;
+
+    server.urls['https://api.gladia.io/v2/transcription/test-id'].response =
+      () => {
+        pollCount++;
+        now += 15;
+        return { type: 'json-value', body: { status: 'processing' } };
+      };
+
+    try {
+      const shortTimeoutProvider = createGladia({
+        apiKey: 'test-api-key',
+        pollTimeoutMs: 20,
+        pollIntervalMs: 1,
+      });
+
+      await expect(
+        shortTimeoutProvider.transcription().doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+        }),
+      ).rejects.toMatchObject({
+        name: 'TranscriptionJobPollingTimedOut',
+        message: 'Transcription job polling timed out after 20 ms',
+      });
+
+      expect(pollCount).toBe(2);
+    } finally {
+      dateNow.mockRestore();
+    }
+  });
+
+  it('should resolve polling settings from providerOptions.gladia before provider settings', async () => {
+    prepareJsonResponse();
+
+    // Advance a mocked clock instead of waiting for real time so the test does
+    // not depend on machine speed.
+    let now = 0;
+    const dateNow = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    let pollCount = 0;
+
+    server.urls['https://api.gladia.io/v2/transcription/test-id'].response =
+      () => {
+        pollCount++;
+        now += 12;
+        return { type: 'json-value', body: { status: 'processing' } };
+      };
+
+    try {
+      const slowProvider = createGladia({
+        apiKey: 'test-api-key',
+        pollIntervalMs: 600_000,
+        pollTimeoutMs: 600_000,
+      });
+
+      await expect(
+        slowProvider.transcription().doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          providerOptions: {
+            gladia: {
+              pollIntervalMs: 1,
+              pollTimeoutMs: 20,
+            },
+          },
+        }),
+      ).rejects.toMatchObject({
+        name: 'TranscriptionJobPollingTimedOut',
+        message: 'Transcription job polling timed out after 20 ms',
+      });
+
+      expect(pollCount).toBe(2);
+    } finally {
+      dateNow.mockRestore();
+    }
+  });
+
+  it('should throw InvalidArgumentError for invalid per-call polling settings', async () => {
+    prepareJsonResponse();
+
+    await expect(
+      model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          gladia: {
+            pollTimeoutMs: 0,
+          },
+        },
+      }),
+    ).rejects.toBeInstanceOf(InvalidArgumentError);
+  });
+
+  it('should stop before the first poll when the signal is already aborted', async () => {
+    prepareJsonResponse();
+
+    const reason = new DOMException('The operation timed out.', 'TimeoutError');
+    const controller = new AbortController();
+    controller.abort(reason);
+
+    // The custom fetch ignores the abort signal so the request would still
+    // succeed if the polling loop did not check it.
+    const abortIgnoringProvider = createGladia({
+      apiKey: 'test-api-key',
+      fetch: fetchWithoutAbortSignal,
+    });
+
+    await expect(
+      abortIgnoringProvider.transcription().doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        abortSignal: controller.signal,
+      }),
+    ).rejects.toBe(reason);
+
+    expect(
+      server.calls.filter(
+        call =>
+          call.requestUrl === 'https://api.gladia.io/v2/transcription/test-id',
+      ),
+    ).toHaveLength(0);
+  });
+
+  it('should cancel the wait between polls when the signal is aborted', async () => {
+    prepareJsonResponse();
+
+    const controller = new AbortController();
+    let pollCount = 0;
+
+    server.urls['https://api.gladia.io/v2/transcription/test-id'].response =
+      () => {
+        pollCount++;
+        controller.abort();
+        return { type: 'json-value', body: { status: 'processing' } };
+      };
+
+    // Ignore the abort signal so the response still arrives and the abort
+    // happens while the loop waits for the next poll.
+    const abortIgnoringProvider = createGladia({
+      apiKey: 'test-api-key',
+      fetch: fetchWithoutAbortSignal,
+    });
+
+    await expect(
+      abortIgnoringProvider.transcription().doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        abortSignal: controller.signal,
+        providerOptions: {
+          gladia: {
+            pollIntervalMs: 600_000,
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+
+    expect(pollCount).toBe(1);
+  });
+});
+
+const fetchWithoutAbortSignal: FetchFunction = (input, init) => {
+  const { signal: _signal, ...rest } = init ?? {};
+  return globalThis.fetch(input, rest);
+};
+
+describe('polling settings validation', () => {
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects pollIntervalMs = %s',
+    value => {
+      expect(() =>
+        createGladia({ apiKey: 'test-api-key', pollIntervalMs: value }),
+      ).toThrow(InvalidArgumentError);
+    },
+  );
+
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects pollTimeoutMs = %s',
+    value => {
+      expect(() =>
+        createGladia({ apiKey: 'test-api-key', pollTimeoutMs: value }),
+      ).toThrow(InvalidArgumentError);
+    },
+  );
 });
