@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
+import { z } from 'zod/v4';
+import { SandboxChannel } from '../utils/sandbox-channel';
 import { runBridge, type BridgeHandle, type BridgeTurn } from './index';
 
 const TOKEN = 'test-token';
@@ -394,6 +396,53 @@ describe('runBridge', () => {
         delete process.env.BRIDGE_HOST_DISCONNECT_TIMEOUT_MS;
       }
     });
+
+    it.each([
+      ['suspend', false],
+      ['close', true],
+    ] as const)(
+      'handles a SandboxChannel %s with a host disconnect timeout',
+      async (action, aborted) => {
+        const aborts: string[] = [];
+        const turn = runUntilAborted(aborts);
+        let started = false;
+        const handle = await startBridge({
+          onStart: async (start, bridgeTurn) => {
+            started = true;
+            await turn.onStart(start, bridgeTurn);
+          },
+          hostDisconnectTimeoutMs: 50,
+        });
+        const channel = new SandboxChannel<{ type: string }, { type: 'start' }>(
+          {
+            connect: async () => {
+              const ws = new WebSocket(
+                `ws://127.0.0.1:${handle.port}/?agent_bridge_token=${TOKEN}`,
+              );
+              await new Promise((resolve, reject) => {
+                ws.once('open', resolve);
+                ws.once('error', reject);
+              });
+              return ws;
+            },
+            outboundSchema: z.looseObject({ type: z.string() }),
+          },
+        );
+        await channel.open();
+        channel.send({ type: 'start' });
+        await vi.waitFor(() => expect(started).toBe(true));
+
+        if (action === 'suspend') {
+          await channel.suspend();
+        } else {
+          channel.close();
+        }
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        expect(aborts).toEqual(aborted ? ['aborted'] : []);
+        turn.release();
+      },
+    );
 
     it('keeps the turn running without a timeout', async () => {
       const aborts: string[] = [];
