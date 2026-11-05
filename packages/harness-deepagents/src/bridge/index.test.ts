@@ -40,6 +40,9 @@ type ChatAnthropicOptions = {
 const state = vi.hoisted(() => ({
   hostDisconnectTimeoutMs: undefined as number | undefined,
   createDeepAgentOptions: [] as DeepAgentOptions[],
+  repositoryResourceOptions: undefined as
+    | { workDir: string; homeDir: string; skillsPaths?: ReadonlyArray<string> }
+    | undefined,
   originalArgv: [] as string[],
   prunedAfterEventTypes: [] as Array<string | undefined>,
   responseFormat: undefined as
@@ -87,6 +90,20 @@ vi.mock('deepagents', () => ({
     };
   },
   LocalShellBackend: class {},
+}));
+
+vi.mock('./repository-resources', () => ({
+  createDeepAgentsRepositoryResourceMiddlewares: (options: {
+    workDir: string;
+    homeDir: string;
+    skillsPaths?: ReadonlyArray<string>;
+  }) => {
+    state.repositoryResourceOptions = options;
+    return {
+      memory: { name: 'confinedMemory' },
+      skills: { name: 'confinedSkills' },
+    };
+  },
 }));
 
 vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
@@ -213,6 +230,7 @@ describe('Deep Agents bridge instructions', () => {
   beforeEach(() => {
     restorePath();
     state.createDeepAgentOptions = [];
+    state.repositoryResourceOptions = undefined;
     state.prunedAfterEventTypes = [];
     state.responseFormat = undefined;
     state.headers = undefined;
@@ -232,6 +250,8 @@ describe('Deep Agents bridge instructions', () => {
       'bridge.mjs',
       '--workdir',
       '/tmp/harness-deepagents-test/work',
+      '--home-dir',
+      '/home/sandbox',
       '--bridge-state-dir',
       '/tmp/harness-deepagents-test/state',
     );
@@ -295,7 +315,7 @@ describe('Deep Agents bridge instructions', () => {
     });
   });
 
-  it('loads working directory AGENTS.md through native memory', async () => {
+  it('uses confined middleware for workDir instructions and skills', async () => {
     state.skillsPaths = [
       '/tmp/harness-deepagents-test/work/.agents/skills',
       '/home/sandbox/.agents/skills',
@@ -312,13 +332,8 @@ describe('Deep Agents bridge instructions', () => {
       writeApproval: options?.interruptOn?.write_file,
     }).toMatchInlineSnapshot(`
       {
-        "memory": [
-          "/tmp/harness-deepagents-test/work/AGENTS.md",
-        ],
-        "skills": [
-          "/tmp/harness-deepagents-test/work/.agents/skills",
-          "/home/sandbox/.agents/skills",
-        ],
+        "memory": undefined,
+        "skills": undefined,
         "systemPrompt": {
           "suffix": "Answer every question in German.",
         },
@@ -330,6 +345,20 @@ describe('Deep Agents bridge instructions', () => {
         },
       }
     `);
+    expect(state.repositoryResourceOptions).toEqual({
+      workDir: '/tmp/harness-deepagents-test/work',
+      homeDir: '/home/sandbox',
+      skillsPaths: [
+        '/tmp/harness-deepagents-test/work/.agents/skills',
+        '/home/sandbox/.agents/skills',
+      ],
+    });
+    expect(options?.middleware?.map(middleware => middleware.name)).toContain(
+      'confinedMemory',
+    );
+    expect(options?.middleware?.map(middleware => middleware.name)).toContain(
+      'confinedSkills',
+    );
   });
 
   it('installs MCP tool error recovery in the native agent', async () => {

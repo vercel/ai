@@ -304,6 +304,7 @@ describe('createDeepAgents', () => {
     expect(spawns.at(0)).toContain(
       "node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/deepagents/bridge.mjs'",
     );
+    expect(spawns.at(0)).toContain("--home-dir '/home/vercel-sandbox'");
     expect(spawns.at(0)).toContain(
       "--bootstrap-dir '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/deepagents'",
     );
