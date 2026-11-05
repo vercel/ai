@@ -145,7 +145,13 @@ const controller = new AbortController();
 
 const stream = await createAgentUIStream({
   agent,
-  uiMessages: [{ role: 'user', content: 'What is the weather in SF today?' }],
+  uiMessages: [
+    {
+      id: '1',
+      role: 'user',
+      parts: [{ type: 'text', text: 'What is the weather in SF today?' }],
+    },
+  ],
   abortSignal: controller.signal,
   // experimental_sandbox, // optional
   sendStart: true,
