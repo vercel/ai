@@ -392,7 +392,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
 
       if (transcriptionResult.status === 'error') {
         throw new AISDKError({
-          message: 'Transcription job failed',
+          message:
+            transcriptionResult.error_code == null
+              ? 'Transcription job failed'
+              : `Transcription job failed with error code ${transcriptionResult.error_code}`,
           name: 'TranscriptionJobFailed',
           cause: transcriptionResult,
         });
@@ -451,41 +454,134 @@ const gladiaTranscriptionInitializeResponseSchema = lazySchema(() =>
   ),
 );
 
-const gladiaTranscriptionResultResponseSchema = lazySchema(() =>
-  zodSchema(
+const gladiaTranscriptionResultResponseSchema = lazySchema(() => {
+  const wordSchema = z.object({
+    word: z.string(),
+    start: z.number(),
+    end: z.number(),
+    confidence: z.number().nullish(),
+  });
+
+  const utteranceSchema = z.object({
+    start: z.number(),
+    end: z.number(),
+    text: z.string(),
+    speaker: z.union([z.string(), z.number()]).nullish(),
+    channel: z.number().nullish(),
+    confidence: z.number().nullish(),
+    language: z.string().nullish(),
+    words: z.array(wordSchema).nullish(),
+  });
+
+  const subtitleSchema = z.object({
+    format: z.string(),
+    subtitles: z.string(),
+  });
+
+  const sentenceSchema = z.object({
+    sentence: z.string(),
+    start: z.number().nullish(),
+    end: z.number().nullish(),
+    words: z.array(wordSchema).nullish(),
+  });
+
+  const addonErrorSchema = z
+    .object({
+      status_code: z.number(),
+      exception: z.string(),
+      message: z.string(),
+    })
+    .nullish();
+
+  // Audio-intelligence add-ons share this envelope. Each add-on reports its own
+  // subset of fields, so every field is optional.
+  const addonSchema = <T extends z.ZodType>(results: T) =>
+    z
+      .object({
+        success: z.boolean().nullish(),
+        is_empty: z.boolean().nullish(),
+        exec_time: z.number().nullish(),
+        error: addonErrorSchema,
+        results,
+      })
+      .nullish();
+
+  const translationResultSchema = z.object({
+    error: addonErrorSchema,
+    languages: z.array(z.string()).nullish(),
+    full_transcript: z.string().nullish(),
+    utterances: z.array(utteranceSchema).nullish(),
+    sentences: z.array(sentenceSchema).nullish(),
+    subtitles: z.array(subtitleSchema).nullish(),
+  });
+
+  const namedEntitySchema = z.object({
+    entity_type: z.string(),
+    text: z.string(),
+    start: z.number().nullish(),
+    end: z.number().nullish(),
+  });
+
+  // Gladia documents sentiment results as a string but currently returns one
+  // entry per analyzed segment.
+  const sentimentSegmentSchema = z.object({
+    text: z.string(),
+    sentiment: z.string().nullish(),
+    emotion: z.string().nullish(),
+    start: z.number().nullish(),
+    end: z.number().nullish(),
+    channel: z.number().nullish(),
+  });
+
+  const audioToLlmResultSchema = z.object({
+    model: z.string().nullish(),
+    prompt: z.string().nullish(),
+    response: z.string().nullish(),
+  });
+
+  // Gladia documents audio-to-LLM items as `{ prompt, response }` but currently
+  // nests them under `results`.
+  const audioToLlmItemSchema = z.object({
+    prompt: z.string().nullish(),
+    response: z.string().nullish(),
+    results: audioToLlmResultSchema.nullish(),
+  });
+
+  return zodSchema(
     z.object({
       status: z.enum(['queued', 'processing', 'done', 'error']),
+      error_code: z.number().nullish(),
       result: z
         .object({
           metadata: z.object({
             audio_duration: z.number(),
+            number_of_distinct_channels: z.number().nullish(),
+            billing_time: z.number().nullish(),
+            transcription_time: z.number().nullish(),
           }),
           transcription: z.object({
             full_transcript: z.string(),
             languages: z.array(z.string()),
-            utterances: z.array(
-              z.object({
-                start: z.number(),
-                end: z.number(),
-                text: z.string(),
-                speaker: z.union([z.string(), z.number()]).nullish(),
-                confidence: z.number().nullish(),
-                language: z.string().nullish(),
-                words: z
-                  .array(
-                    z.object({
-                      word: z.string(),
-                      start: z.number(),
-                      end: z.number(),
-                      confidence: z.number().nullish(),
-                    }),
-                  )
-                  .nullish(),
-              }),
-            ),
+            utterances: z.array(utteranceSchema),
+            sentences: z.array(sentenceSchema).nullish(),
+            subtitles: z.array(subtitleSchema).nullish(),
           }),
+          // Audio-intelligence outputs, returned only when the matching
+          // provider option is enabled.
+          translation: addonSchema(z.array(translationResultSchema).nullish()),
+          summarization: addonSchema(z.string().nullish()),
+          named_entity_recognition: addonSchema(
+            z.array(namedEntitySchema).nullish(),
+          ),
+          sentiment_analysis: addonSchema(
+            z.union([z.string(), z.array(sentimentSegmentSchema)]).nullish(),
+          ),
+          audio_to_llm: addonSchema(z.array(audioToLlmItemSchema).nullish()),
+          // Deprecated location of the sentence results; content is also
+          // returned under `transcription.sentences`.
+          sentences: addonSchema(z.array(sentenceSchema).nullish()),
         })
         .nullish(),
     }),
-  ),
-);
+  );
+});

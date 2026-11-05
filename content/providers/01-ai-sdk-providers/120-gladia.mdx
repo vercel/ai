@@ -309,6 +309,51 @@ The following provider options are available:
   Enable enhanced punctuation.
   Optional.
 
+### Provider Metadata
+
+Gladia's audio intelligence add-ons return their results next to the
+transcription. The AI SDK exposes the parsed Gladia response on
+`result.providerMetadata.gladia`, so the outputs remain accessible when you
+enable an option:
+
+```ts highlight="12"
+const result = await transcribe({
+  model: gladia.transcription(),
+  audio: await readFile('audio.mp3'),
+  providerOptions: {
+    gladia: {
+      summarization: true,
+    },
+  },
+});
+
+console.log(result.providerMetadata.gladia.result?.summarization?.results);
+```
+
+The following values are available under `providerMetadata.gladia`:
+
+- **status** _'queued' | 'processing' | 'done' | 'error'_ — Job status.
+- **error_code** _number_ — Gladia error code when the job failed.
+- **result.metadata** — `audio_duration`, `number_of_distinct_channels`,
+  `billing_time`, and `transcription_time`.
+- **result.transcription** — `full_transcript`, `languages`, and `utterances`,
+  plus `sentences` and `subtitles` when the matching option is enabled.
+- **result.translation** — Translations when `translation` is enabled.
+- **result.summarization** — Summary when `summarization` is enabled.
+- **result.named_entity_recognition** — Detected entities when
+  `namedEntityRecognition` is enabled.
+- **result.sentiment_analysis** — Sentiment per segment when `sentimentAnalysis`
+  is enabled.
+- **result.audio_to_llm** — LLM responses when `audioToLlm` is enabled.
+- **result.sentences** — Sentence results when `sentences` is enabled. Gladia
+  deprecated this location; the same content is also available in
+  `result.transcription.sentences`.
+
+Each add-on reports `success`, `is_empty`, `exec_time`, and `error` alongside its
+`results`; check them before reading the results. When Gladia reports
+`status: 'error'`, `transcribe` throws an error that includes Gladia's
+`error_code` in the message.
+
 ### Deprecated Options
 
 Legacy options remain accepted. The SDK emits `deprecated` warnings when

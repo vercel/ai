@@ -326,6 +326,231 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should preserve audio intelligence results in provider metadata', async () => {
+      server.urls[initiateFixture.result_url].response = {
+        type: 'json-value',
+        body: {
+          ...resultFixture,
+          result: {
+            ...resultFixture.result,
+            metadata: {
+              ...resultFixture.result.metadata,
+              number_of_distinct_channels: 1,
+              billing_time: 36.74,
+              transcription_time: 12.5,
+            },
+            transcription: {
+              ...resultFixture.result.transcription,
+              sentences: [
+                {
+                  sentence: 'Galileo was an American robotic space program.',
+                  start: 0.14,
+                  end: 5.341,
+                  words: [],
+                },
+              ],
+              subtitles: [
+                {
+                  format: 'srt',
+                  subtitles: '1\n00:00:00.140 --> 00:00:05.341\nGalileo',
+                },
+              ],
+            },
+            translation: {
+              success: true,
+              is_empty: false,
+              exec_time: 2.4,
+              error: null,
+              results: [
+                {
+                  languages: ['fr'],
+                  full_transcript: 'Galilée était un programme spatial.',
+                  utterances: [
+                    {
+                      start: 0.14,
+                      end: 5.341,
+                      text: 'Galilée était un programme spatial.',
+                      language: 'fr',
+                      channel: 0,
+                      confidence: 0.9,
+                      words: [],
+                    },
+                  ],
+                },
+              ],
+            },
+            summarization: {
+              success: true,
+              is_empty: false,
+              exec_time: 1.2,
+              error: null,
+              results: 'A summary of the transcription.',
+            },
+            named_entity_recognition: {
+              success: true,
+              is_empty: false,
+              exec_time: 0.5,
+              error: null,
+              results: [
+                {
+                  entity_type: 'ORIGIN',
+                  text: 'American',
+                  start: 1.02,
+                  end: 1.48,
+                },
+              ],
+            },
+            sentiment_analysis: {
+              success: true,
+              is_empty: false,
+              exec_time: 0.6,
+              error: null,
+              results: [
+                {
+                  text: 'Galileo was an American robotic space program.',
+                  sentiment: 'neutral',
+                  emotion: 'interest',
+                  start: 0.14,
+                  end: 5.341,
+                  channel: 0,
+                },
+              ],
+            },
+            audio_to_llm: {
+              success: true,
+              is_empty: false,
+              exec_time: 3.1,
+              error: null,
+              results: [
+                {
+                  results: {
+                    model: 'openai/gpt-5.4-nano',
+                    prompt: 'What is this about?',
+                    response: 'A space program.',
+                  },
+                },
+              ],
+            },
+            sentences: {
+              success: true,
+              is_empty: false,
+              exec_time: 0.4,
+              error: null,
+              results: [
+                {
+                  sentence: 'Galileo was an American robotic space program.',
+                  start: 0.14,
+                  end: 5.341,
+                  words: [],
+                },
+              ],
+            },
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.providerMetadata?.gladia).toMatchObject({
+        result: {
+          metadata: {
+            audio_duration: 36.74,
+            number_of_distinct_channels: 1,
+            billing_time: 36.74,
+            transcription_time: 12.5,
+          },
+          transcription: {
+            subtitles: [
+              {
+                format: 'srt',
+                subtitles: '1\n00:00:00.140 --> 00:00:05.341\nGalileo',
+              },
+            ],
+            sentences: [
+              {
+                sentence: 'Galileo was an American robotic space program.',
+              },
+            ],
+          },
+          translation: {
+            results: [
+              {
+                languages: ['fr'],
+                full_transcript: 'Galilée était un programme spatial.',
+                utterances: [
+                  expect.objectContaining({
+                    text: 'Galilée était un programme spatial.',
+                    channel: 0,
+                  }),
+                ],
+              },
+            ],
+          },
+          summarization: {
+            results: 'A summary of the transcription.',
+          },
+          named_entity_recognition: {
+            results: [
+              {
+                entity_type: 'ORIGIN',
+                text: 'American',
+                start: 1.02,
+                end: 1.48,
+              },
+            ],
+          },
+          sentiment_analysis: {
+            results: [
+              expect.objectContaining({
+                sentiment: 'neutral',
+                emotion: 'interest',
+              }),
+            ],
+          },
+          audio_to_llm: {
+            results: [
+              {
+                results: {
+                  model: 'openai/gpt-5.4-nano',
+                  prompt: 'What is this about?',
+                  response: 'A space program.',
+                },
+              },
+            ],
+          },
+          sentences: {
+            results: [
+              {
+                sentence: 'Galileo was an American robotic space program.',
+              },
+            ],
+          },
+        },
+      });
+    });
+
+    it('should include the Gladia error code in the error message', async () => {
+      server.urls[initiateFixture.result_url].response = {
+        type: 'json-value',
+        body: {
+          ...resultFixture,
+          status: 'error',
+          error_code: 400,
+          result: null,
+        },
+      };
+
+      await expect(
+        model.doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+        }),
+      ).rejects.toThrow('Transcription job failed with error code 400');
+    });
+
     it('should generate full response', async () => {
       const testDate = new Date(0);
       const customModel = new GladiaTranscriptionModel('default', {
