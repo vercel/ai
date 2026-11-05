@@ -941,6 +941,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       // Stream cancellation can complete while a processing job is still
       // blocked in onToolCall. Drain that job and any message update it queued.
       await this.jobExecutor.waitForIdle();
+
+      // a stop pauses the queue even when no response was running, e.g. while
+      // the assistant waits for a tool approval:
+      this.isQueuePaused = true;
     } finally {
       this.activeStopCount--;
     }

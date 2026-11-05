@@ -6316,6 +6316,50 @@ describe('Chat', () => {
       ]);
     });
 
+    it('should resume the queue with the next message after a stop while waiting for a tool approval', async () => {
+      const { transport, requests, answer, waitForRequest } =
+        createQueueTransport();
+      const chat = createQueueChat(transport);
+
+      const sent = chat.sendMessage({ text: 'delete the file' });
+      await waitForRequest(1);
+      const { controller } = requests[0];
+      controller.enqueue({ type: 'start' });
+      controller.enqueue({ type: 'start-step' });
+      controller.enqueue({
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'deleteFile',
+        input: { path: 'a.txt' },
+      });
+      controller.enqueue({
+        type: 'tool-approval-request',
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+      });
+      controller.enqueue({ type: 'finish-step' });
+      controller.enqueue({ type: 'finish' });
+      controller.close();
+      await sent;
+
+      await chat.sendMessage({ text: 'never mind, list the files' });
+      expect(requests).toHaveLength(1);
+
+      await chat.stop();
+
+      const resumed = chat.sendMessage({ text: 'and count them' });
+      await waitForRequest(2);
+      expect(requests[1].messages.at(-1)).toBe(
+        'user: never mind, list the files',
+      );
+
+      answer(1, 'a.txt');
+      await waitForRequest(3);
+      expect(requests[2].messages.at(-1)).toBe('user: and count them');
+      answer(2, 'one file');
+      await resumed;
+    });
+
     it('should send right away while a response is in progress when the queue is disabled', async () => {
       const { transport, requests, startAnswer, waitForRequest } =
         createQueueTransport();
