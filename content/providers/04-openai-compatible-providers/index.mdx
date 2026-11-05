@@ -773,28 +773,6 @@ console.log(providerMetadata.myProvider.customMetrics);
 
 This allows you to access provider-specific information while maintaining a consistent interface across different providers.
 
-The adapter accepts arbitrary backend model IDs. The capability reference below leaves backend support unknown; configure support according to the selected provider and model.
-
-## Model Capability Reference
-
-{/* model-capabilities:openai-compatible-language:start */}
-
-| Model              | Image Input | Object Generation | Tool Usage | Tool Streaming |
-| ------------------ | ----------- | ----------------- | ---------- | -------------- |
-| `configured model` | Unknown     | Unknown           | Unknown    | Unknown        |
-
-{/* model-capabilities:openai-compatible-language:end */}
-
-### Image Capability Reference
-
-{/* model-capabilities:openai-compatible-image:start */}
-
-| Model              | Sizes                                        | Image Editing | Mask Input | Max Images Per Call |
-| ------------------ | -------------------------------------------- | ------------- | ---------- | ------------------- |
-| `configured model` | Depends on the configured backend and model. | Unknown       | Unknown    | 10                  |
-
-{/* model-capabilities:openai-compatible-image:end */}
-
 ## Provider Option Reference
 
 The following option definitions are generated from the provider catalog.
