@@ -161,6 +161,11 @@ type HarnessAgentCreateSessionOptions<
     | HarnessV1NetworkSandboxSession
     | SandboxSession
     | HarnessAgentSandboxCreator;
+  /**
+   * Stable identifier for a sandbox session when `sandboxSession` does not
+   * expose an `id`. Only supported with a HarnessV2 adapter.
+   */
+  sandboxId?: string;
   abortSignal?: AbortSignal;
 };
 
@@ -487,7 +492,29 @@ export class HarnessAgent<
     options?: HarnessAgentCreateSessionOptions<TUserTools, RUNTIME_CONTEXT>,
   ): Promise<HarnessAgentSession | HarnessAgentV2Session> {
     if (this.harnessAgentV2 != null) {
-      return this.harnessAgentV2.createSession();
+      if (options?.sandboxSession == null) {
+        throw new Error(
+          'HarnessAgent.createSession: `sandboxSession` is required with HarnessV2.',
+        );
+      }
+
+      if ('createSandboxSession' in options.sandboxSession) {
+        throw new Error(
+          'HarnessAgent.createSession: `HarnessAgentSandboxCreator` is not supported with HarnessV2.',
+        );
+      }
+
+      return this.harnessAgentV2.createSession({
+        sessionId: options.sessionId,
+        sandboxId: options.sandboxId,
+        sandboxSession: options.sandboxSession,
+      });
+    }
+
+    if (options?.sandboxId != null) {
+      throw new Error(
+        'HarnessAgent.createSession: `sandboxId` is only supported with HarnessV2.',
+      );
     }
 
     const sessionId = options?.sessionId ?? generateId();

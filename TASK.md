@@ -32,7 +32,7 @@ The steps are below:
 4. [x] Add `getSandboxSession: ({ sandboxId }) => Promise<Experimental_SandboxSession | HarnessV2NetworkSandboxSession>` to `HarnessAgentSettings`
    - In the existing `HarnessAgent` class, if it's _not_ forwarding through to the new `HarnessAgent` class, throw is this callback is provided.
    - In the new `HarnessAgent` class, throw if this callback is _not_ provided.
-5. [ ] Properly implement the new `HarnessAgent`'s `createSession()` method.
+5. [x] Properly implement the new `HarnessAgent`'s `createSession()` method.
    - Extend the new `HarnessAgentSession` type with a `async getSandboxSession()` method.
    - Implement a `DefaultHarnessAgentSession` class implementing the type, storing the sandbox session in memory (e.g. in a class property).
    - Implement a `DurableHarnessAgentSession` class implementing the type, relying on the `getSandboxSession` callback from the new `HarnessAgent`'s constructor.

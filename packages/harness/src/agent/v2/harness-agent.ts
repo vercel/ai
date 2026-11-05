@@ -1,4 +1,9 @@
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import {
+  generateId,
+  type Context,
+  type Experimental_SandboxSession as SandboxSession,
+  type ToolSet,
+} from '@ai-sdk/provider-utils';
 import type {
   AgentCallParameters,
   AgentStreamParameters,
@@ -6,9 +11,14 @@ import type {
   OutputInterface as Output,
   StreamTextResult,
 } from 'ai';
-import type { HarnessAgentSession } from './harness-agent-session';
+import {
+  DefaultHarnessAgentSession,
+  DurableHarnessAgentSession,
+  type HarnessAgentSession,
+} from './harness-agent-session';
 import type { HarnessAgentSettings } from '../harness-agent-settings';
 import type { HarnessV2 } from '../../v2/harness-v2';
+import type { HarnessV2NetworkSandboxSession } from '../../v2/harness-v2-network-sandbox-session';
 import type { HarnessV2SerializableValue } from '../../v2/harness-v2-serializable-value';
 import type { World } from '@workflow/world';
 
@@ -36,6 +46,9 @@ export class HarnessAgent<
   private readonly harness: HarnessV2<THarness['builtinTools']>;
   private readonly world: World | undefined;
   private readonly isDurable: boolean;
+  private readonly getSandboxSession: NonNullable<
+    HarnessAgentSettings['getSandboxSession']
+  >;
 
   constructor(
     settings: HarnessAgentSettings<
@@ -75,6 +88,7 @@ export class HarnessAgent<
 
     this.world = settings.world;
     this.isDurable = settings.world !== undefined;
+    this.getSandboxSession = settings.getSandboxSession;
     this.id = settings.id;
     this.harnessId = this.harness.harnessId;
     this.tools = {
@@ -83,8 +97,51 @@ export class HarnessAgent<
     } as HarnessAllTools<THarness, TUserTools>;
   }
 
-  async createSession(): Promise<HarnessAgentSession> {
-    throw new Error('Not implemented yet');
+  async createSession(options: {
+    sessionId?: string;
+    sandboxId?: string;
+    sandboxSession?: SandboxSession | HarnessV2NetworkSandboxSession;
+  }): Promise<HarnessAgentSession> {
+    const sandboxSession = options.sandboxSession;
+    if (sandboxSession == null) {
+      throw new Error(
+        'HarnessAgent.createSession: `sandboxSession` is required with HarnessV2.',
+      );
+    }
+
+    const sandboxSessionId = getSandboxId({ sandboxSession });
+    if (
+      options.sandboxId != null &&
+      sandboxSessionId != null &&
+      options.sandboxId !== sandboxSessionId
+    ) {
+      throw new Error(
+        'HarnessAgent.createSession: `sandboxId` must match the sandbox session `id` when one is available.',
+      );
+    }
+
+    const sandboxId = sandboxSessionId ?? options.sandboxId;
+    if (sandboxId == null) {
+      throw new Error(
+        'HarnessAgent.createSession: a stable `sandboxId` is required when the sandbox session has no `id`.',
+      );
+    }
+
+    const sessionId = options.sessionId ?? generateId();
+
+    if (this.isDurable) {
+      return new DurableHarnessAgentSession({
+        sessionId,
+        sandboxId,
+        getSandboxSession: this.getSandboxSession,
+      });
+    }
+
+    return new DefaultHarnessAgentSession({
+      sessionId,
+      sandboxId,
+      sandboxSession,
+    });
   }
 
   async generate(
@@ -122,6 +179,15 @@ export class HarnessAgent<
     assertCallOptionsSerializable({ options });
     throw new Error('Not implemented yet');
   }
+}
+
+function getSandboxId(input: {
+  sandboxSession: SandboxSession | HarnessV2NetworkSandboxSession;
+}): string | undefined {
+  if (!('id' in input.sandboxSession)) return undefined;
+  return typeof input.sandboxSession.id === 'string'
+    ? input.sandboxSession.id
+    : undefined;
 }
 
 function assertCallOptionsSerializable(input: { options: object }): void {

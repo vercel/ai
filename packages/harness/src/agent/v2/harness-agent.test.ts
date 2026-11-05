@@ -6,8 +6,10 @@ import type {
 import type { World } from '@workflow/world';
 import type { HarnessV2 } from '../../v2/harness-v2';
 import type { HarnessAgentSettings } from '../harness-agent-settings';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
+import type { HarnessAgentSession } from './harness-agent-session';
 import { HarnessAgent } from './harness-agent';
+import { HarnessAgent as PublicHarnessAgent } from '../harness-agent';
 
 const harness: HarnessV2 = {
   specificationVersion: 'harness-v2',
@@ -44,7 +46,10 @@ describe('HarnessAgent', () => {
     await expect(
       agent.generate({
         prompt: 'hello',
-        session: { sessionId: 'session-id', sandboxId: 'sandbox-id' },
+        session: {
+          sessionId: 'session-id',
+          sandboxId: 'sandbox-id',
+        } as HarnessAgentSession,
         onStart: () => {},
       }),
     ).rejects.toThrow('call option `onStart` must be serializable');
@@ -52,7 +57,10 @@ describe('HarnessAgent', () => {
     await expect(
       agent.stream({
         prompt: 'hello',
-        session: { sessionId: 'session-id', sandboxId: 'sandbox-id' },
+        session: {
+          sessionId: 'session-id',
+          sandboxId: 'sandbox-id',
+        } as HarnessAgentSession,
         experimental_sandbox: { readFile: async () => '' } as never,
       }),
     ).rejects.toThrow(
@@ -61,7 +69,10 @@ describe('HarnessAgent', () => {
 
     const callOptions = Object.assign(Object.create({ onStart: () => {} }), {
       prompt: 'hello',
-      session: { sessionId: 'session-id', sandboxId: 'sandbox-id' },
+      session: {
+        sessionId: 'session-id',
+        sandboxId: 'sandbox-id',
+      } as HarnessAgentSession,
     });
     await expect(agent.generate(callOptions as never)).rejects.toThrow(
       'call options must be serializable',
@@ -87,6 +98,89 @@ describe('HarnessAgent', () => {
     expect((agent as unknown as { isDurable: boolean }).isDurable).toBe(false);
   });
 
+  test('creates a non-durable session that retains its sandbox session', async () => {
+    const sandboxSession = {} as SandboxSession;
+    const agent = new HarnessAgent({ harness, getSandboxSession });
+
+    const session = await agent.createSession({
+      sessionId: 'session-id',
+      sandboxId: 'sandbox-id',
+      sandboxSession,
+    });
+
+    expect(session.sessionId).toBe('session-id');
+    expect(session.sandboxId).toBe('sandbox-id');
+    await expect(session.getSandboxSession()).resolves.toBe(sandboxSession);
+  });
+
+  test('forwards sandbox ids through the public HarnessAgent', async () => {
+    const sandboxSession = {} as SandboxSession;
+    const agent = new PublicHarnessAgent({ harness, getSandboxSession });
+
+    const session = await agent.createSession({
+      sessionId: 'session-id',
+      sandboxId: 'sandbox-id',
+      sandboxSession,
+    });
+
+    expect(session.sessionId).toBe('session-id');
+    expect(session.sandboxId).toBe('sandbox-id');
+    await expect(session.getSandboxSession()).resolves.toBe(sandboxSession);
+  });
+
+  test('creates a durable session that resolves its sandbox by id', async () => {
+    const sandboxSession = { id: 'sandbox-id' } as SandboxSession & {
+      id: string;
+    };
+    const resolvedSandboxSession = {} as SandboxSession;
+    const resolveSandboxSession = vi.fn(async () => resolvedSandboxSession);
+    const agent = new HarnessAgent({
+      harness,
+      world: {} as World,
+      getSandboxSession: resolveSandboxSession,
+    });
+
+    const session = await agent.createSession({
+      sessionId: 'session-id',
+      sandboxId: 'sandbox-id',
+      sandboxSession,
+    });
+
+    expect(session.sessionId).toBe('session-id');
+    expect(session.sandboxId).toBe('sandbox-id');
+    await expect(session.getSandboxSession()).resolves.toBe(
+      resolvedSandboxSession,
+    );
+    expect(resolveSandboxSession).toHaveBeenCalledWith({
+      sandboxId: 'sandbox-id',
+    });
+  });
+
+  test('requires a stable sandbox id when creating a session', async () => {
+    const agent = new HarnessAgent({ harness, getSandboxSession });
+
+    await expect(
+      agent.createSession({ sandboxSession: {} as SandboxSession }),
+    ).rejects.toThrow(
+      'a stable `sandboxId` is required when the sandbox session has no `id`',
+    );
+  });
+
+  test('rejects a sandbox id that conflicts with the sandbox session id', async () => {
+    const agent = new HarnessAgent({ harness, getSandboxSession });
+
+    await expect(
+      agent.createSession({
+        sandboxId: 'provided-id',
+        sandboxSession: { id: 'session-id' } as SandboxSession & {
+          id: string;
+        },
+      }),
+    ).rejects.toThrow(
+      '`sandboxId` must match the sandbox session `id` when one is available',
+    );
+  });
+
   test('accepts extended serializable values in call options', async () => {
     const agent = new HarnessAgent<
       HarnessV2,
@@ -99,7 +193,10 @@ describe('HarnessAgent', () => {
     await expect(
       agent.generate({
         prompt: 'hello',
-        session: { sessionId: 'session-id', sandboxId: 'sandbox-id' },
+        session: {
+          sessionId: 'session-id',
+          sandboxId: 'sandbox-id',
+        } as HarnessAgentSession,
         options: { timestamp: new Date() },
       }),
     ).rejects.toThrow('Not implemented yet');
