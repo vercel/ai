@@ -16,6 +16,7 @@ import {
   tool,
   type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
+import type { World } from '@workflow/world';
 import {
   convertToModelMessages,
   isStepCount,
@@ -428,6 +429,14 @@ function makeLifecycleSession(options: {
 }
 
 describe('HarnessAgent', () => {
+  test('rejects world settings when using a HarnessV1 adapter', () => {
+    const { harness } = mockHarness({ script: () => [] });
+
+    expect(() => new HarnessAgent({ harness, world: {} as World })).toThrow(
+      '`world` is only supported with HarnessV2',
+    );
+  });
+
   test('uses prepared runtime context for each prompt turn and filters telemetry', async () => {
     type RuntimeContext = { requestId: string; secret: string };
     const configuredContext = { requestId: 'default', secret: 'configured' };

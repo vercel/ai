@@ -10,6 +10,7 @@ import type { HarnessAgentSession } from './harness-agent-session';
 import type { HarnessAgentSettings } from '../harness-agent-settings';
 import type { HarnessV2 } from '../../v2/harness-v2';
 import type { HarnessV2SerializableValue } from '../../v2/harness-v2-serializable-value';
+import type { World } from '@workflow/world';
 
 interface HarnessAgentCallExtensions {
   session: HarnessAgentSession;
@@ -33,6 +34,8 @@ export class HarnessAgent<
   readonly hasOutput = false;
 
   private readonly harness: HarnessV2<THarness['builtinTools']>;
+  private readonly world: World | undefined;
+  private readonly isDurable: boolean;
 
   constructor(
     settings: HarnessAgentSettings<
@@ -52,7 +55,7 @@ export class HarnessAgent<
     this.harness = settings.harness;
 
     const unsupportedSetting = Reflect.ownKeys(settings).find(
-      key => key !== 'harness' && key !== 'tools',
+      key => key !== 'harness' && key !== 'tools' && key !== 'world',
     );
     if (unsupportedSetting !== undefined) {
       throw new Error(
@@ -60,6 +63,8 @@ export class HarnessAgent<
       );
     }
 
+    this.world = settings.world;
+    this.isDurable = settings.world !== undefined;
     this.id = settings.id;
     this.harnessId = this.harness.harnessId;
     this.tools = {

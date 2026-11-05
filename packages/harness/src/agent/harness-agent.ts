@@ -365,6 +365,12 @@ export class HarnessAgent<
       return;
     }
 
+    if (inputSettings.world !== undefined) {
+      throw new Error(
+        'HarnessAgent: `world` is only supported with HarnessV2.',
+      );
+    }
+
     this.harnessAgentV2 = undefined;
     const settings = inputSettings as HarnessAgentSettings<
       THarness,

@@ -1,4 +1,5 @@
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import type { World } from '@workflow/world';
 import type { HarnessV2 } from '../../v2/harness-v2';
 import { describe, expect, test } from 'vitest';
 import { HarnessAgent } from './harness-agent';
@@ -50,6 +51,25 @@ describe('HarnessAgent', () => {
     await expect(agent.generate(callOptions as never)).rejects.toThrow(
       'call options must be serializable',
     );
+  });
+
+  test('stores the provided world and marks the agent durable', () => {
+    const world = {} as World;
+    const agent = new HarnessAgent({ harness, world });
+
+    expect((agent as unknown as { world: World | undefined }).world).toBe(
+      world,
+    );
+    expect((agent as unknown as { isDurable: boolean }).isDurable).toBe(true);
+  });
+
+  test('marks the agent non-durable when no world is provided', () => {
+    const agent = new HarnessAgent({ harness });
+
+    expect(
+      (agent as unknown as { world: World | undefined }).world,
+    ).toBeUndefined();
+    expect((agent as unknown as { isDurable: boolean }).isDurable).toBe(false);
   });
 
   test('accepts extended serializable values in call options', async () => {

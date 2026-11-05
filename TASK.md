@@ -25,7 +25,7 @@ The steps are below:
    - `createSession()`, `generate()` and `stream()` at the end of their methods should simply throw "Not implemented yet".
    - Make the existing `HarnessAgent` class file import the new `HarnessAgent` class (aliased as `HarnessAgentV2`), and conditionally instantiate it as a private class property _if_ the given `harness` property`is a`HarnessV2`. then in all class methods short-circuit to immediately pass through to that wrapped instance equivalent method if the class property is populated with the new `HarnessAgentV2` instance. If the method doesn't have an equivalent in the new version of the class, immediately throw.
    - In the constructor of the new `HarnessAgent` (V2) class, throw immediately if the given `harness` is a `HarnessV1`, and safely assign the validated value to a class property typed `HarnessV2`.
-3. [ ] Add `@workflow/world` as a prod dependency for the `harness` package and add `world?: World` to `HarnessAgentSettings`.
+3. [x] Add `@workflow/world` as a prod dependency for the `harness` package and add `world?: World` to `HarnessAgentSettings`.
    - In the existing `HarnessAgent` class, if it's _not_ forwarding through to the new `HarnessAgent` class, throw is a `World` is provided.
    - In the new `HarnessAgent` class, store the world in a private class property (optional of course).
    - Also store a private boolean class property `isDurable` that is set to `true` if a `World` was provided, otherwise to `false`.

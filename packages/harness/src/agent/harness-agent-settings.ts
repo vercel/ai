@@ -40,6 +40,7 @@ import type {
 } from 'ai';
 import type { ToolsContextSettings } from 'ai/internal';
 import type { HarnessAllTools } from './harness-agent-tool-types';
+import type { World } from '@workflow/world';
 
 export type HarnessAgentToolApprovalConfiguration = Readonly<
   Record<string, ToolApprovalStatus>
@@ -155,6 +156,12 @@ export type HarnessAgentSettings<
    * AI SDK consumers in the typed `tool-call` stream.
    */
   readonly harness: THarness;
+
+  /**
+   * Workflow world used to persist durable harness execution state. Only
+   * supported when `harness` implements `HarnessV2`.
+   */
+  readonly world?: World;
 
   /**
    * Stable identifier for this agent instance. Exposed via `agent.id`.
