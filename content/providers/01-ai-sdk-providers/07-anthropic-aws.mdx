@@ -66,6 +66,16 @@ Use the direct provider when you need AWS-native authentication, AWS Marketplace
 
 This differs from [Amazon Bedrock](/providers/ai-sdk-providers/amazon-bedrock) in two important ways: Claude Platform on AWS uses Anthropic's Messages API directly (not Bedrock's `Converse`/`InvokeModel`), and new features are available the same day they launch on the first-party Claude API (no AWS integration delay).
 
+### Message threads
+
+The direct provider supports [Anthropic message threads](/providers/ai-sdk-providers/anthropic#message-threads)
+through `providerOptions.anthropic.thread`. Create with `{ type: 'create' }`, then
+continue with `{ type: 'continue', previousMessageId }` and only new messages.
+The required beta header is added automatically. Keep a full local history for
+replay after expiry and keep fixed settings and beta headers identical between
+requests. When using SigV4, sign every request of a thread with credentials for
+the same IAM role or IAM user that created it.
+
 ### Prerequisites
 
 Before you can use the provider, your AWS account must be subscribed to Claude Platform on AWS through the AWS Marketplace, and outbound web identity federation must be enabled on the account (a one-time setup step):

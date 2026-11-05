@@ -249,6 +249,7 @@ export function createAnthropicAws(
   const createChatModel = (modelId: AnthropicModelId) =>
     new AnthropicLanguageModel(modelId, {
       provider: 'anthropic-aws.messages',
+      supportsMessageThreads: true,
       baseURL: getBaseURL(),
       headers: getHeaders,
       fetch: fetchFunction,
