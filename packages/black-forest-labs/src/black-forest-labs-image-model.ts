@@ -1,4 +1,5 @@
 import {
+  APICallError,
   UnsupportedFunctionalityError,
   type ImageModelV3,
   type SharedV3Warning,
@@ -21,6 +22,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
+  bflErrorSchema,
   bflFailedResponseHandler,
   isTrustedUrl,
 } from './black-forest-labs-api';
@@ -36,6 +38,11 @@ import type {
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
 const DEFAULT_POLL_TIMEOUT_MILLIS = 60000;
+// Webhook jobs can answer `get_result` with "Task not found" for a moment after
+// submission. Cap those retries separately from the overall poll timeout: at the
+// default 500ms interval this gives the job roughly 10s to register, and a task
+// that stays unknowable fails with a clear error instead of a generic timeout.
+const MAX_TASK_NOT_FOUND_ATTEMPTS = 20;
 
 interface BlackForestLabsImageModelConfig {
   provider: string;
@@ -348,7 +355,12 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const pollUrl = submit.value.polling_url;
+    // BFL responds with a webhook-shaped object (no `polling_url`) when a
+    // webhook is registered for the request. The task can still be polled via
+    // the documented `get_result` endpoint using the configured base URL.
+    const pollingUrl = submit.value.polling_url;
+    const usesGetResultFallback = pollingUrl == null;
+    const pollUrl = pollingUrl ?? `${this.config.baseURL}/get_result`;
     const requestId = submit.value.id;
 
     const {
@@ -360,6 +372,7 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     } = await this.pollForImageUrl({
       pollUrl,
       requestId,
+      allowTaskNotFound: usesGetResultFallback,
       headers: combinedHeaders,
       abortSignal,
       pollOverrides: {
@@ -418,12 +431,14 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
   private async pollForImageUrl({
     pollUrl,
     requestId,
+    allowTaskNotFound = false,
     headers,
     abortSignal,
     pollOverrides,
   }: {
     pollUrl: string;
     requestId: string;
+    allowTaskNotFound?: boolean;
     headers: Record<string, string | undefined>;
     abortSignal: AbortSignal | undefined;
     pollOverrides?: {
@@ -454,7 +469,7 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       url.searchParams.set('id', requestId);
     }
 
-    for (let i = 0; i < maxPollAttempts; i++) {
+    const fetchPollResult = async () => {
       const { value } = await getFromApi({
         url: url.toString(),
         // The polling URL comes from the provider response; only send
@@ -467,8 +482,44 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
         abortSignal,
         fetch: this.config.fetch,
       });
+      return value;
+    };
+
+    const taskNotFoundError = () =>
+      new Error(
+        `Black Forest Labs task ${requestId} was not found via get_result before timing out`,
+      );
+
+    let lastStatus: string | undefined;
+    let taskNotFoundAttempts = 0;
+
+    // Record "Task not found" answers so that a task that never appears is
+    // reported as such instead of as a generic poll timeout.
+    const trackTaskNotFound = () => {
+      lastStatus = 'Task not found';
+      taskNotFoundAttempts += 1;
+      if (taskNotFoundAttempts >= MAX_TASK_NOT_FOUND_ATTEMPTS) {
+        throw taskNotFoundError();
+      }
+    };
+
+    for (let i = 0; i < maxPollAttempts; i++) {
+      let value: Awaited<ReturnType<typeof fetchPollResult>>;
+      try {
+        value = await fetchPollResult();
+      } catch (error) {
+        // Webhook jobs are registered asynchronously: `get_result` can
+        // briefly answer HTTP 404 "Task not found" after submission.
+        if (allowTaskNotFound && isTaskNotFoundError(error)) {
+          trackTaskNotFound();
+          await delay(pollIntervalMillis, { abortSignal });
+          continue;
+        }
+        throw error;
+      }
 
       const status = value.status;
+      lastStatus = status;
       if (status === 'Ready') {
         if (typeof value.result?.sample === 'string') {
           return {
@@ -483,6 +534,11 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
           'Black Forest Labs poll response is Ready but missing result.sample',
         );
       }
+      if (status === 'Task not found' && allowTaskNotFound) {
+        trackTaskNotFound();
+        await delay(pollIntervalMillis, { abortSignal });
+        continue;
+      }
       if (status === 'Error' || status === 'Failed') {
         throw new Error('Black Forest Labs generation failed.');
       }
@@ -494,10 +550,12 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
         throw new Error(`Black Forest Labs generation failed: ${status}.`);
       }
 
-      await delay(pollIntervalMillis);
+      await delay(pollIntervalMillis, { abortSignal });
     }
 
-    throw new Error('Black Forest Labs generation timed out.');
+    throw lastStatus === 'Task not found'
+      ? taskNotFoundError()
+      : new Error('Black Forest Labs generation timed out.');
   }
 }
 
@@ -530,11 +588,24 @@ function gcd(a: number, b: number): number {
   return x;
 }
 
+function isTaskNotFoundError(error: unknown): boolean {
+  if (!APICallError.isInstance(error) || error.statusCode !== 404) {
+    return false;
+  }
+
+  const parsed = bflErrorSchema.safeParse(error.data);
+  return (
+    parsed.success &&
+    (parsed.data.status ?? parsed.data.state) === 'Task not found'
+  );
+}
+
 const bflSubmitSchema = lazySchema(() =>
   zodSchema(
     z.object({
       id: z.string(),
-      polling_url: z.url(),
+      // Absent for webhook-shaped responses (`AsyncWebhookResponse`).
+      polling_url: z.url().nullish(),
       cost: z.number().nullish(),
       input_mp: z.number().nullish(),
       output_mp: z.number().nullish(),
