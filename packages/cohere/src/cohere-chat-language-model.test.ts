@@ -1110,6 +1110,161 @@ describe('doStream', () => {
     });
   });
 
+  describe('citations', () => {
+    it('should stream sources for citations', async () => {
+      prepareChunksFixtureResponse('cohere-citations');
+
+      const mockGenerateId = vi.fn().mockReturnValue('test-citation-id');
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: mockGenerateId,
+      });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What are AI benefits?' },
+              {
+                type: 'file',
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from(
+                    'AI provides automation and efficiency.',
+                  ).toString('base64'),
+                },
+                mediaType: 'text/plain',
+                filename: 'ai-benefits.txt',
+              },
+            ],
+          },
+        ],
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+
+    it('should stream a source for each citation in a citation-start event', async () => {
+      const citation = {
+        start: 0,
+        end: 4,
+        text: 'text',
+        sources: [
+          {
+            type: 'document',
+            id: 'doc:0',
+            document: { id: 'doc:0', text: 'text', title: 'test.txt' },
+          },
+        ],
+        type: 'TEXT_CONTENT',
+      };
+      prepareChunkLinesResponse([
+        {
+          type: 'citation-start',
+          index: 0,
+          delta: { message: { citations: [citation, citation] } },
+        },
+        { type: 'citation-end', index: 0 },
+      ]);
+
+      const mockGenerateId = vi
+        .fn()
+        .mockReturnValueOnce('test-citation-id-1')
+        .mockReturnValueOnce('test-citation-id-2');
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: mockGenerateId,
+      });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({ prompt: TEST_PROMPT });
+
+      expect(
+        (await convertReadableStreamToArray(stream)).filter(
+          part => part.type === 'source',
+        ),
+      ).toStrictEqual([
+        {
+          type: 'source',
+          sourceType: 'document',
+          id: 'test-citation-id-1',
+          mediaType: 'text/plain',
+          title: 'test.txt',
+          providerMetadata: {
+            cohere: {
+              start: 0,
+              end: 4,
+              text: 'text',
+              sources: citation.sources,
+              citationType: 'TEXT_CONTENT',
+            },
+          },
+        },
+        {
+          type: 'source',
+          sourceType: 'document',
+          id: 'test-citation-id-2',
+          mediaType: 'text/plain',
+          title: 'test.txt',
+          providerMetadata: {
+            cohere: {
+              start: 0,
+              end: 4,
+              text: 'text',
+              sources: citation.sources,
+              citationType: 'TEXT_CONTENT',
+            },
+          },
+        },
+      ]);
+    });
+
+    it('should tolerate citations without optional fields', async () => {
+      prepareChunkLinesResponse([
+        {
+          type: 'citation-start',
+          index: 0,
+          delta: {
+            message: { citations: { sources: [{ type: 'document' }] } },
+          },
+        },
+        { type: 'citation-end', index: 0 },
+      ]);
+
+      const mockGenerateId = vi.fn().mockReturnValue('test-citation-id');
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: mockGenerateId,
+      });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      expect(parts.filter(part => part.type === 'source')).toMatchObject([
+        {
+          type: 'source',
+          sourceType: 'document',
+          id: 'test-citation-id',
+          mediaType: 'text/plain',
+          title: 'Document',
+          providerMetadata: {
+            cohere: {
+              start: null,
+              end: null,
+              text: null,
+              sources: [{ type: 'document' }],
+            },
+          },
+        },
+      ]);
+    });
+  });
+
   describe('reasoning', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('cohere-reasoning');
