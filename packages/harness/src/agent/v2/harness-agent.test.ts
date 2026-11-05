@@ -1,6 +1,11 @@
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  Context,
+  Experimental_SandboxSession as SandboxSession,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import type { World } from '@workflow/world';
 import type { HarnessV2 } from '../../v2/harness-v2';
+import type { HarnessAgentSettings } from '../harness-agent-settings';
 import { describe, expect, test } from 'vitest';
 import { HarnessAgent } from './harness-agent';
 
@@ -10,6 +15,10 @@ const harness: HarnessV2 = {
   builtinTools: {},
   drive: async () => {},
 };
+
+const getSandboxSession: NonNullable<
+  HarnessAgentSettings<typeof harness>['getSandboxSession']
+> = async ({ sandboxId: _sandboxId }) => ({}) as SandboxSession;
 
 describe('HarnessAgent', () => {
   test('rejects a harness adapter with a different specification version', () => {
@@ -23,8 +32,14 @@ describe('HarnessAgent', () => {
     );
   });
 
+  test('requires a sandbox session resolver', () => {
+    expect(() => new HarnessAgent({ harness })).toThrow(
+      '`getSandboxSession` is required with HarnessV2',
+    );
+  });
+
   test('rejects non-serializable call properties before the scaffold error', async () => {
-    const agent = new HarnessAgent({ harness });
+    const agent = new HarnessAgent({ harness, getSandboxSession });
 
     await expect(
       agent.generate({
@@ -55,7 +70,7 @@ describe('HarnessAgent', () => {
 
   test('stores the provided world and marks the agent durable', () => {
     const world = {} as World;
-    const agent = new HarnessAgent({ harness, world });
+    const agent = new HarnessAgent({ harness, world, getSandboxSession });
 
     expect((agent as unknown as { world: World | undefined }).world).toBe(
       world,
@@ -64,7 +79,7 @@ describe('HarnessAgent', () => {
   });
 
   test('marks the agent non-durable when no world is provided', () => {
-    const agent = new HarnessAgent({ harness });
+    const agent = new HarnessAgent({ harness, getSandboxSession });
 
     expect(
       (agent as unknown as { world: World | undefined }).world,
@@ -79,7 +94,7 @@ describe('HarnessAgent', () => {
       Context,
       never,
       { timestamp: Date }
-    >({ harness });
+    >({ harness, getSandboxSession });
 
     await expect(
       agent.generate({

@@ -437,6 +437,18 @@ describe('HarnessAgent', () => {
     );
   });
 
+  test('rejects a sandbox session resolver when using a HarnessV1 adapter', () => {
+    const { harness } = mockHarness({ script: () => [] });
+
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          getSandboxSession: async () => ({}) as SandboxSession,
+        }),
+    ).toThrow('`getSandboxSession` is only supported with HarnessV2');
+  });
+
   test('uses prepared runtime context for each prompt turn and filters telemetry', async () => {
     type RuntimeContext = { requestId: string; secret: string };
     const configuredContext = { requestId: 'default', secret: 'configured' };

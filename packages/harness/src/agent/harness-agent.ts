@@ -371,6 +371,12 @@ export class HarnessAgent<
       );
     }
 
+    if (inputSettings.getSandboxSession !== undefined) {
+      throw new Error(
+        'HarnessAgent: `getSandboxSession` is only supported with HarnessV2.',
+      );
+    }
+
     this.harnessAgentV2 = undefined;
     const settings = inputSettings as HarnessAgentSettings<
       THarness,

@@ -29,7 +29,7 @@ The steps are below:
    - In the existing `HarnessAgent` class, if it's _not_ forwarding through to the new `HarnessAgent` class, throw is a `World` is provided.
    - In the new `HarnessAgent` class, store the world in a private class property (optional of course).
    - Also store a private boolean class property `isDurable` that is set to `true` if a `World` was provided, otherwise to `false`.
-4. [ ] Add `getSandboxSession: ({ sandboxId }) => Promise<Experimental_SandboxSession | HarnessV2NetworkSandboxSession>` to `HarnessAgentSettings`
+4. [x] Add `getSandboxSession: ({ sandboxId }) => Promise<Experimental_SandboxSession | HarnessV2NetworkSandboxSession>` to `HarnessAgentSettings`
    - In the existing `HarnessAgent` class, if it's _not_ forwarding through to the new `HarnessAgent` class, throw is this callback is provided.
    - In the new `HarnessAgent` class, throw if this callback is _not_ provided.
 5. [ ] Properly implement the new `HarnessAgent`'s `createSession()` method.

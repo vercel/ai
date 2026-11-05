@@ -52,10 +52,20 @@ export class HarnessAgent<
       );
     }
 
+    if (typeof settings.getSandboxSession !== 'function') {
+      throw new Error(
+        'HarnessAgent: `getSandboxSession` is required with HarnessV2.',
+      );
+    }
+
     this.harness = settings.harness;
 
     const unsupportedSetting = Reflect.ownKeys(settings).find(
-      key => key !== 'harness' && key !== 'tools' && key !== 'world',
+      key =>
+        key !== 'harness' &&
+        key !== 'tools' &&
+        key !== 'world' &&
+        key !== 'getSandboxSession',
     );
     if (unsupportedSetting !== undefined) {
       throw new Error(
