@@ -181,14 +181,16 @@ The following provider options are available:
 
 - **callback** _string_
 
-  URL to which Deepgram will make a callback request with the audio.
-  Optional.
+  Not supported. Deepgram processes requests with a callback URL asynchronously
+  and answers with a JSON acknowledgement (`{ "request_id": "..." }`) instead of
+  audio, so `generateSpeech` rejects this option with an `InvalidArgumentError`.
+  Call the Deepgram REST API directly when you need asynchronous callback
+  delivery.
 
 - **callbackMethod** _enum_
 
-  HTTP method for the callback request.
-  Allowed values: `'POST'`, `'PUT'`.
-  Optional.
+  Not supported. Only used together with `callback`, which `generateSpeech`
+  rejects. Allowed values: `'POST'`, `'PUT'`. The option is ignored.
 
 - **mipOptOut** _boolean_
 
