@@ -1,3 +1,4 @@
+import { blackForestLabsDocs } from './providers/black-forest-labs.mjs';
 import { replicateDocs } from './providers/replicate.mjs';
 import { falDocs } from './providers/fal.mjs';
 import { voyageDocs } from './providers/voyage.mjs';
@@ -22,6 +23,7 @@ import { formatSupport } from './render-tables.mjs';
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
+  blackForestLabsDocs,
   replicateDocs,
   falDocs,
   voyageDocs,
