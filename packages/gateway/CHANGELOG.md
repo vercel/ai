@@ -1,5 +1,42 @@
 # @ai-sdk/gateway
 
+## 4.0.136
+
+### Patch Changes
+
+- 722d4a9: chore(provider/gateway): update gateway model settings files
+- acea2b5: chore(provider/gateway): update gateway model settings files
+- 89aff56: Add opt-in streaming decoding of large generated images to reduce peak memory.
+
+  Set `providerOptions.gateway.experimental_streamingImageDecoding` to `true` to decode canonical base64 images of at least 64 KiB while reading the response. Extracted images are returned as `Uint8Array`; smaller images stay base64 strings, and mixed results are normalized to bytes. The client option is not forwarded to the service.
+
+  Default behavior preserves the API's base64 representation. Opting in changes the model result representation and replaces large image data with placeholders in validation errors. Accessing `GeneratedFile.base64` can require re-encoding the extracted bytes.
+
+- 41465fd: Preserve optional normalized word timings returned by transcription responses and warn when shared timestampGranularities requests are not forwarded by the gateway adapter.
+- 2e44144: Accept explicit uploaded-video outcomes in video generation and status responses.
+- ef2dfb5: fix: pass through `seed: 0` instead of dropping it in image and video models. KlingAI now reports `seed: 0` as an unsupported setting like any other seed.
+- 892af4d: feat (provider/gateway): implement server-side realtime connection descriptors
+
+  `GatewayRealtimeModel` now implements `getServerWebSocketConfig()`, returning the AI Gateway realtime WebSocket URL plus `Authorization` header auth and optional team scoping for trusted server-side clients. Unsupported endpoint intents are rejected on the normalized realtime route.
+
+  Server WebSockets reuse HTTP authentication, protocol, team and custom headers, including OIDC auth-method metadata.
+
+- 32acf43: Add marketCost, surchargeCost, and gatewayCost fields to getGenerationInfo() results, surfacing the corresponding fields from the AI Gateway generation lookup API.
+
+  The cost breakdown fields are optional and omitted when unavailable, preserving compatibility with older responses and distinguishing missing data from a zero cost.
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 4.0.135
 
 ### Patch Changes
