@@ -43,9 +43,10 @@ export function replaceGeneratedTable(source, id, table) {
   ) {
     throw new Error(`Missing or duplicate generated table markers: ${id}`);
   }
+  const replacement = table === '' ? '\n\n' : `\n\n${table}\n\n`;
   return (
     source.slice(0, startIndex + start.length) +
-    `\n\n${table}\n\n` +
+    replacement +
     source.slice(endIndex)
   );
 }
