@@ -6,20 +6,37 @@ import {
   createJsonErrorResponseHandler,
 } from '@ai-sdk/provider-utils';
 
+/**
+ * AssemblyAI documents a flat error shape for 4xx/5xx responses:
+ * `{ "error": "Invalid API key", "status": "error" }`.
+ *
+ * Some errors (e.g. HTTP 429) are wrapped in a nested object instead:
+ * `{ "error": { "message": "...", "code": 429 } }`.
+ */
 export const assemblyaiErrorDataSchema = lazySchema(() =>
   zodSchema(
-    z.object({
-      error: z.object({
-        message: z.string(),
-        code: z.number(),
+    z.union([
+      z.object({
+        error: z.string(),
+        status: z.literal('error').nullish(),
       }),
-    }),
+      z.object({
+        error: z.object({
+          message: z.string(),
+          code: z.number(),
+        }),
+      }),
+    ]),
   ),
 );
 
 export type AssemblyAIErrorData = InferSchema<typeof assemblyaiErrorDataSchema>;
 
+function assemblyaiErrorToMessage(data: AssemblyAIErrorData): string {
+  return typeof data.error === 'string' ? data.error : data.error.message;
+}
+
 export const assemblyaiFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: assemblyaiErrorDataSchema,
-  errorToMessage: data => data.error.message,
+  errorToMessage: assemblyaiErrorToMessage,
 });
