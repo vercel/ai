@@ -10,7 +10,7 @@ import {
  * AssemblyAI documents a flat error shape for 4xx/5xx responses:
  * `{ "error": "Invalid API key", "status": "error" }`.
  *
- * Some errors (e.g. HTTP 429) are wrapped in a nested object instead:
+ * Previously supported nested shape, kept for backward compatibility:
  * `{ "error": { "message": "...", "code": 429 } }`.
  */
 export const assemblyaiErrorDataSchema = lazySchema(() =>
@@ -18,7 +18,6 @@ export const assemblyaiErrorDataSchema = lazySchema(() =>
     z.union([
       z.object({
         error: z.string(),
-        status: z.literal('error').nullish(),
       }),
       z.object({
         error: z.object({

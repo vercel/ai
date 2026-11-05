@@ -5,13 +5,23 @@ import {
 } from './assemblyai-error';
 import { describe, it, expect } from 'vitest';
 
-async function handleErrorResponse(body: unknown, status: number) {
+async function handleResponse(response: Response) {
   const { value } = await assemblyaiFailedResponseHandler({
     url: 'https://api.assemblyai.com/v2/transcript',
     requestBodyValues: {},
-    response: new Response(JSON.stringify(body), { status }),
+    response,
   });
   return value;
+}
+
+async function handleErrorResponse(
+  body: unknown,
+  status: number,
+  statusText?: string,
+) {
+  return handleResponse(
+    new Response(JSON.stringify(body), { status, statusText }),
+  );
 }
 
 describe('assemblyaiErrorDataSchema', () => {
@@ -69,7 +79,23 @@ describe('assemblyaiErrorDataSchema', () => {
 
     expect(result).toStrictEqual({
       success: true,
-      value: body,
+      // The schema strips unknown keys such as `status`.
+      value: { error: 'format_text must be a Boolean' },
+      rawValue: body,
+    });
+  });
+
+  it('should parse the flat error shape with an unexpected status value', async () => {
+    const body = { error: 'Invalid API key', status: 'unexpected' };
+
+    const result = await safeParseJSON({
+      text: JSON.stringify(body),
+      schema: assemblyaiErrorDataSchema,
+    });
+
+    expect(result).toStrictEqual({
+      success: true,
+      value: { error: 'Invalid API key' },
       rawValue: body,
     });
   });
@@ -93,7 +119,10 @@ describe('assemblyaiFailedResponseHandler', () => {
 
     expect(error.message).toBe('format_text must be a Boolean');
     expect(error.statusCode).toBe(400);
-    expect(error.data).toStrictEqual(body);
+    // The schema strips unknown keys such as `status`.
+    expect(error.data).toStrictEqual({
+      error: 'format_text must be a Boolean',
+    });
   });
 
   it('should keep using the nested error message', async () => {
@@ -110,5 +139,27 @@ describe('assemblyaiFailedResponseHandler', () => {
     expect(error.message).toBe(body.error.message);
     expect(error.statusCode).toBe(429);
     expect(error.data).toStrictEqual(body);
+  });
+
+  it('should fall back to the status text for an unrecognized error body', async () => {
+    const error = await handleErrorResponse(
+      { foo: 'bar' },
+      500,
+      'Internal Server Error',
+    );
+
+    expect(error.message).toBe('Internal Server Error');
+    expect(error.statusCode).toBe(500);
+    expect(error.responseBody).toBe('{"foo":"bar"}');
+  });
+
+  it('should fall back to the status text for a non-JSON error body', async () => {
+    const error = await handleResponse(
+      new Response('not json', { status: 502, statusText: 'Bad Gateway' }),
+    );
+
+    expect(error.message).toBe('Bad Gateway');
+    expect(error.statusCode).toBe(502);
+    expect(error.responseBody).toBe('not json');
   });
 });
