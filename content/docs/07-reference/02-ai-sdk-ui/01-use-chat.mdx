@@ -280,6 +280,13 @@ Allows you to easily create a conversational user interface for your chatbot app
         'When provided, this function will be called when the stream is finished or a tool call is added to determine if the current messages should be resubmitted. You can use the lastAssistantMessageIsCompleteWithToolCalls helper for common scenarios.',
     },
     {
+      name: 'experimental_queue',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Experimental. When true, messages sent while a response is in progress, or while the assistant waits for a tool result or approval, are queued and sent one at a time after each response finishes. Stopping or an error pauses the queue until the next message is sent. Defaults to false.',
+    },
+    {
       name: 'onFinish',
       type: '(options: OnFinishOptions) => void',
       isOptional: true,
@@ -460,6 +467,23 @@ Allows you to easily create a conversational user interface for your chatbot app
       name: 'clearError',
       type: '() => void',
       description: 'Clears the error state.',
+    },
+    {
+      name: 'experimental_queuedMessages',
+      type: 'UIMessage[]',
+      description:
+        'Experimental. Messages that wait to be sent when `experimental_queue` is enabled, in the order they will be sent.',
+    },
+    {
+      name: 'experimental_removeQueuedMessage',
+      type: '(id: string) => void',
+      description: 'Experimental. Removes a queued message so it is not sent.',
+    },
+    {
+      name: 'experimental_sendQueuedMessageNow',
+      type: '(id: string) => Promise<void>',
+      description:
+        'Experimental. Stops the response in progress and sends the queued message with the given id next. The rest of the queue is sent after it.',
     },
     {
       name: 'resumeStream',
