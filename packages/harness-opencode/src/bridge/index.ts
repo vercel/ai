@@ -477,6 +477,9 @@ function buildProviderConfig(
   if (procEnv.AI_GATEWAY_API_KEY && procEnv.AI_GATEWAY_BASE_URL) {
     return {
       [providerID]: {
+        ...(providerID === 'google' || providerID === 'mistral'
+          ? { npm: '@ai-sdk/openai-compatible' }
+          : {}),
         options: {
           apiKey: procEnv.AI_GATEWAY_API_KEY,
           baseURL: toOpenCodeGatewayBaseUrl(procEnv.AI_GATEWAY_BASE_URL),

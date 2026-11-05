@@ -33,6 +33,25 @@ To run the example locally you need to:
 5. `pnpm install` to install the required dependencies.
 6. `pnpm dev` to launch the development server.
 
+## Code execution file downloads
+
+Anthropic code execution file downloads (including Anthropic on Microsoft) and
+OpenAI/Azure container file downloads are available only in local development.
+`pnpm dev` binds to `127.0.0.1`; keep the
+development server on loopback and open `http://127.0.0.1:3000`. Download routes
+reject production, Vercel deployments (including `vercel dev`), non-loopback Host
+headers, forwarded external clients, and cross-origin browser requests before
+using provider credentials. The loopback bind is the network access control;
+request headers cannot prove that a non-browser client is local. Do not expose
+the development server through a public interface or tunnel, including a proxy
+that rewrites the client address and Host to loopback values.
+
+To support downloads in a deployed application, add authentication and verify
+that the requested file belongs to a chat the user can access before contacting
+the provider. A file ID alone does not authorize a download.
+
+Run the download route regression tests with `pnpm test:downloads`.
+
 ## WebSocket chat
 
 The `/chat/websocket` page uses `WebSocketChatTransport` and `useChat` with a

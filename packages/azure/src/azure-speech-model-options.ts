@@ -4,6 +4,7 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { getAzureModelEntry } from './azure-model-catalog';
 import { azureSpeechSpeechModelOptionsShape } from './azure-speech-speech-model-options';
 
 export const azureSpeechModelOptions = lazySchema(() =>
@@ -22,14 +23,6 @@ export type AzureSpeechModelOptions = InferSchema<
   typeof azureSpeechModelOptions
 >;
 
-// Azure voice-name suffixes by lowercase model ID.
-const maiVoiceModels = new Map([
-  ['mai-voice-2.1-flash', 'MAI-Voice-2.1-Flash'],
-  ['mai-voice-2.1', 'MAI-Voice-2.1'],
-  ['mai-voice-2-flash', 'MAI-Voice-2-Flash'],
-  ['mai-voice-2', 'MAI-Voice-2'],
-]);
-
 export function getMAIVoiceModel(modelId: string) {
-  return maiVoiceModels.get(modelId.toLowerCase());
+  return getAzureModelEntry(modelId)?.requestConfig?.speech?.voiceModel;
 }

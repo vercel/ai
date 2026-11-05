@@ -15,6 +15,7 @@ type AnthropicLanguageProviderOption = keyof AnthropicLanguageModelOptions;
  */
 export const anthropicProviderOptions = {
   language: {
+    thread: { description: 'Create or continue a short-lived message thread.' },
     sendReasoning: { description: 'Whether to send reasoning to the model.' },
     includePings: { description: 'Include transient ping events in streams.' },
     structuredOutputMode: {
@@ -406,3 +407,6 @@ export function getAnthropicModelCapabilities(modelId: string) {
     isKnownModel: requestConfig.knownModel,
   };
 }
+
+// Compatibility name also exported by the Anthropic runtime adapter.
+export { getAnthropicModelCapabilities as getModelCapabilities };
