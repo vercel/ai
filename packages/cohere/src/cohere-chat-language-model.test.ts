@@ -263,6 +263,119 @@ describe('doGenerate', () => {
       expect(result).toMatchSnapshot();
     });
 
+    it('should map document citations without title and with missing fields', async () => {
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-citation-id',
+      });
+
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Automation of tasks' }],
+            citations: [
+              {
+                text: 'Automation of tasks',
+                sources: [
+                  {
+                    type: 'document',
+                    id: 'doc:0',
+                    document: {
+                      id: 'doc:0',
+                      text: 'AI provides automation of tasks.',
+                      extra_field: 'passed through',
+                    },
+                  },
+                ],
+                type: 'TEXT_CONTENT',
+              },
+            ],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            tokens: { input_tokens: 10, output_tokens: 5 },
+          },
+        },
+      };
+
+      const result = await testProvider('command-r-plus').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toStrictEqual([
+        { type: 'text', text: 'Automation of tasks' },
+        {
+          type: 'source',
+          sourceType: 'document',
+          id: 'test-citation-id',
+          mediaType: 'text/plain',
+          title: 'Document',
+          providerMetadata: {
+            cohere: {
+              text: 'Automation of tasks',
+              sources: [
+                {
+                  type: 'document',
+                  id: 'doc:0',
+                  document: {
+                    id: 'doc:0',
+                    text: 'AI provides automation of tasks.',
+                    extra_field: 'passed through',
+                  },
+                },
+              ],
+              citationType: 'TEXT_CONTENT',
+            },
+          },
+        },
+      ]);
+    });
+
+    it('should not emit sources for tool-sourced citations', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'It is sunny in Berlin.' }],
+            citations: [
+              {
+                start: 6,
+                end: 11,
+                text: 'sunny',
+                sources: [
+                  {
+                    type: 'tool',
+                    id: 'getWeather:0',
+                    tool_output: { city: 'Berlin', condition: 'sunny' },
+                  },
+                ],
+                type: 'TEXT_CONTENT',
+              },
+              {
+                start: 0,
+                end: 5,
+                text: 'It is',
+                sources: null,
+              },
+            ],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            tokens: { input_tokens: 10, output_tokens: 5 },
+          },
+        },
+      };
+
+      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(result.content).toStrictEqual([
+        { type: 'text', text: 'It is sunny in Berlin.' },
+      ]);
+    });
+
     it('should extract text documents and send to API', async () => {
       await model.doGenerate({
         prompt: [
@@ -495,6 +608,112 @@ describe('doGenerate', () => {
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.documents).toBeUndefined();
+    });
+  });
+
+  describe('usage', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('cohere-text');
+    });
+
+    it('should return undefined token counts when usage is absent', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+        },
+      };
+
+      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: undefined,
+      });
+    });
+
+    it('should return undefined token counts for an empty usage object', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {},
+        },
+      };
+
+      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: {},
+      });
+    });
+
+    it('should not treat billed units as token counts', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            billed_units: { input_tokens: 12, output_tokens: 7 },
+            cached_tokens: 448,
+          },
+        },
+      };
+
+      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      // billed units measure something else than tokens, so no token counts are
+      // reported and cached tokens are not subtracted from them.
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: 448,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: {
+          billed_units: { input_tokens: 12, output_tokens: 7 },
+          cached_tokens: 448,
+        },
+      });
     });
   });
 
@@ -1024,6 +1243,51 @@ describe('doStream', () => {
             outputTokens: {
               total: 10,
               text: 10,
+              reasoning: undefined,
+            },
+            raw: rawUsage,
+          },
+        },
+      );
+    });
+
+    it('should return undefined token counts when message-end has no tokens', async () => {
+      const rawUsage = {
+        billed_units: { input_tokens: 88, output_tokens: 13 },
+        cached_tokens: 128,
+      };
+      prepareChunkLinesResponse([
+        {
+          type: 'message-end',
+          delta: {
+            finish_reason: 'COMPLETE',
+            usage: rawUsage,
+          },
+        },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual(
+        {
+          type: 'finish',
+          finishReason: {
+            unified: 'stop',
+            raw: 'COMPLETE',
+          },
+          usage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: 128,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
               reasoning: undefined,
             },
             raw: rawUsage,

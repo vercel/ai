@@ -4,7 +4,6 @@ import type {
   LanguageModelV4Content,
   LanguageModelV4FinishReason,
   LanguageModelV4GenerateResult,
-  LanguageModelV4Source,
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
   SharedV4Warning,
@@ -34,6 +33,10 @@ import {
   cohereLanguageModelChatOptions,
   type CohereChatModelId,
 } from './cohere-chat-language-model-options';
+import {
+  cohereCitationSchema,
+  mapCohereCitationToSource,
+} from './cohere-citations';
 import { cohereFailedResponseHandler } from './cohere-error';
 import {
   getCohereLanguageModelEntry,
@@ -208,12 +211,15 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
     // citations:
     for (const citation of response.message.citations ?? []) {
-      content.push(
-        mapCohereCitationToSource({
-          citation,
-          generateId: this.config.generateId,
-        }),
+      // Tool-sourced citations (e.g. citations of tool results in a follow-up
+      // step) have no document to point at, so they are not emitted as sources.
+      const source = mapCohereCitationToSource(citation, () =>
+        this.config.generateId(),
       );
+
+      if (source != null) {
+        content.push(source);
+      }
     }
 
     // tool calls:
@@ -364,13 +370,24 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
               }
 
               case 'citation-start': {
-                const citations = value.delta.message.citations;
+                const citations = value.delta?.message?.citations;
+                if (citations == null) {
+                  return;
+                }
+
                 for (const citation of Array.isArray(citations)
                   ? citations
                   : [citations]) {
-                  controller.enqueue(
-                    mapCohereCitationToSource({ citation, generateId }),
+                  // Tool-only citations have no document, so they are not
+                  // emitted as sources (matching doGenerate).
+                  const source = mapCohereCitationToSource(
+                    citation,
+                    generateId,
                   );
+
+                  if (source != null) {
+                    controller.enqueue(source);
+                  }
                 }
                 return;
               }
@@ -522,44 +539,22 @@ function resolveCohereThinking({
   return { thinking: { type: 'enabled', token_budget: tokenBudget } };
 }
 
-function mapCohereCitationToSource({
-  citation,
-  generateId,
-}: {
-  citation: CohereCitation;
-  generateId: () => string;
-}): LanguageModelV4Source {
-  return {
-    type: 'source',
-    sourceType: 'document',
-    id: generateId(),
-    mediaType: 'text/plain',
-    title: citation.sources?.[0]?.document?.title || 'Document',
-    providerMetadata: {
-      cohere: {
-        start: citation.start ?? null,
-        end: citation.end ?? null,
-        text: citation.text ?? null,
-        sources: citation.sources ?? [],
-        ...(citation.type && { citationType: citation.type }),
-      },
-    },
-  };
-}
-
 // Loose, nested objects included: the parsed value is returned as `usage.raw`.
+// All fields are optional in the API specification, so every field is nullish.
 const cohereUsageSchema = () =>
   z.looseObject({
     billed_units: z
       .looseObject({
-        input_tokens: z.number(),
-        output_tokens: z.number(),
+        input_tokens: z.number().nullish(),
+        output_tokens: z.number().nullish(),
       })
       .nullish(),
-    tokens: z.looseObject({
-      input_tokens: z.number(),
-      output_tokens: z.number(),
-    }),
+    tokens: z
+      .looseObject({
+        input_tokens: z.number().nullish(),
+        output_tokens: z.number().nullish(),
+      })
+      .nullish(),
     cached_tokens: z.number().nullish(),
   });
 
@@ -596,76 +591,35 @@ const cohereChatResponseSchema = lazySchema(() =>
             }),
           )
           .nullish(),
-        citations: z
-          .array(
-            z.object({
-              start: z.number(),
-              end: z.number(),
-              text: z.string(),
-              sources: z.array(
-                z.object({
-                  type: z.string().optional(),
-                  id: z.string().optional(),
-                  document: z.object({
-                    id: z.string().optional(),
-                    text: z.string(),
-                    title: z.string(),
-                  }),
-                }),
-              ),
-              type: z.string().optional(),
-            }),
-          )
-          .nullish(),
+        citations: z.array(cohereCitationSchema).nullish(),
       }),
       finish_reason: z.string(),
-      usage: cohereUsageSchema(),
+      usage: cohereUsageSchema().nullish(),
     }),
   ),
 );
-
-// Citation payload of a `citation-start` stream event. All fields are optional
-// because Cohere only documents them loosely and sources can also reference
-// tool output instead of a document.
-const cohereCitationSchema = z.object({
-  start: z.number().nullish(),
-  end: z.number().nullish(),
-  text: z.string().nullish(),
-  sources: z
-    .array(
-      z.object({
-        type: z.string().nullish(),
-        id: z.string().nullish(),
-        document: z
-          .object({
-            id: z.string().nullish(),
-            text: z.string().nullish(),
-            title: z.string().nullish(),
-          })
-          .nullish(),
-      }),
-    )
-    .nullish(),
-  type: z.string().nullish(),
-});
-
-type CohereCitation = InferSchema<typeof cohereCitationSchema>;
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const cohereChatChunkSchema = lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('type', [
+      // `citation-start` events can arrive without citations, and a single
+      // citation may be sent instead of an array.
       z.object({
         type: z.literal('citation-start'),
-        delta: z.object({
-          message: z.object({
-            citations: z.union([
-              cohereCitationSchema,
-              z.array(cohereCitationSchema),
-            ]),
-          }),
-        }),
+        index: z.number().nullish(),
+        delta: z
+          .object({
+            message: z
+              .object({
+                citations: z
+                  .union([cohereCitationSchema, z.array(cohereCitationSchema)])
+                  .nullish(),
+              })
+              .nullish(),
+          })
+          .nullish(),
       }),
       z.object({
         type: z.literal('citation-end'),
