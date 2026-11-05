@@ -350,6 +350,12 @@ export function createGrokBuild(
         : ['--reasoning-effort', settings.reasoningEffort]),
       'stdio',
     ],
+    env: {
+      GROK_CLAUDE_HOOKS_ENABLED: 'false',
+      GROK_CURSOR_HOOKS_ENABLED: 'false',
+      GROK_CLAUDE_MCPS_ENABLED: 'false',
+      GROK_CURSOR_MCPS_ENABLED: 'false',
+    },
     forwardEnv: [
       'GROK_XAI_API_BASE_URL',
       'GROK_MODELS_BASE_URL',

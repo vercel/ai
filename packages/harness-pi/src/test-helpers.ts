@@ -152,7 +152,7 @@ const untouchable = () =>
     throw new Error('sandbox must not be touched');
   });
 
-export const createThrowingSandboxSession =
+export const createEmptyRepositorySandboxSession =
   (): HarnessV1NetworkSandboxSession => {
     const sandbox: HarnessV1NetworkSandboxSession = {
       id: 'sandbox',
@@ -163,12 +163,18 @@ export const createThrowingSandboxSession =
       spawn: untouchable(),
       readFile: untouchable(),
       readBinaryFile: untouchable(),
-      readTextFile: untouchable(),
+      readTextFile: vi.fn(async ({ path }) => {
+        expect(path).toBe('/sandbox/work/AGENTS.md');
+        return null;
+      }),
       writeFile: untouchable(),
       writeBinaryFile: untouchable(),
       writeTextFile: untouchable(),
       stat: untouchable(),
-      listDirectory: untouchable(),
+      listDirectory: vi.fn(async ({ path }) => {
+        expect(path).toBe('/sandbox/work/.agents/skills');
+        return null;
+      }),
       deleteFile: untouchable(),
       stop: untouchable(),
       destroy: untouchable(),

@@ -353,6 +353,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     agent = createDeepAgent({
       tools: [...mcpTools, ...hostTools],
       backend: createLocalShellBackend({ rootDir: workdir }),
+      memory: [`${workdir}/AGENTS.md`],
       systemPrompt: start.instructions
         ? { suffix: start.instructions }
         : undefined,

@@ -221,6 +221,33 @@ describe('createGrokBuild', () => {
     ]);
   });
 
+  it.each([undefined, 'direct', 'ai-gateway'] as const)(
+    'disables Claude and Cursor hook and MCP compatibility with auth %s',
+    auth => {
+      createGrokBuild({ auth });
+
+      const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+
+      expect(settings.env).toMatchInlineSnapshot(`
+        {
+          "GROK_CLAUDE_HOOKS_ENABLED": "false",
+          "GROK_CLAUDE_MCPS_ENABLED": "false",
+          "GROK_CURSOR_HOOKS_ENABLED": "false",
+          "GROK_CURSOR_MCPS_ENABLED": "false",
+        }
+      `);
+      for (const name of [
+        'GROK_CLAUDE_HOOKS_ENABLED',
+        'GROK_CURSOR_HOOKS_ENABLED',
+        'GROK_CLAUDE_MCPS_ENABLED',
+        'GROK_CURSOR_MCPS_ENABLED',
+      ]) {
+        expect(settings.forwardEnv).not.toContain(name);
+      }
+      expect(settings.skillsDirectory).toBeUndefined();
+    },
+  );
+
   it('forwards user-configurable settings', () => {
     const mintBridgeToken = (sandboxId: string) => `token-for-${sandboxId}`;
     const credentialForwarding = async ({

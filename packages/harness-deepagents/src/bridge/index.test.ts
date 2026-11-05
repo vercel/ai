@@ -22,6 +22,9 @@ type DeepAgentOptions = {
     wrapToolCall?: (request: any, handler: any) => Promise<unknown>;
   }>;
   model?: unknown;
+  memory?: string[];
+  skills?: string[];
+  interruptOn?: Record<string, unknown>;
   systemPrompt?: string | { suffix?: string };
 };
 
@@ -42,6 +45,8 @@ const state = vi.hoisted(() => ({
     | { type: 'json'; schema: Record<string, unknown> }
     | undefined,
   headers: undefined as Record<string, string> | undefined,
+  skillsPaths: undefined as string[] | undefined,
+  permissionMode: undefined as 'allow-reads' | undefined,
   prompt: undefined as unknown,
   streamInputs: [] as Array<unknown>,
   hostToolResponse: undefined as
@@ -111,6 +116,8 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
               ],
         responseFormat: state.responseFormat,
         headers: state.headers,
+        skillsPaths: state.skillsPaths,
+        permissionMode: state.permissionMode,
       },
       {
         emit: (event: Record<string, unknown>) => {
@@ -205,6 +212,8 @@ describe('Deep Agents bridge instructions', () => {
     state.prunedAfterEventTypes = [];
     state.responseFormat = undefined;
     state.headers = undefined;
+    state.skillsPaths = undefined;
+    state.permissionMode = undefined;
     state.prompt = 'What is the capital of France?';
     state.streamInputs = [];
     state.hostToolResponse = undefined;
@@ -265,6 +274,43 @@ describe('Deep Agents bridge instructions', () => {
     expect(state.createDeepAgentOptions[0]?.systemPrompt).toEqual({
       suffix: 'Answer every question in German.',
     });
+  });
+
+  it('loads working directory AGENTS.md through native memory', async () => {
+    state.skillsPaths = [
+      '/tmp/harness-deepagents-test/work/.agents/skills',
+      '/home/sandbox/.agents/skills',
+    ];
+    state.permissionMode = 'allow-reads';
+
+    await import('./index');
+
+    const options = state.createDeepAgentOptions[0];
+    expect({
+      memory: options?.memory,
+      skills: options?.skills,
+      systemPrompt: options?.systemPrompt,
+      writeApproval: options?.interruptOn?.write_file,
+    }).toMatchInlineSnapshot(`
+      {
+        "memory": [
+          "/tmp/harness-deepagents-test/work/AGENTS.md",
+        ],
+        "skills": [
+          "/tmp/harness-deepagents-test/work/.agents/skills",
+          "/home/sandbox/.agents/skills",
+        ],
+        "systemPrompt": {
+          "suffix": "Answer every question in German.",
+        },
+        "writeApproval": {
+          "allowedDecisions": [
+            "approve",
+            "reject",
+          ],
+        },
+      }
+    `);
   });
 
   it('installs MCP tool error recovery in the native agent', async () => {
