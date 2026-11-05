@@ -156,6 +156,7 @@ describe('HarnessAgent', () => {
     );
     expect(resolveSandboxSession).toHaveBeenCalledWith({
       sandboxId: 'sandbox-id',
+      abortSignal: expect.any(AbortSignal),
     });
   });
 
@@ -183,55 +184,16 @@ describe('HarnessAgent', () => {
     expect(resolveSandboxSession).not.toHaveBeenCalled();
   });
 
-  test('creates a session without a sandbox object and lazily caches resolution', async () => {
+  test('rebinds the session resolver to the current agent on every call', async () => {
     const resolvedSandboxSession = {} as SandboxSession;
-    const resolveSandboxSession = vi.fn(async () => resolvedSandboxSession);
-    const agent = new HarnessAgent({
-      harness,
-      world: {} as World,
-      getSandboxSession: resolveSandboxSession,
+    const firstResolver = vi.fn(async () => {
+      throw new Error('first agent resolver');
     });
-
-    const session = await agent.createSession({
-      sessionId: 'session-id',
-      sandboxId: 'sandbox-id',
-    });
-
-    await expect(session.getSandboxSession()).resolves.toBe(
-      resolvedSandboxSession,
-    );
-    await expect(session.getSandboxSession()).resolves.toBe(
-      resolvedSandboxSession,
-    );
-    expect(resolveSandboxSession).toHaveBeenCalledTimes(1);
-    expect(resolveSandboxSession).toHaveBeenCalledWith({
-      sandboxId: 'sandbox-id',
-    });
-  });
-
-  test('serializes session identity and rebinds the current agent resolver', async () => {
-    const staleSandboxSession = {} as SandboxSession;
-    const firstSandboxSession = {} as SandboxSession;
-    const resolvedSandboxSession = {} as SandboxSession;
-    const staleResolver = vi.fn(async () => staleSandboxSession);
-    const firstResolver = vi.fn(async () => firstSandboxSession);
     const currentResolver = vi.fn(async () => resolvedSandboxSession);
     const session = new DefaultHarnessAgentSession({
       sessionId: 'session-id',
       sandboxId: 'sandbox-id',
-      sandboxSession: staleSandboxSession,
     });
-    session.setSandboxSessionResolver(staleResolver);
-
-    const serialized = DefaultHarnessAgentSession[WORKFLOW_SERIALIZE](session);
-    expect(serialized).toEqual({
-      sessionId: 'session-id',
-      sandboxId: 'sandbox-id',
-    });
-
-    const restored =
-      DefaultHarnessAgentSession[WORKFLOW_DESERIALIZE](serialized);
-    restored.setSandboxSessionResolver(staleResolver);
     const firstAgent = new HarnessAgent({
       harness,
       getSandboxSession: firstResolver,
@@ -242,18 +204,24 @@ describe('HarnessAgent', () => {
     });
 
     await expect(
-      firstAgent.generate({ prompt: 'hello', session: restored }),
+      firstAgent.generate({ prompt: 'hello', session }),
     ).rejects.toThrow('Not implemented yet');
+    await expect(session.getSandboxSession()).rejects.toThrow(
+      'first agent resolver',
+    );
     await expect(
-      currentAgent.stream({ prompt: 'hello', session: restored }),
+      currentAgent.stream({ prompt: 'hello', session }),
     ).rejects.toThrow('Not implemented yet');
-    await expect(restored.getSandboxSession()).resolves.toBe(
+    await expect(session.getSandboxSession()).resolves.toBe(
       resolvedSandboxSession,
     );
-    expect(staleResolver).not.toHaveBeenCalled();
-    expect(firstResolver).not.toHaveBeenCalled();
+    expect(firstResolver).toHaveBeenCalledWith({
+      sandboxId: 'sandbox-id',
+      abortSignal: expect.any(AbortSignal),
+    });
     expect(currentResolver).toHaveBeenCalledWith({
       sandboxId: 'sandbox-id',
+      abortSignal: expect.any(AbortSignal),
     });
   });
 

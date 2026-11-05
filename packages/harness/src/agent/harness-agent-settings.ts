@@ -6,7 +6,7 @@ import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1SandboxProvider,
 } from '../v1';
-import type { HarnessV2NetworkSandboxSession } from '../v2';
+import type { HarnessAgentSandboxSessionResolver } from './v2/harness-agent-session';
 import type {
   HarnessAgentAdapter,
   HarnessAgentPermissionMode,
@@ -167,9 +167,7 @@ export type HarnessAgentSettings<
   /**
    * Resolves an existing sandbox session for a HarnessV2 session.
    */
-  readonly getSandboxSession?: (options: {
-    sandboxId: string;
-  }) => Promise<SandboxSession | HarnessV2NetworkSandboxSession>;
+  readonly getSandboxSession?: HarnessAgentSandboxSessionResolver;
 
   /**
    * Stable identifier for this agent instance. Exposed via `agent.id`.

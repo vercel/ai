@@ -6,6 +6,16 @@ import {
 import type { HarnessV2NetworkSandboxSession } from '../../v2/harness-v2-network-sandbox-session';
 
 /**
+ * Resolves a sandbox session from its stable sandbox ID.
+ */
+export type HarnessAgentSandboxSessionResolver = (options: {
+  /** Stable identifier used to look up the sandbox session. */
+  sandboxId: string;
+  /** Aborts sandbox lookup when the resolver is replaced. */
+  abortSignal: AbortSignal;
+}) => Promise<SandboxSession | HarnessV2NetworkSandboxSession>;
+
+/**
  * Session identity and sandbox access used by HarnessAgent.
  */
 export type HarnessAgentSession = {
@@ -20,12 +30,10 @@ export type HarnessAgentSession = {
   readonly sandboxId: string;
 
   /**
-   * Rebinds lazy sandbox lookup to the HarnessAgent currently using this session.
+   * Rebinds lazy lookup to the current agent and aborts any in-progress lookup.
    */
   setSandboxSessionResolver(
-    sandboxSessionResolver: (options: {
-      sandboxId: string;
-    }) => Promise<SandboxSession | HarnessV2NetworkSandboxSession>,
+    sandboxSessionResolver: HarnessAgentSandboxSessionResolver,
   ): void;
 
   /**
@@ -48,13 +56,12 @@ export class DefaultHarnessAgentSession implements HarnessAgentSession {
     | HarnessV2NetworkSandboxSession
     | undefined;
   private sandboxSessionResolver:
-    | ((options: {
-        sandboxId: string;
-      }) => Promise<SandboxSession | HarnessV2NetworkSandboxSession>)
+    | HarnessAgentSandboxSessionResolver
     | undefined;
-  private sandboxSessionPromise:
+  private sandboxSessionResolutionPromise:
     | Promise<SandboxSession | HarnessV2NetworkSandboxSession>
     | undefined;
+  private sandboxSessionResolutionAbortController: AbortController | undefined;
 
   /**
    * Persists only stable identity, leaving process-local sandbox access behind.
@@ -90,15 +97,17 @@ export class DefaultHarnessAgentSession implements HarnessAgentSession {
   }
 
   /**
-   * Rebinds lookup to the current agent and discards any pending lookup.
+   * Rebinds lookup to the current agent and aborts any in-progress lookup.
    */
   setSandboxSessionResolver(
-    sandboxSessionResolver: (options: {
-      sandboxId: string;
-    }) => Promise<SandboxSession | HarnessV2NetworkSandboxSession>,
+    sandboxSessionResolver: HarnessAgentSandboxSessionResolver,
   ): void {
+    const activeResolutionAbortController =
+      this.sandboxSessionResolutionAbortController;
+    this.sandboxSessionResolutionAbortController = undefined;
+    this.sandboxSessionResolutionPromise = undefined;
     this.sandboxSessionResolver = sandboxSessionResolver;
-    this.sandboxSessionPromise = undefined;
+    activeResolutionAbortController?.abort();
   }
 
   /**
@@ -112,8 +121,8 @@ export class DefaultHarnessAgentSession implements HarnessAgentSession {
       return this.sandboxSession;
     }
 
-    if (this.sandboxSessionPromise != null) {
-      return this.sandboxSessionPromise;
+    if (this.sandboxSessionResolutionPromise != null) {
+      return this.sandboxSessionResolutionPromise;
     }
 
     if (this.sandboxSessionResolver == null) {
@@ -122,20 +131,44 @@ export class DefaultHarnessAgentSession implements HarnessAgentSession {
       );
     }
 
-    const sandboxSessionPromise = this.sandboxSessionResolver({
-      sandboxId: this.sandboxId,
-    });
-    this.sandboxSessionPromise = sandboxSessionPromise;
+    const abortController = new AbortController();
+    this.sandboxSessionResolutionAbortController = abortController;
+    let sandboxSessionResolutionPromise: Promise<
+      SandboxSession | HarnessV2NetworkSandboxSession
+    >;
 
     try {
-      const sandboxSession = await sandboxSessionPromise;
-      if (this.sandboxSessionPromise === sandboxSessionPromise) {
+      sandboxSessionResolutionPromise = this.sandboxSessionResolver({
+        sandboxId: this.sandboxId,
+        abortSignal: abortController.signal,
+      });
+    } catch (error) {
+      if (this.sandboxSessionResolutionAbortController === abortController) {
+        this.sandboxSessionResolutionAbortController = undefined;
+      }
+      throw error;
+    }
+
+    if (this.sandboxSessionResolutionAbortController === abortController) {
+      this.sandboxSessionResolutionPromise = sandboxSessionResolutionPromise;
+    }
+
+    try {
+      const sandboxSession = await sandboxSessionResolutionPromise;
+      if (
+        this.sandboxSessionResolutionPromise === sandboxSessionResolutionPromise
+      ) {
         this.sandboxSession = sandboxSession;
       }
       return sandboxSession;
     } finally {
-      if (this.sandboxSessionPromise === sandboxSessionPromise) {
-        this.sandboxSessionPromise = undefined;
+      if (
+        this.sandboxSessionResolutionPromise === sandboxSessionResolutionPromise
+      ) {
+        this.sandboxSessionResolutionPromise = undefined;
+      }
+      if (this.sandboxSessionResolutionAbortController === abortController) {
+        this.sandboxSessionResolutionAbortController = undefined;
       }
     }
   }
