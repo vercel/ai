@@ -187,6 +187,44 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract a refusal as text content', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-refusal',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-4o-2024-08-06',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              refusal: "I'm sorry, I can't assist with that request.",
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      {
+        type: 'text',
+        text: "I'm sorry, I can't assist with that request.",
+      },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'stop',
+      raw: 'stop',
+    });
+  });
+
   it('should extract an audio transcript alongside tool calls', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'json-value',
@@ -2849,6 +2887,41 @@ describe('doStream', () => {
     ]);
   });
 
+  it('should stream a refusal as text deltas', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":null,"refusal":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":"I'm"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":" sorry, but I can't assist with that request."},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.filter(event => event.type === 'text-delta')).toStrictEqual([
+      { type: 'text-delta', id: '0', delta: '' },
+      { type: 'text-delta', id: '0', delta: "I'm" },
+      {
+        type: 'text-delta',
+        id: '0',
+        delta: " sorry, but I can't assist with that request.",
+      },
+    ]);
+    expect(events.filter(event => event.type === 'finish')).toStrictEqual([
+      expect.objectContaining({
+        finishReason: { unified: 'stop', raw: 'stop' },
+      }),
+    ]);
+  });
+
   it('should stream text deltas', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
@@ -3905,6 +3978,31 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should forward error stream parts after a refusal has started', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-refusal-error","object":"chat.completion.chunk","created":1702657020,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":null,"refusal":"I'm sorry"},"finish_reason":null}]}\n\n`,
+        `data: {"error":{"message":"stream failed after refusal","type":"server_error","param":null,"code":null}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.filter(event => event.type === 'text-delta')).toStrictEqual([
+      { type: 'text-delta', id: '0', delta: "I'm sorry" },
+    ]);
+    expect(events.filter(event => event.type === 'error')).toMatchObject([
+      { type: 'error', error: { message: 'stream failed after refusal' } },
+    ]);
   });
 
   it('should handle unparsable stream parts', async () => {

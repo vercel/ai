@@ -447,12 +447,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const content: Array<LanguageModelV4Content> = [];
 
-    // text content:
-    const text =
-      choice.message.content != null && choice.message.content.length > 0
-        ? choice.message.content
-        : choice.message.audio?.transcript;
-    if (text != null && text.length > 0) {
+    // text content. When the model refuses to answer, the API returns the
+    // refusal in `refusal` and sets `content` to null, so surface it as text
+    // instead of dropping it:
+    const text = [
+      choice.message.content,
+      choice.message.audio?.transcript,
+      choice.message.refusal,
+    ].find(text => text != null && text.length > 0);
+    if (text != null) {
       content.push({ type: 'text', text });
     }
 
@@ -656,7 +659,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
             const delta = choice.delta;
 
-            if (delta.content != null) {
+            // When the model refuses to answer, the API streams the refusal in
+            // `refusal` and sets `content` to null, so surface it as text
+            // instead of dropping it:
+            const textDelta =
+              delta.content != null && delta.content.length > 0
+                ? delta.content
+                : (delta.refusal ?? delta.content);
+
+            if (textDelta != null) {
               if (!isActiveText) {
                 controller.enqueue({ type: 'text-start', id: '0' });
                 isActiveText = true;
@@ -665,7 +676,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({
                 type: 'text-delta',
                 id: '0',
-                delta: delta.content,
+                delta: textDelta,
               });
             }
 
@@ -723,6 +734,7 @@ function isOpenAIChatOutputChunk(chunk: OpenAIChatChunk): boolean {
 
     return (
       (delta?.content != null && delta.content.length > 0) ||
+      (delta?.refusal != null && delta.refusal.length > 0) ||
       (delta?.tool_calls != null && delta.tool_calls.length > 0) ||
       (delta?.annotations != null && delta.annotations.length > 0)
     );
