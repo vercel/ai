@@ -36,6 +36,8 @@ export const openaiChatResponseSchema = lazyValidator(() =>
           message: z.object({
             role: z.literal('assistant').nullish(),
             content: z.string().nullish(),
+            // set instead of `content` when the model refuses to answer:
+            refusal: z.string().nullish(),
             audio: z
               .object({
                 transcript: z.string().nullish(),
@@ -128,6 +130,8 @@ export const openaiChatChunkSchema = lazyValidator(() =>
               .object({
                 role: z.enum(['assistant']).nullish(),
                 content: z.string().nullish(),
+                // set instead of `content` when the model refuses to answer:
+                refusal: z.string().nullish(),
                 tool_calls: z
                   .array(
                     z.object({

@@ -1130,6 +1130,27 @@ You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
 
 </Note>
 
+#### Refusals
+
+Refusals mainly happen when you request structured outputs. When OpenAI declines
+a request, the provider surfaces the refusal explanation as text and reports a
+`content-filter` finish reason in both `generateText` and `streamText`:
+
+```ts
+const { text, finishReason } = await generateText({
+  model: openai.chat('gpt-4o'),
+  prompt: '...',
+});
+
+if (finishReason === 'content-filter') {
+  // `text` contains the model's refusal explanation
+}
+```
+
+When you request structured output with `generateObject`, a refusal means that no
+object can be generated: `generateObject` throws `NoObjectGeneratedError` with
+the refusal text on `error.text`.
+
 #### Logprobs
 
 OpenAI provides logprobs information for completion/chat models.
