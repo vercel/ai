@@ -831,6 +831,7 @@ export function runPrompt<
       }
 
       settledHostToolCallIds.add(approval.toolCallId);
+      rawToolCallsByToolCallId.set(approval.toolCallId, rawToolCall);
       if (!continuation.approved) {
         const output = {
           type: 'execution-denied' as const,
@@ -1079,9 +1080,7 @@ export function runPrompt<
             await waitForOutstandingHostToolExecutions();
             if (
               hostToolCallIdsAwaitingEcho.size === 0 ||
-              [...pendingApprovalsByApprovalId.values()].some(
-                approval => approval.kind === 'builtin',
-              )
+              pendingApprovalsByApprovalId.size > 0
             ) {
               await pauseForHostInput(value);
               return;

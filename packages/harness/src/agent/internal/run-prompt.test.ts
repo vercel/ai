@@ -4837,4 +4837,181 @@ describe('runPrompt host input pauses', () => {
     expect(steps[0]!.content.map(part => part.type)).toEqual(['tool-call']);
     expect(await result.finishReason).toBe('stop');
   });
+
+  test('pauses for host tool approval when accompanied by another host tool whose echo has not arrived', async () => {
+    const pendingApprovals: HarnessV1PendingToolApproval[] = [];
+    const pendingResults: HarnessV1PendingToolResult[] = [];
+    const submitted: SubmittedResult[] = [];
+    const executeAllowed = vi.fn(async () => ({ ok: true }));
+    const executeGated = vi.fn(async () => ({ gated: true }));
+
+    const gated = tool({
+      inputSchema: z.object({ target: z.string() }),
+      execute: executeGated,
+    });
+    const allowed = tool({
+      inputSchema: z.object({ count: z.number() }),
+      execute: executeAllowed,
+    });
+
+    const session = scriptedSession({
+      start: emit => {
+        emit({ type: 'stream-start', modelId: 'fake-model' });
+        emit({
+          type: 'tool-call',
+          toolCallId: 'gated-1',
+          toolName: 'gated',
+          input: JSON.stringify({ target: 'file.txt' }),
+        });
+        emit({
+          type: 'tool-call',
+          toolCallId: 'allowed-1',
+          toolName: 'allowed',
+          input: JSON.stringify({ count: 42 }),
+        });
+        // Runtime emits finish-step while waiting for host approval on gated-1.
+        // allowed-1 has executed and its result was submitted, but its echo has not arrived.
+        emit(boundary(5));
+      },
+      onSubmitToolResult: submission => submitted.push(submission),
+    });
+
+    const paused = runPrompt({
+      harness,
+      session,
+      prompt: 'do work',
+      instructions: undefined,
+      tools: { gated, allowed } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: { gated: 'user-approval', allowed: 'approved' },
+      onPendingToolApproval: approval => pendingApprovals.push(approval),
+      onPendingToolResult: pendingResult => pendingResults.push(pendingResult),
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of paused.result.fullStream) parts.push(part);
+    await paused.done;
+
+    expect(executeAllowed).toHaveBeenCalledTimes(1);
+    expect(executeGated).not.toHaveBeenCalled();
+    expect(submitted).toHaveLength(1);
+    expect(submitted[0]!.toolCallId).toBe('allowed-1');
+    expect(pendingApprovals).toEqual([
+      expect.objectContaining({
+        approvalId: expect.any(String),
+        toolCallId: 'gated-1',
+        toolName: 'gated',
+        kind: 'custom',
+      }),
+    ]);
+    expect(pendingResults).toEqual([
+      expect.objectContaining({
+        toolCallId: 'allowed-1',
+        toolName: 'allowed',
+      }),
+    ]);
+    const steps = await paused.result.steps;
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.finishReason).toBe('tool-calls');
+  });
+
+  test('retains rawToolCall when host tool approval is answered in continuation', async () => {
+    const pendingApprovals: HarnessV1PendingToolApproval[] = [];
+    const pendingResults: HarnessV1PendingToolResult[] = [];
+    const executeGated = vi.fn(async () => ({ gatedDone: true }));
+
+    const gated = tool({
+      inputSchema: z.object({ value: z.string() }),
+      execute: executeGated,
+    });
+
+    const session = fakeSession([
+      {
+        type: 'tool-call',
+        toolCallId: 'gated-1',
+        toolName: 'gated',
+        input: JSON.stringify({ value: 'hello' }),
+      },
+      boundary(3),
+    ]);
+
+    const paused = runPrompt({
+      harness,
+      session,
+      prompt: 'run gated',
+      instructions: undefined,
+      tools: { gated } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: { gated: 'user-approval' },
+      onPendingToolApproval: approval => pendingApprovals.push(approval),
+    });
+
+    await paused.result.consumeStream();
+    await paused.done;
+
+    expect(pendingApprovals).toHaveLength(1);
+    const approvalId = pendingApprovals[0]!.approvalId;
+
+    const anotherGated = tool({
+      inputSchema: z.object({ val: z.string() }),
+      execute: async () => ({ another: true }),
+    });
+
+    session.doContinueTurn = async continuationOptions =>
+      fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'gated-2',
+          toolName: 'anotherGated',
+          input: JSON.stringify({ val: 'world' }),
+        },
+        boundary(4),
+      ]).doContinueTurn(continuationOptions);
+
+    const nextApprovals: HarnessV1PendingToolApproval[] = [];
+    const continued = runPrompt({
+      harness,
+      session,
+      mode: 'continue',
+      prompt: 'run gated',
+      instructions: undefined,
+      tools: { gated, anotherGated } as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: { gated: 'user-approval', anotherGated: 'user-approval' },
+      pendingToolApprovals: pendingApprovals,
+      toolApprovalContinuations: [
+        { type: 'tool-approval-response', approvalId, approved: true },
+      ],
+      onPendingToolApproval: approval => nextApprovals.push(approval),
+      onPendingToolResult: res => pendingResults.push(res),
+    });
+
+    await continued.result.consumeStream();
+    await continued.done;
+
+    expect(executeGated).toHaveBeenCalledTimes(1);
+    expect(nextApprovals).toHaveLength(1);
+    expect(nextApprovals[0]!.toolCallId).toBe('gated-2');
+    expect(pendingResults).toEqual([
+      expect.objectContaining({
+        toolCallId: 'gated-1',
+        toolName: 'gated',
+        completedResult: expect.objectContaining({
+          output: { gatedDone: true },
+        }),
+      }),
+    ]);
+  });
 });
