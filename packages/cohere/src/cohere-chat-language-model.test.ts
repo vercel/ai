@@ -376,71 +376,6 @@ describe('doGenerate', () => {
       ]);
     });
 
-    it('should handle usage without tokens', async () => {
-      server.urls['https://api.cohere.com/v2/chat'].response = {
-        type: 'json-value',
-        body: {
-          message: {
-            role: 'assistant',
-            content: [{ type: 'text', text: 'Hello' }],
-          },
-          finish_reason: 'COMPLETE',
-        },
-      };
-
-      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
-
-      expect(usage).toStrictEqual({
-        inputTokens: {
-          total: undefined,
-          noCache: undefined,
-          cacheRead: undefined,
-          cacheWrite: undefined,
-        },
-        outputTokens: {
-          total: undefined,
-          text: undefined,
-          reasoning: undefined,
-        },
-        raw: undefined,
-      });
-    });
-
-    it('should fall back to billed units when tokens are missing', async () => {
-      server.urls['https://api.cohere.com/v2/chat'].response = {
-        type: 'json-value',
-        body: {
-          message: {
-            role: 'assistant',
-            content: [{ type: 'text', text: 'Hello' }],
-          },
-          finish_reason: 'COMPLETE',
-          usage: {
-            billed_units: { input_tokens: 12, output_tokens: 7 },
-          },
-        },
-      };
-
-      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
-
-      expect(usage).toStrictEqual({
-        inputTokens: {
-          total: 12,
-          noCache: 12,
-          cacheRead: undefined,
-          cacheWrite: undefined,
-        },
-        outputTokens: {
-          total: 7,
-          text: 7,
-          reasoning: undefined,
-        },
-        raw: {
-          billed_units: { input_tokens: 12, output_tokens: 7 },
-        },
-      });
-    });
-
     it('should extract text documents and send to API', async () => {
       await model.doGenerate({
         prompt: [
@@ -673,6 +608,112 @@ describe('doGenerate', () => {
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.documents).toBeUndefined();
+    });
+  });
+
+  describe('usage', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('cohere-text');
+    });
+
+    it('should return undefined token counts when usage is absent', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+        },
+      };
+
+      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: undefined,
+      });
+    });
+
+    it('should return undefined token counts for an empty usage object', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {},
+        },
+      };
+
+      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: {},
+      });
+    });
+
+    it('should not treat billed units as token counts', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            billed_units: { input_tokens: 12, output_tokens: 7 },
+            cached_tokens: 448,
+          },
+        },
+      };
+
+      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      // billed units measure something else than tokens, so no token counts are
+      // reported and cached tokens are not subtracted from them.
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: 448,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: {
+          billed_units: { input_tokens: 12, output_tokens: 7 },
+          cached_tokens: 448,
+        },
+      });
     });
   });
 
@@ -1202,6 +1243,51 @@ describe('doStream', () => {
             outputTokens: {
               total: 10,
               text: 10,
+              reasoning: undefined,
+            },
+            raw: rawUsage,
+          },
+        },
+      );
+    });
+
+    it('should return undefined token counts when message-end has no tokens', async () => {
+      const rawUsage = {
+        billed_units: { input_tokens: 88, output_tokens: 13 },
+        cached_tokens: 128,
+      };
+      prepareChunkLinesResponse([
+        {
+          type: 'message-end',
+          delta: {
+            finish_reason: 'COMPLETE',
+            usage: rawUsage,
+          },
+        },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual(
+        {
+          type: 'finish',
+          finishReason: {
+            unified: 'stop',
+            raw: 'COMPLETE',
+          },
+          usage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: 128,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
               reasoning: undefined,
             },
             raw: rawUsage,

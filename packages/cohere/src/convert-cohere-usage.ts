@@ -19,26 +19,26 @@ export function convertCohereUsage(
     return createNullLanguageModelUsage();
   }
 
-  // `tokens` is not guaranteed by the API; fall back to the billed units.
-  const inputTokens =
-    usage.tokens?.input_tokens ?? usage.billed_units?.input_tokens;
-  const outputTokens =
-    usage.tokens?.output_tokens ?? usage.billed_units?.output_tokens;
+  // `tokens` is the only measure that matches the unified token counts.
+  // `billed_units` count billed units rather than tokens, so they are kept in
+  // `raw` only and never used as token counts or reduced by cached tokens.
+  const inputTokens = usage.tokens?.input_tokens ?? undefined;
+  const outputTokens = usage.tokens?.output_tokens ?? undefined;
   const cacheReadTokens = usage.cached_tokens ?? undefined;
 
   return {
     inputTokens: {
-      total: inputTokens ?? undefined,
+      total: inputTokens,
       noCache:
         inputTokens != null && cacheReadTokens != null
           ? inputTokens - cacheReadTokens
-          : (inputTokens ?? undefined),
+          : inputTokens,
       cacheRead: cacheReadTokens,
       cacheWrite: undefined,
     },
     outputTokens: {
-      total: outputTokens ?? undefined,
-      text: outputTokens ?? undefined,
+      total: outputTokens,
+      text: outputTokens,
       reasoning: undefined,
     },
     raw: usage,
