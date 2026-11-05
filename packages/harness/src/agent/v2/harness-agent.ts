@@ -23,15 +23,38 @@ import type { HarnessV2 } from '../../v2/harness-v2';
 import type { HarnessV2NetworkSandboxSession } from '../../v2/harness-v2-network-sandbox-session';
 import type { World } from '@workflow/world';
 
+/**
+ * Additional call input required to associate work with an agent session.
+ */
 interface HarnessAgentCallExtensions {
+  /**
+   * Session whose sandbox and identity are used for the call.
+   */
   session: HarnessAgentSession;
 }
 
+/**
+ * Combines adapter built-ins with user tools, letting user tools take precedence.
+ */
 type HarnessAllTools<
   THarness extends HarnessV2<any>,
   TUserTools extends ToolSet,
 > = Omit<THarness['builtinTools'], keyof TUserTools> & TUserTools;
 
+/**
+ * Consumer-facing agent configured with a HarnessV2 adapter.
+ *
+ * A supplied `World` makes the agent durable; otherwise it uses an in-memory
+ * world. Every session must include a sandbox session and a stable sandbox ID.
+ *
+ * ```ts
+ * const agent = new HarnessAgent({
+ *   harness,
+ *   world,
+ *   getSandboxSession: ({ sandboxId }) => sandboxProvider.getSession({ sandboxId }),
+ * });
+ * ```
+ */
 export class HarnessAgent<
   THarness extends HarnessV2<any> = HarnessV2,
   TUserTools extends ToolSet = {},
@@ -39,9 +62,24 @@ export class HarnessAgent<
   OUTPUT extends Output = never,
   CALL_OPTIONS = never,
 > {
+  /**
+   * Optional application-assigned agent identifier.
+   */
   readonly id: string | undefined;
+
+  /**
+   * Built-in and user tools available to this agent.
+   */
   readonly tools: HarnessAllTools<THarness, TUserTools>;
+
+  /**
+   * Identifier of the configured harness adapter.
+   */
   readonly harnessId: string;
+
+  /**
+   * Whether this agent produces structured output.
+   */
   readonly hasOutput = false;
 
   private readonly harness: HarnessV2<THarness['builtinTools']>;
@@ -51,6 +89,9 @@ export class HarnessAgent<
     HarnessAgentSettings['getSandboxSession']
   >;
 
+  /**
+   * Creates the agent from its settings.
+   */
   constructor(
     settings: HarnessAgentSettings<
       THarness,
@@ -98,6 +139,14 @@ export class HarnessAgent<
     } as HarnessAllTools<THarness, TUserTools>;
   }
 
+  /**
+   * Creates a session associated with a sandbox and a stable sandbox ID.
+   *
+   * The ID comes from `sandboxSession.id` when available, otherwise from
+   * `options.sandboxId`; conflicting IDs or a missing stable ID are rejected.
+   * In-memory worlds retain the supplied session object, while other worlds
+   * reacquire it through the configured provider.
+   */
   async createSession(options: {
     sessionId?: string;
     sandboxId?: string;
@@ -145,6 +194,10 @@ export class HarnessAgent<
     });
   }
 
+  /**
+   * Validates call-option serializability, then reports that generation is not
+   * implemented in this scaffold.
+   */
   async generate(
     options: AgentCallParameters<
       CALL_OPTIONS,
@@ -163,6 +216,10 @@ export class HarnessAgent<
     throw new Error('Not implemented yet');
   }
 
+  /**
+   * Validates call-option serializability, then reports that streaming is not
+   * implemented in this scaffold.
+   */
   async stream(
     options: AgentStreamParameters<
       CALL_OPTIONS,
@@ -182,6 +239,9 @@ export class HarnessAgent<
   }
 }
 
+/**
+ * Returns a sandbox session's string ID when it exposes one.
+ */
 function getSandboxId(input: {
   sandboxSession: SandboxSession | HarnessV2NetworkSandboxSession;
 }): string | undefined {
@@ -191,6 +251,13 @@ function getSandboxId(input: {
     : undefined;
 }
 
+/**
+ * Validates that call options are plain data objects with serializable values.
+ *
+ * The options object must have a plain or null prototype, and each own property
+ * must be a data property whose value passes `isHarnessSerializableValue`.
+ * Accessors, custom prototypes, and unsupported nested values cause an error.
+ */
 function assertCallOptionsSerializable(input: { options: object }): void {
   const prototype = Object.getPrototypeOf(input.options);
   if (prototype !== Object.prototype && prototype !== null) {
@@ -214,6 +281,14 @@ function assertCallOptionsSerializable(input: { options: object }): void {
   }
 }
 
+/**
+ * Checks recursively whether a value belongs to the supported serializable
+ * subset.
+ *
+ * Primitive values, supported built-ins, arrays, maps, sets, and plain objects
+ * with string-keyed data properties are accepted. Cycles, accessors, symbol
+ * keys on nested objects, and other class instances are rejected.
+ */
 function isHarnessSerializableValue(input: {
   value: unknown;
   ancestors: WeakSet<object>;

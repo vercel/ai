@@ -43,20 +43,81 @@ import {
   type SerializableValue,
 } from '@ai-sdk/provider-utils';
 
+/**
+ * Defines the checkpoint API for exporting and restoring one run's state.
+ *
+ * The consumer owns persistence: `export` returns a value that can be stored,
+ * while the JSON methods encode and decode the supported non-JSON values.
+ */
 interface Storable {
+  /**
+   * Exports the serializable state needed to restore a run.
+   *
+   * Event history is retained so replay can rebuild run, step, hook, and wait
+   * records; state that replay cannot rebuild is included separately.
+   */
   export(input: { runId: string }): Promise<SerializableValue>;
+
+  /**
+   * Restores a checkpoint for the same `runId` and replaces only that run's
+   * state.
+   *
+   * The checkpoint is validated and replayed into temporary state before the
+   * existing run is cleared, so invalid data does not partially replace it.
+   */
   seed(input: { runId: string; data: SerializableValue }): Promise<void>;
+
+  /**
+   * Exports a checkpoint encoded for storage as JSON.
+   *
+   * Binary data and other supported non-JSON values are transformed by the
+   * provider-utils JSON codec; the returned value can be passed to `seedJson`.
+   */
   exportJson(input: { runId: string }): Promise<JSONValue>;
+
+  /**
+   * Decodes a JSON checkpoint and restores its run state.
+   *
+   * This reverses `exportJson`'s encoding before applying the same validation
+   * and replacement behavior as `seed`.
+   */
   seedJson(input: { runId: string; data: JSONValue }): Promise<void>;
 }
 
+/**
+ * A pending queue message retained when its owning run is exported.
+ *
+ * Queue delivery is not replayed from events, so the message, queue-scoped
+ * idempotency options, and branded message ID must be checkpointed directly.
+ */
 type QueueMessage = {
+  /**
+   * Queue name used to deliver the message.
+   */
   queueName: string;
+
+  /**
+   * Stable ID returned when the message was enqueued.
+   */
   messageId: MessageIdType;
+
+  /**
+   * Serialized workflow payload, including its owning run ID.
+   */
   message: QueuePayload;
+
+  /**
+   * Queue options needed to preserve idempotency and delivery behavior.
+   */
   options?: QueueOptions;
 };
 
+/**
+ * Validates only the queue options needed to preserve checkpointed messages.
+ *
+ * The strict schema rejects unknown fields so exported data has a stable,
+ * serializable shape rather than depending on an adapter's runtime objects.
+ */
 const QueueOptionsSchema = z
   .object({
     deploymentId: z.string().optional(),
@@ -68,6 +129,12 @@ const QueueOptionsSchema = z
   })
   .strict();
 
+/**
+ * Validates a checkpointed queue message and restores its runtime types.
+ *
+ * The message ID and payload are parsed through their Workflow schemas after
+ * deserialization, rather than trusting their serialized representations.
+ */
 const QueueMessageSchema = z
   .object({
     queueName: z.string(),
@@ -84,6 +151,13 @@ const QueueMessageSchema = z
     }),
   );
 
+/**
+ * Validates the versioned checkpoint before any run state is replaced.
+ *
+ * Events are parsed through the Workflow event schema. Streams retain their
+ * ordered byte chunks and closed state; dynamic code and pending queue messages
+ * are included only because event replay cannot reliably reconstruct them.
+ */
 const InMemoryWorldDataSchema = z
   .object({
     version: z.literal(1),
@@ -106,18 +180,56 @@ const InMemoryWorldDataSchema = z
   })
   .strict();
 
+/**
+ * Inferred checkpoint shape for event history and state replay cannot rebuild.
+ *
+ * Derived run, step, hook, and wait records are intentionally absent because
+ * `seed` reconstructs them from `events`. Transient snapshots and stream readers
+ * are also omitted; they are process-local rather than durable run state.
+ */
 type InMemoryWorldData = z.infer<typeof InMemoryWorldDataSchema>;
 
+/**
+ * In-memory buffers and readers associated with a named run stream.
+ *
+ * Only `chunks` and `done` are durable checkpoint data. `waiters` are live
+ * reader callbacks and are recreated empty when a checkpoint is seeded.
+ */
 type StreamData = {
+  /**
+   * Byte chunks written to the stream in order.
+   */
   chunks: Uint8Array[];
+
+  /**
+   * Whether writers have closed the stream.
+   */
   done: boolean;
+
+  /**
+   * Pending readers to wake when chunks arrive or the stream closes.
+   */
   waiters: Set<() => void>;
 };
 
+/**
+ * Configuration for the local World-compatible implementation.
+ */
 type InMemoryWorldOptions = {
+  /**
+   * Deployment ID reported for runs created by this world.
+   */
   deploymentId?: string;
 };
 
+/**
+ * An in-memory implementation of Workflow's `World` contract.
+ *
+ * Events are authoritative for run, step, hook, and wait projections. Streams,
+ * pending queue messages, and dynamic workflow code that is not embedded in an
+ * event are retained separately. Snapshots and pending stream readers are
+ * process-local and are not included in exported checkpoints.
+ */
 export class InMemoryWorld implements World, Storable {
   readonly specVersion = SPEC_VERSION_CURRENT;
   readonly capabilities: WorldCapabilities = {};
@@ -146,6 +258,12 @@ export class InMemoryWorld implements World, Storable {
   private readonly queueIdempotencyKeys = new Map<string, MessageIdType>();
   private messageSequence = 0;
 
+  /**
+   * Creates an empty world using the supplied deployment ID.
+   *
+   * When omitted, the local identifier is `in-memory`; it is reported on runs
+   * but does not select or contact a remote deployment.
+   */
   constructor(options: InMemoryWorldOptions = {}) {
     this.deploymentId = options.deploymentId ?? 'in-memory';
 
@@ -226,28 +344,62 @@ export class InMemoryWorld implements World, Storable {
     };
   }
 
+  /**
+   * Returns the deployment ID configured for this world.
+   */
   async getDeploymentId(): Promise<string> {
     return this.deploymentId;
   }
 
+  /**
+   * Creates a ULID suitable for use as a Workflow run ID.
+   *
+   * This identifier is generated locally and does not reserve a run until a
+   * corresponding `run_created` event is recorded.
+   */
   createRunId(): string {
     return createUlid();
   }
 
+  /**
+   * Accepts every execution context because this world has no deployment-side
+   * execution constraints.
+   */
   validateRunExecutionContext(_value: Record<string, unknown>): void {}
 
+  /**
+   * Reports that this world imposes no runtime deadline.
+   */
   async getRuntimeDeadline(): Promise<undefined> {
     return undefined;
   }
 
+  /**
+   * Starts the world; no setup is required for in-memory storage.
+   */
   async start(): Promise<void> {}
 
+  /**
+   * Closes the world; there are no external resources to release.
+   */
   async close(): Promise<void> {}
 
+  /**
+   * Returns this world's configured deployment ID without querying a registry.
+   *
+   * Since the world has no remote deployments, the configured ID is always the
+   * latest ID this implementation can resolve.
+   */
   async resolveLatestDeploymentId(): Promise<string> {
     return this.deploymentId;
   }
 
+  /**
+   * Reports that this implementation has no run encryption key.
+   *
+   * Run data is held in process memory without encryption, so this method
+   * returns `undefined` regardless of the run or execution context.
+   */
   async getEncryptionKeyForRun(
     _runOrId: WorkflowRun | string,
     _context?: Record<string, unknown>,
@@ -255,6 +407,12 @@ export class InMemoryWorld implements World, Storable {
     return undefined;
   }
 
+  /**
+   * Retains dynamic workflow code in memory and returns its run-scoped locator.
+   *
+   * No remote upload occurs. The code is included in a checkpoint only when it
+   * is not already present in the run's replayable events.
+   */
   async uploadDynamicWorkflowCode(
     runId: string,
     input: { workflowName: string; code: Uint8Array },
@@ -263,18 +421,33 @@ export class InMemoryWorld implements World, Storable {
     return `in-memory:${runId}:${input.workflowName}`;
   }
 
+  /**
+   * Reports no deployment environment for this local world.
+   */
   getEnvironment(): undefined {
     return undefined;
   }
 
+  /**
+   * Provides no deployment-specific description for a run.
+   */
   describeRun(_run: Readonly<Record<string, unknown>>): null {
     return null;
   }
 
+  /**
+   * Indicates that this world has no remote deployment availability state.
+   */
   isDeploymentUnavailableError(_error: unknown): boolean {
     return false;
   }
 
+  /**
+   * Enqueues each message independently and preserves input order in results.
+   *
+   * A failure is returned for its corresponding message with `retryable: false`;
+   * it does not reject the batch or prevent later messages from being attempted.
+   */
   async queueBatch(
     queueName: ValidQueueName,
     messages: readonly { message: QueuePayload; opts?: QueueOptions }[],
@@ -299,6 +472,14 @@ export class InMemoryWorld implements World, Storable {
     );
   }
 
+  /**
+   * Creates a local HTTP adapter for invoking a queue consumer.
+   *
+   * The handler parses the request body as a Workflow queue payload and rejects
+   * queue names outside `queueNamePrefix` with 400. It passes attempt, message,
+   * queue, and optional request IDs to the consumer; parsing or consumer errors
+   * are returned as 500 responses.
+   */
   createQueueHandler(
     queueNamePrefix: string,
     handler: (
@@ -341,6 +522,16 @@ export class InMemoryWorld implements World, Storable {
     };
   }
 
+  /**
+   * Exports a detached checkpoint for one run.
+   *
+   * The event log is the source for replayable run, step, hook, and wait state.
+   * Stream chunks and completion flags, pending queue messages, and dynamic
+   * workflow code absent from the events are stored separately. Snapshots,
+   * projection caches, and live reader callbacks are deliberately excluded.
+   * The returned value is cloned so callers can persist or mutate it without
+   * sharing the world's in-memory objects.
+   */
   async export(input: { runId: string }): Promise<SerializableValue> {
     const { runId } = input;
     const streams = Object.fromEntries(
@@ -371,6 +562,15 @@ export class InMemoryWorld implements World, Storable {
     return cloneValue(data) as unknown as SerializableValue;
   }
 
+  /**
+   * Validates and restores a checkpoint without replacing other runs.
+   *
+   * The checkpoint's embedded run ID and every event or queued message run ID
+   * must match `input.runId`. Events are replayed into a temporary world first;
+   * only after replay succeeds are that run's projections, streams, dynamic
+   * code, and queued messages replaced. The run's transient snapshot is cleared,
+   * and the queue idempotency index is rebuilt from the resulting messages.
+   */
   async seed(input: { runId: string; data: SerializableValue }): Promise<void> {
     const { runId } = input;
     const data = InMemoryWorldDataSchema.parse(input.data);
@@ -492,11 +692,24 @@ export class InMemoryWorld implements World, Storable {
     this.rebuildQueueIdempotencyKeys();
   }
 
+  /**
+   * Exports a checkpoint in the JSON-safe representation.
+   *
+   * This first builds the same checkpoint as `export`, then delegates encoding
+   * of binary and other supported non-JSON values to the shared provider-utils
+   * codec. It does not persist the returned value.
+   */
   async exportJson(input: { runId: string }): Promise<JSONValue> {
     const data = await this.export(input);
     return jsonEncodeSerializableValue({ value: data });
   }
 
+  /**
+   * Decodes a JSON-safe checkpoint and restores it through `seed`.
+   *
+   * The shared codec reverses `exportJson`'s transformations before the normal
+   * checkpoint schema, run-ID checks, replay, and run-scoped replacement apply.
+   */
   async seedJson(input: { runId: string; data: JSONValue }): Promise<void> {
     await this.seed({
       runId: input.runId,
@@ -504,6 +717,12 @@ export class InMemoryWorld implements World, Storable {
     });
   }
 
+  /**
+   * Looks up runs in input order, returning `null` for each missing ID.
+   *
+   * Results are detached copies. `resolveData: 'none'` omits the run's input,
+   * output, and dynamic workflow code while retaining its metadata.
+   */
   async getManyRuns(input: {
     ids: readonly string[];
     params?: { resolveData?: 'all' | 'none' };
@@ -516,6 +735,13 @@ export class InMemoryWorld implements World, Storable {
     });
   }
 
+  /**
+   * Returns a detached copy of one run, or throws a Workflow-compatible
+   * not-found error.
+   *
+   * Set `resolveData: 'none'` to omit input, output, and dynamic workflow code
+   * while keeping the remaining run metadata.
+   */
   async getRun(input: {
     id: string;
     params?: { resolveData?: 'all' | 'none' };
@@ -525,6 +751,13 @@ export class InMemoryWorld implements World, Storable {
     return this.resolveRunData({ run, resolveData: input.params?.resolveData });
   }
 
+  /**
+   * Filters and paginates runs, ordered by creation time.
+   *
+   * A status may be a single value or a list; pagination defaults to newest
+   * first and accepts either a numeric offset or a run ID cursor. Returned runs
+   * are detached copies, and `resolveData: 'none'` omits their payload fields.
+   */
   async listRuns(input: {
     params?: {
       workflowName?: string;
@@ -568,6 +801,13 @@ export class InMemoryWorld implements World, Storable {
     };
   }
 
+  /**
+   * Returns a detached copy of one step, or throws if the run/step pair is
+   * missing.
+   *
+   * `resolveData: 'none'` omits step input and output but leaves lifecycle
+   * metadata available.
+   */
   async getStep(input: {
     runId: string;
     stepId: string;
@@ -582,6 +822,12 @@ export class InMemoryWorld implements World, Storable {
     });
   }
 
+  /**
+   * Lists a run's steps in creation-time order with optional pagination.
+   *
+   * Pagination defaults to newest first and accepts a numeric offset or step
+   * ID cursor. `resolveData: 'none'` omits input and output from each result.
+   */
   async listSteps(input: {
     params: {
       runId: string;
@@ -616,6 +862,10 @@ export class InMemoryWorld implements World, Storable {
     };
   }
 
+  /**
+   * Returns a detached copy of an event, or throws if it is not in the run's
+   * event log.
+   */
   async getEvent(input: { runId: string; eventId: string }): Promise<Event> {
     const event = this.eventRecords
       .get(input.runId)
@@ -628,6 +878,12 @@ export class InMemoryWorld implements World, Storable {
     return cloneValue(event);
   }
 
+  /**
+   * Lists a run's events in recorded order and paginates the result.
+   *
+   * Each event is cloned before `stripEventDataRefs` applies the requested
+   * payload-resolution mode, so callers cannot mutate the stored event log.
+   */
   async listEvents(input: { params: ListEventsParams }) {
     const { params } = input;
     const events = this.eventRecords.get(params.runId) ?? [];
@@ -644,6 +900,12 @@ export class InMemoryWorld implements World, Storable {
     };
   }
 
+  /**
+   * Filters one run's event log by correlation ID and paginates the matches.
+   *
+   * Event payload references are resolved or stripped using the same mode as
+   * `listEvents`.
+   */
   async listEventsByCorrelationId(input: {
     params: ListEventsByCorrelationIdParams;
   }) {
@@ -664,6 +926,14 @@ export class InMemoryWorld implements World, Storable {
     };
   }
 
+  /**
+   * Validates and records one event, then applies it to the in-memory projections.
+   *
+   * `run_created` may omit `runId`, in which case a local ID is generated;
+   * other event types require an existing run, except `run_started`, which may
+   * initialize a partial run record. Event IDs follow insertion order, and the
+   * event is appended only after its projection update succeeds.
+   */
   async createEvent(input: {
     runId: string | null;
     data: CreateEventRequest | RunCreatedEventRequest;
@@ -710,6 +980,12 @@ export class InMemoryWorld implements World, Storable {
     } as EventResult;
   }
 
+  /**
+   * Creates batch events sequentially and returns one result per input event.
+   *
+   * A failed event is reported as a 409 conflict and does not stop later events;
+   * earlier successful events are not rolled back, so the batch is not atomic.
+   */
   async createEventBatch(input: {
     runId: string;
     batch: BatchEventRequest[];
@@ -745,18 +1021,37 @@ export class InMemoryWorld implements World, Storable {
     return { results };
   }
 
+  /**
+   * Returns a detached copy of the hook with this ID.
+   *
+   * Hook records are indexed across runs; a missing ID throws the
+   * Workflow-compatible hook not-found error.
+   */
   async getHook(input: { hookId: string }): Promise<Hook> {
     const hook = this.hookRecords.get(input.hookId);
     if (!hook) throw notFound({ entity: 'Hook', id: input.hookId });
     return cloneValue(hook);
   }
 
+  /**
+   * Resolves a hook token through the world-wide token index.
+   *
+   * The index is updated by hook lifecycle events and is rebuilt when a run is
+   * restored; tokens replaced by a forced claim no longer resolve to the old
+   * hook.
+   */
   async getHookByToken(input: { token: string }): Promise<Hook> {
     const hookId = this.hookIdsByToken.get(input.token);
     if (!hookId) throw notFound({ entity: 'Hook', id: input.token });
     return this.getHook({ hookId });
   }
 
+  /**
+   * Lists hooks across the world, optionally filtering to one run.
+   *
+   * Results are ordered by creation time, newest first by default, and use the
+   * same numeric-offset or hook-ID cursor behavior as other paginated lists.
+   */
   async listHooks(input: {
     params: {
       runId?: string;
@@ -784,6 +1079,13 @@ export class InMemoryWorld implements World, Storable {
     });
   }
 
+  /**
+   * Appends one chunk to a run's named stream and wakes waiting readers.
+   *
+   * Strings are encoded as UTF-8; byte arrays are cloned before storage. A
+   * stream is created on its first write, and writes after it has been closed
+   * reject with an error.
+   */
   async writeStream(input: {
     runId: string;
     name: string;
@@ -799,6 +1101,12 @@ export class InMemoryWorld implements World, Storable {
     this.notifyStream({ stream });
   }
 
+  /**
+   * Appends chunks sequentially using the same validation as `writeStream`.
+   *
+   * If a write fails, the method rejects immediately; chunks already appended
+   * remain in the stream and later chunks are not attempted.
+   */
   async writeStreamMulti(input: {
     runId: string;
     name: string;
@@ -809,6 +1117,12 @@ export class InMemoryWorld implements World, Storable {
     }
   }
 
+  /**
+   * Marks a stream complete and wakes every reader waiting for another chunk.
+   *
+   * Closing a stream with no prior writes creates an empty, completed stream.
+   * Subsequent reads drain buffered chunks and then close; later writes fail.
+   */
   async closeStream(input: { runId: string; name: string }): Promise<void> {
     const stream = this.getOrCreateStream({
       runId: input.runId,
@@ -818,6 +1132,14 @@ export class InMemoryWorld implements World, Storable {
     this.notifyStream({ stream });
   }
 
+  /**
+   * Opens a live reader beginning at a chunk index.
+   *
+   * A negative `startIndex` is resolved against the number of chunks present
+   * when this method is called, with values before the beginning clamped to
+   * zero. The reader then waits for future writes until the stream is closed;
+   * each enqueued chunk is cloned before it is exposed.
+   */
   async getStream(input: {
     runId: string;
     name: string;
@@ -854,10 +1176,23 @@ export class InMemoryWorld implements World, Storable {
     });
   }
 
+  /**
+   * Lists the names of streams created for a run.
+   *
+   * Reading an unknown stream through a stream getter creates it, so it then
+   * appears in this list.
+   */
   async listStreams(input: { runId: string }): Promise<string[]> {
     return Array.from(this.streamRecords.get(input.runId)?.keys() ?? []);
   }
 
+  /**
+   * Reads a page of already-written chunks without waiting for future writes.
+   *
+   * The default page size is 100 and the maximum is 1,000. The cursor is the
+   * numeric index of the next chunk; returned byte arrays are cloned, and
+   * `done` reports whether the writer has closed the stream.
+   */
   async getStreamChunks(input: {
     runId: string;
     name: string;
@@ -883,6 +1218,12 @@ export class InMemoryWorld implements World, Storable {
     };
   }
 
+  /**
+   * Returns the current tail index and completion state without reading chunks.
+   *
+   * An empty stream has `tailIndex: -1`; querying a missing stream creates an
+   * open empty stream, consistent with the other stream readers.
+   */
   async getStreamInfo(input: {
     runId: string;
     name: string;
@@ -894,6 +1235,12 @@ export class InMemoryWorld implements World, Storable {
     return { tailIndex: stream.chunks.length - 1, done: stream.done };
   }
 
+  /**
+   * Loads a detached copy of a run's transient snapshot, or returns `null`.
+   *
+   * Snapshots are process-local caches and are deliberately excluded from
+   * checkpoints; a seeded run therefore has no snapshot until one is saved.
+   */
   async getSnapshot(input: {
     runId: string;
   }): Promise<{ data: Uint8Array; metadata: SnapshotMetadata } | null> {
@@ -901,6 +1248,12 @@ export class InMemoryWorld implements World, Storable {
     return snapshot ? cloneValue(snapshot) : null;
   }
 
+  /**
+   * Stores a detached, process-local snapshot for a run.
+   *
+   * Both data and metadata are cloned on write and again on read. Snapshots are
+   * caches rather than checkpoint state and are cleared when that run is seeded.
+   */
   async saveSnapshot(input: {
     runId: string;
     data: Uint8Array;
@@ -912,10 +1265,21 @@ export class InMemoryWorld implements World, Storable {
     });
   }
 
+  /**
+   * Removes a run's transient snapshot without changing its checkpoint state.
+   */
   async deleteSnapshot(input: { runId: string }): Promise<void> {
     this.snapshots.delete(input.runId);
   }
 
+  /**
+   * Validates and stores a pending message, deduplicating by queue and key.
+   *
+   * The first message stored for a given `(queueName, idempotencyKey)` supplies
+   * the returned message ID; later duplicates return that ID without replacing
+   * the original payload. Messages are cloned and included in the checkpoint
+   * only when their payload identifies the exported run.
+   */
   private async enqueue(input: {
     queueName: string;
     message: QueuePayload;
@@ -941,6 +1305,13 @@ export class InMemoryWorld implements World, Storable {
     return { messageId };
   }
 
+  /**
+   * Generates a process-local message ID not currently used by a queued message.
+   *
+   * IDs use a monotonically increasing base-36 sequence. The collision check is
+   * against the current pending queue only; IDs are not reserved across world
+   * instances or preserved after the message is removed.
+   */
   private createMessageId(): MessageIdType {
     let messageId: MessageIdType;
     do {
@@ -954,10 +1325,24 @@ export class InMemoryWorld implements World, Storable {
     return messageId;
   }
 
+  /**
+   * Creates a `wrun_`-prefixed ULID for an ID-less `run_created` event.
+   *
+   * Generating the identifier does not create the run; the event is recorded
+   * separately by `createEvent`.
+   */
   private nextRunId(): string {
     return `wrun_${createUlid()}`;
   }
 
+  /**
+   * Applies a lifecycle event to the projection it represents.
+   *
+   * Run, attribute, step, hook, and wait events update their corresponding
+   * in-memory records. Unknown event kinds and no-op events create no derived
+   * projection; sealed no-op events return early. The caller owns appending the
+   * event after this method succeeds.
+   */
   private applyEvent(input: { event: Event }): {
     run?: WorkflowRun;
     step?: Step;
@@ -1076,6 +1461,14 @@ export class InMemoryWorld implements World, Storable {
     return result;
   }
 
+  /**
+   * Rebuilds one step record from its lifecycle event.
+   *
+   * A start event can initialize a missing step and derives an attempt number
+   * when the event omits one. Completion, failure, and retry events require an
+   * existing step; they update its status and timestamps while preserving the
+   * other projected fields.
+   */
   private applyStepEvent(input: { event: Event }): Step {
     const { event } = input;
     const runId = event.runId;
@@ -1156,6 +1549,13 @@ export class InMemoryWorld implements World, Storable {
     return step;
   }
 
+  /**
+   * Applies hook lifecycle events and keeps the token index consistent.
+   *
+   * A forced creation can replace a different hook using the same token;
+   * without `force`, that collision is an error. Disposal removes both the hook
+   * record and its token mapping.
+   */
   private applyHookEvent(input: { event: Event }): Hook | undefined {
     const { event } = input;
     const hookId = event.correlationId;
@@ -1206,6 +1606,12 @@ export class InMemoryWorld implements World, Storable {
     return this.hookRecords.get(hookId);
   }
 
+  /**
+   * Creates or completes the wait record identified by the event correlation ID.
+   *
+   * Creation records the scheduled resume time and starts in `waiting`; any
+   * subsequent wait event projects a completed wait using that event's time.
+   */
   private applyWaitEvent(input: { event: Event }): Wait {
     const { event } = input;
     const waitId = event.correlationId;
@@ -1242,12 +1648,22 @@ export class InMemoryWorld implements World, Storable {
     return wait;
   }
 
+  /**
+   * Returns the internal run record or throws the Workflow-compatible
+   * not-found error used by the public getters.
+   */
   private requireRun(input: { runId: string }): WorkflowRun {
     const run = this.runRecords.get(input.runId);
     if (!run) throw notFound({ entity: 'WorkflowRun', id: input.runId });
     return run;
   }
 
+  /**
+   * Produces the requested run view without exposing stored mutable objects.
+   *
+   * The default view is a deep clone. `resolveData: 'none'` preserves metadata
+   * but sets input, output, and dynamic workflow code to `undefined`.
+   */
   private resolveRunData(input: {
     run: WorkflowRun;
     resolveData?: 'all' | 'none';
@@ -1261,11 +1677,23 @@ export class InMemoryWorld implements World, Storable {
     } as WorkflowRunWithoutData;
   }
 
+  /**
+   * Produces a detached step view, optionally omitting its payload fields.
+   *
+   * `resolveData: 'none'` sets input and output to `undefined`; otherwise the
+   * returned step is a deep clone of the stored projection.
+   */
   private resolveStepData(input: { step: Step; resolveData?: 'all' | 'none' }) {
     if (input.resolveData !== 'none') return cloneValue(input.step);
     return { ...input.step, input: undefined, output: undefined };
   }
 
+  /**
+   * Returns the named stream buffer, creating it as open and empty if absent.
+   *
+   * Read operations also use this helper, so observing a previously unseen
+   * stream creates state that can later be listed or checkpointed.
+   */
   private getOrCreateStream(input: {
     runId: string;
     name: string;
@@ -1281,10 +1709,24 @@ export class InMemoryWorld implements World, Storable {
     return stream;
   }
 
+  /**
+   * Wakes all readers currently waiting on this stream.
+   *
+   * Each reader removes its own wake callback when resumed. This method does
+   * not mark the stream complete; the write or close operation controls that
+   * state before notifying readers.
+   */
   private notifyStream(input: { stream: StreamData }): void {
     for (const wake of input.stream.waiters) wake();
   }
 
+  /**
+   * Clears one run's state and wakes readers before discarding its streams.
+   *
+   * Other runs' records are retained. Run-owned hooks and pending queue messages
+   * are removed as well; callers rebuilding a world-wide index must do so after
+   * replacing the run's messages.
+   */
   private clearRun(input: { runId: string }): void {
     for (const stream of this.streamRecords.get(input.runId)?.values() ?? []) {
       stream.done = true;
@@ -1313,6 +1755,12 @@ export class InMemoryWorld implements World, Storable {
     }
   }
 
+  /**
+   * Rebuilds the queue-scoped idempotency index from the current message list.
+   *
+   * The index is derived state: rebuilding it after checkpoint seeding ensures
+   * duplicate checks use the restored messages rather than stale entries.
+   */
   private rebuildQueueIdempotencyKeys(): void {
     this.queueIdempotencyKeys.clear();
     for (const queued of this.queuedMessages) {
@@ -1326,6 +1774,14 @@ export class InMemoryWorld implements World, Storable {
     }
   }
 
+  /**
+   * Validates a run's attribute update, records it as an event, and returns the
+   * resulting attributes.
+   *
+   * Reserved-key policy is delegated to `validateAttributeChanges`. The
+   * projection is changed only by applying the resulting `attr_set` event, so
+   * the event log remains the source used by checkpoint replay.
+   */
   private async setRunAttributes(input: {
     runId: string;
     changes: { key: string; value: string | null }[];
@@ -1357,6 +1813,13 @@ export class InMemoryWorld implements World, Storable {
     };
   }
 
+  /**
+   * Cancels eligible runs sequentially and reports one outcome per requested ID.
+   *
+   * Missing and already-cancelled runs are reported without events; completed
+   * or failed runs are not cancellable. Active runs are cancelled through the
+   * normal event path, and the summary counts each outcome in the input list.
+   */
   private async cancelRuns(input: {
     request: { runIds: string[]; cancelReason?: string };
   }) {
@@ -1404,10 +1867,23 @@ export class InMemoryWorld implements World, Storable {
   }
 }
 
+/**
+ * Deep-clones a value supported by `SerializableValue`.
+ *
+ * The world uses this at API and checkpoint boundaries to keep callers from
+ * mutating stored records or byte buffers through shared references.
+ */
 function cloneValue<T>(value: T): T {
   return cloneSerializableValue({ value: value as SerializableValue }) as T;
 }
 
+/**
+ * Generates a 26-character ULID from the current millisecond and random suffix.
+ *
+ * The timestamp occupies the first 10 Crockford Base32 characters; the
+ * remaining 16 are selected with `Math.random`, so this helper is for local
+ * identifiers and must not be used to create security tokens.
+ */
 function createUlid(): string {
   const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
   let timestamp = Date.now();
@@ -1424,29 +1900,55 @@ function createUlid(): string {
   return `${time}${randomness}`;
 }
 
+/**
+ * Creates a Workflow-compatible not-found error for the named entity.
+ *
+ * The entity determines the error's `name` (for example,
+ * `WorkflowRunNotFoundError`), while the supplied ID is included in the
+ * message.
+ */
 function notFound(input: { entity: string; id: string }): Error {
   const error = new Error(`${input.entity} \`${input.id}\` was not found.`);
   error.name = `${input.entity}NotFoundError`;
   return error;
 }
 
+/**
+ * Reads a run ID from queue payloads that are scoped to a workflow run.
+ */
 function getRunId(input: { message: QueuePayload }): string | undefined {
   const message = input.message as Record<string, unknown>;
   return typeof message.runId === 'string' ? message.runId : undefined;
 }
 
+/**
+ * Converts text chunks to UTF-8 bytes and clones binary chunks.
+ */
 function toBytes(value: string | Uint8Array): Uint8Array {
   return typeof value === 'string'
     ? new TextEncoder().encode(value)
     : cloneValue(value);
 }
 
+/**
+ * Parses a non-negative integer offset, returning zero for invalid cursors.
+ *
+ * `paginate` separately supports key-based cursors, so this helper deliberately
+ * treats non-numeric values as the first-page offset.
+ */
 function parseCursor(input: { cursor?: string }): number {
   if (input.cursor === undefined) return 0;
   const cursor = Number(input.cursor);
   return Number.isInteger(cursor) && cursor >= 0 ? cursor : 0;
 }
 
+/**
+ * Slices a page by numeric offset or by the key of the preceding item.
+ *
+ * A missing or invalid key starts at the beginning. The returned cursor is the
+ * next numeric offset, not the key of the last item, and is `null` when the
+ * requested page reaches the end.
+ */
 function paginate<T>(input: {
   items: T[];
   pagination?: { limit?: number; cursor?: string };
@@ -1471,6 +1973,9 @@ function paginate<T>(input: {
   };
 }
 
+/**
+ * Compares dates in the requested sort order, defaulting to descending.
+ */
 function compareDates(input: {
   a: Date;
   b: Date;
