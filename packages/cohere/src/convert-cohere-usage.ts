@@ -2,13 +2,13 @@ import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
 
 export type CohereUsageTokens = {
-  input_tokens: number;
-  output_tokens: number;
+  input_tokens?: number | null;
+  output_tokens?: number | null;
 };
 
 export type CohereUsage = {
   billed_units?: CohereUsageTokens | null;
-  tokens: CohereUsageTokens;
+  tokens?: CohereUsageTokens | null;
   cached_tokens?: number | null;
 };
 
@@ -19,22 +19,26 @@ export function convertCohereUsage(
     return createNullLanguageModelUsage();
   }
 
-  const tokens = usage.tokens;
-  const inputTokens = tokens.input_tokens;
-  const outputTokens = tokens.output_tokens;
+  // `tokens` is not guaranteed by the API; fall back to the billed units.
+  const inputTokens =
+    usage.tokens?.input_tokens ?? usage.billed_units?.input_tokens;
+  const outputTokens =
+    usage.tokens?.output_tokens ?? usage.billed_units?.output_tokens;
   const cacheReadTokens = usage.cached_tokens ?? undefined;
 
   return {
     inputTokens: {
-      total: inputTokens,
+      total: inputTokens ?? undefined,
       noCache:
-        cacheReadTokens != null ? inputTokens - cacheReadTokens : inputTokens,
+        inputTokens != null && cacheReadTokens != null
+          ? inputTokens - cacheReadTokens
+          : (inputTokens ?? undefined),
       cacheRead: cacheReadTokens,
       cacheWrite: undefined,
     },
     outputTokens: {
-      total: outputTokens,
-      text: outputTokens,
+      total: outputTokens ?? undefined,
+      text: outputTokens ?? undefined,
       reasoning: undefined,
     },
     raw: usage,

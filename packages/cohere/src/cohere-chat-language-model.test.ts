@@ -263,6 +263,184 @@ describe('doGenerate', () => {
       expect(result).toMatchSnapshot();
     });
 
+    it('should map document citations without title and with missing fields', async () => {
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-citation-id',
+      });
+
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Automation of tasks' }],
+            citations: [
+              {
+                text: 'Automation of tasks',
+                sources: [
+                  {
+                    type: 'document',
+                    id: 'doc:0',
+                    document: {
+                      id: 'doc:0',
+                      text: 'AI provides automation of tasks.',
+                      extra_field: 'passed through',
+                    },
+                  },
+                ],
+                type: 'TEXT_CONTENT',
+              },
+            ],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            tokens: { input_tokens: 10, output_tokens: 5 },
+          },
+        },
+      };
+
+      const result = await testProvider('command-r-plus').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toStrictEqual([
+        { type: 'text', text: 'Automation of tasks' },
+        {
+          type: 'source',
+          sourceType: 'document',
+          id: 'test-citation-id',
+          mediaType: 'text/plain',
+          title: 'Document',
+          providerMetadata: {
+            cohere: {
+              text: 'Automation of tasks',
+              sources: [
+                {
+                  type: 'document',
+                  id: 'doc:0',
+                  document: {
+                    id: 'doc:0',
+                    text: 'AI provides automation of tasks.',
+                    extra_field: 'passed through',
+                  },
+                },
+              ],
+              citationType: 'TEXT_CONTENT',
+            },
+          },
+        },
+      ]);
+    });
+
+    it('should not emit sources for tool-sourced citations', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'It is sunny in Berlin.' }],
+            citations: [
+              {
+                start: 6,
+                end: 11,
+                text: 'sunny',
+                sources: [
+                  {
+                    type: 'tool',
+                    id: 'getWeather:0',
+                    tool_output: { city: 'Berlin', condition: 'sunny' },
+                  },
+                ],
+                type: 'TEXT_CONTENT',
+              },
+              {
+                start: 0,
+                end: 5,
+                text: 'It is',
+                sources: null,
+              },
+            ],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            tokens: { input_tokens: 10, output_tokens: 5 },
+          },
+        },
+      };
+
+      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(result.content).toStrictEqual([
+        { type: 'text', text: 'It is sunny in Berlin.' },
+      ]);
+    });
+
+    it('should handle usage without tokens', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+        },
+      };
+
+      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: undefined,
+      });
+    });
+
+    it('should fall back to billed units when tokens are missing', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            billed_units: { input_tokens: 12, output_tokens: 7 },
+          },
+        },
+      };
+
+      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: 12,
+          noCache: 12,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 7,
+          text: 7,
+          reasoning: undefined,
+        },
+        raw: {
+          billed_units: { input_tokens: 12, output_tokens: 7 },
+        },
+      });
+    });
+
     it('should extract text documents and send to API', async () => {
       await model.doGenerate({
         prompt: [

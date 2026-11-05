@@ -1,4 +1,5 @@
 import type {
+  JSONArray,
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -207,19 +208,31 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
     // citations:
     for (const citation of response.message.citations ?? []) {
+      // Tool-sourced citations (e.g. citations of tool results in a follow-up
+      // step) have no document to point at, so they are not emitted as sources.
+      const document = citation.sources?.find(
+        source => source.document != null,
+      )?.document;
+
+      if (document == null) {
+        continue;
+      }
+
       content.push({
         type: 'source',
         sourceType: 'document',
         id: this.config.generateId(),
         mediaType: 'text/plain',
-        title: citation.sources[0]?.document?.title || 'Document',
+        title: document.title ?? 'Document',
         providerMetadata: {
           cohere: {
-            start: citation.start,
-            end: citation.end,
-            text: citation.text,
-            sources: citation.sources,
-            ...(citation.type && { citationType: citation.type }),
+            ...(citation.start != null && { start: citation.start }),
+            ...(citation.end != null && { end: citation.end }),
+            ...(citation.text != null && { text: citation.text }),
+            ...(citation.sources != null && {
+              sources: citation.sources as JSONArray,
+            }),
+            ...(citation.type != null && { citationType: citation.type }),
           },
         },
       });
@@ -518,18 +531,21 @@ function resolveCohereThinking({
 }
 
 // Loose, nested objects included: the parsed value is returned as `usage.raw`.
+// All fields are optional in the API specification, so every field is nullish.
 const cohereUsageSchema = () =>
   z.looseObject({
     billed_units: z
       .looseObject({
-        input_tokens: z.number(),
-        output_tokens: z.number(),
+        input_tokens: z.number().nullish(),
+        output_tokens: z.number().nullish(),
       })
       .nullish(),
-    tokens: z.looseObject({
-      input_tokens: z.number(),
-      output_tokens: z.number(),
-    }),
+    tokens: z
+      .looseObject({
+        input_tokens: z.number().nullish(),
+        output_tokens: z.number().nullish(),
+      })
+      .nullish(),
     cached_tokens: z.number().nullish(),
   });
 
@@ -569,27 +585,34 @@ const cohereChatResponseSchema = lazySchema(() =>
         citations: z
           .array(
             z.object({
-              start: z.number(),
-              end: z.number(),
-              text: z.string(),
-              sources: z.array(
-                z.object({
-                  type: z.string().optional(),
-                  id: z.string().optional(),
-                  document: z.object({
-                    id: z.string().optional(),
-                    text: z.string(),
-                    title: z.string(),
+              start: z.number().nullish(),
+              end: z.number().nullish(),
+              text: z.string().nullish(),
+              sources: z
+                .array(
+                  z.object({
+                    type: z.string().nullish(),
+                    id: z.string().nullish(),
+                    // The document is an arbitrary object; only the fields the
+                    // provider returns are typed, the rest are passed through.
+                    document: z
+                      .looseObject({
+                        id: z.string().nullish(),
+                        text: z.string().nullish(),
+                        title: z.string().nullish(),
+                      })
+                      .nullish(),
+                    tool_output: z.looseObject({}).nullish(),
                   }),
-                }),
-              ),
-              type: z.string().optional(),
+                )
+                .nullish(),
+              type: z.string().nullish(),
             }),
           )
           .nullish(),
       }),
       finish_reason: z.string(),
-      usage: cohereUsageSchema(),
+      usage: cohereUsageSchema().nullish(),
     }),
   ),
 );
