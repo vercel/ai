@@ -977,12 +977,12 @@ console.log(text);`,
     packageName: 'ai-sdk-ava',
     tags: ['data-analysis', 'sql', 'visualization', 'charts', 'ava'],
     installCommand: {
-      pnpm: 'pnpm add ai-sdk-ava @antv/ava@beta ai zod',
-      npm: 'npm install ai-sdk-ava @antv/ava@beta ai zod',
-      yarn: 'yarn add ai-sdk-ava @antv/ava@beta ai zod',
-      bun: 'bun add ai-sdk-ava @antv/ava@beta ai zod',
+      pnpm: 'pnpm add ai-sdk-ava @antv/ava@beta ai @ai-sdk/openai zod',
+      npm: 'npm install ai-sdk-ava @antv/ava@beta ai @ai-sdk/openai zod',
+      yarn: 'yarn add ai-sdk-ava @antv/ava@beta ai @ai-sdk/openai zod',
+      bun: 'bun add ai-sdk-ava @antv/ava@beta ai @ai-sdk/openai zod',
     },
-    codeExample: `import { generateText } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { avaTools } from 'ai-sdk-ava';
 
@@ -996,6 +996,7 @@ try {
   const { text } = await generateText({
     model: openai('gpt-4o-mini'),
     tools,
+    stopWhen: isStepCount(5),
     prompt: 'Load examples/sales.csv, then tell me which region sells the most and chart it.',
   });
   console.log(text);
