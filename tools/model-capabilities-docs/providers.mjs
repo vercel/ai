@@ -1,3 +1,4 @@
+import { prodiaDocs } from './providers/prodia.mjs';
 import { heygenDocs } from './providers/heygen.mjs';
 import { gmicloudDocs } from './providers/gmicloud.mjs';
 import { bytedanceDocs } from './providers/bytedance.mjs';
@@ -28,6 +29,7 @@ import { formatSupport } from './render-tables.mjs';
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
+  prodiaDocs,
   heygenDocs,
   gmicloudDocs,
   bytedanceDocs,

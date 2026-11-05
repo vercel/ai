@@ -131,10 +131,14 @@ console.log(`Image saved to ${filename}`);
 
 Prodia offers fast inference for various image generation models. Here are the supported model types:
 
-| Model                                    | Description                                          |
-| ---------------------------------------- | ---------------------------------------------------- |
-| `inference.flux-fast.schnell.txt2img.v2` | Fast FLUX Schnell model for text-to-image generation |
-| `inference.flux.schnell.txt2img.v2`      | FLUX Schnell model for text-to-image generation      |
+{/* model-capabilities:prodia-image:start */}
+
+| Model                                    | Description                                          | Sizes                                                                              | Image Editing | Mask Input | Max Images Per Call |
+| ---------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------- | ---------- | ------------------- |
+| `inference.flux-fast.schnell.txt2img.v2` | Fast FLUX Schnell model for text-to-image generation | Output width and height in pixels, configured with size or providerOptions.prodia. | <Cross />     | <Cross />  | 1                   |
+| `inference.flux.schnell.txt2img.v2`      | FLUX Schnell model for text-to-image generation      | Output width and height in pixels, configured with size or providerOptions.prodia. | <Cross />     | <Cross />  | 1                   |
+
+{/* model-capabilities:prodia-image:end */}
 
 <Note>
   Prodia supports additional model IDs. Check the [Prodia
@@ -229,3 +233,43 @@ console.log('Job ID:', metadata?.jobId);
 console.log('Seed:', metadata?.seed);
 console.log('Elapsed:', metadata?.elapsed);
 ```
+
+## Language Model Capabilities
+
+{/* model-capabilities:prodia-language:start */}
+
+| Model                              | Image Input | Object Generation | Tool Usage | Tool Streaming | Text Generation | Image Generation |
+| ---------------------------------- | ----------- | ----------------- | ---------- | -------------- | --------------- | ---------------- |
+| `inference.nano-banana.img2img.v2` | <Check />   | <Cross />         | <Cross />  | <Cross />      | <Cross />       | <Check />        |
+
+{/* model-capabilities:prodia-language:end */}
+
+## Video Model Capabilities
+
+{/* model-capabilities:prodia-video:start */}
+
+| Model                                   | Image Input | First Frame | Last Frame | Reference Images | Reference Video | Audio     | Aspect Ratio | Resolution                                                         | Duration  | FPS       | Seed      |
+| --------------------------------------- | ----------- | ----------- | ---------- | ---------------- | --------------- | --------- | ------------ | ------------------------------------------------------------------ | --------- | --------- | --------- |
+| `inference.wan2-2.lightning.txt2vid.v0` | <Cross />   | <Cross />   | <Cross />  | <Cross />        | <Cross />       | <Cross /> | <Cross />    | Conditional: Configured through providerOptions.prodia.resolution. | <Cross /> | <Cross /> | <Check /> |
+| `inference.wan2-2.lightning.img2vid.v0` | <Check />   | <Cross />   | <Cross />  | <Cross />        | <Cross />       | <Cross /> | <Cross />    | Conditional: Configured through providerOptions.prodia.resolution. | <Cross /> | <Cross /> | <Check /> |
+
+{/* model-capabilities:prodia-video:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:prodia-provider-options:start */}
+
+| Operation | Option        | Description                                                                  |
+| --------- | ------------- | ---------------------------------------------------------------------------- |
+| image     | `steps`       | Amount of computational iterations to run. More is typically higher quality. |
+| image     | `width`       | Width of the output image in pixels.                                         |
+| image     | `height`      | Height of the output image in pixels.                                        |
+| image     | `stylePreset` | Apply a visual theme to your output image.                                   |
+| image     | `loras`       | Augment the output with a LoRa model.                                        |
+| image     | `progressive` | When using JPEG output, return a progressive JPEG.                           |
+| language  | `aspectRatio` | Aspect ratio for the output image.                                           |
+| video     | `resolution`  | Video resolution (e.g. "480p", "720p").                                      |
+
+{/* model-capabilities:prodia-provider-options:end */}
