@@ -60,7 +60,7 @@ describe.each([
       },
     );
 
-    it.each([
+    it.each<Record<string, string>>([
       { origin: 'https://example.com' },
       { origin: 'null' },
       { origin: 'http://localhost:3001' },
