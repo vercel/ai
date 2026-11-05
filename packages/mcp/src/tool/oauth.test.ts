@@ -10,6 +10,7 @@ import {
   refreshAuthorization,
   registerClient,
   auth,
+  selectResourceURL,
   type OAuthClientProvider,
   type OAuthAuthorizationServerInformation,
   type AuthResult,
@@ -2064,6 +2065,65 @@ describe('auth function', () => {
     vi.clearAllMocks();
   });
 
+  describe('resource selection', () => {
+    it.each([
+      {
+        serverUrl: 'https://api.example.com',
+        resource: 'https://api.example.com/',
+      },
+      {
+        serverUrl: 'https://api.example.com/mcp-server?tenant=1#fragment',
+        resource: 'https://api.example.com/mcp-server?tenant=1',
+      },
+    ])('uses $resource without metadata', async ({ serverUrl, resource }) => {
+      expect(await selectResourceURL(serverUrl, mockProvider)).toEqual(
+        new URL(resource),
+      );
+    });
+
+    it.each([undefined, { resource: 'https://api.example.com' }])(
+      'uses the canonical resource when custom validation returns undefined (metadata: %j)',
+      async resourceMetadata => {
+        const validateResourceURL = vi.fn().mockResolvedValue(undefined);
+        const resource = new URL('https://api.example.com/mcp-server?tenant=1');
+
+        expect(
+          await selectResourceURL(
+            `${resource.href}#fragment`,
+            { ...mockProvider, validateResourceURL },
+            resourceMetadata,
+          ),
+        ).toEqual(resource);
+        expect(validateResourceURL).toHaveBeenCalledWith(
+          resource,
+          resourceMetadata?.resource,
+        );
+      },
+    );
+
+    it('uses a resource returned by custom validation', async () => {
+      const resource = new URL('https://custom-resource.example.com/mcp');
+
+      expect(
+        await selectResourceURL('https://api.example.com/mcp-server', {
+          ...mockProvider,
+          validateResourceURL: vi.fn().mockResolvedValue(resource),
+        }),
+      ).toEqual(resource);
+    });
+
+    it('propagates custom resource validation errors', async () => {
+      const error = new Error('Resource rejected');
+
+      await expect(
+        selectResourceURL('https://api.example.com/mcp-server', {
+          ...mockProvider,
+          validateResourceURL: vi.fn().mockRejectedValue(error),
+        }),
+      ).rejects.toBe(error);
+    });
+  });
+
   function setupAuthorizationCodeFlow() {
     mockFetch.mockImplementation(url => {
       const urlString = url.toString();
@@ -3556,7 +3616,7 @@ describe('auth function', () => {
     );
   });
 
-  it('excludes resource parameter when Protected Resource Metadata is not present', async () => {
+  it('includes the canonical resource in authorization when Protected Resource Metadata is not present', async () => {
     // Mock metadata discovery where protected resource metadata is not available (404)
     // but authorization server metadata is available
     mockFetch.mockImplementation(url => {
@@ -3597,14 +3657,14 @@ describe('auth function', () => {
     (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
     (mockProvider.redirectToAuthorization as Mock).mockResolvedValue(undefined);
 
-    // Call auth - should not include resource parameter
+    // Call auth without protected resource metadata.
     const result = await auth(mockProvider, {
       serverUrl: 'https://api.example.com/mcp-server',
     });
 
     expect(result).toBe('REDIRECT');
 
-    // Verify the authorization URL does NOT include the resource parameter
+    // The authorization URL must still include the canonical MCP resource.
     expect(mockProvider.redirectToAuthorization).toHaveBeenCalledWith(
       expect.objectContaining({
         searchParams: expect.any(URLSearchParams),
@@ -3614,11 +3674,12 @@ describe('auth function', () => {
     const redirectCall = (mockProvider.redirectToAuthorization as Mock).mock
       .calls[0];
     const authUrl: URL = redirectCall[0];
-    // Resource parameter should not be present when PRM is not available
-    expect(authUrl.searchParams.has('resource')).toBe(false);
+    expect(authUrl.searchParams.get('resource')).toBe(
+      'https://api.example.com/mcp-server',
+    );
   });
 
-  it('excludes resource parameter in token exchange when Protected Resource Metadata is not present', async () => {
+  it('includes the canonical resource in token exchange when Protected Resource Metadata is not present', async () => {
     // Mock metadata discovery - no protected resource metadata, but auth server metadata available
     mockFetch.mockImplementation(url => {
       const urlString = url.toString();
@@ -3683,12 +3744,11 @@ describe('auth function', () => {
     expect(tokenCall).toBeDefined();
 
     const body = tokenCall![1].body as URLSearchParams;
-    // Resource parameter should not be present when PRM is not available
-    expect(body.has('resource')).toBe(false);
+    expect(body.get('resource')).toBe('https://api.example.com/mcp-server');
     expect(body.get('code')).toBe('auth-code-123');
   });
 
-  it('excludes resource parameter in token refresh when Protected Resource Metadata is not present', async () => {
+  it('includes the canonical resource in token refresh when Protected Resource Metadata is not present', async () => {
     // Mock metadata discovery - no protected resource metadata, but auth server metadata available
     mockFetch.mockImplementation(url => {
       const urlString = url.toString();
@@ -3755,8 +3815,7 @@ describe('auth function', () => {
     expect(tokenCall).toBeDefined();
 
     const body = tokenCall![1].body as URLSearchParams;
-    // Resource parameter should not be present when PRM is not available
-    expect(body.has('resource')).toBe(false);
+    expect(body.get('resource')).toBe('https://api.example.com/mcp-server');
     expect(body.get('grant_type')).toBe('refresh_token');
     expect(body.get('refresh_token')).toBe('refresh123');
   });

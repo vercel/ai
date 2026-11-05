@@ -23,6 +23,7 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { cancelReplicatePrediction } from './cancel-prediction';
 import { replicateFailedResponseHandler } from './replicate-error';
 import { replicateImageModelOptionsSchema } from './replicate-image-model-options';
 import type { ReplicateImageModelId } from './replicate-image-settings';
@@ -295,23 +296,33 @@ export class ReplicateImageModel implements ImageModelV4 {
         return completedPrediction;
       }
 
-      const { value } = await getFromApi({
-        url: currentPrediction.urls.get,
-        validateUrl: true,
-        credentialedOrigin: this.config.baseURL,
-        trustedOrigin: this.config.baseURL,
-        headers: await resolve(headers),
-        successfulResponseHandler: createJsonResponseHandler(
-          replicateImageResponseSchema,
-        ),
-        failedResponseHandler: replicateFailedResponseHandler,
-        abortSignal,
-        fetch: this.config.fetch,
-      });
-      currentPrediction = value;
+      try {
+        const { value } = await getFromApi({
+          url: currentPrediction.urls.get,
+          validateUrl: true,
+          credentialedOrigin: this.config.baseURL,
+          trustedOrigin: this.config.baseURL,
+          headers: await resolve(headers),
+          successfulResponseHandler: createJsonResponseHandler(
+            replicateImageResponseSchema,
+          ),
+          failedResponseHandler: replicateFailedResponseHandler,
+          abortSignal,
+          fetch: this.config.fetch,
+        });
+        currentPrediction = value;
 
-      if (i < maxPollAttempts - 1) {
-        await delay(pollIntervalMillis, { abortSignal });
+        if (i < maxPollAttempts - 1) {
+          await delay(pollIntervalMillis, { abortSignal });
+        }
+      } catch (error) {
+        // The caller aborted: cancel the prediction so it does not keep
+        // running (and billing) on Replicate after we return.
+        if (abortSignal?.aborted) {
+          this.cancelPrediction(currentPrediction);
+        }
+
+        throw error;
       }
     }
 
@@ -320,9 +331,23 @@ export class ReplicateImageModel implements ImageModelV4 {
       return completedPrediction;
     }
 
+    // Polling gave up: cancel the prediction instead of leaving it running.
+    this.cancelPrediction(currentPrediction);
+
     throw new Error(
       `Replicate image generation did not complete after ${maxPollAttempts} polling attempts.`,
     );
+  }
+
+  private cancelPrediction(prediction: ReplicateImagePrediction): void {
+    // Fire-and-forget: cancellation must never mask, replace, or delay the
+    // abort or timeout error that is about to be thrown.
+    void cancelReplicatePrediction({
+      baseURL: this.config.baseURL,
+      predictionId: prediction.id,
+      headers: this.config.headers,
+      fetch: this.config.fetch,
+    }).catch(() => {});
   }
 
   private getCompletedPrediction(
@@ -344,6 +369,7 @@ export class ReplicateImageModel implements ImageModelV4 {
 const replicateImageResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      id: z.string(),
       status: z.enum([
         'starting',
         'processing',
