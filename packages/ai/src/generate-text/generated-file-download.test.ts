@@ -106,30 +106,36 @@ describe('generated file downloads', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it.each(['generate', 'stream'] as const)(
-    'cancels a %s file download when aborted',
-    async mode => {
+  it.each([
+    ['generate', false],
+    ['stream', false],
+    ['generate', true],
+    ['stream', true],
+  ] as const)(
+    'cancels a %s file download when aborted (custom download: %s)',
+    async (mode, customDownload) => {
       const started = Promise.withResolvers<void>();
       const abortController = new AbortController();
       let signal: AbortSignal | null | undefined;
-      vi.stubGlobal(
-        'fetch',
-        vi.fn(async (_input, init) => {
-          signal = init?.signal;
-          started.resolve();
-          return new Promise<Response>((_resolve, reject) => {
-            if (signal?.aborted) reject(signal.reason);
-            else
-              signal?.addEventListener('abort', () => reject(signal?.reason), {
-                once: true,
-              });
-          });
-        }),
-      );
+      const fetch = vi.fn(async (_input, init) => {
+        signal = init?.signal;
+        started.resolve();
+        return new Promise<Response>((_resolve, reject) => {
+          if (signal?.aborted) reject(signal.reason);
+          else
+            signal?.addEventListener('abort', () => reject(signal?.reason), {
+              once: true,
+            });
+        });
+      });
+      vi.stubGlobal('fetch', fetch);
       const options = {
         model: createModel(),
         prompt: 'image',
         abortSignal: abortController.signal,
+        experimental_download: customDownload
+          ? createDownload({ fetch })
+          : undefined,
       };
       const operation =
         mode === 'generate'
@@ -182,10 +188,10 @@ describe('generated file downloads', () => {
           [[]],
           [
             [
-              {
+              expect.objectContaining({
                 url: new URL('https://example.com/generated.txt'),
                 isUrlSupportedByModel: false,
-              },
+              }),
             ],
           ],
         ]);

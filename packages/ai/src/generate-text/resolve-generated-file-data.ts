@@ -36,7 +36,7 @@ export async function resolveGeneratedFileData({
   const downloadedData =
     download == null
       ? (await defaultDownload({ url: data.url, abortSignal })).data
-      : await downloadGeneratedFile({ url: data.url, download });
+      : await downloadGeneratedFile({ url: data.url, download, abortSignal });
 
   cache?.set(data, downloadedData);
   return downloadedData;
@@ -47,11 +47,15 @@ export async function resolveGeneratedFileData({
 async function downloadGeneratedFile({
   url,
   download,
+  abortSignal,
 }: {
   url: URL;
   download: DownloadFunction;
+  abortSignal?: AbortSignal;
 }): Promise<Uint8Array> {
-  const [result] = await download([{ url, isUrlSupportedByModel: false }]);
+  const [result] = await download([
+    { url, isUrlSupportedByModel: false, abortSignal },
+  ]);
 
   if (result == null) {
     throw new DownloadError({

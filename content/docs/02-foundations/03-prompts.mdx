@@ -386,6 +386,7 @@ const result = await generateText({
     requestedDownloads: Array<{
       url: URL;
       isUrlSupportedByModel: boolean;
+      abortSignal?: AbortSignal;
     }>,
   ): PromiseLike<
     Array<{
@@ -393,7 +394,8 @@ const result = await generateText({
       mediaType: string | undefined;
     } | null>
   > => {
-    // ... download the files and return an array with similar order
+    // Forward each abortSignal to your fetch implementation, and return the
+    // downloaded files in the same order.
   },
   messages: [
     {

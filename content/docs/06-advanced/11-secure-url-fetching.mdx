@@ -197,7 +197,11 @@ A provider's `fetch` option applies to requests made by that provider. Core file
 downloads have separate hooks that all accept the function returned by
 `createDownload({ fetch })`: the `download` option of `transcribe` and
 `experimental_generateVideo`, and the `experimental_download` option of
-`generateText` and `streamText`:
+`generateText` and `streamText`.
+
+Batch download requests include the call's `abortSignal`. `createDownload`
+forwards it to the transport; custom download functions should do the same so
+cancellation and timeouts stop in-flight downloads.
 
 ```ts
 import { createOpenAI } from '@ai-sdk/openai';
