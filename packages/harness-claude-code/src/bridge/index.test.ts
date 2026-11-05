@@ -30,6 +30,7 @@ const TEST_ENV_KEYS = [
 ] as const;
 
 const state = vi.hoisted(() => ({
+  hostDisconnectTimeoutMs: undefined as number | undefined,
   emitted: [] as Record<string, unknown>[],
   messages: [] as Record<string, unknown>[],
   queryArgs: [] as QueryArgs[],
@@ -153,11 +154,14 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
   runBridge: async ({
     onStart,
     onStop,
+    hostDisconnectTimeoutMs,
   }: {
     onStart: (start: unknown, turn: unknown) => Promise<void>;
     onStop?: () => unknown;
+    hostDisconnectTimeoutMs?: number;
   }) => {
     state.onStop = onStop;
+    state.hostDisconnectTimeoutMs = hostDisconnectTimeoutMs;
     for (const turn of [
       { start: state.start, firstTurn: state.firstTurn },
       ...state.additionalTurns,
@@ -1277,6 +1281,21 @@ describe('Claude Code bridge configuration', () => {
       await import('./index');
 
       expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+    },
+  );
+
+  test.each([
+    [['--host-disconnect-timeout-ms', '60000'], 60_000],
+    [[], undefined],
+  ])(
+    'passes the host disconnect timeout argument to the bridge (%j)',
+    async (extraArgs, expected) => {
+      state.hostDisconnectTimeoutMs = undefined;
+      process.argv.push(...extraArgs);
+
+      await import('./index');
+
+      expect(state.hostDisconnectTimeoutMs).toBe(expected);
     },
   );
 

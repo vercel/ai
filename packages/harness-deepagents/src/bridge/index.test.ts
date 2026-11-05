@@ -38,6 +38,7 @@ type ChatAnthropicOptions = {
 };
 
 const state = vi.hoisted(() => ({
+  hostDisconnectTimeoutMs: undefined as number | undefined,
   createDeepAgentOptions: [] as DeepAgentOptions[],
   originalArgv: [] as string[],
   prunedAfterEventTypes: [] as Array<string | undefined>,
@@ -92,9 +93,12 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
   ...(await importOriginal<Record<string, unknown>>()),
   runBridge: async ({
     onStart,
+    hostDisconnectTimeoutMs,
   }: {
     onStart: (start: unknown, turn: unknown) => Promise<void>;
+    hostDisconnectTimeoutMs?: number;
   }) => {
+    state.hostDisconnectTimeoutMs = hostDisconnectTimeoutMs;
     await onStart(
       {
         prompt: state.prompt,
@@ -250,6 +254,21 @@ describe('Deep Agents bridge instructions', () => {
       [existingPath, path.dirname(rgPath)].join(path.delimiter),
     );
   });
+
+  it.each([
+    [['--host-disconnect-timeout-ms', '60000'], 60_000],
+    [[], undefined],
+  ])(
+    'passes the host disconnect timeout argument to the bridge (%j)',
+    async (extraArgs, expected) => {
+      state.hostDisconnectTimeoutMs = undefined;
+      process.argv.push(...extraArgs);
+
+      await import('./index');
+
+      expect(state.hostDisconnectTimeoutMs).toBe(expected);
+    },
+  );
 
   it('keeps a usable fallback PATH when PATH is unavailable', async () => {
     delete process.env.PATH;

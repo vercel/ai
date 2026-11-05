@@ -545,6 +545,39 @@ describe('createACP', () => {
     await resumed.doDestroy();
   });
 
+  it.each([
+    [60_000, '60000'],
+    [undefined, undefined],
+  ])(
+    'passes hostDisconnectTimeoutMs %s to the bridge',
+    async (hostDisconnectTimeoutMs, expected) => {
+      const spawns: Array<{
+        command: string;
+        env: Record<string, string | undefined>;
+      }> = [];
+      const session = await createACP({
+        harnessId: 'timeout-acp',
+        ...agentSettings,
+        hostDisconnectTimeoutMs,
+      }).doStart({
+        sessionId: 'session-timeout',
+        sandboxSession: fakeSandbox({
+          runs: [],
+          spawns,
+          stop: async () => {},
+        }),
+        sessionWorkDir: '/workspace/user-project',
+      });
+
+      expect(
+        spawns
+          .at(0)
+          ?.command.match(/--host-disconnect-timeout-ms '?(\d+)'?/)?.[1],
+      ).toBe(expected);
+      await session.doDestroy();
+    },
+  );
+
   it.each(['throw', 'reject'] as const)(
     'does not start a bridge when sandbox preparation fails through %s',
     async failureMode => {
