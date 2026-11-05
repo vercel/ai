@@ -14,8 +14,10 @@ export function mapOpenAIResponseFinishReason({
   switch (finishReason) {
     case undefined:
     case null:
-      if (hasRefusal) return 'content-filter';
-      return hasFunctionCall ? 'tool-calls' : 'stop';
+      // A client-side function call must win over a refusal so that the tools
+      // are still executed. The refusal text remains part of the content.
+      if (hasFunctionCall) return 'tool-calls';
+      return hasRefusal ? 'content-filter' : 'stop';
     case 'max_output_tokens':
       return 'length';
     case 'content_filter':
