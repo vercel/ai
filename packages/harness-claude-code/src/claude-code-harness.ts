@@ -135,6 +135,11 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxBudgetUsd?: number;
   /**
+   * Absolute paths of directories Claude can access in addition to the session
+   * working directory.
+   */
+  readonly additionalDirectories?: ReadonlyArray<string>;
+  /**
    * Only use the MCP servers configured with `mcpServers`, and ignore any other
    * MCP configuration such as a project `.mcp.json` or user settings.
    */
@@ -1112,6 +1117,7 @@ export function createClaudeCode(
             maxTurns: settings.maxTurns,
             skillOverrides: settings.skillOverrides,
             maxBudgetUsd: settings.maxBudgetUsd,
+            additionalDirectories: settings.additionalDirectories,
             strictMcpConfig: settings.strictMcpConfig,
             questionTimeoutMs: settings.questionTimeoutMs,
             excludeDynamicSections: settings.excludeDynamicSections,
@@ -1291,6 +1297,7 @@ export function createClaudeCode(
         maxTurns: settings.maxTurns,
         skillOverrides: settings.skillOverrides,
         maxBudgetUsd: settings.maxBudgetUsd,
+        additionalDirectories: settings.additionalDirectories,
         strictMcpConfig: settings.strictMcpConfig,
         questionTimeoutMs: settings.questionTimeoutMs,
         excludeDynamicSections: settings.excludeDynamicSections,
@@ -1347,6 +1354,7 @@ function createSession({
   maxTurns,
   skillOverrides,
   maxBudgetUsd,
+  additionalDirectories,
   strictMcpConfig,
   questionTimeoutMs,
   excludeDynamicSections,
@@ -1384,6 +1392,7 @@ function createSession({
   maxTurns: number | undefined;
   skillOverrides: ClaudeCodeHarnessSettings['skillOverrides'];
   maxBudgetUsd: number | undefined;
+  additionalDirectories: ReadonlyArray<string> | undefined;
   strictMcpConfig: boolean | undefined;
   questionTimeoutMs: number | undefined;
   excludeDynamicSections: boolean | undefined;
@@ -1794,6 +1803,9 @@ function createSession({
         maxTurns,
         ...(skillOverrides !== undefined ? { skillOverrides } : {}),
         ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+        ...(additionalDirectories !== undefined
+          ? { additionalDirectories: [...additionalDirectories] }
+          : {}),
         ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
         ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
         ...(excludeDynamicSections !== undefined
@@ -1881,6 +1893,9 @@ function createSession({
           maxTurns,
           ...(skillOverrides !== undefined ? { skillOverrides } : {}),
           ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+          ...(additionalDirectories !== undefined
+            ? { additionalDirectories: [...additionalDirectories] }
+            : {}),
           ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
           ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
           ...(excludeDynamicSections !== undefined

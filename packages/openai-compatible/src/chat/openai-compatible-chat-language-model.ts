@@ -1,3 +1,4 @@
+import { openaiCompatibleRequestDefaults } from '../openai-compatible-model-catalog';
 import {
   InvalidResponseDataError,
   type APICallError,
@@ -169,7 +170,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     );
     this.failedResponseHandler = createJsonErrorResponseHandler(errorStructure);
 
-    this.supportsStructuredOutputs = config.supportsStructuredOutputs ?? false;
+    this.supportsStructuredOutputs =
+      config.supportsStructuredOutputs ??
+      openaiCompatibleRequestDefaults.language.supportsStructuredOutputs;
   }
 
   get provider(): string {

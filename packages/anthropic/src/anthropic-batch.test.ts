@@ -95,6 +95,23 @@ function messageResultBody(text: string) {
 }
 
 describe('Anthropic batch', () => {
+  it('rejects message threads before making an API request', async () => {
+    const batch = createAnthropic({ apiKey: 'test-key' }).experimental_batch();
+    await expect(
+      batch.doStartBatch({
+        requests: [
+          {
+            id: 'thread-request',
+            ...request('Hello', {
+              providerOptions: { anthropic: { thread: { type: 'create' } } },
+            }),
+          },
+        ],
+      }),
+    ).rejects.toThrow('Message Batches do not support message threads');
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('exposes the applied service tier from batch result usage', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',

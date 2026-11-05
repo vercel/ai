@@ -256,6 +256,7 @@ function createPermissionOptions(input: {
           inactiveNativeTools,
           cwd: input.toolCwds.get(options.toolUseID) ?? '',
           readableSkillRoots: input.start.readableSkillRoots ?? [],
+          additionalDirectories: input.start.additionalDirectories ?? [],
           blockedPath: options.blockedPath,
         }))
       ) {
@@ -459,6 +460,7 @@ async function needsHostApproval(input: {
   toolInput: unknown;
   cwd: string;
   readableSkillRoots: readonly string[];
+  additionalDirectories: readonly string[];
   blockedPath?: string;
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
   inactiveNativeTools: ReadonlySet<string>;
@@ -519,6 +521,7 @@ async function needsHostApproval(input: {
     paths,
     access,
     readableSkillRoots: input.readableSkillRoots,
+    additionalDirectories: input.additionalDirectories,
   }));
 }
 
@@ -536,6 +539,7 @@ function createApprovalPreToolUseHook(input: {
   deferredToolUseIds: Set<string>;
   nativeToolCallNames: Map<string, string>;
   readableSkillRoots: readonly string[];
+  additionalDirectories: readonly string[];
   toolCwds: Map<string, string>;
 }): HookCallback {
   return async (hookInput, toolUseID): Promise<HookJSONOutput> => {
@@ -573,6 +577,7 @@ function createApprovalPreToolUseHook(input: {
         toolInput: hookInput.tool_input,
         cwd: hookInput.cwd,
         readableSkillRoots: input.readableSkillRoots,
+        additionalDirectories: input.additionalDirectories,
         permissionMode: input.permissionMode,
         inactiveNativeTools: input.inactiveNativeTools,
       }))
@@ -814,6 +819,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const approvalPreToolUseHook = createApprovalPreToolUseHook({
     toolCwds,
     readableSkillRoots: start.readableSkillRoots ?? [],
+    additionalDirectories: start.additionalDirectories ?? [],
     permissionMode,
     inactiveNativeTools: new Set(inactiveNativeTools),
     decisions: approvalDecisions,
@@ -844,6 +850,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
       ...(start.maxBudgetUsd !== undefined
         ? { maxBudgetUsd: start.maxBudgetUsd }
+        : {}),
+      ...(start.additionalDirectories !== undefined
+        ? { additionalDirectories: start.additionalDirectories }
         : {}),
       ...(start.strictMcpConfig !== undefined
         ? { strictMcpConfig: start.strictMcpConfig }
