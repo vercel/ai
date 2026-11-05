@@ -4,6 +4,7 @@ import {
   type Experimental_SandboxSession as SandboxSession,
   type SerializableValue,
   type ToolSet,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import type {
   AgentCallParameters,
@@ -14,7 +15,6 @@ import type {
 } from 'ai';
 import {
   DefaultHarnessAgentSession,
-  DurableHarnessAgentSession,
   type HarnessAgentSession,
 } from './harness-agent-session';
 import { InMemoryWorld } from './in-memory-world';
@@ -84,7 +84,6 @@ export class HarnessAgent<
 
   private readonly harness: HarnessV2<THarness['builtinTools']>;
   private readonly world: World;
-  private readonly isDurable: boolean;
   private readonly getSandboxSession: NonNullable<
     HarnessAgentSettings['getSandboxSession']
   >;
@@ -129,7 +128,6 @@ export class HarnessAgent<
     }
 
     this.world = settings.world ?? new InMemoryWorld();
-    this.isDurable = !(this.world instanceof InMemoryWorld);
     this.getSandboxSession = settings.getSandboxSession;
     this.id = settings.id;
     this.harnessId = this.harness.harnessId;
@@ -142,10 +140,9 @@ export class HarnessAgent<
   /**
    * Creates a session associated with a sandbox and a stable sandbox ID.
    *
-   * The ID comes from `sandboxSession.id` when available, otherwise from
-   * `options.sandboxId`; conflicting IDs or a missing stable ID are rejected.
-   * In-memory worlds retain the supplied session object, while other worlds
-   * reacquire it through the configured provider.
+   * Uses the sandbox session's ID when available, otherwise `options.sandboxId`.
+   * A sandbox session object is optional; when omitted, it is resolved lazily
+   * from the stable sandbox ID.
    */
   async createSession(options: {
     sessionId?: string;
@@ -153,13 +150,8 @@ export class HarnessAgent<
     sandboxSession?: SandboxSession | HarnessV2NetworkSandboxSession;
   }): Promise<HarnessAgentSession> {
     const sandboxSession = options.sandboxSession;
-    if (sandboxSession == null) {
-      throw new Error(
-        'HarnessAgent.createSession: `sandboxSession` is required with HarnessV2.',
-      );
-    }
-
-    const sandboxSessionId = getSandboxId({ sandboxSession });
+    const sandboxSessionId =
+      sandboxSession == null ? undefined : getSandboxId({ sandboxSession });
     if (
       options.sandboxId != null &&
       sandboxSessionId != null &&
@@ -173,25 +165,25 @@ export class HarnessAgent<
     const sandboxId = sandboxSessionId ?? options.sandboxId;
     if (sandboxId == null) {
       throw new Error(
-        'HarnessAgent.createSession: a stable `sandboxId` is required when the sandbox session has no `id`.',
+        'HarnessAgent.createSession: a stable `sandboxId` is required when `sandboxSession` is omitted or has no `id`.',
       );
     }
 
     const sessionId = options.sessionId ?? generateId();
-
-    if (this.isDurable) {
-      return new DurableHarnessAgentSession({
-        sessionId,
-        sandboxId,
-        getSandboxSession: this.getSandboxSession,
-      });
-    }
-
-    return new DefaultHarnessAgentSession({
+    const session = new DefaultHarnessAgentSession({
       sessionId,
       sandboxId,
       sandboxSession,
     });
+    this.bindSession({ session });
+    return session;
+  }
+
+  /**
+   * Binds this agent's sandbox resolver before operating on a session.
+   */
+  private bindSession(input: { session: HarnessAgentSession }): void {
+    input.session.setSandboxSessionResolver(this.getSandboxSession);
   }
 
   /**
@@ -213,6 +205,7 @@ export class HarnessAgent<
     >
   > {
     assertCallOptionsSerializable({ options });
+    this.bindSession({ session: options.session });
     throw new Error('Not implemented yet');
   }
 
@@ -235,6 +228,7 @@ export class HarnessAgent<
     >
   > {
     assertCallOptionsSerializable({ options });
+    this.bindSession({ session: options.session });
     throw new Error('Not implemented yet');
   }
 }
@@ -286,8 +280,9 @@ function assertCallOptionsSerializable(input: { options: object }): void {
  * subset.
  *
  * Primitive values, supported built-ins, arrays, maps, sets, and plain objects
- * with string-keyed data properties are accepted. Cycles, accessors, symbol
- * keys on nested objects, and other class instances are rejected.
+ * with string-keyed data properties are accepted. Class instances are accepted
+ * when their constructor defines `WORKFLOW_SERIALIZE`; other class instances,
+ * cycles, accessors, and symbol keys on nested objects are rejected.
  */
 function isHarnessSerializableValue(input: {
   value: unknown;
@@ -308,38 +303,56 @@ function isHarnessSerializableValue(input: {
 
   if (typeof value !== 'object') return false;
 
-  if (
-    value instanceof Date ||
-    value instanceof RegExp ||
-    value instanceof URL ||
-    value instanceof URLSearchParams ||
-    value instanceof ArrayBuffer ||
-    ArrayBuffer.isView(value)
-  ) {
-    return true;
-  }
-
   if (ancestors.has(value)) return false;
   ancestors.add(value);
 
-  let serializable: boolean;
-  if (Array.isArray(value)) {
-    serializable = value.every(item =>
-      isHarnessSerializableValue({ value: item, ancestors }),
-    );
-  } else if (value instanceof Map) {
-    serializable = Array.from(value.entries()).every(
-      ([key, item]) =>
-        isHarnessSerializableValue({ value: key, ancestors }) &&
+  try {
+    const constructor = Object.getPrototypeOf(value)?.constructor;
+    const workflowSerialize =
+      typeof constructor === 'function'
+        ? Reflect.get(constructor, WORKFLOW_SERIALIZE)
+        : undefined;
+
+    if (typeof workflowSerialize === 'function') {
+      return isHarnessSerializableValue({
+        value: workflowSerialize.call(constructor, value),
+        ancestors,
+      });
+    }
+
+    if (
+      value instanceof Date ||
+      value instanceof RegExp ||
+      value instanceof URL ||
+      value instanceof URLSearchParams ||
+      value instanceof ArrayBuffer ||
+      ArrayBuffer.isView(value)
+    ) {
+      return true;
+    }
+
+    if (Array.isArray(value)) {
+      return value.every(item =>
         isHarnessSerializableValue({ value: item, ancestors }),
-    );
-  } else if (value instanceof Set) {
-    serializable = Array.from(value.values()).every(item =>
-      isHarnessSerializableValue({ value: item, ancestors }),
-    );
-  } else {
+      );
+    }
+
+    if (value instanceof Map) {
+      return Array.from(value.entries()).every(
+        ([key, item]) =>
+          isHarnessSerializableValue({ value: key, ancestors }) &&
+          isHarnessSerializableValue({ value: item, ancestors }),
+      );
+    }
+
+    if (value instanceof Set) {
+      return Array.from(value.values()).every(item =>
+        isHarnessSerializableValue({ value: item, ancestors }),
+      );
+    }
+
     const prototype = Object.getPrototypeOf(value);
-    serializable =
+    return (
       (prototype === Object.prototype || prototype === null) &&
       Reflect.ownKeys(value).every(key => {
         if (typeof key !== 'string') return false;
@@ -350,9 +363,9 @@ function isHarnessSerializableValue(input: {
           'value' in descriptor &&
           isHarnessSerializableValue({ value: descriptor.value, ancestors })
         );
-      });
+      })
+    );
+  } finally {
+    ancestors.delete(value);
   }
-
-  ancestors.delete(value);
-  return serializable;
 }

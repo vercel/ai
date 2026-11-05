@@ -1,4 +1,8 @@
-import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+  type Experimental_SandboxSession as SandboxSession,
+} from '@ai-sdk/provider-utils';
 import type { HarnessV2NetworkSandboxSession } from '../../v2/harness-v2-network-sandbox-session';
 
 /**
@@ -16,31 +20,69 @@ export type HarnessAgentSession = {
   readonly sandboxId: string;
 
   /**
+   * Rebinds lazy sandbox lookup to the HarnessAgent currently using this session.
+   */
+  setSandboxSessionResolver(
+    sandboxSessionResolver: (options: {
+      sandboxId: string;
+    }) => Promise<SandboxSession | HarnessV2NetworkSandboxSession>,
+  ): void;
+
+  /**
    * Resolves the sandbox session for the current agent operation.
    */
   getSandboxSession(): Promise<SandboxSession | HarnessV2NetworkSandboxSession>;
 };
 
 /**
- * Session representation for non-durable HarnessAgent execution.
+ * Session identity shared by durable and in-memory HarnessAgent execution.
  *
- * It retains the sandbox session object in process memory and returns that
- * object on each access instead of reacquiring the sandbox by ID.
+ * Serialization preserves only the IDs. The current agent supplies sandbox
+ * access at runtime, which is retained in memory or resolved lazily as needed.
  */
 export class DefaultHarnessAgentSession implements HarnessAgentSession {
   readonly sessionId: string;
   readonly sandboxId: string;
-  private readonly sandboxSession:
+  private sandboxSession:
     | SandboxSession
-    | HarnessV2NetworkSandboxSession;
+    | HarnessV2NetworkSandboxSession
+    | undefined;
+  private sandboxSessionResolver:
+    | ((options: {
+        sandboxId: string;
+      }) => Promise<SandboxSession | HarnessV2NetworkSandboxSession>)
+    | undefined;
+  private sandboxSessionPromise:
+    | Promise<SandboxSession | HarnessV2NetworkSandboxSession>
+    | undefined;
 
   /**
-   * Creates a session bound to the provided sandbox session object.
+   * Persists only stable identity, leaving process-local sandbox access behind.
+   */
+  static [WORKFLOW_SERIALIZE](session: DefaultHarnessAgentSession) {
+    return {
+      sessionId: session.sessionId,
+      sandboxId: session.sandboxId,
+    };
+  }
+
+  /**
+   * Recreates a session handle without runtime sandbox references.
+   */
+  static [WORKFLOW_DESERIALIZE](data: {
+    sessionId: string;
+    sandboxId: string;
+  }) {
+    return new DefaultHarnessAgentSession(data);
+  }
+
+  /**
+   * Creates a session with optional in-memory sandbox access.
    */
   constructor(options: {
     sessionId: string;
     sandboxId: string;
-    sandboxSession: SandboxSession | HarnessV2NetworkSandboxSession;
+    sandboxSession?: SandboxSession | HarnessV2NetworkSandboxSession;
   }) {
     this.sessionId = options.sessionId;
     this.sandboxId = options.sandboxId;
@@ -48,51 +90,53 @@ export class DefaultHarnessAgentSession implements HarnessAgentSession {
   }
 
   /**
-   * Returns the sandbox session retained when this session was created.
+   * Rebinds lookup to the current agent and discards any pending lookup.
    */
-  async getSandboxSession(): Promise<
-    SandboxSession | HarnessV2NetworkSandboxSession
-  > {
-    return this.sandboxSession;
-  }
-}
-
-/**
- * Session representation for durable HarnessAgent execution.
- *
- * Instances must be serializable across process boundaries so durable session
- * state can be stored and restored. The class retains the stable sandbox ID
- * and reacquires the sandbox through the configured provider instead of
- * persisting the sandbox object.
- */
-export class DurableHarnessAgentSession implements HarnessAgentSession {
-  readonly sessionId: string;
-  readonly sandboxId: string;
-  private readonly getSandboxSessionFromProvider: (options: {
-    sandboxId: string;
-  }) => Promise<SandboxSession | HarnessV2NetworkSandboxSession>;
-
-  /**
-   * Creates a session that resolves its sandbox on demand.
-   */
-  constructor(options: {
-    sessionId: string;
-    sandboxId: string;
-    getSandboxSession: (options: {
+  setSandboxSessionResolver(
+    sandboxSessionResolver: (options: {
       sandboxId: string;
-    }) => Promise<SandboxSession | HarnessV2NetworkSandboxSession>;
-  }) {
-    this.sessionId = options.sessionId;
-    this.sandboxId = options.sandboxId;
-    this.getSandboxSessionFromProvider = options.getSandboxSession;
+    }) => Promise<SandboxSession | HarnessV2NetworkSandboxSession>,
+  ): void {
+    this.sandboxSessionResolver = sandboxSessionResolver;
+    this.sandboxSessionPromise = undefined;
   }
 
   /**
-   * Requests the current sandbox session using this session's stable sandbox ID.
+   * Returns the retained sandbox session or lazily resolves and caches it.
+   * Rejects when neither a sandbox session nor a resolver is available.
    */
   async getSandboxSession(): Promise<
     SandboxSession | HarnessV2NetworkSandboxSession
   > {
-    return this.getSandboxSessionFromProvider({ sandboxId: this.sandboxId });
+    if (this.sandboxSession != null) {
+      return this.sandboxSession;
+    }
+
+    if (this.sandboxSessionPromise != null) {
+      return this.sandboxSessionPromise;
+    }
+
+    if (this.sandboxSessionResolver == null) {
+      throw new Error(
+        'HarnessAgentSession: no sandbox session or sandbox session resolver is available.',
+      );
+    }
+
+    const sandboxSessionPromise = this.sandboxSessionResolver({
+      sandboxId: this.sandboxId,
+    });
+    this.sandboxSessionPromise = sandboxSessionPromise;
+
+    try {
+      const sandboxSession = await sandboxSessionPromise;
+      if (this.sandboxSessionPromise === sandboxSessionPromise) {
+        this.sandboxSession = sandboxSession;
+      }
+      return sandboxSession;
+    } finally {
+      if (this.sandboxSessionPromise === sandboxSessionPromise) {
+        this.sandboxSessionPromise = undefined;
+      }
+    }
   }
 }

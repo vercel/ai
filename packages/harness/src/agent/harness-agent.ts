@@ -153,9 +153,9 @@ type HarnessAgentCreateSessionOptions<
    */
   runtimeContext?: RUNTIME_CONTEXT;
   /**
-   * Existing sandbox session to run the harness in, or a
-   * `HarnessAgentSandboxCreator` that creates it when it is needed. Either
-   * way, the caller retains ownership of the sandbox lifecycle.
+   * Optional existing sandbox session to run the harness in, or a
+   * `HarnessAgentSandboxCreator` that creates it when it is needed. HarnessV2
+   * can omit this and resolve the sandbox lazily from `sandboxId`.
    */
   sandboxSession?:
     | HarnessV1NetworkSandboxSession
@@ -163,7 +163,8 @@ type HarnessAgentCreateSessionOptions<
     | HarnessAgentSandboxCreator;
   /**
    * Stable identifier for a sandbox session when `sandboxSession` does not
-   * expose an `id`. Only supported with a HarnessV2 adapter.
+   * expose an `id`, or when creating a HarnessV2 session without a sandbox
+   * session object.
    */
   sandboxId?: string;
   abortSignal?: AbortSignal;
@@ -492,22 +493,19 @@ export class HarnessAgent<
     options?: HarnessAgentCreateSessionOptions<TUserTools, RUNTIME_CONTEXT>,
   ): Promise<HarnessAgentSession | HarnessAgentV2Session> {
     if (this.harnessAgentV2 != null) {
-      if (options?.sandboxSession == null) {
-        throw new Error(
-          'HarnessAgent.createSession: `sandboxSession` is required with HarnessV2.',
-        );
-      }
-
-      if ('createSandboxSession' in options.sandboxSession) {
+      if (
+        options?.sandboxSession != null &&
+        'createSandboxSession' in options.sandboxSession
+      ) {
         throw new Error(
           'HarnessAgent.createSession: `HarnessAgentSandboxCreator` is not supported with HarnessV2.',
         );
       }
 
       return this.harnessAgentV2.createSession({
-        sessionId: options.sessionId,
-        sandboxId: options.sandboxId,
-        sandboxSession: options.sandboxSession,
+        sessionId: options?.sessionId,
+        sandboxId: options?.sandboxId,
+        sandboxSession: options?.sandboxSession,
       });
     }
 
