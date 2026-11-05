@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 24497,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-24497.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-24497.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE-24497: Windows cannot reuse subscriptions from the standard OpenCode auth store"
+  }
+}
