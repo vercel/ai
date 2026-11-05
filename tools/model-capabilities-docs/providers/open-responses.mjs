@@ -3,18 +3,6 @@ export const openResponsesDocs = {
   catalogExport: 'openResponsesModelCatalog',
   providerOptionsExport: 'openResponsesProviderOptions',
   docsPath: 'content/providers/01-ai-sdk-providers/06-open-responses.mdx',
-  tables: [
-    {
-      id: 'open-responses-language',
-      capability: 'language',
-      formatModelId: () => 'configured model',
-      columns: [
-        ['Image Input', 'inputs.image'],
-        ['Object Generation', 'objectGeneration'],
-        ['Tool Usage', 'tools.usage'],
-        ['Tool Streaming', 'tools.streaming'],
-      ],
-    },
-  ],
+  tables: [],
   providerOptionTables: [{ id: 'open-responses-provider-options' }],
 };
