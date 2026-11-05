@@ -6360,6 +6360,70 @@ describe('Chat', () => {
       await resumed;
     });
 
+    it('should not send queued messages when the chat is stopped during an async sendAutomaticallyWhen', async () => {
+      const { transport, requests, startAnswer, finishAnswer, waitForRequest } =
+        createQueueTransport();
+      const decision = createResolvablePromise<boolean>();
+      let decisionRequested = false;
+      const chat = createQueueChat(transport, {
+        sendAutomaticallyWhen: () => {
+          decisionRequested = true;
+          return decision.promise;
+        },
+      });
+
+      const sent = chat.sendMessage({ text: 'first' });
+      await waitForRequest(1);
+      startAnswer(0, 'answer one');
+      await chat.sendMessage({ text: 'second' });
+
+      finishAnswer(0);
+      await vi.waitFor(() => expect(decisionRequested).toBe(true));
+
+      await chat.stop();
+      decision.resolve(false);
+      await sent;
+
+      expect(requests).toHaveLength(1);
+      expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+        'second',
+      ]);
+    });
+
+    it('should keep the queue paused after a stop when a response finishes that the user did not start', async () => {
+      const { transport, requests, startAnswer, waitForRequest } =
+        createQueueTransport();
+      let reconnects = 0;
+      transport.reconnectToStream = async () => {
+        reconnects++;
+        return reconnects > 1
+          ? null
+          : new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controller.enqueue({ type: 'start' });
+                controller.enqueue({ type: 'finish' });
+                controller.close();
+              },
+            });
+      };
+      const chat = createQueueChat(transport);
+
+      void chat.sendMessage({ text: 'first' });
+      await waitForRequest(1);
+      startAnswer(0, 'answer one');
+      await vi.waitFor(() => expect(chat.status).toBe('streaming'));
+      await chat.sendMessage({ text: 'second' });
+      await chat.stop();
+
+      await chat.resumeStream();
+
+      expect(reconnects).toBe(1);
+      expect(requests).toHaveLength(1);
+      expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+        'second',
+      ]);
+    });
+
     it('should send right away while a response is in progress when the queue is disabled', async () => {
       const { transport, requests, startAnswer, waitForRequest } =
         createQueueTransport();

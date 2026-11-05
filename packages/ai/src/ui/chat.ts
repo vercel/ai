@@ -649,6 +649,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       } as UI_MESSAGE);
     }
 
+    // sending a new message is the user taking over after a stop or an error:
+    this.isQueuePaused = false;
+
     await this.makeRequest({
       trigger: 'submit-message',
       messageId: message.messageId,
@@ -1374,7 +1377,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           });
         }
       } finally {
-        this.isQueuePaused = isAbort || isError;
+        // only the user resumes a paused queue, so a response that finishes on
+        // its own (e.g. an automatic resume) never clears the pause:
+        if (isAbort || isError) {
+          this.isQueuePaused = true;
+        }
 
         if (this.activeResponse === activeResponse) {
           this.activeResponse = undefined;
@@ -1390,6 +1397,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       !isError &&
       activeResponse?.state.finishReason !== 'interrupted'
     ) {
+      const stopGeneration = this.stopGeneration;
       const sentAutomatically = await this.runAutomaticRequest(() =>
         this.makeRequest({
           trigger: 'submit-message',
@@ -1400,8 +1408,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         }),
       );
 
-      // the automatic request sends the next queued message when it finishes:
-      if (!sentAutomatically && this.queueEnabled) {
+      // the automatic request sends the next queued message when it finishes.
+      // a stop while sendAutomaticallyWhen was pending cancels the drain too, so
+      // a stopped or replaced chat never sends queued messages on its own:
+      if (
+        !sentAutomatically &&
+        this.queueEnabled &&
+        !this.isQueuePaused &&
+        stopGeneration === this.stopGeneration &&
+        this.activeStopCount === 0
+      ) {
         await this.sendNextQueuedMessage();
       }
     }
