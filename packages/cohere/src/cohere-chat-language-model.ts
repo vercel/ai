@@ -251,6 +251,8 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
 
     let isActiveReasoning = false;
 
+    const generateId = this.config.generateId;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -327,6 +329,29 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
                   id: String(value.index),
                 });
 
+                return;
+              }
+
+              case 'citation-start': {
+                const citations = value.delta?.message?.citations;
+                if (citations == null) {
+                  return;
+                }
+
+                for (const citation of Array.isArray(citations)
+                  ? citations
+                  : [citations]) {
+                  // Tool-only citations have no document, so they are not
+                  // emitted as sources (matching doGenerate).
+                  const source = mapCohereCitationToSource(
+                    citation,
+                    generateId,
+                  );
+
+                  if (source != null) {
+                    controller.enqueue(source);
+                  }
+                }
                 return;
               }
 
@@ -500,8 +525,22 @@ const cohereChatResponseSchema = lazySchema(() =>
 const cohereChatChunkSchema = lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('type', [
+      // `citation-start` events can arrive without citations, and a single
+      // citation may be sent instead of an array.
       z.object({
         type: z.literal('citation-start'),
+        index: z.number().nullish(),
+        delta: z
+          .object({
+            message: z
+              .object({
+                citations: z
+                  .union([cohereCitationSchema, z.array(cohereCitationSchema)])
+                  .nullish(),
+              })
+              .nullish(),
+          })
+          .nullish(),
       }),
       z.object({
         type: z.literal('citation-end'),
