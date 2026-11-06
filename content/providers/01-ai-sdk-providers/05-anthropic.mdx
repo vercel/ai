@@ -240,6 +240,13 @@ for await (const part of result.fullStream) {
 }
 ```
 
+For normalized counts, `experimental_streamLanguageModelCall` exposes the same
+initial snapshot as `usage` on `model-call-response-metadata`. This field is
+separate from the raw custom part shown above. Missing initial output counts are
+zero-filled. Each snapshot describes only its own message, identified by the
+response ID; it is not an aggregate for the call. Keep snapshots separate rather
+than inferring a call total by summing them. Neither snapshot is added to final usage.
+
 Initial usage may be incomplete; use `result.usage` for final token counts.
 Like other custom parts, this event is included in response content and forwarded
 to UI message streams. It is ignored when replaying conversation history to Anthropic.
