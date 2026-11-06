@@ -216,7 +216,8 @@ verify the selected call if your application requires it.
 These restrictions also apply to inline tool definitions: a named choice allows
 only additions with the selected tool's name, and `toolChoice: 'none'` rejects
 all inline additions. Conflicting definitions cause an `InvalidArgumentError`
-before the request is sent.
+before the request is sent. Tool changes on the initial system message remain
+ignored with a warning.
 
 When the JSON tool cannot be forced (for example with manual thinking) and the
 model answers in text without calling it, the text of its final answer is

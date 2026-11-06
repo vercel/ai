@@ -1115,6 +1115,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         (anthropicToolChoice?.type === 'auto' || jsonResponseTool != null)) ||
       (toolChoice?.type === 'none' && jsonResponseTool != null)
     ) {
+      // Initial system tool changes are ignored by the prompt converter.
+      // Validate only definitions that remain in the outgoing messages.
+      const emittedInlineDefinitions = new Set(
+        messagesPrompt.messages.flatMap(message =>
+          message.role === 'system'
+            ? message.content.flatMap(part =>
+                part.type === 'tool_addition' &&
+                part.tool.type === 'tool_definition'
+                  ? [part.tool.definition]
+                  : [],
+              )
+            : [],
+        ),
+      );
       const selectedSdkName =
         toolChoice.type === 'tool' ? toolChoice.toolName : undefined;
       const selectedTool = tools?.find(tool => tool.name === selectedSdkName);
@@ -1126,12 +1140,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           : selectedSdkName;
       const conflictingTool = inlineToolDefinitions.find(
         ({ sdkName, definition }) =>
-          toolChoice.type === 'none' ||
-          // The JSON-tool path filters application tools by SDK name before
-          // conversion; the forced-choice fallback filters by provider name.
-          (jsonResponseTool != null && sdkName !== selectedSdkName) ||
-          !('name' in definition) ||
-          definition.name !== selectedProviderName,
+          emittedInlineDefinitions.has(definition) &&
+          (toolChoice.type === 'none' ||
+            // The JSON-tool path filters application tools by SDK name before
+            // conversion; the forced-choice fallback filters by provider name.
+            (jsonResponseTool != null && sdkName !== selectedSdkName) ||
+            !('name' in definition) ||
+            definition.name !== selectedProviderName),
       );
       if (conflictingTool != null) {
         const toolName =
