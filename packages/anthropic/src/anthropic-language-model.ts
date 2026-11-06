@@ -78,6 +78,7 @@ import {
   type AnthropicMediaPartConverter,
 } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
+import { hoistInlineToolChanges } from './hoist-inline-tool-changes';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
 import { supportsNativeStructuredOutputSchema } from './supports-native-structured-output-schema';
@@ -277,6 +278,7 @@ export type AnthropicLanguageModelConfig = {
   supportsStrictTools?: boolean;
   /** Opt in only for platforms that support Anthropic message threads. */
   supportsMessageThreads?: boolean;
+  supportsInlineToolDefinitions?: boolean;
   /** Maximum temperature for compatible providers. Defaults to 1. */
   maxTemperature?: number;
   /** Preserve temperature and topP with thinking for compatible providers. */
@@ -381,7 +383,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     config,
     options: {
       userSuppliedBetas,
-      prompt,
+      prompt: requestPrompt,
       maxOutputTokens,
       temperature,
       topP,
@@ -391,7 +393,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       stopSequences,
       responseFormat,
       seed,
-      tools,
+      tools: requestTools,
       toolChoice,
       reasoning,
       providerOptions,
@@ -406,6 +408,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     };
   }) {
     const warnings: SharedV4Warning[] = [];
+
+    const { prompt, tools } =
+      config.supportsInlineToolDefinitions === false
+        ? hoistInlineToolChanges({ prompt: requestPrompt, tools: requestTools })
+        : { prompt: requestPrompt, tools: requestTools };
 
     if (frequencyPenalty != null) {
       warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });

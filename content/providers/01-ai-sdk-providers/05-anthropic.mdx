@@ -2227,6 +2227,15 @@ const result = await generateText({
 </Note>
 
 <Note>
+  Amazon Bedrock and Google Vertex AI do not support defining tools by value. On
+  those providers, the AI SDK declares each tool defined by value in `tools` and
+  adds it by reference with the `mid-conversation-tool-changes-2026-07-01` beta
+  instead. Function tools are declared with `deferLoading: true` so the prompt
+  cache is kept. Provider-defined tools cannot be deferred, so the first request
+  that adds one misses the prompt cache.
+</Note>
+
+<Note>
   Tool changes are not supported on the initial system message. The AI SDK
   ignores them there and emits a warning — configure the initial tool set via
   the `tools` option instead.

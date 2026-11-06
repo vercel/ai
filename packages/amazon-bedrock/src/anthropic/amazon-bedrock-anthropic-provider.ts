@@ -265,6 +265,7 @@ export function createAmazonBedrockAnthropic(
   const createChatModel = (modelId: AmazonBedrockAnthropicModelId) =>
     new AnthropicLanguageModel(modelId, {
       provider: 'bedrock.anthropic.messages',
+      supportsInlineToolDefinitions: false,
       baseURL: getBaseURL(),
       headers: getHeaders,
       fetch: fetchFunction,
