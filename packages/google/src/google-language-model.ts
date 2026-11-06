@@ -468,7 +468,13 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     options: LanguageModelV4CallOptions,
     { isStreaming = false }: { isStreaming?: boolean } = {},
   ) {
-    const { responseFormat, tools, toolChoice } = options;
+    const { responseFormat, toolChoice } = options;
+    // Enforce the caller's tool choice before the JSON response fallback can
+    // replace it with a forced call to the synthetic response tool.
+    const tools =
+      toolChoice?.type === 'none'
+        ? options.tools?.filter(tool => tool.type === 'function')
+        : options.tools;
     const entry = getGoogleLanguageModelEntry(this.modelId);
     const { structuredOutput } = entry.capabilities.language;
     let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
