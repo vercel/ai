@@ -1,5 +1,17 @@
 # ai
 
+## 6.0.324
+
+### Patch Changes
+
+- ba3743f: Preserve `toolChoice: 'none'` when SDK tools are omitted or empty so providers can disable native tools configured through provider options.
+
+  For Perplexity native tools, also update `@ai-sdk/perplexity` to `3.1.10` or a later compatible version, which includes the provider-side guard.
+
+- Updated dependencies [fbb8489]
+- Updated dependencies [26b7351]
+  - @ai-sdk/gateway@3.0.230
+
 ## 6.0.323
 
 ### Patch Changes

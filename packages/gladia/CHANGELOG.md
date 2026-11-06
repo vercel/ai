@@ -1,5 +1,27 @@
 # @ai-sdk/gladia
 
+## 2.0.72
+
+### Patch Changes
+
+- 6334fc5: fix(gladia): preserve audio intelligence results in provider metadata
+
+  Gladia's audio intelligence add-ons (translation, summarization, named entity
+  recognition, sentiment analysis, audio-to-LLM, sentences, and subtitles) are no
+  longer stripped from `providerMetadata.gladia` during response parsing, and
+  `error_code` is included in the error message when a transcription job fails.
+
+- 6334fc5: fix(gladia): make transcription job polling timeout configurable
+
+  `experimental_transcribe()` with `gladia.transcription()` threw
+  `TranscriptionJobPollingTimedOut` after a hard-coded 60 second polling budget, so
+  long audio files or jobs with audio intelligence add-ons failed even though the
+  job completed later. The polling timeout now defaults to 10 minutes and can be
+  configured with the new `pollTimeoutMs` provider setting, `pollIntervalMs`
+  controls the interval between status checks, and both can be overridden per call
+  with `providerOptions.gladia`. An `abortSignal` now also cancels the wait between
+  polls and preserves its abort reason.
+
 ## 2.0.71
 
 ### Patch Changes

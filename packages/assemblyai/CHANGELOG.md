@@ -1,5 +1,11 @@
 # @ai-sdk/assemblyai
 
+## 2.0.72
+
+### Patch Changes
+
+- b643fbf: fix(assemblyai): surface AssemblyAI error messages from the documented flat error response shape
+
 ## 2.0.71
 
 ### Patch Changes
