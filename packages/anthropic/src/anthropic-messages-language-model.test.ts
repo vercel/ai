@@ -11309,6 +11309,68 @@ describe('mid-conversation tool changes', () => {
     ]);
   });
 
+  it('should keep the name of a declared function tool when an inline provider tool has the same name', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: {
+        id: 'msg_1',
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-opus-4-8',
+        content: [{ type: 'text', text: 'ok' }],
+        stop_reason: 'end_turn',
+        stop_sequence: null,
+        usage: { input_tokens: 1, output_tokens: 1 },
+      },
+    };
+
+    await provider('claude-opus-4-8').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Hi.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'provider',
+                    id: 'anthropic.web_search_20260209',
+                    name: 'lookup',
+                    args: {},
+                  },
+                },
+                { type: 'tool_removal', toolName: 'lookup' },
+              ],
+            },
+          },
+        },
+      ],
+      tools: [
+        {
+          type: 'function',
+          name: 'lookup',
+          description: 'declared function',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(
+      body.messages.find((m: { role: string }) => m.role === 'system').content,
+    ).toMatchObject([
+      { type: 'tool_addition', tool: { type: 'tool_definition' } },
+      // removal by reference targets the declared function, not the web search
+      {
+        type: 'tool_removal',
+        tool: { type: 'tool_reference', name: 'lookup' },
+      },
+    ]);
+  });
+
   it('should keep the response name of a declared provider tool when an inline provider tool has the same provider name', async () => {
     server.urls['https://api.anthropic.com/v1/messages'].response = {
       type: 'json-value',

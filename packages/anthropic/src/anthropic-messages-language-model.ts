@@ -527,10 +527,28 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     // Tools that tool changes add by value are only known from the prompt.
     const inlineTools = await getInlineToolsFromPrompt(prompt);
 
+    // function tools are not part of the name mapping, so an inline provider
+    // tool must not reuse the name of a declared function: references to that
+    // name would otherwise resolve to the provider tool.
+    const declaredFunctionToolNames = new Set(
+      (tools ?? []).flatMap(tool =>
+        tool.type === 'function' ? [tool.name] : [],
+      ),
+    );
+
     const toolNameMapping = createToolNameMapping({
       // later entries win when provider tool names collide, so the declared
       // tools go last and an inline tool cannot take over their mapping:
-      tools: [...inlineTools, ...(tools ?? [])],
+      tools: [
+        ...inlineTools.filter(
+          tool =>
+            !(
+              tool.type === 'provider' &&
+              declaredFunctionToolNames.has(tool.name)
+            ),
+        ),
+        ...(tools ?? []),
+      ],
       providerToolNames: {
         'anthropic.code_execution_20250522': 'code_execution',
         'anthropic.code_execution_20250825': 'code_execution',
