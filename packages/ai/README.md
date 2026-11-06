@@ -148,7 +148,7 @@ export async function POST(req: Request) {
 
   return createAgentUIStreamResponse({
     agent: imageGenerationAgent,
-    messages,
+    uiMessages: messages,
   });
 }
 ```
