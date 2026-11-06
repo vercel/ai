@@ -1,5 +1,12 @@
 # @ai-sdk/anthropic
 
+## 3.0.139
+
+### Patch Changes
+
+- 25c71b9: feat(anthropic): support adding tools by value in mid-conversation `toolChanges` (`inline-tools-2026-09-15`)
+- 95af5ce: Reject conflicting inline tool additions when a named tool choice falls back to auto or the internal JSON response tool limits available application tools, including definitions replayed from conversation history. Only validate definitions emitted in the request, preserving warning-only handling of ignored additions on the initial system message.
+
 ## 3.0.138
 
 ### Patch Changes
