@@ -81,6 +81,33 @@ import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
 import { supportsNativeStructuredOutputSchema } from './supports-native-structured-output-schema';
+import { computerToolset_20260801Members } from './tool/computer-toolset_20260801';
+
+function validateToolsetMember({
+  toolsetName,
+  memberName,
+  tools,
+}: {
+  toolsetName: string;
+  memberName: string;
+  tools: AnthropicTool[] | undefined;
+}): void {
+  const toolset = tools?.find(
+    tool => 'type' in tool && tool.type === 'computer_toolset_20260801',
+  );
+
+  if (
+    toolsetName !== 'computer' ||
+    toolset == null ||
+    !computerToolset_20260801Members.some(member => member === memberName) ||
+    toolset.configs?.[memberName]?.enabled === false
+  ) {
+    throw new InvalidResponseDataError({
+      data: { toolsetName, memberName },
+      message: `Received an unavailable toolset member: ${toolsetName}.${memberName}.`,
+    });
+  }
+}
 
 function createAnthropicStreamError(error: {
   message: string;
@@ -240,11 +267,16 @@ function toToolsetMemberInput({
   memberName: string;
   input: unknown;
 }): JSONObject {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    throw new InvalidResponseDataError({
+      data: input,
+      message: 'Invalid toolset member input: expected an object.',
+    });
+  }
+
   return {
+    ...(input as JSONObject),
     action: memberName,
-    ...(typeof input === 'object' && input !== null && !Array.isArray(input)
-      ? (input as JSONObject)
-      : {}),
   };
 }
 
@@ -1406,6 +1438,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       usesJsonResponseTool: jsonResponseTool != null,
       includePings: stream === true && anthropicOptions?.includePings === true,
       toolNameMapping,
+      preparedTools: anthropicTools,
       providerOptionsName,
       usedCustomProviderKey,
     };
@@ -1534,6 +1567,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       usesJsonResponseTool,
       markCodeExecutionDynamic,
       toolNameMapping,
+      preparedTools,
       providerOptionsName,
       usedCustomProviderKey,
     } = await this.getArgs({
@@ -1702,6 +1736,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               text: JSON.stringify(part.input),
             });
           } else if (part.toolset_name != null) {
+            validateToolsetMember({
+              toolsetName: part.toolset_name,
+              memberName: part.name,
+              tools: preparedTools,
+            });
             // toolset member calls (e.g. the computer toolset) are mapped to
             // the toolset tool with the member name as the `action`:
             content.push({
@@ -2200,6 +2239,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       markCodeExecutionDynamic,
       includePings,
       toolNameMapping,
+      preparedTools,
       providerOptionsName,
       usedCustomProviderKey,
     } = await this.getArgs({
@@ -2491,6 +2531,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       id: String(value.index),
                     });
                   } else if (part.toolset_name != null) {
+                    validateToolsetMember({
+                      toolsetName: part.toolset_name,
+                      memberName: part.name,
+                      tools: preparedTools,
+                    });
                     const callerInfo = getAnthropicCallerInfo(part.caller);
                     const customToolName = toolNameMapping.toCustomToolName(
                       part.toolset_name,
@@ -3014,19 +3059,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                               ? {}
                               : secureJsonParse(contentBlock.input);
                         } catch {
-                          // ignore parse errors, fall back to the raw input
-                          memberInput = undefined;
+                          throw new InvalidResponseDataError({
+                            data: contentBlock.input,
+                            message: 'Invalid toolset member input JSON.',
+                          });
                         }
 
-                        contentBlock.input =
-                          memberInput === undefined
-                            ? contentBlock.input
-                            : JSON.stringify(
-                                toToolsetMemberInput({
-                                  memberName: contentBlock.toolset.memberName,
-                                  input: memberInput,
-                                }),
-                              );
+                        contentBlock.input = JSON.stringify(
+                          toToolsetMemberInput({
+                            memberName: contentBlock.toolset.memberName,
+                            input: memberInput,
+                          }),
+                        );
 
                         controller.enqueue({
                           type: 'tool-input-delta',
