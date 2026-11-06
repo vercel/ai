@@ -451,117 +451,130 @@ describe('AnthropicLanguageModel', () => {
         },
       );
 
-      describe('JSON response tool', () => {
-        const responseFormat = {
-          type: 'json' as const,
-          schema: { type: 'object' as const, properties: {} },
-        };
+      describe.each([false, true])(
+        'JSON response tool (thinking %s)',
+        useThinking => {
+          const responseFormat = {
+            type: 'json' as const,
+            schema: { type: 'object' as const, properties: {} },
+          };
 
-        it.each(['tool', 'none'] as const)(
-          'should reject conflicting inline tools with %s choice before sending a request',
-          async choice => {
-            prepareJsonFixtureResponse('anthropic-json-tool.1');
-
-            const options = {
-              prompt: [
-                ...TEST_PROMPT,
-                {
-                  role: 'system',
-                  content: '',
-                  providerOptions: {
-                    anthropic: {
-                      toolChanges: [
-                        {
-                          type: 'tool_addition',
-                          tool: {
-                            type: 'provider',
-                            id: 'anthropic.web_fetch_20250910',
-                            name: 'web_fetch',
-                            args: {},
-                          },
-                        },
-                      ],
-                    },
-                  },
-                },
-              ] satisfies LanguageModelV4Prompt,
-              tools: [selectedTool],
-              toolChoice:
-                choice === 'tool'
-                  ? { type: 'tool' as const, toolName: 'selected' }
-                  : { type: choice },
-              responseFormat,
-              providerOptions: {
-                anthropic: { structuredOutputMode: 'jsonTool' },
-              },
-            };
-
-            await expect(
-              method === 'generate'
-                ? provider('claude-opus-4-8').doGenerate(options)
-                : provider('claude-opus-4-8').doStream(options),
-            ).rejects.toThrow(InvalidArgumentError);
-            expect(server.calls).toHaveLength(0);
-          },
-        );
-
-        it.each(['tool', 'auto', 'required'] as const)(
-          'should preserve allowed inline tools with %s choice',
-          async choice => {
-            const options = {
-              prompt: [
-                ...TEST_PROMPT,
-                {
-                  role: 'system',
-                  content: '',
-                  providerOptions: {
-                    anthropic: {
-                      toolChanges: [
-                        { type: 'tool_addition', tool: selectedTool },
-                      ],
-                    },
-                  },
-                },
-              ] satisfies LanguageModelV4Prompt,
-              tools: [selectedTool],
-              toolChoice:
-                choice === 'tool'
-                  ? { type: 'tool' as const, toolName: 'selected' }
-                  : { type: choice },
-              responseFormat,
-              providerOptions: {
-                anthropic: { structuredOutputMode: 'jsonTool' },
-              },
-            };
-
-            if (method === 'generate') {
+          it.each(['tool', 'none'] as const)(
+            'should reject conflicting inline tools with %s choice before sending a request',
+            async choice => {
               prepareJsonFixtureResponse('anthropic-json-tool.1');
-              await provider('claude-opus-4-8').doGenerate(options);
-            } else {
-              prepareChunksFixtureResponse('anthropic-json-tool.1');
-              const result =
-                await provider('claude-opus-4-8').doStream(options);
-              await convertReadableStreamToArray(result.stream);
-            }
 
-            const body = await server.calls[0].requestBodyJson;
-            expect(body.tool_choice).toEqual({
-              type: 'any',
-              disable_parallel_tool_use: true,
-            });
-            expect(
-              body.tools.map((tool: { name: string }) => tool.name),
-            ).toEqual(['selected', 'json']);
-            expect(body.messages[1].content[0]).toMatchObject({
-              type: 'tool_addition',
-              tool: {
-                type: 'tool_definition',
-                definition: { name: 'selected' },
-              },
-            });
-          },
-        );
-      });
+              const options = {
+                prompt: [
+                  ...TEST_PROMPT,
+                  {
+                    role: 'system',
+                    content: '',
+                    providerOptions: {
+                      anthropic: {
+                        toolChanges: [
+                          {
+                            type: 'tool_addition',
+                            tool: {
+                              type: 'provider',
+                              id: 'anthropic.web_fetch_20250910',
+                              name: 'web_fetch',
+                              args: {},
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ] satisfies LanguageModelV4Prompt,
+                tools: [selectedTool],
+                toolChoice:
+                  choice === 'tool'
+                    ? { type: 'tool' as const, toolName: 'selected' }
+                    : { type: choice },
+                responseFormat,
+                providerOptions: {
+                  anthropic: {
+                    structuredOutputMode: 'jsonTool',
+                    ...(useThinking && { thinking }),
+                  },
+                },
+              };
+
+              await expect(
+                method === 'generate'
+                  ? provider('claude-opus-4-8').doGenerate(options)
+                  : provider('claude-opus-4-8').doStream(options),
+              ).rejects.toThrow(InvalidArgumentError);
+              expect(server.calls).toHaveLength(0);
+            },
+          );
+
+          it.each(['tool', 'auto', 'required'] as const)(
+            'should preserve allowed inline tools with %s choice',
+            async choice => {
+              const inlineTool = {
+                ...selectedTool,
+                name: choice === 'tool' ? 'selected' : 'other',
+              };
+              const options = {
+                prompt: [
+                  ...TEST_PROMPT,
+                  {
+                    role: 'system',
+                    content: '',
+                    providerOptions: {
+                      anthropic: {
+                        toolChanges: [
+                          { type: 'tool_addition', tool: inlineTool },
+                        ],
+                      },
+                    },
+                  },
+                ] satisfies LanguageModelV4Prompt,
+                tools: [selectedTool],
+                toolChoice:
+                  choice === 'tool'
+                    ? { type: 'tool' as const, toolName: 'selected' }
+                    : { type: choice },
+                responseFormat,
+                providerOptions: {
+                  anthropic: {
+                    structuredOutputMode: 'jsonTool',
+                    ...(useThinking && { thinking }),
+                  },
+                },
+              };
+
+              if (method === 'generate') {
+                prepareJsonFixtureResponse('anthropic-json-tool.1');
+                await provider('claude-opus-4-8').doGenerate(options);
+              } else {
+                prepareChunksFixtureResponse('anthropic-json-tool.1');
+                const result =
+                  await provider('claude-opus-4-8').doStream(options);
+                await convertReadableStreamToArray(result.stream);
+              }
+
+              const body = await server.calls[0].requestBodyJson;
+              expect(body.tool_choice).toEqual({
+                type: useThinking ? 'auto' : 'any',
+                disable_parallel_tool_use: true,
+              });
+              expect(
+                body.tools.map((tool: { name: string }) => tool.name),
+              ).toEqual(['selected', 'json']);
+              expect(body.messages[1].content[0]).toMatchObject({
+                type: 'tool_addition',
+                tool: {
+                  type: 'tool_definition',
+                  definition: { name: inlineTool.name },
+                },
+              });
+            },
+          );
+        },
+      );
     },
   );
 
