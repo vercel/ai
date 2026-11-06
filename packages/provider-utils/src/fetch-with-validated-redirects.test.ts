@@ -253,6 +253,20 @@ describe('fetchWithValidatedRedirects', () => {
     );
   });
 
+  it('rejects a redirect with an invalid Location header', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(redirectResponse('http://[invalid'));
+
+    await expect(
+      fetchWithValidatedRedirects({
+        url: 'https://example.com/file',
+        fetch: fetchMock,
+      }),
+    ).rejects.toThrow(DownloadError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it.each([301, 302, 303, 307, 308])('follows a %d redirect', async status => {
     const fetchMock = vi
       .fn()
