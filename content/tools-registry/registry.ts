@@ -970,4 +970,37 @@ console.log(text);`,
     websiteUrl: 'https://redis.io/agent-memory/',
     npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
+  {
+    slug: 'channel3',
+    name: 'Channel3',
+    description:
+      "Product search across 100M+ products from thousands of retailers. Search by text or image, then get full product details with every retailer's offer and live price, by product ID or retailer URL.",
+    packageName: '@channel3/agent-toolkit',
+    tags: ['shopping', 'ecommerce', 'product-search'],
+    apiKeyEnvName: 'CHANNEL3_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @channel3/agent-toolkit',
+      npm: 'npm install @channel3/agent-toolkit',
+      yarn: 'yarn add @channel3/agent-toolkit',
+      bun: 'bun add @channel3/agent-toolkit',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { searchProductsTool, getProductsTool } from '@channel3/agent-toolkit/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt: 'Find me a leather golf glove under $40 and tell me which retailer has it cheapest.',
+  tools: {
+    search_products: searchProductsTool,
+    get_products: getProductsTool,
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://channel3.ai/docs/ai-sdk',
+    apiKeyUrl: 'https://channel3.ai/sign-up/developer',
+    websiteUrl: 'https://channel3.ai',
+    npmUrl: 'https://www.npmjs.com/package/@channel3/agent-toolkit',
+  },
 ];
