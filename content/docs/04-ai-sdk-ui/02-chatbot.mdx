@@ -399,8 +399,10 @@ return (
 ```
 
 - Queued messages are sent in the order they were sent. A new message never skips the queue.
-- The queue also waits while the assistant waits for the user, e.g. a tool call that needs an approval or a client-side tool result. Automatic follow-ups from `sendAutomaticallyWhen` are sent first.
-- Stopping or an error pauses the queue. It resumes when the next message is sent or when you call `experimental_sendQueuedMessageNow`.
+- The queue also waits while the assistant waits for the user, e.g. a tool call that needs an approval or a client-side tool result, and continues once the result is added. Automatic follow-ups from `sendAutomaticallyWhen` are sent first.
+- An answered approval always reaches the model before the next queued message. Without `sendAutomaticallyWhen`, it is sent when the next message is sent.
+- Stopping, an error or an interrupted response pauses the queue. It resumes when the next message is sent or when you call `experimental_sendQueuedMessageNow`.
+- Editing a message or regenerating stops the response in progress and clears the queue, since the queued messages were sent after the part of the conversation that changes.
 - To edit a queued message, remove it and send the new text. It is added to the end of the queue.
 - `sendMessage` resolves once the message is queued. Use `experimental_queuedMessages` to see where it is.
 - The queue lives in memory in the chat, so it is not saved and is lost on reload.

@@ -284,7 +284,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: 'boolean',
       isOptional: true,
       description:
-        'Experimental. When true, messages sent while a response is in progress, or while the assistant waits for a tool result or approval, are queued and sent one at a time after each response finishes. Stopping or an error pauses the queue until the next message is sent. Defaults to false.',
+        'Experimental. When true, messages sent while a response is in progress, or while the assistant waits for a tool result or approval, are queued and sent one at a time after each response finishes. Stopping, an error or an interrupted response pauses the queue until the next message is sent. Editing a message or regenerating clears the queue. Defaults to false.',
     },
     {
       name: 'onFinish',
