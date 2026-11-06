@@ -65,7 +65,6 @@
   },
   "devDependencies": {
     "@ai-sdk/google": "workspace:*",
-    "@ai-sdk/google-vertex": "workspace:*",
     "@ai-sdk/perplexity": "workspace:*",
     "@ai-sdk/test-server": "workspace:*",
     "@edge-runtime/vm": "^5.0.0",
