@@ -74,6 +74,9 @@ export async function fetchWithValidatedEndpoint({
  * target (e.g. an internal address) before we ever see its URL, defeating the
  * SSRF guard.
  *
+ * Manually followed redirects from HTTPS to HTTP are rejected before requesting
+ * the target.
+ *
  * All caller headers except User-Agent are dropped on cross-origin redirects.
  * Callers must decide which credentials may be sent to the initial URL.
  *
@@ -168,6 +171,17 @@ export async function fetchWithValidatedRedirects({
       // cancellation can stay pending when a fetch wrapper retains a clone.
       void cancelResponseBody(response);
       const nextUrl = new URL(location, currentUrl).toString();
+
+      if (
+        new URL(currentUrl).protocol === 'https:' &&
+        new URL(nextUrl).protocol === 'http:'
+      ) {
+        throw new DownloadError({
+          url,
+          message: 'Redirect from HTTPS to HTTP was blocked',
+        });
+      }
+
       // Provider keys can use arbitrary header names. Retain only User-Agent
       // when crossing origins, including when a later hop returns to the API.
       if (currentHeaders !== undefined && !isSameOrigin(nextUrl, currentUrl)) {
