@@ -188,6 +188,72 @@ describe('convertAnthropicUsage', () => {
       expect(result.outputTokens.total).toBe(4500); // 3500 + 1000
     });
 
+    it('should sum cache tokens across iterations when iterations report them', () => {
+      // top-level cache fields only reflect the final message iteration
+      const usage: AnthropicUsage = {
+        input_tokens: 2,
+        output_tokens: 757,
+        cache_creation_input_tokens: 2406,
+        cache_read_input_tokens: 11193,
+        iterations: [
+          {
+            type: 'compaction',
+            input_tokens: 157,
+            output_tokens: 2241,
+            cache_creation_input_tokens: 46711,
+            cache_read_input_tokens: 56615,
+          },
+          {
+            type: 'message',
+            input_tokens: 2,
+            output_tokens: 757,
+            cache_creation_input_tokens: 2406,
+            cache_read_input_tokens: 11193,
+          },
+        ],
+      };
+
+      const result = convertAnthropicUsage({ usage });
+
+      expect(result.inputTokens.noCache).toBe(159); // 157 + 2
+      expect(result.inputTokens.cacheWrite).toBe(49117); // 46711 + 2406
+      expect(result.inputTokens.cacheRead).toBe(67808); // 56615 + 11193
+      expect(result.inputTokens.total).toBe(117084);
+      expect(result.outputTokens.total).toBe(2998); // 2241 + 757
+    });
+
+    it('should not count advisor iteration cache tokens', () => {
+      const usage: AnthropicUsage = {
+        input_tokens: 10,
+        output_tokens: 100,
+        cache_creation_input_tokens: 200,
+        cache_read_input_tokens: 300,
+        iterations: [
+          {
+            type: 'message',
+            input_tokens: 10,
+            output_tokens: 100,
+            cache_creation_input_tokens: 200,
+            cache_read_input_tokens: 300,
+          },
+          {
+            type: 'advisor_message',
+            model: 'claude-opus-5-5',
+            input_tokens: 1000,
+            output_tokens: 500,
+            cache_creation_input_tokens: 4000,
+            cache_read_input_tokens: 5000,
+          },
+        ],
+      };
+
+      const result = convertAnthropicUsage({ usage });
+
+      expect(result.inputTokens.cacheWrite).toBe(200);
+      expect(result.inputTokens.cacheRead).toBe(300);
+      expect(result.inputTokens.total).toBe(510);
+    });
+
     it('should use rawUsage as raw even when iterations are present', () => {
       const usage: AnthropicUsage = {
         input_tokens: 45000,
