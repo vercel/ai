@@ -333,6 +333,18 @@ export const anthropicLanguageModelOptions = lazySchema(() => {
        */
       speed: z.enum(['fast', 'standard']).optional(),
 
+<<<<<<< HEAD:packages/anthropic/src/anthropic-messages-options.ts
+=======
+      /**
+       * Request admission tier. Anthropic accepts `auto` and `standard_only`;
+       * MiniMax accepts `standard` and `priority`. Values for another known
+       * provider are omitted with an unsupported-setting warning.
+       */
+      serviceTier: z
+        .enum(['auto', 'standard_only', 'standard', 'priority'])
+        .optional(),
+
+>>>>>>> 8291ccf237 (feat(anthropic,minimax): support MiniMax tiers and applied-tier metadata (#19418)):packages/anthropic/src/anthropic-language-model-options.ts
       /**
        * Controls where model inference runs for this request.
        *

@@ -265,6 +265,19 @@ The following optional provider options are available for MiniMax language model
   reasoning tokens and increase latency. Maps to `output_config.effort` in the
   MiniMax API. When omitted, the server uses its default (`'max'` for M3.1 Flash).
 
+- **serviceTier** _'standard' | 'priority'_
+
+  Request admission tier, sent as `service_tier`. Priority admission is billed
+  at 1.5x the standard price. Omit this option to use the API's default tier.
+  Anthropic-only tier values are omitted with an unsupported-setting warning.
+  See [MiniMax Messages](https://platform.minimax.io/docs/api-reference/messages-create#body-service-tier).
+
+  When the API returns its applied tier, it is exposed as
+  `providerMetadata.minimax.serviceTier` if `providerOptions.minimax` was
+  supplied. The canonical `providerMetadata.anthropic.serviceTier` also contains
+  the returned tier, including when no MiniMax options were supplied. An omitted
+  response tier is not inferred from the requested tier.
+
 - **thinking** _object_
 
   Controls the model's reasoning ("thinking") behavior.

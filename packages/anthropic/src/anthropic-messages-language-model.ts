@@ -393,6 +393,26 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       customProviderOptions ?? {},
     );
 
+    if (anthropicOptions.serviceTier != null) {
+      const supportedTiers =
+        providerOptionsName === 'anthropic'
+          ? ['auto', 'standard_only']
+          : providerOptionsName === 'minimax'
+            ? ['standard', 'priority']
+            : undefined;
+      if (
+        supportedTiers != null &&
+        !supportedTiers.includes(anthropicOptions.serviceTier)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'serviceTier',
+          details: `serviceTier "${anthropicOptions.serviceTier}" is not supported by ${providerOptionsName}. Use ${supportedTiers.map(tier => `"${tier}"`).join(' or ')}.`,
+        });
+        anthropicOptions.serviceTier = undefined;
+      }
+    }
+
     const {
       maxOutputTokens: maxOutputTokensForModel,
       supportsStructuredOutput: modelSupportsStructuredOutput,
@@ -1701,12 +1721,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       warnings,
       providerMetadata: (() => {
         const stopDetails = mapAnthropicStopDetails(response.stop_details);
+        const serviceTier =
+          response.usage.service_tier ?? response.service_tier;
 
         const anthropicMetadata = {
           usage: response.usage as JSONObject,
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
           stopSequence: response.stop_sequence ?? null,
+          ...(serviceTier != null ? { serviceTier } : {}),
           ...(stopDetails != null ? { stopDetails } : {}),
           ...(response.input_transformations != null
             ? { inputTransformations: response.input_transformations }
@@ -1856,6 +1879,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     let rawUsage: JSONObject | undefined = undefined;
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
+    let serviceTier: string | null = null;
     let stopDetails: AnthropicMessageMetadata['stopDetails'] = undefined;
     let inputTransformations: AnthropicMessageMetadata['inputTransformations'];
     let safeguardResults: AnthropicMessageMetadata['safeguardResults'];
@@ -2803,6 +2827,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 return;
               }
 
+              serviceTier =
+                value.message.usage.service_tier ??
+                value.message.service_tier ??
+                null;
               isMessageOpen = true;
               activeMessageId = value.message.id;
               heldBackTextByIndex.clear();
@@ -2964,6 +2992,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 safeguardResults = value.delta.safeguard_results;
               }
 
+              serviceTier = value.usage.service_tier ?? serviceTier;
+
               rawUsage = {
                 ...rawUsage,
                 ...(value.usage as JSONObject),
@@ -2980,6 +3010,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 usage: (rawUsage as JSONObject) ?? null,
                 cacheCreationInputTokens,
                 stopSequence,
+                ...(serviceTier != null ? { serviceTier } : {}),
                 ...(stopDetails != null ? { stopDetails } : {}),
                 ...(inputTransformations != null
                   ? { inputTransformations }
