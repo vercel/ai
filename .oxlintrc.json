@@ -25,7 +25,7 @@
       }
     },
     {
-      "files": ["examples/**", "**/*.test.ts"],
+      "files": ["examples/**", "**/*.test.ts", "**/*.test-d.ts"],
       "rules": {
         "no-unused-vars": "off",
         "ai-sdk/require-docblock": "off"
