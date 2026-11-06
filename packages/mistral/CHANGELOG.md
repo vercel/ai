@@ -1,5 +1,69 @@
 # @ai-sdk/mistral
 
+## 4.0.80
+
+### Patch Changes
+
+- b26902e: feat(mistral): add realtime transcription support
+
+  Support Voxtral realtime transcription with streaming audio, context bias, speaker diarization, speaker references, and raw turn-detection events.
+
+- a7f8478: Fix specific tool selection in Mistral Chat Completions by sending the native function choice and preserving all tool definitions in the request.
+- 0912e0b: feat(mistral): add realtime voice agent support
+
+  Keep `livekit-client` as an optional peer dependency required only for browser
+  voice connections, so server-side consumers do not install it automatically.
+
+- 9ab42ea: Map disabled reasoning to low for Mistral Large 4 Chat models, whose supported efforts are low, medium, and high. Preserve medium reasoning and accept it through provider options instead of rejecting or remapping it.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 4.0.79
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 4.0.78
+
+### Patch Changes
+
+- 4ae6986: fix(mistral): preserve string tool call arguments and safely serialize BigInt and circular structures in tool calls and outputs
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 4.0.77
+
+### Patch Changes
+
+- 19cb252: Centralize Mistral model capabilities and provider option support in a model catalog shared by request preparation and generated documentation, preserving Chat and Conversations reasoning policies and legacy transcription restrictions.
+
+## 4.0.76
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
 ## 4.0.75
 
 ### Patch Changes

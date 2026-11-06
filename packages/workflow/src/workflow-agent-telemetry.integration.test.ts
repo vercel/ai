@@ -1,28 +1,41 @@
 /**
  * Integration tests for WorkflowAgent telemetry with globally registered
- * integrations (https://github.com/vercel/ai/issues/22378).
+ * integrations (https://github.com/vercel/ai/issues/22378,
+ * https://github.com/vercel/ai/issues/23618).
  *
  * Run with: pnpm test:integration
  */
-import { OpenTelemetry } from '@ai-sdk/otel';
+import { OpenTelemetry, OpenTelemetryIdGenerator } from '@ai-sdk/otel';
 import { trace } from '@opentelemetry/api';
 import {
   BasicTracerProvider,
   InMemorySpanExporter,
+  type ReadableSpan,
   SimpleSpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
-import { AI_SDK_TELEMETRY_TRACING_CHANNEL, registerTelemetry } from 'ai';
+import {
+  AI_SDK_TELEMETRY_TRACING_CHANNEL,
+  registerTelemetry,
+  stepCountIs,
+  streamText,
+} from 'ai';
 import { tracingChannel } from 'node:diagnostics_channel';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { start } from 'workflow/api';
+import { z } from 'zod/v4';
+import { mockSequenceModel } from './providers/mock.js';
 import {
   agentGenerateWithGlobalTelemetry,
   agentStreamWithGlobalTelemetry,
+  agentToolLoopWithGlobalTelemetry,
 } from './test/telemetry-workflows.js';
 
 const exporter = new InMemorySpanExporter();
+const durable = new OpenTelemetryIdGenerator();
 trace.setGlobalTracerProvider(
   new BasicTracerProvider({
+    idGenerator: durable,
+    sampler: durable,
     spanProcessors: [new SimpleSpanProcessor(exporter)],
   }),
 );
@@ -35,6 +48,7 @@ const tracingChannelEvents: string[] = [];
 
 registerTelemetry(
   new OpenTelemetry({
+    durable,
     enrichSpan: ({ runtimeContext }) => {
       spanContexts.push(runtimeContext);
       return undefined;
@@ -101,11 +115,14 @@ function getAiSpanNames() {
     .map(span => span.name);
 }
 
+// The provider call runs in the integrations' context inside the model step.
+// The run's lifecycle events are reported when the run ends
+// (https://github.com/vercel/ai/issues/23618).
 const expectedEvents = [
+  'executeLanguageModelCall',
   'onStart',
   'onStepStart',
   'onLanguageModelCallStart',
-  'executeLanguageModelCall',
   'onLanguageModelCallEnd',
   'onStepEnd',
   'onEnd',
@@ -114,7 +131,7 @@ const expectedEvents = [
 const expectedSpans = [
   'chat workflow-test-model',
   'step 1',
-  'ai.workflowAgent.stream workflow-test-model',
+  'invoke_agent workflow-test-model',
 ];
 
 describe('WorkflowAgent telemetry with global integrations', () => {
@@ -168,4 +185,123 @@ describe('WorkflowAgent telemetry with global integrations', () => {
       }
     },
   );
+
+  it('reports a multi-step run as one span tree like streamText', async () => {
+    const result = streamText({
+      model: mockSequenceModel([
+        {
+          type: 'tool-call',
+          toolName: 'addNumbers',
+          input: JSON.stringify({ a: 2, b: 3 }),
+        },
+        { type: 'text', text: 'The sum is 5' },
+      ]),
+      tools: {
+        addNumbers: {
+          description: 'Add two numbers',
+          inputSchema: z.object({ a: z.number(), b: z.number() }),
+          execute: async ({ a, b }: { a: number; b: number }) => a + b,
+        },
+      },
+      telemetry: { functionId: 'issue-23618' },
+      messages: [{ role: 'user', content: 'Add 2 and 3' }],
+      stopWhen: stepCountIs(2),
+    });
+    await result.consumeStream();
+    const baseline = getSpanTree();
+    exporter.reset();
+
+    const run = await start(agentToolLoopWithGlobalTelemetry, [2, 3]);
+    expect(await run.returnValue).toEqual({
+      stepCount: 2,
+      text: 'The sum is 5',
+    });
+    const tree = getSpanTree();
+
+    expect(tree.shape).toEqual(baseline.shape);
+    expect(tree.shape).toEqual({
+      'invoke_agent workflow-test-model': [
+        {
+          'step 1': ['chat workflow-test-model', 'execute_tool addNumbers'],
+        },
+        { 'step 2': ['chat workflow-test-model'] },
+      ],
+    });
+    const attribute = ({ spans }: typeof tree, name: string, key: string) =>
+      JSON.parse(
+        spans.find(span => span.name === name)!.attributes[key] as string,
+      );
+    expect(
+      attribute(
+        tree,
+        'invoke_agent workflow-test-model',
+        'gen_ai.input.messages',
+      ),
+    ).toEqual(
+      attribute(
+        baseline,
+        'invoke_agent workflow-test-model',
+        'gen_ai.input.messages',
+      ),
+    );
+    expect(
+      attribute(
+        tree,
+        'invoke_agent workflow-test-model',
+        'gen_ai.output.messages',
+      ),
+    ).toEqual(
+      attribute(
+        baseline,
+        'invoke_agent workflow-test-model',
+        'gen_ai.output.messages',
+      ),
+    );
+    expect(
+      attribute(tree, 'chat workflow-test-model', 'gen_ai.tool.definitions'),
+    ).toEqual(
+      attribute(
+        baseline,
+        'chat workflow-test-model',
+        'gen_ai.tool.definitions',
+      ),
+    );
+    for (const span of tree.spans) {
+      const parent = tree.parentOf(span);
+      if (parent == null) continue;
+      expect(hrTimeToMs(span.startTime)).toBeGreaterThanOrEqual(
+        hrTimeToMs(parent.startTime),
+      );
+      expect(hrTimeToMs(span.endTime)).toBeLessThanOrEqual(
+        hrTimeToMs(parent.endTime),
+      );
+    }
+  });
 });
+
+function hrTimeToMs([seconds, nanoseconds]: [number, number]): number {
+  return seconds * 1000 + nanoseconds / 1e6;
+}
+
+/** AI SDK spans with their nesting, children in start order. */
+function getSpanTree() {
+  const spans = exporter
+    .getFinishedSpans()
+    .filter(span => span.instrumentationScope.name === 'gen_ai')
+    .sort((a, b) => hrTimeToMs(a.startTime) - hrTimeToMs(b.startTime));
+  const byId = new Map(spans.map(span => [span.spanContext().spanId, span]));
+  const parentOf = (span: ReadableSpan) =>
+    byId.get(span.parentSpanContext?.spanId ?? '');
+  const shapeOf = (span: ReadableSpan): unknown => {
+    const children = spans.filter(child => parentOf(child) === span);
+    return children.length === 0
+      ? span.name
+      : { [span.name]: children.map(shapeOf) };
+  };
+  const roots = spans.filter(span => parentOf(span) == null);
+  return {
+    spans,
+    parentOf,
+    shape: roots.length === 1 ? shapeOf(roots[0]) : roots.map(shapeOf),
+  };
+}

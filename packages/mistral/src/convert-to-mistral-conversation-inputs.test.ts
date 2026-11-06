@@ -259,3 +259,48 @@ describe('convertToMistralConversationInputs', () => {
     ).toThrow(UnsupportedFunctionalityError);
   });
 });
+
+it('preserves argument replay and serializes result graphs in conversation inputs', () => {
+  const value: any = { count: 42n };
+  value.self = value;
+  const { inputs } = convertToMistralConversationInputs(
+    [
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'inspect',
+            input: '{"count":42}',
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call1',
+            toolName: 'inspect',
+            output: { type: 'json', value },
+          },
+        ],
+      },
+    ],
+    mapping,
+  );
+  expect(inputs).toEqual([
+    {
+      type: 'function.call',
+      tool_call_id: 'call1',
+      name: 'inspect',
+      arguments: '{"count":42}',
+    },
+    {
+      type: 'function.result',
+      tool_call_id: 'call1',
+      result: '{"count":"42","self":"[Circular]"}',
+    },
+  ]);
+});

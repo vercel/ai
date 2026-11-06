@@ -9113,6 +9113,42 @@ describe('generateText', () => {
           }
         `);
       });
+
+      it('should pass custom schema keywords such as propertyOrdering to the model', async () => {
+        const model = new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: `{ "apple": "red", "zebra": "striped" }` },
+            ],
+          },
+        });
+
+        await generateText({
+          model,
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z
+              .object({ zebra: z.string(), apple: z.string() })
+              .meta({ propertyOrdering: ['apple', 'zebra'] }),
+          }),
+        });
+
+        expect(model.doGenerateCalls[0].responseFormat).toEqual({
+          type: 'json',
+          schema: {
+            $schema: 'http://json-schema.org/draft-07/schema#',
+            type: 'object',
+            properties: {
+              zebra: { type: 'string' },
+              apple: { type: 'string' },
+            },
+            required: ['zebra', 'apple'],
+            additionalProperties: false,
+            propertyOrdering: ['apple', 'zebra'],
+          },
+        });
+      });
     });
 
     describe('provider-selected structured output', () => {
@@ -14977,4 +15013,39 @@ describe('generateText', () => {
       expect(events).toEqual(['first', 'second']);
     });
   });
+});
+
+it('sanitizes provider request URLs in results and step/end events', async () => {
+  const onStepEnd = vi.fn();
+  const onEnd = vi.fn();
+  const request = {
+    url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+  };
+  const result = await generateText({
+    model: new MockLanguageModelV4({
+      doGenerate: async () => ({
+        ...dummyResponseValues,
+        content: [{ type: 'text', text: 'hello' }],
+        request,
+      }),
+    }),
+    prompt: 'hello',
+    onStepEnd,
+    onEnd,
+  });
+  expect(result.finalStep.request.url).toBe('https://model.example.test:8443');
+  expect(result.steps[0].request.url).toBe('https://model.example.test:8443');
+  for (const callback of [onStepEnd, onEnd]) {
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          url: 'https://model.example.test:8443',
+        }),
+      }),
+    );
+    expect(JSON.stringify(callback.mock.calls)).not.toMatch(
+      /password|private|secret|fragment/,
+    );
+  }
+  expect(request.url).toContain('password');
 });

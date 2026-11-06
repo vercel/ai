@@ -1,5 +1,69 @@
 # @ai-sdk/xai
 
+## 5.0.39
+
+### Patch Changes
+
+- 892af4d: feat (provider/xai): implement server-side realtime extensions
+
+  `XaiRealtimeModel` now implements `getServerWebSocketConfig()`, returning the upstream voice realtime WebSocket URL (with the `model` query param) plus header auth derived from the model's configured credentials. Unsupported endpoint intents are rejected. The event mapper now populates normalized `usage` on `response-done` and `input-transcription-completed` using xAI's OpenAI-compatible realtime wire shape.
+
+- 41465fd: Expose optional transcription word timings separately from segments and accept shared timestampGranularities. Explicit provider timing settings take precedence. OpenAI now sends timestamp_granularities only with verbose_json and warns when a requested timing is unavailable or excluded.
+- 2e44144: Support typed `output.uploadUrl` delivery for video generation, editing, and extension. Polling returns an explicit uploaded outcome without downloading or exposing the signed destination, including in request errors. Use camelCase `output.uploadUrl` instead of raw `output.upload_url` passthrough; the new option rejects null and requires an HTTPS URL.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 5.0.38
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 5.0.37
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 5.0.36
+
+### Patch Changes
+
+- 3d6ac0a: fix(xai): map `incomplete_details.reason` to finish reason in Responses `generateText`, so `max_output_tokens` reports `length` instead of `other`
+
+## 5.0.35
+
+### Patch Changes
+
+- 89b76ce: Centralize xAI language, image, speech, transcription, and realtime capabilities in a shared model catalog, preserving request policies and generating capability tables from the same declarations.
+
+## 5.0.34
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
 ## 5.0.33
 
 ### Patch Changes

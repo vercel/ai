@@ -1,15 +1,201 @@
+import { prodiaDocs } from './providers/prodia.mjs';
+import { heygenDocs } from './providers/heygen.mjs';
+import { gmicloudDocs } from './providers/gmicloud.mjs';
+import { bytedanceDocs } from './providers/bytedance.mjs';
+import { klingaiDocs } from './providers/klingai.mjs';
+import { lumaDocs } from './providers/luma.mjs';
+import { blackForestLabsDocs } from './providers/black-forest-labs.mjs';
+import { replicateDocs } from './providers/replicate.mjs';
+import { falDocs } from './providers/fal.mjs';
+import { voyageDocs } from './providers/voyage.mjs';
+import { huggingfaceDocs } from './providers/huggingface.mjs';
+import { basetenDocs } from './providers/baseten.mjs';
+import { deepinfraDocs } from './providers/deepinfra.mjs';
+import { fireworksDocs } from './providers/fireworks.mjs';
+import { togetheraiDocs } from './providers/togetherai.mjs';
+import { zaiDocs } from './providers/zai.mjs';
+import { moonshotaiDocs } from './providers/moonshotai.mjs';
+import { minimaxDocs } from './providers/minimax.mjs';
+import { alibabaDocs } from './providers/alibaba.mjs';
+import { openResponsesDocs } from './providers/open-responses.mjs';
+import { openaiCompatibleDocs } from './providers/openai-compatible.mjs';
+import { anthropicAwsDocs } from './providers/anthropic-aws.mjs';
+import { googleVertexDocs } from './providers/google-vertex.mjs';
+import { amazonBedrockDocs } from './providers/amazon-bedrock.mjs';
+import { azureDocs } from './providers/azure.mjs';
 import { formatSupport } from './render-tables.mjs';
 
 // Register a provider here to generate its docs from its source catalog.
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
-// Omit overviewLink for providers that do not appear in the language overview.
 export const providers = [
+  prodiaDocs,
+  heygenDocs,
+  gmicloudDocs,
+  bytedanceDocs,
+  klingaiDocs,
+  lumaDocs,
+  blackForestLabsDocs,
+  replicateDocs,
+  falDocs,
+  voyageDocs,
+  huggingfaceDocs,
+  basetenDocs,
+  deepinfraDocs,
+  fireworksDocs,
+  togetheraiDocs,
+  zaiDocs,
+  moonshotaiDocs,
+  minimaxDocs,
+  alibabaDocs,
+  openResponsesDocs,
+  openaiCompatibleDocs,
+  anthropicAwsDocs,
+  googleVertexDocs,
+  amazonBedrockDocs,
+  azureDocs,
+  {
+    catalogPath: 'packages/perplexity/src/perplexity-model-catalog.ts',
+    catalogExport: 'perplexityModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/70-perplexity.mdx',
+    tables: [
+      {
+        id: 'perplexity-language',
+        capability: 'language',
+        columns: [
+          ['Image Input', 'inputs.image'],
+          ['Object Generation', 'objectGeneration'],
+          ['Tool Usage', 'tools.usage'],
+          ['Tool Streaming', 'tools.streaming'],
+        ],
+      },
+      {
+        id: 'perplexity-embedding',
+        capability: 'embedding',
+        columns: [
+          ['Dimensions', 'defaultDimensions', String],
+          ['Max Values Per Call', 'maxEmbeddingsPerCall', String],
+        ],
+      },
+      {
+        id: 'perplexity-decision',
+        capability: 'decision',
+        columns: [
+          ['Boolean', 'questionTypes.boolean'],
+          ['Choice', 'questionTypes.choice'],
+          ['Score', 'questionTypes.score'],
+          ['Box', 'questionTypes.box'],
+          ['Image Input', 'inputs.image'],
+          ['Reasoning', 'reasoning'],
+          ['Max Output Tokens', 'maxOutputTokens'],
+        ],
+      },
+    ],
+  },
+  {
+    catalogPath: 'packages/cerebras/src/cerebras-model-catalog.ts',
+    catalogExport: 'cerebrasModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/40-cerebras.mdx',
+    tables: [
+      {
+        id: 'cerebras-language',
+        capability: 'language',
+        columns: [
+          ['Image Input', 'inputs.image'],
+          ['Object Generation', 'objectGeneration'],
+          ['Tool Usage', 'tools.usage'],
+          ['Tool Streaming', 'tools.streaming'],
+          ['Reasoning', 'reasoning.support'],
+        ],
+      },
+    ],
+  },
+  {
+    catalogPath: 'packages/deepseek/src/deepseek-model-catalog.ts',
+    catalogExport: 'deepseekModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/30-deepseek.mdx',
+    tables: [
+      {
+        id: 'deepseek-language',
+        capability: 'language',
+        columns: [
+          ['Text Generation', 'textGeneration'],
+          ['Object Generation', 'objectGeneration'],
+          ['Image Input', 'inputs.image'],
+          ['Tool Usage', 'tools.usage'],
+          ['Tool Streaming', 'tools.streaming'],
+        ],
+      },
+    ],
+  },
+  {
+    catalogPath: 'packages/cohere/src/cohere-model-catalog.ts',
+    catalogExport: 'cohereModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/25-cohere.mdx',
+    tables: [
+      {
+        id: 'cohere-language',
+        capability: 'language',
+        columns: [
+          ['Image Input', 'inputs.image'],
+          ['Object Generation', 'objectGeneration'],
+          ['Tool Usage', 'tools.usage'],
+          ['Tool Streaming', 'tools.streaming'],
+        ],
+      },
+      {
+        id: 'cohere-embedding',
+        capability: 'embedding',
+        columns: [
+          ['Default Dimensions', 'defaultDimensions', String],
+          ['Supported Dimensions', 'dimensions', values => values.join(', ')],
+          ['Custom Dimensions', 'customDimensions'],
+        ],
+      },
+      {
+        id: 'cohere-reranking',
+        capability: 'reranking',
+        columns: [
+          ['Text Documents', 'documents.text'],
+          ['Object Documents', 'documents.object'],
+          ['Top N', 'topN'],
+        ],
+      },
+    ],
+  },
+  {
+    catalogPath: 'packages/groq/src/groq-model-catalog.ts',
+    catalogExport: 'groqModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/09-groq.mdx',
+    tables: [
+      {
+        id: 'groq-language',
+        capability: 'language',
+        columns: [
+          ['Image Input', 'inputs.image'],
+          ['Object Generation', 'objectGeneration'],
+          ['Tool Usage', 'tools.usage'],
+          ['Tool Streaming', 'tools.streaming'],
+          ['Browser Search', 'tools.browserSearch'],
+        ],
+      },
+      {
+        id: 'groq-transcription',
+        capability: 'transcription',
+        columns: [
+          ['Transcription', 'transcription'],
+          ['Streaming', 'streaming'],
+          ['Duration', 'duration'],
+          ['Segments', 'segments'],
+          ['Language', 'language'],
+        ],
+      },
+    ],
+  },
   {
     catalogPath: 'packages/openai/src/openai-model-catalog.ts',
     catalogExport: 'openaiModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/03-openai.mdx',
-    overviewLink: '[OpenAI](/providers/ai-sdk-providers/openai)',
     tables: [
       {
         id: 'openai-language',
@@ -97,7 +283,6 @@ export const providers = [
     catalogPath: 'packages/anthropic/src/anthropic-model-catalog.ts',
     catalogExport: 'anthropicModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/05-anthropic.mdx',
-    overviewLink: '[Anthropic](/providers/ai-sdk-providers/anthropic)',
     tables: [
       {
         id: 'anthropic-language',
@@ -118,7 +303,6 @@ export const providers = [
     catalogPath: 'packages/google/src/google-model-catalog.ts',
     catalogExport: 'googleModelCatalog',
     docsPath: 'content/providers/01-ai-sdk-providers/15-google.mdx',
-    overviewLink: '[Google](/providers/ai-sdk-providers/google)',
     tables: [
       {
         id: 'google-language',
@@ -134,8 +318,99 @@ export const providers = [
       },
     ],
   },
+  {
+    catalogPath: 'packages/mistral/src/mistral-model-catalog.ts',
+    catalogExport: 'mistralModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/20-mistral.mdx',
+    tables: [
+      {
+        id: 'mistral-language',
+        capability: 'language',
+        columns: [
+          ['Image Input', 'inputs.image'],
+          ['Tool Usage', 'tools.usage'],
+        ],
+      },
+      {
+        id: 'mistral-transcription',
+        capability: 'transcription',
+        columns: [
+          ['Timestamps', 'timestamps'],
+          ['Diarization', 'diarization'],
+          ['Context Bias', 'contextBias'],
+        ],
+      },
+      {
+        id: 'mistral-speech',
+        capability: 'speech',
+        columns: [
+          ['Saved Voices', 'savedVoices'],
+          ['Reference Audio', 'referenceAudio'],
+          ['Non-Streaming', 'nonStreaming'],
+        ],
+      },
+      {
+        id: 'mistral-embedding',
+        capability: 'embedding',
+        columns: [['Default Dimensions', 'defaultDimensions', String]],
+      },
+    ],
+  },
+  {
+    catalogPath: 'packages/xai/src/xai-model-catalog.ts',
+    catalogExport: 'xaiModelCatalog',
+    docsPath: 'content/providers/01-ai-sdk-providers/01-xai.mdx',
+    tables: [
+      {
+        id: 'xai-language',
+        capability: 'language',
+        columns: [
+          ['Image Input', 'inputs.image'],
+          ['Object Generation', 'objectGeneration'],
+          ['Tool Usage', 'tools.usage'],
+          ['Tool Streaming', 'tools.streaming'],
+          ['Reasoning', 'reasoning.support'],
+        ],
+      },
+      {
+        id: 'xai-image',
+        capability: 'image',
+        columns: [
+          ['Resolution', 'resolutions', formatCodeList],
+          ['Aspect Ratios', 'aspectRatios', formatCodeList],
+          ['Image Editing', 'fileInput'],
+        ],
+      },
+      {
+        id: 'xai-speech',
+        capability: 'speech',
+        formatModelId: modelId => modelId || 'default',
+        columns: [
+          ['Language', 'language'],
+          ['Speed', 'speed'],
+          ['Output Formats', 'outputFormats', values => values.join(', ')],
+        ],
+      },
+      {
+        id: 'xai-transcription',
+        capability: 'transcription',
+        formatModelId: modelId => modelId || 'default',
+        columns: [
+          ['Request/Response', 'transcription'],
+          ['Streaming', 'streaming'],
+          ['Word Timestamps', 'wordTimestamps'],
+          ['Diarization', 'diarization'],
+          ['Multichannel', 'multichannel'],
+        ],
+      },
+    ],
+  },
 ];
 
 function formatOptionalSupport(value) {
   return formatSupport(value ?? 'unknown');
+}
+
+function formatCodeList(values) {
+  return values.map(value => `\`${value}\``).join(', ');
 }

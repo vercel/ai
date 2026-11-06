@@ -287,10 +287,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit = (event: Record<string, unknown>) =>
     turn.emit(event as BridgeEvent);
 
-  const interruptOn = buildInterruptOn(
-    start.permissionMode,
-    start.builtinToolFiltering,
-  );
+  const interruptOn = buildInterruptOn({
+    permissionMode: start.permissionMode,
+    builtinToolFiltering: start.builtinToolFiltering,
+    workDir: workdir,
+    readableSkillRoots: start.readableSkillRoots ?? [],
+  });
   const config = {
     version: 'v2' as const,
     configurable: { thread_id: 'bridge-session' },
@@ -303,6 +305,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     instructions: start.instructions,
     tools: start.tools,
     skillsPaths: start.skillsPaths,
+    permissionMode: start.permissionMode,
+    builtinToolFiltering: start.builtinToolFiltering,
+    readableSkillRoots: start.readableSkillRoots,
   });
   const rebuildAgent =
     agent == null ||
@@ -534,6 +539,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 await runBridge<StartMessage>({
   bridgeType: 'deepagents',
   bridgeStateDir: bridgeStateDir!,
+  ...(args.hostDisconnectTimeoutMs !== undefined
+    ? { hostDisconnectTimeoutMs: Number(args.hostDisconnectTimeoutMs) }
+    : {}),
   onStart: async (start, turn) => {
     try {
       await runTurn(start, turn);

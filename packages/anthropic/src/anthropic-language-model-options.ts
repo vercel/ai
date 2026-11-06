@@ -142,6 +142,21 @@ export const anthropicLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
+       * Create or continue a short-lived server-side message thread.
+       * On continuation, messages must contain only new messages. Keep the full
+       * conversation locally so it can be replayed when the thread expires.
+       */
+      thread: z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('create') }),
+          z.object({
+            type: z.literal('continue'),
+            previousMessageId: z.string().min(1),
+          }),
+        ])
+        .optional(),
+
+      /**
        * Whether to send reasoning to the model.
        *
        * This allows you to deactivate reasoning inputs for models that do not support them.
@@ -158,6 +173,9 @@ export const anthropicLanguageModelOptions = lazySchema(() =>
       structuredOutputMode: z
         .enum(['outputFormat', 'jsonTool', 'auto'])
         .optional(),
+
+      /** Emit typed streaming heartbeat parts. Disabled by default. */
+      includePings: z.boolean().optional(),
 
       /**
        * Configuration for enabling Claude's extended thinking.
@@ -344,8 +362,14 @@ export const anthropicLanguageModelOptions = lazySchema(() =>
        */
       speed: z.enum(['fast', 'standard']).optional(),
 
-      /** Selects Anthropic's service tier for the request. */
-      serviceTier: z.enum(['auto', 'standard_only']).optional(),
+      /**
+       * Request admission tier. Anthropic accepts `auto` and `standard_only`;
+       * MiniMax accepts `standard` and `priority`. Values for another known
+       * provider are omitted with an unsupported-setting warning.
+       */
+      serviceTier: z
+        .enum(['auto', 'standard_only', 'standard', 'priority'])
+        .optional(),
 
       /**
        * Controls where model inference runs for this request.

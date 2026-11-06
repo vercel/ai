@@ -1250,6 +1250,19 @@ describe('KlingAIVideoModel', () => {
         expect.objectContaining({ type: 'unsupported', feature: 'n' }),
       );
     });
+
+    it('should warn that seed is unsupported when it is 0', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      const result = await model.doStart({
+        ...t2vDefaultOptions,
+        seed: 0,
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ type: 'unsupported', feature: 'seed' }),
+      );
+    });
   });
 
   describe('webhooks', () => {

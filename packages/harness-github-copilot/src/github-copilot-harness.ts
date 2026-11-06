@@ -13,7 +13,11 @@ import {
   isSandboxCredentialPlaceholder,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
-import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
+import {
+  createACP,
+  type ACPAuthenticationMode,
+  type ACPResolveHostToolCall,
+} from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -57,6 +61,12 @@ export type GitHubCopilotHarnessSettings = {
   readonly port?: number;
   readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
+  /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
@@ -484,11 +494,13 @@ export function createGitHubCopilot(
     },
     builtinTools: GITHUB_COPILOT_BUILTIN_TOOLS,
     mcpServers: settings.mcpServers,
+    resolveHostToolCall: resolveGitHubCopilotHostToolCall,
     isMcpToolCall: toolCall =>
       mcpToolTitlePrefixes.some(prefix => toolCall.title.startsWith(prefix)),
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
     reconnect: settings.reconnect,
     mintBridgeToken: settings.mintBridgeToken,
   });
@@ -538,4 +550,25 @@ function createGitHubOAuthSandboxCredentialPlaceholder({
         GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER.length,
     );
   return `gho_${GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER}${tokenBody}`;
+}
+
+/**
+ * GitHub Copilot reports host tool calls without a programmatic name, using
+ * `${serverName}-${toolName}` as the title and the tool input as raw input.
+ */
+const resolveGitHubCopilotHostToolCall: ACPResolveHostToolCall = ({
+  toolCall,
+  serverName,
+  toolNames,
+}) => {
+  const rawInput = toolCall.rawInput;
+  if (toolCall.name != null || !isRecord(rawInput)) return undefined;
+  const toolName = toolNames.find(
+    name => toolCall.title === `${serverName}-${name}`,
+  );
+  return toolName == null ? undefined : { toolName, input: rawInput };
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
 }

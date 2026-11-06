@@ -70,7 +70,19 @@ describe('outboundMessageSchema', () => {
     it(`accepts ${sample.type}`, () => {
       expect(() => outboundMessageSchema.parse(sample)).not.toThrow();
     });
+    it(`preserves the turn identifier on ${sample.type}`, () => {
+      expect(
+        outboundMessageSchema.parse({ ...sample, startId: 'turn-1' }),
+      ).toEqual({ ...sample, startId: 'turn-1' });
+    });
   }
+
+  it('rejects a non-string turn identifier', () => {
+    expect(
+      outboundMessageSchema.safeParse({ type: 'stream-start', startId: 7 })
+        .success,
+    ).toBe(false);
+  });
 
   it('rejects unknown types', () => {
     expect(() =>
@@ -107,17 +119,19 @@ describe('inboundMessageSchema', () => {
     });
   });
 
-  it('keeps strict MCP config and the budget limit on a start message', () => {
+  it('keeps additional directories, strict MCP config, and the budget limit on a start message', () => {
     expect(
       inboundMessageSchema.parse({
         type: 'start',
         prompt: 'hi',
         tools: [],
         thinking: { type: 'adaptive', display: 'summarized' },
+        additionalDirectories: ['/vercel/sandbox/shared'],
         strictMcpConfig: true,
         maxBudgetUsd: 0.5,
       }),
     ).toMatchObject({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
@@ -165,6 +179,44 @@ describe('inboundMessageSchema', () => {
         resumeSessionId: 'claude-session-1',
       }),
     ).not.toThrow();
+  });
+
+  it('preserves skill overrides', () => {
+    const message = {
+      type: 'start' as const,
+      prompt: 'hi',
+      thinking: { type: 'disabled' as const },
+      skillOverrides: {
+        'enabled-skill': 'on',
+        'name-only-skill': 'name-only',
+        'user-invocable-skill': 'user-invocable-only',
+        'disabled-skill': 'off',
+      },
+    };
+
+    expect(inboundMessageSchema.parse(message)).toEqual(message);
+  });
+
+  it('rejects unsupported skill override modes', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        skillOverrides: { init: 'disabled' },
+      }),
+    ).toThrow();
+  });
+
+  it('does not preserve arbitrary native settings', () => {
+    const parsed = inboundMessageSchema.parse({
+      type: 'start',
+      prompt: 'hi',
+      thinking: { type: 'disabled' },
+      settings: { permissions: { defaultMode: 'bypassPermissions' } },
+    });
+
+    expect(parsed).not.toHaveProperty('settings');
   });
 
   it('rejects a non-string resumeSessionId', () => {

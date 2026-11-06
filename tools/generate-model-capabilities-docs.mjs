@@ -7,8 +7,8 @@ import { loadCatalog } from './model-capabilities-docs/load-catalog.mjs';
 import { providers } from './model-capabilities-docs/providers.mjs';
 import {
   renderCapabilityTable,
+  renderProviderOptionTable,
   replaceGeneratedTable,
-  replaceOverviewRows,
 } from './model-capabilities-docs/render-tables.mjs';
 
 const repoRoot = new URL('../', import.meta.url);
@@ -20,28 +20,11 @@ if (unexpectedArguments.length > 0) {
   throw new Error(`Unknown arguments: ${unexpectedArguments.join(', ')}`);
 }
 
-const overviewPath = 'content/docs/02-foundations/02-providers-and-models.mdx';
-const [overviewSource, providerDocs] = await Promise.all([
-  readFile(new URL(overviewPath, repoRoot), 'utf8'),
-  Promise.all(providers.map(generateProviderDocs)),
-]);
-
-let overviewContent = overviewSource;
-for (const { overviewLink, entries } of providerDocs) {
-  if (overviewLink != null) {
-    overviewContent = replaceOverviewRows(
-      overviewContent,
-      overviewLink,
-      entries,
-    );
-  }
-}
-
-// Finish generating and validating every document before writing any files.
-const updates = [
-  ...providerDocs,
-  { path: overviewPath, source: overviewSource, content: overviewContent },
-].filter(({ source, content }) => source !== content);
+// Finish generating and validating every provider document before writing files.
+const providerDocs = await Promise.all(providers.map(generateProviderDocs));
+const updates = providerDocs.filter(
+  ({ source, content }) => source !== content,
+);
 
 for (const { path, content } of updates) {
   if (check) {
@@ -65,8 +48,9 @@ async function generateProviderDocs({
   catalogPath,
   catalogExport,
   docsPath,
-  overviewLink,
   tables,
+  providerOptionsExport,
+  providerOptionTables = [],
 }) {
   const [module, source] = await Promise.all([
     loadCatalog(new URL(catalogPath, repoRoot)),
@@ -81,11 +65,30 @@ async function generateProviderDocs({
   const entries = Object.entries(catalog);
   let content = source;
   for (const table of tables) {
+    const tableEntries =
+      table.catalogExport == null
+        ? entries
+        : Object.entries(module[table.catalogExport]);
     content = replaceGeneratedTable(
       content,
       table.id,
-      renderCapabilityTable(entries, table),
+      renderCapabilityTable(tableEntries, table),
     );
   }
-  return { path: docsPath, source, content, overviewLink, entries };
+  if (
+    providerOptionTables.length > 0 &&
+    module[providerOptionsExport] == null
+  ) {
+    throw new Error(
+      `Missing provider option export ${providerOptionsExport} in ${catalogPath}`,
+    );
+  }
+  for (const table of providerOptionTables) {
+    content = replaceGeneratedTable(
+      content,
+      table.id,
+      renderProviderOptionTable(module[providerOptionsExport], table.section),
+    );
+  }
+  return { path: docsPath, source, content };
 }

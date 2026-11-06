@@ -82,7 +82,7 @@ You can use the following optional settings to customize the Gladia provider ins
   Pass a synchronous or asynchronous callback to resolve the key before each
   request. The callback is responsible for caching and refreshing credentials.
 
-  API key that is being sent using the `Authorization` header.
+  API key that is being sent using the `x-gladia-key` header.
   It defaults to the `GLADIA_API_KEY` environment variable.
 
 - **headers** _Record&lt;string,string&gt;_
@@ -96,6 +96,20 @@ You can use the following optional settings to customize the Gladia provider ins
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **pollIntervalMs** _number_
+
+  Interval in milliseconds between transcription job status checks. Defaults to
+  `1000` (1 second). Can be overridden per call with
+  `providerOptions.gladia.pollIntervalMs`.
+
+- **pollTimeoutMs** _number_
+
+  Maximum time in milliseconds to wait for an asynchronous transcription job to
+  finish before throwing a `TranscriptionJobPollingTimedOut` error. Defaults to
+  `600000` (10 minutes). Raise it when you transcribe long audio files or enable
+  audio intelligence add-ons that make a job take longer. Can be overridden per
+  call with `providerOptions.gladia.pollTimeoutMs`.
+
 ## Transcription Models
 
 You can create models that call the [Gladia transcription API](https://docs.gladia.io/chapters/pre-recorded-stt/getting-started)
@@ -104,6 +118,30 @@ using the `.transcription()` factory method.
 ```ts
 const model = gladia.transcription();
 ```
+
+You can optionally select the transcription model by passing its id to the
+factory method. If you omit it, the Gladia API uses its default model
+(`solaria-1`).
+
+```ts
+const model = gladia.transcription('solaria-3');
+```
+
+Examples of supported models include:
+
+- **solaria-1** (default) — Gladia's generalist model with the broadest language
+  coverage (100+ languages). Supports code switching and multi-language
+  configuration, and is available for both pre-recorded and live transcription.
+- **solaria-3** — Gladia's latest model, tuned for the highest accuracy on
+  European real-world audio. **Pre-recorded (async) only** — not available for
+  live transcription. Supports a **single language** chosen from English,
+  French, German, Spanish, or Italian: pass exactly one language in
+  `languageConfig` and do not enable `codeSwitching`.
+
+Both models support all of Gladia's audio intelligence add-ons. Choose
+`solaria-3` when transcribing one of its five supported European languages and
+accuracy matters most; otherwise use the default `solaria-1` for the widest
+language coverage, code switching, or live transcription.
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `summarization` option will enable summaries for sections of content.
 
@@ -124,21 +162,14 @@ const result = await transcribe({
 });
 ```
 
-<Note>
-  Gladia does not have various models, so you can omit the standard `model` id
-  parameter.
-</Note>
-
 The following provider options are available:
 
-- **contextPrompt** _string_
+- **customVocabulary** _boolean | (string | object)[]_
 
-  Context to feed the transcription model with for possible better accuracy.
-  Optional.
-
-- **customVocabulary** _boolean | any[]_
-
-  Custom vocabulary to improve transcription accuracy.
+  Custom vocabulary to improve transcription accuracy. The array form is
+  deprecated; use `true` with `customVocabularyConfig.vocabulary` instead.
+  Invalid array entries are ignored with a warning. An explicit vocabulary
+  configuration overrides the legacy array with a warning.
   Optional.
 
 - **customVocabularyConfig** _object_
@@ -148,26 +179,14 @@ The following provider options are available:
   - **vocabulary** _Array&lt;string | \{ value: string, intensity?: number, pronunciations?: string[], language?: string \}&gt;_
   - **defaultIntensity** _number_
 
-- **detectLanguage** _boolean_
+- **languageConfig** _object_
 
-  Whether to automatically detect the language.
+  Language configuration for transcription.
   Optional.
+  - **languages** _string[]_ — If one language is set, it is used for transcription. Otherwise, language is auto-detected.
+  - **codeSwitching** _boolean_ — If true, language is auto-detected on each utterance.
 
-- **enableCodeSwitching** _boolean_
-
-  Enable code switching for multilingual audio.
-  Optional.
-
-- **codeSwitchingConfig** _object_
-
-  Configuration for code switching.
-  Optional.
-  - **languages** _string[]_
-
-- **language** _string_
-
-  Specify the language of the audio.
-  Optional.
+  When provided, this configuration overrides all legacy language options.
 
 - **callback** _boolean_
 
@@ -209,7 +228,6 @@ The following provider options are available:
   - **numberOfSpeakers** _number_
   - **minSpeakers** _number_
   - **maxSpeakers** _number_
-  - **enhanced** _boolean_
 
 - **translation** _boolean_
 
@@ -221,8 +239,12 @@ The following provider options are available:
   Configuration for translation.
   Optional.
   - **targetLanguages** _string[]_
-  - **model** _'base' | 'enhanced'_
+  - **model** _'base' | 'batch' | 'enhanced'_
   - **matchOriginalUtterances** _boolean_
+  - **lipsync** _boolean_
+  - **contextAdaptation** _boolean_
+  - **context** _string_
+  - **informal** _boolean_
 
 - **summarization** _boolean_
 
@@ -235,24 +257,9 @@ The following provider options are available:
   Optional.
   - **type** _'general' | 'bullet_points' | 'concise'_
 
-- **moderation** _boolean_
-
-  Enable content moderation.
-  Optional.
-
 - **namedEntityRecognition** _boolean_
 
   Enable named entity recognition.
-  Optional.
-
-- **chapterization** _boolean_
-
-  Enable chapterization of the transcription.
-  Optional.
-
-- **nameConsistency** _boolean_
-
-  Enable name consistency in the transcription.
   Optional.
 
 - **customSpelling** _boolean_
@@ -265,17 +272,6 @@ The following provider options are available:
   Configuration for custom spelling.
   Optional.
   - **spellingDictionary** _Record&lt;string, string[]&gt;_
-
-- **structuredDataExtraction** _boolean_
-
-  Enable structured data extraction.
-  Optional.
-
-- **structuredDataExtractionConfig** _object_
-
-  Configuration for structured data extraction.
-  Optional.
-  - **classes** _string[]_
 
 - **sentimentAnalysis** _boolean_
 
@@ -292,6 +288,25 @@ The following provider options are available:
   Configuration for audio to LLM.
   Optional.
   - **prompts** _string[]_
+  - **model** _string_
+
+- **piiRedaction** _boolean_
+
+  Enable PII redaction.
+  Optional.
+
+- **piiRedactionConfig** _object_
+
+  Configuration for PII redaction.
+  Optional.
+  - **entityTypes** _string[]_
+  - **processedTextType** _'MARKER' | 'MASK'_
+
+  This configuration requires `piiRedaction: true`; otherwise the SDK emits a
+  warning. A non-empty `entityTypes` list limits redaction to the listed types
+  and replaces the default coverage. Omit it or use an empty list for the
+  provider's default coverage. See [Gladia's PII documentation](https://docs.gladia.io/chapters/audio-intelligence/pii-redaction)
+  for entity types and presets.
 
 - **customMetadata** _Record&lt;string, any&gt;_
 
@@ -303,15 +318,105 @@ The following provider options are available:
   Enable sentence detection.
   Optional.
 
-- **displayMode** _boolean_
-
-  Enable display mode.
-  Optional.
-
 - **punctuationEnhanced** _boolean_
 
   Enable enhanced punctuation.
   Optional.
+
+- **pollIntervalMs** _number_
+
+  Interval in milliseconds between transcription job status checks for this
+  call. Overrides the provider-level `pollIntervalMs` setting. Defaults to
+  `1000` (1 second).
+  Optional.
+
+- **pollTimeoutMs** _number_
+
+  Maximum time in milliseconds to wait for the transcription job to finish for
+  this call. Overrides the provider-level `pollTimeoutMs` setting. Defaults to
+  `600000` (10 minutes).
+  Optional.
+
+These polling options control the SDK's polling loop and are not sent to the
+Gladia API.
+
+### Deprecated Options
+
+Legacy options remain accepted. The SDK emits `deprecated` warnings when
+translating these options to the current request shape:
+
+| Legacy option                   | Replacement and behavior                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------- |
+| `language`                      | `languageConfig.languages: [language]`                                                      |
+| `detectLanguage`                | An empty `languageConfig.languages` enables detection when no fixed language is configured. |
+| `enableCodeSwitching`           | `languageConfig.codeSwitching`                                                              |
+| `codeSwitchingConfig.languages` | `languageConfig.languages`; used only when legacy `enableCodeSwitching` is `true`.          |
+| `customVocabulary` array        | `customVocabulary: true` and `customVocabularyConfig.vocabulary`                            |
+
+An explicit `languageConfig`, including `{}`, overrides all legacy language
+fields. When legacy code switching is enabled, its candidate languages take
+precedence over a legacy fixed `language`. A legacy configuration object alone
+does not enable code switching.
+
+The following options are no longer supported by the Gladia v2 pre-recorded API
+and are omitted with an `unsupported` warning: `contextPrompt`, `moderation`,
+`chapterization`, `nameConsistency`, `structuredDataExtraction`,
+`structuredDataExtractionConfig`, `displayMode`, and `diarizationConfig.enhanced`.
+
+The standard `transcriptionModel(id)` provider alias, used by model registries,
+also forwards the selected identifier to Gladia. The `default` identifier omits
+`model` so Gladia chooses its default; other identifiers are validated by the
+provider service.
+
+### Provider Metadata
+
+Gladia's audio intelligence add-ons return their results next to the
+transcription. The AI SDK exposes the parsed Gladia response on
+`result.providerMetadata.gladia`, so the outputs remain accessible when you
+enable an option:
+
+```ts highlight="11-12"
+const result = await transcribe({
+  model: gladia.transcription(),
+  audio: await readFile('audio.mp3'),
+  providerOptions: {
+    gladia: {
+      summarization: true,
+    },
+  },
+});
+
+const gladiaResult = result.providerMetadata.gladia.result as
+  | { summarization?: { results?: string | null } }
+  | undefined;
+console.log(gladiaResult?.summarization?.results);
+```
+
+The following values are available under `providerMetadata.gladia`:
+
+- **status** _'done'_ — Job status. Metadata is only returned for completed
+  jobs; a failed job throws instead. See the error behavior below.
+- **result.metadata** — `audio_duration`, `number_of_distinct_channels`,
+  `billing_time`, and `transcription_time`.
+- **result.transcription** — `full_transcript`, `languages`, and `utterances`,
+  plus `sentences` and `subtitles` when the matching option is enabled.
+- **result.translation** — Translations when `translation` is enabled.
+- **result.summarization** — Summary when `summarization` is enabled.
+- **result.named_entity_recognition** — Detected entities when
+  `namedEntityRecognition` is enabled.
+- **result.sentiment_analysis** — Sentiment per segment when `sentimentAnalysis`
+  is enabled.
+- **result.audio_to_llm** — LLM responses when `audioToLlm` is enabled.
+- **result.sentences** — Sentence results when `sentences` is enabled. Gladia
+  deprecated this location; the same content is also available in
+  `result.transcription.sentences`.
+
+Each add-on reports `success`, `is_empty`, `exec_time`, and `error` alongside its
+`results`; check them before reading the results. Add-on payloads are passed
+through as Gladia returns them. When Gladia reports `status: 'error'`,
+`transcribe` throws an error whose message and `cause` contain Gladia's
+`error_code`, the HTTP status code (400–599) of the failed request. In returned
+metadata `error_code` is always `null`.
 
 ### Model Capabilities
 

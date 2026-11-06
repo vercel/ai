@@ -114,6 +114,8 @@ Settings:
   first request when Claude Code's tool search is on, instead of deferring it
   until the model looks it up.
 - `maxTurns`: maximum internal turns before yielding.
+- `skillOverrides`: per-skill visibility overrides. Values can be `on`,
+  `name-only`, `user-invocable-only`, or `off`.
 - `maxBudgetUsd`: maximum estimated spend in USD for each Claude query. When it
   is exceeded, the query stops and the turn ends with an error.
 - `questionTimeoutMs`: maximum time in milliseconds Claude waits for an answer
@@ -134,6 +136,14 @@ Settings:
   `{ type: 'adaptive', display: 'summarized' }`.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `turnStartTimeoutMs`: maximum time from submitting a turn's start to its first
+  bridge event, defaulting to 120 seconds. If no event arrives, the turn fails
+  and the connection closes. This is not a timeout on the complete turn.
+- `hostDisconnectTimeoutMs`: aborts a running turn when the host disconnects
+  and no host reconnects within this many milliseconds. A suspended turn is
+  not aborted. When unset, a turn keeps running in the sandbox after its host
+  disconnects, including when the host process is gone for good, until the
+  turn finishes or the sandbox stops.
 - `reconnect`: reconnect timing after an established bridge WebSocket
   connection drops. `maxElapsedMs` controls the total retry window, including
   connection establishment and backoff delays, and defaults to 30 seconds.
@@ -141,6 +151,12 @@ Settings:
   2 seconds. These retries use exponential backoff and are separate from
   `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
   bridge endpoint is permanently unavailable.
+  Pending turn starts are retried with the same identifier when the bridge
+  supports idempotent starts, so a dropped frame does not leave the turn
+  waiting forever or launch the agent twice. An older bridge that is still
+  waiting for a lost start causes the turn to fail instead of retrying unsafely.
+  A turn submitted while disconnected queues its start for first delivery on
+  reconnection; this first delivery also works with older bridges.
 - `onDebug`: callback for bridge connection lifecycle events:
   `reconnect-attempt`, `reconnected`, and `reconnect-failed`. `reconnect-failed`
   means the connection is closed for good, so a host that caches idle sessions
@@ -150,6 +166,27 @@ Settings:
   returns the bridge authentication token. By default, the adapter generates a
   random 32-byte token. Custom implementations must return a suitably secret
   token.
+
+### Skill Overrides
+
+Use `skillOverrides` to control how named skills are exposed to Claude Code
+without changing shared user-level configuration. Values can be `'on'`,
+`'name-only'`, `'user-invocable-only'`, or `'off'`:
+
+```ts
+const harness = createClaudeCode({
+  skillOverrides: {
+    'update-config': 'off',
+    'fewer-permission-prompts': 'off',
+    'keybindings-help': 'off',
+    init: 'off',
+  },
+});
+```
+
+Skills without an override keep their Claude Code defaults, so other bundled
+skills such as `code-review`, `simplify`, and `claude-api` remain available
+when provided by the installed Claude Code runtime.
 
 ## Structured Output
 
@@ -237,6 +274,13 @@ Claude Code supports built-in tool approval requests when `permissionMode` is
 Claude Code session, so an approval answered after a resume runs that same
 call, even in a new sandbox. Claude Code waits for one approval at a time, so
 parallel calls that need approval run one after another.
+
+In these modes, file reads are automatically approved only within the session
+workdir or an active skill's directory. `allow-edits` automatically approves
+file changes only within the workdir. Paths outside those directories, including
+symlink targets, and paths that cannot be resolved require host approval.
+`allow-all` remains unrestricted. These approval rules are not a filesystem
+sandbox, and approved shell commands can access paths outside the workdir.
 
 ## Related
 

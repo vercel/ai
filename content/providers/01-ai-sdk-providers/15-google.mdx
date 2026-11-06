@@ -486,12 +486,12 @@ Things to keep in mind:
 
 #### Long decode with the Interactions API
 
-With the [Interactions API](#interactions-api), long decode requires
-`background: true`. The server runs every request itself, so no client-side
-continuation is needed, and `usage` covers all requests. Set an explicit
-`maxOutputTokens` above 65,536 (without it, you get a single 64K request) and
-keep `store` enabled (the default). The provider polls the interaction (or
-streams it, reconnecting when the connection drops) until it finishes.
+With the [Interactions API](#interactions-api), the AI SDK currently requires
+`background: true` for long decode. The server runs every request itself, so no
+client-side continuation is needed, and `usage` covers all requests. Set an
+explicit `maxOutputTokens` above 65,536 and keep `store` enabled (the default).
+The provider polls the interaction (or streams it, reconnecting when the
+connection drops) until it finishes.
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -510,10 +510,14 @@ const result = await generateText({
 });
 ```
 
-Without `background: true`, an interaction generates at most 65,536 tokens.
-Requests with a higher `maxOutputTokens` are rejected by the API, and an
-interaction that reaches the cap finishes with `length`. Long decode is not
-available with the Vertex AI Interactions API.
+Foreground client-side continuation is not yet supported by the AI SDK.
+If you do not set `maxOutputTokens`, non-streaming calls (`generateText`)
+default to 32,768 tokens and streaming calls (`streamText`) to 65,536 tokens.
+An interaction that reaches its limit finishes with `length`. Long decode is
+not available with the Vertex AI Interactions API.
+
+The token budget includes both thinking and output tokens. To retain the previous
+64K budget for a non-streaming call, set `maxOutputTokens: 65_536` explicitly.
 
 ### File Inputs
 
@@ -1353,6 +1357,8 @@ Google sends a thin event to the webhook URL. After receiving and verifying the 
 When the serialized batch creation body is under 20 MB, the provider sends the requests inline. At 20 MB or more, it uploads a JSONL input file through the Gemini Files API.
 
 ## Realtime Models
+
+For a trusted [server-owned connection](/docs/ai-sdk-core/realtime#server-owned-connections), `getServerWebSocketConfig()` uses the unconstrained Gemini Live endpoint with resolved API-key headers. Use `createServerEventParser()` once per socket. Completion-frame usage is attached to `response-done`; independently delivered usage uses `custom` events with `rawType: 'usageMetadata'` and typed `usage`, without inferring a response association. Gross totals never substitute for missing modality counts.
 
 <Note type="warning">Realtime is an experimental feature.</Note>
 
@@ -2510,6 +2516,11 @@ the provider passes those bytes through unchanged. Older models return raw PCM,
 which the provider wraps in a WAV container. Write `result.audio.uint8Array`
 directly to disk without adding another WAV header.
 
+Set `language` to a supported BCP-47 language code, such as `en-US` or `de-DE`.
+The provider forwards explicit codes unchanged as `speechConfig.languageCode`
+for both single- and multi-speaker requests. Omit `language` or set it to `'auto'`
+to let Gemini detect the language from the input text.
+
 Gemini 3.8 supports the following `outputFormat` values:
 
 | Format | Values                 | Result                       |
@@ -2610,9 +2621,8 @@ Older models continue to use labelled transcripts, such as
 `multiSpeakerVoiceConfig` and without `turns`.
 
 <Note>
-  Gemini TTS models do not support the `speed` or `language` options; passing
-  them adds a warning to `result.warnings`. Language is detected automatically
-  from the input text.
+  Gemini TTS models do not support the `speed` option; passing it adds a warning
+  to `result.warnings`.
 </Note>
 
 ### Model Capabilities

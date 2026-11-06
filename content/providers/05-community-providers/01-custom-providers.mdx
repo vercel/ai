@@ -285,6 +285,7 @@ The streaming system uses typed events for different stages:
    - `response-metadata`: Model information and response headers
    - `finish`: Final event with usage statistics and finish reason
    - `error`: Error events that can occur at any point
+   - `ping`: Optional transient heartbeat with no generated content or usage; SDK consumers must support this stream part before a provider enables it
 
 2. **Content Events**:
    - All content types (`text`, `file`, `reasoning`, `source`, `tool-call`) stream directly

@@ -9,7 +9,6 @@ import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { ACPAuthenticationMode, ACPClientApp } from './acp-auth';
-import type { ACPToolCall } from './acp-tool-call';
 import {
   createACPV1,
   type ACPAskUserQuestionsSettings,
@@ -38,7 +37,16 @@ export type ACPHarnessSettings<
    * underlying runtime's native MCP server configuration format.
    */
   readonly mcpServers?: Record<string, unknown>;
-  readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
+  /**
+   * Classifies an ACP tool call that did not resolve to a host tool as a
+   * dynamic MCP tool call.
+   */
+  readonly isMcpToolCall: ACPV1Settings['isMcpToolCall'];
+  /**
+   * Resolves an ACP tool call to the host tool it invokes. Host tools are
+   * exposed to the ACP agent through the harness-owned MCP server.
+   */
+  readonly resolveHostToolCall: ACPV1Settings['resolveHostToolCall'];
   readonly port?: number;
   /**
    * Override the host endpoint used to connect to the sandbox bridge. Required
@@ -46,6 +54,12 @@ export type ACPHarnessSettings<
    */
   readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
+  /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
@@ -65,6 +79,7 @@ export type ACPHarnessSettings<
   readonly credentialEnv?: ACPV1Settings['credentialEnv'];
   readonly credentialBrokering?: ACPV1Settings['credentialBrokering'];
   readonly authenticationFiles?: ACPV1Settings['authenticationFiles'];
+  readonly prepareSandbox?: ACPV1Settings['prepareSandbox'];
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -183,6 +198,7 @@ export function createACP<
         port: settings.port,
         portEndpoint: settings.portEndpoint,
         startupTimeoutMs: settings.startupTimeoutMs,
+        hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
         reconnect: settings.reconnect,
         clientApp,
         lifecycleStateSchema: acpResumeStateSchema satisfies z.ZodType<{

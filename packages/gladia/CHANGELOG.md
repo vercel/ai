@@ -1,5 +1,53 @@
 # @ai-sdk/gladia
 
+## 3.0.75
+
+### Patch Changes
+
+- c8875b7: Add Gladia v2 `languageConfig`, PII redaction, translation options (including the `batch` model), audio-to-LLM model selection, and transcription model IDs. Keep legacy options compatible: translate language and vocabulary aliases with deprecation warnings and warn when obsolete options are ignored. Preserve selected model IDs in responses and workflow serialization, and validate options before audio upload. The registry-facing `transcriptionModel(id)` alias now forwards non-default IDs; `default` still lets Gladia choose its model.
+- c8875b7: Add the `x-gladia-version` header to identify AI SDK requests while preserving custom headers and the existing user-agent suffix.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 3.0.74
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 3.0.73
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 3.0.72
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
 ## 3.0.71
 
 ### Patch Changes

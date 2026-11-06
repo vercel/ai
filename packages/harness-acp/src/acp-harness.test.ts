@@ -10,7 +10,7 @@ import { safeParseJSON, safeValidateTypes, tool } from '@ai-sdk/provider-utils';
 import * as fsPromises from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { createACP } from './acp-harness';
+import { createACP, type ACPHarnessSettings } from './acp-harness';
 import { serializeBuiltinTools } from './v1/acp-v1-harness';
 import { ACP_BRIDGE_CONFIGURATION_ENV } from './v1/bridge/acp-v1-bridge-environment';
 import type { ACPPermissionModeMapping } from './v1/acp-v1-settings';
@@ -263,6 +263,8 @@ const agentSettings = {
     type: 'session-config-option' as const,
     path: 'model',
   },
+  resolveHostToolCall: () => undefined,
+  isMcpToolCall: () => false,
 } as const;
 
 const permissionModeMapping = {
@@ -457,6 +459,194 @@ describe('createACP', () => {
     harnessUtilsMocks.connectOnOpen = false;
     webSocketMocks.calls.length = 0;
   });
+
+  it('awaits sandbox preparation after authentication files and before bridge startup', async () => {
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const writes: Array<{ path: string; content: string }> = [];
+    const sandboxSession = fakeSandbox({
+      runs: [],
+      spawns,
+      writes,
+      stop: async () => {},
+    });
+    const controller = new AbortController();
+    let release!: () => void;
+    const preparation = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    const prepareSandbox = vi.fn<
+      NonNullable<ACPHarnessSettings['prepareSandbox']>
+    >(() => preparation);
+    const harness = createACP({
+      harnessId: 'prepared-acp',
+      ...agentSettings,
+      authenticationFiles: () => [
+        { path: '.agent/auth.json', content: 'private-auth' },
+      ],
+      prepareSandbox,
+    });
+
+    const startup = harness.doStart({
+      sessionId: 'session-prepared',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+      abortSignal: controller.signal,
+    });
+    await vi.waitFor(() => expect(prepareSandbox).toHaveBeenCalledOnce());
+
+    expect(prepareSandbox).toHaveBeenCalledWith({
+      sandbox: sandboxSession.restricted(),
+      workDir: '/workspace/user-project',
+      abortSignal: controller.signal,
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.agent/auth.json',
+      content: 'private-auth',
+    });
+    expect(spawns).toEqual([]);
+    expect(harnessUtilsMocks.markBridgeStarting).not.toHaveBeenCalled();
+
+    release();
+    const session = await startup;
+    expect(spawns).toHaveLength(1);
+    expect(harnessUtilsMocks.markBridgeStarting).toHaveBeenCalledOnce();
+    await session.doDestroy();
+  });
+
+  it('supports synchronous preparation and skips it when reattaching to a live bridge', async () => {
+    const prepareSandbox = vi.fn(() => {});
+    const sandboxSession = fakeSandbox({
+      runs: [],
+      spawns: [],
+      stop: async () => {},
+    });
+    const harness = createACP({
+      harnessId: 'prepared-acp',
+      ...agentSettings,
+      prepareSandbox,
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-prepared',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const resumeFrom = await session.doDetach();
+    const resumed = await harness.doStart({
+      sessionId: 'session-prepared',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+      resumeFrom,
+    });
+
+    expect(prepareSandbox).toHaveBeenCalledOnce();
+    await resumed.doDestroy();
+  });
+
+  it.each([
+    [60_000, '60000'],
+    [undefined, undefined],
+  ])(
+    'passes hostDisconnectTimeoutMs %s to the bridge',
+    async (hostDisconnectTimeoutMs, expected) => {
+      const spawns: Array<{
+        command: string;
+        env: Record<string, string | undefined>;
+      }> = [];
+      const session = await createACP({
+        harnessId: 'timeout-acp',
+        ...agentSettings,
+        hostDisconnectTimeoutMs,
+      }).doStart({
+        sessionId: 'session-timeout',
+        sandboxSession: fakeSandbox({
+          runs: [],
+          spawns,
+          stop: async () => {},
+        }),
+        sessionWorkDir: '/workspace/user-project',
+      });
+
+      expect(
+        spawns
+          .at(0)
+          ?.command.match(/--host-disconnect-timeout-ms '?(\d+)'?/)?.[1],
+      ).toBe(expected);
+      await session.doDestroy();
+    },
+  );
+
+  it.each(['throw', 'reject'] as const)(
+    'does not start a bridge when sandbox preparation fails through %s',
+    async failureMode => {
+      const spawns: Array<{
+        command: string;
+        env: Record<string, string | undefined>;
+      }> = [];
+      const failure = new Error('Preparation failed.');
+      const harness = createACP({
+        harnessId: 'prepared-acp',
+        ...agentSettings,
+        prepareSandbox: () => {
+          if (failureMode === 'throw') throw failure;
+          return Promise.reject(failure);
+        },
+      });
+
+      await expect(
+        harness.doStart({
+          sessionId: 'session-prepared',
+          sandboxSession: fakeSandbox({
+            runs: [],
+            spawns,
+            stop: async () => {},
+          }),
+          sessionWorkDir: '/workspace/user-project',
+        }),
+      ).rejects.toBe(failure);
+      expect(spawns).toEqual([]);
+      expect(harnessUtilsMocks.markBridgeStarting).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['before', 'during'] as const)(
+    'does not start a bridge when startup is cancelled %s preparation',
+    async timing => {
+      const spawns: Array<{
+        command: string;
+        env: Record<string, string | undefined>;
+      }> = [];
+      const controller = new AbortController();
+      const failure = new Error('Cancelled startup.');
+      const prepareSandbox = vi.fn(() => {
+        controller.abort(failure);
+      });
+      if (timing === 'before') controller.abort(failure);
+      const harness = createACP({
+        harnessId: 'prepared-acp',
+        ...agentSettings,
+        prepareSandbox,
+      });
+
+      await expect(
+        harness.doStart({
+          sessionId: 'session-prepared',
+          sandboxSession: fakeSandbox({
+            runs: [],
+            spawns,
+            stop: async () => {},
+          }),
+          sessionWorkDir: '/workspace/user-project',
+          abortSignal: controller.signal,
+        }),
+      ).rejects.toBe(failure);
+      expect(prepareSandbox).toHaveBeenCalledTimes(timing === 'before' ? 0 : 1);
+      expect(spawns).toEqual([]);
+      expect(harnessUtilsMocks.markBridgeStarting).not.toHaveBeenCalled();
+    },
+  );
 
   it('translates ACP question requests and client results', async () => {
     const fromNativeRequest = vi.fn(
@@ -1661,6 +1851,201 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
+  it('resolves host tool calls through the adapter resolver', async () => {
+    const resolveHostToolCall = vi.fn(
+      ({
+        toolCall,
+        serverName,
+        toolNames,
+      }: {
+        toolCall: { rawInput?: unknown };
+        serverName: string;
+        toolNames: ReadonlyArray<string>;
+      }) => {
+        const rawInput = toolCall.rawInput as Record<string, unknown>;
+        return rawInput.server === serverName &&
+          toolNames.includes(rawInput.tool as string)
+          ? {
+              toolName: rawInput.tool as string,
+              input: rawInput.arguments as Record<string, unknown>,
+            }
+          : undefined;
+      },
+    );
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+      resolveHostToolCall,
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Use the weather tool.',
+      emit: () => {},
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+
+    channel.emit({
+      type: 'acp-host-tool-call-resolution-request',
+      requestId: 'resolution-1',
+      toolCall: {
+        toolCallId: 'call-1',
+        title: 'mcp.ai-sdk-harness-tools.weather',
+        rawInput: {
+          server: 'ai-sdk-harness-tools',
+          tool: 'weather',
+          arguments: { city: 'Lima' },
+        },
+      },
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['weather'],
+    });
+    channel.emit({
+      type: 'acp-host-tool-call-resolution-request',
+      requestId: 'resolution-2',
+      toolCall: {
+        toolCallId: 'call-2',
+        title: 'Read README.md',
+        rawInput: { path: 'README.md' },
+      },
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['weather'],
+    });
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await control.done;
+
+    expect(resolveHostToolCall).toHaveBeenCalledWith({
+      toolCall: {
+        toolCallId: 'call-1',
+        title: 'mcp.ai-sdk-harness-tools.weather',
+        rawInput: {
+          server: 'ai-sdk-harness-tools',
+          tool: 'weather',
+          arguments: { city: 'Lima' },
+        },
+      },
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['weather'],
+    });
+    expect(
+      channel.sent.filter(
+        (message: unknown) =>
+          (message as { type?: string }).type === 'tool-result',
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "output": {
+            "hostToolCall": {
+              "input": {
+                "city": "Lima",
+              },
+              "toolName": "weather",
+            },
+          },
+          "toolCallId": "resolution-1",
+          "type": "tool-result",
+        },
+        {
+          "output": {
+            "hostToolCall": null,
+          },
+          "toolCallId": "resolution-2",
+          "type": "tool-result",
+        },
+      ]
+    `);
+    await session.doDestroy();
+  });
+
+  it.each([
+    {
+      name: 'unknown tool name',
+      resolveHostToolCall: () => ({ toolName: 'unknown', input: {} }),
+    },
+    {
+      name: 'non-object input',
+      resolveHostToolCall: () => ({
+        toolName: 'weather',
+        input: null as unknown as Record<string, unknown>,
+      }),
+    },
+    {
+      name: 'thrown error',
+      resolveHostToolCall: () => {
+        throw new Error('resolver failed');
+      },
+    },
+  ])(
+    'fails the turn when the host tool resolver has a $name',
+    async ({ resolveHostToolCall }) => {
+      const harness = createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        resolveHostToolCall,
+      });
+      const session = await harness.doStart({
+        sessionId: 'session-1',
+        sandboxSession: fakeSandbox({
+          runs: [],
+          spawns: [],
+          stop: async () => {},
+        }),
+        sessionWorkDir: '/workspace/user-project',
+      });
+      const events: Array<{ type: string }> = [];
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Use the weather tool.',
+        emit: event => events.push(event),
+      });
+      const channel = harnessUtilsMocks.channels[0]!;
+      const done = Promise.resolve(control.done).catch(
+        (error: unknown) => error,
+      );
+
+      channel.emit({
+        type: 'acp-host-tool-call-resolution-request',
+        requestId: 'resolution-1',
+        toolCall: { toolCallId: 'call-1', title: 'Weather', rawInput: {} },
+        serverName: 'ai-sdk-harness-tools',
+        toolNames: ['weather'],
+      });
+
+      expect(await done).toBeInstanceOf(Error);
+      expect(events.map(event => event.type)).toContain('error');
+      expect(
+        channel.sent.filter(
+          (message: unknown) =>
+            (message as { type?: string }).type === 'tool-result' ||
+            (message as { type?: string }).type === 'abort',
+        ),
+      ).toEqual([
+        {
+          type: 'tool-result',
+          toolCallId: 'resolution-1',
+          output: { hostToolCall: null },
+        },
+        { type: 'abort' },
+      ]);
+      await session.doDestroy();
+    },
+  );
+
   it('reserves the host-tool MCP server name', () => {
     expect(() =>
       createACP({
@@ -2368,6 +2753,8 @@ describe('createACP', () => {
       executable: 'agent',
       args: ['--disable-auto-update', 'acp'],
       modelMapping: agentSettings.modelMapping,
+      resolveHostToolCall: agentSettings.resolveHostToolCall,
+      isMcpToolCall: agentSettings.isMcpToolCall,
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -2794,8 +3181,10 @@ describe('createACP', () => {
       writes,
       stop,
     });
+    const prepareSandbox = vi.fn(async () => {});
     const harness = createACP({
       harnessId: 'cold-gateway-acp',
+      prepareSandbox,
       auth: 'ai-gateway',
       ...agentSettings,
       forwardEnv: [],
@@ -2895,6 +3284,7 @@ describe('createACP', () => {
     });
     const resumedChannel = harnessUtilsMocks.channels[1]!;
     const restoreFrame = resumedChannel.sent[0];
+    expect(prepareSandbox).toHaveBeenCalledTimes(2);
     expect(restoreFrame).toMatchObject({
       type: 'start',
       prompt: [],
@@ -3436,9 +3826,11 @@ describe('createACP', () => {
       files,
       stop: async () => {},
     });
+    const prepareSandbox = vi.fn(async () => {});
     const harness = createACP({
       harnessId: 'codex-acp',
       ...agentSettings,
+      prepareSandbox,
     });
     const initialSession = await harness.doStart({
       sessionId: 'session-replay',
@@ -3486,6 +3878,7 @@ describe('createACP', () => {
     });
     const replayChannel = harnessUtilsMocks.channels[2]!;
     expect(spawns).toHaveLength(2);
+    expect(prepareSandbox).toHaveBeenCalledTimes(2);
     expect(spawns[1]!.env.BRIDGE_REPLAY_FROM_DISK).toBe('1');
     expect(replayChannel.options.initialLastSeenEventId).toBe(10);
     expect(replayChannel.openOptions).toEqual({ resume: true });
