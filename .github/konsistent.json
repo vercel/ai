@@ -1000,8 +1000,8 @@
     },
     {
       "name": "tool-package-must-follow-shared-conventions",
-      "description": "Every tool package must include its main file and expose its factory through the package index.",
-      "paths": ["packages/tool-{toolId}"],
+      "description": "Every single-tool package must include its main file and expose its factory through the package index.",
+      "paths": ["packages/tool-{toolId}", "!packages/tool-fs"],
       "must": [
         {
           "name": "tool-package-must-have-main-file",
@@ -1060,6 +1060,88 @@
           }
         }
       ]
+    },
+    {
+      "name": "filesystem-tool-set-must-follow-shared-conventions",
+      "description": "The filesystem tool set must include all component tools and expose its plural factory through the package index.",
+      "paths": ["packages/tool-fs"],
+      "must": [
+        {
+          "must": {
+            "haveFiles": [
+              "src/create-fs-tools.ts",
+              "src/delete-file-tool.ts",
+              "src/edit-tool.ts",
+              "src/glob-tool.ts",
+              "src/grep-tool.ts",
+              "src/list-tool.ts",
+              "src/read-tool.ts",
+              "src/write-tool.ts"
+            ]
+          }
+        },
+        {
+          "for": { "files": "src/create-fs-tools.ts" },
+          "must": {
+            "importValues": [
+              { "name": "createDeleteFileTool", "from": "./delete-file-tool" },
+              { "name": "createEditTool", "from": "./edit-tool" },
+              { "name": "createGlobTool", "from": "./glob-tool" },
+              { "name": "createGrepTool", "from": "./grep-tool" },
+              { "name": "createListTool", "from": "./list-tool" },
+              { "name": "createReadTool", "from": "./read-tool" },
+              { "name": "createWriteTool", "from": "./write-tool" }
+            ],
+            "exportFunctions": ["createFsTools"]
+          }
+        },
+        {
+          "for": { "files": "src/index.ts" },
+          "must": {
+            "exportValues": [
+              {
+                "name": "createFsTools",
+                "alias": "experimental_createFsTools",
+                "from": "./create-fs-tools"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "filesystem-tool-must-follow-shared-conventions",
+      "description": "Every filesystem tool must declare its inferred types and schemas and export its factory using the shared settings.",
+      "paths": ["packages/tool-fs/src/{toolId}-tool.ts"],
+      "must": {
+        "importValues": [
+          { "name": "tool", "from": "ai" },
+          { "name": "z", "from": "zod/v4" }
+        ],
+        "importTypes": [
+          { "name": "FsTool", "from": "./fs-tool-settings" },
+          { "name": "FsToolSettings", "from": "./fs-tool-settings" }
+        ],
+        "exportTypes": [
+          {
+            "name": "${toolId.toPascalCase()}Input",
+            "type": "z.infer<typeof inputSchema>"
+          },
+          {
+            "name": "${toolId.toPascalCase()}Output",
+            "type": "z.infer<typeof outputSchema>"
+          }
+        ],
+        "declareConstants": ["inputSchema", "outputSchema"],
+        "exportFunctions": ["create${toolId.toPascalCase()}Tool"],
+        "useDeclarationOrder": [
+          "${toolId.toPascalCase()}Input",
+          "${toolId.toPascalCase()}Output",
+          "inputSchema",
+          "outputSchema",
+          "create${toolId.toPascalCase()}Tool"
+        ]
+      }
     }
   ],
   "kebabToPascalMap": {
