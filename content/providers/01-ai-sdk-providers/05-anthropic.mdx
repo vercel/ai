@@ -562,7 +562,10 @@ schemas with open objects such as maps (`additionalProperties` set to a schema
 or `true`), which native structured outputs would return as `{}`.
 Likewise, a `required` or named `toolChoice` is downgraded to
 `auto` with a warning; instruct the model to use the tool in your prompt and
-verify that a tool call was made.
+verify that a tool call was made. When a named choice falls back to `auto`,
+inline tool additions must use the selected tool's name. Conflicting additions,
+including definitions replayed from conversation history, cause an
+`InvalidArgumentError` before the request is sent.
 
 The JSON-tool fallback limits which application tools are available:
 `toolChoice: 'none'` sends only the internal JSON response tool, and a named tool
@@ -1079,6 +1082,9 @@ the selected tool is sent. This also applies when the top-level `reasoning`
 option enables manual thinking, including when structured output uses the
 internal JSON response tool. Tool use is no longer guaranteed: instruct the
 model to use the tool in your prompt and verify that a tool call was made.
+Inline tool additions must use the selected tool's name when a named choice
+falls back to `auto`. Conflicting additions, including definitions replayed from
+conversation history, cause an `InvalidArgumentError` before the request is sent.
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.

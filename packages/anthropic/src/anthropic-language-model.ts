@@ -688,6 +688,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     });
 
     const toolsetNames = getAnthropicToolsetNames(tools);
+    const inlineToolDefinitions: AnthropicTool[] = [];
 
     const { prompt: messagesPrompt, betas } = await convertToAnthropicPrompt({
       prompt,
@@ -712,6 +713,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           // definition is replayed on every request and has to stay identical
           // between streaming and non-streaming calls to keep the cache.
         });
+
+        if (definitions?.[0] != null) {
+          inlineToolDefinitions.push(definitions[0]);
+        }
 
         return {
           definition: definitions?.[0],
@@ -1286,6 +1291,27 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               rejectsForcedToolUse || thinkingType === 'enabled',
           },
     );
+
+    // Falling back to auto restricts declared tools to the named choice.
+    // Inline definitions, including those replayed from history, must not
+    // restore other tools before the provider executes the request.
+    if (toolChoice?.type === 'tool' && anthropicToolChoice?.type === 'auto') {
+      const conflictingTool = inlineToolDefinitions.find(
+        tool => !('name' in tool) || tool.name !== toolChoice.toolName,
+      );
+      if (conflictingTool != null) {
+        const toolName =
+          'name' in conflictingTool
+            ? conflictingTool.name
+            : conflictingTool.type;
+        throw new InvalidArgumentError({
+          argument: 'toolChoice',
+          message:
+            `Inline tool '${toolName}' conflicts with named tool choice '${toolChoice.toolName}'. ` +
+            'Only the selected tool can be added by value when named tool choice falls back to auto.',
+        });
+      }
+    }
 
     // Extract cache control warnings once at the end
     const cacheWarnings = cacheControlValidator.getWarnings();

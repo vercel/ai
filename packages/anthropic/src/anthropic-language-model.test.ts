@@ -1,5 +1,6 @@
 import {
   APICallError,
+  InvalidArgumentError,
   NoSuchProviderReferenceError,
   LanguageModelV4,
   type LanguageModelV4GenerateResult,
@@ -276,6 +277,177 @@ describe('AnthropicLanguageModel', () => {
               input_schema: options.responseFormat.schema,
             },
           ]);
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
+    'named tool choice with inline tools (%s)',
+    method => {
+      const selectedTool = {
+        type: 'function' as const,
+        name: 'selected',
+        inputSchema: { type: 'object' as const },
+      };
+      const thinking = { type: 'enabled', budgetTokens: 1024 };
+
+      describe.each([
+        { ...selectedTool, name: 'other' },
+        {
+          type: 'provider' as const,
+          id: 'anthropic.web_search_20250305',
+          name: 'web_search',
+          args: {},
+        },
+        {
+          type: 'provider' as const,
+          id: 'anthropic.web_fetch_20250910',
+          name: 'web_fetch',
+          args: {},
+        },
+        {
+          type: 'provider' as const,
+          id: 'anthropic.web_search_20250305',
+          name: 'selected',
+          args: {},
+        },
+      ])('$name', inlineTool => {
+        it.each([
+          { modelId: 'claude-haiku-4-5', source: 'providerOptions' },
+          { modelId: 'claude-haiku-4-5', source: 'reasoning' },
+          { modelId: 'claude-opus-5-5', source: 'model' },
+          { modelId: 'claude-haiku-4-5', source: 'inlineOnly' },
+        ])(
+          'should reject conflicting additions before sending a request for $modelId via $source',
+          async ({ modelId, source }) => {
+            prepareJsonFixtureResponse('anthropic-text');
+
+            const options = {
+              prompt: [
+                ...TEST_PROMPT,
+                {
+                  role: 'system',
+                  content: '',
+                  providerOptions: {
+                    anthropic: {
+                      toolChanges: [
+                        { type: 'tool_addition', tool: inlineTool },
+                      ],
+                    },
+                  },
+                },
+                // Also check definitions replayed from earlier turns.
+                ...(source === 'providerOptions'
+                  ? []
+                  : [
+                      {
+                        role: 'assistant' as const,
+                        content: [{ type: 'text' as const, text: 'OK.' }],
+                      },
+                      ...TEST_PROMPT,
+                    ]),
+              ] satisfies LanguageModelV4Prompt,
+              ...(source !== 'inlineOnly' && { tools: [selectedTool] }),
+              toolChoice: { type: 'tool' as const, toolName: 'selected' },
+              ...(source === 'reasoning'
+                ? { reasoning: 'low' as const }
+                : source !== 'model'
+                  ? { providerOptions: { anthropic: { thinking } } }
+                  : {}),
+            };
+
+            await expect(
+              method === 'generate'
+                ? provider(modelId).doGenerate(options)
+                : provider(modelId).doStream(options),
+            ).rejects.toThrow(InvalidArgumentError);
+            expect(server.calls).toHaveLength(0);
+          },
+        );
+      });
+
+      it.each([
+        {
+          modelId: 'claude-haiku-4-5',
+          thinking,
+          toolName: 'selected',
+          choice: 'tool',
+        },
+        {
+          modelId: 'claude-haiku-4-5',
+          thinking,
+          toolName: 'other',
+          choice: 'auto',
+        },
+        {
+          modelId: 'claude-haiku-4-5',
+          thinking,
+          toolName: 'other',
+          choice: 'required',
+        },
+        {
+          modelId: 'claude-sonnet-4-6',
+          thinking: { type: 'adaptive' },
+          toolName: 'other',
+          choice: 'tool',
+        },
+        {
+          modelId: 'claude-haiku-5-5',
+          thinking,
+          toolName: 'other',
+          choice: 'tool',
+        },
+      ] as const)(
+        'should preserve inline $toolName with $choice choice on $modelId',
+        async ({ modelId, thinking, toolName, choice }) => {
+          const options = {
+            prompt: [
+              ...TEST_PROMPT,
+              {
+                role: 'system',
+                content: '',
+                providerOptions: {
+                  anthropic: {
+                    toolChanges: [
+                      {
+                        type: 'tool_addition',
+                        tool: { ...selectedTool, name: toolName },
+                      },
+                    ],
+                  },
+                },
+              },
+            ] satisfies LanguageModelV4Prompt,
+            toolChoice:
+              choice === 'tool'
+                ? { type: 'tool' as const, toolName: 'selected' }
+                : { type: choice },
+            providerOptions: { anthropic: { thinking } },
+          };
+
+          if (method === 'generate') {
+            prepareJsonFixtureResponse('anthropic-text');
+            await provider(modelId).doGenerate(options);
+          } else {
+            prepareChunksFixtureResponse(
+              'anthropic-message-delta-input-tokens',
+            );
+            const result = await provider(modelId).doStream(options);
+            await convertReadableStreamToArray(result.stream);
+          }
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.tools).toBeUndefined();
+          expect(body.messages[1].content[0]).toMatchObject({
+            type: 'tool_addition',
+            tool: { type: 'tool_definition', definition: { name: toolName } },
+          });
+          expect(body.tool_choice).toEqual(
+            choice === 'tool' && modelId !== 'claude-haiku-4-5'
+              ? { type: 'tool', name: 'selected' }
+              : { type: 'auto' },
+          );
         },
       );
     },
