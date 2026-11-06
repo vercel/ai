@@ -721,6 +721,40 @@ describe('toResponseMessages', () => {
     `);
   });
 
+  it('should preserve empty text parts with provider metadata', async () => {
+    const result = await toResponseMessages({
+      content: [
+        {
+          type: 'text',
+          text: '',
+          providerMetadata: {
+            testProvider: {
+              type: 'boundary',
+            },
+          },
+        },
+      ],
+      tools: undefined,
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: '',
+            providerOptions: {
+              testProvider: {
+                type: 'boundary',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should not append assistant message if there is no content', async () => {
     const result = await toResponseMessages({
       content: [],

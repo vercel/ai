@@ -12,6 +12,7 @@ import {
   convertBase64ToUint8Array,
   convertToBase64,
   parseProviderOptions,
+  safeValidateTypes,
   safeParseJSON,
   isNonNullable,
   secureJsonParse,
@@ -19,6 +20,7 @@ import {
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
+  anthropicFallbackContentSchema,
   anthropicReasoningMetadataSchema,
   type AnthropicAssistantMessage,
   type AnthropicImageContent,
@@ -655,12 +657,37 @@ export async function convertToAnthropicMessagesPrompt({
 
             switch (part.type) {
               case 'text': {
-                // Check if this is a compaction block (via providerMetadata)
                 const textMetadata = part.providerOptions?.anthropic as
-                  | { type?: string; citations?: Citation[] }
+                  | {
+                      type?: string;
+                      citations?: Citation[];
+                      from?: unknown;
+                      to?: unknown;
+                    }
                   | undefined;
 
-                if (textMetadata?.type === 'compaction') {
+                if (textMetadata?.type === 'fallback') {
+                  const fallbackMetadata = await safeValidateTypes({
+                    value: textMetadata,
+                    schema: anthropicFallbackContentSchema,
+                  });
+
+                  if (!fallbackMetadata.success) {
+                    warnings.push({
+                      type: 'other',
+                      message:
+                        'anthropic fallback metadata must include from.model and to.model',
+                    });
+                    break;
+                  }
+
+                  betas.add('server-side-fallback-2026-06-01');
+                  anthropicContent.push({
+                    type: 'fallback',
+                    from: fallbackMetadata.value.from,
+                    to: fallbackMetadata.value.to,
+                  });
+                } else if (textMetadata?.type === 'compaction') {
                   anthropicContent.push({
                     type: 'compaction',
                     content: part.text,
