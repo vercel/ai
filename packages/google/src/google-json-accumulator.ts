@@ -61,6 +61,7 @@ export class GoogleJSONAccumulator {
       if (!rawPath || rawPath === '$') continue;
 
       const segments = parsePath(rawPath);
+      if (!hasContiguousIndexes(this.accumulatedArgs, segments)) continue;
 
       const existingValue = getNestedValue(this.accumulatedArgs, segments);
       const isStringContinuation =
@@ -372,6 +373,39 @@ function getNestedValue(
     current = currentRecord[seg];
   }
   return current;
+}
+
+/**
+ * Checks that every array index on the path is an existing element or the next
+ * one. Arrays are streamed in order, and a sparse index would make `finalize()`
+ * serialize one `null` per hole, so a tiny response could allocate without bound.
+ * A missing or `null` parent is replaced with a new array, so it starts at 0.
+ *
+ * Input: ({items:["a"]}, ["items",1]) or ({items:["a"]}, ["items",5])
+ * Output: true or false
+ */
+function hasContiguousIndexes(
+  obj: Record<string, unknown>,
+  segments: Array<string | number>,
+): boolean {
+  let current: unknown = obj;
+  for (const pathSegment of segments) {
+    if (typeof pathSegment === 'number') {
+      const length = Array.isArray(current)
+        ? current.length
+        : current == null
+          ? 0
+          : undefined;
+      if (length !== undefined && pathSegment > length) return false;
+    }
+    current =
+      current != null &&
+      typeof current === 'object' &&
+      hasOwnProperty(current as Record<string | number, unknown>, pathSegment)
+        ? (current as Record<string | number, unknown>)[pathSegment]
+        : undefined;
+  }
+  return true;
 }
 
 /**
