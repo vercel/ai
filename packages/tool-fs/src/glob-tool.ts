@@ -1,6 +1,7 @@
 import { getErrorMessage } from '@ai-sdk/provider-utils';
 import { tool } from 'ai';
 import { posix } from 'node:path';
+import { setImmediate } from 'node:timers/promises';
 import { z } from 'zod/v4';
 import {
   errorSchema,
@@ -130,25 +131,32 @@ export function createGlobTool(
 
           try {
             const root = posix.normalize(path);
-            const files = result.stdout
-              .split('\n')
-              .filter(line => line !== '')
-              .map(file => {
-                if (file.length > MAX_GLOB_PATH_LENGTH) {
-                  throw new Error(
-                    `Glob paths must not exceed ${MAX_GLOB_PATH_LENGTH} characters.`,
-                  );
-                }
-                return stripDotSlash(file);
-              })
-              .filter(file => {
-                const relative =
-                  posix.relative(root, file) || posix.basename(file);
-                return matcher.test(
-                  matchBaseName ? posix.basename(relative) : relative,
+            const files: string[] = [];
+            for (const line of result.stdout.split('\n')) {
+              if (line === '') {
+                continue;
+              }
+              // Give the timeout and caller abort a chance to interrupt between
+              // individually bounded matches, even for very large file listings.
+              await setImmediate();
+              signal.throwIfAborted();
+              if (line.length > MAX_GLOB_PATH_LENGTH) {
+                throw new Error(
+                  `Glob paths must not exceed ${MAX_GLOB_PATH_LENGTH} characters.`,
                 );
-              })
-              .sort();
+              }
+              const file = stripDotSlash(line);
+              const relative =
+                posix.relative(root, file) || posix.basename(file);
+              if (
+                matcher.test(
+                  matchBaseName ? posix.basename(relative) : relative,
+                )
+              ) {
+                files.push(file);
+              }
+            }
+            files.sort();
 
             return {
               type: 'files',
@@ -158,6 +166,7 @@ export function createGlobTool(
               totalFiles: files.length,
             };
           } catch (cause) {
+            signal.throwIfAborted();
             return error('search_failed', getErrorMessage(cause));
           }
         },

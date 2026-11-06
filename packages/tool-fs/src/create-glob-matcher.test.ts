@@ -92,12 +92,20 @@ describe('matching limits', () => {
     );
   });
 
-  it('shares a finite work budget across paths', () => {
-    const matcher = createGlobMatcher('*.ts');
-    expect(() => {
-      for (let index = 0; index < 1000; index++) {
-        matcher.test('x'.repeat(256) + '.ts');
-      }
-    }).toThrow('Glob matching work limit exceeded.');
+  it('resets the work budget for each path in an ordinary large listing', () => {
+    const matcher = createGlobMatcher('**/*.ts');
+    for (let index = 0; index < 20000; index++) {
+      expect(
+        matcher.test(
+          `project/component-${index}/src/ordinary-module-name.test.ts`,
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it('bounds matching work for each path', () => {
+    expect(() =>
+      createGlobMatcher('?' + '*'.repeat(512)).test('x'.repeat(256)),
+    ).toThrow('Glob matching work limit exceeded.');
   });
 });

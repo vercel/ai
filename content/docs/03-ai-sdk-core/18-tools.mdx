@@ -267,8 +267,8 @@ uses Perl-compatible regular expressions when `grep` supports them.
 `glob` matches paths with a non-backtracking matcher that supports `*`, `**`,
 `?`, character classes such as `[a-z]` and `[!a-z]`, `{a,b}` alternatives, and
 backslash escapes. Patterns are limited to 1,024 characters and returned sandbox
-paths to 4,096 characters. Matching has a shared work budget across all files in
-a search. Invalid patterns and searches exceeding these limits return a
+paths to 4,096 characters. Each path has a matching-work budget, and matching yields between files so
+the timeout and caller cancellation can interrupt large searches. Invalid patterns and searches exceeding these limits return a
 `search_failed` error; use a more specific pattern or search directory to reduce
 matching work.
 

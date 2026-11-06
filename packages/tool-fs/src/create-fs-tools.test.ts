@@ -708,14 +708,11 @@ describe('createFsTools', () => {
       });
     });
 
-    it('returns a search error when matching exceeds the shared work budget', async () => {
+    it('returns a search error when one path exceeds the matching work budget', async () => {
       const sandbox = await createProject();
       vi.spyOn(sandbox, 'run').mockResolvedValue({
         exitCode: 0,
-        stdout: Array.from(
-          { length: 1000 },
-          (_, index) => `${'x'.repeat(256)}${index}.ts`,
-        ).join('\n'),
+        stdout: 'x'.repeat(256),
         stderr: '',
       });
 
@@ -723,7 +720,7 @@ describe('createFsTools', () => {
         await execute(
           createFsTools(),
           'glob',
-          { pattern: '*.ts' },
+          { pattern: '?' + '*'.repeat(512) },
           { sandbox },
         ),
       ).toMatchObject({
@@ -732,6 +729,78 @@ describe('createFsTools', () => {
         message:
           'Error: Glob matching work limit exceeded. Use a more specific pattern or path.',
       });
+    });
+
+    it('matches an ordinary large listing without exhausting a shared budget', async () => {
+      const sandbox = await createProject();
+      vi.spyOn(sandbox, 'run').mockResolvedValue({
+        exitCode: 0,
+        stdout: Array.from(
+          { length: 20000 },
+          (_, index) =>
+            `project/component-${index}/src/ordinary-module-name.test.ts`,
+        ).join('\n'),
+        stderr: '',
+      });
+      expect(
+        await execute(
+          createFsTools(),
+          'glob',
+          { pattern: '**/*.ts' },
+          { sandbox },
+        ),
+      ).toMatchObject({
+        type: 'files',
+        totalFiles: 20000,
+      });
+    });
+
+    it('honors caller cancellation while matching a large listing', async () => {
+      const sandbox = await createProject();
+      vi.spyOn(sandbox, 'run').mockResolvedValue({
+        exitCode: 0,
+        stdout: Array.from(
+          { length: 1000 },
+          (_, index) => `file-${index}.ts`,
+        ).join('\n'),
+        stderr: '',
+      });
+      const controller = new AbortController();
+      const promise = execute(
+        createFsTools(),
+        'glob',
+        { pattern: '*.ts' },
+        { sandbox, abortSignal: controller.signal },
+      );
+      const timer = setTimeout(
+        () => controller.abort(new Error('cancelled during matching')),
+        0,
+      );
+      try {
+        await expect(promise).rejects.toThrow('cancelled during matching');
+      } finally {
+        clearTimeout(timer);
+      }
+    });
+
+    it('honors the timeout while matching a large listing', async () => {
+      const sandbox = await createProject();
+      vi.spyOn(sandbox, 'run').mockResolvedValue({
+        exitCode: 0,
+        stdout: Array.from(
+          { length: 20000 },
+          (_, index) => `file-${index}.ts`,
+        ).join('\n'),
+        stderr: '',
+      });
+      expect(
+        await execute(
+          createFsTools({ timeout: 1 }),
+          'glob',
+          { pattern: '*.ts' },
+          { sandbox },
+        ),
+      ).toMatchObject({ type: 'error', errorCode: 'timeout' });
     });
 
     it('limits results to maxResults', async () => {

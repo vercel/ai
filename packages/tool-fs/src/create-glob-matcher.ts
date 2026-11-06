@@ -1,6 +1,6 @@
 const MAX_PATTERN_LENGTH = 1024;
 export const MAX_GLOB_PATH_LENGTH = 4096;
-const MAX_MATCH_STEPS = 1_000_000;
+const MAX_MATCH_STEPS = 100_000;
 
 type State = {
   test?: (char: string) => boolean;
@@ -10,7 +10,7 @@ type State = {
 /**
  * Compile a glob to a nondeterministic finite automaton. Each state is visited
  * at most once per input character, without backtracking or brace expansion.
- * The work budget is shared by every path tested with this matcher.
+ * A fresh work budget bounds each path tested with this matcher.
  */
 export function createGlobMatcher(pattern: string) {
   if (pattern.length > MAX_PATTERN_LENGTH) {
@@ -136,7 +136,7 @@ export function createGlobMatcher(pattern: string) {
     closeBrace();
   }
   const accept = current;
-  let remainingSteps = MAX_MATCH_STEPS;
+  let remainingSteps = 0;
 
   function step() {
     if (--remainingSteps < 0) {
@@ -170,6 +170,7 @@ export function createGlobMatcher(pattern: string) {
 
   return {
     test(path: string): boolean {
+      remainingSteps = MAX_MATCH_STEPS;
       if (path.length > MAX_GLOB_PATH_LENGTH) {
         throw new Error(
           `Glob paths must not exceed ${MAX_GLOB_PATH_LENGTH} characters.`,
