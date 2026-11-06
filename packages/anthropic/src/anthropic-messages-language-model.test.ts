@@ -266,6 +266,346 @@ describe('AnthropicMessagesLanguageModel', () => {
   );
 
   describe.each(['generate', 'stream'] as const)(
+    'MCP tools with JSON response tool (%s)',
+    method => {
+      const mcpServers = [
+        { type: 'url', name: 'default', url: 'https://default.invalid/mcp' },
+        {
+          type: 'url',
+          name: 'enabled',
+          url: 'https://enabled.invalid/mcp',
+          toolConfiguration: { enabled: true, allowedTools: ['selected'] },
+        },
+        {
+          type: 'url',
+          name: 'disabled',
+          url: 'https://disabled.invalid/mcp',
+          toolConfiguration: { enabled: false, allowedTools: ['other'] },
+        },
+        {
+          type: 'url',
+          name: 'allowlist',
+          url: 'https://allowlist.invalid/mcp',
+          toolConfiguration: { allowedTools: ['selected'] },
+        },
+      ];
+      const tools = [
+        {
+          type: 'function' as const,
+          name: 'selected',
+          inputSchema: { type: 'object' as const, properties: {} },
+        },
+        {
+          type: 'function' as const,
+          name: 'other',
+          inputSchema: { type: 'object' as const, properties: {} },
+        },
+      ];
+
+      beforeEach(() => {
+        if (method === 'generate') {
+          prepareJsonFixtureResponse('anthropic-json-tool.1');
+        } else {
+          prepareChunksFixtureResponse('anthropic-json-tool.1');
+        }
+      });
+
+      describe.each(['auto', 'jsonTool'] as const)(
+        'structured output mode %s',
+        structuredOutputMode => {
+          it.each([
+            { type: 'none' },
+            { type: 'tool', toolName: 'selected' },
+          ] as const)(
+            'should disable all MCP tools for $type tool choice',
+            async toolChoice => {
+              const options = {
+                prompt: TEST_PROMPT,
+                tools,
+                toolChoice,
+                responseFormat: {
+                  type: 'json' as const,
+                  schema: {
+                    type: 'object' as const,
+                    additionalProperties: true,
+                  },
+                },
+                providerOptions: {
+                  anthropic: { mcpServers, structuredOutputMode },
+                },
+              };
+
+              if (method === 'generate') {
+                await provider('claude-sonnet-4-5').doGenerate(options);
+              } else {
+                const result =
+                  await provider('claude-sonnet-4-5').doStream(options);
+                const chunks = await convertReadableStreamToArray(
+                  result.stream,
+                );
+                expect(chunks.some(chunk => chunk.type === 'error')).toBe(
+                  false,
+                );
+              }
+
+              const body = await server.calls[0].requestBodyJson;
+              expect(body.mcp_servers).toEqual([
+                {
+                  type: 'url',
+                  name: 'default',
+                  url: 'https://default.invalid/mcp',
+                  tool_configuration: { enabled: false },
+                },
+                {
+                  type: 'url',
+                  name: 'enabled',
+                  url: 'https://enabled.invalid/mcp',
+                  tool_configuration: {
+                    enabled: false,
+                    allowed_tools: ['selected'],
+                  },
+                },
+                {
+                  type: 'url',
+                  name: 'disabled',
+                  url: 'https://disabled.invalid/mcp',
+                  tool_configuration: {
+                    enabled: false,
+                    allowed_tools: ['other'],
+                  },
+                },
+                {
+                  type: 'url',
+                  name: 'allowlist',
+                  url: 'https://allowlist.invalid/mcp',
+                  tool_configuration: {
+                    enabled: false,
+                    allowed_tools: ['selected'],
+                  },
+                },
+              ]);
+              expect(
+                body.tools.map((tool: { name: string }) => tool.name),
+              ).toEqual(
+                toolChoice.type === 'none' ? ['json'] : ['selected', 'json'],
+              );
+              expect(body.tool_choice).toEqual({
+                type: 'any',
+                disable_parallel_tool_use: true,
+              });
+            },
+          );
+        },
+      );
+
+      it.each([undefined, { type: 'auto' }, { type: 'required' }] as const)(
+        'should preserve MCP configuration for unrestricted choice %j',
+        async toolChoice => {
+          const options = {
+            prompt: TEST_PROMPT,
+            tools,
+            toolChoice,
+            responseFormat: {
+              type: 'json' as const,
+              schema: { type: 'object' as const, additionalProperties: true },
+            },
+            providerOptions: { anthropic: { mcpServers } },
+          };
+          if (method === 'generate') {
+            await provider('claude-sonnet-4-5').doGenerate(options);
+          } else {
+            const result =
+              await provider('claude-sonnet-4-5').doStream(options);
+            await convertReadableStreamToArray(result.stream);
+          }
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.mcp_servers).toEqual([
+            {
+              type: 'url',
+              name: 'default',
+              url: 'https://default.invalid/mcp',
+            },
+            {
+              type: 'url',
+              name: 'enabled',
+              url: 'https://enabled.invalid/mcp',
+              tool_configuration: {
+                enabled: true,
+                allowed_tools: ['selected'],
+              },
+            },
+            {
+              type: 'url',
+              name: 'disabled',
+              url: 'https://disabled.invalid/mcp',
+              tool_configuration: { enabled: false, allowed_tools: ['other'] },
+            },
+            {
+              type: 'url',
+              name: 'allowlist',
+              url: 'https://allowlist.invalid/mcp',
+              tool_configuration: { allowed_tools: ['selected'] },
+            },
+          ]);
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
+    'MCP tools with named tool choice fallback (%s)',
+    method => {
+      it.each([
+        { modelId: 'claude-opus-5-5', thinking: undefined },
+        {
+          modelId: 'claude-sonnet-4-5',
+          thinking: { type: 'enabled', budgetTokens: 1024 },
+        },
+      ] as const)(
+        'should disable MCP tools for $modelId with thinking $thinking',
+        async ({ modelId, thinking }) => {
+          const options = {
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'function' as const,
+                name: 'selected',
+                inputSchema: { type: 'object' as const },
+              },
+              {
+                type: 'function' as const,
+                name: 'other',
+                inputSchema: { type: 'object' as const },
+              },
+            ],
+            toolChoice: { type: 'tool' as const, toolName: 'selected' },
+            providerOptions: {
+              anthropic: {
+                thinking,
+                mcpServers: [
+                  {
+                    type: 'url',
+                    name: 'echo',
+                    url: 'https://echo.invalid/mcp',
+                  },
+                ],
+              },
+            },
+          };
+          if (method === 'generate') {
+            prepareJsonFixtureResponse('anthropic-text');
+            await provider(modelId).doGenerate(options);
+          } else {
+            prepareChunksFixtureResponse('anthropic-text');
+            const result = await provider(modelId).doStream(options);
+            await convertReadableStreamToArray(result.stream);
+          }
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.tool_choice).toEqual({ type: 'auto' });
+          expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual(
+            ['selected'],
+          );
+          expect(body.mcp_servers).toEqual([
+            {
+              type: 'url',
+              name: 'echo',
+              url: 'https://echo.invalid/mcp',
+              tool_configuration: { enabled: false },
+            },
+          ]);
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
+    'MCP tools with provider-enforced tool choice (%s)',
+    method => {
+      describe.each([false, true])(
+        'native structured output %s',
+        useStructuredOutput => {
+          it.each([
+            { type: 'none' },
+            { type: 'tool', toolName: 'selected' },
+          ] as const)(
+            'should preserve MCP configuration for $type',
+            async toolChoice => {
+              const options = {
+                prompt: TEST_PROMPT,
+                tools: [
+                  {
+                    type: 'function' as const,
+                    name: 'selected',
+                    inputSchema: { type: 'object' as const },
+                  },
+                ],
+                toolChoice,
+                ...(useStructuredOutput && {
+                  responseFormat: {
+                    type: 'json' as const,
+                    schema: {
+                      type: 'object' as const,
+                      properties: {},
+                      additionalProperties: false,
+                    },
+                  },
+                }),
+                providerOptions: {
+                  anthropic: {
+                    mcpServers: [
+                      {
+                        type: 'url',
+                        name: 'echo',
+                        url: 'https://echo.invalid/mcp',
+                        toolConfiguration: {
+                          enabled: true,
+                          allowedTools: ['selected'],
+                        },
+                      },
+                    ],
+                  },
+                },
+              };
+              if (method === 'generate') {
+                prepareJsonFixtureResponse('anthropic-text');
+                await provider('claude-sonnet-4-5').doGenerate(options);
+              } else {
+                prepareChunksFixtureResponse('anthropic-text');
+                const result =
+                  await provider('claude-sonnet-4-5').doStream(options);
+                await convertReadableStreamToArray(result.stream);
+              }
+              const body = await server.calls[0].requestBodyJson;
+              expect(body.tool_choice).toEqual(
+                toolChoice.type === 'none'
+                  ? { type: 'none' }
+                  : { type: 'tool', name: 'selected' },
+              );
+              expect(
+                body.tools.map((tool: { name: string }) => tool.name),
+              ).toEqual(['selected']);
+              expect(body.output_config?.format?.type).toEqual(
+                useStructuredOutput ? 'json_schema' : undefined,
+              );
+              expect(body.mcp_servers).toEqual([
+                {
+                  type: 'url',
+                  name: 'echo',
+                  url: 'https://echo.invalid/mcp',
+                  tool_configuration: {
+                    enabled: true,
+                    allowed_tools: ['selected'],
+                  },
+                },
+              ]);
+            },
+          );
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
     'named tool choice with inline tools (%s)',
     method => {
       const selectedTool = {

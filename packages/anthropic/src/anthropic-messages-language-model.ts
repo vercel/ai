@@ -1108,13 +1108,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     );
 
     // Forced-choice and JSON-tool fallbacks restrict the declared tools.
-    // Inline definitions, including those replayed from history, must not
-    // restore other tools before the provider executes the request.
+    // MCP connectors and inline definitions, including those replayed from
+    // history, must not restore other tools before the provider executes the request.
     if (
       (toolChoice?.type === 'tool' &&
         (anthropicToolChoice?.type === 'auto' || jsonResponseTool != null)) ||
       (toolChoice?.type === 'none' && jsonResponseTool != null)
     ) {
+      for (const server of baseArgs.mcp_servers ?? []) {
+        server.tool_configuration = {
+          allowed_tools: server.tool_configuration?.allowed_tools,
+          enabled: false,
+        };
+      }
+
       // Initial system tool changes are ignored by the prompt converter.
       // Validate only definitions that remain in the outgoing messages.
       const emittedInlineDefinitions = new Set(
