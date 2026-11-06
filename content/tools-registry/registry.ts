@@ -970,4 +970,34 @@ console.log(text);`,
     websiteUrl: 'https://redis.io/agent-memory/',
     npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
+  {
+    slug: 'looot',
+    name: 'looot',
+    description:
+      'looot gives an agent one key and one prepaid balance for 4,200+ data API operations from 300+ providers: work emails, phone numbers, company and people search, Google results, web pages and LinkedIn profiles. The agent searches the catalog, reads the price before it runs, and pays per call. A failed call costs nothing.',
+    packageName: '@looot/ai-sdk',
+    tags: ['data', 'enrichment', 'lead-generation', 'search'],
+    apiKeyEnvName: 'LOOOT_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm add @looot/ai-sdk',
+      npm: 'npm install @looot/ai-sdk',
+      yarn: 'yarn add @looot/ai-sdk',
+      bun: 'bun add @looot/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { loootTools } from '@looot/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-haiku-4.5',
+  tools: loootTools(),
+  stopWhen: isStepCount(8),
+  prompt: 'Find the work email of Jane Doe at example.com and tell me what it cost.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.looot.ai/integrations/ai-sdk',
+    apiKeyUrl: 'https://looot.ai',
+    websiteUrl: 'https://looot.ai',
+    npmUrl: 'https://www.npmjs.com/package/@looot/ai-sdk',
+  },
 ];
