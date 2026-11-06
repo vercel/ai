@@ -11048,6 +11048,395 @@ describe('mid-conversation tool changes', () => {
       'mid-conversation-tool-changes-2026-07-01',
     );
   });
+
+  it('should send tools added by value as tool definitions with the inline tools beta', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const { warnings } = await provider('claude-opus-4-8').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Say OK.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'function',
+                    name: 'get_forecast',
+                    description: 'Get forecast',
+                    inputSchema: {
+                      type: 'object',
+                      properties: { city: { type: 'string' } },
+                    },
+                    providerOptions: { anthropic: { deferLoading: true } },
+                  },
+                },
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'provider',
+                    id: 'anthropic.web_search_20260209',
+                    name: 'search',
+                    args: { maxUses: 3 },
+                  },
+                },
+                { type: 'tool_removal', toolName: 'get_weather' },
+              ],
+            },
+          },
+        },
+      ],
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get weather',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.messages[1]).toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "tool": {
+              "definition": {
+                "defer_loading": true,
+                "description": "Get forecast",
+                "input_schema": {
+                  "properties": {
+                    "city": {
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+                "name": "get_forecast",
+              },
+              "type": "tool_definition",
+            },
+            "type": "tool_addition",
+          },
+          {
+            "tool": {
+              "definition": {
+                "max_uses": 3,
+                "name": "web_search",
+                "type": "web_search_20260209",
+              },
+              "type": "tool_definition",
+            },
+            "type": "tool_addition",
+          },
+          {
+            "tool": {
+              "name": "get_weather",
+              "type": "tool_reference",
+            },
+            "type": "tool_removal",
+          },
+        ],
+        "role": "system",
+      }
+    `);
+    // the definitions live in the message, not in the top-level tools:
+    expect(
+      requestBody.tools.map((tool: { name: string }) => tool.name),
+    ).toEqual(['get_weather']);
+
+    const betas = server.calls[0].requestHeaders['anthropic-beta'];
+    expect(betas).toContain('inline-tools-2026-09-15');
+    expect(betas).not.toContain('mid-conversation-tool-changes-2026-07-01');
+    expect(warnings).toEqual([]);
+  });
+
+  it('should send the same definition for streaming and non-streaming requests', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const prompt: LanguageModelV3Prompt = [
+      { role: 'user', content: [{ type: 'text', text: 'Say OK.' }] },
+      {
+        role: 'system',
+        content: '',
+        providerOptions: {
+          anthropic: {
+            toolChanges: [
+              {
+                type: 'tool_addition',
+                tool: {
+                  type: 'function',
+                  name: 'get_forecast',
+                  inputSchema: { type: 'object' },
+                },
+              },
+            ],
+          },
+        },
+      },
+    ];
+
+    await provider('claude-opus-4-8').doGenerate({ prompt });
+    const generateBody = await server.calls[0].requestBodyJson;
+
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-opus-4-8","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":1}}}\n\n`,
+        `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":1}}\n\n`,
+        `data: {"type":"message_stop"}\n\n`,
+      ],
+    };
+    const { stream } = await provider('claude-opus-4-8').doStream({ prompt });
+    await convertReadableStreamToArray(stream);
+    const streamBody = await server.calls[1].requestBodyJson;
+
+    expect(streamBody.messages).toEqual(generateBody.messages);
+    expect(JSON.stringify(streamBody.messages)).not.toContain(
+      'eager_input_streaming',
+    );
+  });
+
+  it('should warn and ignore computer tools added by value', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const { warnings } = await provider('claude-opus-4-8').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Say OK.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'provider',
+                    id: 'anthropic.computer_20251124',
+                    name: 'computer',
+                    args: {
+                      displayWidthPx: 1024,
+                      displayHeightPx: 768,
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.messages).toHaveLength(1);
+    expect(
+      server.calls[0].requestHeaders['anthropic-beta'] ?? '',
+    ).not.toContain('inline-tools-2026-09-15');
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'other',
+        message: expect.stringContaining('cannot be added by value'),
+      }),
+    );
+  });
+
+  it('should keep the response name of a declared computer toolset when an inline computer tool is ignored', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: {
+        id: 'msg_1',
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-opus-4-8',
+        content: [
+          {
+            type: 'tool_use',
+            id: 'toolu_1',
+            name: 'left_click',
+            input: { coordinate: [1, 2] },
+            toolset_name: 'computer',
+          },
+        ],
+        stop_reason: 'tool_use',
+        stop_sequence: null,
+        usage: { input_tokens: 1, output_tokens: 1 },
+      },
+    };
+
+    const { content } = await provider('claude-opus-4-8').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Click.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'provider',
+                    id: 'anthropic.computer_20251124',
+                    name: 'otherComputer',
+                    args: { displayWidthPx: 1024, displayHeightPx: 768 },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+      tools: [
+        {
+          type: 'provider',
+          id: 'anthropic.computer_toolset_20260801',
+          name: 'myComputer',
+          args: {},
+        },
+      ],
+    });
+
+    expect(content).toMatchObject([
+      { type: 'tool-call', toolName: 'myComputer' },
+    ]);
+  });
+
+  it('should keep the response name of a declared provider tool when an inline provider tool has the same provider name', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: {
+        id: 'msg_1',
+        type: 'message',
+        role: 'assistant',
+        model: 'claude-opus-4-8',
+        content: [
+          {
+            type: 'server_tool_use',
+            id: 'srvtoolu_1',
+            name: 'web_search',
+            input: { query: 'weather' },
+          },
+        ],
+        stop_reason: 'pause_turn',
+        stop_sequence: null,
+        usage: { input_tokens: 1, output_tokens: 1 },
+      },
+    };
+
+    const { content } = await provider('claude-opus-4-8').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Search.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'provider',
+                    id: 'anthropic.web_search_20260209',
+                    name: 'inlineSearch',
+                    args: {},
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+      tools: [
+        {
+          type: 'provider',
+          id: 'anthropic.web_search_20260209',
+          name: 'declaredSearch',
+          args: {},
+        },
+      ],
+    });
+
+    expect(content).toMatchObject([
+      { type: 'tool-call', toolName: 'declaredSearch' },
+    ]);
+  });
+
+  it('should send the tool choice and disabled parallel tool use when all tools are added by value', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const inlineToolChange = {
+      role: 'system' as const,
+      content: '',
+      providerOptions: {
+        anthropic: {
+          toolChanges: [
+            {
+              type: 'tool_addition',
+              tool: {
+                type: 'function',
+                name: 'get_forecast',
+                inputSchema: { type: 'object' },
+              },
+            },
+          ],
+        },
+      },
+    };
+    const prompt: LanguageModelV3Prompt = [
+      { role: 'user', content: [{ type: 'text', text: 'Say OK.' }] },
+      inlineToolChange,
+    ];
+
+    await provider('claude-opus-4-8').doGenerate({
+      prompt,
+      toolChoice: { type: 'none' },
+    });
+    await provider('claude-opus-4-8').doGenerate({
+      prompt,
+      providerOptions: { anthropic: { disableParallelToolUse: true } },
+    });
+    await provider('claude-opus-4-8').doGenerate({
+      prompt,
+      toolChoice: { type: 'tool', toolName: 'get_forecast' },
+    });
+
+    const bodies = await Promise.all(
+      server.calls.map(call => call.requestBodyJson),
+    );
+
+    // the tools only exist in the message, so there is no top-level list:
+    expect(bodies.map(body => body.tools)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+    expect(bodies.map(body => body.tool_choice)).toEqual([
+      { type: 'none' },
+      { type: 'auto', disable_parallel_tool_use: true },
+      { type: 'tool', name: 'get_forecast' },
+    ]);
+  });
+
+  it('should not send a tool choice without any tools', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-opus-4-8').doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Say OK.' }] }],
+      toolChoice: { type: 'none' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tool_choice).toBeUndefined();
+    expect(requestBody.tools).toBeUndefined();
+  });
 });
 
 describe('mid-conversation system options', () => {

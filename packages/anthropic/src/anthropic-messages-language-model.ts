@@ -58,6 +58,7 @@ import {
 } from './convert-anthropic-messages-usage';
 import {
   convertToAnthropicMessagesPrompt,
+  getInlineToolsFromPrompt,
   type AnthropicMediaPartConverter,
 } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
@@ -520,8 +521,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       this.config.cacheControlProviderOptionsName,
     );
 
+    const defaultEagerInputStreaming =
+      stream && (anthropicOptions?.toolStreaming ?? true);
+
+    // Tools that tool changes add by value are only known from the prompt.
+    const inlineTools = await getInlineToolsFromPrompt(prompt);
+
     const toolNameMapping = createToolNameMapping({
-      tools,
+      // later entries win when provider tool names collide, so the declared
+      // tools go last and an inline tool cannot take over their mapping:
+      tools: [...inlineTools, ...(tools ?? [])],
       providerToolNames: {
         'anthropic.code_execution_20250522': 'code_execution',
         'anthropic.code_execution_20250825': 'code_execution',
@@ -558,6 +567,29 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         toolNameMapping,
         toolsetNames,
         convertMediaPart: this.config.convertMediaPart,
+        convertInlineTool: async tool => {
+          const {
+            tools: definitions,
+            toolWarnings,
+            betas,
+          } = await prepareTools({
+            tools: [tool],
+            toolChoice: undefined,
+            cacheControlValidator,
+            supportsStructuredOutput,
+            supportsStrictTools,
+            // no stream-dependent defaults (eager input streaming): the
+            // definition is replayed on every request and has to stay
+            // identical between streaming and non-streaming calls to keep
+            // the cache.
+          });
+
+          return {
+            definition: definitions?.[0],
+            warnings: toolWarnings,
+            betas,
+          };
+        },
       });
 
     // Some models always run adaptive thinking and reject `disabled` thinking
@@ -1003,9 +1035,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       betas.add('server-side-fallback-2026-06-01');
     }
 
-    const defaultEagerInputStreaming =
-      stream && (anthropicOptions?.toolStreaming ?? true);
-
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
@@ -1035,6 +1064,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         : {
             tools: tools ?? [],
             toolChoice,
+            // tool changes can add tools when `tools` is empty, so the tool
+            // choice and parallel tool use settings still apply:
+            hasInlineTools: inlineTools.length > 0,
             disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
             cacheControlValidator,
             supportsStructuredOutput,
