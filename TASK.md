@@ -40,25 +40,25 @@ The steps are below:
 6. [x] Implement and configure `InMemoryWorld` as a non-durable `World`-compatible implementation.
    - Ideally this can use something that already exists as part of the `workflow` SDK and its `@workflow/*` packages; if that's not an option, we have to implement it ourselves.
    - In the new `HarnessAgent` constructor, change the private `world` property to no longer be optional; when the constructor doesn't receive it, it should then instantiate an `InMemoryWorld` and set it in that property.
-7. [ ] Scaffold `packages/harness/src/v2/internal/create-log.ts` with function `createLog(input): HarnessAgentLog`.
-   - Create `packages/harness/src/v2/internal/types.ts` with a `HarnessAgentLog` type, which is the same as `HarnessV2Log`, except that its `append()` method accepts _any_ type of `HarnessV2LogEvent`, not just the `harness:`-prefixed ones. And its `onAppend` method must accept an object with both the listener callback and an optional `config?: HarnessAgentLogListenerConfig`, which defines which log event changes this listener should fire for (allow setting `types` array as allowlist and `ignoreTypes` array as denylist; default if neither is provided is to listen to all log event changes).
+7. [x] Scaffold `packages/harness/src/agent/v2/internal/create-log.ts` with function `createLog(input): HarnessAgentLog`.
+   - Create `packages/harness/src/agent/v2/internal/types.ts` with a `HarnessAgentLog` type, which is the same as `HarnessV2Log`, except that its `append()` method accepts _any_ type of `HarnessV2LogEvent`, not just the `harness:`-prefixed ones. And its `onAppend` method must accept an object with both the listener callback and an optional `config?: HarnessAgentLogListenerConfig`, which defines which log event changes this listener should fire for (allow setting `types` array as allowlist and `ignoreTypes` array as denylist; default if neither is provided is to listen to all log event changes).
    - Also, instead of using `HarnessV2LogEvent`, define a superset type of it as `HarnessAgentLogEvent`, starting with a copy. Then we can add additional types to it that are internal to the `HarnessAgent` engine and should never be exposed to the underlying harness adapter (i.e. `HarnessV2LogEvent`).
    - The input for the `createLog()` function must include `world: World`. The log must used that world's relevant layer.
-8. [ ] Scaffold `packages/harness/src/v2/internal/create-effect-function.ts` with function `createEffectFunction(input): HarnessAgentEffectFunction`.
-   - Add a `HarnessAgentEffectFunction` type to `packages/harness/src/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["effect"]` (redeclare it, DO NOT import).
+8. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-effect-function.ts` with function `createEffectFunction(input): HarnessAgentEffectFunction`.
+   - Add a `HarnessAgentEffectFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["effect"]` (redeclare it, DO NOT import).
    - The input for the `createEffectFunction()` function must include the `HarnessAgentLog`.
-9. [ ] Scaffold `packages/harness/src/v2/internal/create-emit-function.ts` with function `createEmitFunction(input): HarnessAgentEmitFunction`.
-   - Add a `HarnessAgentEmitFunction` type to `packages/harness/src/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["emit"]` (redeclare it, DO NOT import).
+9. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-emit-function.ts` with function `createEmitFunction(input): HarnessAgentEmitFunction`.
+   - Add a `HarnessAgentEmitFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["emit"]` (redeclare it, DO NOT import).
    - The input for the `createEmit()` function must include a `stream` argument for the stream to emit these chunks to. Or maybe this also should come directly from the `World` instance that `HarnessAgent` uses, so alternatively the `world: World` could be passed.
-10. [ ] Scaffold `packages/harness/src/v2/internal/create-execute-host-tool-function.ts` with function `createExecuteHostToolFunction(input): HarnessAgentExecuteHostToolFunction`.
+10. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-execute-host-tool-function.ts` with function `createExecuteHostToolFunction(input): HarnessAgentExecuteHostToolFunction`.
 
-- Add a `HarnessAgentExecuteHostToolFunction` type to `packages/harness/src/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["executeHostTool"]` (redeclare it, DO NOT import).
+- Add a `HarnessAgentExecuteHostToolFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["executeHostTool"]` (redeclare it, DO NOT import).
 
-11. [ ] Scaffold `packages/harness/src/v2/internal/create-gate-builtin-tool-function.ts` with function `createGateBuiltinToolFunction(input): HarnessAgentGateBuiltinToolFunction`.
+11. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-gate-builtin-tool-function.ts` with function `createGateBuiltinToolFunction(input): HarnessAgentGateBuiltinToolFunction`.
 
-- Add a `HarnessAgentGateBuiltinToolFunction` type to `packages/harness/src/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["gateBuiltinTool"]` (redeclare it, DO NOT import).
+- Add a `HarnessAgentGateBuiltinToolFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["gateBuiltinTool"]` (redeclare it, DO NOT import).
 
-12. [ ] Scaffold `packages/harness/src/v2/internal/create-harness-v2-drive-context.ts` with function `createDriveContext(): HarnessV2DriveContext`.
+12. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-harness-v2-drive-context.ts` with function `createDriveContext(): HarnessV2DriveContext`.
 
 - The function receives inputs of types `HarnessAgentSession`, `HarnessAgentLog`, `HarnessAgentEffectFunction`, `HarnessAgentEmitFunction`, `HarnessAgentExecuteHostToolFunction`, `HarnessAgentGateBuiltinToolFunction`, etc and arranges them into the necessary aggregated shape.
 - It has to decorate `HarnessAgentLog` into `HarnessAgentV2Log`, and it has to create the sandbox session function based on the given session's sandbox session getter function. The other shapes should be compatible.

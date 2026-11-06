@@ -18,7 +18,8 @@ export type HarnessV2LogEvent =
       readonly data: HarnessV2Submission;
 
       /**
-       * Stable event ID used for ordering and cursor positions.
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
        */
       readonly id: string;
     }
@@ -34,7 +35,8 @@ export type HarnessV2LogEvent =
       readonly data: Omit<HarnessV2Effect, 'output'>;
 
       /**
-       * ID referenced by the matching effect-end event.
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
        */
       readonly id: string;
     }
@@ -60,7 +62,8 @@ export type HarnessV2LogEvent =
       };
 
       /**
-       * Event ID assigned to this effect-end record.
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
        */
       readonly id: string;
     }
@@ -76,7 +79,8 @@ export type HarnessV2LogEvent =
       readonly data: SerializableValue;
 
       /**
-       * Optional caller-supplied ID for correlating the event.
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
        */
       readonly id?: string;
     };
@@ -95,6 +99,11 @@ export type HarnessV2Log = {
 
   /**
    * Appends an adapter-namespaced event; host-owned event types are not writable.
+   * Resolves once the matching event is confirmed committed. Returns false if
+   * an identical event with the supplied ID is found before writing. Returns
+   * true when a matching event is confirmed after attempting a write, including
+   * when a concurrent append committed it. Conflicting content under the same
+   * ID is rejected.
    */
   append(
     event: Extract<HarnessV2LogEvent, { type: `harness:${string}` }>,
