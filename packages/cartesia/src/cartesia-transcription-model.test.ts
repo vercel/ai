@@ -287,6 +287,7 @@ describe('doStream', () => {
     expect(ws.send).toHaveBeenNthCalledWith(1, new Uint8Array([1, 2, 3]));
     expect(JSON.parse(ws.send.mock.calls[1][0])).toEqual({ type: 'close' });
 
+    ws.message({ type: 'turn.start', request_id: 'turn-1' });
     ws.message({
       type: 'turn.update',
       request_id: 'turn-1',
@@ -297,6 +298,7 @@ describe('doStream', () => {
       request_id: 'turn-1',
       transcript: 'Hello world',
     });
+    ws.message({ type: 'turn.start', request_id: 'turn-1' });
     ws.message({
       type: 'turn.end',
       request_id: 'turn-1',
@@ -309,17 +311,17 @@ describe('doStream', () => {
       { type: 'stream-start', warnings: [] },
       {
         type: 'transcript-partial',
-        id: 'turn-1',
+        id: 'turn-1:1',
         text: 'Hello',
       },
       {
         type: 'transcript-final',
-        id: 'turn-1',
+        id: 'turn-1:1',
         text: 'Hello world',
       },
       {
         type: 'transcript-final',
-        id: 'turn-1',
+        id: 'turn-1:2',
         text: 'How are you?',
       },
       {
