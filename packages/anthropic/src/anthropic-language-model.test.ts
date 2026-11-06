@@ -470,6 +470,72 @@ describe('AnthropicLanguageModel', () => {
   );
 
   describe.each(['generate', 'stream'] as const)(
+    'MCP tools with named tool choice fallback (%s)',
+    method => {
+      it.each([
+        { modelId: 'claude-opus-5-5', thinking: undefined },
+        {
+          modelId: 'claude-sonnet-4-5',
+          thinking: { type: 'enabled', budgetTokens: 1024 },
+        },
+      ] as const)(
+        'should disable MCP tools for $modelId with thinking $thinking',
+        async ({ modelId, thinking }) => {
+          const options = {
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'function' as const,
+                name: 'selected',
+                inputSchema: { type: 'object' as const },
+              },
+              {
+                type: 'function' as const,
+                name: 'other',
+                inputSchema: { type: 'object' as const },
+              },
+            ],
+            toolChoice: { type: 'tool' as const, toolName: 'selected' },
+            providerOptions: {
+              anthropic: {
+                thinking,
+                mcpServers: [
+                  {
+                    type: 'url',
+                    name: 'echo',
+                    url: 'https://echo.invalid/mcp',
+                  },
+                ],
+              },
+            },
+          };
+          if (method === 'generate') {
+            prepareJsonFixtureResponse('anthropic-text');
+            await provider(modelId).doGenerate(options);
+          } else {
+            prepareChunksFixtureResponse('anthropic-text');
+            const result = await provider(modelId).doStream(options);
+            await convertReadableStreamToArray(result.stream);
+          }
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.tool_choice).toEqual({ type: 'auto' });
+          expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual(
+            ['selected'],
+          );
+          expect(body.mcp_servers).toEqual([
+            {
+              type: 'url',
+              name: 'echo',
+              url: 'https://echo.invalid/mcp',
+              tool_configuration: { enabled: false },
+            },
+          ]);
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
     'named tool choice with inline tools (%s)',
     method => {
       const selectedTool = {

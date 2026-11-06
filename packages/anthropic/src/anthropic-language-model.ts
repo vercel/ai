@@ -624,11 +624,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           }
         : undefined;
 
-    // The JSON tool requires relaxing tool_choice, so restrict MCP tools too.
-    const disableMcpTools =
-      jsonResponseTool != null &&
-      (toolChoice?.type === 'none' || toolChoice?.type === 'tool');
-
     if (
       jsonResponseTool != null &&
       anthropicOptions?.disableParallelToolUse === false
@@ -1011,15 +1006,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             name: server.name,
             url: server.url,
             authorization_token: server.authorizationToken,
-            tool_configuration:
-              server.toolConfiguration || disableMcpTools
-                ? {
-                    allowed_tools: server.toolConfiguration?.allowedTools,
-                    enabled: disableMcpTools
-                      ? false
-                      : server.toolConfiguration?.enabled,
-                  }
-                : undefined,
+            tool_configuration: server.toolConfiguration
+              ? {
+                  allowed_tools: server.toolConfiguration.allowedTools,
+                  enabled: server.toolConfiguration.enabled,
+                }
+              : undefined,
           })),
         }),
 
@@ -1333,13 +1325,20 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     );
 
     // Forced-choice and JSON-tool fallbacks restrict the declared tools.
-    // Inline definitions, including those replayed from history, must not
-    // restore other tools before the provider executes the request.
+    // MCP connectors and inline definitions, including those replayed from
+    // history, must not restore other tools before the provider executes the request.
     if (
       (toolChoice?.type === 'tool' &&
         (anthropicToolChoice?.type === 'auto' || jsonResponseTool != null)) ||
       (toolChoice?.type === 'none' && jsonResponseTool != null)
     ) {
+      for (const server of baseArgs.mcp_servers ?? []) {
+        server.tool_configuration = {
+          allowed_tools: server.tool_configuration?.allowed_tools,
+          enabled: false,
+        };
+      }
+
       // Initial system tool changes are ignored by the prompt converter.
       // Validate only definitions that remain in the outgoing messages.
       const emittedInlineDefinitions = new Set(
