@@ -1,7 +1,7 @@
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createClaudeCodeRequestTransformations,
   resolveClaudeCodeAuthenticationMode,
@@ -221,6 +221,49 @@ describe('resolveClaudeCodeEnv', () => {
       AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
       ANTHROPIC_BASE_URL: 'https://ai-gateway.vercel.sh',
     });
+  });
+});
+
+describe('default apiKeyHelper reader', () => {
+  let homeDirectory: string;
+  let emptyPathDirectory: string;
+
+  beforeEach(async () => {
+    homeDirectory = await mkdtemp(join(tmpdir(), 'claude-code-auth-'));
+    emptyPathDirectory = await mkdtemp(join(tmpdir(), 'claude-code-path-'));
+    await mkdir(join(homeDirectory, '.claude'));
+    vi.stubEnv('HOME', homeDirectory);
+    vi.stubEnv('USERPROFILE', homeDirectory);
+    // No `sh` on PATH, as in a PowerShell or cmd session on Windows.
+    vi.stubEnv('PATH', emptyPathDirectory);
+  });
+
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    await rm(homeDirectory, { recursive: true, force: true });
+    await rm(emptyPathDirectory, { recursive: true, force: true });
+  });
+
+  async function writeApiKeyHelper(command: string) {
+    await writeFile(
+      join(homeDirectory, '.claude', 'settings.json'),
+      JSON.stringify({ apiKeyHelper: command }),
+    );
+  }
+
+  it('runs the apiKeyHelper command through the system shell', async () => {
+    await writeApiKeyHelper('echo sk-from-helper');
+
+    expect(resolveClaudeCodeEnv(undefined, {})).toEqual({
+      ANTHROPIC_API_KEY: 'sk-from-helper',
+      ANTHROPIC_AUTH_TOKEN: 'sk-from-helper',
+    });
+  });
+
+  it('ignores an apiKeyHelper command that fails', async () => {
+    await writeApiKeyHelper('exit 1');
+
+    expect(resolveClaudeCodeEnv(undefined, {})).toEqual({});
   });
 });
 
