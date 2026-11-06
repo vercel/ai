@@ -52,6 +52,13 @@ export function prepareTools({
       };
   toolWarnings: LanguageModelV2CallWarning[];
 } {
+  // NONE only disables function calling in the Google API. Provider tools
+  // must be omitted so they cannot execute server-side. Keep function
+  // declarations for conversation history containing function calls.
+  if (toolChoice?.type === 'none') {
+    tools = tools?.filter(tool => tool.type === 'function');
+  }
+
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
@@ -75,7 +82,11 @@ export function prepareTools({
     toolWarnings.push({
       type: 'unsupported-tool',
       tool: tools.find(tool => tool.type === 'function')!,
-      details: `Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: ${functionTools.map(t => t.name).join(', ')}. Please use either function tools or provider-defined tools, but not both.`,
+      details: `Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: ${functionTools
+        .map(t => t.name)
+        .join(
+          ', ',
+        )}. Please use either function tools or provider-defined tools, but not both.`,
     });
   }
 

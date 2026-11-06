@@ -812,3 +812,66 @@ it('should use AUTO mode when no tools have strict: true', () => {
     functionCallingConfig: { mode: 'AUTO' },
   });
 });
+
+it('should omit provider tools with toolChoice none on Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider-defined',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    toolChoice: { type: 'none' },
+    modelId: 'gemini-3-flash-preview',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'testFunction',
+          description: 'A test function',
+          parameters: undefined,
+        },
+      ],
+    },
+  ]);
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'NONE' },
+  });
+});
+
+it.each([
+  'google.google_search',
+  'google.enterprise_web_search',
+  'google.url_context',
+  'google.code_execution',
+  'google.file_search',
+  'google.vertex_rag_store',
+  'google.google_maps',
+  'google.unknown',
+] as const)('should omit %s when toolChoice is none', id => {
+  for (const modelId of ['gemini-2.5-flash', 'gemini-3-flash-preview']) {
+    for (const isVertexProvider of [false, true]) {
+      const result = prepareTools({
+        tools: [{ type: 'provider-defined', id, name: 'disabled', args: {} }],
+        toolChoice: { type: 'none' },
+        modelId,
+        isVertexProvider,
+      });
+      expect(result).toEqual({
+        tools: undefined,
+        toolConfig: undefined,
+        toolWarnings: [],
+      });
+    }
+  }
+});
