@@ -1,3 +1,4 @@
+import { getGoogleFilePartOptions } from './google-file-part-options';
 import {
   type JSONValue,
   type LanguageModelV2Prompt,
@@ -64,6 +65,9 @@ export function convertToGoogleGenerativeAIMessages(
               // default to image/jpeg for unknown image/* types
               const mediaType =
                 part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
+              const fileOptions = getGoogleFilePartOptions(
+                part.providerOptions?.google,
+              );
 
               parts.push(
                 part.data instanceof URL
@@ -76,12 +80,14 @@ export function convertToGoogleGenerativeAIMessages(
                             ? part.originalUrl
                             : part.data.toString(),
                       },
+                      ...fileOptions,
                     }
                   : {
                       inlineData: {
                         mimeType: mediaType,
                         data: convertToBase64(part.data),
                       },
+                      ...fileOptions,
                     },
               );
 

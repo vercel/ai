@@ -1,3 +1,4 @@
+import type { GoogleFilePartOptions } from './google-file-part-options';
 import type {
   GroundingMetadataSchema,
   UrlContextMetadataSchema,
@@ -20,7 +21,7 @@ export type GoogleGenerativeAIContent = {
 
 export type GoogleGenerativeAIContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
-  | { inlineData: { mimeType: string; data: string } }
+  | ({ inlineData: { mimeType: string; data: string } } & GoogleFilePartOptions)
   | {
       functionCall: { id?: string; name: string; args: unknown };
       thoughtSignature?: string;
@@ -33,7 +34,9 @@ export type GoogleGenerativeAIContentPart =
         parts?: Array<GoogleGenerativeAIFunctionResponsePart>;
       };
     }
-  | { fileData: { mimeType: string; fileUri: string } };
+  | ({
+      fileData: { mimeType: string; fileUri: string };
+    } & GoogleFilePartOptions);
 
 export type GoogleGenerativeAIFunctionResponsePart = {
   inlineData: { mimeType: string; data: string };

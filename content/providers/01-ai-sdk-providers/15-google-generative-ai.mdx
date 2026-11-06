@@ -1158,6 +1158,51 @@ The following Zod features are known to not work with Google Generative AI:
   available provider model ID as a string if needed.
 </Note>
 
+### Extended multimodal file inspection
+
+The Extended Multimodal File Inspection EAP supports PDF, Word (`.docx`,
+`.doc`), PowerPoint (`.pptx`, `.ppt`), Excel (`.xlsx`, `.xls`), OpenDocument
+(`.odt`, `.odp`, `.ods`), audio, and video. You can select pages, spreadsheet
+cells, or time ranges and choose which content layers Gemini receives.
+
+Use `gemini-4-argon-file-processing-eap` with an allowlisted project. Model
+access and the `FILE_PROCESSING_EAP` project label are both required: access to
+the model alone does not enable inspection fields. The EAP is available on
+`v1beta` for evaluation and testing. The direct Google provider uses `v1beta`
+by default; a custom `v1` base URL cannot serve the EAP alias.
+
+#### GenerateContent inspection options
+
+For `google('gemini-4-argon-file-processing-eap')`, pass
+`GoogleFilePartOptions` on each file part. GenerateContent uses
+metadata objects and uppercase content-layer names:
+
+| File selection    | GenerateContent option | Fields                                                                                                    |
+| ----------------- | ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| Document pages    | `documentMetadata`     | `startPage`, `endPage`, `contentLayers: ['PAGE_TEXT', 'PAGE_IMAGE']`                                      |
+| Spreadsheet cells | `spreadsheetMetadata`  | `sheetIndex`, `visibleCells`, `contentLayers: ['DATA', 'FORMULAS', 'VISUAL']`                             |
+| Audio clip        | `audioMetadata`        | `startOffset`, `endOffset` as duration strings                                                            |
+| Video clip        | `videoMetadata`        | `startOffset`, `endOffset` as duration strings, `fps`, `contentLayers: ['FRAMES', 'AUDIO', 'TRANSCRIPT']` |
+
+```ts
+import { type GoogleFilePartOptions } from '@ai-sdk/google';
+
+const googleFileOptions = {
+  documentMetadata: {
+    startPage: 3,
+    endPage: 7,
+    contentLayers: ['PAGE_TEXT'],
+  },
+} satisfies GoogleFilePartOptions;
+```
+
+Use `googleFileOptions` as the file part's `providerOptions.google`. These
+options also apply when using `streamText`.
+
+AI SDK v5 supports these options on file inputs to `generateText` and `streamText`.
+AI SDK v5 does not expose `google.interactions()`, and its tool-output media parts
+cannot carry per-file provider options. Use v6 or later for sliced file tool results.
+
 ## Gemma Models
 
 You can use [Gemma models](https://deepmind.google/models/gemma/) with the Google Generative AI API.
