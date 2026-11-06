@@ -6847,6 +6847,22 @@ describe('getModelCapabilities', () => {
     `);
   });
 
+  it('should return correct capabilities for claude-fable-5-2', () => {
+    expect(getModelCapabilities('claude-fable-5-2')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
+        "rejectsForcedToolUse": true,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": true,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsBetweenToolsThinking": false,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
   it('should return correct capabilities for claude-opus-4-7', () => {
     expect(getModelCapabilities('claude-opus-4-7')).toMatchInlineSnapshot(`
       {
@@ -7521,18 +7537,44 @@ describe('claude-opus-5-5 specific behavior', () => {
     `);
   });
 
-  it('should use auto tool choice for claude-fable-5-1 when tool choice is "required"', async () => {
+  it.each(['claude-fable-5-1', 'claude-fable-5-2'])(
+    'should use auto tool choice for %s when tool choice is "required"',
+    async modelId => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await provider(modelId).doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [TEST_TOOL],
+        toolChoice: { type: 'required' },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+      expect(result.warnings).toHaveLength(1);
+    },
+  );
+
+  it('should remove disabled thinking for claude-fable-5-2 and warn', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
-    const result = await provider('claude-fable-5-1').doGenerate({
+    const result = await provider('claude-fable-5-2').doGenerate({
       prompt: TEST_PROMPT,
-      tools: [TEST_TOOL],
-      toolChoice: { type: 'required' },
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'xhigh',
+        } satisfies AnthropicProviderOptions,
+      },
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+    expect(requestBody.thinking).toBeUndefined();
+    expect(requestBody.max_tokens).toBe(128000);
+    expect(requestBody.output_config).toEqual({ effort: 'xhigh' });
     expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({
+      setting: 'providerOptions.anthropic.thinking',
+    });
   });
 
   it('should still send forced tool choice for claude-opus-5', async () => {
