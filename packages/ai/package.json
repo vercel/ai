@@ -64,6 +64,7 @@
     "@ai-sdk/amazon-bedrock": "workspace:*",
     "@ai-sdk/deepseek": "workspace:*",
     "@ai-sdk/google": "workspace:*",
+    "@ai-sdk/google-vertex": "workspace:*",
     "@ai-sdk/groq": "workspace:*",
     "@ai-sdk/huggingface": "workspace:*",
     "@ai-sdk/moonshotai": "workspace:*",
