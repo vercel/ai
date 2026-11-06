@@ -19,8 +19,8 @@ import {
   createJsonResponseHandler,
   generateId,
   isCustomReasoning,
-  parseProviderOptions,
   postJsonToApi,
+  resolveProviderOptions,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -123,13 +123,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
 
-    // Parse provider options
+    // `openai` and the Azure key are merged; the Azure key wins (like Azure
+    // completion models).
+    const providerOptionsNames = this.config.provider.includes('azure')
+      ? (['openai', 'azure'] as const)
+      : (['openai'] as const);
     const openaiOptions =
-      (await parseProviderOptions({
-        provider: 'openai',
-        providerOptions,
-        schema: openaiLanguageModelChatOptions,
-      })) ?? {};
+      (
+        await resolveProviderOptions({
+          providerOptions,
+          namespaces: providerOptionsNames,
+          resolution: 'merge',
+          schema: openaiLanguageModelChatOptions,
+        })
+      ).options ?? {};
 
     const {
       capabilities: { language: modelCapabilities },
@@ -178,7 +185,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     // reasoningSummary is a Responses API option that the chat options schema strips,
     // so check the raw provider options to avoid silently ignoring it:
-    if (providerOptions?.openai?.reasoningSummary != null) {
+    if (
+      providerOptionsNames.some(
+        name => providerOptions?.[name]?.reasoningSummary != null,
+      )
+    ) {
       warnings.push({
         type: 'unsupported',
         feature: 'reasoningSummary',

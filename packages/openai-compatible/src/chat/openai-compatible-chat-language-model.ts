@@ -24,8 +24,8 @@ import {
   createJsonResponseHandler,
   generateId,
   isCustomReasoning,
-  parseProviderOptions,
   postJsonToApi,
+  resolveProviderOptions,
   serializeModelOptions,
   StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
@@ -221,14 +221,22 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
 
-    // Parse provider options - check for deprecated 'openai-compatible' key
-    const deprecatedOptions = await parseProviderOptions({
-      provider: 'openai-compatible',
-      providerOptions,
-      schema: openaiCompatibleLanguageModelChatOptions,
-    });
+    // All option keys are merged in order; later keys win.
+    const { options: resolvedCompatibleOptions, namespaces } =
+      await resolveProviderOptions({
+        providerOptions,
+        namespaces: [
+          'openai-compatible',
+          'openaiCompatible',
+          this.providerOptionsName,
+          toCamelCase(this.providerOptionsName),
+        ],
+        resolution: 'merge',
+        schema: openaiCompatibleLanguageModelChatOptions,
+      });
 
-    if (deprecatedOptions != null) {
+    // Check for deprecated 'openai-compatible' key
+    if (namespaces.includes('openai-compatible')) {
       warnings.push({
         type: 'deprecated',
         setting: "providerOptions key 'openai-compatible'",
@@ -243,24 +251,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       warnings,
     });
 
-    const compatibleOptions = Object.assign(
-      deprecatedOptions ?? {},
-      (await parseProviderOptions({
-        provider: 'openaiCompatible',
-        providerOptions,
-        schema: openaiCompatibleLanguageModelChatOptions,
-      })) ?? {},
-      (await parseProviderOptions({
-        provider: this.providerOptionsName,
-        providerOptions,
-        schema: openaiCompatibleLanguageModelChatOptions,
-      })) ?? {},
-      (await parseProviderOptions({
-        provider: toCamelCase(this.providerOptionsName),
-        providerOptions,
-        schema: openaiCompatibleLanguageModelChatOptions,
-      })) ?? {},
-    );
+    const compatibleOptions = resolvedCompatibleOptions ?? {};
 
     const strictJsonSchema = compatibleOptions?.strictJsonSchema ?? true;
 

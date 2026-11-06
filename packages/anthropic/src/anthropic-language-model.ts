@@ -32,6 +32,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  resolveProviderOptions,
   resolveProviderReference,
   secureJsonParse,
   serializeModelOptions,
@@ -284,6 +285,16 @@ export type AnthropicLanguageModelConfig = {
   cacheControlProviderOptionsName?: string;
 };
 
+/**
+ * Legacy names of custom providerOptions keys, read when the current key is
+ * absent.
+ */
+const LEGACY_PROVIDER_OPTIONS_NAMES: Record<string, readonly string[]> = {
+  // The Google Vertex Anthropic provider was renamed from `vertex` to
+  // `googleVertex`, which silently changed its custom providerOptions key.
+  googleVertex: ['vertex'],
+};
+
 const TEXT_OR_THINKING_BLOCK_TYPES = new Set<string>([
   'redacted_thinking',
   'text',
@@ -451,17 +462,32 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       schema: anthropicLanguageModelOptions,
     });
 
-    const customProviderOptions =
-      providerOptionsName !== 'anthropic'
-        ? await parseProviderOptions({
-            provider: providerOptionsName,
-            providerOptions,
-            schema: anthropicLanguageModelOptions,
-          })
-        : null;
+    // The custom key and its legacy aliases are alternatives: the first
+    // present one is used.
+    const {
+      options: customProviderOptions,
+      namespaces: [customProviderOptionsName],
+    } = await resolveProviderOptions({
+      providerOptions,
+      namespaces:
+        providerOptionsName !== 'anthropic'
+          ? [
+              providerOptionsName,
+              ...(Object.hasOwn(
+                LEGACY_PROVIDER_OPTIONS_NAMES,
+                providerOptionsName,
+              )
+                ? LEGACY_PROVIDER_OPTIONS_NAMES[providerOptionsName]
+                : []),
+            ]
+          : [],
+      resolution: 'first',
+      schema: anthropicLanguageModelOptions,
+    });
 
     // Track if custom key was explicitly used
-    const usedCustomProviderKey = customProviderOptions != null;
+    const usedCustomProviderKey =
+      customProviderOptionsName === providerOptionsName;
 
     // Merge options
     const anthropicOptions = Object.assign(

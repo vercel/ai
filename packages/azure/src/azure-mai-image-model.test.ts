@@ -147,6 +147,26 @@ describe('API routing', () => {
     });
   });
 
+  it('accepts OpenAI options under the azure key on the OpenAI API', async () => {
+    const { provider, request } = setup({}, () =>
+      jsonResponse({ data: [{ b64_json: 'aGk=' }] }),
+    );
+
+    await provider.image('gpt-image-1').doGenerate(
+      callOptions({
+        providerOptions: {
+          openai: { quality: 'low', background: 'opaque' },
+          azure: { quality: 'high' },
+        },
+      }),
+    );
+
+    expect(request().json()).toMatchObject({
+      quality: 'high',
+      background: 'opaque',
+    });
+  });
+
   it.each(['MAI-Image-2.6', 'gpt-image-1'])(
     'accepts unrelated azure provider options for %s',
     async id => {

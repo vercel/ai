@@ -12996,6 +12996,90 @@ describe('AnthropicLanguageModel', () => {
     });
   });
 
+  describe('legacy custom provider options names', () => {
+    function createGoogleVertexNamedModel() {
+      return createAnthropic({
+        apiKey: 'test-api-key',
+        name: 'googleVertex',
+        generateId: mockId({ prefix: 'id' }),
+      })('claude-3-haiku-20240307');
+    }
+
+    function prepareResponse() {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_legacy_test',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello, World!' }],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 10, output_tokens: 20 },
+        },
+      };
+    }
+
+    const tools = [
+      {
+        type: 'function' as const,
+        name: 'testTool',
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
+    ];
+
+    it('reads the legacy "vertex" key when "googleVertex" is absent', async () => {
+      prepareResponse();
+
+      const result = await createGoogleVertexNamedModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          vertex: { disableParallelToolUse: true },
+        },
+        tools,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+      });
+      expect(Object.keys(result.providerMetadata ?? {})).toStrictEqual([
+        'anthropic',
+      ]);
+    });
+
+    it('ignores the legacy "vertex" key when "googleVertex" is present', async () => {
+      prepareResponse();
+
+      await createGoogleVertexNamedModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          googleVertex: { disableParallelToolUse: false },
+          vertex: { disableParallelToolUse: true },
+        },
+        tools,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.tool_choice?.disable_parallel_tool_use).not.toBe(true);
+    });
+
+    it('ignores Vertex-only keys such as labels under "vertex"', async () => {
+      prepareResponse();
+
+      await createGoogleVertexNamedModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          vertex: { labels: { team: 'ai' } },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'labels',
+      );
+    });
+  });
+
   describe('custom provider name support', () => {
     function createCustomModel(providerName: string) {
       return createAnthropic({
