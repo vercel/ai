@@ -143,6 +143,83 @@ describe('fetchWithValidatedRedirects', () => {
     );
   });
 
+  it.each([301, 302, 303, 307, 308])(
+    'rejects HTTPS to HTTP downgrades for a %d redirect before requesting the target',
+    async status => {
+      const cancel = vi.fn().mockResolvedValue(undefined);
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(okResponse())
+        .mockResolvedValueOnce({
+          ...redirectResponse('http://example.com/file', status),
+          body: { cancel },
+        });
+
+      await expect(
+        fetchWithValidatedRedirects({
+          url: 'https://example.com/file',
+          headers: { authorization: 'Bearer secret' },
+          fetch: fetchMock,
+        }),
+      ).rejects.toThrow(DownloadError);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(cancel).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([undefined, 'http://cdn.example.com'])(
+    'rejects cross-host HTTPS downgrades even with trustedOrigin %s and no caller headers',
+    async trustedOrigin => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(okResponse())
+        .mockResolvedValueOnce(redirectResponse('http://cdn.example.com/file'));
+
+      await expect(
+        fetchWithValidatedRedirects({
+          url: 'https://example.com/file',
+          trustedOrigin,
+          fetch: fetchMock,
+        }),
+      ).rejects.toThrow(DownloadError);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('rejects a downgrade after an HTTP request upgrades to HTTPS', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(okResponse())
+      .mockResolvedValueOnce(redirectResponse('https://example.com/secure'))
+      .mockResolvedValueOnce(redirectResponse('http://example.com/file'));
+
+    await expect(
+      fetchWithValidatedRedirects({
+        url: 'http://example.com/file',
+        fetch: fetchMock,
+      }),
+    ).rejects.toThrow(DownloadError);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(['http://example.com/next', 'https://example.com/next'])(
+    'allows an initial HTTP URL to redirect to %s',
+    async location => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(redirectResponse(location))
+        .mockResolvedValueOnce(okResponse());
+
+      const response = await fetchWithValidatedRedirects({
+        url: 'http://example.com/file',
+        fetch: fetchMock,
+      });
+
+      expect(response.ok).toBe(true);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    },
+  );
+
   it('rejects a redirect to a private address without requesting it', async () => {
     const fetchMock = vi
       .fn()
