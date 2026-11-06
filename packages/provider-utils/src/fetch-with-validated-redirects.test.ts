@@ -143,6 +143,66 @@ describe('fetchWithValidatedRedirects', () => {
     );
   });
 
+  it('preserves headers on the same origin and drops them permanently after crossing origins', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(redirectResponse('https://api.example.com/next'))
+      .mockResolvedValueOnce(redirectResponse('https://cdn.example.com/image'))
+      .mockResolvedValueOnce(redirectResponse('https://api.example.com/image'))
+      .mockResolvedValueOnce(okResponse());
+    const headers = {
+      'x-key': 'secret',
+      authorization: 'Bearer secret',
+      'custom-provider-key': 'secret',
+      'user-agent': 'test-agent',
+    };
+
+    await fetchWithValidatedRedirects({
+      url: 'https://api.example.com/start',
+      headers,
+      fetch,
+    });
+
+    for (const [, init] of fetch.mock.calls.slice(0, 2)) {
+      expect(Object.fromEntries(new Headers(init.headers))).toEqual(headers);
+    }
+    for (const [, init] of fetch.mock.calls.slice(2)) {
+      expect(Object.fromEntries(new Headers(init.headers))).toEqual({
+        'user-agent': 'test-agent',
+      });
+    }
+    expect(headers['x-key']).toBe('secret');
+  });
+
+  it.each(['https://example.com/final', 'http://127.0.0.1/blocked'])(
+    'does not wait for redirect body cancellation before validating %s',
+    async location => {
+      const cancel = vi.fn(() => new Promise<void>(() => {}));
+      const fetch = vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(new ReadableStream({ cancel }), {
+            status: 302,
+            headers: { location },
+          }),
+        )
+        .mockResolvedValueOnce(okResponse());
+
+      const result = fetchWithValidatedRedirects({
+        url: 'https://example.com/start',
+        fetch,
+      });
+      if (location.startsWith('http://127.0.0.1/')) {
+        await expect(result).rejects.toThrow(DownloadError);
+        expect(fetch).toHaveBeenCalledTimes(1);
+      } else {
+        await expect(result).resolves.toHaveProperty('ok', true);
+        expect(fetch).toHaveBeenCalledTimes(2);
+      }
+      expect(cancel).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it('rejects once the redirect limit is exceeded', async () => {
     const fetchMock = vi
       .fn()

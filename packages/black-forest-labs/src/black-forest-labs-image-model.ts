@@ -205,10 +205,11 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
 
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
-      // Only send credentials if the response-supplied URL points back at the
-      // provider; the image is typically delivered from a CDN, so the API key
-      // must not travel to a foreign host.
-      headers: isTrustedUrl(imageUrl, this.config.baseURL)
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
+      credentialedOrigin: this.config.baseURL,
+      // Downloads need credentials only for a configured same-origin proxy.
+      headers: isSameOrigin(imageUrl, this.config.baseURL)
         ? combinedHeaders
         : undefined,
       abortSignal,
@@ -291,6 +292,8 @@ export class BlackForestLabsImageModel implements ImageModelV2 {
     const fetchPollResult = async () => {
       const { value } = await getFromApi({
         url: url.toString(),
+        validateUrl: true,
+        trustedOrigin: this.config.baseURL,
         // The polling URL comes from the provider response; only send
         // credentials when it stays on a trusted provider host.
         headers: isTrustedUrl(url.toString(), this.config.baseURL)
