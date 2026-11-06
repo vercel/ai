@@ -6,6 +6,7 @@
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "test:downloads": "vitest run --config vitest.downloads.config.ts",
+    "test:local-shell": "vitest run --config vitest.local-shell.config.ts",
     "start": "next start"
   },
   "dependencies": {
