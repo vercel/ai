@@ -2020,9 +2020,6 @@ importers:
       '@ai-sdk/google':
         specifier: workspace:*
         version: link:../google
-      '@ai-sdk/google-vertex':
-        specifier: workspace:*
-        version: link:../google-vertex
       '@ai-sdk/groq':
         specifier: workspace:*
         version: link:../groq
