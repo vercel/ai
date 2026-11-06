@@ -563,6 +563,13 @@ const mistralContentSchema = () =>
     ])
     .nullish();
 
+const mistralToolCallArgumentsSchema = () =>
+  z
+    .union([z.string(), z.record(z.string(), z.json())])
+    .transform(args =>
+      typeof args === 'string' ? args : JSON.stringify(args),
+    );
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const mistralChatResponseSchema = lazySchema(() =>
@@ -582,7 +589,7 @@ const mistralChatResponseSchema = lazySchema(() =>
                   id: z.string(),
                   function: z.object({
                     name: z.string(),
-                    arguments: z.string(),
+                    arguments: mistralToolCallArgumentsSchema(),
                   }),
                 }),
               )
@@ -618,7 +625,7 @@ const mistralChatChunkSchema = lazySchema(() =>
                   id: z.string().nullish(),
                   function: z.object({
                     name: z.string().nullish(),
-                    arguments: z.string().nullish(),
+                    arguments: mistralToolCallArgumentsSchema().nullish(),
                   }),
                 }),
               )
