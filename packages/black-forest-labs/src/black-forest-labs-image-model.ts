@@ -390,7 +390,9 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       url: imageUrl,
       validateUrl: true,
       trustedOrigin: this.config.baseURL,
-      credentialedOrigin: this.config.baseURL,
+      credentialedOrigin: useCustomDownloadHeaders
+        ? this.config.baseURL
+        : undefined,
       // Signed BFL downloads need no credentials; custom proxies may need them.
       headers: useCustomDownloadHeaders
         ? combinedHeaders

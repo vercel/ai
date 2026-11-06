@@ -106,6 +106,24 @@ describe('response URL security', () => {
     }
   });
 
+  it('preserves User-Agent on foreign image downloads without forwarding credentials', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(submit())
+      .mockResolvedValueOnce(ready())
+      .mockResolvedValueOnce(new Response('image-bytes'));
+
+    await model(fetch).doGenerate({
+      ...options,
+      headers: { 'user-agent': 'custom-agent' },
+    });
+
+    const headers = new Headers(fetch.mock.calls[2][1].headers);
+    expect(headers.get('user-agent')).toContain('custom-agent');
+    expect(headers.get('x-key')).toBeNull();
+    expect(headers.get('custom-provider-key')).toBeNull();
+  });
+
   it('withholds credentials from foreign polling and image origins', async () => {
     const fetch = vi
       .fn()
