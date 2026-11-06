@@ -561,11 +561,11 @@ jobs:
                 mv "${DELETIONS}.tmp" "$DELETIONS"
                 ;;
               A|M|T)
-                # createCommitOnBranch cannot specify symlink/submodule
-                # modes. Reject them (including conversions to regular
-                # files) instead of silently changing their meaning.
+                # createCommitOnBranch cannot specify file modes. Only
+                # upload non-executable regular files; other modes and
+                # conversions require a manual backport to preserve them.
                 case "$old_mode:$new_mode" in
-                  000000:100644|000000:100755|100644:100644|100644:100755|100755:100644|100755:100755) ;;
+                  000000:100644|100644:100644) ;;
                   *)
                     echo "::error::Cannot automatically backport file mode ${old_mode} -> ${new_mode}. Backport this change manually."
                     printf 'Path: %q\n' "$path"

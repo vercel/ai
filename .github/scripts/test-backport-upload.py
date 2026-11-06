@@ -194,6 +194,39 @@ class BackportUploadTest(unittest.TestCase):
         self.git("commit", "-qm", "Gitlink fixture")
         self.upload(succeeds=False)
 
+    def test_rejects_new_executable_file(self):
+        self.base()
+        self.write("script")
+        (self.repo / "script").chmod(0o755)
+        self.commit()
+        self.upload(succeeds=False)
+
+    def test_rejects_modified_executable_file(self):
+        self.write("script")
+        (self.repo / "script").chmod(0o755)
+        self.commit()
+        self.base()
+        self.write("script", b"updated")
+        self.commit()
+        self.upload(succeeds=False)
+
+    def test_rejects_adding_executable_bit(self):
+        self.write("script")
+        self.commit()
+        self.base()
+        (self.repo / "script").chmod(0o755)
+        self.commit()
+        self.upload(succeeds=False)
+
+    def test_rejects_removing_executable_bit(self):
+        self.write("script")
+        (self.repo / "script").chmod(0o755)
+        self.commit()
+        self.base()
+        (self.repo / "script").chmod(0o644)
+        self.commit()
+        self.upload(succeeds=False)
+
     def test_diff_failure_prevents_remote_writes(self):
         self.env["BASE_BRANCH"] = "missing-branch"
         self.upload(succeeds=False)
