@@ -35,8 +35,9 @@ To run the example locally you need to:
 
 ## Local shell
 
-The `/chat/openai-local-shell` and `/chat/openai-shell` demos each share one
-sandbox across local chats. Their API routes are available only in local
+The `/chat/openai-local-shell`, `/chat/openai-shell`, and
+`/chat/openai-shell-skills` demos each share one sandbox across local chats.
+Their API routes are available only in local
 development and reject production, Vercel
 deployments (including `vercel dev`), non-loopback Host headers, forwarded external
 clients, and cross-origin browser requests before reading messages or invoking

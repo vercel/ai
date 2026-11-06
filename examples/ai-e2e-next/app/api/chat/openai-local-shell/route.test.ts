@@ -2,12 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAgentUIStreamResponse } from 'ai';
 import { POST as localShellPOST } from './route';
 import { POST as shellPOST } from '../openai-shell/route';
+import { POST as shellSkillsPOST } from '../openai-shell-skills/route';
 
 vi.mock('@/agent/openai/local-shell-agent', () => ({
   openaiLocalShellAgent: {},
 }));
 vi.mock('@/agent/openai/shell-agent', () => ({
   openaiShellAgent: {},
+}));
+vi.mock('@/agent/openai/shell-skills-agent', () => ({
+  openaiShellSkillsAgent: {},
 }));
 vi.mock('ai', () => ({
   createAgentUIStreamResponse: vi.fn(() => new Response('local shell stream')),
@@ -16,6 +20,7 @@ vi.mock('ai', () => ({
 describe.each([
   ['local shell', localShellPOST],
   ['shell', shellPOST],
+  ['shell skills', shellSkillsPOST],
 ] as const)('%s route', (_name, POST) => {
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'development');
