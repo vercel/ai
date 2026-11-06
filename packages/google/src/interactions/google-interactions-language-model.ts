@@ -26,6 +26,7 @@ import {
 import { googleFailedResponseHandler } from '../google-error';
 import { getGoogleLanguageModelEntry } from '../google-model-catalog';
 import { withGoogleInteractionsRequestRedaction } from '../redact-google-tool-credentials';
+import { googleFilesUrlPattern } from '../google-supported-file-url';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
 import {
   convertGoogleInteractionsUsage,
@@ -136,6 +137,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       return this.config.supportedUrls();
     }
     return {
+      '*': [googleFilesUrlPattern],
       'image/*': [/^https?:\/\/.+/],
       'application/pdf': [/^https?:\/\/.+/],
       'audio/*': [/^https?:\/\/.+/],

@@ -26,6 +26,7 @@ export type GoogleInteractionsAudioContent = {
   uri?: string;
   channels?: number;
   sample_rate?: number;
+  processing?: GoogleInteractionsFileProcessing;
 };
 
 export type GoogleInteractionsDocumentContent = {
@@ -33,9 +34,11 @@ export type GoogleInteractionsDocumentContent = {
   data?: string;
   mime_type?: string;
   uri?: string;
+  resolution?: 'low' | 'medium' | 'high' | 'ultra_high';
+  processing?: GoogleInteractionsFileProcessing;
 };
 
-export type GoogleInteractionsVideoProcessing =
+export type GoogleInteractionsFileProcessing =
   | 'agentic'
   | 'static'
   | {
@@ -43,6 +46,17 @@ export type GoogleInteractionsVideoProcessing =
       start_offset?: string;
       end_offset?: string;
       fps?: number;
+      content_layers?: Array<'frames' | 'audio' | 'transcript'>;
+      page_options?: {
+        start_page?: number;
+        end_page?: number;
+        content_layers?: Array<'page_image' | 'page_text'>;
+      };
+      spreadsheet_options?: {
+        sheet_index?: number;
+        visible_cells?: string;
+        content_layers?: Array<'data' | 'formulas' | 'visual'>;
+      };
     };
 
 export type GoogleInteractionsVideoContent = {
@@ -51,7 +65,7 @@ export type GoogleInteractionsVideoContent = {
   mime_type?: string;
   uri?: string;
   resolution?: 'low' | 'medium' | 'high' | 'ultra_high';
-  processing?: GoogleInteractionsVideoProcessing;
+  processing?: GoogleInteractionsFileProcessing;
 };
 
 export type GoogleInteractionsThoughtSummaryItem =
@@ -61,10 +75,7 @@ export type GoogleInteractionsThoughtSummaryItem =
 export type GoogleInteractionsFunctionResultContent = {
   type: 'function_result';
   call_id: string;
-  result:
-    | string
-    | Array<GoogleInteractionsTextContent | GoogleInteractionsImageContent>
-    | unknown;
+  result: string | Array<GoogleInteractionsContent> | unknown;
   name?: string;
   is_error?: boolean;
   signature?: string;

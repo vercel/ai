@@ -1332,7 +1332,7 @@ describe('convertToGoogleInteractionsInput', () => {
       `);
     });
 
-    it('emits a warning when a content tool-result contains a non-image file part', () => {
+    it('includes a document in a content tool result', () => {
       const prompt: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'q' }] },
         {
@@ -1368,14 +1368,20 @@ describe('convertToGoogleInteractionsInput', () => {
         },
       ];
       const result = convertToGoogleInteractionsInput({ prompt });
-      expect(result.warnings).toMatchInlineSnapshot(`
-        [
+      expect(result.warnings).toEqual([]);
+      expect(result.input[2]).toEqual({
+        type: 'user_input',
+        content: [
           {
-            "message": "google.interactions: tool-result file with mediaType "application/pdf" is not supported (Interactions \`function_result.result\` accepts only text and image content); part dropped.",
-            "type": "other",
+            type: 'function_result',
+            call_id: 'call_x',
+            name: 'lookup',
+            result: [
+              { type: 'document', data: 'AQID', mime_type: 'application/pdf' },
+            ],
           },
-        ]
-      `);
+        ],
+      });
     });
   });
 
