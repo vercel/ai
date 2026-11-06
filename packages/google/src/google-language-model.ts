@@ -56,7 +56,6 @@ import {
 import { sanitizeResponseJsonSchema } from './sanitize-response-json-schema';
 import {
   googleLanguageModelOptions,
-  type GoogleLanguageModelOptions,
   type GoogleModelId,
 } from './google-language-model-options';
 import { getGoogleLanguageModelEntry } from './google-model-catalog';
@@ -85,6 +84,8 @@ const googleCloudStorageFunctionResponseUrls = {
 
 export type GoogleLanguageModelConfig = {
   provider: string;
+  /** Preferred metadata namespace followed by legacy aliases. */
+  providerOptionsNames?: readonly string[];
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
@@ -173,31 +174,17 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     // For the Vertex provider we read both the new `googleVertex` key and the
     // legacy `vertex` key (new takes precedence) and write under both for
     // backward compatibility. For other Google providers we use just `google`.
-    const providerOptionsNames: readonly string[] = config.provider.includes(
-      'vertex',
-    )
-      ? (['googleVertex', 'vertex'] as const)
-      : (['google'] as const);
+    const providerOptionsNames: readonly string[] =
+      config.providerOptionsNames ??
+      (config.provider.includes('vertex')
+        ? (['googleVertex', 'vertex'] as const)
+        : (['google'] as const));
 
-    let googleOptions: GoogleLanguageModelOptions | undefined;
-    for (const name of providerOptionsNames) {
-      googleOptions = await parseProviderOptions({
-        provider: name,
-        providerOptions,
-        schema: googleLanguageModelOptions,
-      });
-      if (googleOptions != null) break;
-    }
-
-    // Cross-namespace fallback: a Vertex provider may receive options under
-    // the `google` key (e.g. via the AI Gateway).
-    if (googleOptions == null && !providerOptionsNames.includes('google')) {
-      googleOptions = await parseProviderOptions({
-        provider: 'google',
-        providerOptions,
-        schema: googleLanguageModelOptions,
-      });
-    }
+    const googleOptions = await parseProviderOptions({
+      provider: ['google', ...[...providerOptionsNames].reverse()],
+      providerOptions,
+      schema: googleLanguageModelOptions,
+    });
 
     // Add warning if Vertex rag tools are used with a non-Vertex Google provider
     const isVertexProvider = config.provider.startsWith('google.vertex.');

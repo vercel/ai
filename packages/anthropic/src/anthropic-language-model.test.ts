@@ -13042,6 +13042,40 @@ describe('AnthropicLanguageModel', () => {
     }
 
     describe('doGenerate', () => {
+      it('uses an explicit namespace independently of the telemetry provider', async () => {
+        prepareCustomJsonResponse();
+        const model = new AnthropicLanguageModel('claude-3-haiku-20240307', {
+          provider: 'custom.messages',
+          providerOptionsName: 'googleVertex',
+          baseURL: 'https://api.anthropic.com/v1',
+          headers: {},
+        });
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              metadata: { userId: 'canonical' },
+              disableParallelToolUse: true,
+            },
+            googleVertex: { metadata: { userId: 'host' } },
+          },
+          tools: [
+            {
+              type: 'function',
+              name: 'testTool',
+              inputSchema: { type: 'object' },
+            },
+          ],
+        });
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          metadata: { user_id: 'host' },
+          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        });
+        expect(result.providerMetadata?.googleVertex).toEqual(
+          result.providerMetadata?.anthropic,
+        );
+      });
+
       // Case 1: providerOptions with 'anthropic' key → only 'anthropic' in providerMetadata
       it('should only include "anthropic" key in providerMetadata when providerOptions uses "anthropic" key', async () => {
         prepareCustomJsonResponse();

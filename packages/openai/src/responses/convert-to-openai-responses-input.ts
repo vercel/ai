@@ -220,7 +220,8 @@ async function convertFunctionToolResultOutput({
             case 'file': {
               const topLevel = getTopLevelMediaType(item.mediaType);
               const imageDetail =
-                item.providerOptions?.[providerOptionsName]?.imageDetail;
+                item.providerOptions?.[providerOptionsName]?.imageDetail ??
+                item.providerOptions?.openai?.imageDetail;
 
               if (item.data.type === 'reference') {
                 const fileId = resolveProviderReference({
@@ -411,7 +412,8 @@ function getPromptCacheBreakpoint(
   providerOptions: SharedV4ProviderOptions | undefined,
   providerOptionsName: string,
 ): OpenAIResponsesPromptCacheBreakpoint | undefined {
-  return providerOptions?.[providerOptionsName]?.promptCacheBreakpoint as
+  return (providerOptions?.[providerOptionsName]?.promptCacheBreakpoint ??
+    providerOptions?.openai?.promptCacheBreakpoint) as
     | OpenAIResponsesPromptCacheBreakpoint
     | undefined;
 }
@@ -509,18 +511,11 @@ export async function convertToOpenAIResponsesInput({
       case 'system': {
         // Keep effort updates at their original positions so they apply to
         // the same parts of the conversation when the history is sent again.
-        let options = await parseProviderOptions({
-          provider: providerOptionsName,
+        const options = await parseProviderOptions({
+          provider: ['openai', providerOptionsName],
           providerOptions,
           schema: openaiResponsesSystemMessageOptionsSchema,
         });
-        if (options == null && providerOptionsName !== 'openai') {
-          options = await parseProviderOptions({
-            provider: 'openai',
-            providerOptions,
-            schema: openaiResponsesSystemMessageOptionsSchema,
-          });
-        }
         const effort = options?.reasoningEffortUpdate;
         if (effort != null) {
           const unsupportedReason =
@@ -640,7 +635,8 @@ export async function convertToOpenAIResponsesInput({
                         file_id: fileId,
                         detail:
                           part.providerOptions?.[providerOptionsName]
-                            ?.imageDetail,
+                            ?.imageDetail ??
+                          part.providerOptions?.openai?.imageDetail,
                         ...(promptCacheBreakpoint != null && {
                           prompt_cache_breakpoint: promptCacheBreakpoint,
                         }),
@@ -677,7 +673,8 @@ export async function convertToOpenAIResponsesInput({
                               }),
                         detail:
                           part.providerOptions?.[providerOptionsName]
-                            ?.imageDetail,
+                            ?.imageDetail ??
+                          part.providerOptions?.openai?.imageDetail,
                         ...(promptCacheBreakpoint != null && {
                           prompt_cache_breakpoint: promptCacheBreakpoint,
                         }),
@@ -1527,7 +1524,8 @@ export async function convertToOpenAIResponsesInput({
           // Skip execution-denied with approvalId - already handled via tool-approval-response
           if (output.type === 'execution-denied') {
             const approvalId = (
-              output.providerOptions?.openai as { approvalId?: string }
+              (output.providerOptions?.[providerOptionsName] ??
+                output.providerOptions?.openai) as { approvalId?: string }
             )?.approvalId;
 
             if (approvalId) {
@@ -1712,7 +1710,8 @@ export async function convertToOpenAIResponsesInput({
                         const topLevel = getTopLevelMediaType(item.mediaType);
                         const imageDetail =
                           item.providerOptions?.[providerOptionsName]
-                            ?.imageDetail;
+                            ?.imageDetail ??
+                          item.providerOptions?.openai?.imageDetail;
 
                         if (item.data.type === 'data') {
                           const fullMediaType = resolveFullMediaType({

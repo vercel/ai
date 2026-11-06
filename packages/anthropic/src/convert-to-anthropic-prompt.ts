@@ -97,7 +97,9 @@ export async function convertToAnthropicPrompt({
   toolNameMapping,
   toolsetNames = {},
   convertMediaPart,
+  providerOptionsName = 'anthropic',
 }: {
+  providerOptionsName?: string;
   prompt: LanguageModelV4Prompt;
   sendReasoning: boolean;
   warnings: SharedV4Warning[];
@@ -127,7 +129,7 @@ export async function convertToAnthropicPrompt({
     providerMetadata: SharedV4ProviderMetadata | undefined,
   ): Promise<boolean> {
     const anthropicOptions = await parseProviderOptions({
-      provider: 'anthropic',
+      provider: ['anthropic', providerOptionsName],
       providerOptions: providerMetadata,
       schema: anthropicFilePartProviderOptions,
     });
@@ -139,7 +141,7 @@ export async function convertToAnthropicPrompt({
     providerMetadata: SharedV4ProviderMetadata | undefined,
   ): Promise<boolean> {
     const anthropicOptions = await parseProviderOptions({
-      provider: 'anthropic',
+      provider: ['anthropic', providerOptionsName],
       providerOptions: providerMetadata,
       schema: anthropicFilePartProviderOptions,
     });
@@ -151,7 +153,7 @@ export async function convertToAnthropicPrompt({
     providerMetadata: SharedV4ProviderMetadata | undefined,
   ): Promise<{ title?: string; context?: string }> {
     const anthropicOptions = await parseProviderOptions({
-      provider: 'anthropic',
+      provider: ['anthropic', providerOptionsName],
       providerOptions: providerMetadata,
       schema: anthropicFilePartProviderOptions,
     });
@@ -178,7 +180,7 @@ export async function convertToAnthropicPrompt({
 
         for (const { content: text, providerOptions } of block.messages) {
           const systemMessageOptions = await parseProviderOptions({
-            provider: 'anthropic',
+            provider: ['anthropic', providerOptionsName],
             providerOptions,
             schema: anthropicSystemMessageProviderOptions,
           });

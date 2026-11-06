@@ -9,6 +9,8 @@ import {
 } from '@ai-sdk/provider';
 import {
   resolveProviderReference,
+  parseProviderOptions,
+  jsonSchema,
   validateTypes,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
@@ -147,8 +149,11 @@ export async function prepareResponsesTools({
   for (const tool of tools) {
     switch (tool.type) {
       case 'function': {
-        const openaiOptions = (tool.providerOptions?.[providerOptionsName] ??
-          tool.providerOptions?.openai) as OpenAIToolOptions | undefined;
+        const openaiOptions = await parseProviderOptions({
+          provider: ['openai', providerOptionsName],
+          providerOptions: tool.providerOptions,
+          schema: jsonSchema<OpenAIToolOptions>({ type: 'object' }),
+        });
         if (openaiOptions?.outputSchema != null) {
           outputSchemaToolNames?.add(tool.name);
         }

@@ -74,7 +74,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
     // Parse provider options
     const openaiOptions =
       (await parseProviderOptions({
-        provider: 'openai',
+        provider: ['openai', this.config.providerOptionsName ?? 'openai'],
         providerOptions,
         schema: openaiEmbeddingModelOptions,
       })) ?? {};

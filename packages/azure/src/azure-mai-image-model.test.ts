@@ -89,6 +89,27 @@ afterEach(() => {
 });
 
 describe('API routing', () => {
+  it('merges OpenAI image options and retains the existing metadata alias', async () => {
+    const { provider, request } = setup();
+    const result = await provider.image('gpt-image-1').doGenerate(
+      callOptions({
+        providerOptions: {
+          openai: { quality: 'low', background: 'opaque' },
+          azure: { quality: 'high' },
+        },
+      }),
+    );
+    expect(request().json()).toMatchObject({
+      quality: 'high',
+      background: 'opaque',
+    });
+    expect(result.providerMetadata?.azure).toEqual(
+      result.providerMetadata?.openai,
+    );
+    expect(result.providerMetadata?.azure).toHaveProperty('images');
+    expect(result.warnings).toEqual([]);
+  });
+
   it.each([
     ['MAI-Image-2.6', undefined, 'mai'],
     ['mai-image-2.6-flash', undefined, 'mai'],

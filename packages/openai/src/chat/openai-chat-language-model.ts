@@ -1,3 +1,4 @@
+import { getOpenAIProviderMetadata } from '../openai-config';
 import {
   InvalidResponseDataError,
   type LanguageModelV4,
@@ -55,6 +56,8 @@ import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 
 type OpenAIChatConfig = {
   provider: string;
+  /** Namespace for provider options and metadata. Defaults to `openai`. */
+  providerOptionsName?: string;
   /** Model ID sent to the API. Defaults to the model's reported ID. */
   requestModelId?: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -117,7 +120,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     // Parse provider options
     const openaiOptions =
       (await parseProviderOptions({
-        provider: 'openai',
+        provider: ['openai', this.config.providerOptionsName ?? 'openai'],
         providerOptions,
         schema: openaiLanguageModelChatOptions,
       })) ?? {};
@@ -169,7 +172,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     // reasoningSummary is a Responses API option that the chat options schema strips,
     // so check the raw provider options to avoid silently ignoring it:
-    if (providerOptions?.openai?.reasoningSummary != null) {
+    if (
+      (providerOptions?.[this.config.providerOptionsName ?? 'openai']
+        ?.reasoningSummary ?? providerOptions?.openai?.reasoningSummary) != null
+    ) {
       warnings.push({
         type: 'unsupported',
         feature: 'reasoningSummary',
@@ -181,6 +187,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     const { messages, warnings: messageWarnings } =
       await convertToOpenAIChatMessages({
         prompt,
+        providerOptionsName: this.config.providerOptionsName,
         systemMessageMode:
           openaiOptions.systemMessageMode ??
           (isReasoningModel
@@ -488,7 +495,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
-    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata =
+      getOpenAIProviderMetadata(this.config.providerOptionsName, {});
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
       providerMetadata.openai.acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
@@ -576,7 +584,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     let isActiveText = false;
     let hasRefusal = false;
 
-    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata =
+      getOpenAIProviderMetadata(this.config.providerOptionsName, {});
 
     const result = {
       stream: checkedResponse.pipeThrough(

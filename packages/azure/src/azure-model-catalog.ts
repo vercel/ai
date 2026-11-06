@@ -1,3 +1,4 @@
+import { openaiProviderOptions } from '@ai-sdk/openai/internal';
 import type {
   ModelEntry,
   ProviderOptionDefinition,
@@ -7,21 +8,24 @@ import type { AzureImageModelOptions } from './azure-image-model-options';
 import type { AzureSpeechModelOptions } from './azure-speech-model-options';
 import type { AzureTranscriptionModelOptions } from './azure-transcription-model-options';
 
-/** Azure-specific options; OpenAI-backed operations retain OpenAI's options. */
+/** Azure options, including options shared with OpenAI-backed operations. */
 export const azureProviderOptions = {
   image: {
+    ...openaiProviderOptions.image,
     api: { description: 'Select the OpenAI or MAI image API.' },
     autoAspectRatio: { description: 'Choose the aspect ratio automatically.' },
     webGrounding: { description: 'Ground image generation in web search.' },
   } satisfies Record<keyof AzureImageModelOptions, ProviderOptionDefinition>,
   speech: {
+    ...openaiProviderOptions.speech,
     api: { description: 'Select the OpenAI or Azure Speech API.' },
     style: { description: 'Speaking style supported by the selected voice.' },
     styleDegree: { description: 'Intensity of the speaking style.' },
   } satisfies Record<keyof AzureSpeechModelOptions, ProviderOptionDefinition>,
   transcription: {
+    ...openaiProviderOptions.transcription,
     api: { description: 'Select the OpenAI, Azure Speech, or MAI API.' },
-    language: { description: 'Language hint for MAI streaming transcription.' },
+    language: { description: 'Language hint for OpenAI or MAI transcription.' },
     timestamps: { description: 'Word, segment, or no timestamps.' },
     transcribeStyle: { description: 'Verbatim or cleaned transcription.' },
     locales: { description: 'Language to use for transcription.' },

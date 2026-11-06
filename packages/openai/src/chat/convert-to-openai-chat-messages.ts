@@ -42,30 +42,31 @@ function serializeToolCallArguments(input: unknown): string {
 
 type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
 
-function getPromptCacheBreakpoint(
-  providerOptions: SharedV4ProviderOptions | undefined,
-): OpenAIPromptCacheBreakpoint | undefined {
-  return providerOptions?.openai?.promptCacheBreakpoint as
-    | OpenAIPromptCacheBreakpoint
-    | undefined;
-}
-
 export async function convertToOpenAIChatMessages({
   prompt,
   systemMessageMode = 'system',
+  providerOptionsName = 'openai',
 }: {
   prompt: LanguageModelV4Prompt;
   systemMessageMode?: 'system' | 'developer' | 'remove';
+  providerOptionsName?: string;
 }): Promise<{
   messages: OpenAIChatPrompt;
   warnings: Array<SharedV4Warning>;
 }> {
+  const getPromptCacheBreakpoint = (
+    providerOptions: SharedV4ProviderOptions | undefined,
+  ) =>
+    (providerOptions?.[providerOptionsName]?.promptCacheBreakpoint ??
+      providerOptions?.openai?.promptCacheBreakpoint) as
+      | OpenAIPromptCacheBreakpoint
+      | undefined;
   const messages: OpenAIChatPrompt = [];
   const warnings: Array<SharedV4Warning> = [];
 
   for (const { role, content, providerOptions } of prompt) {
     const messageOptions = await parseProviderOptions({
-      provider: 'openai',
+      provider: ['openai', providerOptionsName],
       providerOptions,
       schema: openaiChatMessageProviderOptions,
     });
@@ -171,7 +172,7 @@ export async function convertToOpenAIChatMessages({
                       file: {
                         file_id: resolveProviderReference({
                           reference: part.data.reference,
-                          provider: 'openai',
+                          provider: providerOptionsName,
                         }),
                       },
                       ...(promptCacheBreakpoint != null && {
@@ -197,7 +198,10 @@ export async function convertToOpenAIChatMessages({
                               ? part.data.url.toString()
                               : `data:${resolveFullMediaType({ part })};base64,${convertToBase64(part.data.data)}`,
 
-                          detail: part.providerOptions?.openai?.imageDetail,
+                          detail:
+                            part.providerOptions?.[providerOptionsName]
+                              ?.imageDetail ??
+                            part.providerOptions?.openai?.imageDetail,
                         },
                         ...(promptCacheBreakpoint != null && {
                           prompt_cache_breakpoint: promptCacheBreakpoint,

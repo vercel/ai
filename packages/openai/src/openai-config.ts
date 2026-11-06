@@ -1,3 +1,4 @@
+import type { JSONObject } from '@ai-sdk/provider';
 import type {
   Resolvable,
   FetchFunction,
@@ -12,6 +13,8 @@ type SerializedOpenAIConfig = Omit<Partial<OpenAIConfig>, 'headers'> & {
 
 export type OpenAIConfig = {
   provider: string;
+  /** Namespace for provider options and metadata. Defaults to `openai`. */
+  providerOptionsName?: string;
   /** Model ID sent to the API. Defaults to the model's reported ID. */
   requestModelId?: string;
   baseURL?: string;
@@ -76,4 +79,14 @@ export function prepareOpenAIConfigForWorkflowDeserialize(
           ? undefined
           : () => config.headers as OpenAIHeaders,
   };
+}
+
+/** Preserve the canonical namespace when a hosting provider adds its own key. */
+export function getOpenAIProviderMetadata<METADATA extends JSONObject>(
+  providerOptionsName: string | undefined,
+  metadata: METADATA,
+): Record<string, METADATA> {
+  return providerOptionsName == null || providerOptionsName === 'openai'
+    ? { openai: metadata }
+    : { openai: metadata, [providerOptionsName]: metadata };
 }

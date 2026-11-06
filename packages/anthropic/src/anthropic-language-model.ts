@@ -253,6 +253,8 @@ function getProviderOptionsName(provider: string): string {
 
 export type AnthropicLanguageModelConfig = {
   provider: string;
+  /** Explicit data namespace for hosts reusing the Anthropic adapter. */
+  providerOptionsName?: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
@@ -441,33 +443,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const providerOptionsName = getProviderOptionsName(config.provider);
+    const providerOptionsName =
+      config.providerOptionsName ?? getProviderOptionsName(config.provider);
 
-    // Parse provider options from both canonical 'anthropic' key and custom key
-    const canonicalOptions = await parseProviderOptions({
-      provider: 'anthropic',
-      providerOptions,
-      schema: anthropicLanguageModelOptions,
-    });
-
-    const customProviderOptions =
-      providerOptionsName !== 'anthropic'
-        ? await parseProviderOptions({
-            provider: providerOptionsName,
-            providerOptions,
-            schema: anthropicLanguageModelOptions,
-          })
-        : null;
-
-    // Track if custom key was explicitly used
-    const usedCustomProviderKey = customProviderOptions != null;
-
-    // Merge options
-    const anthropicOptions = Object.assign(
-      {},
-      canonicalOptions ?? {},
-      customProviderOptions ?? {},
-    );
+    const usedCustomProviderKey =
+      providerOptionsName !== 'anthropic' &&
+      providerOptions?.[providerOptionsName] != null;
+    const anthropicOptions =
+      (await parseProviderOptions({
+        provider: ['anthropic', providerOptionsName],
+        providerOptions,
+        schema: anthropicLanguageModelOptions,
+      })) ?? {};
 
     if (anthropicOptions.serviceTier != null) {
       const supportedTiers =
@@ -688,6 +675,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       toolsetNames,
       convertMediaPart: config.convertMediaPart,
+      providerOptionsName,
     });
 
     if (thread != null) {
@@ -1358,7 +1346,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     const isCitationPart = (part: {
       type: string;
       mediaType?: string;
-      providerOptions?: { anthropic?: { citations?: { enabled?: boolean } } };
+      providerOptions?: LanguageModelV4CallOptions['providerOptions'];
     }) => {
       if (part.type !== 'file') {
         return false;
@@ -1371,8 +1359,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         return false;
       }
 
-      const anthropic = part.providerOptions?.anthropic;
-      const citationsConfig = anthropic?.citations as
+      const namespace =
+        this.config.providerOptionsName ??
+        getProviderOptionsName(this.config.provider);
+      const citationsConfig = (part.providerOptions?.[namespace]?.citations ??
+        part.providerOptions?.anthropic?.citations) as
         | { enabled?: boolean }
         | undefined;
       return citationsConfig?.enabled ?? false;

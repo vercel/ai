@@ -542,6 +542,10 @@ describe('google-vertex-provider-base', () => {
           "generateId": [MockFunction],
           "headers": [Function],
           "provider": "google.vertex.chat",
+          "providerOptionsNames": [
+            "googleVertex",
+            "vertex",
+          ],
           "supportedUrls": [Function],
         }
       `);
@@ -566,6 +570,10 @@ describe('google-vertex-provider-base', () => {
           "generateId": [MockFunction],
           "headers": [Function],
           "provider": "google.vertex.chat",
+          "providerOptionsNames": [
+            "googleVertex",
+            "vertex",
+          ],
           "supportedUrls": [Function],
         }
       `);

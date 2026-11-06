@@ -1,3 +1,4 @@
+import { getOpenAIProviderMetadata } from '../openai-config';
 import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
@@ -45,6 +46,8 @@ import {
 } from './openai-completion-language-model-options';
 type OpenAICompletionConfig = {
   provider: string;
+  /** Namespace for provider options and metadata. Defaults to `openai`. */
+  providerOptionsName?: string;
   /** Model ID sent to the API. Defaults to the model's reported ID. */
   requestModelId?: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -60,7 +63,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
   private readonly config: OpenAICompletionConfig;
 
   private get providerOptionsName(): string {
-    return this.config.provider.split('.')[0].trim();
+    return (
+      this.config.providerOptionsName ??
+      this.config.provider.split('.')[0].trim()
+    );
   }
 
   static [WORKFLOW_SERIALIZE](model: OpenAICompletionLanguageModel) {
@@ -111,18 +117,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
-    const openaiOptions = {
-      ...(await parseProviderOptions({
-        provider: 'openai',
+    const openaiOptions =
+      (await parseProviderOptions({
+        provider: ['openai', this.providerOptionsName],
         providerOptions,
         schema: openaiLanguageModelCompletionOptions,
-      })),
-      ...(await parseProviderOptions({
-        provider: this.providerOptionsName,
-        providerOptions,
-        schema: openaiLanguageModelCompletionOptions,
-      })),
-    };
+      })) ?? {};
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -213,7 +213,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
 
     const choice = response.choices[0];
 
-    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata =
+      getOpenAIProviderMetadata(this.config.providerOptionsName, {});
 
     if (choice.logprobs != null) {
       providerMetadata.openai.logprobs = choice.logprobs;
@@ -285,7 +286,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
       unified: 'interrupted',
       raw: undefined,
     };
-    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata =
+      getOpenAIProviderMetadata(this.config.providerOptionsName, {});
     let usage: OpenAICompletionUsage | undefined = undefined;
     let isFirstChunk = true;
 

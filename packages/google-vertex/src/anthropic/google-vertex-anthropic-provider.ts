@@ -229,6 +229,7 @@ export function createGoogleVertexAnthropic(
   const createChatModel = (modelId: GoogleVertexAnthropicModelId) =>
     new AnthropicLanguageModel(modelId, {
       provider: 'googleVertex.anthropic.messages',
+      providerOptionsName: 'googleVertex',
       baseURL: getBaseURL(),
       headers: options.headers ?? {},
       fetch: options.fetch,

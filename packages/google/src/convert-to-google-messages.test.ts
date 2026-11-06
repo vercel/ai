@@ -33,6 +33,31 @@ describe('system messages', () => {
 });
 
 describe('thought signatures', () => {
+  it('does not let unrelated preferred-namespace metadata hide an alias signature', () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: '',
+              providerOptions: {
+                googleVertex: { unrelated: true },
+                vertex: {},
+                google: { thoughtSignature: 'signature' },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsNames: ['googleVertex', 'vertex'] },
+    );
+    expect(result.contents[0].parts).toEqual([
+      { text: '', thoughtSignature: 'signature' },
+    ]);
+  });
+
   it.each(['google', 'vertex', 'googleVertex'])(
     'preserves standalone empty text and reasoning signatures from %s',
     namespace => {

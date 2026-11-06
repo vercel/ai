@@ -135,6 +135,74 @@ describe('API routing', () => {
     expect(request().url).toContain('/speechtotext/');
   });
 
+  it.each<
+    NonNullable<
+      Parameters<TranscriptionModelV4['doGenerate']>[0]['providerOptions']
+    >
+  >([
+    { openai: { language: 'en', prompt: 'Names' } },
+    { azure: { language: 'en', prompt: 'Names' } },
+    { openai: { language: 'de', prompt: 'Names' }, azure: { language: 'en' } },
+    { openai: { language: 'en', prompt: 'Names' }, azure: {} },
+  ])('resolves OpenAI transcription namespaces: %j', async providerOptions => {
+    const { provider, request } = setup();
+    const result = await provider
+      .transcription('whisper-1')
+      .doGenerate({ ...input, providerOptions });
+    expect(request().body.get('language')).toBe('en');
+    expect(request().body.get('prompt')).toBe('Names');
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('keeps OpenAI-only options out of Speech requests and reports them', async () => {
+    const { provider, definition } = setup();
+    const result = await provider.transcription('mai-transcribe-2').doGenerate({
+      ...input,
+      providerOptions: { azure: { prompt: 'Names' } },
+    });
+    expect(definition()).not.toHaveProperty('prompt');
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'providerOptions.azure.prompt',
+      details: 'This option requires the OpenAI transcription API.',
+    });
+  });
+
+  it('reports ignored legacy OpenAI fields on the Speech backend', async () => {
+    const { provider } = setup();
+    const result = await provider.transcription('mai-transcribe-2').doGenerate({
+      ...input,
+      providerOptions: {
+        openai: { language: 'en', prompt: 'Names' },
+        azure: {},
+      },
+    });
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'providerOptions.openai.language',
+        details: 'This option requires the OpenAI transcription API.',
+      },
+      {
+        type: 'unsupported',
+        feature: 'providerOptions.openai.prompt',
+        details: 'This option requires the OpenAI transcription API.',
+      },
+    ]);
+  });
+
+  it('returns OpenAI-backed metadata under Azure and its existing OpenAI alias', async () => {
+    const { provider, fetch } = setup();
+    fetch.mockResolvedValueOnce(
+      Response.json({ text: 'Hello', languages: [{ code: 'en' }] }),
+    );
+    const result = await provider.transcription('whisper-1').doGenerate(input);
+    expect(result.providerMetadata).toEqual({
+      azure: { languages: [{ code: 'en' }] },
+      openai: { languages: [{ code: 'en' }] },
+    });
+  });
+
   it('preserves OpenAI options and warns about Speech-only options', async () => {
     const { provider, request } = setup();
     const result = await provider.transcription('whisper-1').doGenerate({
@@ -542,6 +610,36 @@ describe('Speech responses', () => {
 });
 
 describe('streaming and serialization', () => {
+  it('includes ignored Speech options in OpenAI streaming warnings', async () => {
+    const { provider } = setup();
+    vi.spyOn(OpenAITranscriptionModel.prototype, 'doStream').mockResolvedValue({
+      stream: new ReadableStream({
+        start(controller) {
+          controller.enqueue({ type: 'stream-start', warnings: [] });
+          controller.close();
+        },
+      }),
+    });
+    const { stream } = await provider.transcription('gpt-live-transcribe')
+      .doStream!({
+      audio: new ReadableStream(),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      providerOptions: { azure: { locales: ['en'] } },
+    });
+    expect(await stream.getReader().read()).toMatchObject({
+      value: {
+        type: 'stream-start',
+        warnings: [
+          {
+            type: 'unsupported',
+            feature: 'providerOptions.azure.locales',
+            details: 'This option requires the Azure Speech API.',
+          },
+        ],
+      },
+    });
+  });
+
   it('delegates OpenAI streaming without changing call options', async () => {
     const { provider } = setup();
     const result = { stream: new ReadableStream() };

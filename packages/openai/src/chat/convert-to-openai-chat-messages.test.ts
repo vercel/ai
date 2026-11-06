@@ -1388,3 +1388,50 @@ describe('message names', () => {
     expect(result.messages).toEqual([{ role: 'user', content: 'Hello' }]);
   });
 });
+
+describe('configured namespace', () => {
+  it('resolves request fields independently across message and part namespaces', async () => {
+    const { messages } = await convertToOpenAIChatMessages({
+      providerOptionsName: 'azure',
+      prompt: [
+        {
+          role: 'user',
+          providerOptions: {
+            openai: { name: 'fallback' },
+            azure: { name: 'host' },
+          },
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: {
+                type: 'url',
+                url: new URL('https://example.com/image.png'),
+              },
+              providerOptions: {
+                openai: {
+                  imageDetail: 'low',
+                  promptCacheBreakpoint: { mode: 'explicit' },
+                },
+                azure: { imageDetail: 'high' },
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        name: 'host',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: 'https://example.com/image.png', detail: 'high' },
+            prompt_cache_breakpoint: { mode: 'explicit' },
+          },
+        ],
+      },
+    ]);
+  });
+});

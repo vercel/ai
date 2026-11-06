@@ -24,7 +24,7 @@ import {
   type WebSocketConnection,
   type WebSocketLike,
 } from '@ai-sdk/provider-utils';
-import type { OpenAIConfig } from '../openai-config';
+import { getOpenAIProviderMetadata, type OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAITranscriptionModelEntry } from '../openai-model-catalog';
 import { openaiTranscriptionResponseSchema } from './openai-transcription-api';
@@ -33,23 +33,9 @@ import {
   type OpenAITranscriptionModelId,
   type OpenAITranscriptionModelOptions,
 } from './openai-transcription-model-options';
-export type OpenAITranscriptionCallOptions = Omit<
-  TranscriptionModelV4CallOptions,
-  'providerOptions'
-> & {
-  providerOptions?: {
-    openai?: OpenAITranscriptionModelOptions;
-  };
-};
-
-export type OpenAITranscriptionStreamOptions = Omit<
-  TranscriptionModelV4StreamOptions,
-  'providerOptions'
-> & {
-  providerOptions?: {
-    openai?: OpenAITranscriptionModelOptions;
-  };
-};
+export type OpenAITranscriptionCallOptions = TranscriptionModelV4CallOptions;
+export type OpenAITranscriptionStreamOptions =
+  TranscriptionModelV4StreamOptions;
 
 type OpenAIRealtimeTranscriptionEvent = {
   type?: string;
@@ -168,7 +154,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
 
     // Parse provider options
     const openAIOptions = await parseProviderOptions({
-      provider: 'openai',
+      provider: ['openai', this.config.providerOptionsName ?? 'openai'],
       providerOptions,
       schema: openAITranscriptionModelOptions,
     });
@@ -381,8 +367,9 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       },
       ...(((diarizedSegments != null && diarizedSegments.length > 0) ||
         response.languages != null) && {
-        providerMetadata: {
-          openai: {
+        providerMetadata: getOpenAIProviderMetadata(
+          this.config.providerOptionsName,
+          {
             ...(diarizedSegments != null &&
               diarizedSegments.length > 0 && {
                 segments: diarizedSegments,
@@ -391,7 +378,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
               languages: response.languages,
             }),
           },
-        },
+        ),
       }),
     };
   }
@@ -410,7 +397,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const openAIOptions = await parseProviderOptions({
-      provider: 'openai',
+      provider: ['openai', this.config.providerOptionsName ?? 'openai'],
       providerOptions: options.providerOptions,
       schema: openAITranscriptionModelOptions,
     });
@@ -418,7 +405,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
 
     // options that only apply to the REST transcription endpoint
     // (checked on the raw options because some have schema defaults):
-    const rawOpenAIOptions = options.providerOptions?.openai ?? {};
+    const providerOptionsName = this.config.providerOptionsName ?? 'openai';
     for (const option of [
       'include',
       'languages',
@@ -427,10 +414,14 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       'temperature',
       'timestampGranularities',
     ]) {
-      if (rawOpenAIOptions[option as keyof typeof rawOpenAIOptions] != null) {
+      const namespace =
+        options.providerOptions?.[providerOptionsName]?.[option] !== undefined
+          ? providerOptionsName
+          : 'openai';
+      if (options.providerOptions?.[namespace]?.[option] != null) {
         warnings.push({
           type: 'unsupported',
-          feature: `providerOptions.openai.${option}`,
+          feature: `providerOptions.${namespace}.${option}`,
           details: `OpenAI streaming transcription does not support ${option}.`,
         });
       }
@@ -442,7 +433,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     if (!supportsDelay && openAIOptions?.streaming?.delay != null) {
       warnings.push({
         type: 'unsupported',
-        feature: 'providerOptions.openai.streaming.delay',
+        feature: `providerOptions.${options.providerOptions?.[providerOptionsName]?.streaming != null ? providerOptionsName : 'openai'}.streaming.delay`,
         details: `OpenAI streaming transcription with ${this.modelId} does not support delay.`,
       });
     }

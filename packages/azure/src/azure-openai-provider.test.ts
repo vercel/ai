@@ -70,6 +70,7 @@ function prepareChunksFixtureResponse(
 function createModel(modelId: string) {
   return new OpenAIResponsesLanguageModel(modelId, {
     provider: 'azure.responses',
+    providerOptionsName: 'azure',
     url: ({ path }) =>
       `https://test-resource.openai.azure.com/openai/v1${path}`,
     headers: () => ({ Authorization: `Bearer APIKEY` }),

@@ -323,6 +323,7 @@ export function createGoogleVertex(
 
     return new GoogleLanguageModel(modelId, {
       ...createConfig('chat', { endpoint }),
+      providerOptionsNames: ['googleVertex', 'vertex'],
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
         '*': [

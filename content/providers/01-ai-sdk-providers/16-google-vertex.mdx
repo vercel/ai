@@ -304,6 +304,17 @@ const googleVertex = createGoogleVertex({
 
 ### Language Models
 
+For Gemini language and embedding models, use `providerOptions.googleVertex`.
+The legacy `vertex` namespace and the underlying `google` namespace are also
+accepted. Fields are resolved in the order `google`, `vertex`, `googleVertex`,
+with later namespaces overriding only fields they supply. Empty objects do not
+hide fallback fields. Nested objects are replaced as a whole, and validation and
+defaults are applied after resolution.
+
+Returned Gemini metadata retains the `googleVertex` and legacy `vertex` keys.
+When replaying metadata, the adapter selects a complete thought signature or
+tool-state group from one namespace; it does not merge opaque state across keys.
+
 You can create models that call the Vertex API using the provider instance.
 The first argument is the model id, e.g. `gemini-3.8-flash`.
 

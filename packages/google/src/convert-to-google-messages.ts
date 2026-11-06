@@ -328,23 +328,23 @@ export function convertToGoogleMessages(
     return SKIP_THOUGHT_SIGNATURE_VALIDATOR;
   };
 
-  const readProviderOpts = (part: {
-    providerOptions?: Record<string, unknown> | undefined;
-  }): Record<string, unknown> | undefined => {
-    for (const name of providerOptionsNames) {
-      const v = part.providerOptions?.[name];
-      if (v != null) return v as Record<string, unknown>;
-    }
-    // Cross-namespace fallback (gateway interop): Vertex providers may receive
-    // metadata under `google`, and the Google provider may receive metadata
-    // under `googleVertex`/`vertex`.
-    if (isVertexLike) {
-      return part.providerOptions?.google as
+  const readProviderOpts = (
+    part: { providerOptions?: Record<string, unknown> | undefined },
+    requiredKeys: readonly string[] = [],
+  ): Record<string, unknown> | undefined => {
+    const namespaces = [
+      ...providerOptionsNames,
+      ...(isVertexLike ? ['google'] : ['googleVertex', 'vertex']),
+    ];
+    for (const name of namespaces) {
+      const value = part.providerOptions?.[name] as
         | Record<string, unknown>
         | undefined;
+      // Select a complete metadata group; never combine opaque state across keys.
+      if (value != null && requiredKeys.every(key => value[key] != null))
+        return value;
     }
-    return (part.providerOptions?.googleVertex ??
-      part.providerOptions?.vertex) as Record<string, unknown> | undefined;
+    return undefined;
   };
 
   for (const { role, content } of prompt) {
@@ -374,7 +374,9 @@ export function convertToGoogleMessages(
             }
 
             case 'file': {
-              const rawVideoMetadata = readProviderOpts(part)?.videoMetadata;
+              const rawVideoMetadata = readProviderOpts(part, [
+                'videoMetadata',
+              ])?.videoMetadata;
               const videoMetadata =
                 rawVideoMetadata == null
                   ? undefined
@@ -458,7 +460,9 @@ export function convertToGoogleMessages(
           role: 'model',
           parts: content
             .map(part => {
-              const providerOpts = readProviderOpts(part);
+              const providerOpts =
+                readProviderOpts(part, ['thoughtSignature']) ??
+                readProviderOpts(part);
               const thoughtSignature =
                 providerOpts?.thoughtSignature != null
                   ? String(providerOpts.thoughtSignature)
@@ -688,7 +692,10 @@ export function convertToGoogleMessages(
             continue;
           }
 
-          const partProviderOpts = readProviderOpts(part);
+          const partProviderOpts = readProviderOpts(part, [
+            'serverToolCallId',
+            'serverToolType',
+          ]);
           const serverToolCallId =
             partProviderOpts?.serverToolCallId != null
               ? String(partProviderOpts.serverToolCallId)

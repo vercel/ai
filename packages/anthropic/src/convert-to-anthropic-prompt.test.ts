@@ -5780,6 +5780,44 @@ describe('cache control', () => {
 });
 
 describe('citations', () => {
+  it('resolves host file options without hiding canonical fields', async () => {
+    const result = await convertToAnthropicPrompt({
+      providerOptionsName: 'googleVertex',
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              data: {
+                type: 'data',
+                data: new TextEncoder().encode('Document text'),
+              },
+              providerOptions: {
+                anthropic: {
+                  title: 'Canonical title',
+                  citations: { enabled: true },
+                },
+                googleVertex: { title: 'Host title' },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+    expect(result.prompt.messages[0].content).toContainEqual(
+      expect.objectContaining({
+        type: 'document',
+        title: 'Host title',
+        citations: { enabled: true },
+      }),
+    );
+  });
+
   it('should not include citations by default', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [

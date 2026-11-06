@@ -214,6 +214,36 @@ describe('GoogleVertexEmbeddingModel', () => {
       `);
     });
 
+    it('merges Google, legacy Vertex, and preferred Vertex options per field', async () => {
+      await model.doEmbed({
+        values: testValues,
+        providerOptions: {
+          google: {
+            title: 'Shared title',
+            taskType: 'RETRIEVAL_DOCUMENT',
+            outputDimensionality: 256,
+          },
+          vertex: { outputDimensionality: 512 },
+          googleVertex: { autoTruncate: false },
+        },
+      });
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        instances: [
+          {
+            content: testValues[0],
+            title: 'Shared title',
+            task_type: 'RETRIEVAL_DOCUMENT',
+          },
+          {
+            content: testValues[1],
+            title: 'Shared title',
+            task_type: 'RETRIEVAL_DOCUMENT',
+          },
+        ],
+        parameters: { outputDimensionality: 512, autoTruncate: false },
+      });
+    });
+
     it('should pass the taskType setting in instances', async () => {
       await model.doEmbed({
         values: testValues,

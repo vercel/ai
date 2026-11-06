@@ -1,3 +1,4 @@
+import { openaiSpeechModelOptionsShape } from '@ai-sdk/openai/internal';
 import {
   lazySchema,
   zodSchema,
@@ -14,6 +15,7 @@ export const azureSpeechModelOptions = lazySchema(() =>
        * API to use. Defaults to Speech for MAI-Voice models, OpenAI otherwise.
        */
       api: z.enum(['openai', 'speech']).optional(),
+      ...openaiSpeechModelOptionsShape(),
       ...azureSpeechSpeechModelOptionsShape(),
     }),
   ),

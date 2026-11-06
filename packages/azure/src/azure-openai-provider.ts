@@ -399,6 +399,7 @@ export function createAzure(
   ) =>
     new OpenAIChatLanguageModel(settings?.modelId ?? deploymentId, {
       provider: 'azure.chat',
+      providerOptionsName: 'azure',
       requestModelId: deploymentId,
       url,
       headers: getHeaders,
@@ -423,6 +424,7 @@ export function createAzure(
   ) =>
     new OpenAICompletionLanguageModel(settings?.modelId ?? deploymentId, {
       provider: 'azure.completion',
+      providerOptionsName: 'azure',
       requestModelId: deploymentId,
       url,
       headers: getHeaders,
@@ -432,6 +434,7 @@ export function createAzure(
   const createEmbeddingModel = (modelId: string) =>
     new OpenAIEmbeddingModel(modelId, {
       provider: 'azure.embeddings',
+      providerOptionsName: 'azure',
       headers: getHeaders,
       url,
       fetch,
@@ -443,6 +446,7 @@ export function createAzure(
   ) =>
     new OpenAIResponsesLanguageModel(settings?.modelId ?? deploymentId, {
       provider: 'azure.responses',
+      providerOptionsName: 'azure',
       requestModelId: deploymentId,
       url,
       headers: getHeaders,
@@ -462,6 +466,7 @@ export function createAzure(
       options,
       new OpenAIImageModel(modelId, {
         provider: 'azure.image',
+        providerOptionsName: 'azure',
         url,
         headers: getHeaders,
         fetch,
@@ -489,6 +494,7 @@ export function createAzure(
       options,
       new OpenAITranscriptionModel(modelId, {
         provider: 'azure.transcription',
+        providerOptionsName: 'azure',
         url,
         headers: getHeaders,
         fetch,
@@ -518,6 +524,7 @@ export function createAzure(
       options,
       new OpenAISpeechModel(modelId, {
         provider: 'azure.speech',
+        providerOptionsName: 'azure',
         url,
         headers: getHeaders,
         fetch,
@@ -595,9 +602,8 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(options: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
-    const { api, speechOptions, maiOptions } = await this.getOptions(
-      options.providerOptions,
-    );
+    const { api, speechOptions, maiOptions, openaiOptions } =
+      await this.getOptions(options.providerOptions);
     if (api === 'mai') {
       return this.mai.doGenerate();
     }
@@ -605,40 +611,73 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
       const result = await this.speech.doGenerate(options, speechOptions);
       return {
         ...result,
-        warnings: [...result.warnings, ...maiOnlyWarnings(maiOptions)],
+        warnings: [
+          ...result.warnings,
+          ...maiOnlyWarnings(maiOptions),
+          ...unsupportedOptionWarnings(
+            openaiOptions,
+            'This option requires the OpenAI transcription API.',
+          ),
+          ...unsupportedOptionWarnings(
+            options.providerOptions?.openai ?? {},
+            'This option requires the OpenAI transcription API.',
+            'openai',
+          ),
+        ],
       };
     }
 
     const result = await this.openai.doGenerate(options);
     return {
       ...result,
-      warnings: [
-        ...result.warnings,
-        ...speechOnlyWarnings(speechOptions),
-        ...maiOnlyWarnings(maiOptions),
-      ],
+      warnings: [...result.warnings, ...speechOnlyWarnings(speechOptions)],
     };
   }
 
   async doStream(
     options: Parameters<NonNullable<TranscriptionModelV4['doStream']>>[0],
   ) {
-    const { api, speechOptions, maiOptions } = await this.getOptions(
-      options.providerOptions,
-    );
+    const { api, speechOptions, maiOptions, openaiOptions } =
+      await this.getOptions(options.providerOptions);
     if (api === 'speech') {
       throw new UnsupportedFunctionalityError({
         functionality: 'streaming transcription with the Azure Speech API',
       });
     }
     if (api === 'mai') {
-      return this.mai.doStream(
-        options,
-        maiOptions,
-        speechOnlyWarnings(speechOptions),
-      );
+      return this.mai.doStream(options, maiOptions, [
+        ...speechOnlyWarnings(speechOptions),
+        ...unsupportedOptionWarnings(
+          openaiOptions,
+          'This option requires the OpenAI transcription API.',
+        ),
+        ...unsupportedOptionWarnings(
+          options.providerOptions?.openai ?? {},
+          'This option requires the OpenAI transcription API.',
+          'openai',
+        ),
+      ]);
     }
-    return this.openai.doStream(options);
+    const result = await this.openai.doStream(options);
+    const warnings = speechOnlyWarnings(speechOptions);
+    if (warnings.length === 0) return result;
+    return {
+      ...result,
+      stream: result.stream.pipeThrough(
+        new TransformStream({
+          transform(chunk, controller) {
+            controller.enqueue(
+              chunk.type === 'stream-start'
+                ? {
+                    ...chunk,
+                    warnings: [...chunk.warnings, ...warnings],
+                  }
+                : chunk,
+            );
+          },
+        }),
+      ),
+    };
   }
 
   private async getOptions(
@@ -646,22 +685,47 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
       TranscriptionModelV4['doGenerate']
     >[0]['providerOptions'],
   ) {
-    const { api, language, ...speechOptions } =
+    const parsed =
       (await parseProviderOptions({
         provider: 'azure',
         providerOptions,
         schema: azureTranscriptionModelOptions,
       })) ?? {};
+    const api =
+      parsed.api ??
+      (isMAITranscribeStreaming(this.modelId)
+        ? 'mai'
+        : getMAITranscribeModel(this.modelId)
+          ? 'speech'
+          : 'openai');
+    const {
+      api: _api,
+      language,
+      timestamps,
+      transcribeStyle,
+      locales,
+      diarization,
+      phraseList,
+      ...openaiOptions
+    } = parsed;
+    const raw = providerOptions?.azure;
+
     return {
-      api:
-        api ??
-        (isMAITranscribeStreaming(this.modelId)
-          ? ('mai' as const)
-          : getMAITranscribeModel(this.modelId)
-            ? ('speech' as const)
-            : ('openai' as const)),
-      speechOptions,
-      maiOptions: language != null ? { language } : {},
+      api,
+      speechOptions: {
+        timestamps,
+        transcribeStyle,
+        locales,
+        diarization,
+        phraseList,
+      },
+      maiOptions: api === 'openai' ? {} : language != null ? { language } : {},
+      // Only explicit fields should warn; schema defaults are not user requests.
+      openaiOptions: Object.fromEntries(
+        Object.entries(openaiOptions).filter(
+          ([key]) => raw?.[key] !== undefined,
+        ),
+      ),
     };
   }
 }
@@ -693,7 +757,7 @@ class AzureSpeechModel implements SpeechModelV4 {
   }
 
   async doGenerate(options: Parameters<SpeechModelV4['doGenerate']>[0]) {
-    const { api, ...speechOptions } =
+    const { api, style, styleDegree, ...openaiOptions } =
       (await parseProviderOptions({
         provider: 'azure',
         providerOptions: options.providerOptions,
@@ -703,13 +767,34 @@ class AzureSpeechModel implements SpeechModelV4 {
       (api ?? (getMAIVoiceModel(this.modelId) ? 'speech' : 'openai')) ===
       'speech'
     ) {
-      return this.speech.doGenerate(options, speechOptions);
+      const result = await this.speech.doGenerate(options, {
+        style,
+        styleDegree,
+      });
+      return {
+        ...result,
+        warnings: [
+          ...result.warnings,
+          ...unsupportedOptionWarnings(
+            openaiOptions,
+            'This option requires the OpenAI speech API.',
+          ),
+          ...unsupportedOptionWarnings(
+            options.providerOptions?.openai ?? {},
+            'This option requires the OpenAI speech API.',
+            'openai',
+          ),
+        ],
+      };
     }
 
     const result = await this.openai.doGenerate(options);
     return {
       ...result,
-      warnings: [...result.warnings, ...speechOnlyWarnings(speechOptions)],
+      warnings: [
+        ...result.warnings,
+        ...speechOnlyWarnings({ style, styleDegree }),
+      ],
     };
   }
 }
@@ -758,14 +843,32 @@ class AzureImageModel implements ImageModelV4 {
   }
 
   async doGenerate(options: Parameters<ImageModelV4['doGenerate']>[0]) {
-    const { api, ...maiOptions } =
+    const { api, autoAspectRatio, webGrounding, ...openaiOptions } =
       (await parseProviderOptions({
         provider: 'azure',
         providerOptions: options.providerOptions,
         schema: azureImageModelOptions,
       })) ?? {};
     if ((api ?? (isMAIImageModel(this.modelId) ? 'mai' : 'openai')) === 'mai') {
-      return this.mai.doGenerate(options, maiOptions);
+      const result = await this.mai.doGenerate(options, {
+        autoAspectRatio,
+        webGrounding,
+      });
+      return {
+        ...result,
+        warnings: [
+          ...result.warnings,
+          ...unsupportedOptionWarnings(
+            openaiOptions,
+            'This option requires the OpenAI image API.',
+          ),
+          ...unsupportedOptionWarnings(
+            options.providerOptions?.openai ?? {},
+            'This option requires the OpenAI image API.',
+            'openai',
+          ),
+        ],
+      };
     }
 
     const result = await this.openai.doGenerate(options);
@@ -774,7 +877,7 @@ class AzureImageModel implements ImageModelV4 {
       warnings: [
         ...result.warnings,
         ...unsupportedOptionWarnings(
-          maiOptions,
+          { autoAspectRatio, webGrounding },
           'This option requires the MAI image API.',
         ),
       ],
@@ -799,12 +902,13 @@ function maiOnlyWarnings(options: Record<string, unknown>) {
 function unsupportedOptionWarnings(
   options: Record<string, unknown>,
   details: string,
+  namespace = 'azure',
 ): SharedV4Warning[] {
   return Object.entries(options)
     .filter(([, value]) => value !== undefined)
     .map(([key]) => ({
       type: 'unsupported',
-      feature: `providerOptions.azure.${key}`,
+      feature: `providerOptions.${namespace}.${key}`,
       details,
     }));
 }

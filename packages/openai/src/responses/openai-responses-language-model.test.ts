@@ -6990,7 +6990,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
-    describe('providerMetadata key based on provider string', () => {
+    describe('explicit providerMetadata namespace', () => {
       const baseResponseBody = {
         id: 'resp_provider_metadata',
         object: 'response',
@@ -7023,7 +7023,33 @@ describe('OpenAIResponsesLanguageModel', () => {
         metadata: {},
       };
 
-      it('should use "azure" as providerMetadata key when provider includes "azure"', async () => {
+      it('merges request fields using the explicit namespace regardless of provider name', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: { ...baseResponseBody, output: [] },
+        };
+        const model = new OpenAIResponsesLanguageModel('o3', {
+          provider: 'custom.responses',
+          providerOptionsName: 'azure',
+          url: ({ path }) => `https://api.openai.com/v1${path}`,
+          headers: {},
+        });
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { store: false, reasoningEffort: 'high' },
+            azure: { reasoningEffort: 'low' },
+          },
+        });
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          store: false,
+          reasoning: { effort: 'low' },
+        });
+        expect(result.providerMetadata).toHaveProperty('azure');
+        expect(result.providerMetadata).not.toHaveProperty('custom');
+      });
+
+      it('should use "azure" as providerMetadata key when configured as "azure"', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'json-value',
           body: {
@@ -7049,6 +7075,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         const model = new OpenAIResponsesLanguageModel('gpt-4o', {
           provider: 'azure.responses',
+          providerOptionsName: 'azure',
           url: ({ path }) => `https://api.openai.com/v1${path}`,
           headers: () => ({ Authorization: `Bearer APIKEY` }),
           generateId: mockId(),
@@ -7065,7 +7092,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
-      it('should use "openai" as providerMetadata key when provider does not include "azure"', async () => {
+      it('should use "openai" as providerMetadata key by default', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'json-value',
           body: {
@@ -7100,7 +7127,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
-      it('should use "azure" as providerMetadata key in tool call content when provider includes "azure"', async () => {
+      it('should use "azure" as providerMetadata key in tool call content when configured as "azure"', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'json-value',
           body: {
@@ -7121,6 +7148,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         const model = new OpenAIResponsesLanguageModel('gpt-4o', {
           provider: 'azure.responses',
+          providerOptionsName: 'azure',
           url: ({ path }) => `https://api.openai.com/v1${path}`,
           headers: () => ({ Authorization: `Bearer APIKEY` }),
           generateId: mockId(),
@@ -7561,6 +7589,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
           const result = await new OpenAIResponsesLanguageModel('gpt-4o', {
             provider,
+            providerOptionsName: providerMetadataKey,
             url: ({ path }) => `https://api.openai.com/v1${path}`,
             headers: () => ({ Authorization: 'Bearer APIKEY' }),
             generateId: mockId(),
@@ -8691,7 +8720,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
-    describe('providerMetadata key based on provider string', () => {
+    describe('explicit providerMetadata namespace', () => {
       const streamingChunks = [
         `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
         `data:{"type":"response.in_progress","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
@@ -8705,7 +8734,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         `data:{"type":"response.completed","response":{"id":"resp_67c9a878139c8190aa2e3105411b408b","object":"response","created_at":1741269112,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, World!","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":543,"input_tokens_details":{"cached_tokens":234},"output_tokens":478,"output_tokens_details":{"reasoning_tokens":123},"total_tokens":512},"user":null,"metadata":{}}}\n\n`,
       ];
 
-      it('should use "azure" as providerMetadata key in finish event when provider "azure" but providerOptions is "openai"', async () => {
+      it('should use "azure" as providerMetadata key in finish event with an Azure namespace and OpenAI request options', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
           chunks: streamingChunks,
@@ -8713,6 +8742,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         const model = new OpenAIResponsesLanguageModel('gpt-4o', {
           provider: 'azure.responses',
+          providerOptionsName: 'azure',
           url: ({ path }) => `https://api.openai.com/v1${path}`,
           headers: () => ({ Authorization: `Bearer APIKEY` }),
         });
@@ -8740,7 +8770,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         }
       });
 
-      it('should use "openai" as providerMetadata key in finish event when provider does not include "azure"', async () => {
+      it('should use "openai" as providerMetadata key in finish event by default', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
           chunks: streamingChunks,
@@ -8764,7 +8794,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         }
       });
 
-      it('should use "azure" as providerMetadata key in streaming reasoning events when provider includes "azure"', async () => {
+      it('should use "azure" as providerMetadata key in streaming reasoning events when configured as "azure"', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
           chunks: [
@@ -8780,6 +8810,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         const model = new OpenAIResponsesLanguageModel('o3-mini', {
           provider: 'azure.responses',
+          providerOptionsName: 'azure',
           url: ({ path }) => `https://api.openai.com/v1${path}`,
           headers: () => ({ Authorization: `Bearer APIKEY` }),
         });

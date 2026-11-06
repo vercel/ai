@@ -71,29 +71,12 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
   }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
-    let googleOptions = await parseProviderOptions({
-      provider: 'googleVertex',
-      providerOptions,
-      schema: googleVertexEmbeddingModelOptions,
-    });
-
-    if (googleOptions == null) {
-      googleOptions = await parseProviderOptions({
-        provider: 'vertex',
+    const googleOptions =
+      (await parseProviderOptions({
+        provider: ['google', 'vertex', 'googleVertex'],
         providerOptions,
         schema: googleVertexEmbeddingModelOptions,
-      });
-    }
-
-    if (googleOptions == null) {
-      googleOptions = await parseProviderOptions({
-        provider: 'google',
-        providerOptions,
-        schema: googleVertexEmbeddingModelOptions,
-      });
-    }
-
-    googleOptions = googleOptions ?? {};
+      })) ?? {};
 
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({

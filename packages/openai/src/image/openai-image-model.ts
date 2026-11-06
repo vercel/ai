@@ -18,7 +18,7 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import type { OpenAIConfig } from '../openai-config';
+import { getOpenAIProviderMetadata, type OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAIImageModelEntry } from '../openai-model-catalog';
 import { openaiImageResponseSchema } from './openai-image-api';
@@ -124,7 +124,7 @@ export class OpenAIImageModel implements ImageModelV4 {
     if (files != null) {
       const openaiOptions =
         (await parseProviderOptions({
-          provider: 'openai',
+          provider: ['openai', this.config.providerOptionsName ?? 'openai'],
           providerOptions,
           schema: openaiImageModelEditOptions,
         })) ?? {};
@@ -204,8 +204,9 @@ export class OpenAIImageModel implements ImageModelV4 {
           modelId: this.modelId,
           headers: responseHeaders,
         },
-        providerMetadata: {
-          openai: {
+        providerMetadata: getOpenAIProviderMetadata(
+          this.config.providerOptionsName,
+          {
             images: response.data.map((item, index) => ({
               ...(item.revised_prompt
                 ? { revisedPrompt: item.revised_prompt }
@@ -222,13 +223,13 @@ export class OpenAIImageModel implements ImageModelV4 {
               ),
             })),
           },
-        },
+        ),
       };
     }
 
     const openaiOptions =
       (await parseProviderOptions({
-        provider: 'openai',
+        provider: ['openai', this.config.providerOptionsName ?? 'openai'],
         providerOptions,
         schema: openaiImageModelGenerationOptions,
       })) ?? {};
@@ -283,8 +284,9 @@ export class OpenAIImageModel implements ImageModelV4 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: {
-        openai: {
+      providerMetadata: getOpenAIProviderMetadata(
+        this.config.providerOptionsName,
+        {
           images: response.data.map((item, index) => ({
             ...(item.revised_prompt
               ? { revisedPrompt: item.revised_prompt }
@@ -301,7 +303,7 @@ export class OpenAIImageModel implements ImageModelV4 {
             ),
           })),
         },
-      },
+      ),
     };
   }
 }

@@ -1,3 +1,9 @@
+import type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-model-options';
+import type { OpenAISpeechModelOptions } from './speech/openai-speech-model-options';
+import type {
+  OpenAIImageModelGenerationOptions,
+  OpenAIImageModelEditOptions,
+} from './image/openai-image-model-options';
 import type {
   ModelCapabilities,
   ModelCapability,
@@ -15,6 +21,53 @@ type OpenAILanguageProviderOption = keyof OpenAILanguageModelResponsesOptions;
  * the option schema.
  */
 export const openaiProviderOptions = {
+  transcription: {
+    include: {
+      description: 'Additional fields in the transcription response.',
+    },
+    language: { description: 'Input audio language in ISO-639-1 format.' },
+    languages: { description: 'Expected languages for REST transcription.' },
+    keywords: { description: 'Vocabulary hints for REST transcription.' },
+    prompt: { description: 'Text guiding the transcription style or context.' },
+    temperature: { description: 'Sampling temperature.' },
+    timestampGranularities: {
+      description: 'Word or segment timestamp granularities.',
+    },
+    responseFormat: { description: 'Transcription response format.' },
+    chunkingStrategy: { description: 'How audio is split into chunks.' },
+    streaming: {
+      description: 'Streaming transcription delay and response fields.',
+    },
+  } satisfies Record<
+    keyof OpenAITranscriptionModelOptions,
+    ProviderOptionDefinition
+  >,
+  speech: {
+    instructions: { description: 'Instructions for generating speech.' },
+    speed: { description: 'Speed of generated speech.' },
+  } satisfies Record<keyof OpenAISpeechModelOptions, ProviderOptionDefinition>,
+  image: {
+    quality: { description: 'Generated image quality.' },
+    background: {
+      description: 'Transparent, opaque, or automatic background.',
+    },
+    outputFormat: { description: 'Generated image format.' },
+    complexity: { description: 'Image generation complexity.' },
+    outputCompression: { description: 'Compression of the generated image.' },
+    user: { description: 'End-user identifier.' },
+    safetyIdentifier: {
+      description: 'Hashed user identifier for safety monitoring.',
+    },
+    style: { description: 'Vivid or natural image style.' },
+    frameCount: { description: 'Number of frames in an animated GIF.' },
+    frameDurationMs: { description: 'Frame duration for animated GIFs.' },
+    moderation: { description: 'Image content moderation level.' },
+    inputFidelity: { description: 'Fidelity to input images.' },
+    markup: { description: 'Transparent PNG marking image regions to edit.' },
+  } satisfies Record<
+    keyof OpenAIImageModelGenerationOptions | keyof OpenAIImageModelEditOptions,
+    ProviderOptionDefinition
+  >,
   language: {
     conversation: { description: 'OpenAI Conversation ID to continue.' },
     include: { description: 'Extra fields to include in the response.' },

@@ -113,14 +113,17 @@ import type {
  */
 function extractApprovalRequestIdToToolCallIdMapping(
   prompt: LanguageModelV4Prompt,
+  providerOptionsName: string,
 ): Record<string, string> {
   const mapping: Record<string, string> = {};
   for (const message of prompt) {
     if (message.role !== 'assistant') continue;
     for (const part of message.content) {
       if (part.type !== 'tool-call') continue;
-      const approvalRequestId = part.providerOptions?.openai
-        ?.approvalRequestId as string | undefined;
+      const approvalRequestId = (
+        part.providerOptions?.[providerOptionsName] ??
+        part.providerOptions?.openai
+      )?.approvalRequestId as string | undefined;
       if (approvalRequestId != null) {
         mapping[approvalRequestId] = part.toolCallId;
       }
@@ -263,7 +266,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   }) {
     return new OpenAIResponsesLanguageModel(
       options.modelId as OpenAIResponsesModelId,
-      prepareOpenAIConfigForWorkflowDeserialize(options.config),
+      prepareOpenAIConfigForWorkflowDeserialize({
+        ...options.config,
+        // Preserve the namespace of Azure models serialized before it was explicit.
+        providerOptionsName:
+          options.config.providerOptionsName ??
+          (options.config.provider === 'azure.responses' ? 'azure' : 'openai'),
+      }),
     );
   }
 
@@ -328,22 +337,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
-    const providerOptionsName = config.provider.includes('azure')
-      ? 'azure'
-      : 'openai';
-    let openaiOptions = await parseProviderOptions({
-      provider: providerOptionsName,
+    const providerOptionsName = config.providerOptionsName ?? 'openai';
+    const openaiOptions = await parseProviderOptions({
+      provider: ['openai', providerOptionsName],
       providerOptions,
       schema: openaiLanguageModelResponsesOptionsSchema,
     });
-
-    if (openaiOptions == null && providerOptionsName !== 'openai') {
-      openaiOptions = await parseProviderOptions({
-        provider: 'openai',
-        providerOptions,
-        schema: openaiLanguageModelResponsesOptionsSchema,
-      });
-    }
 
     const resolvedReasoningEffort = resolveOpenAIReasoningEffort({
       providerReasoningEffort: openaiOptions?.reasoningEffort,
@@ -852,7 +851,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     });
 
     const approvalRequestIdToDummyToolCallIdFromPrompt =
-      extractApprovalRequestIdToToolCallIdMapping(options.prompt);
+      extractApprovalRequestIdToToolCallIdMapping(
+        options.prompt,
+        providerOptionsName,
+      );
 
     const {
       responseHeaders,
@@ -1122,7 +1124,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             }
 
             if (
-              options.providerOptions?.[providerOptionsName]?.logprobs &&
+              (options.providerOptions?.[providerOptionsName]?.logprobs ??
+                options.providerOptions?.openai?.logprobs) &&
               contentPart.logprobs
             ) {
               logprobs.push(contentPart.logprobs);
@@ -1624,7 +1627,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     const self = this;
 
     const approvalRequestIdToDummyToolCallIdFromPrompt =
-      extractApprovalRequestIdToToolCallIdMapping(options.prompt);
+      extractApprovalRequestIdToToolCallIdMapping(
+        options.prompt,
+        providerOptionsName,
+      );
 
     const functionTools =
       options.tools?.filter(
@@ -2795,7 +2801,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               });
 
               if (
-                options.providerOptions?.[providerOptionsName]?.logprobs &&
+                (options.providerOptions?.[providerOptionsName]?.logprobs ??
+                  options.providerOptions?.openai?.logprobs) &&
                 value.logprobs
               ) {
                 logprobs.push(value.logprobs);

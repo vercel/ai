@@ -51,6 +51,8 @@ describe.each(['generate', 'stream'] as const)(
     ) {
       const model = new OpenAIResponsesLanguageModel(modelId, {
         provider,
+        providerOptionsName:
+          provider === 'azure.responses' ? 'azure' : 'openai',
         url: () => url,
         headers: () => ({}),
       });
@@ -308,7 +310,7 @@ describe.each(['generate', 'stream'] as const)(
           azure: {},
           openai: { reasoningEffortUpdate: 'high' },
         },
-        expected: { role: 'developer', content: '' },
+        expected: wireUpdate('high'),
       },
     ])(
       'supports $name on Azure messages',

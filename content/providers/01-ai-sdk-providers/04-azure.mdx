@@ -277,7 +277,25 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 
 ### Provider Options
 
-When using OpenAI language models on Azure, you can configure provider-specific options using `providerOptions.openai`. More information on available configuration options are on [the OpenAI provider page](/providers/ai-sdk-providers/openai#language-models).
+Use `providerOptions.azure` for Azure models, including models that use the
+OpenAI API. The `openai` namespace remains supported for OpenAI-backed language,
+embedding, image, speech, and transcription models. See the [OpenAI provider
+page](/providers/ai-sdk-providers/openai#language-models) for available options.
+
+When both namespaces are supplied, each field in `azure` overrides the same field
+in `openai`. Other OpenAI fields are retained. An empty `azure` object does not
+hide OpenAI options. Nested option objects are replaced as a whole, and validation
+and defaults are applied after resolving the fields.
+
+This resolution also applies to request options on messages, file parts, and
+function tools. Provider references such as uploaded file IDs remain scoped to
+the service that created them.
+
+Responses metadata continues to use `azure`. OpenAI-backed chat, completion,
+image, and transcription metadata also includes `azure`, retaining the existing
+`openai` alias. Replay metadata such as reasoning IDs and encrypted content stays
+together in its original namespace; request-option merging does not make it
+portable between services.
 
 ```ts highlight="12-14,24-26"
 import { azure, type OpenAILanguageModelResponsesOptions } from '@ai-sdk/azure';
@@ -295,7 +313,7 @@ const messages = [
         mediaType: 'image',
         data: 'https://example.com/image.png',
         providerOptions: {
-          openai: { imageDetail: 'low' },
+          azure: { imageDetail: 'low' },
         },
       },
     ],
@@ -305,7 +323,7 @@ const messages = [
 const { text } = await generateText({
   model: azure('your-deployment-name'),
   providerOptions: {
-    openai: {
+    azure: {
       reasoningEffort: 'low',
     } satisfies OpenAILanguageModelResponsesOptions,
   },
@@ -336,7 +354,7 @@ const result = await generateText({
   model: azure.chat('your-deployment-name'),
   prompt: 'Write a short story about a robot.',
   providerOptions: {
-    openai: {
+    azure: {
       logitBias: {
         // optional likelihood for specific tokens
         '50256': -100,
@@ -511,7 +529,7 @@ The following Azure-specific metadata may be returned:
 
 Azure Responses models support message-level reasoning effort updates through
 `providerOptions.azure.reasoningEffortUpdate`. The `openai` namespace is also
-accepted when the message has no `azure` options. Use the
+accepted when the message does not supply that field under `azure`. Use the
 `OpenAIResponsesSystemMessageOptions` type exported from `@ai-sdk/azure` to
 validate these options:
 
@@ -1382,7 +1400,7 @@ const result = await generateText({
   model: azure.completion('your-gpt-35-turbo-instruct-deployment'),
   prompt: 'Write a haiku about coding.',
   providerOptions: {
-    openai: {
+    azure: {
       echo: true, // optional, echo the prompt in addition to the completion
       logitBias: {
         // optional likelihood for specific tokens
@@ -1457,7 +1475,7 @@ const { embedding } = await embed({
   model: azure.embedding('your-embedding-deployment'),
   value: 'sunny day at the beach',
   providerOptions: {
-    openai: {
+    azure: {
       dimensions: 512, // optional, number of dimensions for the embedding
       user: 'test-user', // optional unique user identifier
     } satisfies OpenAIEmbeddingModelOptions,
@@ -1486,7 +1504,7 @@ MAI-Image models use the [MAI image API](#mai-image) instead.
 const model = azure.image('your-dalle-deployment-name');
 ```
 
-Azure OpenAI image models support several additional settings. You can pass them as `providerOptions.openai` when generating the image:
+Azure OpenAI image models support several additional settings. You can pass them as `providerOptions.azure` when generating the image (the `openai` namespace is also supported):
 
 ```ts
 import { azure } from '@ai-sdk/azure';
@@ -1498,7 +1516,7 @@ await generateImage({
   prompt: 'A photorealistic image of a cat astronaut floating in space',
   size: '1024x1024', // '1024x1024', '1792x1024', or '1024x1792' for DALL-E 3
   providerOptions: {
-    openai: {
+    azure: {
       user: 'test-user', // optional unique user identifier
     } satisfies OpenAIImageModelGenerationOptions,
   },
@@ -1716,7 +1734,7 @@ The following options are available through `providerOptions.azure`:
   Set `phrases` to a list of names and domain terms to bias recognition toward them.
 
 Explicit `api` takes precedence over the model ID. Existing OpenAI transcription
-options remain under `providerOptions.openai`. Speech-only Azure options produce
+options can be supplied under `providerOptions.azure` or the legacy `providerOptions.openai` namespace. Speech-only Azure options produce
 warnings when used with the OpenAI API. Unknown `providerOptions.azure` keys
 (for example `diarization.maxSpeakers`) are rejected before the request is sent.
 Options that a model does not support, such as `timestamps: 'word'` with
@@ -1838,7 +1856,7 @@ const result = await transcribe({
   model: azure.transcription('whisper-1'),
   audio: await readFile('audio.mp3'),
   providerOptions: {
-    openai: {
+    azure: {
       language: 'en',
     } satisfies OpenAITranscriptionModelOptions,
   },
@@ -1919,7 +1937,7 @@ const result = await generateSpeech({
   text: 'Hello, world!',
   voice: 'alloy',
   providerOptions: {
-    openai: {
+    azure: {
       speed: 1.2,
     } satisfies OpenAISpeechModelOptions,
   },
@@ -2037,20 +2055,44 @@ The following option definitions are generated from the provider catalog.
 
 {/* model-capabilities:azure-provider-options:start */}
 
-| Operation     | Option            | Description                                     |
-| ------------- | ----------------- | ----------------------------------------------- |
-| image         | `api`             | Select the OpenAI or MAI image API.             |
-| image         | `autoAspectRatio` | Choose the aspect ratio automatically.          |
-| image         | `webGrounding`    | Ground image generation in web search.          |
-| speech        | `api`             | Select the OpenAI or Azure Speech API.          |
-| speech        | `style`           | Speaking style supported by the selected voice. |
-| speech        | `styleDegree`     | Intensity of the speaking style.                |
-| transcription | `api`             | Select the OpenAI, Azure Speech, or MAI API.    |
-| transcription | `language`        | Language hint for MAI streaming transcription.  |
-| transcription | `timestamps`      | Word, segment, or no timestamps.                |
-| transcription | `transcribeStyle` | Verbatim or cleaned transcription.              |
-| transcription | `locales`         | Language to use for transcription.              |
-| transcription | `diarization`     | Enable speaker diarization.                     |
-| transcription | `phraseList`      | Phrases to bias transcription toward.           |
+| Operation     | Option                   | Description                                        |
+| ------------- | ------------------------ | -------------------------------------------------- |
+| image         | `quality`                | Generated image quality.                           |
+| image         | `background`             | Transparent, opaque, or automatic background.      |
+| image         | `outputFormat`           | Generated image format.                            |
+| image         | `complexity`             | Image generation complexity.                       |
+| image         | `outputCompression`      | Compression of the generated image.                |
+| image         | `user`                   | End-user identifier.                               |
+| image         | `safetyIdentifier`       | Hashed user identifier for safety monitoring.      |
+| image         | `style`                  | Vivid or natural image style.                      |
+| image         | `frameCount`             | Number of frames in an animated GIF.               |
+| image         | `frameDurationMs`        | Frame duration for animated GIFs.                  |
+| image         | `moderation`             | Image content moderation level.                    |
+| image         | `inputFidelity`          | Fidelity to input images.                          |
+| image         | `markup`                 | Transparent PNG marking image regions to edit.     |
+| image         | `api`                    | Select the OpenAI or MAI image API.                |
+| image         | `autoAspectRatio`        | Choose the aspect ratio automatically.             |
+| image         | `webGrounding`           | Ground image generation in web search.             |
+| speech        | `instructions`           | Instructions for generating speech.                |
+| speech        | `speed`                  | Speed of generated speech.                         |
+| speech        | `api`                    | Select the OpenAI or Azure Speech API.             |
+| speech        | `style`                  | Speaking style supported by the selected voice.    |
+| speech        | `styleDegree`            | Intensity of the speaking style.                   |
+| transcription | `include`                | Additional fields in the transcription response.   |
+| transcription | `language`               | Language hint for OpenAI or MAI transcription.     |
+| transcription | `languages`              | Expected languages for REST transcription.         |
+| transcription | `keywords`               | Vocabulary hints for REST transcription.           |
+| transcription | `prompt`                 | Text guiding the transcription style or context.   |
+| transcription | `temperature`            | Sampling temperature.                              |
+| transcription | `timestampGranularities` | Word or segment timestamp granularities.           |
+| transcription | `responseFormat`         | Transcription response format.                     |
+| transcription | `chunkingStrategy`       | How audio is split into chunks.                    |
+| transcription | `streaming`              | Streaming transcription delay and response fields. |
+| transcription | `api`                    | Select the OpenAI, Azure Speech, or MAI API.       |
+| transcription | `timestamps`             | Word, segment, or no timestamps.                   |
+| transcription | `transcribeStyle`        | Verbatim or cleaned transcription.                 |
+| transcription | `locales`                | Language to use for transcription.                 |
+| transcription | `diarization`            | Enable speaker diarization.                        |
+| transcription | `phraseList`             | Phrases to bias transcription toward.              |
 
 {/* model-capabilities:azure-provider-options:end */}

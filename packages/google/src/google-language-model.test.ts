@@ -1145,6 +1145,32 @@ describe('doGenerate', () => {
     ]);
   });
 
+  it('uses explicit namespaces and merges only supplied request fields', async () => {
+    prepareJsonResponse({ content: 'done' });
+    const model = new GoogleLanguageModel('gemini-pro', {
+      provider: 'custom.chat',
+      providerOptionsNames: ['googleVertex', 'vertex'],
+      generateId: () => 'test-id',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: {},
+    });
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          responseModalities: ['TEXT'],
+          labels: { canonical: 'value' },
+        },
+        vertex: { labels: { legacy: 'value' } },
+        googleVertex: { labels: { host: 'value' } },
+      },
+    });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: { responseModalities: ['TEXT'] },
+      labels: { host: 'value' },
+    });
+  });
+
   it('should omit function call IDs from Vertex requests', async () => {
     prepareJsonResponse({ content: 'done' });
 

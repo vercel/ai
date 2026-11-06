@@ -1251,6 +1251,47 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it('resolves a configured host namespace for streaming and keeps warnings on the original key', async () => {
+    MockWebSocket.instances = [];
+    const hosted = new OpenAITranscriptionModel('gpt-live-transcribe', {
+      provider: 'unrelated-telemetry-name',
+      providerOptionsName: 'azure',
+      url: ({ path }) => `https://api.openai.com/v1${path}`,
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+    });
+    const result = await hosted.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      providerOptions: {
+        openai: { language: 'de', streaming: { delay: 'low' } },
+        azure: { language: 'en', prompt: 'Names' },
+      },
+    });
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    await flush();
+    expect(
+      JSON.parse(ws.send.mock.calls[0][0]).session.audio.input.transcription,
+    ).toMatchObject({ languages: ['en'], delay: 'low' });
+    ws.message({
+      type: 'conversation.item.input_audio_transcription.completed',
+      item_id: 'item-1',
+      transcript: 'Hello',
+    });
+    expect((await partsPromise)[0]).toEqual({
+      type: 'stream-start',
+      warnings: [
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.azure.prompt',
+          details: 'OpenAI streaming transcription does not support prompt.',
+        },
+      ],
+    });
+  });
+
   it('should stream gpt-realtime-whisper using OpenAI realtime transcription', async () => {
     MockWebSocket.instances = [];
     const testDate = new Date(0);

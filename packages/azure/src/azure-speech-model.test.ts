@@ -103,6 +103,22 @@ describe('API routing', () => {
     expect(request().url).toBe(speechUrl);
   });
 
+  it('merges OpenAI speech options with Azure fields taking precedence', async () => {
+    const { provider, request } = setup();
+    const result = await provider.speech('gpt-4o-mini-tts').doGenerate({
+      text: 'Hello',
+      providerOptions: {
+        openai: { speed: 0.5, instructions: 'Speak slowly' },
+        azure: { speed: 1.5 },
+      },
+    });
+    expect(JSON.parse(request().body)).toMatchObject({
+      speed: 1.5,
+      instructions: 'Speak slowly',
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
   it('warns about Speech-only options on the OpenAI API', async () => {
     const { provider } = setup();
     const result = await provider.speech('tts-1').doGenerate({

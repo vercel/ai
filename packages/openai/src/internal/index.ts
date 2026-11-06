@@ -23,4 +23,7 @@ export * from '../tool/tool-search';
 export * from '../tool/web-search';
 export * from '../tool/web-search-preview';
 
-export { openaiModelCatalog } from '../openai-model-catalog';
+export {
+  openaiModelCatalog,
+  openaiProviderOptions,
+} from '../openai-model-catalog';

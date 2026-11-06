@@ -61,7 +61,7 @@ export class OpenAISpeechModel implements SpeechModelV4 {
 
     // Parse provider options
     const openAIOptions = await parseProviderOptions({
-      provider: 'openai',
+      provider: ['openai', this.config.providerOptionsName ?? 'openai'],
       providerOptions,
       schema: openaiSpeechModelOptionsSchema,
     });

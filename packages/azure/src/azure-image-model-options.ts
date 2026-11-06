@@ -1,4 +1,8 @@
 import {
+  openaiImageModelGenerationOptionsShape,
+  openaiImageModelEditOptionsShape,
+} from '@ai-sdk/openai/internal';
+import {
   lazySchema,
   zodSchema,
   type InferSchema,
@@ -14,6 +18,8 @@ export const azureImageModelOptions = lazySchema(() =>
        * API to use. Defaults to MAI for MAI-Image models, OpenAI otherwise.
        */
       api: z.enum(['openai', 'mai']).optional(),
+      ...openaiImageModelEditOptionsShape(),
+      ...openaiImageModelGenerationOptionsShape(),
       ...azureMaiImageModelOptionsShape(),
     }),
   ),
