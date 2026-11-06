@@ -261,6 +261,31 @@ but reading `base64` can require re-encoding. Validation errors contain short
 placeholders for extracted data. The option is handled by the client and is
 not sent to the Gateway service.
 
+The option also applies to language models that generate files, such as image
+output from `generateText`. Generated files of at least 64 KiB in
+non-streaming results are decoded while the response arrives and returned as
+`Uint8Array`; smaller files and strings that are not canonical base64 keep
+the regular decoding path. The raw response body (`response.body`) holds short
+placeholders in place of the extracted data. Streaming calls (`streamText`) are
+not affected.
+
+```ts
+import { generateText } from 'ai';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+
+const { files } = await generateText({
+  model: 'google/gemini-3.1-flash-image',
+  prompt: 'A mountain lake at sunrise',
+  providerOptions: {
+    gateway: {
+      experimental_streamingImageDecoding: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+
+console.log(files[0].uint8Array.byteLength);
+```
+
 ## Batch
 
 <Note type="warning">
