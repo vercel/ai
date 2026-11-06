@@ -1,3 +1,9 @@
+# Validated redirects
+
+Server-side validated downloads reject redirects from HTTPS to HTTP before
+requesting the insecure target, even when it matches `trustedOrigin`. Initial
+HTTP URLs, HTTP-to-HTTP redirects, and HTTP-to-HTTPS upgrades remain supported.
+
 # Identifiers in URL paths
 
 Use `encodePathSegment` from `@ai-sdk/provider-utils` when inserting a raw

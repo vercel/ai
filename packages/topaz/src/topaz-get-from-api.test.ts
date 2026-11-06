@@ -70,7 +70,7 @@ describe('Topaz image downloads', () => {
     const { fetch, requests } = recordRequests([
       new Response(null, {
         status: 302,
-        headers: { location: 'http://169.254.169.254/secret' },
+        headers: { location: 'https://169.254.169.254/secret' },
       }),
     ]);
     await expect(topazGetFromApi({ ...defaultOptions, fetch })).rejects.toThrow(
