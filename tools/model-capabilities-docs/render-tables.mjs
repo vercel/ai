@@ -1,0 +1,120 @@
+export function renderCapabilityTable(
+  entries,
+  { capability, columns, formatModelId, filter },
+) {
+  const rows = renderCapabilityRows(
+    filter == null
+      ? entries
+      : entries.filter(([id, entry]) => filter(entry, id)),
+    capability,
+    columns,
+    formatModelId,
+  );
+  return rows.length === 0
+    ? ''
+    : renderTable(['Model', ...columns.map(([heading]) => heading)], rows);
+}
+
+export function renderProviderOptionTable(options, section) {
+  return renderTable(
+    ['Operation', 'Option', 'Description'],
+    Object.entries(options)
+      .filter(([operation]) => section == null || section === operation)
+      .flatMap(([operation, definitions]) =>
+        Object.entries(definitions).map(([name, { description }]) => [
+          operation,
+          `\`${name}\``,
+          description.replace(/\s+/g, ' ').trim(),
+        ]),
+      ),
+  );
+}
+
+export function replaceGeneratedTable(source, id, table) {
+  const start = `{/* model-capabilities:${id}:start */}`;
+  const end = `{/* model-capabilities:${id}:end */}`;
+  const startIndex = source.indexOf(start);
+  const endIndex = source.indexOf(end);
+  if (
+    startIndex < 0 ||
+    endIndex < startIndex ||
+    source.indexOf(start, startIndex + start.length) !== -1 ||
+    source.indexOf(end, endIndex + end.length) !== -1
+  ) {
+    throw new Error(`Missing or duplicate generated table markers: ${id}`);
+  }
+  const replacement = table === '' ? '\n\n' : `\n\n${table}\n\n`;
+  return (
+    source.slice(0, startIndex + start.length) +
+    replacement +
+    source.slice(endIndex)
+  );
+}
+
+export function formatSupport(value) {
+  if (value === true) return '<Check />';
+  if (value === false) return '<Cross />';
+  if (value === 'unknown') return 'Unknown';
+  if (
+    value != null &&
+    typeof value === 'object' &&
+    typeof value.condition === 'string'
+  ) {
+    return `Conditional: ${value.condition}`;
+  }
+  throw new Error(`Invalid capability value: ${String(value)}`);
+}
+
+function renderCapabilityRows(
+  entries,
+  capability,
+  columns,
+  formatModelId = id => id,
+) {
+  return entries
+    .filter(([, { capabilities }]) => capabilities[capability] != null)
+    .flatMap(([modelId, { capabilities }]) => {
+      const values = columns.map(([, path]) =>
+        readPath(capabilities[capability], path),
+      );
+      if (values.includes('unknown')) return [];
+
+      const cells = columns.map(([, , format = formatSupport], index) =>
+        format(values[index]),
+      );
+      // Optional capabilities can also be formatted as unknown.
+      if (cells.includes('Unknown')) return [];
+
+      return [[`\`${formatModelId(modelId)}\``, ...cells]];
+    });
+}
+
+function readPath(value, path) {
+  return path.split('.').reduce((current, key) => current?.[key], value);
+}
+
+function formatCell(value) {
+  return String(value).replaceAll('|', '\\|').replaceAll('\n', ' ');
+}
+
+function renderRow(row, widths) {
+  return `| ${row.map((cell, index) => formatCell(cell).padEnd(widths[index])).join(' | ')} |`;
+}
+
+function renderTable(headers, rows) {
+  const widths = headers.map((header, index) =>
+    Math.max(
+      3,
+      header.length,
+      ...rows.map(row => formatCell(row[index]).length),
+    ),
+  );
+  return [
+    renderRow(headers, widths),
+    renderRow(
+      widths.map(width => '-'.repeat(width)),
+      widths,
+    ),
+    ...rows.map(row => renderRow(row, widths)),
+  ].join('\n');
+}

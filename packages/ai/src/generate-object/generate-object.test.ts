@@ -62,6 +62,49 @@ describe('generateObject', () => {
 
   describe('output = "object"', () => {
     describe('result.object', () => {
+      it('should parse structured output text while preserving raw callback text and response metadata', async () => {
+        const draft = '{"content":"draft"}';
+        const finalAnswer = '{"content":"final"}';
+        const responseBody = { output: [draft, finalAnswer] };
+        const onStepEnd = vi.fn();
+
+        const result = await generateObject({
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              ...dummyResponseValues,
+              content: [
+                { type: 'reasoning', text: 'Checking both answers.' },
+                { type: 'text', text: draft },
+                { type: 'text', text: finalAnswer },
+              ],
+              structuredOutputText: finalAnswer,
+              response: {
+                ...dummyResponseValues.response,
+                body: responseBody,
+              },
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onStepEnd,
+        });
+
+        expect(result.object).toEqual({ content: 'final' });
+        expect(result.reasoning).toBe('Checking both answers.');
+        expect(result.response.body).toEqual(responseBody);
+        expect(result.usage).toEqual(
+          asLanguageModelUsage(dummyResponseValues.usage),
+        );
+        expect(onStepEnd).toHaveBeenCalledWith(
+          expect.objectContaining({
+            objectText: draft + finalAnswer,
+            reasoning: 'Checking both answers.',
+            response: result.response,
+            usage: result.usage,
+          }),
+        );
+      });
+
       it('should generate object', async () => {
         const model = new MockLanguageModelV4({
           doGenerate: {
@@ -1646,4 +1689,37 @@ describe('generateObject', () => {
       });
     });
   });
+});
+
+it('sanitizes provider request URLs in object results and callbacks', async () => {
+  const onStepEnd = vi.fn();
+  const onFinish = vi.fn();
+  const result = await generateObject({
+    model: new MockLanguageModelV4({
+      doGenerate: {
+        ...dummyResponseValues,
+        content: [{ type: 'text', text: '{"value":"hello"}' }],
+        request: {
+          url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+        },
+      },
+    }),
+    schema: z.object({ value: z.string() }),
+    prompt: 'hello',
+    onStepEnd,
+    onFinish,
+  });
+  expect(result.request.url).toBe('https://model.example.test:8443');
+  for (const callback of [onStepEnd, onFinish]) {
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          url: 'https://model.example.test:8443',
+        }),
+      }),
+    );
+    expect(JSON.stringify(callback.mock.calls)).not.toMatch(
+      /password|private|secret|fragment/,
+    );
+  }
 });

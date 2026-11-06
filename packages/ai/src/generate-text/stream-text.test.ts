@@ -1803,6 +1803,285 @@ describe('streamText', () => {
     });
 
     describe('tool choice enforcement', () => {
+      it.each([
+        { toolChoice: 'none', stepToolChoice: undefined, finishReason: 'stop' },
+        {
+          toolChoice: 'none',
+          stepToolChoice: undefined,
+          finishReason: 'tool-calls',
+        },
+        {
+          toolChoice: 'none',
+          stepToolChoice: undefined,
+          finishReason: 'interrupted',
+        },
+        {
+          toolChoice: 'auto',
+          stepToolChoice: 'none',
+          finishReason: 'tool-calls',
+        },
+      ] as const)(
+        'should reject tool calls with none ($toolChoice, $stepToolChoice, $finishReason)',
+        async ({ toolChoice, stepToolChoice, finishReason }) => {
+          const execute = vi.fn(async () => 'tool-result');
+          const onInputStart = vi.fn();
+          const onInputDelta = vi.fn();
+          const onInputAvailable = vi.fn();
+          const onError = vi.fn();
+
+          const result = streamText({
+            model: new MockLanguageModelV4({
+              doStream: {
+                stream: convertArrayToReadableStream([
+                  { type: 'tool-input-start', id: 'call-1', toolName: 'tool1' },
+                  { type: 'tool-input-delta', id: 'call-1', delta: '{}' },
+                  { type: 'tool-input-end', id: 'call-1' },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: '{}',
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: finishReason, raw: finishReason },
+                    usage: testUsage,
+                  },
+                ]),
+              },
+            }),
+            tools: {
+              tool1: tool({
+                inputSchema: z.object({}),
+                execute,
+                onInputStart,
+                onInputDelta,
+                onInputAvailable,
+              }),
+            },
+            toolChoice,
+            prepareStep:
+              stepToolChoice == null
+                ? undefined
+                : () => ({ toolChoice: stepToolChoice }),
+            prompt: 'test-input',
+            onError,
+          });
+
+          await result.consumeStream();
+
+          expect(onError).toHaveBeenCalledOnce();
+          expect(onError.mock.calls[0][0].error).toMatchObject({
+            name: 'AI_ToolChoiceViolationError',
+            message:
+              'Model response contained a tool call even though tool choice was none.',
+            toolChoice: { type: 'none' },
+            finishReason,
+            content: [expect.objectContaining({ type: 'tool-call' })],
+          });
+          await expect(result.finishReason).resolves.toBe('error');
+          await expect(result.usage).resolves.toEqual(
+            asLanguageModelUsage(testUsage),
+          );
+          expect(execute).not.toHaveBeenCalled();
+          expect(onInputStart).not.toHaveBeenCalled();
+          expect(onInputDelta).not.toHaveBeenCalled();
+          expect(onInputAvailable).not.toHaveBeenCalled();
+        },
+      );
+
+      it('should withhold tool parts with none and not repair or refine tool calls', async () => {
+        const repairToolCall = vi.fn();
+        const refineToolInput = vi.fn();
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: {
+              stream: convertArrayToReadableStream([
+                { type: 'tool-input-start', id: 'call-1', toolName: 'tool1' },
+                { type: 'tool-input-delta', id: 'call-1', delta: 'invalid' },
+                { type: 'tool-input-end', id: 'call-1' },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: 'invalid json',
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-2',
+                  toolName: 'tool2',
+                  input: '{"value":"x"}',
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-3',
+                  toolName: 'web_search',
+                  input: '{}',
+                  providerExecuted: true,
+                  dynamic: true,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-3',
+                  toolName: 'web_search',
+                  result: { ok: true },
+                  dynamic: true,
+                },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                  usage: testUsage,
+                },
+              ]),
+            },
+          }),
+          tools: {
+            // client-side tools without execute:
+            tool1: tool({ inputSchema: z.object({ value: z.string() }) }),
+            tool2: tool({ inputSchema: z.object({ value: z.string() }) }),
+          },
+          toolChoice: 'none',
+          repairToolCall,
+          experimental_refineToolInput: { tool2: refineToolInput },
+          prompt: 'test-input',
+          onError: () => {},
+        });
+
+        const fullStreamTypes = (
+          await convertAsyncIterableToArray(result.fullStream)
+        ).map(part => part.type);
+        const uiStreamTypes = (
+          await convertAsyncIterableToArray(result.toUIMessageStream())
+        ).map(part => part.type);
+
+        expect(fullStreamTypes).toContain('error');
+        expect(
+          fullStreamTypes.filter(type => type.startsWith('tool-')),
+        ).toEqual([]);
+        expect(uiStreamTypes).toContain('error');
+        expect(uiStreamTypes.filter(type => type.startsWith('tool-'))).toEqual(
+          [],
+        );
+        expect(repairToolCall).not.toHaveBeenCalled();
+        expect(refineToolInput).not.toHaveBeenCalled();
+      });
+
+      it('should allow prepareStep to replace none with auto', async () => {
+        const execute = vi.fn(async () => 'tool-result');
+        const onInputAvailable = vi.fn();
+        const onError = vi.fn();
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{}',
+                },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                  usage: testUsage,
+                },
+              ]),
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({}),
+              execute,
+              onInputAvailable,
+            }),
+          },
+          toolChoice: 'none',
+          prepareStep: () => ({ toolChoice: 'auto' }),
+          prompt: 'test-input',
+          onError,
+        });
+
+        await result.consumeStream();
+
+        expect(execute).toHaveBeenCalledOnce();
+        expect(onInputAvailable).toHaveBeenCalledOnce();
+        expect(onError).not.toHaveBeenCalled();
+      });
+
+      it.each(['required', { type: 'tool', toolName: 'tool1' }] as const)(
+        'should preserve interrupted output without enforcing tool choice %j',
+        async toolChoice => {
+          const onError = vi.fn();
+          const onEnd = vi.fn();
+          const onStepEnd = vi.fn();
+          const onLanguageModelCallEnd = vi.fn();
+          const result = streamText({
+            model: new MockLanguageModelV4({
+              doStream: {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: 'Let me check' },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'interrupted', raw: undefined },
+                    usage: testUsage,
+                    providerMetadata: { test: { partial: true } },
+                  },
+                ]),
+              },
+            }),
+            prompt: 'test-input',
+            tools: { tool1: tool({ inputSchema: z.object({}) }) },
+            toolChoice,
+            onError,
+            onEnd,
+            onStepEnd,
+            onLanguageModelCallEnd,
+          });
+
+          const parts = await convertAsyncIterableToArray(result.fullStream);
+
+          expect(parts.filter(part => part.type === 'error')).toEqual([]);
+          expect(
+            parts.filter(
+              part => part.type === 'finish-step' || part.type === 'finish',
+            ),
+          ).toEqual([
+            expect.objectContaining({
+              type: 'finish-step',
+              finishReason: 'interrupted',
+              rawFinishReason: undefined,
+            }),
+            expect.objectContaining({
+              type: 'finish',
+              finishReason: 'interrupted',
+              rawFinishReason: undefined,
+            }),
+          ]);
+          await expect(result.text).resolves.toBe('Let me check');
+          await expect(result.finishReason).resolves.toBe('interrupted');
+          await expect(result.usage).resolves.toEqual(
+            asLanguageModelUsage(testUsage),
+          );
+          await expect(result.providerMetadata).resolves.toEqual({
+            test: { partial: true },
+          });
+          expect(onError).not.toHaveBeenCalled();
+          for (const callback of [onEnd, onStepEnd, onLanguageModelCallEnd]) {
+            expect(callback).toHaveBeenCalledOnce();
+            expect(callback).toHaveBeenCalledWith(
+              expect.objectContaining({ finishReason: 'interrupted' }),
+            );
+          }
+          expect(
+            await convertAsyncIterableToArray(result.toUIMessageStream()),
+          ).toContainEqual({ type: 'finish', finishReason: 'interrupted' });
+        },
+      );
+
       it('should surface an error when a required tool choice produces no tool call', async () => {
         const onError = vi.fn();
 
@@ -4209,6 +4488,392 @@ describe('streamText', () => {
       });
 
       expect(onStepFinish).not.toHaveBeenCalled();
+    });
+
+    it('should call onStepError when provider stream closes before finish chunk', async () => {
+      const onStepStart = vi.fn();
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+        onStepStart,
+        onStepError,
+        onStepEnd,
+      });
+
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(onStepStart).toHaveBeenCalledTimes(1);
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith({
+        ...onStepStart.mock.calls[0][0],
+        error: expect.objectContaining({
+          message:
+            'No output generated. The model stream ended without a finish chunk.',
+        }),
+      });
+    });
+
+    it('should call onStepError when the provider call throws', async () => {
+      const onStepError = vi.fn();
+      const providerError = new Error('provider failure');
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            throw providerError;
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        onError: () => {},
+        onStepError,
+      });
+
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith(
+        expect.objectContaining({ stepNumber: 0, error: providerError }),
+      );
+    });
+
+    it('should report the step error to telemetry before onError when the provider call throws', async () => {
+      const events: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            throw new Error('provider failure');
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        onError: () => {},
+        telemetry: {
+          integrations: [
+            {
+              onStepError: () => void events.push('onStepError'),
+              onError: () => void events.push('onError'),
+              onEnd: () => void events.push('onEnd'),
+            },
+          ],
+        },
+      });
+
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(events).toEqual(['onStepError', 'onError']);
+    });
+
+    it('should call onStepError when the provider stream errors', async () => {
+      const onStepError = vi.fn();
+      const onStepEnd = vi.fn();
+      const providerError = new Error('provider stream failure');
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              start(controller) {
+                controller.enqueue({ type: 'stream-start', warnings: [] });
+                controller.enqueue({ type: 'text-start', id: '1' });
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: '1',
+                  delta: 'Hello',
+                });
+                controller.error(providerError);
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+        onStepEnd,
+        onStepError,
+      });
+
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(onStepEnd).not.toHaveBeenCalled();
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith(
+        expect.objectContaining({ stepNumber: 0, error: providerError }),
+      );
+    });
+
+    it('should report the error of the failed step instead of an earlier step error', async () => {
+      const onStepError = vi.fn();
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream(
+              responseCount++ === 0
+                ? [
+                    { type: 'stream-start', warnings: [] },
+                    { type: 'error', error: new Error('earlier step error') },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "value" }',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool_calls',
+                      },
+                      usage: testUsage,
+                    },
+                  ]
+                : [{ type: 'stream-start', warnings: [] }],
+            ),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+        onError: () => {},
+        onStepError,
+      });
+
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 1,
+          error: expect.objectContaining({
+            name: 'AI_NoOutputGeneratedError',
+          }),
+        }),
+      );
+    });
+
+    it.each([
+      ['an abort', { abort: true }],
+      ['the total timeout', { timeout: { totalMs: 10 } }],
+      ['the step timeout', { timeout: { stepMs: 10 } }],
+    ] as const)(
+      'should end the step with onAbort instead of onStepError on %s',
+      async (_, setup) => {
+        const onStepError = vi.fn();
+        const onAbort = vi.fn();
+        const abortController = new AbortController();
+
+        const result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: ({ abortSignal }) => {
+              if ('abort' in setup) {
+                abortController.abort();
+              }
+              return new Promise((_, reject) => {
+                if (abortSignal?.aborted) {
+                  reject(abortSignal.reason);
+                }
+                abortSignal?.addEventListener('abort', () =>
+                  reject(abortSignal.reason),
+                );
+              });
+            },
+          }),
+          prompt: 'test-input',
+          maxRetries: 0,
+          ...('abort' in setup
+            ? { abortSignal: abortController.signal }
+            : { timeout: setup.timeout }),
+          onError: () => {},
+          onAbort,
+          onStepError,
+        });
+
+        await result.consumeStream();
+
+        expect(onAbort).toHaveBeenCalledTimes(1);
+        expect(onStepError).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should end the step with onStepEnd when stream retries run out', async () => {
+      const onStepStart = vi.fn();
+      const onStepEnd = vi.fn();
+      const onStepError = vi.fn();
+      let attempts = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            attempts++;
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'error', error: new Error(`failure ${attempts}`) },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        streamRetries: 2,
+        onError: () => {},
+        onStepStart,
+        onStepEnd,
+        onStepError,
+      });
+
+      await result.consumeStream();
+
+      expect(attempts).toBe(3);
+      expect(onStepStart).toHaveBeenCalledTimes(1);
+      expect(onStepEnd).toHaveBeenCalledTimes(1);
+      expect(onStepEnd.mock.calls[0][0].finishReason).toBe('error');
+      expect(onStepError).not.toHaveBeenCalled();
+    });
+
+    it('should not call onStepError when the step completes', async () => {
+      const onStepError = vi.fn();
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        onStepError,
+      });
+
+      await result.consumeStream();
+
+      expect(await result.text).toBe('Hello, world!');
+      expect(onStepError).not.toHaveBeenCalled();
+    });
+
+    it('should report a provider failure on a continuation step to onStepError and end the call once', async () => {
+      const onStepError = vi.fn();
+      const telemetryOnStepError = vi.fn();
+      const telemetryOnError = vi.fn();
+      const telemetryOnEnd = vi.fn();
+      const providerError = new Error('provider failure');
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            if (responseCount++ > 0) {
+              throw providerError;
+            }
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{ "value": "value" }',
+                },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'test-input',
+        maxRetries: 0,
+        stopWhen: isStepCount(3),
+        onError: () => {},
+        onStepError,
+        telemetry: {
+          integrations: [
+            {
+              onStepError: telemetryOnStepError,
+              onError: telemetryOnError,
+              onEnd: telemetryOnEnd,
+            },
+          ],
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(onStepError).toHaveBeenCalledTimes(1);
+      expect(onStepError).toHaveBeenCalledWith(
+        expect.objectContaining({ stepNumber: 1, error: providerError }),
+      );
+      expect(telemetryOnStepError).toHaveBeenCalledTimes(1);
+      expect(telemetryOnStepError).toHaveBeenCalledWith(
+        expect.objectContaining({ stepNumber: 1, error: providerError }),
+      );
+      expect(telemetryOnError).not.toHaveBeenCalled();
+      expect(telemetryOnEnd).toHaveBeenCalledTimes(1);
+    });
+
+    it('should report a stream that closes before finish chunk to telemetry onError', async () => {
+      const telemetryOnError = vi.fn();
+      const telemetryOnStepEnd = vi.fn();
+      const telemetryOnEnd = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError: () => {},
+        telemetry: {
+          integrations: [
+            {
+              onError: telemetryOnError,
+              onStepEnd: telemetryOnStepEnd,
+              onEnd: telemetryOnEnd,
+            },
+          ],
+        },
+      });
+
+      await result.consumeStream();
+      await expect(result.text).rejects.toThrow();
+
+      expect(telemetryOnStepEnd).not.toHaveBeenCalled();
+      expect(telemetryOnEnd).not.toHaveBeenCalled();
+      expect(telemetryOnError).toHaveBeenCalledTimes(1);
+      expect(telemetryOnError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          callId: expect.any(String),
+          error: expect.objectContaining({
+            message:
+              'No output generated. The model stream ended without a finish chunk.',
+          }),
+        }),
+      );
     });
 
     it('should resolve with partial output when provider stream closes before finish chunk after producing output', async () => {
@@ -23969,6 +24634,149 @@ describe('streamText', () => {
     });
   });
 
+  describe('ping forwarding', () => {
+    it('should forward ping chunks without enabling raw chunks', async () => {
+      const model = createTestModel({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          { type: 'ping' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]),
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test prompt',
+      });
+
+      const chunks = await convertAsyncIterableToArray(result.stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'ping')).toEqual([
+        { type: 'ping' },
+      ]);
+      expect(await result.content).toEqual([]);
+      const uiChunks = await convertReadableStreamToArray(
+        result.toUIMessageStream(),
+      );
+      expect(uiChunks).not.toContainEqual({ type: 'ping' });
+    });
+
+    it('does not hold heartbeats behind buffered tool input during retries', async () => {
+      let upstream!: ReadableStreamDefaultController<LanguageModelV4StreamPart>;
+      const onChunk = vi.fn();
+      const result = streamText({
+        model: createTestModel({
+          stream: new ReadableStream<LanguageModelV4StreamPart>({
+            start(controller) {
+              upstream = controller;
+              controller.enqueue({ type: 'stream-start', warnings: [] });
+              controller.enqueue({
+                type: 'tool-input-start',
+                id: 'call-1',
+                toolName: 'testTool',
+              });
+              controller.enqueue({ type: 'ping' });
+            },
+          }),
+        }),
+        prompt: 'test',
+        streamRetries: 1,
+        onChunk,
+      });
+      const consumption = result.consumeStream();
+      try {
+        await vi.waitFor(() =>
+          expect(onChunk).toHaveBeenCalledWith({ chunk: { type: 'ping' } }),
+        );
+      } finally {
+        upstream.enqueue({
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'stop' },
+          usage: testUsage,
+        });
+        upstream.close();
+        await consumption;
+      }
+      expect(await result.content).toEqual([]);
+    });
+
+    it('delivers a heartbeat once while discarding failed-attempt tool input and content', async () => {
+      let callCount = 0;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream<LanguageModelV4StreamPart>(
+              callCount++ === 0
+                ? [
+                    { type: 'text-start', id: 'failed' },
+                    { type: 'text-delta', id: 'failed', delta: 'partial' },
+                    {
+                      type: 'tool-input-start',
+                      id: 'call-1',
+                      toolName: 'testTool',
+                    },
+                    { type: 'ping' },
+                    { type: 'error', error: new Error('provider error') },
+                  ]
+                : [
+                    { type: 'text-start', id: 'recovered' },
+                    { type: 'text-delta', id: 'recovered', delta: 'recovered' },
+                    { type: 'text-end', id: 'recovered' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ],
+            ),
+          }),
+        }),
+        prompt: 'test',
+        maxRetries: 0,
+        streamRetries: 1,
+        onError: () => {},
+      });
+      const chunks = await convertAsyncIterableToArray(result.stream);
+      expect(callCount).toBe(2);
+      expect(chunks.filter(chunk => chunk.type === 'ping')).toEqual([
+        { type: 'ping' },
+      ]);
+      expect(chunks.some(chunk => chunk.type === 'tool-input-start')).toBe(
+        false,
+      );
+      expect(await result.text).toBe('recovered');
+      expect(await result.content).toEqual([
+        expect.objectContaining({ type: 'text', text: 'recovered' }),
+      ]);
+    });
+
+    it('does not treat a ping-only incomplete stream as generated output', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([{ type: 'ping' }]),
+        }),
+        prompt: 'test',
+        onError: () => {},
+      });
+      const chunks = await convertAsyncIterableToArray(result.fullStream);
+      expect(chunks).toContainEqual({ type: 'ping' });
+      expect(
+        chunks.some(
+          chunk =>
+            chunk.type === 'error' &&
+            NoOutputGeneratedError.isInstance(chunk.error),
+        ),
+      ).toBe(true);
+      await expect(result.content).rejects.toBeInstanceOf(
+        NoOutputGeneratedError,
+      );
+    });
+  });
+
   describe('raw chunks forwarding', () => {
     it('should forward raw chunks when include.rawChunks is enabled', async () => {
       const modelWithRawChunks = createTestModel({
@@ -27002,6 +27810,52 @@ describe('streamText', () => {
   });
 
   describe('programmatic tool calling', () => {
+    it('should stop an interrupted stream with a deferred provider tool result', async () => {
+      const model = new MockLanguageModelV4({
+        doStream: () =>
+          Promise.resolve({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'program',
+                input: '{}',
+                providerExecuted: true,
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'interrupted', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+      });
+      const onError = vi.fn();
+      const result = streamText({
+        model,
+        prompt: 'Run a program',
+        tools: {
+          program: {
+            type: 'provider',
+            isProviderExecuted: true,
+            id: 'test.program',
+            inputSchema: z.object({}),
+            args: {},
+            supportsDeferredResults: true,
+          },
+        },
+        stopWhen: isStepCount(3),
+        onError,
+      });
+
+      await result.consumeStream();
+
+      expect(model.doStreamCalls).toHaveLength(1);
+      await expect(result.steps).resolves.toHaveLength(1);
+      await expect(result.finishReason).resolves.toBe('interrupted');
+      expect(onError).not.toHaveBeenCalled();
+    });
+
     it('should stop for client tool approval while a provider tool result is deferred', async () => {
       const execute = vi.fn();
       let modelCallCount = 0;
@@ -31349,6 +32203,7 @@ describe('streamText', () => {
                 "preliminary": true,
                 "providerExecuted": undefined,
                 "providerOptions": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -31361,6 +32216,7 @@ describe('streamText', () => {
                 "preliminary": true,
                 "providerExecuted": undefined,
                 "providerOptions": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-result",
@@ -32924,3 +33780,52 @@ async function expectUndefinedUnhandledRejections({
   );
   expect(reasons.length).toBeLessThanOrEqual(maxCount);
 }
+
+it('sanitizes streamed provider request URLs in results and step/end events', async () => {
+  const onStepEnd = vi.fn();
+  const onEnd = vi.fn();
+  const request = {
+    url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+  };
+  const result = streamText({
+    model: new MockLanguageModelV4({
+      doStream: async () => ({
+        request,
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start', warnings: [] },
+          { type: 'text-start', id: 'text' },
+          { type: 'text-delta', id: 'text', delta: 'hello' },
+          { type: 'text-end', id: 'text' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]),
+      }),
+    }),
+    prompt: 'hello',
+    onStepEnd,
+    onEnd,
+  });
+  await result.consumeStream();
+  expect((await result.finalStep).request.url).toBe(
+    'https://model.example.test:8443',
+  );
+  expect((await result.steps)[0].request.url).toBe(
+    'https://model.example.test:8443',
+  );
+  for (const callback of [onStepEnd, onEnd]) {
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          url: 'https://model.example.test:8443',
+        }),
+      }),
+    );
+    expect(JSON.stringify(callback.mock.calls)).not.toMatch(
+      /password|private|secret|fragment/,
+    );
+  }
+  expect(request.url).toContain('password');
+});

@@ -7,6 +7,7 @@ import {
 describe('options validation', () => {
   it.each([
     ['timeoutMs', 0],
+    ['cpuTimeoutMs', 0],
     ['memoryLimitBytes', -1],
     ['maxStackSizeBytes', 1.5],
     ['maxResultBytes', Number.NaN],

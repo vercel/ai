@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { z } from 'zod/v4';
+import { mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
 type QueryArgs = {
   prompt: AsyncIterable<unknown>;
@@ -20,9 +23,14 @@ const TEST_ENV_KEYS = [
   'CLAUDE_CODE_BRIDGE_INHERITED_TEST',
   'CLAUDE_CODE_BRIDGE_OVERRIDE_TEST',
   'CLAUDE_CODE_BRIDGE_CONFIGURED_TEST',
+  'ANTHROPIC_DEFAULT_OPUS_MODEL',
+  'ANTHROPIC_DEFAULT_SONNET_MODEL',
+  'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+  'CLAUDE_CODE_SUBAGENT_MODEL',
 ] as const;
 
 const state = vi.hoisted(() => ({
+  hostDisconnectTimeoutMs: undefined as number | undefined,
   emitted: [] as Record<string, unknown>[],
   messages: [] as Record<string, unknown>[],
   queryArgs: [] as QueryArgs[],
@@ -36,9 +44,11 @@ const state = vi.hoisted(() => ({
   originalArgv: [] as string[],
   originalEnv: {} as Record<string, string | undefined>,
   steering: false,
+  steeringGate: undefined as Promise<void> | undefined,
   acceptedUserMessages: [] as string[],
   queryInputs: [] as unknown[],
   toolHandlers: new Map<string, ToolHandler>(),
+  toolConfigs: new Map<string, Record<string, unknown>>(),
   /** Per-test query factory; falls back to the `state.messages` generator. */
   createQuery: undefined as ((args: QueryArgs) => unknown) | undefined,
   /** Per-test turn abort controller; defaults to a fresh, never-aborted one. */
@@ -131,6 +141,7 @@ vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
       },
       handler: ToolHandler,
     ): void {
+      state.toolConfigs.set(name, config);
       state.toolHandlers.set(name, async (input, extra) =>
         handler(await config.inputSchema.parseAsync(input), extra),
       );
@@ -143,11 +154,14 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
   runBridge: async ({
     onStart,
     onStop,
+    hostDisconnectTimeoutMs,
   }: {
     onStart: (start: unknown, turn: unknown) => Promise<void>;
     onStop?: () => unknown;
+    hostDisconnectTimeoutMs?: number;
   }) => {
     state.onStop = onStop;
+    state.hostDisconnectTimeoutMs = hostDisconnectTimeoutMs;
     for (const turn of [
       { start: state.start, firstTurn: state.firstTurn },
       ...state.additionalTurns,
@@ -160,6 +174,7 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
           close: () => {},
           [Symbol.asyncIterator]: async function* () {
             if (!state.steering) return;
+            await state.steeringGate;
             yield {
               messageId: 'steering-message-1',
               text: 'Actually, Paris, Texas.',
@@ -206,9 +221,11 @@ describe('Claude Code bridge configuration', () => {
       thinking: { type: 'disabled' },
     };
     state.steering = false;
+    state.steeringGate = undefined;
     state.acceptedUserMessages = [];
     state.queryInputs = [];
     state.toolHandlers = new Map();
+    state.toolConfigs = new Map();
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
       TEST_ENV_KEYS.map(key => [key, process.env[key]]),
@@ -498,6 +515,78 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
   });
 
+  test('passes additional directories, strict MCP config, and the budget limit to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      additionalDirectories: ['/vercel/sandbox/shared'],
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      additionalDirectories: ['/vercel/sandbox/shared'],
+      strictMcpConfig: true,
+      maxBudgetUsd: 0.5,
+    });
+  });
+
+  test('omits additional directories, strict MCP config, and the budget limit when not configured', async () => {
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options).not.toHaveProperty('additionalDirectories');
+    expect(options).not.toHaveProperty('strictMcpConfig');
+    expect(options).not.toHaveProperty('maxBudgetUsd');
+  });
+
+  test('passes the question timeout and excludeDynamicSections to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      questionTimeoutMs: 600_000,
+      excludeDynamicSections: true,
+    };
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options as {
+      hooks: { PreToolUse: Array<{ matcher: string; timeout?: number }> };
+      systemPrompt: Record<string, unknown>;
+    };
+    expect(options.hooks.PreToolUse[0]).toMatchObject({
+      matcher: 'AskUserQuestion',
+      timeout: 600,
+    });
+    expect(options.systemPrompt).toMatchObject({
+      type: 'preset',
+      preset: 'claude_code',
+      excludeDynamicSections: true,
+    });
+  });
+
+  test('rounds the question timeout up to whole seconds for the Agent SDK', async () => {
+    state.start = { ...state.start, questionTimeoutMs: 1_500 };
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options as {
+      hooks: { PreToolUse: Array<{ timeout?: number }> };
+    };
+    expect(options.hooks.PreToolUse[0]?.timeout).toBe(2);
+  });
+
+  test('omits the question timeout and excludeDynamicSections when not configured', async () => {
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options as {
+      hooks: { PreToolUse: Array<Record<string, unknown>> };
+      systemPrompt: Record<string, unknown>;
+    };
+    expect(options.hooks.PreToolUse[0]).not.toHaveProperty('timeout');
+    expect(options.systemPrompt).not.toHaveProperty('excludeDynamicSections');
+  });
+
   test('passes subagent activity options to the Agent SDK', async () => {
     state.start = {
       ...state.start,
@@ -739,6 +828,351 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test('passes skill overrides into the Agent SDK settings', async () => {
+    const skillOverrides = {
+      'update-config': 'off',
+      init: 'off',
+    };
+    state.start = {
+      ...state.start,
+      skillOverrides,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toMatchObject({
+      skillOverrides,
+    });
+  });
+
+  test('merges model overrides with skill overrides', async () => {
+    const skillOverrides = { init: 'off' };
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5',
+      skillOverrides,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      skillOverrides,
+      modelOverrides: {
+        'claude-opus-5-5': 'anthropic/claude-opus-5.5',
+      },
+    });
+  });
+
+  test('omits settings when no contributions are configured', async () => {
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+  });
+
+  test.each([
+    {
+      permissionMode: 'allow-reads' as const,
+      allowedTool: 'Read',
+      gatedTool: 'Edit',
+    },
+    {
+      permissionMode: 'allow-edits' as const,
+      allowedTool: 'Edit',
+      gatedTool: 'Bash',
+    },
+  ])(
+    'preserves $permissionMode approval boundaries with skill overrides',
+    async ({ permissionMode, allowedTool, gatedTool }) => {
+      const directory = await mkdtemp(
+        path.join(tmpdir(), 'claude-workspace-permissions-'),
+      );
+      process.argv[process.argv.indexOf('--workdir') + 1] = directory;
+      const skillOverrides = { init: 'off' };
+      state.start = {
+        ...state.start,
+        permissionMode,
+        skillOverrides,
+      };
+
+      await import('./index');
+
+      const options = state.queryArgs[0]?.options;
+      expect(options?.settings).toMatchObject({
+        skillOverrides,
+        permissions: {
+          ask: expect.arrayContaining([`${gatedTool}(*)`]),
+        },
+      });
+      expect(options?.canUseTool).toBeTypeOf('function');
+
+      const hooks = options?.hooks as {
+        PreToolUse: Array<{
+          hooks: Array<
+            (
+              input: Record<string, unknown>,
+              toolUseID: string,
+            ) => Promise<unknown>
+          >;
+        }>;
+      };
+      const permissionHook = hooks.PreToolUse[0]?.hooks[0];
+
+      await expect(
+        permissionHook(
+          {
+            hook_event_name: 'PreToolUse',
+            tool_name: allowedTool,
+            cwd: directory,
+            tool_input: { file_path: path.join(directory, 'file.txt') },
+            tool_use_id: 'allowed-tool',
+          },
+          'allowed-tool',
+        ),
+      ).resolves.toEqual({});
+      await expect(
+        permissionHook(
+          {
+            hook_event_name: 'PreToolUse',
+            tool_name: gatedTool,
+            tool_input: {},
+            tool_use_id: 'gated-tool',
+          },
+          'gated-tool',
+        ),
+      ).resolves.toEqual({
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'defer',
+        },
+      });
+      await rm(directory, { recursive: true, force: true });
+    },
+  );
+
+  test.each([
+    {
+      name: 'reads in an additional directory',
+      toolName: 'Read',
+      target: 'shared/file.txt',
+      approved: true,
+    },
+    {
+      name: 'edits in an additional directory',
+      toolName: 'Write',
+      target: 'shared/new.txt',
+      approved: true,
+    },
+    {
+      name: 'edits next to an additional directory',
+      toolName: 'Write',
+      target: 'other/new.txt',
+      approved: false,
+    },
+    {
+      name: 'a symlink out of an additional directory',
+      toolName: 'Read',
+      target: 'shared/escape/file.txt',
+      approved: false,
+    },
+  ])(
+    'trusts additional directories like the work directory: $name',
+    async ({ toolName, target, approved }) => {
+      const directory = await mkdtemp(
+        path.join(tmpdir(), 'claude-additional-directories-'),
+      );
+      try {
+        const workDir = path.join(directory, 'workspace');
+        const shared = path.join(directory, 'shared');
+        await mkdir(workDir);
+        await mkdir(shared);
+        await mkdir(path.join(directory, 'other'));
+        await symlink(
+          path.join(directory, 'other'),
+          path.join(shared, 'escape'),
+        );
+        process.argv[process.argv.indexOf('--workdir') + 1] = workDir;
+        state.start = {
+          ...state.start,
+          permissionMode: 'allow-edits',
+          additionalDirectories: [shared],
+        };
+        state.requestToolApproval = vi.fn(async () => ({ approved: false }));
+        await import('./index');
+        const options = state.queryArgs[0]!.options;
+        expect(options.additionalDirectories).toEqual([shared]);
+        const toolInput = { file_path: path.join(directory, target) };
+        const hooks = options.hooks as {
+          PreToolUse: Array<{
+            matcher?: string;
+            hooks: Array<
+              (input: Record<string, unknown>, id: string) => Promise<unknown>
+            >;
+          }>;
+        };
+        const hook = hooks.PreToolUse.find(entry => entry.matcher == null)!
+          .hooks[0];
+        await expect(
+          hook(
+            {
+              hook_event_name: 'PreToolUse',
+              cwd: workDir,
+              tool_name: toolName,
+              tool_input: toolInput,
+            },
+            'file-call',
+          ),
+        ).resolves.toEqual(
+          approved
+            ? {}
+            : {
+                hookSpecificOutput: {
+                  hookEventName: 'PreToolUse',
+                  permissionDecision: 'defer',
+                },
+              },
+        );
+        const callback = options.canUseTool as (
+          name: string,
+          input: Record<string, unknown>,
+          options: { toolUseID: string; blockedPath?: string },
+        ) => Promise<{ behavior: string }>;
+        expect(
+          (await callback(toolName, toolInput, { toolUseID: 'file-call' }))
+            .behavior,
+        ).toBe(approved ? 'allow' : 'deny');
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+  );
+
+  test.each([
+    { toolName: 'Read', toolInput: { file_path: 'file.txt' }, approved: true },
+    {
+      toolName: 'Edit',
+      toolInput: { file_path: 'new/file.txt' },
+      approved: true,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: '../skill/file.txt' },
+      approved: true,
+    },
+    {
+      toolName: 'Write',
+      toolInput: { file_path: '../skill/new.txt' },
+      approved: false,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: '../other/file.txt' },
+      approved: false,
+    },
+    {
+      toolName: 'Read',
+      toolInput: { file_path: 'escape/file.txt' },
+      approved: false,
+    },
+    {
+      toolName: 'NotebookEdit',
+      toolInput: { notebook_path: '../other/file.ipynb' },
+      approved: false,
+    },
+    { toolName: 'Glob', toolInput: { pattern: '**/*.ts' }, approved: true },
+    { toolName: 'Glob', toolInput: { pattern: '../*.ts' }, approved: false },
+    {
+      toolName: 'Glob',
+      toolInput: { pattern: '\\.\\./*.ts' },
+      approved: false,
+    },
+    {
+      toolName: 'Grep',
+      toolInput: { pattern: 'text', path: '../other' },
+      approved: false,
+    },
+    { toolName: 'Read', toolInput: {}, approved: false },
+    { toolName: 'EnterWorktree', toolInput: {}, approved: false },
+    { toolName: 'UnknownTool', toolInput: {}, approved: false },
+  ])(
+    'checks $toolName targets in both approval entry points',
+    async ({ toolName, toolInput, approved }) => {
+      const directory = await mkdtemp(
+        path.join(tmpdir(), 'claude-file-approvals-'),
+      );
+      try {
+        const workDir = path.join(directory, 'workspace');
+        const skill = path.join(directory, 'skill');
+        await mkdir(workDir);
+        await mkdir(skill);
+        await mkdir(path.join(directory, 'other'));
+        await symlink(
+          path.join(directory, 'other'),
+          path.join(workDir, 'escape'),
+        );
+        process.argv[process.argv.indexOf('--workdir') + 1] = workDir;
+        state.start = {
+          ...state.start,
+          permissionMode: 'allow-edits',
+          readableSkillRoots: [skill],
+        };
+        state.requestToolApproval = vi.fn(async () => ({ approved: false }));
+        await import('./index');
+        const options = state.queryArgs[0]!.options;
+        const hooks = options.hooks as {
+          PreToolUse: Array<{
+            matcher?: string;
+            hooks: Array<
+              (input: Record<string, unknown>, id: string) => Promise<unknown>
+            >;
+          }>;
+        };
+        const hook = hooks.PreToolUse.find(entry => entry.matcher == null)!
+          .hooks[0];
+        await expect(
+          hook(
+            {
+              hook_event_name: 'PreToolUse',
+              cwd: workDir,
+              tool_name: toolName,
+              tool_input: toolInput,
+            },
+            'file-call',
+          ),
+        ).resolves.toEqual(
+          approved
+            ? {}
+            : {
+                hookSpecificOutput: {
+                  hookEventName: 'PreToolUse',
+                  permissionDecision: 'defer',
+                },
+              },
+        );
+        const callback = options.canUseTool as (
+          name: string,
+          input: Record<string, unknown>,
+          options: { toolUseID: string; blockedPath?: string },
+        ) => Promise<{ behavior: string }>;
+        expect(
+          (await callback(toolName, toolInput, { toolUseID: 'file-call' }))
+            .behavior,
+        ).toBe(approved ? 'allow' : 'deny');
+        if (approved) {
+          expect(
+            (
+              await callback(toolName, toolInput, {
+                toolUseID: 'file-call',
+                blockedPath: path.join(directory, 'other', 'blocked.txt'),
+              })
+            ).behavior,
+          ).toBe('deny');
+        }
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+  );
+
   test('omits canUseTool when bypassing permissions', async () => {
     await import('./index');
 
@@ -770,6 +1204,222 @@ describe('Claude Code bridge configuration', () => {
     });
     expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
   });
+
+  test('maps a dotted AI Gateway model id to the id Claude Code expects', async () => {
+    state.start = { ...state.start, model: 'anthropic/claude-opus-5.5' };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      model: 'anthropic/claude-opus-5.5',
+      settings: {
+        modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5' },
+      },
+    });
+  });
+
+  test('keeps a context window suffix on the gateway model id', async () => {
+    state.start = { ...state.start, model: 'anthropic/claude-opus-5.5[1m]' };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      settings: {
+        modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5[1m]' },
+      },
+    });
+  });
+
+  test('merges model overrides into the permission settings', async () => {
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5',
+      builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      settings: {
+        permissions: { ask: ['Bash(*)'] },
+        sandbox: { autoAllowBashIfSandboxed: false },
+        modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5' },
+      },
+    });
+  });
+
+  test.each(['claude-opus-5-5', 'anthropic/claude-sonnet-5', 'xai/grok-4.6'])(
+    'sets no model overrides for %s',
+    async model => {
+      state.start = { ...state.start, model };
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+    },
+  );
+
+  test.each([
+    [['--host-disconnect-timeout-ms', '60000'], 60_000],
+    [[], undefined],
+  ])(
+    'passes the host disconnect timeout argument to the bridge (%j)',
+    async (extraArgs, expected) => {
+      state.hostDisconnectTimeoutMs = undefined;
+      process.argv.push(...extraArgs);
+
+      await import('./index');
+
+      expect(state.hostDisconnectTimeoutMs).toBe(expected);
+    },
+  );
+
+  test('maps the dotted ids of all model aliases alongside the session model', async () => {
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5',
+      env: {
+        ANTHROPIC_DEFAULT_OPUS_MODEL: 'anthropic/claude-opus-4.8',
+        ANTHROPIC_DEFAULT_SONNET_MODEL: 'anthropic/claude-sonnet-5.5',
+        ANTHROPIC_DEFAULT_HAIKU_MODEL: 'anthropic/claude-haiku-5.5',
+      },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: {
+        'claude-opus-5-5': 'anthropic/claude-opus-5.5',
+        'claude-opus-4-8': 'anthropic/claude-opus-4.8',
+        'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5',
+        'claude-haiku-5-5': 'anthropic/claude-haiku-5.5',
+      },
+    });
+  });
+
+  test('maps model aliases inherited from the bridge environment', async () => {
+    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL = 'anthropic/claude-sonnet-5.5';
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options?.settings).toEqual({
+      modelOverrides: { 'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5' },
+    });
+    expect(options).not.toHaveProperty('env');
+  });
+
+  test('prefers a configured model alias over an inherited one', async () => {
+    process.env.ANTHROPIC_DEFAULT_SONNET_MODEL = 'anthropic/claude-sonnet-4.6';
+    state.start = {
+      ...state.start,
+      env: { ANTHROPIC_DEFAULT_SONNET_MODEL: 'anthropic/claude-sonnet-5.5' },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: { 'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5' },
+    });
+  });
+
+  test('keeps a context window suffix on a model alias id', async () => {
+    state.start = {
+      ...state.start,
+      env: {
+        ANTHROPIC_DEFAULT_SONNET_MODEL: 'anthropic/claude-sonnet-5.5[1m]',
+      },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: {
+        'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5[1m]',
+      },
+    });
+  });
+
+  test('lets the session model win a key it shares with a model alias', async () => {
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-opus-5.5[1m]',
+      env: { ANTHROPIC_DEFAULT_OPUS_MODEL: 'anthropic/claude-opus-5.5' },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: { 'claude-opus-5-5': 'anthropic/claude-opus-5.5[1m]' },
+    });
+  });
+
+  test('maps the dotted id of the subagent model', async () => {
+    state.start = {
+      ...state.start,
+      env: { CLAUDE_CODE_SUBAGENT_MODEL: 'anthropic/claude-sonnet-5.5' },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: { 'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5' },
+    });
+  });
+
+  test('maps a subagent model inherited from the bridge environment', async () => {
+    process.env.CLAUDE_CODE_SUBAGENT_MODEL = 'anthropic/claude-haiku-5.5[1m]';
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: { 'claude-haiku-5-5': 'anthropic/claude-haiku-5.5[1m]' },
+    });
+  });
+
+  test('lets the session model win a key it shares with the subagent model', async () => {
+    state.start = {
+      ...state.start,
+      model: 'anthropic/claude-sonnet-5.5[1m]',
+      env: { CLAUDE_CODE_SUBAGENT_MODEL: 'anthropic/claude-sonnet-5.5' },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toEqual({
+      modelOverrides: {
+        'claude-sonnet-5-5': 'anthropic/claude-sonnet-5.5[1m]',
+      },
+    });
+  });
+
+  test.each(['sonnet', 'claude-sonnet-5-5', 'xai/grok-4.6'])(
+    'sets no model overrides for a subagent model set to %s',
+    async modelId => {
+      state.start = {
+        ...state.start,
+        env: { CLAUDE_CODE_SUBAGENT_MODEL: modelId },
+      };
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+    },
+  );
+
+  test.each(['claude-sonnet-5-5', 'anthropic/claude-sonnet-5', 'xai/grok-4.6'])(
+    'sets no model overrides for a model alias set to %s',
+    async modelId => {
+      state.start = {
+        ...state.start,
+        env: { ANTHROPIC_DEFAULT_SONNET_MODEL: modelId },
+      };
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).not.toHaveProperty('settings');
+    },
+  );
 
   test('marks approval-gated external MCP tool calls as dynamic', async () => {
     state.start = {
@@ -878,6 +1528,320 @@ describe('Claude Code bridge configuration', () => {
       ).toEqual(['first', 'second']);
     },
   );
+
+  describe('deferred approvals', () => {
+    type Hook = (
+      input: Record<string, unknown>,
+      toolUseID: string,
+    ) => Promise<unknown>;
+    type CanUseTool = (
+      toolName: string,
+      toolInput: Record<string, unknown>,
+      options: { toolUseID: string },
+    ) => Promise<unknown>;
+
+    const approvalHook = (args: QueryArgs) =>
+      (
+        args.options.hooks as {
+          PreToolUse: Array<{ matcher?: string; hooks: Hook[] }>;
+        }
+      ).PreToolUse.find(entry => entry.matcher == null)!.hooks[0];
+    const bash = {
+      hook_event_name: 'PreToolUse',
+      cwd: '/workspace',
+      tool_name: 'Bash',
+      tool_input: { command: 'pwd' },
+    };
+    const deferredResult = (id: string) => ({
+      type: 'result',
+      subtype: 'success',
+      result: '',
+      terminal_reason: 'tool_deferred',
+      deferred_tool_use: { id, name: 'Bash', input: { command: 'pwd' } },
+    });
+
+    beforeEach(() => {
+      state.start = { ...state.start, permissionMode: 'allow-reads' };
+    });
+
+    test('defers a call that needs approval and resumes it after the host answers', async () => {
+      const hookOutputs: unknown[] = [];
+      state.requestToolApproval = async () => ({ approved: true });
+      state.createQuery = args =>
+        (async function* () {
+          yield { type: 'system', subtype: 'init', session_id: 'session-1' };
+          hookOutputs.push(await approvalHook(args)(bash, 'call-1'));
+          if (state.queryArgs.length === 1) {
+            yield deferredResult('call-1');
+            return;
+          }
+          hookOutputs.push(
+            await (args.options.canUseTool as CanUseTool)(
+              'Bash',
+              { command: 'pwd' },
+              { toolUseID: 'call-1' },
+            ),
+          );
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(hookOutputs).toMatchInlineSnapshot(`
+        [
+          {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "defer",
+            },
+          },
+          {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "allow",
+            },
+          },
+          {
+            "behavior": "allow",
+            "toolUseID": "call-1",
+            "updatedInput": {
+              "command": "pwd",
+            },
+          },
+        ]
+      `);
+      expect(state.queryArgs[1]?.options.resume).toBe('session-1');
+      expect(
+        state.emitted
+          .filter(event => event.type === 'tool-approval-request')
+          .map(event => event.approvalId),
+      ).toEqual(['call-1']);
+    });
+
+    test('resumes a call the previous bridge deferred without asking the host again', async () => {
+      state.start = {
+        ...state.start,
+        resumeSessionId: 'session-1',
+        deferredToolUseId: 'call-1',
+      };
+      state.requestToolApproval = async () => ({
+        approved: false,
+        reason: 'Not now',
+      });
+      const hookOutputs: unknown[] = [];
+      state.createQuery = args =>
+        (async function* () {
+          hookOutputs.push(await approvalHook(args)(bash, 'call-1'));
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(state.queryArgs).toHaveLength(1);
+      expect(state.queryArgs[0]?.options.resume).toBe('session-1');
+      expect(hookOutputs).toMatchInlineSnapshot(`
+        [
+          {
+            "hookSpecificOutput": {
+              "hookEventName": "PreToolUse",
+              "permissionDecision": "deny",
+              "permissionDecisionReason": "Not now",
+            },
+          },
+        ]
+      `);
+      expect(
+        state.emitted.filter(event => event.type === 'tool-approval-request'),
+      ).toEqual([]);
+    });
+
+    test('keeps continuing the workdir thread when the previous bridge named no conversation', async () => {
+      state.start = {
+        ...state.start,
+        continue: true,
+        deferredToolUseId: 'call-1',
+      };
+      state.firstTurn = true;
+      state.createQuery = () =>
+        (async function* () {
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(state.queryArgs).toHaveLength(1);
+      expect(state.queryArgs[0]?.options).toMatchObject({ continue: true });
+      expect(state.queryArgs[0]?.options.resume).toBeUndefined();
+    });
+
+    test('hands a steering message that arrives during the approval to the resumed query', async () => {
+      let releaseSteering!: () => void;
+      state.steering = true;
+      state.steeringGate = new Promise(resolve => {
+        releaseSteering = resolve;
+      });
+      state.requestToolApproval = async () => {
+        releaseSteering();
+        await new Promise(resolve => setTimeout(resolve, 0));
+        return { approved: true };
+      };
+      let resumedInput: unknown;
+      state.createQuery = args =>
+        (async function* () {
+          const input = args.prompt[Symbol.asyncIterator]();
+          if (state.queryArgs.length === 1) {
+            await input.next();
+            void input.next();
+            await approvalHook(args)(bash, 'call-1');
+            yield deferredResult('call-1');
+            return;
+          }
+          resumedInput = await Promise.race([
+            input.next().then(next => next.value),
+            new Promise(resolve => setTimeout(() => resolve('none'), 50)),
+          ]);
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(resumedInput).toMatchObject({
+        message: { content: [{ text: 'Actually, Paris, Texas.' }] },
+      });
+    });
+
+    test('reports the cumulative cost of the resumed query instead of adding the deferred one', async () => {
+      state.requestToolApproval = async () => ({ approved: true });
+      state.createQuery = args =>
+        (async function* () {
+          if (state.queryArgs.length === 1) {
+            await approvalHook(args)(bash, 'call-1');
+            yield { ...deferredResult('call-1'), total_cost_usd: 0.05 };
+            return;
+          }
+          yield {
+            type: 'result',
+            subtype: 'success',
+            result: 'done',
+            total_cost_usd: 0.08,
+          };
+        })();
+
+      await import('./index');
+
+      expect(
+        state.emitted.find(event => event.type === 'finish')?.harnessMetadata,
+      ).toMatchObject({ 'claude-code': { costUsd: 0.08 } });
+    });
+
+    test('registers for the host decision before it asks the host', async () => {
+      const requestedBeforeRegistering: boolean[] = [];
+      state.requestToolApproval = async id => {
+        requestedBeforeRegistering.push(
+          state.emitted.some(
+            event =>
+              event.type === 'tool-approval-request' && event.approvalId === id,
+          ),
+        );
+        return { approved: true };
+      };
+      state.createQuery = args =>
+        (async function* () {
+          if (state.queryArgs.length === 1) {
+            await approvalHook(args)(bash, 'call-1');
+            yield deferredResult('call-1');
+            return;
+          }
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(requestedBeforeRegistering).toEqual([false]);
+    });
+
+    test('names the resumed tool result after the previous bridge deferred the call', async () => {
+      state.start = {
+        ...state.start,
+        resumeSessionId: 'session-1',
+        deferredToolUseId: 'call-1',
+      };
+      state.requestToolApproval = async () => ({ approved: true });
+      state.createQuery = args =>
+        (async function* () {
+          await approvalHook(args)(bash, 'call-1');
+          yield {
+            type: 'user',
+            message: {
+              content: [
+                {
+                  type: 'tool_result',
+                  tool_use_id: 'call-1',
+                  content: '/vercel/sandbox',
+                },
+              ],
+            },
+          };
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(
+        state.emitted.find(event => event.type === 'tool-result')?.toolName,
+      ).toBe('bash');
+    });
+
+    test('reports other calls deferred in the same message as not run', async () => {
+      state.requestToolApproval = async () => ({ approved: true });
+      state.createQuery = args =>
+        (async function* () {
+          if (state.queryArgs.length === 1) {
+            yield {
+              type: 'assistant',
+              message: {
+                content: ['call-1', 'call-2'].map(id => ({
+                  type: 'tool_use',
+                  id,
+                  name: 'Bash',
+                  input: { command: 'pwd' },
+                })),
+              },
+            };
+            await approvalHook(args)(bash, 'call-1');
+            await approvalHook(args)(bash, 'call-2');
+            yield deferredResult('call-2');
+            return;
+          }
+          yield { type: 'result', subtype: 'success', result: 'done' };
+        })();
+
+      await import('./index');
+
+      expect(
+        state.emitted.filter(
+          event =>
+            event.type === 'tool-result' ||
+            event.type === 'tool-approval-request',
+        ),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "isError": true,
+            "result": "Claude Code can wait for only one approval at a time, so this call did not run.",
+            "toolCallId": "call-1",
+            "toolName": "bash",
+            "type": "tool-result",
+          },
+          {
+            "approvalId": "call-2",
+            "toolCallId": "call-2",
+            "type": "tool-approval-request",
+          },
+        ]
+      `);
+    });
+  });
 
   test('allows ListAgents without approval in allow-reads mode', async () => {
     state.start = {
@@ -1042,6 +2006,41 @@ describe('Claude Code bridge configuration', () => {
         providerExecuted: false,
       },
     ]);
+  });
+
+  test('passes host tool hints to Claude Code as MCP annotations and _meta', async () => {
+    const inputSchema = { type: 'object', properties: {} };
+    state.start = {
+      ...state.start,
+      tools: [
+        { name: 'search', inputSchema },
+        { name: 'send', inputSchema },
+        { name: 'load', inputSchema },
+        { name: 'plain', inputSchema },
+      ],
+      toolHints: {
+        search: { readOnly: true, alwaysLoad: true },
+        send: { readOnly: false },
+        load: { alwaysLoad: true },
+      },
+    };
+
+    await import('./index');
+
+    expect(state.toolConfigs.get('search')).toMatchObject({
+      annotations: { readOnlyHint: true },
+      _meta: { 'anthropic/alwaysLoad': true },
+    });
+    expect(state.toolConfigs.get('send')).toMatchObject({
+      annotations: { readOnlyHint: false },
+    });
+    expect(state.toolConfigs.get('send')).not.toHaveProperty('_meta');
+    expect(state.toolConfigs.get('load')).toMatchObject({
+      _meta: { 'anthropic/alwaysLoad': true },
+    });
+    expect(state.toolConfigs.get('load')).not.toHaveProperty('annotations');
+    expect(state.toolConfigs.get('plain')).not.toHaveProperty('annotations');
+    expect(state.toolConfigs.get('plain')).not.toHaveProperty('_meta');
   });
 
   test('returns model-facing text and inline images as MCP content', async () => {
@@ -1471,6 +2470,42 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test('sends image prompt content as Claude image blocks', async () => {
+    state.createQuery = args =>
+      (async function* () {
+        const input = args.prompt[Symbol.asyncIterator]();
+        state.queryInputs.push((await input.next()).value);
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+    state.start = {
+      ...state.start,
+      prompt: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image', mediaType: 'image/png', data: 'iVBORw0KGgo=' },
+      ],
+    };
+
+    await import('./index');
+
+    expect(state.queryInputs[0]).toMatchObject({
+      type: 'user',
+      message: {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/png',
+              data: 'iVBORw0KGgo=',
+            },
+          },
+        ],
+      },
+    });
+  });
+
   test('keeps the query open past the first result for an accepted steering message', async () => {
     state.steering = true;
 
@@ -1497,6 +2532,149 @@ describe('Claude Code bridge configuration', () => {
         content: [{ type: 'text', text: 'Actually, Paris, Texas.' }],
       },
     });
+  });
+
+  test.each([true, false])(
+    'forwards the query tail only when the host has not aborted: aborted=%s',
+    async aborted => {
+      const turnAbort = new AbortController();
+      state.turnAbortController = turnAbort;
+      const emitError = vi.fn();
+      state.emitError = emitError;
+      let releaseInterrupt!: () => void;
+      const interrupted = new Promise<void>(resolve => {
+        releaseInterrupt = resolve;
+      });
+      const interrupt = vi.fn(async () => releaseInterrupt());
+      let beforeAbort: Record<string, unknown>[] = [];
+      let consumedTail = false;
+      let queryAbortSignal!: AbortSignal;
+      const generator = (async function* () {
+        yield { type: 'stream_event', event: { type: 'message_start' } };
+        yield {
+          type: 'stream_event',
+          event: {
+            type: 'content_block_start',
+            index: 0,
+            content_block: { type: 'text' },
+          },
+        };
+        yield {
+          type: 'stream_event',
+          event: {
+            type: 'content_block_delta',
+            index: 0,
+            delta: { type: 'text_delta', text: 'before abort' },
+          },
+        };
+        beforeAbort = [...state.emitted];
+        if (aborted) {
+          turnAbort.abort();
+          await interrupted;
+        }
+        expect(queryAbortSignal.aborted).toBe(false);
+        yield {
+          type: 'stream_event',
+          event: {
+            type: 'content_block_delta',
+            index: 0,
+            delta: { type: 'text_delta', text: ' after abort' },
+          },
+        };
+        yield {
+          type: 'stream_event',
+          event: { type: 'content_block_stop', index: 0 },
+        };
+        yield {
+          type: 'assistant',
+          message: {
+            content: [{ type: 'text', text: 'before abort after abort' }],
+          },
+        };
+        yield { type: 'stream_event', event: { type: 'message_stop' } };
+        consumedTail = true;
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      })();
+      const disposed = vi.fn();
+      const originalReturn = generator.return.bind(generator);
+      generator.return = ((value?: unknown) => {
+        disposed();
+        return originalReturn(value as never);
+      }) as typeof generator.return;
+      state.createQuery = args => {
+        queryAbortSignal = args.options.abortSignal as AbortSignal;
+        return Object.assign(generator, { interrupt });
+      };
+
+      await import('./index');
+
+      expect(consumedTail).toBe(true);
+      expect(interrupt).toHaveBeenCalledTimes(aborted ? 1 : 0);
+      expect(disposed).toHaveBeenCalled();
+      expect(emitError).not.toHaveBeenCalled();
+      if (aborted) {
+        expect(state.emitted).toEqual(beforeAbort);
+        expect(state.emitted.map(event => event.type)).toMatchInlineSnapshot(`
+          [
+            "stream-start",
+            "text-start",
+            "text-delta",
+          ]
+        `);
+      } else {
+        expect(state.emitted.map(event => event.type)).toMatchInlineSnapshot(`
+          [
+            "stream-start",
+            "text-start",
+            "text-delta",
+            "text-delta",
+            "text-end",
+            "raw",
+            "finish-step",
+            "finish",
+          ]
+        `);
+        expect(
+          state.emitted
+            .filter(event => event.type === 'text-delta')
+            .map(event => event.delta),
+        ).toMatchInlineSnapshot(`
+          [
+            "before abort",
+            " after abort",
+          ]
+        `);
+      }
+    },
+  );
+
+  test('does not emit finish when the host aborts during query disposal', async () => {
+    const turnAbort = new AbortController();
+    state.turnAbortController = turnAbort;
+    const query = {
+      [Symbol.asyncIterator]: async function* () {
+        yield { type: 'result', subtype: 'success', result: 'done' };
+      },
+      interrupt: vi.fn(),
+      return: vi.fn(async () => {
+        await Promise.resolve();
+        turnAbort.abort();
+        return { done: true, value: undefined };
+      }),
+    };
+    state.createQuery = () => query;
+
+    await import('./index');
+
+    expect(query.return).toHaveBeenCalledTimes(1);
+    expect(query.interrupt).not.toHaveBeenCalled();
+    expect(state.emitted).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+        },
+      ]
+    `);
   });
 
   test('a host abort interrupts the query gracefully, stays quiet, and disposes it', async () => {
@@ -1607,10 +2785,12 @@ describe('Claude Code bridge configuration', () => {
 
     await import('./index');
 
-    expect(emitError).toHaveBeenCalledWith({
-      error: 'API Error: 400 the request was rejected',
-      message: 'claude-code terminal error',
-    });
+    expect(state.emitted.filter(event => event.type === 'error')).toEqual([
+      {
+        type: 'error',
+        error: 'API Error: 400 the request was rejected',
+      },
+    ]);
     // The turn must not also settle as a normal finish: that is what made a
     // hard rejection look like an agent that simply returned nothing.
     expect(state.emitted).not.toContainEqual(
@@ -1633,11 +2813,80 @@ describe('Claude Code bridge configuration', () => {
 
     await import('./index');
 
-    expect(emitError).toHaveBeenCalledWith({
-      error: 'Claude Code reported an API error (HTTP 529)',
-      message: 'claude-code terminal error',
-    });
+    expect(state.emitted.filter(event => event.type === 'error')).toEqual([
+      {
+        type: 'error',
+        error: 'Claude Code reported an API error (HTTP 529)',
+      },
+    ]);
   });
+
+  test('tags every turn event with the start identifier', async () => {
+    state.start = { ...state.start, startId: 'first-turn' };
+    state.additionalTurns = [
+      {
+        start: { ...state.start, startId: 'second-turn' },
+        firstTurn: false,
+      },
+    ];
+    state.messages = [{ type: 'result', subtype: 'success', result: 'done' }];
+    await import('./index');
+    const firstFinish = state.emitted.findIndex(
+      event => event.type === 'finish',
+    );
+    expect(firstFinish).toBeGreaterThanOrEqual(0);
+    expect(
+      state.emitted.slice(0, firstFinish + 1).map(event => event.startId),
+    ).toEqual(Array(firstFinish + 1).fill('first-turn'));
+    expect(
+      state.emitted.slice(firstFinish + 1).map(event => event.startId),
+    ).toEqual(
+      Array(state.emitted.length - firstFinish - 1).fill('second-turn'),
+    );
+    expect(state.emitted.at(-1)?.type).toBe('finish');
+  });
+
+  test.each(['setup', 'iteration', 'terminal'] as const)(
+    'tags %s errors without emitting an untagged duplicate',
+    async phase => {
+      state.start = { ...state.start, startId: 'failed-turn' };
+      if (phase === 'setup') {
+        state.createQuery = () => {
+          throw new Error('query failed');
+        };
+      } else if (phase === 'iteration') {
+        state.createQuery = () =>
+          (async function* () {
+            throw new Error('query failed');
+            yield undefined as never;
+          })();
+      } else {
+        state.messages = [
+          {
+            type: 'result',
+            subtype: 'error_during_execution',
+            errors: ['query failed'],
+          },
+        ];
+      }
+      await import('./index');
+      expect(state.emitted.filter(event => event.type === 'error')).toEqual([
+        {
+          type: 'error',
+          startId: 'failed-turn',
+          error:
+            phase === 'terminal'
+              ? 'query failed'
+              : {
+                  name: 'Error',
+                  message: 'query failed',
+                  stack: expect.any(String),
+                },
+        },
+      ]);
+      expect(state.emitted.some(event => event.type === 'finish')).toBe(false);
+    },
+  );
 
   test('still finishes normally when a `success` result is not flagged as an error', async () => {
     const emitError = vi.fn();

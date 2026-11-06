@@ -1,4 +1,4 @@
-export { AnthropicFiles } from '../anthropic-files';
+export { AnthropicFiles } from '../files/anthropic-files';
 export {
   AnthropicLanguageModel,
   /** @deprecated Use `AnthropicLanguageModel` instead. */
@@ -13,4 +13,11 @@ export type {
 } from '../anthropic-language-model-options';
 export { prepareTools } from '../anthropic-prepare-tools';
 export { sanitizeJsonSchema } from '../sanitize-json-schema';
+export { supportsNativeStructuredOutputSchema } from '../supports-native-structured-output-schema';
 export { AnthropicSkills } from '../skills/anthropic-skills';
+
+export {
+  anthropicModelCatalog,
+  anthropicProviderOptions,
+  getAnthropicLanguageModelEntry,
+} from '../anthropic-model-catalog';

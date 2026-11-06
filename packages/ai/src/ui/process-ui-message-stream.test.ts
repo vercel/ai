@@ -14,6 +14,7 @@ import {
 } from './ui-messages';
 import { validateUIMessages } from './validate-ui-messages';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import { z } from 'zod/v4';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
@@ -277,6 +278,79 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('steering-message', () => {
+    it('adds steering messages before the step that received them and keeps them when the step is reset', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start-step' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'It is sunny.' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        {
+          type: 'steering-message',
+          id: 'steer-1',
+          parts: [{ type: 'text', text: 'I meant Paris, Texas.' }],
+        },
+        { type: 'start-step' },
+        { type: 'text-start', id: 'stale-text' },
+        { type: 'text-delta', id: 'stale-text', delta: 'It is' },
+        { type: 'reset-step' },
+        { type: 'text-start', id: 'text-2' },
+        { type: 'text-delta', id: 'text-2', delta: 'It is hot in Texas.' },
+        { type: 'text-end', id: 'text-2' },
+        { type: 'finish-step' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "It is sunny.",
+            "type": "text",
+          },
+          {
+            "id": "steer-1",
+            "parts": [
+              {
+                "text": "I meant Paris, Texas.",
+                "type": "text",
+              },
+            ],
+            "type": "steering-message",
+          },
+          {
+            "type": "step-start",
+          },
+          {
+            "providerMetadata": undefined,
+            "state": "done",
+            "text": "It is hot in Texas.",
+            "type": "text",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('text', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
@@ -462,6 +536,62 @@ describe('processUIMessageStream', () => {
           [Error: test error],
         ]
       `);
+    });
+  });
+
+  describe('data part schemas', () => {
+    const dataPartSchemas = { weather: z.object({ city: z.string() }) };
+
+    beforeEach(() => {
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+    });
+
+    it('should reject a data part that does not match its schema', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'data-weather', id: 'w1', data: { city: 42 } },
+      ]);
+
+      await expect(
+        consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            dataPartSchemas,
+            runUpdateMessageJob,
+            onError: () => {},
+          }),
+          onError: error => {
+            throw error;
+          },
+        }),
+      ).rejects.toThrow(
+        'Type validation failed for message.parts[0].data (data-weather, id: "w1")',
+      );
+
+      expect(state!.message.parts).toEqual([]);
+    });
+
+    it('should accept a data part that matches its schema', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start' },
+        { type: 'data-weather', id: 'w1', data: { city: 'Berlin' } },
+      ]);
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          dataPartSchemas,
+          runUpdateMessageJob,
+          onError: () => {},
+        }),
+      });
+
+      expect(state!.message.parts).toEqual([
+        { type: 'data-weather', id: 'w1', data: { city: 'Berlin' } },
+      ]);
     });
   });
 
@@ -3539,6 +3669,58 @@ describe('processUIMessageStream', () => {
           "role": "assistant",
         }
       `);
+    });
+  });
+
+  describe('static tool name changes', () => {
+    it('uses the completed input tool name for an existing streamed part', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-0',
+          toolName: 'originalTool',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: '{"value":"test"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'renamedTool',
+          input: { value: 'test' },
+        },
+        {
+          type: 'tool-approval-request',
+          toolCallId: 'tool-call-0',
+          approvalId: 'approval-0',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state.message.parts[1]).toMatchObject({
+        type: 'tool-renamedTool',
+        toolCallId: 'tool-call-0',
+        state: 'approval-requested',
+        input: { value: 'test' },
+        approval: { id: 'approval-0' },
+      });
     });
   });
 

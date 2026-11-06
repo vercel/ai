@@ -5,7 +5,8 @@ import type {
   RequestPermissionResponse,
   ToolCallUpdate,
 } from '@agentclientprotocol/sdk';
-import type { HostToolCall } from './resolve-host-tool-call';
+import type { HostToolCall } from './host-tool-call-resolver';
+import { areACPToolLocationsTrusted } from './permission-locations';
 
 type PendingPermission = {
   cancel(): void;
@@ -16,6 +17,7 @@ let permissionRequestCounter = 0;
 export function createACPPermissionController({
   turn,
   sessionId,
+  workDir,
   permissionMode,
   hasPermissionModeMapping,
   emitToolCall,
@@ -24,12 +26,13 @@ export function createACPPermissionController({
 }: {
   turn: BridgeTurn;
   sessionId: string;
+  workDir: string;
   permissionMode: HarnessV1PermissionMode;
   hasPermissionModeMapping: boolean;
   emitToolCall: (options: { toolCall: ToolCallUpdate }) => void;
   claimHostToolPermission: (options: {
     toolCall: ToolCallUpdate;
-  }) => HostToolCall | undefined;
+  }) => Promise<HostToolCall | undefined>;
   onHostToolPermissionAllowed?: (options: {
     toolCallId: string;
     call: HostToolCall;
@@ -41,6 +44,7 @@ export function createACPPermissionController({
   cancelAll(): void;
 } {
   const pendingPermissions = new Map<string, PendingPermission>();
+  let cancellationGeneration = 0;
 
   return {
     async requestPermission(request) {
@@ -70,7 +74,11 @@ export function createACPPermissionController({
         });
         return cancelled();
       }
-      const call = claimHostToolPermission({ toolCall: request.toolCall });
+      const generation = cancellationGeneration;
+      const call = await claimHostToolPermission({
+        toolCall: request.toolCall,
+      });
+      if (generation !== cancellationGeneration) return cancelled();
       if (call != null) {
         onHostToolPermissionAllowed?.({
           toolCallId: request.toolCall.toolCallId,
@@ -83,13 +91,19 @@ export function createACPPermissionController({
           },
         };
       }
-      if (
+      const autoApprove =
         !hasPermissionModeMapping &&
         shouldAutoApprove({
           permissionMode,
           kind: request.toolCall.kind,
-        })
-      ) {
+        }) &&
+        (permissionMode === 'allow-all' ||
+          (await areACPToolLocationsTrusted({
+            toolCall: request.toolCall,
+            workDir,
+          })));
+      if (generation !== cancellationGeneration) return cancelled();
+      if (autoApprove) {
         return {
           outcome: {
             outcome: 'selected',
@@ -136,6 +150,7 @@ export function createACPPermissionController({
       }
     },
     cancelAll() {
+      cancellationGeneration += 1;
       for (const pending of pendingPermissions.values()) {
         pending.cancel();
       }

@@ -500,6 +500,111 @@ describe('LegacyOpenTelemetry', () => {
       expect(attrs['ai.prompt.messages']).toBeDefined();
     });
 
+    it.each([undefined, false])(
+      'redacts domain secrets in tool definitions with recordInputs=%s',
+      recordInputs => {
+        const stepTools = [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'python',
+            args: {
+              container: {
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets: [
+                    {
+                      domain: 'example.com',
+                      name: 'API_KEY',
+                      value: 'private-key',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ];
+        const originalTools = structuredClone(stepTools);
+        otelIntegration.onStart!(makeOnStartEvent({ recordInputs }));
+        otelIntegration.onStepStart!(makeStepStartEvent({ stepTools }));
+
+        const definitions = getStartSpanAttributes(tracer, 1)[
+          'ai.prompt.tools'
+        ];
+        if (recordInputs === false) {
+          expect(definitions).toBeUndefined();
+        } else {
+          expect(definitions).toEqual([
+            JSON.stringify({
+              type: 'provider',
+              id: 'openai.code_interpreter',
+              name: 'python',
+              args: {
+                container: {
+                  networkPolicy: {
+                    type: 'allowlist',
+                    allowedDomains: ['example.com'],
+                    domainSecrets: [
+                      {
+                        domain: 'example.com',
+                        name: 'API_KEY',
+                        value: '[redacted]',
+                      },
+                    ],
+                  },
+                },
+              },
+            }),
+          ]);
+        }
+        expect(stepTools).toEqual(originalTools);
+      },
+    );
+
+    it.each([undefined, false])(
+      'redacts MCP credentials in tool definitions with recordInputs=%s',
+      recordInputs => {
+        const stepTools = [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'remote_tools',
+            args: {
+              serverLabel: 'example',
+              serverUrl: 'https://example.com/mcp',
+              authorization: 'mcp-private-token',
+              headers: { 'X-Custom-Key': 'mcp-private-key' },
+            },
+          },
+        ];
+        const originalTools = structuredClone(stepTools);
+        otelIntegration.onStart!(makeOnStartEvent({ recordInputs }));
+        otelIntegration.onStepStart!(makeStepStartEvent({ stepTools }));
+        const definitions = getStartSpanAttributes(tracer, 1)[
+          'ai.prompt.tools'
+        ];
+        expect(definitions).toEqual(
+          recordInputs === false
+            ? undefined
+            : [
+                JSON.stringify({
+                  type: 'provider',
+                  id: 'openai.mcp',
+                  name: 'remote_tools',
+                  args: {
+                    serverLabel: 'example',
+                    serverUrl: 'https://example.com/mcp',
+                    authorization: '[redacted]',
+                    headers: { 'X-Custom-Key': '[redacted]' },
+                  },
+                }),
+              ],
+        );
+        expect(stepTools).toEqual(originalTools);
+      },
+    );
+
     it('includes tool choice and tools when provided', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(
@@ -925,6 +1030,23 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onEnd!(makeFinishEvent());
 
       expect(tracer.spans).toHaveLength(0);
+    });
+  });
+
+  describe('onStepError', () => {
+    it('records error on the step span and keeps the root span open', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+
+      const error = new Error('step failed');
+      otelIntegration.onStepError!({ ...makeStepStartEvent(), error } as any);
+
+      const [rootSpan, stepSpan] = tracer.spans;
+      expect(stepSpan.recordException).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'step failed' }),
+      );
+      expect(stepSpan.end).toHaveBeenCalled();
+      expect(rootSpan.end).not.toHaveBeenCalled();
     });
   });
 

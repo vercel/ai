@@ -1,0 +1,34 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": " underlying fireclay floor (16 meters deep) and backfilled with a self-hardening pozzolanic slurry o"
+          }
+        ]
+      },
+      "finishReason": "MAX_TOKENS",
+      "continuationToken": "checkpoint-2"
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 32883,
+    "candidatesTokenCount": 512,
+    "totalTokenCount": 33395,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 32883
+      }
+    ],
+    "candidatesTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 512
+      }
+    ]
+  },
+  "modelVersion": "gemini-4-argon"
+}

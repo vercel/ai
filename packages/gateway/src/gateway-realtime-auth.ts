@@ -1,6 +1,6 @@
 /**
- * Shared WebSocket subprotocol contract for AI Gateway realtime and streaming
- * transcription auth.
+ * Shared WebSocket subprotocol contract for AI Gateway realtime, streaming
+ * transcription, and streaming speech auth.
  *
  * The browser `WebSocket` API cannot set request headers, so the Gateway auth
  * (bearer) token is carried through the `Sec-WebSocket-Protocol` handshake
@@ -9,7 +9,8 @@
  *
  * This module is the single source of truth for that contract so the client and
  * the Gateway server can't drift: the client encodes values with
- * `getGatewayRealtimeProtocols` / `getGatewayTranscriptionProtocols`, and the
+ * `getGatewayRealtimeProtocols` / `getGatewayTranscriptionProtocols` /
+ * `getGatewaySpeechProtocols`, and the
  * Gateway server decodes them with `getGatewayRealtimeAuthToken` /
  * `getGatewayRealtimeTeamIdOrSlug`.
  *
@@ -32,6 +33,12 @@ export const GATEWAY_REALTIME_SUBPROTOCOL = 'ai-gateway-realtime.v1';
  * purpose as `GATEWAY_REALTIME_SUBPROTOCOL`).
  */
 export const GATEWAY_TRANSCRIPTION_SUBPROTOCOL = 'ai-gateway-transcription.v1';
+
+/**
+ * Marker subprotocol for streaming speech handshakes (same negotiation
+ * purpose as `GATEWAY_REALTIME_SUBPROTOCOL`).
+ */
+export const GATEWAY_SPEECH_SUBPROTOCOL = 'ai-gateway-speech.v1';
 
 /** Subprotocol prefix that carries the Gateway auth (bearer) token. */
 export const GATEWAY_AUTH_SUBPROTOCOL_PREFIX = 'ai-gateway-auth.';
@@ -63,6 +70,17 @@ export function getGatewayTranscriptionProtocols(
     token,
     options,
   );
+}
+
+/**
+ * Client-side: `getGatewayRealtimeProtocols`, but with the streaming speech
+ * marker subprotocol.
+ */
+export function getGatewaySpeechProtocols(
+  token: string,
+  options?: { teamIdOrSlug?: string },
+): string[] {
+  return buildGatewayProtocols(GATEWAY_SPEECH_SUBPROTOCOL, token, options);
 }
 
 function buildGatewayProtocols(

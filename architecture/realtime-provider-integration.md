@@ -35,6 +35,16 @@ Both parser entry points use pure mapping and return arrays, including for a sin
 normalized event. Unknown provider messages, including `response.event`, remain
 `custom` events with the original payload in `raw`.
 
+Server connection helpers and codecs accept a matching optional session `intent`.
+Conversation remains the default; OpenAI Realtime additionally supports dedicated
+transcription. Unsupported intents fail before a connection or command is used.
+Credentials resolve per connection, including asynchronous suppliers; Gateway
+reuses its HTTP header construction. Google creates an independent stateful parser
+for every socket. Standalone Google usage remains an unassociated `custom`
+`usageMetadata` snapshot with typed usage rather than a repeated terminal event.
+Only a shared completion frame establishes a response usage association. Preserve
+reported totals separately from modality buckets and never infer missing counts.
+
 For WebRTC, the browser posts `{ sdp, sessionConfig }` to `api.session`. An
 authenticated application endpoint calls `doCreateWebRTCSession()` with server-owned
 delegation and data-channel permissions, returning only `{ sdp, sessionId }`.

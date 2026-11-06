@@ -4,6 +4,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -19,7 +21,7 @@ export interface GmicloudProviderSettings {
    * GMI Cloud API key. Defaults to the `GMI_CLOUD_APIKEY` environment
    * variable (matching GMI's own SDK package).
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
   /**
    * Base URL for the API calls. Defaults to
    * `https://api.gmi-serving.com/v1`.
@@ -65,16 +67,18 @@ export function createGmicloud(
     options.baseURL ?? 'https://api.gmi-serving.com/v1',
   );
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'GMI_CLOUD_APIKEY',
-          description: 'GMI Cloud API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-gmicloud/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'GMI_CLOUD_APIKEY',
+            description: 'GMI Cloud API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-gmicloud/${VERSION}`,
+      ),
     );
 
   const createLanguageModel = (modelId: GmicloudChatModelId) => {

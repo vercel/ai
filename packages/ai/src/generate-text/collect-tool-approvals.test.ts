@@ -1,4 +1,8 @@
-import type { ModelMessage } from '@ai-sdk/provider-utils';
+import type {
+  ModelMessage,
+  ToolApprovalResponse,
+  ToolResultPart,
+} from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { collectToolApprovals } from './collect-tool-approvals';
 
@@ -739,5 +743,93 @@ describe('collectToolApprovals', () => {
         ],
       }
     `);
+  });
+
+  describe('repeated approval responses', () => {
+    const response1: ToolApprovalResponse = {
+      type: 'tool-approval-response',
+      approvalId: 'approval-1',
+      approved: true,
+    };
+
+    function collect(
+      responses: ToolApprovalResponse[],
+      results: ToolResultPart[] = [],
+    ) {
+      const messages: ModelMessage[] = [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: {},
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-1',
+              toolCallId: 'call-1',
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-2',
+              toolCallId: 'call-1',
+            },
+          ],
+        },
+        { role: 'tool', content: [...responses, ...results] },
+      ];
+      const result = collectToolApprovals({ messages });
+      return [
+        ...result.approvedToolApprovals,
+        ...result.deniedToolApprovals,
+      ].map(approval => approval.approvalResponse);
+    }
+
+    it.each([true, false])(
+      'should collect an identical response once when approved is %s',
+      approved => {
+        const response = { ...response1, approved };
+        expect(collect([response, { ...response }])).toEqual([response]);
+      },
+    );
+
+    it.each([{ reason: 'replayed' }, { providerExecuted: false }])(
+      'should ignore a replayed decision with different metadata: %j',
+      difference => {
+        expect(collect([response1, { ...response1, ...difference }])).toEqual([
+          response1,
+        ]);
+      },
+    );
+
+    it('should keep the first of conflicting decisions', () => {
+      const denial = { ...response1, approved: false };
+      expect(collect([response1, denial])).toEqual([response1]);
+      expect(collect([denial, response1])).toEqual([denial]);
+    });
+
+    it('should collect one response per tool call across approval IDs', () => {
+      const response2 = { ...response1, approvalId: 'approval-2' };
+      expect(collect([response1, response2])).toEqual([response1]);
+    });
+
+    it('should collect a denial with an existing execution-denied result once', () => {
+      const denial = { ...response1, approved: false };
+      expect(
+        collect(
+          [denial, { ...denial }],
+          [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              output: { type: 'execution-denied' },
+            },
+          ],
+        ),
+      ).toEqual([denial]);
+    });
   });
 });

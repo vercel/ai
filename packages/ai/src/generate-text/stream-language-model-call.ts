@@ -1,4 +1,8 @@
 import {
+  getRequestOrigin,
+  sanitizeRequestMetadata,
+} from '../telemetry/get-request-origin';
+import {
   getErrorMessage,
   type LanguageModelV4Content,
   type LanguageModelV4Prompt,
@@ -94,6 +98,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
           | 'tool-output-denied'
           | 'start-step'
           | 'finish-step'
+          | 'steering-message'
           | 'start'
           | 'abort';
       }
@@ -280,6 +285,8 @@ export async function streamLanguageModelCall<
   LanguageModelCallOptions): Promise<{
   stream: AsyncIterableStream<LanguageModelStreamPart<TOOLS>>;
   request?: {
+    /** Sanitized HTTP origin, when the provider reports an endpoint. */
+    url?: string;
     /**
      * Request HTTP body that was sent to the provider API.
      */
@@ -353,7 +360,7 @@ export async function streamLanguageModelCall<
   const {
     stream: languageModelStream,
     response,
-    request,
+    request: rawRequest,
   } = await executeLanguageModelCallInTelemetryContext({
     ...languageModelCallStartEvent,
     execute: async () =>
@@ -370,6 +377,8 @@ export async function streamLanguageModelCall<
       }),
   });
 
+  const request = sanitizeRequestMetadata(rawRequest);
+
   const standardizedStream = languageModelStream.pipeThrough(
     createLanguageModelV4StreamPartToLanguageModelStreamPartTransform({
       tools,
@@ -385,6 +394,7 @@ export async function streamLanguageModelCall<
       generateId,
       now,
       callStartTimestampMs,
+      request,
       onLanguageModelCallEnd,
       collectContent,
     }),
@@ -414,6 +424,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   generateId,
   now,
   callStartTimestampMs,
+  request,
   onLanguageModelCallEnd,
   collectContent,
 }: {
@@ -430,6 +441,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   generateId: IdGenerator;
   now: () => number;
   callStartTimestampMs: number;
+  request?: { url?: string };
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
   collectContent: boolean;
 }) {
@@ -448,6 +460,12 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   let previousOutputChunkTimestampMs: number | undefined;
   const timeBetweenOutputChunksMs: number[] = [];
 
+  // Tool choice none rejects tool calls when the model call finishes.
+  // Withhold tool parts so that consumers (e.g. client-side tools) cannot
+  // act on them before the rejection, and skip user callbacks that would
+  // repair or refine them.
+  const withholdToolParts = toolChoice.type === 'none';
+
   return new TransformStream<
     LanguageModelV4StreamPart,
     LanguageModelStreamPart<TOOLS>
@@ -465,6 +483,15 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         previousOutputChunkTimestampMs = outputChunkTimestampMs;
+      }
+
+      if (
+        withholdToolParts &&
+        (chunk.type === 'tool-input-start' ||
+          chunk.type === 'tool-input-delta' ||
+          chunk.type === 'tool-input-end')
+      ) {
+        return;
       }
 
       switch (chunk.type) {
@@ -646,6 +673,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               usage,
               content: modelCallContent,
               responseId,
+              ...(request?.url != null
+                ? { request: { url: getRequestOrigin(request.url) } }
+                : {}),
               ...(chunk.providerMetadata != null
                 ? { providerMetadata: chunk.providerMetadata }
                 : {}),
@@ -655,17 +685,18 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           });
 
           const enforcedToolChoice =
-            toolChoice.type === 'required' || toolChoice.type === 'tool'
-              ? toolChoice
-              : undefined;
+            toolChoice.type === 'auto' ? undefined : toolChoice;
 
           const toolChoiceViolationError =
             enforcedToolChoice != null &&
-            ![...toolCallsByToolCallId.values()].some(
-              toolCall =>
-                enforcedToolChoice.type === 'required' ||
-                toolCall.toolName === enforcedToolChoice.toolName,
-            )
+            (enforcedToolChoice.type === 'none'
+              ? toolCallsByToolCallId.size > 0
+              : chunk.finishReason.unified !== 'interrupted' &&
+                ![...toolCallsByToolCallId.values()].some(
+                  toolCall =>
+                    enforcedToolChoice.type === 'required' ||
+                    toolCall.toolName === enforcedToolChoice.toolName,
+                ))
               ? new ToolChoiceViolationError({
                   toolChoice: enforcedToolChoice,
                   finishReason: chunk.finishReason.unified,
@@ -708,16 +739,21 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
             const toolCall = await parseToolCall({
               toolCall: chunk,
               tools,
-              repairToolCall,
-              refineToolInput,
+              repairToolCall: withholdToolParts ? undefined : repairToolCall,
+              refineToolInput: withholdToolParts ? undefined : refineToolInput,
               instructions,
               messages,
               abortSignal,
             });
 
             toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
-            controller.enqueue(toolCall);
             if (collectContent) modelCallContent.push(toolCall);
+
+            if (withholdToolParts) {
+              break;
+            }
+
+            controller.enqueue(toolCall);
 
             if (toolCall.invalid) {
               if (!toolCall.providerExecuted) {
@@ -745,6 +781,10 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
         case 'tool-approval-request': {
           if (collectContent) rawModelCallContent.push(chunk);
+
+          if (withholdToolParts) {
+            break;
+          }
 
           const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
 
@@ -808,7 +848,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
                   : {}),
               } as TypedToolResult<TOOLS>);
 
-          controller.enqueue(toolResultPart);
+          if (!withholdToolParts) controller.enqueue(toolResultPart);
           if (collectContent) modelCallContent.push(toolResultPart);
 
           break;

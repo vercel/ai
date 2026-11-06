@@ -5,9 +5,14 @@ We suggest you read the following contributing guide we've created before submit
 
 https://github.com/vercel/ai/blob/main/CONTRIBUTING.md
 
-AI SDK maintenance is becoming increasingly automated. High-quality issues, reproductions,
-failing tests, docs fixes, and focused clarifications are especially valuable. You do not
-need to send a complete bug fix for your contribution to be appreciated or credited.
+We use our own specialized agents to work on open issues. Please avoid opening pull
+requests to fix bug reports or implement feature requests authored by someone else,
+unless the purpose is to add useful context best expressed with code, such as a
+reproduction or failing test. Explain that context and link the issue below.
+
+High-quality issues, reproductions, failing tests, docs fixes, and focused clarifications
+are especially valuable. You do not need to send a complete bug fix for your
+contribution to be appreciated or credited.
 -->
 
 ## Background
@@ -35,6 +40,20 @@ Remove the section if it's not needed.
 For features & bugfixes.
 Remove the section if it's not needed (e.g. for docs).
 Please explain how you verified that the change works end-to-end as expected.
+For bug-fix PRs:
+
+- Reproduce the failure before the fix, then rerun the same reproduction to verify
+  the expected behavior after the fix. Exercise the affected public API and the
+  real provider or application flow where applicable.
+- Keep reproduction-only files outside the checkout; do not commit them.
+- Include the complete runnable reproduction here, along with setup and execution
+  commands, prerequisites (without secrets), and observed before/after results.
+- Build and use the relevant checkout's local packages for both runs, and show how
+  the reproduction resolves those packages rather than published registry versions.
+
+State which provider or application flow was exercised and any verification limits.
+If a run was blocked, explain what could not be verified and why.
+Unit tests and mocked requests do not replace end-to-end verification.
 Do not include integration/unit tests or linting
 -->
 

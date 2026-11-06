@@ -1,5 +1,169 @@
 # @ai-sdk/code-mode
 
+## 1.0.120
+
+### Patch Changes
+
+- 3fab50a: fix(code-mode): name the tool in `CodeModeDetachedBridgeRequestError` messages instead of the internal `__codeMode.toolN` binding
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+
+## 1.0.119
+
+### Patch Changes
+
+- Updated dependencies [857ca45]
+- Updated dependencies [4d6d830]
+  - ai@7.0.162
+
+## 1.0.118
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+  - ai@7.0.161
+
+## 1.0.117
+
+### Patch Changes
+
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
+## 1.0.116
+
+### Patch Changes
+
+- ai@7.0.159
+
+## 1.0.115
+
+### Patch Changes
+
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [5c247e9]
+  - ai@7.0.158
+
+## 1.0.114
+
+### Patch Changes
+
+- Updated dependencies [0cc4921]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+
+## 1.0.113
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 1.0.112
+
+### Patch Changes
+
+- Updated dependencies [b6b9dca]
+  - ai@7.0.155
+
+## 1.0.111
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+
+## 1.0.110
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+  - ai@7.0.153
+
+## 1.0.109
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 1.0.108
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 1.0.107
+
+### Patch Changes
+
+- Updated dependencies [8e18d59]
+  - ai@7.0.150
+
+## 1.0.106
+
+### Patch Changes
+
+- d0063af: feat(code-mode): add `executionPolicy.cpuTimeoutMs` to bound CPU time spent running sandboxed code, and throw `CodeModeCpuTimeoutError` when it is exceeded
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+
+## 1.0.105
+
+### Patch Changes
+
+- ai@7.0.148
+
+## 1.0.104
+
+### Patch Changes
+
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 1.0.103
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+
+## 1.0.102
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 1.0.101
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - ai@7.0.144
+
 ## 1.0.100
 
 ### Patch Changes

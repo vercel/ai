@@ -251,6 +251,7 @@ payloads, console output, and tool calls. Override them with
 const codeMode = codeModeTool({
   executionPolicy: {
     timeoutMs: 30_000,
+    cpuTimeoutMs: 10_000,
     memoryLimitBytes: 64 * 1024 * 1024,
     maxResultBytes: 1024 * 1024,
     maxBridgeRequests: 100,
@@ -261,7 +262,8 @@ const codeMode = codeModeTool({
 
 The available limits are:
 
-- `timeoutMs`: total execution time
+- `timeoutMs`: total execution time, including time spent waiting on tools
+- `cpuTimeoutMs`: CPU time spent running sandboxed code, excluding tool waits
 - `memoryLimitBytes`: QuickJS memory
 - `maxStackSizeBytes`: QuickJS stack
 - `maxSourceBytes`: generated source code

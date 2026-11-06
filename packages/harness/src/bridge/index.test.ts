@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
+import { z } from 'zod/v4';
+import { SandboxChannel } from '../utils/sandbox-channel';
 import { runBridge, type BridgeHandle, type BridgeTurn } from './index';
 
 const TOKEN = 'test-token';
@@ -14,10 +16,12 @@ async function startBridge({
   onStart,
   onStop,
   turnTeardownGraceMs,
+  hostDisconnectTimeoutMs,
 }: {
   onStart: (start: { type: 'start' }, turn: BridgeTurn) => Promise<void>;
   onStop?: () => unknown;
   turnTeardownGraceMs?: number;
+  hostDisconnectTimeoutMs?: number;
 }): Promise<BridgeHandle> {
   const handle = await runBridge<{ type: 'start' }>({
     bridgeType: 'test',
@@ -27,6 +31,7 @@ async function startBridge({
     onStart,
     ...(onStop ? { onStop } : {}),
     ...(turnTeardownGraceMs != null ? { turnTeardownGraceMs } : {}),
+    ...(hostDisconnectTimeoutMs != null ? { hostDisconnectTimeoutMs } : {}),
     // Never call process.exit from a test.
     onExit: () => {},
   });
@@ -96,6 +101,77 @@ function connect(port: number): Promise<Client> {
 }
 
 describe('runBridge', () => {
+  it('deduplicates a start that is waiting for the previous turn to tear down', async () => {
+    let releaseTurn!: () => void;
+    const gate = new Promise<void>(resolve => {
+      releaseTurn = resolve;
+    });
+    const starts: BridgeTurn[] = [];
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        starts.push(turn);
+        turn.emit({ type: 'text-delta', delta: 'started' });
+        if (starts.length === 1) await gate;
+        else turn.emit({ type: 'finish' });
+      },
+    });
+    const client = await connect(handle.port);
+    await client.waitFor(frame => frame.type === 'bridge-hello');
+    client.send({ type: 'start', startId: 'turn-1' });
+    await client.waitFor(frame => frame.type === 'text-delta');
+    client.send({ type: 'start', startId: 'turn-2' });
+    client.send({ type: 'start', startId: 'turn-2' });
+    await vi.waitFor(() => expect(starts[0].abortSignal.aborted).toBe(true));
+    expect(starts).toHaveLength(1);
+    releaseTurn();
+    await client.waitFor(frame => frame.type === 'finish');
+    expect(starts).toHaveLength(2);
+  });
+
+  it('ignores duplicate start identifiers while running and after finishing', async () => {
+    let releaseTurn!: () => void;
+    const gate = new Promise<void>(resolve => {
+      releaseTurn = resolve;
+    });
+    const starts: BridgeTurn[] = [];
+    const handle = await startBridge({
+      onStart: async (_start, turn) => {
+        starts.push(turn);
+        turn.emit({ type: 'text-delta', delta: 'started' });
+        await gate;
+        turn.emit({ type: 'finish' });
+      },
+    });
+    const client = await connect(handle.port);
+    await expect(
+      client.waitFor(frame => frame.type === 'bridge-hello'),
+    ).resolves.toMatchObject({ capabilities: { idempotentStart: true } });
+    client.send({ type: 'start', startId: 'turn-1' });
+    await client.waitFor(frame => frame.type === 'text-delta');
+    client.send({ type: 'start', startId: 'turn-1' });
+    client.send({ type: 'resume', lastSeenEventId: 0 });
+    await vi.waitFor(() => {
+      expect(
+        client.frames.filter(frame => frame.type === 'text-delta'),
+      ).toHaveLength(2);
+    });
+    expect(starts).toHaveLength(1);
+    expect(starts[0].abortSignal.aborted).toBe(false);
+    releaseTurn();
+    await client.waitFor(frame => frame.type === 'finish');
+
+    const replacement = await connect(handle.port);
+    await replacement.waitFor(frame => frame.type === 'bridge-hello');
+    replacement.send({ type: 'start', startId: 'turn-1' });
+    replacement.send({ type: 'resume', lastSeenEventId: 0 });
+    await replacement.waitFor(frame => frame.type === 'finish');
+    expect(starts).toHaveLength(1);
+    expect(replacement.seqs()).toEqual([1, 2]);
+
+    replacement.send({ type: 'start', startId: 'turn-2' });
+    await vi.waitFor(() => expect(starts).toHaveLength(2));
+  });
+
   it('rejects when the requested port is already in use', async () => {
     const handle = await startBridge({ onStart: async () => {} });
 
@@ -206,6 +282,181 @@ describe('runBridge', () => {
     client.send({ type: 'tool-result', toolCallId: 'tc1', output: 'OK' });
     const observed = await client.waitFor(f => f.type === 'tool-observed');
     expect(observed.output).toBe('OK');
+  });
+
+  describe('host disconnect timeout', () => {
+    const runUntilAborted = (aborts: string[]) => {
+      let release!: () => void;
+      const released = new Promise<void>(resolve => {
+        release = resolve;
+      });
+      return {
+        release,
+        onStart: async (_start: { type: 'start' }, turn: BridgeTurn) => {
+          turn.emit({ type: 'turn-running' });
+          await new Promise<void>(resolve => {
+            turn.abortSignal.addEventListener('abort', () => {
+              aborts.push('aborted');
+              resolve();
+            });
+            void released.then(resolve);
+          });
+        },
+      };
+    };
+
+    it('aborts the turn when no host reconnects in time', async () => {
+      const aborts: string[] = [];
+      const turn = runUntilAborted(aborts);
+      const handle = await startBridge({
+        onStart: turn.onStart,
+        hostDisconnectTimeoutMs: 50,
+      });
+      const client = await connect(handle.port);
+      await client.waitFor(f => f.type === 'bridge-hello');
+      client.send({ type: 'start' });
+      await client.waitFor(f => f.type === 'turn-running');
+      client.close();
+      await new Promise(resolve => setTimeout(resolve, 150));
+      expect(aborts).toEqual(['aborted']);
+    });
+
+    it('keeps the turn when the host reconnects in time', async () => {
+      const aborts: string[] = [];
+      const turn = runUntilAborted(aborts);
+      const handle = await startBridge({
+        onStart: turn.onStart,
+        hostDisconnectTimeoutMs: 100,
+      });
+      const client = await connect(handle.port);
+      await client.waitFor(f => f.type === 'bridge-hello');
+      client.send({ type: 'start' });
+      await client.waitFor(f => f.type === 'turn-running');
+      client.close();
+      const reconnected = await connect(handle.port);
+      await reconnected.waitFor(f => f.type === 'bridge-hello');
+      reconnected.send({ type: 'resume', lastSeenEventId: 0 });
+      await new Promise(resolve => setTimeout(resolve, 200));
+      expect(aborts).toEqual([]);
+      turn.release();
+    });
+
+    it('keeps the turn when the host suspends it', async () => {
+      const aborts: string[] = [];
+      const turn = runUntilAborted(aborts);
+      const handle = await startBridge({
+        onStart: turn.onStart,
+        hostDisconnectTimeoutMs: 50,
+      });
+      const client = await connect(handle.port);
+      await client.waitFor(f => f.type === 'bridge-hello');
+      client.send({ type: 'start' });
+      await client.waitFor(f => f.type === 'turn-running');
+      client.ws.close(1000, 'suspended');
+      await new Promise(resolve => setTimeout(resolve, 150));
+      expect(aborts).toEqual([]);
+      turn.release();
+    });
+
+    it.each([Number.NaN, -50, 0, 3_000_000_000])(
+      'keeps the turn running when the timeout is %s',
+      async hostDisconnectTimeoutMs => {
+        const aborts: string[] = [];
+        const turn = runUntilAborted(aborts);
+        const handle = await startBridge({
+          onStart: turn.onStart,
+          hostDisconnectTimeoutMs,
+        });
+        const client = await connect(handle.port);
+        await client.waitFor(f => f.type === 'bridge-hello');
+        client.send({ type: 'start' });
+        await client.waitFor(f => f.type === 'turn-running');
+        client.close();
+        await new Promise(resolve => setTimeout(resolve, 150));
+        expect(aborts).toEqual([]);
+        turn.release();
+      },
+    );
+
+    it('ignores a host disconnect timeout set through the environment', async () => {
+      process.env.BRIDGE_HOST_DISCONNECT_TIMEOUT_MS = '50';
+      try {
+        const aborts: string[] = [];
+        const turn = runUntilAborted(aborts);
+        const handle = await startBridge({ onStart: turn.onStart });
+        const client = await connect(handle.port);
+        await client.waitFor(f => f.type === 'bridge-hello');
+        client.send({ type: 'start' });
+        await client.waitFor(f => f.type === 'turn-running');
+        client.close();
+        await new Promise(resolve => setTimeout(resolve, 150));
+        expect(aborts).toEqual([]);
+        turn.release();
+      } finally {
+        delete process.env.BRIDGE_HOST_DISCONNECT_TIMEOUT_MS;
+      }
+    });
+
+    it.each([
+      ['suspend', false],
+      ['close', true],
+    ] as const)(
+      'handles a SandboxChannel %s with a host disconnect timeout',
+      async (action, aborted) => {
+        const aborts: string[] = [];
+        const turn = runUntilAborted(aborts);
+        let started = false;
+        const handle = await startBridge({
+          onStart: async (start, bridgeTurn) => {
+            started = true;
+            await turn.onStart(start, bridgeTurn);
+          },
+          hostDisconnectTimeoutMs: 50,
+        });
+        const channel = new SandboxChannel<{ type: string }, { type: 'start' }>(
+          {
+            connect: async () => {
+              const ws = new WebSocket(
+                `ws://127.0.0.1:${handle.port}/?agent_bridge_token=${TOKEN}`,
+              );
+              await new Promise((resolve, reject) => {
+                ws.once('open', resolve);
+                ws.once('error', reject);
+              });
+              return ws;
+            },
+            outboundSchema: z.looseObject({ type: z.string() }),
+          },
+        );
+        await channel.open();
+        channel.send({ type: 'start' });
+        await vi.waitFor(() => expect(started).toBe(true));
+
+        if (action === 'suspend') {
+          await channel.suspend();
+        } else {
+          channel.close();
+        }
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        expect(aborts).toEqual(aborted ? ['aborted'] : []);
+        turn.release();
+      },
+    );
+
+    it('keeps the turn running without a timeout', async () => {
+      const aborts: string[] = [];
+      const turn = runUntilAborted(aborts);
+      const handle = await startBridge({ onStart: turn.onStart });
+      const client = await connect(handle.port);
+      await client.waitFor(f => f.type === 'bridge-hello');
+      client.send({ type: 'start' });
+      await client.waitFor(f => f.type === 'turn-running');
+      client.close();
+      await new Promise(resolve => setTimeout(resolve, 150));
+      expect(aborts).toEqual([]);
+      turn.release();
+    });
   });
 
   it('acknowledges a user message after the adapter accepts it', async () => {

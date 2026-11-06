@@ -54,7 +54,7 @@ export async function refreshHostToolCatalog({
   throw new HarnessBridgeCapabilityUnsupportedError({
     harnessId,
     message:
-      'The ACP implementation did not load the active harness-owned MCP ' +
+      'The ACP agent did not load the active harness-owned MCP ' +
       `tool catalog to revision ${catalog.revision} before the next ` +
       'prompt, so host tools cannot be exposed safely.',
   });

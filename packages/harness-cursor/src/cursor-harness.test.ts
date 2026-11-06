@@ -1,4 +1,5 @@
 import type { ACPHarnessSettings } from '@ai-sdk/harness-acp';
+import { asSchema } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createCursor } from './cursor-harness';
 
@@ -15,10 +16,12 @@ describe('createCursor', () => {
     mocks.createACP.mockClear();
   });
 
-  it('enforces the Cursor ACP implementation', () => {
+  it('enforces the Cursor ACP agent', () => {
     createCursor();
 
-    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings<
+      ReturnType<typeof createCursor>['builtinTools']
+    >;
     expect(settings.nonTextContentTypes).toEqual(['image']);
     expect({
       version: settings.version,
@@ -44,6 +47,7 @@ describe('createCursor', () => {
           "glob",
           "grep",
           "read",
+          "write",
           "updateTodos",
           "readTodos",
           "edit",
@@ -87,6 +91,20 @@ describe('createCursor', () => {
         "version": "v1",
       }
     `);
+
+    const writeTool = settings.builtinTools?.write;
+    expect(writeTool).toMatchObject({
+      title: 'Write',
+      nativeName: 'writeToolCall',
+      toolUseKind: 'edit',
+    });
+    expect(asSchema(writeTool!.inputSchema).jsonSchema).toMatchObject({
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+      },
+      required: ['path'],
+    });
 
     expect(
       settings.credentialBrokering?.({
@@ -139,6 +157,7 @@ describe('createCursor', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      hostDisconnectTimeoutMs: 60_000,
       reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
@@ -150,6 +169,7 @@ describe('createCursor', () => {
       port: settings.port,
       portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
+      hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
       reconnect: settings.reconnect,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
@@ -158,6 +178,7 @@ describe('createCursor', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      hostDisconnectTimeoutMs: 60_000,
       reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
@@ -244,7 +265,7 @@ describe('createCursor', () => {
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
 
     expect(
-      settings.isMcpToolCall?.({
+      settings.isMcpToolCall({
         toolCallId: 'call-1',
         title: 'ai-sdk-harness-tools: weather',
         rawInput: {
@@ -255,7 +276,7 @@ describe('createCursor', () => {
       }),
     ).toBe(true);
     expect(
-      settings.isMcpToolCall?.({
+      settings.isMcpToolCall({
         toolCallId: 'call-2',
         title: 'Read README.md',
         rawInput: { path: 'README.md' },
@@ -263,3 +284,73 @@ describe('createCursor', () => {
     ).toBe(false);
   });
 });
+
+describe('resolveHostToolCall', () => {
+  const serverName = 'ai-sdk-harness-tools';
+  const toolNames = ['get_weather'];
+
+  it('resolves the captured host tool call update', () => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: {
+          toolCallId: 'call-1',
+          title: 'ai-sdk-harness-tools: get_weather',
+          kind: 'other',
+          status: 'pending',
+          rawInput: {
+            providerIdentifier: 'ai-sdk-harness-tools',
+            toolName: 'get_weather',
+            args: { city: 'Austin' },
+          },
+        },
+        serverName,
+        toolNames,
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "input": {
+          "city": "Austin",
+        },
+        "toolName": "get_weather",
+      }
+    `);
+  });
+
+  it('does not resolve before the identifying update arrives', () => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: { toolCallId: 'call-1', title: 'MCP: tool', rawInput: {} },
+        serverName,
+        toolNames,
+      }),
+    ).toBeUndefined();
+  });
+
+  it.each([
+    {
+      providerIdentifier: 'other-server',
+      toolName: 'get_weather',
+      args: { city: 'Austin' },
+    },
+    {
+      providerIdentifier: serverName,
+      toolName: 'unknown_tool',
+      args: { city: 'Austin' },
+    },
+    { providerIdentifier: serverName, toolName: 'get_weather', args: null },
+  ])('does not resolve a mismatched raw input: %j', rawInput => {
+    expect(
+      resolveHostToolCall()({
+        toolCall: { toolCallId: 'call-1', title: 'Tool', rawInput },
+        serverName,
+        toolNames,
+      }),
+    ).toBeUndefined();
+  });
+});
+
+function resolveHostToolCall(): ACPHarnessSettings['resolveHostToolCall'] {
+  createCursor();
+  return (mocks.createACP.mock.calls.at(-1)![0] as ACPHarnessSettings)
+    .resolveHostToolCall;
+}

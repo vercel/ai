@@ -1,3 +1,4 @@
+import { basetenRequestDefaults } from './baseten-model-catalog';
 import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleEmbeddingModel,
@@ -10,6 +11,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolveWith,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -26,7 +29,8 @@ import { VERSION } from './version';
  * performance client's own default `batchSize`. `embedMany` splits larger
  * inputs into chunks of this size and runs them in parallel.
  */
-const MAX_EMBEDDINGS_PER_CALL = 128;
+const MAX_EMBEDDINGS_PER_CALL =
+  basetenRequestDefaults.embedding.maxEmbeddingsPerCall;
 
 /**
  * The part of `@basetenlabs/performance-client` we use, declared structurally to
@@ -77,8 +81,9 @@ export interface BasetenProviderSettings {
   /**
    * Baseten API key. Default value is taken from the `BASETEN_API_KEY`
    * environment variable.
+   * A function is called before each request and may return a promise.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for the Model APIs. Default: 'https://inference.baseten.co/v1'
@@ -155,22 +160,24 @@ export function createBaseten(
 ): BasetenProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'BASETEN_API_KEY',
-          description: 'Baseten API key',
-        })}`,
-        ...options.headers,
-      },
-      `ai-sdk-baseten/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          Authorization: `Bearer ${loadApiKey({
+            apiKey,
+            environmentVariableName: 'BASETEN_API_KEY',
+            description: 'Baseten API key',
+          })}`,
+          ...options.headers,
+        },
+        `ai-sdk-baseten/${VERSION}`,
+      ),
     );
 
   interface CommonModelConfig {
     provider: string;
     url: ({ path }: { path: string }) => string;
-    headers: () => Record<string, string>;
+    headers: Resolvable<Record<string, string>>;
     fetch?: FetchFunction;
   }
 
@@ -203,7 +210,8 @@ export function createBaseten(
           errorStructure: basetenErrorStructure,
           // Or stream_options.include_usage is omitted and streams report no usage.
           includeUsage: true,
-          supportsStructuredOutputs: true,
+          supportsStructuredOutputs:
+            basetenRequestDefaults.language.supportsStructuredOutputs,
         });
       } else if (customURL.includes('/predict')) {
         throw new Error(
@@ -216,7 +224,8 @@ export function createBaseten(
       ...getCommonModelConfig('chat'),
       errorStructure: basetenErrorStructure,
       includeUsage: true,
-      supportsStructuredOutputs: true,
+      supportsStructuredOutputs:
+        basetenRequestDefaults.language.supportsStructuredOutputs,
     });
   };
 
@@ -253,20 +262,40 @@ export function createBaseten(
 
     // Opted in to the native client. It appends /v1 itself, so hand it the bare
     // /sync form.
-    const performanceClient = new options.performanceClient(
-      customURL.replace('/sync/v1', '/sync'),
-      loadApiKey({
-        apiKey: options.apiKey,
+    const PerformanceClient = options.performanceClient;
+    let cachedClient:
+      | { apiKey: string; client: BasetenPerformanceClient }
+      | undefined;
+    const getPerformanceClient = (apiKey: string | undefined) => {
+      const resolvedApiKey = loadApiKey({
+        apiKey,
         environmentVariableName: 'BASETEN_API_KEY',
         description: 'Baseten API key',
-      }),
-    );
+      });
+      if (cachedClient?.apiKey !== resolvedApiKey) {
+        cachedClient = {
+          apiKey: resolvedApiKey,
+          client: new PerformanceClient(
+            customURL.replace('/sync/v1', '/sync'),
+            resolvedApiKey,
+          ),
+        };
+      }
+      return cachedClient.client;
+    };
+    const staticClient =
+      typeof options.apiKey === 'string' || options.apiKey == null
+        ? getPerformanceClient(options.apiKey)
+        : undefined;
 
     model.doEmbed = async params => {
       if (!params.values || !Array.isArray(params.values)) {
         throw new Error('params.values must be an array of strings');
       }
 
+      const performanceClient =
+        staticClient ??
+        (await resolveWith(options.apiKey, getPerformanceClient));
       const response = await performanceClient.embed(
         params.values,
         // model_id is for Model APIs; dedicated deployments ignore it.

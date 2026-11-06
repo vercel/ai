@@ -1,24 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import {
-  extractUserText,
+  extractUserInput,
   mapModelFinishReason,
   mapRunFinishReason,
   toToolResultValue,
   usageFromAgentUsage,
 } from './cline-utils';
 
-describe('extractUserText', () => {
+describe('extractUserInput', () => {
   it('passes plain strings through', () => {
-    expect(extractUserText('hello')).toBe('hello');
+    expect(extractUserInput('hello')).toBe('hello');
   });
 
   it('extracts string content from a user message', () => {
-    expect(extractUserText({ role: 'user', content: 'hello' })).toBe('hello');
+    expect(extractUserInput({ role: 'user', content: 'hello' })).toBe('hello');
   });
 
   it('joins text parts with blank lines', () => {
     expect(
-      extractUserText({
+      extractUserInput({
         role: 'user',
         content: [
           { type: 'text', text: 'first' },
@@ -28,19 +28,30 @@ describe('extractUserText', () => {
     ).toBe('first\n\nsecond');
   });
 
-  it('rejects non-text parts', () => {
-    expect(() =>
-      extractUserText({
+  it('converts mixed text and image content into a Cline user message', () => {
+    expect(
+      extractUserInput({
         role: 'user',
         content: [
+          { type: 'text', text: 'before' },
           {
-            type: 'image',
-            image: new Uint8Array([1]),
+            type: 'file',
             mediaType: 'image/png',
+            data: 'iVBORw0KGgo=',
           },
+          { type: 'text', text: 'after' },
         ],
       }),
-    ).toThrow(/only text user-message parts/);
+    ).toEqual({
+      id: expect.any(String),
+      role: 'user',
+      content: [
+        { type: 'text', text: 'before' },
+        { type: 'image', image: 'iVBORw0KGgo=', mediaType: 'image/png' },
+        { type: 'text', text: 'after' },
+      ],
+      createdAt: expect.any(Number),
+    });
   });
 });
 

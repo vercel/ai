@@ -1,9 +1,11 @@
-import type {
-  ImageModelV4,
-  ImageModelV4File,
-  SharedV4Warning,
+import {
+  InvalidArgumentError,
+  type ImageModelV4,
+  type ImageModelV4File,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   convertBase64ToUint8Array,
   convertToFormData,
@@ -18,6 +20,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { getOpenAIImageModelEntry } from '../openai-model-catalog';
 import { openaiImageResponseSchema } from './openai-image-api';
 import {
   getMaxImagesPerCall,
@@ -63,24 +66,9 @@ export class OpenAIImageModel implements ImageModelV4 {
       return this.config.imageInputCapabilities.supportsFileInputs;
     }
 
-    if (
-      [
-        'dall-e-2',
-        'gpt-image-1',
-        'gpt-image-1-mini',
-        'gpt-image-1.5',
-        'gpt-image-2',
-        'gpt-image-2.5-flare',
-        'gpt-image-2.5-flare-2026-09-08',
-        'gpt-image-2.5-sunburst',
-        'gpt-image-2.5-sunburst-2026-09-08',
-        'chatgpt-image-latest',
-      ].includes(this.modelId)
-    ) {
-      return true;
-    }
-
-    return this.modelId === 'dall-e-3' ? false : undefined;
+    const support = getOpenAIImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return typeof support === 'boolean' ? support : undefined;
   }
 
   get supportsMaskInputs(): boolean | undefined {
@@ -88,7 +76,9 @@ export class OpenAIImageModel implements ImageModelV4 {
       return this.config.imageInputCapabilities.supportsMaskInputs;
     }
 
-    return this.supportsFileInputs;
+    const support = getOpenAIImageModelEntry(this.modelId).capabilities.image
+      .maskInput;
+    return typeof support === 'boolean' ? support : undefined;
   }
 
   get provider(): string {
@@ -139,12 +129,19 @@ export class OpenAIImageModel implements ImageModelV4 {
           schema: openaiImageModelEditOptions,
         })) ?? {};
 
+      if (mask != null && openaiOptions.markup != null) {
+        throw new InvalidArgumentError({
+          argument: 'providerOptions.openai.markup',
+          message: '`markup` cannot be combined with `mask`.',
+        });
+      }
+
       const { value: response, responseHeaders } = await postFormDataToApi({
         url: this.config.url({
           path: '/images/edits',
           modelId: this.modelId,
         }),
-        headers: combineHeaders(this.config.headers?.(), headers),
+        headers: combineHeaders(await resolve(this.config.headers), headers),
         formData: convertToFormData<OpenAIImageEditInput>({
           model: this.modelId,
           prompt,
@@ -167,14 +164,21 @@ export class OpenAIImageModel implements ImageModelV4 {
             ),
           ),
           mask: mask != null ? await fileToBlob(mask, abortSignal) : undefined,
+          markup:
+            openaiOptions.markup != null
+              ? await markupToBlob(openaiOptions.markup, abortSignal)
+              : undefined,
           n,
           size,
           quality: openaiOptions.quality,
           background: openaiOptions.background,
           output_format: openaiOptions.outputFormat,
           output_compression: openaiOptions.outputCompression,
+          complexity: openaiOptions.complexity,
           input_fidelity: openaiOptions.inputFidelity,
+          moderation: openaiOptions.moderation,
           user: openaiOptions.user,
+          safety_identifier: openaiOptions.safetyIdentifier,
         }),
         failedResponseHandler: openaiFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
@@ -234,7 +238,7 @@ export class OpenAIImageModel implements ImageModelV4 {
         path: '/images/generations',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         prompt,
@@ -246,7 +250,11 @@ export class OpenAIImageModel implements ImageModelV4 {
         moderation: openaiOptions.moderation,
         output_format: openaiOptions.outputFormat,
         output_compression: openaiOptions.outputCompression,
+        complexity: openaiOptions.complexity,
+        frame_count: openaiOptions.frameCount,
+        frame_duration_ms: openaiOptions.frameDurationMs,
         user: openaiOptions.user,
+        safety_identifier: openaiOptions.safetyIdentifier,
         ...(!hasDefaultResponseFormat(this.modelId)
           ? { response_format: 'b64_json' }
           : {}),
@@ -337,15 +345,41 @@ type OpenAIImageEditInput = {
   prompt?: string;
   image: Blob | Blob[];
   mask?: Blob;
+  markup?: Blob;
   n?: number;
   size?: `${number}x${number}`;
   quality?: OpenAIImageModelEditOptions['quality'];
   background?: OpenAIImageModelEditOptions['background'];
   output_format?: OpenAIImageModelEditOptions['outputFormat'];
   output_compression?: OpenAIImageModelEditOptions['outputCompression'];
+  complexity?: OpenAIImageModelEditOptions['complexity'];
   input_fidelity?: OpenAIImageModelEditOptions['inputFidelity'];
+  moderation?: OpenAIImageModelEditOptions['moderation'];
   user?: OpenAIImageModelEditOptions['user'];
+  safety_identifier?: OpenAIImageModelEditOptions['safetyIdentifier'];
 };
+
+async function markupToBlob(
+  markup: string,
+  abortSignal: AbortSignal | undefined,
+): Promise<Blob> {
+  const dataUrl = /^data:([^;,]*)(;base64)?,(.*)$/s.exec(markup);
+
+  if (dataUrl == null) {
+    return downloadBlob(markup, { abortSignal });
+  }
+
+  if (dataUrl[2] == null) {
+    throw new InvalidArgumentError({
+      argument: 'providerOptions.openai.markup',
+      message: '`markup` data URLs must be base64 encoded.',
+    });
+  }
+
+  return new Blob([convertBase64ToUint8Array(dataUrl[3]) as BlobPart], {
+    type: dataUrl[1] || 'image/png',
+  });
+}
 
 async function fileToBlob(
   file: ImageModelV4File | undefined,

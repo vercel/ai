@@ -6,16 +6,18 @@ import {
 import type { JSONValue } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
-const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValueSchema),
-    z.record(z.string(), jsonValueSchema),
-  ]),
-);
+let cachedJsonValueSchema: z.ZodType<JSONValue> | undefined;
+const jsonValueSchema = (): z.ZodType<JSONValue> =>
+  (cachedJsonValueSchema ??= z.lazy(() =>
+    z.union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.null(),
+      z.array(jsonValueSchema()),
+      z.record(z.string(), jsonValueSchema()),
+    ]),
+  ));
 
 export const mcpArgsSchema = lazySchema(() =>
   zodSchema(
@@ -49,10 +51,16 @@ export const mcpArgsSchema = lazySchema(() =>
           .optional(),
         serverDescription: z.string().optional(),
         serverUrl: z.string().optional(),
+        tunnelId: z.string().optional(),
       })
       .refine(
-        v => v.serverUrl != null || v.connectorId != null,
-        'One of serverUrl or connectorId must be provided.',
+        v => v.serverUrl != null || v.connectorId != null || v.tunnelId != null,
+        'One of serverUrl, connectorId, or tunnelId must be provided.',
+      )
+      .refine(
+        v =>
+          v.tunnelId == null || (v.serverUrl == null && v.connectorId == null),
+        'tunnelId cannot be combined with serverUrl or connectorId.',
       ),
   ),
 );
@@ -67,12 +75,12 @@ export const mcpOutputSchema = lazySchema(() =>
       name: z.string(),
       arguments: z.string(),
       output: z.string().nullish(),
-      error: z.union([z.string(), jsonValueSchema]).optional(),
+      error: z.union([z.string(), jsonValueSchema()]).optional(),
     }),
   ),
 );
 
-type McpArgs = {
+type McpCommonArgs = {
   /** A label for this MCP server, used to identify it in tool calls. */
   serverLabel: string;
   /** List of allowed tool names or a filter object. */
@@ -82,10 +90,8 @@ type McpArgs = {
         readOnly?: boolean;
         toolNames?: string[];
       };
-  /** OAuth access token usable with the remote MCP server or connector. */
+  /** OAuth access token usable with the remote MCP server or connector (including tunneled servers). */
   authorization?: string;
-  /** Identifier for a service connector. */
-  connectorId?: string;
   /** Optional HTTP headers to send to the MCP server. */
   headers?: Record<string, string>;
   /**
@@ -101,9 +107,24 @@ type McpArgs = {
       };
   /** Optional description of the MCP server. */
   serverDescription?: string;
-  /** URL for the MCP server. One of serverUrl or connectorId must be provided. */
-  serverUrl?: string;
 };
+
+type McpArgs = McpCommonArgs &
+  (
+    | {
+        /** URL for the MCP server. */
+        serverUrl?: string;
+        /** Identifier for a service connector. */
+        connectorId?: string;
+        tunnelId?: never;
+      }
+    | {
+        /** Identifier for an OpenAI Secure MCP tunnel. */
+        tunnelId: string;
+        serverUrl?: never;
+        connectorId?: never;
+      }
+  );
 
 export const mcpToolFactory = createProviderExecutedToolFactory<
   {},

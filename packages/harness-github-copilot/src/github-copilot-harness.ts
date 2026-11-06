@@ -13,29 +13,28 @@ import {
   isSandboxCredentialPlaceholder,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
-import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
+import {
+  createACP,
+  type ACPAuthenticationMode,
+  type ACPResolveHostToolCall,
+} from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
   normalizeGitHubHost,
   resolveGitHubCopilotSubscriptionEnvironment,
 } from './github-copilot-subscription';
+import { withGitHubCopilotGatewayModel } from './github-copilot-gateway-model';
 import { VERSION } from './version';
 
-declare const __GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON__: string;
-declare const __GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
-declare const __GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE_YAML__: string;
+declare const __GITHUB_COPILOT_BRIDGE_PACKAGE_JSON__: string;
+declare const __GITHUB_COPILOT_BRIDGE_PNPM_LOCK_YAML__: string;
+declare const __GITHUB_COPILOT_BRIDGE_PNPM_WORKSPACE_YAML__: string;
 
 const GITHUB_COPILOT_CLIENT_APP = {
   name: 'ai-sdk-harness-github-copilot',
   version: VERSION,
 } as const;
-const GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON =
-  __GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON__;
-const GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK =
-  __GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK_YAML__;
-const GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE =
-  __GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE_YAML__;
 const GITHUB_COPILOT_TOKEN_ENVIRONMENT_VARIABLES = new Set([
   'COPILOT_GITHUB_TOKEN',
   'GH_TOKEN',
@@ -43,6 +42,7 @@ const GITHUB_COPILOT_TOKEN_ENVIRONMENT_VARIABLES = new Set([
 ]);
 const GITHUB_OAUTH_TOKEN_BODY_LENGTH = 36;
 const GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER = 'aisdkhc';
+const GITHUB_COPILOT_GATEWAY_MODEL = 'openai/gpt-5.5';
 
 export type GitHubCopilotAuthenticationMode = ACPAuthenticationMode;
 
@@ -61,6 +61,12 @@ export type GitHubCopilotHarnessSettings = {
   readonly port?: number;
   readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
+  /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
@@ -264,15 +270,15 @@ export function createGitHubCopilot(
     ...Object.keys(settings.mcpServers ?? {}).map(name => `${name}-`),
   ];
 
-  return createACP({
+  const harness = createACP({
     version: 'v1',
     harnessId: 'github-copilot',
     clientApp: GITHUB_COPILOT_CLIENT_APP,
     source: {
       type: 'npm-locked',
-      packageJson: GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON,
-      pnpmLockYaml: GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK,
-      pnpmWorkspaceYaml: GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE,
+      packageJson: __GITHUB_COPILOT_BRIDGE_PACKAGE_JSON__,
+      pnpmLockYaml: __GITHUB_COPILOT_BRIDGE_PNPM_LOCK_YAML__,
+      pnpmWorkspaceYaml: __GITHUB_COPILOT_BRIDGE_PNPM_WORKSPACE_YAML__,
     },
     executable: 'copilot',
     args: [
@@ -292,6 +298,13 @@ export function createGitHubCopilot(
      * so host tools must be exposed over the bridge's HTTP MCP endpoint.
      */
     hostToolMcpTransport: 'http',
+    /*
+     * Images from tool outputs are only processed with direct GitHub Copilot
+     * authentication. For third parties like AI Gateway, GitHub Copilot does
+     * not fetch the model catalog and therefore its check for image support
+     * from a tool output leads to it passing only the text.
+     */
+    nonTextContentTypes: ['image'],
     forwardEnv: ['COPILOT_GH_HOST', 'GH_HOST'],
     credentialEnv: ['COPILOT_GITHUB_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN'],
     credentialBrokering: ({ env, sandboxEnv, headers }) => {
@@ -462,7 +475,7 @@ export function createGitHubCopilot(
             $source: 'gateway-api-key',
           },
           COPILOT_PROVIDER_WIRE_API: 'responses',
-          COPILOT_MODEL: 'openai/gpt-5.5',
+          COPILOT_MODEL: GITHUB_COPILOT_GATEWAY_MODEL,
           COPILOT_PROVIDER_HEADERS: {
             $source: 'client-app',
             prefix: 'x-client-app: ',
@@ -481,13 +494,20 @@ export function createGitHubCopilot(
     },
     builtinTools: GITHUB_COPILOT_BUILTIN_TOOLS,
     mcpServers: settings.mcpServers,
+    resolveHostToolCall: resolveGitHubCopilotHostToolCall,
     isMcpToolCall: toolCall =>
       mcpToolTitlePrefixes.some(prefix => toolCall.title.startsWith(prefix)),
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
     reconnect: settings.reconnect,
     mintBridgeToken: settings.mintBridgeToken,
+  });
+
+  return withGitHubCopilotGatewayModel({
+    harness,
+    gatewayModel: GITHUB_COPILOT_GATEWAY_MODEL,
   });
 }
 
@@ -530,4 +550,25 @@ function createGitHubOAuthSandboxCredentialPlaceholder({
         GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER.length,
     );
   return `gho_${GITHUB_OAUTH_SANDBOX_CREDENTIAL_MARKER}${tokenBody}`;
+}
+
+/**
+ * GitHub Copilot reports host tool calls without a programmatic name, using
+ * `${serverName}-${toolName}` as the title and the tool input as raw input.
+ */
+const resolveGitHubCopilotHostToolCall: ACPResolveHostToolCall = ({
+  toolCall,
+  serverName,
+  toolNames,
+}) => {
+  const rawInput = toolCall.rawInput;
+  if (toolCall.name != null || !isRecord(rawInput)) return undefined;
+  const toolName = toolNames.find(
+    name => toolCall.title === `${serverName}-${name}`,
+  );
+  return toolName == null ? undefined : { toolName, input: rawInput };
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
 }

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-grok-build",
-  "version": "1.0.92",
+  "version": "1.0.113",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -38,7 +38,8 @@
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/harness-acp": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "@iarna/toml": "3.0.0"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"
@@ -46,6 +47,7 @@
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
     "@xai-official/grok": "1.0.49",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
