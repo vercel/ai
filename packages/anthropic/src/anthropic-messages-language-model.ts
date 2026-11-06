@@ -205,10 +205,15 @@ function toToolsetMemberInput({
   memberName: string;
   input: unknown;
 }): JSONObject {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    throw new InvalidResponseDataError({
+      data: input,
+      message: 'Invalid toolset member input: expected an object.',
+    });
+  }
+
   return {
-    ...(typeof input === 'object' && input !== null && !Array.isArray(input)
-      ? (input as JSONObject)
-      : {}),
+    ...(input as JSONObject),
     action: memberName,
   };
 }

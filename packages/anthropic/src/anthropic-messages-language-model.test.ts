@@ -12978,16 +12978,19 @@ describe('computer toolset', () => {
     },
   );
 
-  it('should reject malformed streamed member input', async () => {
-    prepareMemberResponse({ streaming: true, partialJson: '{' });
-    const { stream } = await provider('claude-opus-5-5').doStream({
-      prompt: TEST_PROMPT,
-      tools: [computerToolset],
-    });
-    await expect(convertReadableStreamToArray(stream)).rejects.toBeInstanceOf(
-      InvalidResponseDataError,
-    );
-  });
+  it.each(['{', 'null', '[]', '"text"', '1'])(
+    'should reject invalid streamed member input (%s)',
+    async partialJson => {
+      prepareMemberResponse({ streaming: true, partialJson });
+      const { stream } = await provider('claude-opus-5-5').doStream({
+        prompt: TEST_PROMPT,
+        tools: [computerToolset],
+      });
+      await expect(convertReadableStreamToArray(stream)).rejects.toBeInstanceOf(
+        InvalidResponseDataError,
+      );
+    },
+  );
 
   it('should send the toolset definition without a name and map member calls to the computer tool', async () => {
     server.urls['https://api.anthropic.com/v1/messages'].response = {
