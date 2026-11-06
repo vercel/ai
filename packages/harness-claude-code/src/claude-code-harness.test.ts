@@ -185,7 +185,16 @@ vi.mock('node:fs/promises', async importOriginal => {
 });
 
 // eslint-disable-next-line import/first
-import { createClaudeCode } from './claude-code-harness';
+import { createClaudeCode as createClaudeCodeAdapter } from './claude-code-harness';
+
+function createClaudeCode(
+  settings: Parameters<typeof createClaudeCodeAdapter>[0] = {},
+) {
+  return createClaudeCodeAdapter({
+    ...settings,
+    auth: settings.auth ?? {},
+  });
+}
 
 function textStream(text: string): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
