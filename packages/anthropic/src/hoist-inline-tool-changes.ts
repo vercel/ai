@@ -12,7 +12,15 @@ export function hoistInlineToolChanges({
   prompt: LanguageModelV4Prompt;
   tools: Array<Tool> | undefined;
 }): { prompt: LanguageModelV4Prompt; tools: Array<Tool> | undefined } {
-  if (!prompt.some(hasInlineToolChange)) {
+  const firstNonSystemIndex = prompt.findIndex(
+    message => message.role !== 'system',
+  );
+  const isHoistable = (message: LanguageModelV4Prompt[number], index: number) =>
+    firstNonSystemIndex !== -1 &&
+    index > firstNonSystemIndex &&
+    hasInlineToolChange(message);
+
+  if (!prompt.some(isHoistable)) {
     return { prompt, tools };
   }
 
@@ -35,8 +43,8 @@ export function hoistInlineToolChanges({
     }
   };
 
-  const hoistedPrompt = prompt.map(message => {
-    if (!hasInlineToolChange(message)) {
+  const hoistedPrompt = prompt.map((message, index) => {
+    if (!isHoistable(message, index)) {
       return message;
     }
 

@@ -46,6 +46,19 @@ describe('hoistInlineToolChanges', () => {
     expect(result.tools).toBe(tools);
   });
 
+  it('leaves additions by value on the initial system message alone', () => {
+    const initial = toolChangeMessage([
+      { type: 'tool_addition', tool: functionTool('a', { description: 'v2' }) },
+    ]);
+    const prompt = [initial, userMessage];
+    const tools = [functionTool('a')];
+
+    const result = hoistInlineToolChanges({ prompt, tools });
+
+    expect(result.prompt).toBe(prompt);
+    expect(result.tools).toBe(tools);
+  });
+
   it('declares a new function tool as deferred without cache control', () => {
     const tool = functionTool('db_query', {
       providerOptions: {
