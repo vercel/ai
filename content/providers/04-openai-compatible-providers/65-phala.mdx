@@ -1,0 +1,116 @@
+---
+title: Phala
+description: Use the Phala OpenAI compatible API with the AI SDK.
+---
+
+# Phala Provider
+
+[Phala Private AI](https://docs.phala.com/phala-cloud/confidential-ai/confidential-model/migration-and-integrations) exposes an OpenAI-compatible confidential inference API hosted in hardware-isolated Trusted Execution Environments (TEEs).
+
+You can use Phala's Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The Phala provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use Phala, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const phala = createOpenAICompatible({
+  name: 'phala',
+  baseURL: 'https://inference.phala.com/v1',
+  apiKey: process.env.PHALA_AI_API_KEY,
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+```
+
+<Note>
+  Follow the [Phala Dashboard](https://cloud.phala.com/dashboard) (Private AI → API Keys) to create an API key. Make sure to set the `PHALA_AI_API_KEY` environment variable with your API key.
+</Note>
+
+## Language Models
+
+You can create Phala models using the provider instance. The first argument is a model ID from the [Phala model catalog](https://inference.phala.com/v1/models):
+
+```ts
+const model = phala('z-ai/glm-5.3');
+```
+
+Common model IDs include:
+- `z-ai/glm-5.3`
+- `z-ai/glm-5.3-flash`
+- `deepseek/deepseek-v4.1-flash-1017`
+- `deepseek/deepseek-v3.2`
+- `qwen/qwen3.8-27b`
+- `moonshotai/kimi-k3`
+- `openai/gpt-oss-120b`
+
+### Example
+
+You can use Phala language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const phala = createOpenAICompatible({
+  name: 'phala',
+  baseURL: 'https://inference.phala.com/v1',
+  apiKey: process.env.PHALA_AI_API_KEY,
+});
+
+const { text } = await generateText({
+  model: phala('z-ai/glm-5.3'),
+  prompt: 'Explain attestation in Trusted Execution Environments in two sentences.',
+});
+
+console.log(text);
+```
+
+### Streaming
+
+Phala language models also support streaming text responses with `streamText`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const phala = createOpenAICompatible({
+  name: 'phala',
+  baseURL: 'https://inference.phala.com/v1',
+  apiKey: process.env.PHALA_AI_API_KEY,
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: phala('z-ai/glm-5.3'),
+  prompt: 'Write a short explanation of confidential computing.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Reasoning Effort
+
+For reasoning-capable models (such as `deepseek/deepseek-v3.2` or `qwen/qwen3.8-27b`), you can pass reasoning effort configurations using provider options:
+
+```ts
+const { text } = await generateText({
+  model: phala('deepseek/deepseek-v3.2'),
+  prompt: 'Solve this logic riddle step-by-step...',
+  providerOptions: {
+    phala: {
+      reasoningEffort: 'low',
+    },
+  },
+});
+```
