@@ -1,0 +1,111 @@
+---
+title: EmpirioLabs AI
+description: Use EmpirioLabs AI with the OpenAI-compatible provider in the AI SDK.
+---
+
+# EmpirioLabs AI Provider
+
+[EmpirioLabs AI](https://platform.empiriolabs.ai) is an AI inference platform offering 200+ models across chat, image, video, audio, 3D, embeddings, and reranking behind an OpenAI-compatible API. You can use it with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The EmpirioLabs AI provider is available via the `@ai-sdk/openai-compatible` package. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use EmpirioLabs AI, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const empiriolabs = createOpenAICompatible({
+  name: 'empiriolabs',
+  baseURL: 'https://api.empiriolabs.ai/v1',
+  apiKey: process.env.EMPIRIOLABS_API_KEY,
+  includeUsage: true,
+});
+```
+
+<Note>
+  You can generate API keys at [EmpirioLabs
+  Dashboard](https://platform.empiriolabs.ai/dashboard/api-keys). Make sure to
+  set the `EMPIRIOLABS_API_KEY` environment variable.
+</Note>
+
+## Language Models
+
+You can create EmpirioLabs AI models by calling the provider instance. The model ID corresponds to any available model from the [EmpirioLabs Model Catalog](https://docs.empiriolabs.ai/models-pricing), such as `qwen3-7-max` or `qwen3-7-plus`.
+
+```ts
+const model = empiriolabs('qwen3-7-max');
+```
+
+### Example
+
+Generate text using `generateText`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const empiriolabs = createOpenAICompatible({
+  name: 'empiriolabs',
+  baseURL: 'https://api.empiriolabs.ai/v1',
+  apiKey: process.env.EMPIRIOLABS_API_KEY,
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: empiriolabs('qwen3-7-max'),
+  prompt: 'Write a haiku about Paris.',
+});
+
+console.log(text);
+```
+
+### Streaming Example
+
+Stream text using `streamText`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const empiriolabs = createOpenAICompatible({
+  name: 'empiriolabs',
+  baseURL: 'https://api.empiriolabs.ai/v1',
+  apiKey: process.env.EMPIRIOLABS_API_KEY,
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: empiriolabs('qwen3-7-max'),
+  prompt: 'Explain quantum computing in three short bullet points.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Embedding Models
+
+You can create embedding models using the `.textEmbeddingModel()` method:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { embed } from 'ai';
+
+const empiriolabs = createOpenAICompatible({
+  name: 'empiriolabs',
+  baseURL: 'https://api.empiriolabs.ai/v1',
+  apiKey: process.env.EMPIRIOLABS_API_KEY,
+});
+
+const { embedding } = await embed({
+  model: empiriolabs.textEmbeddingModel('text-embedding-v4'),
+  value: 'The quick brown fox jumps over the lazy dog',
+});
+```
