@@ -38,6 +38,7 @@ describe('createCursor', () => {
       {
         "args": [
           "--disable-auto-update",
+          "--disable-project-configs",
           "acp",
         ],
         "authentication": undefined,

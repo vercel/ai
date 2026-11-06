@@ -507,6 +507,31 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).not.toHaveProperty('env');
   });
 
+  test.each(['allow-all', 'allow-reads'])(
+    'loads only user settings on initial and subsequent queries under %s',
+    async permissionMode => {
+      state.start = { ...state.start, permissionMode };
+      state.additionalTurns = [{ start: state.start, firstTurn: false }];
+
+      await import('./index');
+
+      expect(state.queryArgs).toHaveLength(2);
+      for (const { options } of state.queryArgs) {
+        expect({
+          settingSources: options.settingSources,
+          cwd: options.cwd,
+        }).toMatchInlineSnapshot(`
+          {
+            "cwd": "/tmp/harness-claude-code-test/work",
+            "settingSources": [
+              "user",
+            ],
+          }
+        `);
+      }
+    },
+  );
+
   test('passes the configured effort to the Agent SDK', async () => {
     state.start = { ...state.start, effort: 'max' };
 

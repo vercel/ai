@@ -238,6 +238,10 @@ for new files. Use separate sandboxes when jobs require filesystem isolation.
 
 ## Known Limitations
 
+- GitHub Copilot CLI does not support disabling project-level configuration.
+  Therefore the harness's working directory contents cannot be properly isolated.
+  Do not use the GitHub Copilot harness with workdir contents that you do not
+  trust.
 - ACP v1 does not expose a stable programmatic name for every native tool event.
   The adapter uses standard title, kind, and schema matching and leaves
   unmatched tools dynamic.

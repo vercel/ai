@@ -227,6 +227,11 @@ that directory require user approval; `allow-all` automatically approves them.
   these reads require user approval even inside the working directory because
   ACP cannot verify their locations. `allow-all` still approves them
   automatically.
+- Grok Build does not allow toggling whether to discover project-level skills
+  and `AGENTS.md` files individually from project-level configuration and hooks.
+  Since the adapter disables reading project-level configuration and hooks for
+  security reasons, it means Grok Build will not discover project-level skills
+  and `AGENTS.md` instructions natively.
 - ACP v1 does not expose model-step boundaries or per-step usage. The adapter
   infers boundaries and reports unknown per-step usage when Grok does not
   provide totals.

@@ -409,7 +409,7 @@ export function createCursor(
       command: 'curl https://cursor.com/install -fsS | bash',
     },
     executable: 'agent',
-    args: ['--disable-auto-update', 'acp'],
+    args: ['--disable-auto-update', '--disable-project-configs', 'acp'],
     modelMapping: {
       type: 'session-config-option',
       path: 'model',

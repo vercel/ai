@@ -937,6 +937,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...permissionOptions,
       ...(Object.keys(settings).length > 0 ? { settings } : {}),
       mcpServers,
+      settingSources: ['user'],
       cwd: workdir,
       abortSignal: abortCtl.signal,
     },
