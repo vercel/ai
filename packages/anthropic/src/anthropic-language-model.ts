@@ -1292,23 +1292,34 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           },
     );
 
-    // Falling back to auto restricts declared tools to the named choice.
+    // Forced-choice and JSON-tool fallbacks restrict the declared tools.
     // Inline definitions, including those replayed from history, must not
     // restore other tools before the provider executes the request.
-    if (toolChoice?.type === 'tool' && anthropicToolChoice?.type === 'auto') {
+    if (
+      (toolChoice?.type === 'tool' &&
+        (anthropicToolChoice?.type === 'auto' || jsonResponseTool != null)) ||
+      (toolChoice?.type === 'none' && jsonResponseTool != null)
+    ) {
       const conflictingTool = inlineToolDefinitions.find(
-        tool => !('name' in tool) || tool.name !== toolChoice.toolName,
+        tool =>
+          toolChoice.type === 'none' ||
+          !('name' in tool) ||
+          tool.name !== toolChoice.toolName,
       );
       if (conflictingTool != null) {
         const toolName =
           'name' in conflictingTool
             ? conflictingTool.name
             : conflictingTool.type;
+        const choice =
+          toolChoice.type === 'tool'
+            ? `named tool choice '${toolChoice.toolName}'`
+            : `tool choice 'none'`;
         throw new InvalidArgumentError({
           argument: 'toolChoice',
           message:
-            `Inline tool '${toolName}' conflicts with named tool choice '${toolChoice.toolName}'. ` +
-            'Only the selected tool can be added by value when named tool choice falls back to auto.',
+            `Inline tool '${toolName}' conflicts with ${choice}. ` +
+            'Inline definitions must respect the tool choice when forced tool use falls back or the JSON response tool is used.',
         });
       }
     }

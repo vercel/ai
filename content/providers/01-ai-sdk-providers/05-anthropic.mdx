@@ -572,6 +572,10 @@ The JSON-tool fallback limits which application tools are available:
 choice sends only that application tool alongside the JSON response tool. The
 fallback can produce a JSON response without calling the named application tool;
 verify the selected call if your application requires it.
+These restrictions also apply to inline tool definitions: a named choice allows
+only additions with the selected tool's name, and `toolChoice: 'none'` rejects
+all inline additions. Conflicting definitions cause an `InvalidArgumentError`
+before the request is sent.
 
 When the JSON tool cannot be forced (for example with manual thinking) and the
 model answers in text without calling it, the text of its final answer is
