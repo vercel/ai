@@ -460,6 +460,50 @@ describe('createFsTools', () => {
       expect(result.content).toBe('a\nx\nb\nx\n');
     });
 
+    it.each([20, 21, 1000])(
+      'bounds the diagnostic locations for %i matches',
+      async count => {
+        const content = 'header\n' + 'value\n'.repeat(count);
+        const result = await edit(content, {
+          oldString: 'value',
+          newString: 'updated',
+        });
+        const lines = Array.from({ length: 20 }, (_, index) => index + 2);
+        const omitted = count > 20 ? `, ... (${count - 20} more)` : '';
+
+        expect(result).toEqual({
+          output: {
+            type: 'error',
+            path: 'file.txt',
+            errorCode: 'multiple_matches',
+            message: `oldString occurs ${count} times in file.txt, at lines ${lines.join(', ')}${omitted}. Include more surrounding lines to make it unique, or set replaceAll to replace every occurrence.`,
+          },
+          content,
+        });
+      },
+    );
+
+    it.each([
+      ['value  \r\nnext', 'value\nnext'],
+      ['“value”\r\nnext', '"value"\nnext'],
+    ])(
+      'reports original line numbers for normalized matches',
+      async (block, oldString) => {
+        const content = '\uFEFFheader\r\n' + `${block}\r\n`.repeat(21);
+        const result = await edit(content, { oldString, newString: 'updated' });
+        const lines = Array.from({ length: 20 }, (_, index) => index * 2 + 2);
+
+        expect(result.output).toMatchObject({
+          type: 'error',
+          errorCode: 'multiple_matches',
+          message: expect.stringContaining(
+            `at lines ${lines.join(', ')}, ... (1 more).`,
+          ),
+        });
+        expect(result.content).toBe(content);
+      },
+    );
+
     it('replaces every match with replaceAll', async () => {
       const result = await edit('a\nx\nb\nx\n', {
         oldString: 'x',

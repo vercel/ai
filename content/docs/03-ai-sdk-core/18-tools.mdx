@@ -257,6 +257,9 @@ Expected failures, such as a missing file or an `oldString` that does not
 match, are returned as results so the model can recover. When `oldString` does
 not match exactly, `edit` retries while ignoring whitespace at line ends, and
 then while also treating typographic quotes, dashes, and spaces as ASCII.
+When an edit matches multiple locations without `replaceAll`, the error reports
+the total number of matches and the first 20 locations, followed by the number
+of omitted locations if there are more.
 
 `glob` and `grep` run commands in the sandbox. They use ripgrep when the
 sandbox has it, which skips files ignored by `.gitignore`. Otherwise they fall

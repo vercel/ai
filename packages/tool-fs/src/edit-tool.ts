@@ -3,6 +3,7 @@ import { z } from 'zod/v4';
 import {
   findMatches,
   getLineNumber,
+  getLineNumbers,
   replaceRanges,
   type MatchMode,
 } from './find-matches';
@@ -66,6 +67,8 @@ const MATCH_MODE_NOTES: Record<MatchMode, string> = {
   'unicode-punctuation':
     ' oldString matched after ignoring whitespace at line ends and treating typographic quotes, dashes, and spaces as ASCII.',
 };
+
+const MAX_MATCH_LOCATIONS = 20;
 
 export function createEditTool(
   settings: FsToolSettings,
@@ -170,12 +173,17 @@ export function createEditTool(
           }
 
           if (match.ranges.length > 1 && !replaceAll) {
-            const lines = match.ranges.map(range =>
-              getLineNumber(content, range.start),
+            const lines = getLineNumbers(
+              content,
+              match.ranges
+                .slice(0, MAX_MATCH_LOCATIONS)
+                .map(range => range.start),
             );
+            const omitted = match.ranges.length - lines.length;
+            const remaining = omitted > 0 ? `, ... (${omitted} more)` : '';
             return error(
               'multiple_matches',
-              `oldString occurs ${match.ranges.length} times in ${path}, at lines ${lines.join(', ')}. Include more surrounding lines to make it unique, or set replaceAll to replace every occurrence.`,
+              `oldString occurs ${match.ranges.length} times in ${path}, at lines ${lines.join(', ')}${remaining}. Include more surrounding lines to make it unique, or set replaceAll to replace every occurrence.`,
             );
           }
 

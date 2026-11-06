@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest';
-import { findMatches, getLineNumber, replaceRanges } from './find-matches';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  findMatches,
+  getLineNumber,
+  getLineNumbers,
+  replaceRanges,
+} from './find-matches';
 
 function replace(content: string, search: string, replacement: string) {
   const match = findMatches({ content, search });
@@ -95,5 +100,36 @@ describe('getLineNumber', () => {
     expect(getLineNumber(content, 0)).toBe(1);
     expect(getLineNumber(content, 2)).toBe(2);
     expect(getLineNumber(content, 4)).toBe(3);
+  });
+});
+
+describe('getLineNumbers', () => {
+  it('returns no line numbers for no offsets', () => {
+    expect(getLineNumbers('a\nb', [])).toEqual([]);
+  });
+
+  it('counts newlines strictly before each offset, including repeated offsets', () => {
+    expect(getLineNumbers('a\n\nb\r\nc', [0, 1, 2, 2, 3, 4, 5, 6, 7])).toEqual([
+      1, 1, 2, 2, 3, 3, 3, 4, 4,
+    ]);
+  });
+
+  it('scans preceding characters at most once across many offsets', () => {
+    const content = 'value\n'.repeat(1000);
+    const indices = Array.from({ length: 1000 }, (_, index) => index * 6);
+    const charCodeAt = vi.spyOn(String.prototype, 'charCodeAt');
+    let lines: number[];
+    let scanned: number;
+    try {
+      lines = getLineNumbers(content, indices);
+      scanned = charCodeAt.mock.calls.length;
+    } finally {
+      charCodeAt.mockRestore();
+    }
+
+    expect(lines).toEqual(
+      Array.from({ length: 1000 }, (_, index) => index + 1),
+    );
+    expect(scanned).toBeLessThanOrEqual(content.length);
   });
 });

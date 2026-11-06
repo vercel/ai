@@ -175,9 +175,17 @@ export function replaceRanges({
 }
 
 export function getLineNumber(content: string, index: number): number {
+  return getLineNumbers(content, [index])[0];
+}
+
+/** Return 1-based line numbers for sorted offsets in a single forward scan. */
+export function getLineNumbers(content: string, indices: number[]): number[] {
   let line = 1;
-  for (let i = 0; i < index; i++) {
-    if (content.charCodeAt(i) === 10) line++;
-  }
-  return line;
+  let position = 0;
+  return indices.map(index => {
+    for (; position < index; position++) {
+      if (content.charCodeAt(position) === 10) line++;
+    }
+    return line;
+  });
 }
