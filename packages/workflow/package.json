@@ -65,7 +65,7 @@
     "typescript": "6.0.3",
     "vitest": "4.1.11",
     "workflow": "5.1.0",
-    "zod": "4.5.4"
+    "zod": "4.6.6"
   },
   "peerDependencies": {
     "workflow": "^5.1.0",

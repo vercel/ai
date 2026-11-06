@@ -72,7 +72,7 @@
     "vaul": "^1.1.2",
     "vite": "^7.3.5",
     "vitest": "^4.1.11",
-    "zod": "3.25.76"
+    "zod": "4.6.6"
   },
   "publishConfig": {
     "access": "public",
