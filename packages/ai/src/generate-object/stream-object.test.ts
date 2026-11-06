@@ -1772,6 +1772,48 @@ describe('streamObject', () => {
 
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
+
+    it('should not record provider metadata in telemetry when recordOutputs is false', async () => {
+      const result = streamObject({
+        model: new MockLanguageModelV2({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ "content": "answer" }' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+                providerMetadata: {
+                  openai: {
+                    logprobs: [
+                      {
+                        token: 'SECRET-TOKEN',
+                        logprob: -0.1,
+                        top_logprobs: [],
+                      },
+                    ],
+                  },
+                },
+              },
+            ]),
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        experimental_telemetry: {
+          isEnabled: true,
+          recordOutputs: false,
+          tracer,
+        },
+        _internal: { now: () => 0 },
+      });
+
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(JSON.stringify(tracer.jsonSpans)).not.toContain('SECRET-TOKEN');
+    });
   });
 
   describe('options.messages', () => {
