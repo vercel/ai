@@ -1306,15 +1306,23 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         (anthropicToolChoice?.type === 'auto' || jsonResponseTool != null)) ||
       (toolChoice?.type === 'none' && jsonResponseTool != null)
     ) {
+      const selectedSdkName =
+        toolChoice.type === 'tool' ? toolChoice.toolName : undefined;
+      const selectedTool = tools?.find(tool => tool.name === selectedSdkName);
+      const selectedProviderName =
+        jsonResponseTool != null &&
+        selectedSdkName != null &&
+        selectedTool?.type !== 'function'
+          ? toolNameMapping.toProviderToolName(selectedSdkName)
+          : selectedSdkName;
       const conflictingTool = inlineToolDefinitions.find(
         ({ sdkName, definition }) =>
           toolChoice.type === 'none' ||
           // The JSON-tool path filters application tools by SDK name before
           // conversion; the forced-choice fallback filters by provider name.
-          (jsonResponseTool != null
-            ? sdkName !== toolChoice.toolName
-            : !('name' in definition) ||
-              definition.name !== toolChoice.toolName),
+          (jsonResponseTool != null && sdkName !== selectedSdkName) ||
+          !('name' in definition) ||
+          definition.name !== selectedProviderName,
       );
       if (conflictingTool != null) {
         const toolName =
