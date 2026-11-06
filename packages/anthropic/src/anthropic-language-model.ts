@@ -714,6 +714,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     });
 
     const toolsetNames = getAnthropicToolsetNames(tools);
+    const inlineToolDefinitions: Array<{
+      sdkName: string;
+      definition: AnthropicTool;
+    }> = [];
 
     const { prompt: messagesPrompt, betas } = await convertToAnthropicPrompt({
       prompt,
@@ -738,6 +742,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           // definition is replayed on every request and has to stay identical
           // between streaming and non-streaming calls to keep the cache.
         });
+
+        if (definitions?.[0] != null) {
+          inlineToolDefinitions.push({
+            sdkName: tool.name,
+            definition: definitions[0],
+          });
+        }
 
         return {
           definition: definitions?.[0],
@@ -1312,6 +1323,50 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               rejectsForcedToolUse || thinkingType === 'enabled',
           },
     );
+
+    // Forced-choice and JSON-tool fallbacks restrict the declared tools.
+    // Inline definitions, including those replayed from history, must not
+    // restore other tools before the provider executes the request.
+    if (
+      (toolChoice?.type === 'tool' &&
+        (anthropicToolChoice?.type === 'auto' || jsonResponseTool != null)) ||
+      (toolChoice?.type === 'none' && jsonResponseTool != null)
+    ) {
+      const selectedSdkName =
+        toolChoice.type === 'tool' ? toolChoice.toolName : undefined;
+      const selectedTool = tools?.find(tool => tool.name === selectedSdkName);
+      const selectedProviderName =
+        jsonResponseTool != null &&
+        selectedSdkName != null &&
+        selectedTool?.type !== 'function'
+          ? toolNameMapping.toProviderToolName(selectedSdkName)
+          : selectedSdkName;
+      const conflictingTool = inlineToolDefinitions.find(
+        ({ sdkName, definition }) =>
+          toolChoice.type === 'none' ||
+          // The JSON-tool path filters application tools by SDK name before
+          // conversion; the forced-choice fallback filters by provider name.
+          (jsonResponseTool != null && sdkName !== selectedSdkName) ||
+          !('name' in definition) ||
+          definition.name !== selectedProviderName,
+      );
+      if (conflictingTool != null) {
+        const toolName =
+          'name' in conflictingTool.definition
+            ? conflictingTool.definition.name
+            : conflictingTool.definition.type;
+        const choice =
+          toolChoice.type === 'tool'
+            ? `named tool choice '${toolChoice.toolName}'`
+            : `tool choice 'none'`;
+        throw new InvalidArgumentError({
+          argument: 'toolChoice',
+          message:
+            `Inline tool '${toolName}' conflicts with ${choice}. ` +
+            'Inline definitions must respect the tool choice when forced tool use falls back or the JSON response tool is used.',
+        });
+      }
+    }
 
     // Extract cache control warnings once at the end
     const cacheWarnings = cacheControlValidator.getWarnings();
