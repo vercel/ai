@@ -970,4 +970,42 @@ console.log(text);`,
     websiteUrl: 'https://redis.io/agent-memory/',
     npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
+  {
+    slug: 'agent-press-wire',
+    name: 'Agent Press Wire',
+    description:
+      'Publish a press release about a product launch on a search-indexed newsroom ($1) or send it over a newswire to 500+ news sites ($99 or $299). Pays per call in USDC on Base via x402 from the developer\'s own wallet, with a per-call cap the model cannot raise and payment terms pinned in the package; failed jobs are not charged. No API key needed.',
+    packageName: 'agent-press-wire-mcp',
+    tags: ['press-release', 'marketing', 'payments', 'x402'],
+    installCommand: {
+      pnpm: 'pnpm add agent-press-wire-mcp ai viem',
+      npm: 'npm install agent-press-wire-mcp ai viem',
+      yarn: 'yarn add agent-press-wire-mcp ai viem',
+      bun: 'bun add agent-press-wire-mcp ai viem',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { agentPressWireTools } from 'agent-press-wire-mcp/ai-sdk';
+import { privateKeyToAccount } from 'viem/accounts';
+
+// Paid calls spend real USDC on Base from this wallet. maxPaymentUsd caps each
+// call (default $1, enough for a newsroom release; the $99 and $299 wire tiers
+// need a higher cap) and the model cannot raise it.
+const tools = agentPressWireTools({
+  wallet: privateKeyToAccount(process.env.AGENT_PRIVATE_KEY as \`0x\${string}\`),
+  maxPaymentUsd: 1,
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'We just shipped v2 of https://example.com with offline sync. Publish a press release about it.',
+  tools,
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://agentpresswire.dev/docs/ai-sdk',
+    websiteUrl: 'https://agentpresswire.dev',
+    npmUrl: 'https://www.npmjs.com/package/agent-press-wire-mcp',
+  },
 ];
