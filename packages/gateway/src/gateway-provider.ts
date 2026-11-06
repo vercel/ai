@@ -307,6 +307,12 @@ export interface GatewayProviderSettings {
   baseURL?: string;
 
   /**
+   * Select a regional Gateway endpoint. Cannot be combined with `baseURL`.
+   * Only selects the endpoint; it does not add request-level regional options.
+   */
+  regionalHosting?: 'au' | 'eu' | 'us';
+
+  /**
    * API key or Vercel access token that is being sent using the `Authorization`
    * header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
    * A callback is resolved before each request and must return a non-empty key.
@@ -383,9 +389,29 @@ export function createGateway(
     options.metadataCacheRefreshMillis ?? 1000 * 60 * 5;
   let lastFetchTime = 0;
 
+  const { regionalHosting } = options;
+  if (options.baseURL !== undefined && regionalHosting !== undefined) {
+    throw new Error('baseURL and regionalHosting cannot be used together.');
+  }
+  if (
+    regionalHosting !== undefined &&
+    regionalHosting !== 'au' &&
+    regionalHosting !== 'eu' &&
+    regionalHosting !== 'us'
+  ) {
+    throw new Error('regionalHosting must be one of: au, eu, us.');
+  }
+
+  const regionalBaseURLs = {
+    au: 'https://au.ai-gateway.vercel.sh/v4/ai',
+    eu: 'https://eu.ai-gateway.vercel.sh/v4/ai',
+    us: 'https://us.ai-gateway.vercel.sh/v4/ai',
+  };
   const baseURL =
     withoutTrailingSlash(options.baseURL) ??
-    'https://ai-gateway.vercel.sh/v4/ai';
+    (regionalHosting === undefined
+      ? 'https://ai-gateway.vercel.sh/v4/ai'
+      : regionalBaseURLs[regionalHosting]);
 
   const createAuthHeaders = (auth: {
     token: string;
