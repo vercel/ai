@@ -45,6 +45,51 @@ export async function agentToolLoopWithGlobalTelemetry(a: number, b: number) {
   };
 }
 
+/**
+ * A tool call, then a call to a tool without execute that stops the run
+ * (https://github.com/vercel/ai/issues/24584).
+ */
+export async function agentClientToolStopWithGlobalTelemetry(
+  a: number,
+  b: number,
+) {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'addNumbers',
+        input: JSON.stringify({ a, b }),
+      },
+      {
+        type: 'tool-call',
+        toolName: 'askUser',
+        input: JSON.stringify({ question: 'Anything else?' }),
+      },
+    ]),
+    tools: {
+      addNumbers: {
+        description: 'Add two numbers',
+        inputSchema: z.object({ a: z.number(), b: z.number() }),
+        execute: addNumbers,
+      },
+      askUser: {
+        description: 'Ask the user a question',
+        inputSchema: z.object({ question: z.string() }),
+      },
+    },
+    telemetry: { functionId: 'issue-24584' },
+  });
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: `Add ${a} and ${b}` }],
+    writable: getWritable(),
+  });
+  return {
+    stepCount: result.steps.length,
+    toolCalls: result.toolCalls.map(toolCall => toolCall.toolName),
+  };
+}
+
 async function getGlobalTelemetryIntegrationCount(): Promise<number | null> {
   'use step';
   return globalThis.AI_SDK_TELEMETRY_INTEGRATIONS?.length ?? null;
