@@ -66,8 +66,8 @@ function normalize(text: string, mode: MatchMode): NormalizedText {
 
   let index = 0;
   while (index < text.length) {
+    let end = index + 1;
     if (isHorizontalWhitespace(text[index], mode)) {
-      let end = index;
       while (end < text.length && isHorizontalWhitespace(text[end], mode)) {
         end++;
       }
@@ -78,12 +78,15 @@ function normalize(text: string, mode: MatchMode): NormalizedText {
       }
     }
 
-    const char = text[index];
-    chars.push(
-      mode === 'unicode-punctuation' ? (PUNCTUATION[char] ?? char) : char,
-    );
-    offsets.push(index);
-    index++;
+    // Emit each nontrailing run once, preserving its original offsets.
+    while (index < end) {
+      const char = text[index];
+      chars.push(
+        mode === 'unicode-punctuation' ? (PUNCTUATION[char] ?? char) : char,
+      );
+      offsets.push(index);
+      index++;
+    }
   }
 
   return { text: chars.join(''), offsets, removedTrailingWhitespace };

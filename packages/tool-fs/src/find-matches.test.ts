@@ -31,6 +31,65 @@ describe('findMatches', () => {
     expect(findMatches({ content: 'abc', search: 'xyz' })).toBeUndefined();
   });
 
+  it.each([' ', '\t', ' \t', '\u00a0\u2009'])(
+    'reads internal %j runs only a linear number of times',
+    whitespace => {
+      const text = `before${whitespace.repeat(256)}after`;
+      let characterReads = 0;
+      // Count indexed reads instead of relying on machine-dependent timings.
+      const trackedText = new Proxy(Object(text), {
+        get(target, property) {
+          if (typeof property === 'string' && /^\d+$/.test(property)) {
+            characterReads++;
+          }
+          const value = Reflect.get(target, property);
+          return typeof value === 'function' ? value.bind(target) : value;
+        },
+      }) as string;
+
+      expect(
+        findMatches({ content: trackedText, search: 'missing' }),
+      ).toBeUndefined();
+      expect(characterReads).toBeLessThan(12 * text.length);
+
+      characterReads = 0;
+      expect(
+        findMatches({ content: 'missing', search: trackedText }),
+      ).toBeUndefined();
+      expect(characterReads).toBeLessThan(12 * text.length);
+    },
+  );
+
+  it.each(['\n', '\r\n'])(
+    'preserves internal spaces, tabs, and offsets with %j line endings',
+    lineEnding => {
+      const whitespace = ' \t'.repeat(1024);
+      const content = `prefix  ${lineEnding}before${whitespace}after \t${lineEnding}suffix`;
+      const search = `before${whitespace}after${lineEnding}`;
+
+      expect(replace(content, search, 'changed\n')).toEqual({
+        mode: 'trailing-whitespace',
+        count: 1,
+        result: `prefix  ${lineEnding}changed\nsuffix`,
+      });
+    },
+  );
+
+  it('preserves offsets when normalizing internal Unicode whitespace runs', () => {
+    const whitespace = '\u00a0\t\u2009'.repeat(1024);
+    expect(
+      replace(
+        `prefix\n“before${whitespace}after” \t\nsuffix`,
+        `"before${' \t '.repeat(1024)}after"\n`,
+        'changed\n',
+      ),
+    ).toEqual({
+      mode: 'unicode-punctuation',
+      count: 1,
+      result: 'prefix\nchanged\nsuffix',
+    });
+  });
+
   it('ignores whitespace at line ends in the file', () => {
     expect(
       replace('if (x) {  \n  run();\t\n}\n', 'if (x) {\n  run();\n}', 'done'),
