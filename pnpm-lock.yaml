@@ -1304,6 +1304,12 @@ importers:
         specifier: 1.9.0
         version: 1.9.0
     devDependencies:
+      '@ai-sdk/google-vertex':
+        specifier: workspace:*
+        version: link:../google-vertex
+      '@ai-sdk/google':
+        specifier: workspace:*
+        version: link:../google
       '@ai-sdk/perplexity':
         specifier: workspace:*
         version: link:../perplexity
