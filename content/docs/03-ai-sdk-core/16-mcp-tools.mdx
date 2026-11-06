@@ -220,7 +220,11 @@ If they no longer match, leave the newer tokens in storage. The SDK retries
 authorization and reads the stored tokens again.
 
 The SDK also provides this context when invalidating stored tokens that lack an
-authorization server pin. Other invalidations can omit the context.
+authorization server pin. These tokens must be cleared before the SDK saves a new
+client registration or authorization server pin. If the invalidation hook is
+missing or refresh tokens remain in storage, authorization stops with an error;
+clear the stored tokens and start authorization again. Other invalidations can
+omit the context.
 
 If an authorization-code exchange returns `invalid_grant`, the SDK propagates
 the error without invalidating stored credentials or retrying the rejected code.
