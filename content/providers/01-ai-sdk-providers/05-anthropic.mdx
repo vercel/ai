@@ -1211,7 +1211,13 @@ return several actions in one turn, each as its own tool call.
 The API returns each action as a separate `tool_use` block with
 `toolset_name: 'computer'`. The AI SDK maps every action to the toolset tool and
 passes the action name as `action`, so `execute` receives the same input shape
-as the older computer tools:
+as the older computer tools.
+
+The SDK preserves the returned member name as `action` and rejects disabled or
+unavailable members before emitting tool calls, including during streaming.
+Disabled members are also rejected by the tool's local input schema.
+
+For example:
 
 ```ts
 const computerTool = anthropic.tools.computerToolset_20260801({

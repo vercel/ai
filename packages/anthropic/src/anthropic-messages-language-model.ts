@@ -66,6 +66,33 @@ import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
 import { supportsNativeStructuredOutputSchema } from './supports-native-structured-output-schema';
+import { computerToolset_20260801Members } from './tool/computer-toolset_20260801';
+
+function validateToolsetMember({
+  toolsetName,
+  memberName,
+  tools,
+}: {
+  toolsetName: string;
+  memberName: string;
+  tools: AnthropicTool[] | undefined;
+}): void {
+  const toolset = tools?.find(
+    tool => 'type' in tool && tool.type === 'computer_toolset_20260801',
+  );
+
+  if (
+    toolsetName !== 'computer' ||
+    toolset == null ||
+    !computerToolset_20260801Members.some(member => member === memberName) ||
+    toolset.configs?.[memberName]?.enabled === false
+  ) {
+    throw new InvalidResponseDataError({
+      data: { toolsetName, memberName },
+      message: `Received an unavailable toolset member: ${toolsetName}.${memberName}.`,
+    });
+  }
+}
 
 function createCitationSource(
   citation: Citation,
@@ -179,10 +206,10 @@ function toToolsetMemberInput({
   input: unknown;
 }): JSONObject {
   return {
-    action: memberName,
     ...(typeof input === 'object' && input !== null && !Array.isArray(input)
       ? (input as JSONObject)
       : {}),
+    action: memberName,
   };
 }
 
@@ -1423,6 +1450,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               text: JSON.stringify(part.input),
             });
           } else if (part.toolset_name != null) {
+            validateToolsetMember({
+              toolsetName: part.toolset_name,
+              memberName: part.name,
+              tools: args.tools,
+            });
             // toolset member calls (e.g. the computer toolset) are mapped to
             // the toolset tool with the member name as the `action`:
             content.push({
@@ -2152,6 +2184,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       id: String(value.index),
                     });
                   } else if (part.toolset_name != null) {
+                    validateToolsetMember({
+                      toolsetName: part.toolset_name,
+                      memberName: part.name,
+                      tools: body.tools,
+                    });
                     const callerInfo = getAnthropicCallerInfo(part.caller);
                     const customToolName = toolNameMapping.toCustomToolName(
                       part.toolset_name,
@@ -2664,19 +2701,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                               ? {}
                               : secureJsonParse(contentBlock.input);
                         } catch {
-                          // ignore parse errors, fall back to the raw input
-                          memberInput = undefined;
+                          throw new InvalidResponseDataError({
+                            data: contentBlock.input,
+                            message: 'Invalid toolset member input JSON.',
+                          });
                         }
 
-                        contentBlock.input =
-                          memberInput === undefined
-                            ? contentBlock.input
-                            : JSON.stringify(
-                                toToolsetMemberInput({
-                                  memberName: contentBlock.toolset.memberName,
-                                  input: memberInput,
-                                }),
-                              );
+                        contentBlock.input = JSON.stringify(
+                          toToolsetMemberInput({
+                            memberName: contentBlock.toolset.memberName,
+                            input: memberInput,
+                          }),
+                        );
 
                         controller.enqueue({
                           type: 'tool-input-delta',
