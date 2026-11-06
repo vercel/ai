@@ -102,6 +102,16 @@ const { text } = await generateText({
 Baseten language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+<Note>
+  On Baseten Model APIs, `deepseek-ai/DeepSeek-V4-Pro-0813` can return an empty
+  answer when JSON mode and reasoning are combined. When reasoning is enabled
+  (the default), the provider puts JSON instructions in a system
+  message and omits `response_format`. It emits a warning because
+  the server does not constrain the output; `generateObject` still validates the
+  result. Set `providerOptions: { baseten: { reasoningEffort: 'none' } }` to
+  keep native JSON mode instead.
+</Note>
+
 ## Dedicated Models
 
 Baseten supports dedicated model URLs for both chat and embedding models. You have to specify a `modelURL` when creating the provider:
