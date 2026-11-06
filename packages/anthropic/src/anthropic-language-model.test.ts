@@ -292,6 +292,77 @@ describe('AnthropicLanguageModel', () => {
       };
       const thinking = { type: 'enabled', budgetTokens: 1024 };
 
+      it.each([false, true])(
+        'should keep ignoring initial system tool additions with JSON tool %s',
+        async useJsonTool => {
+          prepareJsonFixtureResponse(
+            useJsonTool ? 'anthropic-json-tool.1' : 'anthropic-text',
+          );
+          const options = {
+            prompt: [
+              {
+                role: 'system',
+                content: 'Initial instructions',
+                providerOptions: {
+                  anthropic: {
+                    toolChanges: [
+                      {
+                        type: 'tool_addition',
+                        tool: { ...selectedTool, name: 'other' },
+                      },
+                    ],
+                  },
+                },
+              },
+              ...TEST_PROMPT,
+            ] satisfies LanguageModelV4Prompt,
+            tools: [selectedTool],
+            toolChoice: { type: 'tool' as const, toolName: 'selected' },
+            providerOptions: {
+              anthropic: { thinking, structuredOutputMode: 'jsonTool' },
+            },
+            ...(useJsonTool && {
+              responseFormat: {
+                type: 'json' as const,
+                schema: { type: 'object' as const, properties: {} },
+              },
+            }),
+          };
+
+          if (method === 'stream') {
+            prepareChunksFixtureResponse(
+              useJsonTool
+                ? 'anthropic-json-tool.1'
+                : 'anthropic-message-delta-input-tokens',
+            );
+          }
+          const result =
+            method === 'generate'
+              ? await provider('claude-haiku-4-5').doGenerate(options)
+              : await provider('claude-haiku-4-5').doStream(options);
+          const warnings =
+            'stream' in result
+              ? (await convertReadableStreamToArray(result.stream)).find(
+                  part => part.type === 'stream-start',
+                )?.warnings
+              : result.warnings;
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.system).toEqual([
+            { type: 'text', text: 'Initial instructions' },
+          ]);
+          expect(body.messages).toHaveLength(1);
+          expect(body.messages[0].role).toBe('user');
+          expect(warnings).toContainEqual({
+            type: 'other',
+            message:
+              'tool changes on the initial system message are not supported by Anthropic. ' +
+              'Configure the initial tool set via the tools option instead. ' +
+              'The tool changes have been ignored.',
+          });
+        },
+      );
+
       describe.each([
         { ...selectedTool, name: 'other' },
         {
