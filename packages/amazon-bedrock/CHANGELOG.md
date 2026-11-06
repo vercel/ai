@@ -1,5 +1,21 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.134
+
+### Patch Changes
+
+- 067dd77: Refactor Amazon Bedrock model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export the Anthropic catalog capability helper under its compatibility name for Bedrock to reuse. Request behavior is unchanged.
+- Updated dependencies [067dd77]
+- Updated dependencies [25240d9]
+- Updated dependencies [457dc40]
+- Updated dependencies [c6efa4b]
+- Updated dependencies [6b101ac]
+- Updated dependencies [f6dbf04]
+- Updated dependencies [646a7e3]
+- Updated dependencies [6b97088]
+  - @ai-sdk/anthropic@4.0.98
+  - @ai-sdk/openai@4.0.110
+
 ## 5.0.133
 
 ### Patch Changes

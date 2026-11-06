@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.113
+
+### Patch Changes
+
+- 27a8a77: Refactor Google Vertex model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export Google catalog metadata internally for Vertex to reuse. Request behavior is unchanged.
+
 ## 4.0.112
 
 ### Patch Changes

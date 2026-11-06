@@ -1,5 +1,16 @@
 # @ai-sdk/azure
 
+## 4.0.118
+
+### Patch Changes
+
+- c6efa4b: Refactor Azure model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export the OpenAI catalog internally for Azure to reuse. Request behavior is unchanged.
+- Updated dependencies [c6efa4b]
+- Updated dependencies [f6dbf04]
+- Updated dependencies [646a7e3]
+- Updated dependencies [6b97088]
+  - @ai-sdk/openai@4.0.110
+
 ## 4.0.117
 
 ### Patch Changes

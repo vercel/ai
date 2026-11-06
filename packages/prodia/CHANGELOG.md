@@ -1,5 +1,11 @@
 # @ai-sdk/prodia
 
+## 2.0.77
+
+### Patch Changes
+
+- 92387f2: Refactor Prodia model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+
 ## 2.0.76
 
 ### Patch Changes

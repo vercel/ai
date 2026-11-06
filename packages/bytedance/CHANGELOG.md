@@ -1,5 +1,11 @@
 # @ai-sdk/bytedance
 
+## 2.0.79
+
+### Patch Changes
+
+- cbadb9c: Refactor ByteDance model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+
 ## 2.0.78
 
 ### Patch Changes
