@@ -5285,6 +5285,78 @@ describe('doStream', () => {
     });
   });
 
+  describe('streaming-tool-call-sparse-array-arguments', () => {
+    it('should skip streamed array indexes that leave a gap', async () => {
+      const functionCallChunk = (functionCall: Record<string, unknown>) => ({
+        candidates: [{ content: { role: 'model', parts: [{ functionCall }] } }],
+      });
+
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          functionCallChunk({ name: 't', willContinue: true }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.items[0]', stringValue: 'a' }],
+            willContinue: true,
+          }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.items[20000000]', stringValue: 'b' }],
+            willContinue: true,
+          }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.items[1]', stringValue: 'c' }],
+          }),
+          {
+            candidates: [
+              {
+                content: { role: 'model', parts: [{ text: '' }] },
+                finishReason: 'STOP',
+              },
+            ],
+          },
+        ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+      };
+
+      const vertexModel = new GoogleLanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await vertexModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        tools: [
+          {
+            type: 'function',
+            name: 't',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        providerOptions: {
+          vertex: {
+            streamFunctionCallArguments: true,
+          },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const input = events
+        .filter(e => e.type === 'tool-input-delta')
+        .map(e => e.delta)
+        .join('');
+      const toolCalls = events.filter(e => e.type === 'tool-call');
+
+      const expectedInput = '{"items":["a","c"]}';
+      expect(toolCalls.map(c => c.input.length)).toEqual([
+        expectedInput.length,
+      ]);
+      expect(toolCalls.map(c => c.input)).toEqual([expectedInput]);
+      expect(input).toBe(expectedInput);
+    });
+  });
+
   describe('streaming-no-args-tool-call', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('google-stream-no-args-tool-call');
