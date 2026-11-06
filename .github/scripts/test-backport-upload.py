@@ -98,6 +98,15 @@ class BackportUploadTest(unittest.TestCase):
             self.assertEqual(calls, [], "Rejected changes must not touch remote refs")
             return result
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        parent = self.git("rev-parse", "origin/release-test")
+        ref = "repos/example/repo/git/refs/heads/backport-test"
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(calls[0]["args"], ["api", ref])
+        if self.env.get("GH_TEST_EXISTING"):
+            expected = ["api", "--method", "PATCH", ref, "-f", f"sha={parent}", "-F", "force=true"]
+        else:
+            expected = ["api", "--method", "POST", "repos/example/repo/git/refs", "-f", "ref=refs/heads/backport-test", "-f", f"sha={parent}"]
+        self.assertEqual(calls[1]["args"], expected)
         self.assertEqual(calls[-1]["args"][0:2], ["api", "graphql"])
         return calls[-1]["payload"]["variables"]["input"]
 
@@ -148,8 +157,10 @@ class BackportUploadTest(unittest.TestCase):
         self.assertEqual(base64.b64decode(additions[0]["contents"]), b"from Git")
 
     def test_rejects_added_symlink(self):
+        self.write("target", b"harmless committed fixture")
+        self.commit()
         self.base()
-        (self.repo / "link").symlink_to("missing-file")
+        (self.repo / "link").symlink_to("target")
         self.commit()
         self.upload(succeeds=False)
 
@@ -194,6 +205,17 @@ class BackportUploadTest(unittest.TestCase):
         self.git("commit", "-qm", "Gitlink fixture")
         self.upload(succeeds=False)
 
+    def test_rejects_submodule_hidden_by_ignore_setting(self):
+        self.base()
+        self.write(
+            ".gitmodules",
+            b'[submodule "submodule"]\n\tpath = submodule\n\turl = ./unused\n\tignore = all\n',
+        )
+        self.git("add", ".gitmodules")
+        self.git("update-index", "--add", "--cacheinfo", f"160000,{self.git('rev-parse', 'HEAD')},submodule")
+        self.git("commit", "-qm", "Ignored gitlink fixture")
+        self.upload(succeeds=False)
+
     def test_rejects_new_executable_file(self):
         self.base()
         self.write("script")
@@ -227,8 +249,24 @@ class BackportUploadTest(unittest.TestCase):
         self.commit()
         self.upload(succeeds=False)
 
-    def test_diff_failure_prevents_remote_writes(self):
+    def test_missing_base_prevents_remote_writes(self):
         self.env["BASE_BRANCH"] = "missing-branch"
+        self.upload(succeeds=False)
+
+    def test_diff_failure_prevents_remote_writes(self):
+        self.write("blob")
+        blob = self.git("hash-object", "-w", "blob")
+        self.git("update-ref", "refs/remotes/origin/release-test", blob)
+        self.upload(succeeds=False)
+
+    def test_missing_blob_prevents_remote_writes(self):
+        self.base()
+        self.write("file")
+        self.commit()
+        blob = self.git("rev-parse", "HEAD:file")
+        (self.repo / ".git/objects" / blob[:2] / blob[2:]).unlink()
+        # Raw diff generation succeeds without loading the missing blob.
+        self.git("diff", "--no-renames", "--raw", "HEAD^", "HEAD")
         self.upload(succeeds=False)
 
 
