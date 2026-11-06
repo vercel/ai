@@ -47,7 +47,6 @@ Navigate to `http://localhost:3000/mcp-elicitation`
 
    - Username (required)
    - Email (required)
-   - Password (required)
    - Newsletter subscription (optional, defaults to false)
 
 4. You can:
@@ -59,3 +58,6 @@ Navigate to `http://localhost:3000/mcp-elicitation`
 5. The conversation continues based on your response.
 
 This example involves working with human-in-the-loop tools and MCP Elicitation requests.
+
+Do not request passwords, API keys, or other credentials through form elicitation.
+Avoid logging submitted form content or tool results that contain user information.
