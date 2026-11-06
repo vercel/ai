@@ -148,29 +148,34 @@ export type OpenAIImageModelGenerationOptions = InferSchema<
   typeof openaiImageModelGenerationOptions
 >;
 
+/**
+ * Shape of the OpenAI image edit options. Exported so that routers can accept
+ * these options under their own providerOptions key.
+ */
+export const openaiImageModelEditOptionsShape = () =>
+  baseImageModelOptionsObject().extend({
+    /**
+     * Fidelity of the output image(s) to the input image(s).
+     */
+    inputFidelity: z.enum(['high', 'low']).optional(),
+
+    /**
+     * A transparent PNG overlaid on the first input image to mark up the
+     * regions to change, as an HTTPS URL or a base64 data URL. It must match
+     * the dimensions of the first image. Supported by GPT Image 2.5 and 2.6
+     * models. Cannot be combined with a `mask`.
+     */
+    markup: z.string().optional(),
+
+    /**
+     * Content moderation level for the edited image(s). `low` applies
+     * less restrictive filtering. Supported by GPT Image models.
+     */
+    moderation: z.enum(['auto', 'low']).optional(),
+  }).shape;
+
 export const openaiImageModelEditOptions = lazySchema(() =>
-  zodSchema(
-    baseImageModelOptionsObject().extend({
-      /**
-       * Fidelity of the output image(s) to the input image(s).
-       */
-      inputFidelity: z.enum(['high', 'low']).optional(),
-
-      /**
-       * A transparent PNG overlaid on the first input image to mark up the
-       * regions to change, as an HTTPS URL or a base64 data URL. It must match
-       * the dimensions of the first image. Supported by GPT Image 2.5 and 2.6
-       * models. Cannot be combined with a `mask`.
-       */
-      markup: z.string().optional(),
-
-      /**
-       * Content moderation level for the edited image(s). `low` applies
-       * less restrictive filtering. Supported by GPT Image models.
-       */
-      moderation: z.enum(['auto', 'low']).optional(),
-    }),
-  ),
+  zodSchema(z.object(openaiImageModelEditOptionsShape())),
 );
 
 export type OpenAIImageModelEditOptions = InferSchema<

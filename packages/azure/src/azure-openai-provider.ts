@@ -6,6 +6,7 @@ import {
   OpenAIResponsesLanguageModel,
   OpenAISpeechModel,
   OpenAITranscriptionModel,
+  openaiImageModelEditOptionsShape,
   openaiImageModelGenerationOptionsShape,
   openaiSpeechModelOptionsShape,
   openAITranscriptionModelOptionsShape,
@@ -807,7 +808,9 @@ class AzureImageModel implements ImageModelV4 {
         options,
         pickAzureOptions(
           options.providerOptions,
-          openaiImageModelGenerationOptionsShape(),
+          options.files != null
+            ? openaiImageModelEditOptionsShape()
+            : openaiImageModelGenerationOptionsShape(),
         ),
       ),
     );
