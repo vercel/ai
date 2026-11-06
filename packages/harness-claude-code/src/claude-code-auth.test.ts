@@ -1,3 +1,4 @@
+import * as childProcess from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -14,6 +15,15 @@ import {
 } from './claude-code-subscription';
 
 const noHelper = () => undefined;
+
+vi.mock('node:child_process', async importOriginal => {
+  const actual = await importOriginal<typeof childProcess>();
+  return {
+    ...actual,
+    execFileSync: vi.fn(actual.execFileSync),
+    execSync: vi.fn(actual.execSync),
+  };
+});
 
 describe('resolveClaudeCodeEnv', () => {
   it('pins direct anthropic auth when selected', () => {
@@ -239,6 +249,7 @@ describe('default apiKeyHelper reader', () => {
   });
 
   afterEach(async () => {
+    vi.clearAllMocks();
     vi.unstubAllEnvs();
     await rm(homeDirectory, { recursive: true, force: true });
     await rm(emptyPathDirectory, { recursive: true, force: true });
@@ -251,7 +262,7 @@ describe('default apiKeyHelper reader', () => {
     );
   }
 
-  it('runs the apiKeyHelper command through the system shell', async () => {
+  it('falls back to the system shell when sh is not on PATH', async () => {
     await writeApiKeyHelper('echo sk-from-helper');
 
     expect(resolveClaudeCodeEnv(undefined, {})).toEqual({
@@ -264,6 +275,54 @@ describe('default apiKeyHelper reader', () => {
     await writeApiKeyHelper('exit 1');
 
     expect(resolveClaudeCodeEnv(undefined, {})).toEqual({});
+  });
+
+  it('preserves sh-based helpers when sh is available', async () => {
+    const command = 'printf "%s" "${HELPER_KEY:-sk-from-sh}"';
+    await writeApiKeyHelper(command);
+    const sh = vi
+      .mocked(childProcess.execFileSync)
+      .mockReturnValueOnce('sk-from-sh\n');
+    const systemShell = vi.mocked(childProcess.execSync);
+
+    expect(resolveClaudeCodeEnv(undefined, {})).toEqual({
+      ANTHROPIC_API_KEY: 'sk-from-sh',
+      ANTHROPIC_AUTH_TOKEN: 'sk-from-sh',
+    });
+    expect(sh).toHaveBeenCalledExactlyOnceWith('sh', ['-c', command], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true,
+    });
+    expect(systemShell).not.toHaveBeenCalled();
+  });
+
+  it.each([1, 127])(
+    'does not retry a helper that exits with status %s',
+    async status => {
+      await writeApiKeyHelper('exit ' + status);
+      const sh = vi
+        .mocked(childProcess.execFileSync)
+        .mockImplementationOnce(() => {
+          throw Object.assign(new Error('Command failed'), { status });
+        });
+      const systemShell = vi.mocked(childProcess.execSync);
+
+      expect(resolveClaudeCodeEnv(undefined, {})).toEqual({});
+      expect(sh).toHaveBeenCalledOnce();
+      expect(systemShell).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not fall back when sh cannot be launched due to permissions', async () => {
+    await writeApiKeyHelper('echo sk-from-helper');
+    vi.mocked(childProcess.execFileSync).mockImplementationOnce(() => {
+      throw Object.assign(new Error('spawnSync sh EACCES'), { code: 'EACCES' });
+    });
+    const systemShell = vi.mocked(childProcess.execSync);
+
+    expect(resolveClaudeCodeEnv(undefined, {})).toEqual({});
+    expect(systemShell).not.toHaveBeenCalled();
   });
 });
 
