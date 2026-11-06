@@ -1029,6 +1029,27 @@ const result = streamText({
 
 ##### Thinking Binding Controls
 
+Fable 5.2, Fable 5.1, Opus 5.5, and Sonnet 5.5 use preserved thinking. Each
+thinking block from an earlier assistant turn is bound to the request content
+before it: the system prompt, the tools, and the earlier messages. If that
+content changes between requests, the thinking blocks after the change become
+invalid. By default, the API then rejects the request with a 400 error ("The
+block is bound to a different conversation"). Keep the message history
+append-only, and keep the system prompt and tools stable, where you can.
+
+This also applies inside a single multi-step `generateText` or `streamText`
+call. When `prepareStep` returns a different `system`, `activeTools`, or
+`messages` for a later step, the thinking from the earlier steps is sent with
+the changed content, and the next step fails. Editing or removing earlier
+messages between turns, or changing the system prompt or tools between turns,
+has the same effect.
+
+If your application changes this content, set
+`blockBinding.prefixMismatchBehavior` to `drop_block` (see below). The API then
+drops the invalid thinking blocks instead of rejecting the request. The model
+thinks again for the dropped context, which can increase output token usage, so
+measure token usage on your own workloads before you rely on it.
+
 Fable 5.2, Fable 5.1, Opus 5.5, and Sonnet 5.5 can recover from a thinking-block prefix
 mismatch by dropping the mismatched block. Set
 `blockBinding.prefixMismatchBehavior` to `drop_block`, or set it to `error` to
