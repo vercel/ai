@@ -10270,6 +10270,40 @@ describe('streamText', () => {
 
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
+
+    it('should not record provider metadata in telemetry when recordOutputs is false', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'answer' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+              providerMetadata: {
+                openai: {
+                  logprobs: [
+                    { token: 'SECRET-TOKEN', logprob: -0.1, top_logprobs: [] },
+                  ],
+                },
+              },
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          recordOutputs: false,
+          tracer,
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(JSON.stringify(tracer.jsonSpans)).not.toContain('SECRET-TOKEN');
+    });
   });
 
   describe('tool callbacks', () => {

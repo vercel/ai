@@ -806,8 +806,9 @@ class DefaultStreamObjectResult<
                         'ai.response.model': fullResponse.modelId,
                         'ai.response.timestamp':
                           fullResponse.timestamp.toISOString(),
-                        'ai.response.providerMetadata':
-                          JSON.stringify(providerMetadata),
+                        'ai.response.providerMetadata': {
+                          output: () => JSON.stringify(providerMetadata),
+                        },
 
                         'ai.usage.inputTokens': finalUsage.inputTokens,
                         'ai.usage.outputTokens': finalUsage.outputTokens,
@@ -843,8 +844,9 @@ class DefaultStreamObjectResult<
                         'ai.response.object': {
                           output: () => JSON.stringify(object),
                         },
-                        'ai.response.providerMetadata':
-                          JSON.stringify(providerMetadata),
+                        'ai.response.providerMetadata': {
+                          output: () => JSON.stringify(providerMetadata),
+                        },
                       },
                     }),
                   );
