@@ -5,6 +5,10 @@ download URLs. This opts into the shared URL guard, DNS-pinned validation on
 Node.js, and validation of every redirect hop. An explicitly injected custom
 fetch must provide equivalent connect-time validation.
 
+Server-side validated downloads reject redirects from HTTPS to HTTP before
+requesting the insecure target, even when it matches `trustedOrigin`. Initial
+HTTP URLs, HTTP-to-HTTP redirects, and HTTP-to-HTTPS upgrades remain supported.
+
 Pass the developer-configured `baseURL` as `trustedOrigin` to support private
 self-hosted endpoints. Only URLs on that exact origin bypass destination
 validation; other origins, including redirects, are still validated. Never
