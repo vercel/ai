@@ -95,17 +95,23 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
     for (const [id, question] of Object.entries(questions)) {
       if (
         question.type === 'choice' &&
-        Object.keys(question.criteria).length > 255
+        (Object.keys(question.criteria).length === 0 ||
+          Object.keys(question.criteria).length > 255)
       ) {
         throw new InvalidArgumentError({
           argument: `questions.${id}.criteria`,
-          message: 'TypeSafe Choice questions support at most 255 options.',
+          message: 'TypeSafe Choice questions require 1 to 255 options.',
         });
       }
-      if (question.type === 'score' && question.criteria.length > 10) {
+      if (
+        question.type === 'score' &&
+        (question.criteria.length === 0 ||
+          question.criteria.length > 10 ||
+          question.criteria.some(level => level == null))
+      ) {
         throw new InvalidArgumentError({
           argument: `questions.${id}.criteria`,
-          message: 'TypeSafe Score questions support at most 10 levels.',
+          message: 'TypeSafe Score questions require 1 to 10 non-null levels.',
         });
       }
     }
@@ -205,9 +211,14 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
         }),
       )
     ).filter(part => part !== undefined);
-    const requestState =
+    const jsonState =
       stateParts.length === 1 && stateParts[0].type === 'json'
         ? stateParts[0].value
+        : undefined;
+    const requestState =
+      jsonState != null &&
+      (typeof jsonState === 'object' || typeof jsonState === 'string')
+        ? jsonState
         : stateParts
             .map(part =>
               part.type === 'text' ? part.text : JSON.stringify(part.value),
@@ -285,6 +296,13 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
           : [],
       ),
     );
+    const legend = Object.fromEntries(
+      Object.entries(response.answers).flatMap(([id, answer]) =>
+        answer.type === 'score' && answer.legend != null
+          ? [[id, answer.legend]]
+          : [],
+      ),
+    );
 
     return {
       answers: Object.fromEntries(
@@ -324,7 +342,7 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       // The API rounds displayed probabilities and scores to two decimal places.
       rounding: { probabilityDecimals: 2, scoreDecimals: 2 },
       warnings,
-      providerMetadata: { typesafe: { confidence } },
+      providerMetadata: { typesafe: { confidence, legend } },
       response: {
         modelId: response.model ?? this.modelId,
         headers: responseHeaders,
