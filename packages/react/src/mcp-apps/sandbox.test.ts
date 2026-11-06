@@ -14,7 +14,15 @@ describe('getMCPAppCSP', () => {
     });
 
     expect(csp).toContain("connect-src 'self' https://api.example.com");
+    expect(csp).toContain(
+      "script-src 'unsafe-inline' 'self' https://cdn.example.com",
+    );
+    expect(csp).toContain(
+      "style-src 'unsafe-inline' 'self' https://cdn.example.com",
+    );
     expect(csp).toContain("img-src 'self' data: https://cdn.example.com");
+    expect(csp).toContain("font-src 'self' data: https://cdn.example.com");
+    expect(csp).toContain("media-src 'self' data: https://cdn.example.com");
     expect(csp).toContain("frame-src 'self' https://frame.example.com");
   });
 
@@ -47,8 +55,8 @@ describe('getMCPAppCSP', () => {
     expect(csp).not.toContain('attacker.example');
     expect(csp).not.toContain('evil.example');
     expect(csp).not.toContain('script-src-elem');
-    // policy still has exactly its nine intended directives
-    expect(csp!.split(';')).toHaveLength(9);
+    // policy still has exactly its ten intended directives
+    expect(csp!.split(';')).toHaveLength(10);
     // untainted values are unaffected
     expect(csp).toContain('https://ok.example.com');
   });
@@ -63,8 +71,8 @@ describe('getMCPAppCSP', () => {
     expect(csp).not.toContain('%3B');
     expect(csp).not.toContain('%2C');
     expect(csp).not.toContain(';b.example.com');
-    expect(csp).toContain("connect-src 'self';");
-    expect(csp!.split(';')).toHaveLength(9);
+    expect(csp).toMatch(/connect-src 'self'\s*;/);
+    expect(csp!.split(';')).toHaveLength(10);
   });
 
   it('drops match-all wildcards and quote characters', () => {
@@ -78,7 +86,7 @@ describe('getMCPAppCSP', () => {
     });
 
     // every connect source is rejected, leaving only 'self'
-    expect(csp).toContain("connect-src 'self';");
+    expect(csp).toMatch(/connect-src 'self'\s*;/);
     expect(csp).not.toContain('"');
     expect(csp).not.toContain('https://*');
     // an untainted value is still allowed
@@ -96,7 +104,7 @@ describe('getMCPAppCSP', () => {
       ],
     });
 
-    expect(csp).toContain("connect-src 'self';");
+    expect(csp).toMatch(/connect-src 'self'\s*;/);
     expect(csp).not.toContain('insecure.example.com');
     expect(csp).not.toContain('javascript:');
   });
