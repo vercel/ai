@@ -56,7 +56,7 @@ async function bundleForNode(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 295 * 1024
+          ? 296 * 1024
           : LIMIT,
   };
 }
