@@ -74,7 +74,7 @@ const { text, steps } = await agent.generate({
 });
 
 for (const toolResult of steps.flatMap(step => step.toolResults)) {
-  if (toolResult.toolName === 'search_products') {
+  if (!toolResult.dynamic && toolResult.toolName === 'search_products') {
     for (const product of toolResult.output.products) {
       const offer = product.offers[0];
       console.log(
