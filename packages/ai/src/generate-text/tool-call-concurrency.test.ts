@@ -22,6 +22,26 @@ describe('prepareToolCallConcurrency', () => {
 });
 
 describe('mapWithConcurrency', () => {
+  it.each([undefined, 1, 2, 3])(
+    'should not start items with an aborted signal and concurrency %s',
+    async concurrency => {
+      const abortController = new AbortController();
+      const reason = new Error('request cancelled');
+      abortController.abort(reason);
+      const execute = vi.fn(async (item: number) => item);
+
+      await expect(
+        mapWithConcurrency({
+          items: [0, 1],
+          concurrency,
+          abortSignal: abortController.signal,
+          execute,
+        }),
+      ).rejects.toBe(reason);
+      expect(execute).not.toHaveBeenCalled();
+    },
+  );
+
   it('should execute all items concurrently by default', async () => {
     const releases = [
       new DelayedPromise<void>(),

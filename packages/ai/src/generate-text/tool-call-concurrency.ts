@@ -46,6 +46,8 @@ export async function mapWithConcurrency<INPUT, OUTPUT>({
   abortSignal?: AbortSignal;
   execute: (item: INPUT, index: number) => Promise<OUTPUT>;
 }): Promise<Array<OUTPUT>> {
+  abortSignal?.throwIfAborted();
+
   if (concurrency == null || concurrency >= items.length) {
     return Promise.all(items.map(execute));
   }
