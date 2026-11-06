@@ -71,7 +71,7 @@ export class BedrockImageModel implements ImageModelV3 {
     const imageGenerationConfig = {
       ...(width ? { width } : {}),
       ...(height ? { height } : {}),
-      ...(seed ? { seed } : {}),
+      ...(seed != null ? { seed } : {}),
       ...(n ? { numberOfImages: n } : {}),
       ...(providerOptions?.bedrock?.quality
         ? { quality: providerOptions.bedrock.quality }
@@ -297,3 +297,4 @@ const bedrockImageResponseSchema = lazySchema(() =>
     }),
   ),
 );
+
