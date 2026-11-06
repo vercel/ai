@@ -10,7 +10,6 @@ run(async () => {
       mcpServers: {
         context7: {
           url: 'https://mcp.context7.com/mcp',
-          auth: false,
         },
       },
     }),

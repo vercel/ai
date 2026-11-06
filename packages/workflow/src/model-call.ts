@@ -5,25 +5,30 @@ import type {
   LanguageModelV4Source,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
+import type { Context } from '@ai-sdk/provider-utils';
 import type {
-  Experimental_LanguageModelStreamPart,
+  DurableTelemetryContext,
+  LanguageModelStreamPart,
   FinishReason,
   LanguageModelUsage,
   StepResultPerformance,
   StopCondition,
+  TelemetryOptions,
   ToolCallRepairFunction,
   ToolChoice,
   ToolSet,
 } from 'ai';
-import type { ProviderOptions, StreamTextTransform } from './workflow-agent.js';
+import type { DownloadFunction, ProviderOptions } from './workflow-agent.js';
 
 export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
-  | Experimental_LanguageModelStreamPart<TTools>
+  | LanguageModelStreamPart<TTools>
   | {
       type: 'tool-approval-request';
       approvalId: string;
       toolCallId: string;
       signature?: string;
+      /** Raw input before the original tool schema transformed it. */
+      inputSchemaInput?: unknown;
     }
   | { type: 'reset-step' };
 
@@ -62,15 +67,39 @@ export interface ModelCallOptions {
   toolChoice?: ToolChoice<ToolSet>;
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
+  download?: DownloadFunction;
   include?: {
     requestBody?: boolean;
     responseBody?: boolean;
     requestMessages?: boolean;
   };
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
-  experimental_transform?:
-    | StreamTextTransform<ToolSet>
-    | Array<StreamTextTransform<ToolSet>>;
+  /**
+   * Set when globally registered integrations are not available in the
+   * workflow body. The model step then runs the provider call in the
+   * integrations' context and returns its timing, so the workflow can report
+   * the call when the run ends.
+   */
+  telemetry?: ModelCallTelemetry;
+}
+
+/**
+ * Serializable telemetry settings for a durable model call.
+ */
+export interface ModelCallTelemetry {
+  /**
+   * Telemetry call ID of the durable run, shared with the events reported
+   * when the run ends.
+   */
+  callId?: string;
+  contexts?: Array<DurableTelemetryContext | undefined>;
+  functionId?: string;
+  recordInputs?: boolean;
+  recordOutputs?: boolean;
+  stepNumber: number;
+  includeRuntimeContext?: TelemetryOptions['includeRuntimeContext'];
+  /** Runtime context filtered before crossing the durable step boundary. */
+  runtimeContext?: Context;
 }
 
 /**
@@ -88,6 +117,8 @@ export interface ParsedToolCall {
   dynamic?: boolean;
   invalid?: boolean;
   error?: unknown;
+  /** Raw input before the original tool schema validated and transformed it. */
+  inputSchemaInput?: unknown;
 }
 
 /**
@@ -186,10 +217,21 @@ export interface ModelCallRawResult {
   warnings?: unknown[];
 }
 
+/**
+ * Wall-clock time of the provider call inside a durable model step, in
+ * milliseconds since the Unix epoch. Used to report model-call telemetry with
+ * the time it happened.
+ */
+export interface ModelCallTiming {
+  startedAt: number;
+  endedAt: number;
+}
+
 export type ModelCallResult =
-  | { aborted: true }
+  | { aborted: true; timing?: ModelCallTiming }
   | {
       aborted?: false;
+      timing?: ModelCallTiming;
       toolCalls: ParsedToolCall[];
       finish: ModelCallFinish | undefined;
       raw: ModelCallRawResult;
@@ -199,6 +241,11 @@ export type ModelCallResult =
        * tool input lifecycle callback replay was added.
        */
       toolInputLifecycleEvents?: ToolInputLifecycleEvent[];
+      /**
+       * Tool call ids that `repairToolCall` already repaired inside the step,
+       * so deferred validation does not repair them a second time.
+       */
+      repairedToolCallIds?: string[];
       /** Present when the model stream emitted an error part or generation failed. */
       terminalError?: unknown;
     };

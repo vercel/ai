@@ -1,5 +1,6 @@
 import { commonTool } from '@ai-sdk/harness';
 import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
+import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import type { ToolCall } from '@agentclientprotocol/sdk';
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
@@ -12,7 +13,37 @@ const modelMapping: ACPV1Settings['modelMapping'] = {
   path: 'model',
 };
 
+const source: ACPV1Settings['source'] = {
+  type: 'install-command',
+  command: 'curl https://example.com/install -fsS | bash',
+};
+
+const toolCallSettings = {
+  resolveHostToolCall: () => undefined,
+  isMcpToolCall: () => false,
+} satisfies Pick<ACPHarnessSettings, 'isMcpToolCall' | 'resolveHostToolCall'>;
+
 describe('createACP built-in tool inference', () => {
+  test('accepts an optional synchronous or asynchronous sandbox preparation callback', () => {
+    expectTypeOf<ACPHarnessSettings['prepareSandbox']>().toEqualTypeOf<
+      | ((options: {
+          readonly sandbox: Experimental_SandboxSession;
+          readonly workDir: string;
+          readonly abortSignal?: AbortSignal;
+        }) => void | PromiseLike<void>)
+      | undefined
+    >();
+  });
+
+  test('accepts only image as a non-text content type', () => {
+    expectTypeOf<ACPV1Settings['nonTextContentTypes']>().toEqualTypeOf<
+      ReadonlyArray<'image'> | undefined
+    >();
+    expectTypeOf<ReadonlyArray<'text' | 'audio'>>().not.toExtend<
+      NonNullable<ACPV1Settings['nonTextContentTypes']>
+    >();
+  });
+
   test('keeps the local ACP tool-call type aligned with the protocol SDK', () => {
     expectTypeOf<ACPToolCall>().toExtend<ToolCall>();
     expectTypeOf<ToolCall>().toExtend<ACPToolCall>();
@@ -26,6 +57,7 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'hostDisconnectTimeoutMs'
         | 'reconnect'
         | 'clientApp'
       >
@@ -37,6 +69,7 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'hostDisconnectTimeoutMs'
         | 'reconnect'
         | 'clientApp'
       >
@@ -44,15 +77,47 @@ describe('createACP built-in tool inference', () => {
   });
 
   test('requires a model mapping', () => {
-    // @ts-expect-error modelMapping is required for every ACP implementation
+    // @ts-expect-error modelMapping is required for every ACP agent
     createACP({
       harnessId: 'missing-model-mapping',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-      },
+      source,
       executable: 'acp-agent',
+      ...toolCallSettings,
     });
+  });
+
+  test('requires tool call classification and host tool resolution', () => {
+    // @ts-expect-error isMcpToolCall is required for every ACP agent
+    createACP({
+      harnessId: 'missing-mcp-tool-call-classification',
+      source,
+      executable: 'acp-agent',
+      modelMapping,
+      resolveHostToolCall: () => undefined,
+    });
+    // @ts-expect-error resolveHostToolCall is required for every ACP agent
+    createACP({
+      harnessId: 'missing-host-tool-call-resolution',
+      source,
+      executable: 'acp-agent',
+      modelMapping,
+      isMcpToolCall: () => false,
+    });
+  });
+
+  test('types host tool call resolution', () => {
+    expectTypeOf<ACPHarnessSettings['resolveHostToolCall']>().toEqualTypeOf<
+      (options: {
+        readonly toolCall: ACPToolCall;
+        readonly serverName: string;
+        readonly toolNames: ReadonlyArray<string>;
+      }) =>
+        | {
+            readonly toolName: string;
+            readonly input: Readonly<Record<string, unknown>>;
+          }
+        | undefined
+    >();
   });
 
   test('accepts sandbox bridge reconnect settings', () => {
@@ -76,13 +141,10 @@ describe('createACP built-in tool inference', () => {
     });
     const harness = createACP({
       harnessId: 'codex-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@agentclientprotocol/codex-acp',
-        packageVersion: '1.1.4',
-      },
+      source,
       executable: 'codex-acp',
       modelMapping,
+      ...toolCallSettings,
       builtinTools: { bash },
       clientApp: { name: 'example-app', version: '1.2.3' },
     });
@@ -93,12 +155,10 @@ describe('createACP built-in tool inference', () => {
   test('adds askUserQuestions only when configured', () => {
     const withoutQuestions = createACP({
       harnessId: 'without-questions',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-      },
+      source,
       executable: 'acp-agent',
       modelMapping,
+      ...toolCallSettings,
     });
     expectTypeOf<
       keyof typeof withoutQuestions.builtinTools
@@ -106,12 +166,10 @@ describe('createACP built-in tool inference', () => {
 
     const withQuestions = createACP({
       harnessId: 'with-questions',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-      },
+      source,
       executable: 'acp-agent',
       modelMapping,
+      ...toolCallSettings,
       askUserQuestions: {
         requestMethod: 'example/ask',
         fromNativeRequest: () => null,
@@ -123,26 +181,7 @@ describe('createACP built-in tool inference', () => {
     >().toEqualTypeOf<'askUserQuestions'>();
   });
 
-  test('accepts discriminated npm and install command sources', () => {
-    createACP({
-      harnessId: 'simple-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-        packageVersion: '1.2.3',
-      },
-      executable: 'acp-agent',
-      modelMapping,
-    });
-    createACP({
-      harnessId: 'unpinned-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-      },
-      executable: 'acp-agent',
-      modelMapping,
-    });
+  test('accepts npm-locked and install-command sources', () => {
     createACP({
       harnessId: 'locked-acp',
       source: {
@@ -152,6 +191,7 @@ describe('createACP built-in tool inference', () => {
       },
       executable: 'acp-agent',
       modelMapping,
+      ...toolCallSettings,
     });
     createACP({
       harnessId: 'install-command-acp',
@@ -161,18 +201,17 @@ describe('createACP built-in tool inference', () => {
       },
       executable: 'acp-agent',
       modelMapping,
+      ...toolCallSettings,
     });
   });
 
   test('accepts native instruction mappings', () => {
     createACP({
       harnessId: 'claude-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@agentclientprotocol/claude-agent-acp',
-      },
+      source,
       executable: 'claude-agent-acp',
       modelMapping,
+      ...toolCallSettings,
       skillsDirectory: '.claude/skills',
       instructionMapping: {
         type: 'session-meta',
@@ -181,12 +220,10 @@ describe('createACP built-in tool inference', () => {
     });
     createACP({
       harnessId: 'codex-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@agentclientprotocol/codex-acp',
-      },
+      source,
       executable: 'codex-acp',
       modelMapping,
+      ...toolCallSettings,
       instructionMapping: {
         type: 'launch-env-json',
         variable: 'CODEX_CONFIG',
@@ -201,6 +238,7 @@ describe('createACP built-in tool inference', () => {
       },
       executable: 'acp-agent',
       modelMapping,
+      ...toolCallSettings,
       instructionMapping: {
         type: 'filesystem',
         path: '.cursor/rules/AGENTS.md',
@@ -211,12 +249,10 @@ describe('createACP built-in tool inference', () => {
   test('accepts asynchronous credential forwarding', () => {
     createACP({
       harnessId: 'credential-forwarding-acp',
-      source: {
-        type: 'npm-simple',
-        packageName: '@example/acp-agent',
-      },
+      source,
       executable: 'acp-agent',
       modelMapping,
+      ...toolCallSettings,
       credentialForwarding: async ({ credential, environmentVariableName }) =>
         `${environmentVariableName}:${credential}`,
     });

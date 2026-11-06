@@ -1,4 +1,10 @@
-import { NoSuchModelError } from '@ai-sdk/provider';
+import {
+  NoSuchModelError,
+  type Experimental_DecisionModelV4CallOptions,
+  type Experimental_DecisionModelV4StatePart,
+  type Experimental_DecisionModelV4Question,
+  type Experimental_DecisionModelV4Input as DecisionQuestionInput,
+} from '@ai-sdk/provider';
 import { expectTypeOf, it } from 'vitest';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
 import {
@@ -7,6 +13,8 @@ import {
   type Experimental_EvaluationResult,
   customProvider,
   createProviderRegistry,
+  type Experimental_DecisionState as DecisionState,
+  type Experimental_DecisionStatePart as DecisionStatePart,
   type Experimental_DecisionQuestion as DecisionQuestion,
   type Experimental_DecisionAnswer as DecisionAnswer,
 } from '../index';
@@ -27,6 +35,7 @@ it('infers answer kinds and literal options from inline questions', async () => 
         criteria: ['Low', 'High'],
       },
       refund: { type: 'boolean', instructions: 'Refund?' },
+      target: { type: 'box', instructions: 'The cat in the photo' },
     },
   });
   expectTypeOf(result.answers.topic.choice).toEqualTypeOf<
@@ -37,6 +46,10 @@ it('infers answer kinds and literal options from inline questions', async () => 
   >();
   expectTypeOf(result.answers.severity.score).toEqualTypeOf<number>();
   expectTypeOf(result.answers.refund.probability).toEqualTypeOf<number>();
+  expectTypeOf(result.answers.target).toEqualTypeOf<{
+    type: 'box';
+    box: { top: number; bottom: number; left: number; right: number };
+  }>();
   // @ts-expect-error No unknown question IDs.
   result.answers.missing;
   // @ts-expect-error Boolean answers are probabilities, not selected labels.
@@ -58,7 +71,7 @@ it('accepts readonly reusable definitions', async () => {
   } as const satisfies Record<string, DecisionQuestion>;
   const result = await decide({
     model: new DecisionMockModelV4(),
-    state: ['hello'] as const,
+    state: [{ type: 'json', value: ['hello'] }] as const,
     questions,
   });
   expectTypeOf(result.answers.choice.choice).toEqualTypeOf<'a' | 'b'>();
@@ -69,6 +82,10 @@ it('distributes over dynamic question types', () => {
     | { type: 'choice'; choice: string; probabilities?: Record<string, number> }
     | { type: 'score'; score: number; probabilities?: Record<string, number> }
     | { type: 'boolean'; probability: number }
+    | {
+        type: 'box';
+        box: { top: number; bottom: number; left: number; right: number };
+      }
   >();
 });
 
@@ -113,4 +130,122 @@ it('preserves inference through deprecated API and provider aliases', async () =
 
 it('accepts legacy model error construction', () => {
   new NoSuchModelError({ modelId: 'legacy', modelType: 'evaluationModel' });
+});
+
+it('accepts public file conventions and keeps question JSON input separate', async () => {
+  const state = [
+    { type: 'text', text: 'Inspect.' },
+    { type: 'json', value: [1, true, null] },
+    { type: 'file', mediaType: 'image/png', data: new ArrayBuffer(4) },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: new URL('https://example.com/image.png'),
+    },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: { type: 'data', data: new Uint8Array(4) },
+    },
+  ] as const satisfies readonly DecisionStatePart[];
+  expectTypeOf(state).toExtend<DecisionState>();
+  await decide({
+    model: new DecisionMockModelV4(),
+    state,
+    questions: {
+      visible: {
+        type: 'boolean',
+        instructions: ['Is the product visible?'],
+        criteria: { true: ['visible'], false: ['hidden'] },
+      },
+    },
+  });
+  // @ts-expect-error JSON arrays require a json part or an object wrapper.
+  const legacyArray: DecisionState = ['hello'];
+  // @ts-expect-error File data needs a media type.
+  const missingMediaType: DecisionStatePart = {
+    type: 'file',
+    data: new Uint8Array(4),
+  };
+  void legacyArray;
+  void missingMediaType;
+});
+
+it('requires normalized parts at the provider boundary', () => {
+  expectTypeOf<
+    Experimental_DecisionModelV4CallOptions['state']
+  >().toEqualTypeOf<readonly Experimental_DecisionModelV4StatePart[]>();
+});
+
+it('preserves literal Choice inference with public JSON instructions and criteria', async () => {
+  const instructions = {
+    task: ['Select a department'],
+  } as const satisfies DecisionQuestionInput;
+  const reusableQuestions = {
+    department: {
+      type: 'choice',
+      instructions,
+      criteria: {
+        billing: { includes: ['charges'] },
+        support: ['technical help'],
+        other: null,
+      },
+    },
+    urgent: {
+      type: 'boolean',
+      instructions: ['Is this urgent?'],
+      criteria: { true: { severity: 'high' }, false: ['routine'] },
+    },
+  } as const satisfies Record<string, DecisionQuestion>;
+  const result = await decide({
+    model: new DecisionMockModelV4(),
+    state: 'message',
+    questions: reusableQuestions,
+  });
+  expectTypeOf(result.answers.department.choice).toEqualTypeOf<
+    'billing' | 'support' | 'other'
+  >();
+  expectTypeOf(result.answers.department.probabilities).toEqualTypeOf<
+    Record<'billing' | 'support' | 'other', number> | undefined
+  >();
+  expectTypeOf<DecisionQuestion>().toEqualTypeOf<Experimental_DecisionModelV4Question>();
+  expectTypeOf<
+    Experimental_DecisionModelV4Question['instructions']
+  >().toEqualTypeOf<DecisionQuestionInput | null | undefined>();
+  const providerQuestion: Experimental_DecisionModelV4Question =
+    reusableQuestions.department;
+  expectTypeOf(providerQuestion).toExtend<DecisionQuestion>();
+});
+
+it('infers answers for criteria-only questions and still requires Box instructions', async () => {
+  const result = await decide({
+    model: new DecisionMockModelV4(),
+    state: 'message',
+    questions: {
+      department: {
+        type: 'choice',
+        criteria: { billing: 'Charges', support: null },
+      },
+      severity: {
+        type: 'score',
+        instructions: null,
+        criteria: ['Low', 'High'],
+      },
+      urgent: { type: 'boolean', criteria: { true: { severity: 'high' } } },
+    },
+  });
+  expectTypeOf(result.answers.department.choice).toEqualTypeOf<
+    'billing' | 'support'
+  >();
+  expectTypeOf(result.answers.severity.score).toEqualTypeOf<number>();
+  expectTypeOf(result.answers.urgent.probability).toEqualTypeOf<number>();
+  // @ts-expect-error Box has no criteria and still requires instructions.
+  const missing: DecisionQuestion = { type: 'box' };
+  // @ts-expect-error Box instructions cannot be null.
+  const nullInstructions: DecisionQuestion = {
+    type: 'box',
+    instructions: null,
+  };
+  void missing;
+  void nullInstructions;
 });

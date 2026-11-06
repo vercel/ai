@@ -961,6 +961,36 @@ describe('convertToDeepSeekChatMessages', () => {
     });
   });
 
+  it.each(['deepseek-v5-pro', 'deepseek-v10-flash', 'deepseek-next'])(
+    'preserves prior-turn reasoning and fills absent reasoning for %s',
+    async modelId => {
+      const result = await convertToDeepSeekChatMessages({
+        modelId,
+        responseFormat: undefined,
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'Prior-turn reasoning.' },
+              { type: 'text', text: 'Hi' },
+            ],
+          },
+          { role: 'user', content: [{ type: 'text', text: 'Again' }] },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello again' }],
+          },
+          { role: 'user', content: [{ type: 'text', text: 'Continue' }] },
+        ],
+      });
+      expect(result.messages[1]).toMatchObject({
+        reasoning_content: 'Prior-turn reasoning.',
+      });
+      expect(result.messages[3]).toMatchObject({ reasoning_content: '' });
+      expect(result.warnings).toEqual([]);
+    },
+  );
   describe('deepseek-v4 thinking mode', () => {
     // V4 demands `reasoning_content` on every assistant turn — including ones
     // before the last user message. Stripping it like we do for R1 makes the
@@ -1227,6 +1257,174 @@ describe('convertToDeepSeekChatMessages', () => {
           modelId: 'deepseek-chat',
         }),
       ).rejects.toSatisfy(UnsupportedFunctionalityError.isInstance);
+    });
+  });
+
+  describe('tool argument and output serialization resilience', () => {
+    it('preserves string tool call arguments without double-stringifying', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                input: '{"query":"deepseek reasoner","limit":3}',
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+      });
+
+      expect(result.messages[0]).toEqual({
+        role: 'assistant',
+        content: '',
+        reasoning_content: undefined,
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'search',
+              arguments: '{"query":"deepseek reasoner","limit":3}',
+            },
+          },
+        ],
+      });
+    });
+
+    it.each(['{"query":', 'unparseable'])(
+      'preserves malformed argument replay: %s',
+      async input => {
+        const result = await convertToDeepSeekChatMessages({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'search',
+                  input,
+                },
+              ],
+            },
+          ],
+          responseFormat: undefined,
+          modelId: 'deepseek-chat',
+        });
+
+        expect(result.messages[0]).toEqual({
+          role: 'assistant',
+          content: '',
+          reasoning_content: undefined,
+          tool_calls: [
+            {
+              id: 'call-1',
+              type: 'function',
+              function: {
+                name: 'search',
+                arguments: JSON.stringify(input),
+              },
+            },
+          ],
+        });
+      },
+    );
+
+    it('safely serializes BigInt and circular structures in tool call arguments', async () => {
+      const cyclicInput: any = { id: 12345678901234567890n };
+      cyclicInput.self = cyclicInput;
+
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'process',
+                input: cyclicInput,
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+      });
+
+      const message = result.messages[0];
+      if (message.role !== 'assistant') {
+        throw new Error('expected an assistant message');
+      }
+      const args = message.tool_calls?.[0].function.arguments;
+      expect(args).toContain('"id":"12345678901234567890"');
+      expect(args).toContain('"self":"[Circular]"');
+    });
+
+    it('safely serializes BigInt and circular structures in tool responses', async () => {
+      const cyclicOutput: any = { count: 999999999999999999n };
+      cyclicOutput.self = cyclicOutput;
+
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-3',
+                toolName: 'getData',
+                output: {
+                  type: 'json',
+                  value: cyclicOutput,
+                },
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+      });
+
+      const content = result.messages[0].content as string;
+      expect(content).toContain('"count":"999999999999999999"');
+      expect(content).toContain('"self":"[Circular]"');
+    });
+
+    it('preserves reused non-circular objects in tool outputs', async () => {
+      const shared = { city: 'Paris' };
+
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-4',
+                toolName: 'getData',
+                output: {
+                  type: 'json',
+                  value: { first: shared, second: shared },
+                },
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+      });
+
+      const content = result.messages[0].content as string;
+      expect(content).toContain('"first":{"city":"Paris"}');
+      expect(content).toContain('"second":{"city":"Paris"}');
+      expect(content).not.toContain('[Circular]');
     });
   });
 });

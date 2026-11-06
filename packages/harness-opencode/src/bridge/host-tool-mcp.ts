@@ -6,20 +6,19 @@
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  convertHarnessToolModelOutput,
+  type BridgeTurn,
+} from '@ai-sdk/harness/bridge';
+import { readHostToolSchemasFromEnvironment } from './host-tool-schemas';
 import { jsonSchemaToZodShape } from './json-schema-to-zod';
 
-type ToolSchema = {
-  name: string;
-  description?: string;
-  inputSchema?: unknown;
-};
-
-const schemas: ToolSchema[] = JSON.parse(process.env.TOOL_SCHEMAS || '[]');
+const schemas = readHostToolSchemasFromEnvironment(process.env);
 const relayUrl = process.env.TOOL_RELAY_URL || '';
 
 if (!schemas.length || !relayUrl) {
   process.stderr.write(
-    '[host-tool-mcp] Missing TOOL_SCHEMAS or TOOL_RELAY_URL; exiting\n',
+    '[host-tool-mcp] Missing TOOL_SCHEMAS_PATH/TOOL_SCHEMAS or TOOL_RELAY_URL; exiting\n',
   );
   process.exit(0);
 }
@@ -48,7 +47,30 @@ for (const schema of schemas) {
             `Tool relay ${schema.name} failed with ${res.status}: ${body.slice(0, 500)}`,
           );
         }
-        const data = (await res.json()) as { result?: unknown };
+        const data = (await res.json()) as {
+          result?: unknown;
+          isError?: boolean;
+          toolResult?: Awaited<
+            ReturnType<BridgeTurn['requestToolResult']>
+          >['toolResult'];
+        };
+        if (data.toolResult != null) {
+          const converted = convertHarnessToolModelOutput({
+            output: data.toolResult.output,
+          });
+          return {
+            content: converted.content.map(part =>
+              part.type === 'text'
+                ? part
+                : {
+                    type: 'image' as const,
+                    data: part.data,
+                    mimeType: part.mediaType,
+                  },
+            ),
+            isError: data.isError === true || converted.isError,
+          };
+        }
         return {
           content: [
             {
@@ -56,6 +78,7 @@ for (const schema of schemas) {
               text: JSON.stringify(data.result ?? null),
             },
           ],
+          ...(data.isError === true ? { isError: true } : {}),
         };
       } catch (err) {
         return {

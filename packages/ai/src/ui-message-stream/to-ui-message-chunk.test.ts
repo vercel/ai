@@ -166,6 +166,145 @@ describe('toUIMessageChunk', () => {
     ).toBeUndefined();
   });
 
+  it('maps steering messages with text content', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'steering-message',
+        id: 'steer-1',
+        message: { role: 'user', content: 'I meant Paris, Texas.' },
+        stepNumber: 1,
+      }),
+    ).toEqual({
+      type: 'steering-message',
+      id: 'steer-1',
+      parts: [{ type: 'text', text: 'I meant Paris, Texas.' }],
+    });
+  });
+
+  it('keeps provider options of steering message parts as provider metadata', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'steering-message',
+        id: 'steer-1',
+        message: {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'I meant Paris, Texas.',
+              providerOptions: {
+                anthropic: { cacheControl: { type: 'ephemeral' } },
+              },
+            },
+            {
+              type: 'file',
+              data: new URL('https://example.com/map.png'),
+              mediaType: 'image/png',
+              providerOptions: { openai: { imageDetail: 'low' } },
+            },
+          ],
+        },
+        stepNumber: 1,
+      }),
+    ).toEqual({
+      type: 'steering-message',
+      id: 'steer-1',
+      parts: [
+        {
+          type: 'text',
+          text: 'I meant Paris, Texas.',
+          providerMetadata: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          url: 'https://example.com/map.png',
+          providerMetadata: { openai: { imageDetail: 'low' } },
+        },
+      ],
+    });
+  });
+
+  it('maps files in steering messages to ui file parts', () => {
+    expect(
+      toUIMessageChunk({
+        type: 'steering-message',
+        id: 'steer-1',
+        message: {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Look at these.' },
+            {
+              type: 'image',
+              image: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            },
+            { type: 'image', image: new URL('https://example.com/cat.png') },
+            {
+              type: 'file',
+              data: 'data:application/pdf;base64,AQID',
+              mediaType: 'application/pdf',
+              filename: 'report.pdf',
+            },
+            {
+              type: 'file',
+              data: { type: 'text', text: 'Hello' },
+              mediaType: 'text/plain',
+            },
+            {
+              type: 'file',
+              data: { type: 'reference', reference: { openai: 'file-1' } },
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+        stepNumber: 1,
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "id": "steer-1",
+        "parts": [
+          {
+            "text": "Look at these.",
+            "type": "text",
+          },
+          {
+            "mediaType": "image/png",
+            "type": "file",
+            "url": "data:image/png;base64,AQID",
+          },
+          {
+            "mediaType": "image",
+            "type": "file",
+            "url": "https://example.com/cat.png",
+          },
+          {
+            "filename": "report.pdf",
+            "mediaType": "application/pdf",
+            "type": "file",
+            "url": "data:application/pdf;base64,AQID",
+          },
+          {
+            "mediaType": "text/plain",
+            "type": "file",
+            "url": "data:text/plain;base64,SGVsbG8=",
+          },
+          {
+            "mediaType": "application/pdf",
+            "providerReference": {
+              "openai": "file-1",
+            },
+            "type": "file",
+            "url": "",
+          },
+        ],
+        "type": "steering-message",
+      }
+    `);
+  });
+
   it('skips sources by default and sends them when enabled', () => {
     const urlSourcePart: TextStreamPart<{}> = {
       type: 'source',
@@ -349,6 +488,7 @@ describe('toUIMessageChunk', () => {
           type: 'tool-input-start',
           id: 'call-1',
           toolName: 'dynamicTool',
+          inputEncoding: 'text',
           providerExecuted: true,
           providerMetadata,
           toolMetadata,
@@ -360,6 +500,7 @@ describe('toUIMessageChunk', () => {
       type: 'tool-input-start',
       toolCallId: 'call-1',
       toolName: 'dynamicTool',
+      inputEncoding: 'text',
       providerExecuted: true,
       providerMetadata,
       toolMetadata,

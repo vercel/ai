@@ -8,6 +8,7 @@ import type {
   ReasoningUIPart,
   SourceDocumentUIPart,
   SourceUrlUIPart,
+  SteeringMessageUIPart,
   StepStartUIPart,
   TextUIPart,
   UIMessage,
@@ -39,6 +40,7 @@ describe('InferAgentUIMessage', () => {
       | FileUIPart
       | ReasoningFileUIPart
       | DataUIPart<never>
+      | SteeringMessageUIPart
       | StepStartUIPart
     >();
   });

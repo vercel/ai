@@ -1,3 +1,4 @@
+import { citationSchema, type Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
 import {
   providerMetadataSchema,
@@ -6,8 +7,10 @@ import {
 import { jsonValueSchema } from '../types/json-value';
 import type { FinishReason } from '../types/language-model';
 import type {
+  FileUIPart,
   InferUIMessageData,
   InferUIMessageMetadata,
+  TextUIPart,
   UIDataTypes,
   UIMessage,
 } from '../ui/ui-messages';
@@ -37,6 +40,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
       z.looseObject({
         type: z.literal('text-end'),
         id: z.string(),
+        citations: z.array(citationSchema).optional(),
         providerMetadata: providerMetadataSchema.optional(),
       }),
       z.looseObject({
@@ -47,6 +51,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('tool-input-start'),
         toolCallId: z.string(),
         toolName: z.string(),
+        inputEncoding: z.enum(['json', 'text']).optional(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
         toolMetadata: toolMetadataSchema.optional(),
@@ -171,6 +176,27 @@ export const uiMessageChunkSchema = lazySchema(() =>
         providerMetadata: providerMetadataSchema.optional(),
       }),
       z.looseObject({
+        type: z.literal('steering-message'),
+        id: z.string(),
+        parts: z.array(
+          z.union([
+            z.looseObject({
+              type: z.literal('text'),
+              text: z.string(),
+              providerMetadata: providerMetadataSchema.optional(),
+            }),
+            z.looseObject({
+              type: z.literal('file'),
+              mediaType: z.string(),
+              url: z.string(),
+              filename: z.string().optional(),
+              providerReference: z.record(z.string(), z.string()).optional(),
+              providerMetadata: providerMetadataSchema.optional(),
+            }),
+          ]),
+        ),
+      }),
+      z.looseObject({
         type: z.custom<`data-${string}`>(
           (value): value is `data-${string}` =>
             typeof value === 'string' && value.startsWith('data-'),
@@ -203,6 +229,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
             'content-filter',
             'tool-calls',
             'error',
+            'interrupted',
             'other',
           ] as const satisfies readonly FinishReason[])
           .optional(),
@@ -246,6 +273,7 @@ export type UIMessageChunk<
     }
   | {
       type: 'text-end';
+      citations?: Array<Citation>;
       id: string;
       providerMetadata?: ProviderMetadata;
     }
@@ -342,6 +370,8 @@ export type UIMessageChunk<
       type: 'tool-input-start';
       toolCallId: string;
       toolName: string;
+      /** Encoding of the input deltas. Defaults to JSON when omitted. */
+      inputEncoding?: 'json' | 'text';
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
       toolMetadata?: JSONObject;
@@ -381,6 +411,14 @@ export type UIMessageChunk<
       providerMetadata?: ProviderMetadata;
     }
   | DataUIMessageChunk<DATA_TYPES>
+  | {
+      /**
+       * Experimental. A user message that was added to the run with steering.
+       */
+      type: 'steering-message';
+      id: string;
+      parts: Array<TextUIPart | FileUIPart>;
+    }
   | {
       type: 'start-step';
     }

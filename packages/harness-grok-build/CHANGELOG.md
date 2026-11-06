@@ -1,5 +1,340 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.113
+
+### Patch Changes
+
+- deeb2bf: fix(harness-grok-build): ensure non-workdir reads require approval in `allow-reads` and `allow-edits` permission modes
+- Updated dependencies [deeb2bf]
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/harness-acp@1.0.114
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+
+## 1.0.112
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+  - @ai-sdk/harness-acp@1.0.113
+
+## 1.0.111
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+  - @ai-sdk/harness-acp@1.0.112
+
+## 1.0.110
+
+### Patch Changes
+
+- Updated dependencies [5d20d90]
+- Updated dependencies [5622bf1]
+  - @ai-sdk/harness-acp@1.0.111
+  - @ai-sdk/harness@1.0.171
+
+## 1.0.109
+
+### Patch Changes
+
+- 03dac28: feat(harness-acp): require new `resolveHostToolCall()` callback and `isMcpToolCall()` callback for harness-owned control of these non-ACP details
+- Updated dependencies [03dac28]
+  - @ai-sdk/harness-acp@1.0.110
+
+## 1.0.108
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.170
+- @ai-sdk/harness-acp@1.0.109
+
+## 1.0.107
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+  - @ai-sdk/harness@1.0.169
+  - @ai-sdk/harness-acp@1.0.108
+
+## 1.0.106
+
+### Patch Changes
+
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [61a315e]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/harness-acp@1.0.107
+
+## 1.0.105
+
+### Patch Changes
+
+- Updated dependencies [726a1cc]
+  - @ai-sdk/harness-acp@1.0.106
+  - @ai-sdk/harness@1.0.167
+
+## 1.0.104
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+  - @ai-sdk/harness-acp@1.0.105
+
+## 1.0.103
+
+### Patch Changes
+
+- Updated dependencies [39aae54]
+- Updated dependencies [e64ed82]
+  - @ai-sdk/harness-acp@1.0.104
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
+## 1.0.102
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [a9837eb]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/harness-acp@1.0.103
+  - @ai-sdk/harness@1.0.164
+  - @ai-sdk/provider-utils@5.0.68
+
+## 1.0.101
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.163
+- @ai-sdk/harness-acp@1.0.102
+
+## 1.0.100
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.162
+- @ai-sdk/harness-acp@1.0.101
+
+## 1.0.99
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/harness@1.0.161
+  - @ai-sdk/harness-acp@1.0.100
+
+## 1.0.98
+
+### Patch Changes
+
+- Updated dependencies [10026d1]
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/harness@1.0.160
+  - @ai-sdk/provider-utils@5.0.66
+  - @ai-sdk/harness-acp@1.0.99
+
+## 1.0.97
+
+### Patch Changes
+
+- 1f68635: feat(harness-acp): remove implementation layer in favor of unifying as a single bridge `package.json` for concrete harness plus ACP foundation
+- Updated dependencies [b089ce8]
+- Updated dependencies [1f68635]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/harness-acp@1.0.98
+  - @ai-sdk/harness@1.0.159
+
+## 1.0.96
+
+### Patch Changes
+
+- Updated dependencies [6993e42]
+  - @ai-sdk/harness-acp@1.0.97
+  - @ai-sdk/harness@1.0.158
+
+## 1.0.95
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [ca2a9f7]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/harness@1.0.157
+  - @ai-sdk/harness-acp@1.0.96
+
+## 1.0.94
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.156
+- @ai-sdk/harness-acp@1.0.95
+
+## 1.0.93
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/harness@1.0.155
+  - @ai-sdk/provider-utils@5.0.63
+  - @ai-sdk/harness-acp@1.0.94
+
+## 1.0.92
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/harness@1.0.154
+  - @ai-sdk/harness-acp@1.0.93
+
+## 1.0.91
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - @ai-sdk/harness@1.0.153
+  - @ai-sdk/provider-utils@5.0.61
+  - @ai-sdk/harness-acp@1.0.92
+
+## 1.0.90
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+  - @ai-sdk/harness@1.0.152
+  - @ai-sdk/harness-acp@1.0.91
+
+## 1.0.89
+
+### Patch Changes
+
+- 1bebfcf: feat(harness): add support for tools with `toModelOutput()` transformation
+- Updated dependencies [6c65131]
+- Updated dependencies [1bebfcf]
+  - @ai-sdk/harness-acp@1.0.90
+  - @ai-sdk/harness@1.0.151
+
+## 1.0.88
+
+### Patch Changes
+
+- Updated dependencies [6617f11]
+- Updated dependencies [aae69cb]
+- Updated dependencies [a7a66f5]
+- Updated dependencies [52e3f53]
+- Updated dependencies [6c0295c]
+  - @ai-sdk/harness@1.0.150
+  - @ai-sdk/harness-acp@1.0.89
+
+## 1.0.87
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [e57803c]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/provider@4.0.27
+  - @ai-sdk/harness@1.0.149
+  - @ai-sdk/harness-acp@1.0.88
+
+## 1.0.86
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.148
+- @ai-sdk/harness-acp@1.0.87
+
+## 1.0.85
+
+### Patch Changes
+
+- c357e52: chore(harness): update primary harness SDKs to their latest versions
+- Updated dependencies [c357e52]
+  - @ai-sdk/harness-acp@1.0.86
+  - @ai-sdk/harness@1.0.147
+
+## 1.0.84
+
+### Patch Changes
+
+- Updated dependencies [0637573]
+- Updated dependencies [4dbc902]
+  - @ai-sdk/harness-acp@1.0.85
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/harness@1.0.146
+  - @ai-sdk/provider-utils@5.0.58
+
+## 1.0.83
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.145
+- @ai-sdk/harness-acp@1.0.84
+
+## 1.0.82
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/harness@1.0.144
+  - @ai-sdk/harness-acp@1.0.83
+
+## 1.0.81
+
+### Patch Changes
+
+- 9d84fad: chore(harness): ensure ACP and MCP dependencies use the latest version and are aligned across adapters
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+- Updated dependencies [9d84fad]
+  - @ai-sdk/harness@1.0.143
+  - @ai-sdk/harness-acp@1.0.82
+
 ## 1.0.80
 
 ### Patch Changes

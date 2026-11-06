@@ -5,7 +5,7 @@ import {
   type MCPClientConfig,
 } from './mcp-client';
 import type {
-  MCPEventsAdapter,
+  MCPEventOperations,
   ManagedSubscription,
 } from './mcp-events-adapter';
 import { MockMCPTransport } from './mock-mcp-transport';
@@ -28,26 +28,26 @@ describe('managed MCP events', () => {
     };
     const page = { subscriptions: [subscription], nextCursor: 'page_2' };
     const adapter = {
-      subscribe: vi.fn<MCPEventsAdapter['subscribe']>(
-        async function (this: MCPEventsAdapter) {
+      subscribe: vi.fn<MCPEventOperations['subscribe']>(
+        async function (this: MCPEventOperations) {
           expect(this).toBe(adapter);
           return subscription;
         },
       ),
-      getSubscription: vi.fn<MCPEventsAdapter['getSubscription']>(
-        async function (this: MCPEventsAdapter) {
+      getSubscription: vi.fn<MCPEventOperations['getSubscription']>(
+        async function (this: MCPEventOperations) {
           expect(this).toBe(adapter);
           return subscription;
         },
       ),
-      listSubscriptions: vi.fn<MCPEventsAdapter['listSubscriptions']>(
-        async function (this: MCPEventsAdapter) {
+      listSubscriptions: vi.fn<MCPEventOperations['listSubscriptions']>(
+        async function (this: MCPEventOperations) {
           expect(this).toBe(adapter);
           return page;
         },
       ),
-      unsubscribe: vi.fn<MCPEventsAdapter['unsubscribe']>(
-        async function (this: MCPEventsAdapter) {
+      unsubscribe: vi.fn<MCPEventOperations['unsubscribe']>(
+        async function (this: MCPEventOperations) {
           expect(this).toBe(adapter);
           return {
             ...subscription,
@@ -81,7 +81,7 @@ describe('managed MCP events', () => {
         serverInfo: { name: 'events', version: '1' },
         capabilities: { events: {}, tools: {} },
       },
-      experimental_events: { adapter },
+      experimental_events: { adapter: { createAdapter: () => adapter } },
     });
     clients.push(client);
     send.mockClear();
@@ -104,11 +104,7 @@ describe('managed MCP events', () => {
       expect(operation).not.toHaveBeenCalled();
   });
 
-  it.each([
-    { expiresAt: null },
-    { expiresAt: '2030-01-01T00:00:00Z' },
-    { ttlMs: 60_000 },
-  ])(
+  it.each([{ ttlMs: null }, { ttlMs: 60_000 }])(
     'delegates creation with %j without a store or upstream subscribe',
     async lifetime => {
       const { client, adapter, subscription, send } = await setup();
@@ -171,7 +167,7 @@ describe('managed MCP events', () => {
     const input = {
       name: eventDefinition.name,
       arguments: {},
-      expiresAt: null,
+      ttlMs: null,
       idempotencyKey: 'intent_1',
     };
     await expect(client.experimental_events.subscribe(input)).rejects.toBe(
@@ -219,7 +215,10 @@ describe('managed MCP events', () => {
       await expect(
         createMCPClient({
           transport,
-          experimental_events: { adapter, ...direct },
+          experimental_events: {
+            adapter: { createAdapter: () => adapter },
+            ...direct,
+          },
         } as unknown as MCPClientConfig),
       ).rejects.toThrow('either an adapter or a store');
       expect(start).not.toHaveBeenCalled();

@@ -57,6 +57,33 @@ describe('translateStreamPart', () => {
     ]);
   });
 
+  it('restores tool-result input and execution origin from its tool call', () => {
+    const out = translateStreamPart<ToolSet>(
+      {
+        type: 'tool-result',
+        toolCallId: 'c1',
+        toolName: 'weather',
+        result: { temperature: 72 },
+      },
+      {
+        getToolCall: () => ({
+          input: { city: 'San Francisco' },
+          providerExecuted: true,
+        }),
+      },
+    );
+
+    expect(out).toEqual([
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'c1',
+        input: { city: 'San Francisco' },
+        output: { temperature: 72 },
+        providerExecuted: true,
+      }),
+    ]);
+  });
+
   it('translates a failed tool-result into a provider-executed tool-error', () => {
     const out = translateStreamPart<ToolSet>({
       type: 'tool-result',
@@ -123,6 +150,34 @@ describe('translateStreamPart', () => {
         error: { message: 'upstream timeout' },
         providerExecuted: true,
         dynamic: true,
+      }),
+    ]);
+  });
+
+  it('restores tool-error input from its provider-executed tool call', () => {
+    const out = translateStreamPart<ToolSet>(
+      {
+        type: 'tool-result',
+        toolCallId: 'c1',
+        toolName: 'weather',
+        result: 'upstream timeout',
+        isError: true,
+      },
+      {
+        getToolCall: () => ({
+          input: { city: 'San Francisco' },
+          providerExecuted: true,
+        }),
+      },
+    );
+
+    expect(out).toEqual([
+      expect.objectContaining({
+        type: 'tool-error',
+        toolCallId: 'c1',
+        input: { city: 'San Francisco' },
+        error: 'upstream timeout',
+        providerExecuted: true,
       }),
     ]);
   });

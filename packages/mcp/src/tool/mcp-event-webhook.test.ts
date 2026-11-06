@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z4 from 'zod/v4';
 import { createMCPEventWebhook } from './mcp-event-webhook';
 import {
@@ -25,6 +25,9 @@ describe('MCP event webhook receiver', () => {
   let webhook: ReturnType<typeof createMCPEventWebhook>;
 
   beforeEach(async () => {
+    // Keep timestamp and expiration checks independent of async processing time.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-05T12:00:00Z'));
     onEvent.mockReset();
     onGap.mockReset();
     onTerminated.mockReset();
@@ -58,6 +61,10 @@ describe('MCP event webhook receiver', () => {
         z4.object({ text: z4.string() }).strict().parse(data);
       },
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('verifies exact body bytes and forwards validated data without exposing the secret', async () => {
@@ -151,6 +158,18 @@ describe('MCP event webhook receiver', () => {
     expect((await store.get(subscription.key))?.cursor).toBe('cursor_1');
   });
 
+  it.each([-300, 300])(
+    'accepts signing timestamps %s seconds from now at the tolerance boundary',
+    async seconds => {
+      const timestamp = String(Math.floor(Date.now() / 1000) + seconds);
+      expect(
+        (await webhook(signedRequest(subscription, event, { timestamp })))
+          .status,
+      ).toBe(204);
+      expect(onEvent).toHaveBeenCalledOnce();
+    },
+  );
+
   it.each([-301, 301])(
     'rejects signing timestamps %s seconds from now',
     async seconds => {
@@ -159,6 +178,8 @@ describe('MCP event webhook receiver', () => {
         (await webhook(signedRequest(subscription, event, { timestamp })))
           .status,
       ).toBe(401);
+      expect(onEvent).not.toHaveBeenCalled();
+      expect((await store.get(subscription.key))?.cursor).toBe('cursor_1');
     },
   );
 

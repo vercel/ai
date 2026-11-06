@@ -160,8 +160,21 @@ export type CodeModeApprovalInterrupt =
  * Execution limits applied to each sandbox invocation.
  */
 export interface CodeModeExecutionPolicy {
-  /** @defaultValue `30_000` */
+  /**
+   * Wall-clock limit for one invocation, including time spent waiting on
+   * tools.
+   *
+   * @defaultValue `30_000`
+   */
   timeoutMs?: number;
+  /**
+   * CPU time limit for sandboxed code in one invocation. Time spent waiting on
+   * tools does not count toward it. Only takes effect when lower than
+   * `timeoutMs`. Each continuation resume starts with a fresh budget.
+   *
+   * @defaultValue `10_000`
+   */
+  cpuTimeoutMs?: number;
   /** @defaultValue `64 * 1024 * 1024` */
   memoryLimitBytes?: number;
   /** @defaultValue `2 * 1024 * 1024` */

@@ -72,6 +72,7 @@ export type OpenAIChatModelId =
   | 'gpt-5.6-terra'
   | 'gpt-6-astra'
   | 'gpt-6.1-sol'
+  | 'gpt-6.1-terra'
   | 'gpt-6-luna'
   | 'gpt-6-sol'
   | (string & {});
@@ -230,4 +231,17 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
 
 export type OpenAILanguageModelChatOptions = InferSchema<
   typeof openaiLanguageModelChatOptions
+>;
+
+export const openaiChatMessageProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /** The participant name on a system, developer, user, or assistant message. */
+      name: z.string().optional(),
+    }),
+  ),
+);
+
+export type OpenAIChatMessageProviderOptions = InferSchema<
+  typeof openaiChatMessageProviderOptions
 >;

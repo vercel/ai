@@ -1,5 +1,283 @@
 # @ai-sdk/devtools
 
+## 1.0.66
+
+### Patch Changes
+
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+  - @ai-sdk/provider@4.0.36
+
+## 1.0.65
+
+### Patch Changes
+
+- Updated dependencies [857ca45]
+- Updated dependencies [4d6d830]
+  - ai@7.0.162
+
+## 1.0.64
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+  - ai@7.0.161
+
+## 1.0.63
+
+### Patch Changes
+
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
+## 1.0.62
+
+### Patch Changes
+
+- ai@7.0.159
+
+## 1.0.61
+
+### Patch Changes
+
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - ai@7.0.158
+  - @ai-sdk/provider@4.0.35
+
+## 1.0.60
+
+### Patch Changes
+
+- Updated dependencies [0cc4921]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+
+## 1.0.59
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 1.0.58
+
+### Patch Changes
+
+- Updated dependencies [b6b9dca]
+  - ai@7.0.155
+
+## 1.0.57
+
+### Patch Changes
+
+- 47236dd: add onStepError callback to generateText, streamText, ToolLoopAgent and telemetry integrations, and onError and onAbort to ToolLoopAgent
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+
+## 1.0.56
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider@4.0.34
+  - ai@7.0.153
+
+## 1.0.55
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 1.0.54
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [8e18d59]
+- Updated dependencies [85d84a1]
+  - ai@7.0.150
+  - @ai-sdk/provider@4.0.33
+
+## 1.0.52
+
+### Patch Changes
+
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+  - @ai-sdk/provider@4.0.32
+
+## 1.0.51
+
+### Patch Changes
+
+- ai@7.0.148
+
+## 1.0.50
+
+### Patch Changes
+
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 1.0.49
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+  - ai@7.0.146
+  - @ai-sdk/provider@4.0.31
+
+## 1.0.48
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 1.0.47
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [0ed59e2]
+  - @ai-sdk/provider@4.0.30
+  - ai@7.0.144
+
+## 1.0.46
+
+### Patch Changes
+
+- Updated dependencies [8a5233b]
+- Updated dependencies [894e130]
+- Updated dependencies [0957554]
+  - ai@7.0.143
+  - @ai-sdk/provider@4.0.29
+
+## 1.0.45
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - ai@7.0.142
+
+## 1.0.44
+
+### Patch Changes
+
+- Updated dependencies [88ea0d7]
+  - ai@7.0.141
+
+## 1.0.43
+
+### Patch Changes
+
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
+## 1.0.42
+
+### Patch Changes
+
+- ai@7.0.139
+
+## 1.0.41
+
+### Patch Changes
+
+- Updated dependencies [eab278a]
+- Updated dependencies [26d64e9]
+- Updated dependencies [75b3ea2]
+- Updated dependencies [69f4b82]
+- Updated dependencies [e57803c]
+- Updated dependencies [4c705d9]
+- Updated dependencies [5150d50]
+- Updated dependencies [9aef724]
+- Updated dependencies [7d0458b]
+  - ai@7.0.138
+  - @ai-sdk/provider@4.0.27
+
+## 1.0.40
+
+### Patch Changes
+
+- Updated dependencies [e27cc64]
+  - ai@7.0.137
+
+## 1.0.39
+
+### Patch Changes
+
+- Updated dependencies [7b5497c]
+  - ai@7.0.136
+
+## 1.0.38
+
+### Patch Changes
+
+- Updated dependencies [5ddbb70]
+- Updated dependencies [7c40a09]
+- Updated dependencies [4dbc902]
+- Updated dependencies [ff18b73]
+- Updated dependencies [9be846c]
+  - ai@7.0.135
+  - @ai-sdk/provider@4.0.26
+
+## 1.0.37
+
+### Patch Changes
+
+- Updated dependencies [8281ec4]
+- Updated dependencies [46c2b05]
+  - ai@7.0.134
+
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - ai@7.0.133
+  - @ai-sdk/provider@4.0.25
+
+## 1.0.35
+
+### Patch Changes
+
+- Updated dependencies [3ebefff]
+  - ai@7.0.132
+
 ## 1.0.34
 
 ### Patch Changes

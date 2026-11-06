@@ -320,6 +320,29 @@ type DataUIPart<DATA_TYPES extends UIDataTypes> = ValueOf<{
 }>;
 ```
 
+### `SteeringMessageUIPart`
+
+<Note>
+  This part is experimental and exported as
+  `Experimental_SteeringMessageUIPart`.
+</Note>
+
+A user message that was added to the run with [steering](/docs/agents/loop-control#steering) while the assistant message was generated. It is placed before the `step-start` part of the step that received it.
+
+```typescript
+type SteeringMessageUIPart = {
+  type: 'steering-message';
+  /**
+   * The id of the steering message.
+   */
+  id: string;
+  /**
+   * The content of the user message.
+   */
+  parts: Array<TextUIPart | FileUIPart>;
+};
+```
+
 ### `StepStartUIPart`
 
 A step boundary part of a message.

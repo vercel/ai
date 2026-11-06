@@ -1,6 +1,10 @@
 import { z } from 'zod/v4';
 import type { JSONObject } from '@ai-sdk/provider';
-import type { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
+import type {
+  FlexibleSchema,
+  Tool,
+  ToolExecutionOptions,
+} from '@ai-sdk/provider-utils';
 
 export const LATEST_PROTOCOL_VERSION = '2026-07-28';
 export const LATEST_LEGACY_PROTOCOL_VERSION = '2025-11-25';
@@ -54,10 +58,13 @@ export type ToolSchemas =
 type McpToolBase<INPUT = unknown, OUTPUT = CallToolResult> = Tool<
   INPUT,
   OUTPUT
-> &
-  Required<Pick<Tool<INPUT, OUTPUT>, 'execute'>> & {
-    _meta?: ToolMeta;
-  };
+> & {
+  execute: (
+    input: INPUT,
+    options?: ToolExecutionOptions<{}>,
+  ) => ReturnType<NonNullable<Tool<INPUT, OUTPUT>['execute']>>;
+  _meta?: ToolMeta;
+};
 
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
   TOOL_SCHEMAS extends Record<
@@ -471,3 +478,21 @@ export const ElicitResultSchema = ResultSchema.extend({
 });
 
 export type ElicitResult = z.infer<typeof ElicitResultSchema>;
+
+export const InputRequiredResultSchema = ResultSchema.extend({
+  resultType: z.literal('input_required'),
+  inputRequests: z.record(z.string(), RequestSchema).optional(),
+  requestState: z.string().optional(),
+}).refine(
+  result =>
+    result.inputRequests !== undefined || result.requestState !== undefined,
+  { message: 'input_required must include inputRequests or requestState' },
+);
+
+// Only form elicitation is supported by the client's existing handler API.
+export const InputRequiredElicitationSchema = ElicitationRequestSchema.extend({
+  params: ElicitationRequestParamsSchema.extend({
+    mode: z.literal('form').optional(),
+    requestedSchema: z.looseObject({ type: z.literal('object') }),
+  }),
+});

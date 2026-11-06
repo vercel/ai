@@ -27,17 +27,21 @@ function prepareJsonResponse() {
   };
 }
 
+const fireworks = createFireworks({ apiKey: 'test-key' });
+
 describe('Fireworks chat reasoning', () => {
   it.each([
-    ['minimal', 'low'],
-    ['xhigh', 'high'],
-    ['max', 'high'],
+    ['accounts/fireworks/models/gpt-oss-120b', 'none', 'minimal'],
+    ['accounts/fireworks/models/glm-5p3', 'none', 'minimal'],
+    ['accounts/fireworks/models/nemotron-3-ultra-nvfp4', 'minimal', 'low'],
   ] as const)(
-    'should coerce "%s" to "%s" with a warning in doGenerate',
-    async (reasoning, effort) => {
+    'should map unsupported reasoning for %s from "%s" to "%s" with a warning in doGenerate',
+    async (modelId, reasoning, effort) => {
       prepareJsonResponse();
 
-      const result = await model.doGenerate({ prompt, reasoning });
+      const result = await fireworks
+        .chatModel(modelId)
+        .doGenerate({ prompt, reasoning });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
         reasoning_effort: effort,
@@ -52,7 +56,7 @@ describe('Fireworks chat reasoning', () => {
     },
   );
 
-  it('should return the max compatibility warning in stream-start', async () => {
+  it('should return the compatibility warning in stream-start', async () => {
     server.urls[url].response = {
       type: 'stream-chunks',
       chunks: [
@@ -61,15 +65,13 @@ describe('Fireworks chat reasoning', () => {
       ],
     };
 
-    const { stream } = await model.doStream({
-      prompt,
-      reasoning: 'max',
-      topK: 1,
-    });
+    const { stream } = await fireworks
+      .chatModel('accounts/fireworks/models/gpt-oss-120b')
+      .doStream({ prompt, reasoning: 'none', topK: 1 });
     const parts = await convertReadableStreamToArray(stream);
 
     expect(await server.calls[0].requestBodyJson).toMatchObject({
-      reasoning_effort: 'high',
+      reasoning_effort: 'minimal',
       stream: true,
     });
     expect(parts[0]).toEqual({
@@ -80,25 +82,30 @@ describe('Fireworks chat reasoning', () => {
           type: 'compatibility',
           feature: 'reasoning',
           details:
-            'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+            'reasoning "none" is not directly supported by this model. mapped to effort "minimal".',
         },
       ],
     });
   });
 
-  it.each(['low', 'medium', 'high'] as const)(
-    'should pass through "%s" without warnings',
-    async reasoning => {
-      prepareJsonResponse();
+  it.each([
+    'none',
+    'minimal',
+    'low',
+    'medium',
+    'high',
+    'xhigh',
+    'max',
+  ] as const)('should send "%s" directly without warnings', async reasoning => {
+    prepareJsonResponse();
 
-      const result = await model.doGenerate({ prompt, reasoning });
+    const result = await model.doGenerate({ prompt, reasoning });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        reasoning_effort: reasoning,
-      });
-      expect(result.warnings).toEqual([]);
-    },
-  );
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      reasoning_effort: reasoning,
+    });
+    expect(result.warnings).toEqual([]);
+  });
 
   it('should honor provider reasoning effort without warning about ignored portable max', async () => {
     prepareJsonResponse();
@@ -114,4 +121,24 @@ describe('Fireworks chat reasoning', () => {
     });
     expect(result.warnings).toEqual([]);
   });
+
+  it.each([
+    ['accounts/fireworks/models/kimi-k3', 'max'],
+    ['accounts/fireworks/models/nemotron-3-ultra-nvfp4', 'minimal'],
+  ] as const)(
+    'should send provider reasoning effort for %s unchanged as "%s"',
+    async (modelId, reasoningEffort) => {
+      prepareJsonResponse();
+
+      const result = await fireworks.chatModel(modelId).doGenerate({
+        prompt,
+        providerOptions: { fireworks: { reasoningEffort } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: reasoningEffort,
+      });
+      expect(result.warnings).toEqual([]);
+    },
+  );
 });

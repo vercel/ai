@@ -10,6 +10,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   delay,
@@ -746,13 +748,17 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
   }
 }
 
-const bflVideoSubmitSchema = z.object({
-  id: z.string(),
-  polling_url: z.url(),
-  cost: z.number().nullish(),
-  input_mp: z.number().nullish(),
-  output_mp: z.number().nullish(),
-});
+const bflVideoSubmitSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string(),
+      polling_url: z.url(),
+      cost: z.number().nullish(),
+      input_mp: z.number().nullish(),
+      output_mp: z.number().nullish(),
+    }),
+  ),
+);
 
 const bflVideoResultSchema = z.object({
   sample: z.url(),
@@ -763,23 +769,27 @@ const bflVideoResultSchema = z.object({
   draft_cache: z.string().nullish(),
 });
 
-const bflVideoPollSchema = z
-  .object({
-    status: z.string().optional(),
-    state: z.string().optional(),
-    details: z.unknown().optional(),
-    result: z.unknown().optional(),
-    // `SettledCostResultResponse.cost` — the price actually charged, which the
-    // API can only know once generation finishes. Absent on the plain
-    // `ResultResponse` variant.
-    cost: z.number().nullish(),
-  })
-  .refine(v => v.status != null || v.state != null, {
-    message: 'Missing status in Black Forest Labs poll response',
-  })
-  .transform(v => ({
-    status: (v.status ?? v.state)!,
-    details: v.details,
-    result: v.result,
-    cost: v.cost,
-  }));
+const bflVideoPollSchema = lazySchema(() =>
+  zodSchema(
+    z
+      .object({
+        status: z.string().optional(),
+        state: z.string().optional(),
+        details: z.unknown().optional(),
+        result: z.unknown().optional(),
+        // `SettledCostResultResponse.cost` — the price actually charged, which the
+        // API can only know once generation finishes. Absent on the plain
+        // `ResultResponse` variant.
+        cost: z.number().nullish(),
+      })
+      .refine(v => v.status != null || v.state != null, {
+        message: 'Missing status in Black Forest Labs poll response',
+      })
+      .transform(v => ({
+        status: (v.status ?? v.state)!,
+        details: v.details,
+        result: v.result,
+        cost: v.cost,
+      })),
+  ),
+);

@@ -1,6 +1,7 @@
 import {
   AISDKError,
   APICallError,
+  InvalidArgumentError,
   type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
   type Experimental_VideoModelV4File as VideoModelV4File,
@@ -9,10 +10,16 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   extractResponseHeaders,
+  encodePathSegment,
   getFromApi,
   getTopLevelMediaType,
   parseProviderOptions,
@@ -32,22 +39,11 @@ import type { XaiVideoModelId } from './xai-video-settings';
 interface XaiVideoModelConfig {
   provider: string;
   baseURL: string | undefined;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
   };
-}
-
-function encodePathSegment(value: string): string {
-  const encodedValue = encodeURIComponent(value);
-
-  // URL parsing normalizes both literal and percent-encoded dot segments.
-  return encodedValue === '.'
-    ? '%252E'
-    : encodedValue === '..'
-      ? '%252E%252E'
-      : encodedValue;
 }
 
 const RESOLUTION_MAP: Record<string, string> = {
@@ -217,11 +213,24 @@ export class XaiVideoModel implements VideoModelV4 {
   }> {
     const warnings: SharedV4Warning[] = [];
 
-    const xaiOptions = (await parseProviderOptions({
-      provider: 'xai',
-      providerOptions: options.providerOptions,
-      schema: xaiVideoModelOptionsSchema,
-    })) as XaiParsedVideoModelOptions | undefined;
+    let xaiOptions: XaiParsedVideoModelOptions | undefined;
+    try {
+      xaiOptions = await parseProviderOptions({
+        provider: 'xai',
+        providerOptions: options.providerOptions,
+        schema: xaiVideoModelOptionsSchema,
+      });
+    } catch (error) {
+      // Validation errors include the original options in their cause. Signed
+      // upload URLs must not appear in diagnostics, including other option errors.
+      if (options.providerOptions?.xai?.output !== undefined) {
+        throw new InvalidArgumentError({
+          argument: 'providerOptions.xai',
+          message: 'Invalid xAI video provider options for upload delivery.',
+        });
+      }
+      throw error;
+    }
 
     const effectiveMode = resolveVideoMode(options, xaiOptions);
 
@@ -307,6 +316,10 @@ export class XaiVideoModel implements VideoModelV4 {
       model: this.modelId,
       prompt: options.prompt,
     };
+
+    if (xaiOptions?.output?.uploadUrl != null) {
+      body.output = { upload_url: xaiOptions.output.uploadUrl };
+    }
 
     const allowDuration = !isEdit;
     const allowAspectRatio = !isEdit && !isExtension;
@@ -554,6 +567,7 @@ export class XaiVideoModel implements VideoModelV4 {
             'referenceVoiceIds',
             'keyframes',
             'storageOptions',
+            'output',
             'user',
           ].includes(key)
         ) {
@@ -577,7 +591,7 @@ export class XaiVideoModel implements VideoModelV4 {
     options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
   ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { body, warnings, isEdit, isExtension } =
+    const { body, warnings, isEdit, isExtension, xaiOptions } =
       await this.buildRequestBody(options);
 
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
@@ -594,7 +608,10 @@ export class XaiVideoModel implements VideoModelV4 {
 
     const { value: createResponse, responseHeaders } = await postJsonToApi({
       url: endpoint,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -602,6 +619,22 @@ export class XaiVideoModel implements VideoModelV4 {
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
+    }).catch(error => {
+      if (xaiOptions?.output != null && APICallError.isInstance(error)) {
+        // The API error contains the full request and may echo it in its
+        // response. Keep retry semantics, but discard credential-bearing details.
+        throw new APICallError({
+          message: 'xAI video upload request failed.',
+          url: endpoint,
+          requestBodyValues: {
+            ...body,
+            output: { upload_url: '[REDACTED]' },
+          },
+          statusCode: error.statusCode,
+          isRetryable: error.isRetryable,
+        });
+      }
+      throw error;
     });
 
     const requestId = createResponse.request_id;
@@ -613,7 +646,12 @@ export class XaiVideoModel implements VideoModelV4 {
     }
 
     return {
-      operation: { requestId },
+      operation: {
+        requestId,
+        ...(xaiOptions?.output?.uploadUrl != null
+          ? { hasUploadUrl: true }
+          : {}),
+      },
       warnings,
       response: {
         timestamp: currentDate,
@@ -627,17 +665,34 @@ export class XaiVideoModel implements VideoModelV4 {
     options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
   ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { requestId } = options.operation as { requestId: string };
+    const { requestId, hasUploadUrl } = options.operation as {
+      requestId: string;
+      hasUploadUrl?: boolean;
+    };
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
       url: `${baseURL}/videos/${encodePathSegment(requestId)}`,
       validateUrl: false,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       successfulResponseHandler: xaiVideoStatusResponseHandler,
       failedResponseHandler: xaiFailedResponseHandler,
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
+    }).catch(error => {
+      if (hasUploadUrl && APICallError.isInstance(error)) {
+        throw new APICallError({
+          message: 'xAI video upload status request failed.',
+          url: `${baseURL}/videos/${encodePathSegment(requestId)}`,
+          requestBodyValues: undefined,
+          statusCode: error.statusCode,
+          isRetryable: error.isRetryable,
+        });
+      }
+      throw error;
     });
 
     if (statusResponse.status === 'expired') {
@@ -659,7 +714,7 @@ export class XaiVideoModel implements VideoModelV4 {
       return {
         status: 'error' as const,
         error:
-          errorDetails != null
+          !hasUploadUrl && errorDetails != null
             ? `Video generation failed: ${errorDetails}`
             : 'Video generation failed.',
         response: {
@@ -693,7 +748,7 @@ export class XaiVideoModel implements VideoModelV4 {
       const videoUrl =
         video?.url ?? video?.file_output?.public_url ?? undefined;
 
-      if (!videoUrl) {
+      if (!hasUploadUrl && !videoUrl) {
         return {
           status: 'error' as const,
           error: 'Video generation completed but no video URL was returned.',
@@ -707,7 +762,11 @@ export class XaiVideoModel implements VideoModelV4 {
 
       return {
         status: 'completed',
-        videos: [{ type: 'url', url: videoUrl, mediaType: 'video/mp4' }],
+        videos: hasUploadUrl
+          ? [{ type: 'uploaded', mediaType: 'video/mp4' }]
+          : videoUrl
+            ? [{ type: 'url', url: videoUrl, mediaType: 'video/mp4' }]
+            : [],
         warnings: [],
         response: {
           timestamp: currentDate,
@@ -717,7 +776,7 @@ export class XaiVideoModel implements VideoModelV4 {
         providerMetadata: {
           xai: {
             requestId,
-            videoUrl,
+            ...(!hasUploadUrl && videoUrl ? { videoUrl } : {}),
             ...(video?.duration != null ? { duration: video.duration } : {}),
             ...(statusResponse.usage?.cost_in_usd_ticks != null
               ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }
@@ -774,44 +833,52 @@ export class XaiVideoModel implements VideoModelV4 {
   }
 }
 
-const xaiCreateVideoResponseSchema = z.object({
-  request_id: z.string().nullish(),
-});
+const xaiCreateVideoResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      request_id: z.string().nullish(),
+    }),
+  ),
+);
 
-const xaiVideoStatusResponseSchema = z.object({
-  status: z.string().nullish(),
-  video: z
-    .object({
-      url: z.string().nullish(),
-      duration: z.number().nullish(),
-      respect_moderation: z.boolean().nullish(),
-      file_output: z
+const xaiVideoStatusResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.string().nullish(),
+      video: z
         .object({
-          file_id: z.string(),
-          filename: z.string(),
-          expires_at: z.number().nullish(),
-          public_url: z.string().nullish(),
-          public_url_error: z.string().nullish(),
-          public_url_expires_at: z.number().nullish(),
+          url: z.string().nullish(),
+          duration: z.number().nullish(),
+          respect_moderation: z.boolean().nullish(),
+          file_output: z
+            .object({
+              file_id: z.string(),
+              filename: z.string(),
+              expires_at: z.number().nullish(),
+              public_url: z.string().nullish(),
+              public_url_error: z.string().nullish(),
+              public_url_expires_at: z.number().nullish(),
+            })
+            .nullish(),
+          storage_error: z.string().nullish(),
         })
         .nullish(),
-      storage_error: z.string().nullish(),
-    })
-    .nullish(),
-  model: z.string().nullish(),
-  usage: z
-    .object({
-      cost_in_usd_ticks: z.number().nullish(),
-    })
-    .nullish(),
-  progress: z.number().nullish(),
-  error: z
-    .object({
-      code: z.string().nullish(),
-      message: z.string().nullish(),
-    })
-    .nullish(),
-});
+      model: z.string().nullish(),
+      usage: z
+        .object({
+          cost_in_usd_ticks: z.number().nullish(),
+        })
+        .nullish(),
+      progress: z.number().nullish(),
+      error: z
+        .object({
+          code: z.string().nullish(),
+          message: z.string().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
 
 const xaiVideoStatusJsonResponseHandler = createJsonResponseHandler(
   xaiVideoStatusResponseSchema,
@@ -870,7 +937,7 @@ async function readPendingBody({
 }
 
 const xaiVideoStatusResponseHandler: ResponseHandler<
-  z.infer<typeof xaiVideoStatusResponseSchema>
+  InferSchema<typeof xaiVideoStatusResponseSchema>
 > = async options => {
   // xAI answers 202 while a generation is still running, sometimes with an
   // empty body. Read it rather than cancelling: `body.cancel()` never settles

@@ -1,5 +1,142 @@
 # @ai-sdk/valibot
 
+## 3.0.75
+
+### Patch Changes
+
+- Updated dependencies [89aff56]
+  - @ai-sdk/provider-utils@5.0.75
+
+## 3.0.74
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 3.0.73
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 3.0.72
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+  - @ai-sdk/provider-utils@5.0.72
+
+## 3.0.71
+
+### Patch Changes
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
+## 3.0.70
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 3.0.69
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
+## 3.0.68
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [e729d58]
+  - @ai-sdk/provider-utils@5.0.68
+
+## 3.0.67
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+  - @ai-sdk/provider-utils@5.0.67
+
+## 3.0.66
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@5.0.66
+
+## 3.0.65
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+  - @ai-sdk/provider-utils@5.0.65
+
+## 3.0.64
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+  - @ai-sdk/provider-utils@5.0.64
+
+## 3.0.63
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@5.0.63
+
+## 3.0.62
+
+### Patch Changes
+
+- Updated dependencies [0957554]
+  - @ai-sdk/provider-utils@5.0.62
+
+## 3.0.61
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@5.0.61
+
+## 3.0.60
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+  - @ai-sdk/provider-utils@5.0.60
+
+## 3.0.59
+
+### Patch Changes
+
+- Updated dependencies [9667bf2]
+- Updated dependencies [81663cc]
+  - @ai-sdk/provider-utils@5.0.59
+
+## 3.0.58
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@5.0.58
+
+## 3.0.57
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - @ai-sdk/provider-utils@5.0.57
+
 ## 3.0.56
 
 ### Patch Changes

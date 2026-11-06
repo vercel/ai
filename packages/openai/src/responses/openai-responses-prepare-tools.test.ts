@@ -1,9 +1,224 @@
 import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
+import { openai } from '../openai-provider';
 import { imageGeneration } from '../tool/image-generation';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
+  describe('MCP tools', () => {
+    it('should serialize a remote MCP server URL', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'mcp',
+            args: {
+              serverLabel: 'remote',
+              serverUrl: 'https://example.com/mcp',
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        expect.objectContaining({
+          type: 'mcp',
+          server_label: 'remote',
+          server_url: 'https://example.com/mcp',
+          tunnel_id: undefined,
+        }),
+      ]);
+    });
+
+    it('should serialize a Secure MCP tunnel and preserve MCP options', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'mcp',
+            args: {
+              serverLabel: 'secure-tunnel',
+              tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+              serverDescription: 'Private MCP server',
+              authorization: 'Bearer test-token',
+              headers: { 'X-Test': 'test-value' },
+              allowedTools: {
+                readOnly: true,
+                toolNames: ['search'],
+              },
+              requireApproval: {
+                never: { toolNames: ['search'] },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'mcp',
+          server_label: 'secure-tunnel',
+          tunnel_id: 'tunnel_0123456789abcdef0123456789abcdef',
+          server_url: undefined,
+          connector_id: undefined,
+          server_description: 'Private MCP server',
+          authorization: 'Bearer test-token',
+          headers: { 'X-Test': 'test-value' },
+          allowed_tools: {
+            read_only: true,
+            tool_names: ['search'],
+          },
+          require_approval: {
+            never: { tool_names: ['search'] },
+          },
+        },
+      ]);
+    });
+
+    it('should preserve legacy URL and connector combinations', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'mcp',
+            args: {
+              serverLabel: 'legacy',
+              serverUrl: 'https://example.com/mcp',
+              connectorId: 'connector_example',
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+      expect(result.tools).toEqual([
+        expect.objectContaining({
+          server_url: 'https://example.com/mcp',
+          connector_id: 'connector_example',
+        }),
+      ]);
+    });
+
+    it.each([
+      { serverLabel: 'missing-target' },
+      {
+        serverLabel: 'undefined-targets',
+        serverUrl: undefined,
+        connectorId: undefined,
+        tunnelId: undefined,
+      },
+    ])('should reject missing MCP targets: %j', async args => {
+      await expect(
+        prepareResponsesTools({
+          tools: [{ type: 'provider', id: 'openai.mcp', name: 'mcp', args }],
+          toolChoice: undefined,
+        }),
+      ).rejects.toThrow(
+        'One of serverUrl, connectorId, or tunnelId must be provided.',
+      );
+    });
+
+    it.each([
+      { serverUrl: 'https://example.com/mcp' },
+      { connectorId: 'connector_example' },
+      {
+        serverUrl: 'https://example.com/mcp',
+        connectorId: 'connector_example',
+      },
+    ])(
+      'should reject a tunnel combined with another target: %j',
+      async targets => {
+        await expect(
+          prepareResponsesTools({
+            tools: [
+              {
+                type: 'provider',
+                id: 'openai.mcp',
+                name: 'mcp',
+                args: {
+                  serverLabel: 'ambiguous-target',
+                  tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+                  ...targets,
+                },
+              },
+            ],
+            toolChoice: undefined,
+          }),
+        ).rejects.toThrow(
+          'tunnelId cannot be combined with serverUrl or connectorId.',
+        );
+      },
+    );
+  });
+
+  describe('omitFromRequestTools', () => {
+    const tools = [
+      {
+        type: 'function' as const,
+        name: 'search',
+        inputSchema: { type: 'object' as const },
+      },
+      {
+        type: 'function' as const,
+        name: 'list_issues',
+        inputSchema: { type: 'object' as const },
+        providerOptions: { openai: { omitFromRequestTools: true } },
+      },
+    ];
+
+    it('omits only the marked function from the top-level tools', async () => {
+      const result = await prepareResponsesTools({
+        tools,
+        toolChoice: { type: 'auto' },
+      });
+      expect(
+        result.tools?.map(tool => ('name' in tool ? tool.name : tool.type)),
+      ).toEqual(['search']);
+      expect(result.toolChoice).toBe('auto');
+      expect(result.toolWarnings).toEqual([]);
+      expect(tools).toHaveLength(2);
+    });
+
+    it('supports having only history-loaded functions', async () => {
+      const result = await prepareResponsesTools({
+        tools: [tools[1]],
+        toolChoice: undefined,
+      });
+      expect(result.tools).toEqual([]);
+    });
+
+    it('rejects forcing a function absent from the top-level tools', async () => {
+      await expect(
+        prepareResponsesTools({
+          tools,
+          toolChoice: { type: 'tool', toolName: 'list_issues' },
+        }),
+      ).rejects.toThrow('forcing tool "list_issues"');
+    });
+
+    it('does not put history-loaded functions in allowed_tools', async () => {
+      const result = await prepareResponsesTools({
+        tools,
+        toolChoice: undefined,
+        allowedTools: { toolNames: ['search', 'list_issues'] },
+      });
+      expect(result.toolChoice).toEqual({
+        type: 'allowed_tools',
+        mode: 'auto',
+        tools: [{ type: 'function', name: 'search' }],
+      });
+      expect(result.toolWarnings).toEqual([
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'allowedTools entry "list_issues"',
+        }),
+      ]);
+    });
+  });
   it('should remove string propertyNames from function tools and warn', async () => {
     const result = await prepareResponsesTools({
       tools: [
@@ -494,6 +709,8 @@ describe('prepareResponsesTools', () => {
                   "file-2",
                   "file-3",
                 ],
+                "memory_limit": undefined,
+                "network_policy": undefined,
                 "type": "auto",
               },
               "type": "code_interpreter",
@@ -528,6 +745,8 @@ describe('prepareResponsesTools', () => {
             {
               "container": {
                 "file_ids": [],
+                "memory_limit": undefined,
+                "network_policy": undefined,
                 "type": "auto",
               },
               "type": "code_interpreter",
@@ -562,6 +781,181 @@ describe('prepareResponsesTools', () => {
             {
               "container": {
                 "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare code interpreter tool with memory limit', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {
+              container: {
+                memoryLimit: '16g',
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": undefined,
+                "memory_limit": "16g",
+                "network_policy": undefined,
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare code interpreter tool with network policy disabled', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {
+              container: {
+                networkPolicy: {
+                  type: 'disabled',
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": {
+                  "type": "disabled",
+                },
+                "type": "auto",
+              },
+              "type": "code_interpreter",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should combine a memory limit with an allowlist without domain secrets', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {
+              container: {
+                memoryLimit: '4g',
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toStrictEqual([
+        {
+          type: 'code_interpreter',
+          container: {
+            type: 'auto',
+            file_ids: undefined,
+            memory_limit: '4g',
+            network_policy: {
+              type: 'allowlist',
+              allowed_domains: ['example.com'],
+              domain_secrets: undefined,
+            },
+          },
+        },
+      ]);
+    });
+
+    it('should prepare code interpreter tool with network policy allowlist and domain secrets', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'code_interpreter',
+            args: {
+              container: {
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com', 'api.test.org'],
+                  domainSecrets: [
+                    {
+                      domain: 'api.test.org',
+                      name: 'API_KEY',
+                      value: 'secret123',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "container": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": {
+                  "allowed_domains": [
+                    "example.com",
+                    "api.test.org",
+                  ],
+                  "domain_secrets": [
+                    {
+                      "domain": "api.test.org",
+                      "name": "API_KEY",
+                      "value": "secret123",
+                    },
+                  ],
+                  "type": "allowlist",
+                },
                 "type": "auto",
               },
               "type": "code_interpreter",
@@ -852,6 +1246,66 @@ describe('prepareResponsesTools', () => {
   });
 
   describe('web search', () => {
+    describe.each([
+      {
+        name: 'webSearch',
+        createTool: openai.tools.webSearch,
+        type: 'web_search',
+      },
+      {
+        name: 'webSearchPreview',
+        createTool: openai.tools.webSearchPreview,
+        type: 'web_search_preview',
+      },
+    ])('$name', ({ createTool, type }) => {
+      it('should prepare the tool without options', async () => {
+        const tool = createTool({});
+
+        const result = await prepareResponsesTools({
+          tools: [{ ...tool, name: type }],
+          toolChoice: undefined,
+        });
+
+        expect(tool.id).toBe(`openai.${type}`);
+        expect(result).toEqual({
+          tools: [{ type }],
+          toolChoice: undefined,
+          toolWarnings: [],
+        });
+      });
+
+      it('should preserve search options and support tool choice', async () => {
+        const userLocation = {
+          type: 'approximate' as const,
+          country: 'US',
+          city: 'San Francisco',
+          region: 'California',
+          timezone: 'America/Los_Angeles',
+        };
+        const tool = createTool({
+          searchContextSize: 'high',
+          userLocation,
+        });
+
+        const result = await prepareResponsesTools({
+          tools: [{ ...tool, name: type }],
+          toolChoice: { type: 'tool', toolName: type },
+        });
+
+        expect(result).toEqual({
+          tools: [
+            {
+              type,
+              search_context_size: 'high',
+              user_location: userLocation,
+            },
+          ],
+          toolChoice: { type },
+          toolWarnings: [],
+        });
+      });
+    });
+
     it('should prepare web_search tool with no options', async () => {
       const result = await prepareResponsesTools({
         tools: [

@@ -130,8 +130,8 @@ describe('getMoonshotAILanguageModelCapabilities', () => {
     ['moonshot-v1-8k-vision-preview', true],
     ['moonshot-v1-32k-vision-preview', true],
     ['moonshot-v1-128k-vision-preview', true],
-    ['moonshot-v1-custom', false],
-    ['custom-model-id', false],
+    ['moonshot-v1-custom', true],
+    ['custom-model-id', true],
   ])(
     'supportsStructuredOutputs for %s is %s',
     (modelId, expectedSupportsStructuredOutputs) => {

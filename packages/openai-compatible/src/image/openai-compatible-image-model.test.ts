@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
@@ -8,6 +8,174 @@ import type { ProviderErrorStructure } from '../openai-compatible-error';
 import type { ImageModelV4CallOptions } from '@ai-sdk/provider';
 
 const prompt = 'A photorealistic astronaut riding a horse';
+
+describe.each(['generations', 'edits'])(
+  'URL image responses (%s)',
+  endpoint => {
+    const imageUrl = 'https://cdn.example.com/image.png';
+    const imageBytes = new Uint8Array([137, 80, 78, 71]);
+
+    function setup(
+      data: Array<{ b64_json?: string | null; url?: string | null }>,
+      baseURL = 'https://api.example.com',
+    ) {
+      const fetch = vi
+        .fn<FetchFunction>()
+        .mockResolvedValueOnce(Response.json({ data }));
+      fetch.mockImplementation(async () => new Response(imageBytes));
+      const model = new OpenAICompatibleImageModel('test-model', {
+        provider: 'test',
+        url: ({ path }) => `${baseURL}${path}`,
+        headers: () => ({ Authorization: 'Bearer test-key' }),
+        fetch,
+      });
+      const params = createDefaultGenerateParams({
+        files:
+          endpoint === 'edits'
+            ? [{ type: 'file', data: imageBytes, mediaType: 'image/png' }]
+            : undefined,
+        headers: { 'x-api-key': 'custom-key' },
+      });
+      return { model, fetch, params };
+    }
+
+    it('downloads URL-only images using the custom fetch and abort signal', async () => {
+      const { model, fetch, params } = setup([
+        { b64_json: null, url: imageUrl },
+      ]);
+      const abortSignal = new AbortController().signal;
+
+      const result = await model.doGenerate({ ...params, abortSignal });
+
+      expect(result.images).toEqual([imageBytes]);
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(fetch.mock.calls[0][0]).toBe(
+        `https://api.example.com/images/${endpoint}`,
+      );
+      expect(fetch.mock.calls[1][0]).toBe(imageUrl);
+      expect(fetch.mock.calls[1][1]?.method ?? 'GET').toBe('GET');
+      expect(fetch.mock.calls[1][1]).toMatchObject({
+        signal: abortSignal,
+      });
+      const downloadHeaders = new Headers(fetch.mock.calls[1][1]?.headers);
+      expect(downloadHeaders.has('authorization')).toBe(false);
+      expect(downloadHeaders.has('x-api-key')).toBe(false);
+    });
+
+    it('preserves order in mixed responses and prefers base64 when both are present', async () => {
+      const { model, fetch, params } = setup([
+        { url: imageUrl },
+        { b64_json: 'AQID', url: 'https://cdn.example.com/unused.png' },
+        { b64_json: 'BAUG', url: null },
+      ]);
+
+      const result = await model.doGenerate(params);
+
+      expect(result.images).toEqual([
+        imageBytes,
+        new Uint8Array([1, 2, 3]),
+        new Uint8Array([4, 5, 6]),
+      ]);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('preserves base64 without downloading when both fields are present', async () => {
+      const { model, fetch, params } = setup([
+        { b64_json: 'AQID', url: imageUrl },
+      ]);
+
+      expect((await model.doGenerate(params)).images).toEqual(['AQID']);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([{}, { b64_json: null, url: null }])(
+      'rejects responses with neither base64 nor a URL: %j',
+      async image => {
+        const { model, fetch, params } = setup([image]);
+
+        await expect(model.doGenerate(params)).rejects.toMatchObject({
+          name: 'AI_APICallError',
+          message: 'Invalid JSON response',
+        });
+        expect(fetch).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it('propagates image download failures', async () => {
+      const { model, fetch, params } = setup([{ url: imageUrl }]);
+      fetch.mockResolvedValueOnce(new Response('Not found', { status: 404 }));
+
+      await expect(model.doGenerate(params)).rejects.toMatchObject({
+        name: 'AI_APICallError',
+        statusCode: 404,
+        url: imageUrl,
+      });
+    });
+
+    it('propagates cancellation during download', async () => {
+      const { model, fetch, params } = setup([{ url: imageUrl }]);
+      const controller = new AbortController();
+      const error = new DOMException('Aborted', 'AbortError');
+      fetch.mockImplementationOnce(async (_url, init) => {
+        controller.abort(error);
+        init?.signal?.throwIfAborted();
+        return new Response(imageBytes);
+      });
+
+      await expect(
+        model.doGenerate({ ...params, abortSignal: controller.signal }),
+      ).rejects.toBe(error);
+    });
+
+    it('rejects private download URLs before fetching them', async () => {
+      const { model, fetch, params } = setup([
+        { url: 'http://127.0.0.1/image.png' },
+      ]);
+
+      await expect(model.doGenerate(params)).rejects.toMatchObject({
+        name: 'AI_DownloadError',
+      });
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects redirects to private download URLs', async () => {
+      const { model, fetch, params } = setup([{ url: imageUrl }]);
+      fetch.mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: { location: 'http://127.0.0.1/image.png' },
+        }),
+      );
+
+      await expect(model.doGenerate(params)).rejects.toMatchObject({
+        name: 'AI_DownloadError',
+      });
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('supports authenticated self-hosted downloads and strips credentials on cross-origin redirects', async () => {
+      const baseURL = 'http://127.0.0.1:8000';
+      const { model, fetch, params } = setup(
+        [{ url: `${baseURL}/image.png` }],
+        baseURL,
+      );
+      fetch.mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: { location: imageUrl },
+        }),
+      );
+
+      expect((await model.doGenerate(params)).images).toEqual([imageBytes]);
+      const sameOriginHeaders = new Headers(fetch.mock.calls[1][1]?.headers);
+      expect(sameOriginHeaders.get('authorization')).toBe('Bearer test-key');
+      expect(sameOriginHeaders.get('x-api-key')).toBe('custom-key');
+      const redirectedHeaders = new Headers(fetch.mock.calls[2][1]?.headers);
+      expect(redirectedHeaders.has('authorization')).toBe(false);
+      expect(redirectedHeaders.has('x-api-key')).toBe(false);
+    });
+  },
+);
 
 function createBasicModel({
   headers,

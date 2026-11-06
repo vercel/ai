@@ -1,0 +1,55 @@
+import { azure } from '@ai-sdk/azure';
+import { isStepCount, streamText } from 'ai';
+import { executeShellCommand } from '../../lib/shell-executor';
+import { run } from '../../lib/run';
+
+// This example runs model-proposed commands directly on your computer.
+// For interactive approval, see generate-text/azure/responses-shell-tool-with-approval.ts.
+run(async () => {
+  const result = streamText({
+    // Replace with your Azure deployment name that supports this shell mode.
+    model: azure.responses('gpt-5.1'),
+    tools: {
+      shell: azure.tools.shell({
+        execute: async ({ action }) => {
+          const outputs = await Promise.all(
+            action.commands.map(command =>
+              executeShellCommand(command, action.timeoutMs),
+            ),
+          );
+
+          return { output: outputs };
+        },
+      }),
+    },
+    stopWhen: isStepCount(20),
+    prompt: 'List the files in my current directory',
+  });
+
+  for await (const chunk of result.stream) {
+    switch (chunk.type) {
+      case 'text-delta': {
+        process.stdout.write(chunk.text);
+        break;
+      }
+
+      case 'tool-call': {
+        console.log(
+          `\x1b[32m\x1b[1mTool call:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
+        );
+        break;
+      }
+
+      case 'tool-result': {
+        console.log(
+          `\x1b[32m\x1b[1mTool result:\x1b[22m ${JSON.stringify(chunk, null, 2)}\x1b[0m`,
+        );
+        break;
+      }
+
+      case 'error':
+        console.error('Error:', chunk.error);
+        break;
+    }
+  }
+});

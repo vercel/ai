@@ -9,11 +9,6 @@ on:
       - '.changeset/**'
       - '.github/workflows/release.yml'
   workflow_dispatch:
-    inputs:
-      snapshot:
-        description: 'Publish a snapshot release instead of a normal release'
-        type: boolean
-        default: false
 
 concurrency:
   group: 'release-${{ github.ref_name }}'
@@ -33,6 +28,7 @@ jobs:
       issues: write
     # do not attempt running in forks
     if: github.repository_owner == 'vercel'
+    environment: npm-release
     steps:
       - name: Configure Git
         run: |
@@ -45,20 +41,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-
-      - name: Setup Node.js 24
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
         with:
-          node-version: 24
+          runtime: node@24
+          require-lockfile: true
 
-      - name: Install Dependencies
-        run: pnpm i
-
-      # Normal release path
       - name: Create Release Pull Request or Publish to npm
-        if: inputs.snapshot != true
         id: changesets
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
@@ -71,14 +60,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Find release PR number
-        if: inputs.snapshot != true && steps.changesets.outputs.published == 'true'
+        if: steps.changesets.outputs.published == 'true'
         id: release-pr
         run: echo "number=$(gh api repos/${{ github.repository }}/commits/${{ github.sha }}/pulls --jq '.[0].number')" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create release notification manifest
-        if: inputs.snapshot != true
         run: |
           mkdir -p .release-notification
           jq -n \
@@ -94,54 +82,6 @@ jobs:
           PULL_REQUEST_NUMBER: ${{ steps.release-pr.outputs.number }}
 
       - name: Upload release notification manifest
-        if: inputs.snapshot != true
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: release-notification
-          path: .release-notification
-          include-hidden-files: true
-          retention-days: 1
-
-      # Snapshot release path
-      - name: Add SHORT_SHA env property with commit short sha
-        if: inputs.snapshot == true
-        run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-8`" >> $GITHUB_ENV
-
-      - name: Delete pre.json if it exists
-        if: inputs.snapshot == true
-        run: rm -f .changeset/pre.json
-
-      - name: Version Packages (snapshot)
-        if: inputs.snapshot == true
-        run: pnpm changeset version --snapshot ${SHORT_SHA}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Clean Examples
-        if: inputs.snapshot == true
-        run: pnpm clean-examples
-
-      - name: Build
-        if: inputs.snapshot == true
-        run: pnpm clean && pnpm build
-
-      - name: Publish Snapshot Release
-        if: inputs.snapshot == true
-        run: pnpm changeset publish --no-git-tag --tag snapshot
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create snapshot notification manifest
-        if: inputs.snapshot == true
-        run: |
-          mkdir -p .release-notification
-          jq -n '{ type: "snapshot" }' > .release-notification/notification.json
-          find packages -mindepth 2 -maxdepth 2 -name package.json -print0 |
-            tar --null -T - -cf - |
-            tar -xf - -C .release-notification
-
-      - name: Upload snapshot notification manifest
-        if: inputs.snapshot == true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-notification

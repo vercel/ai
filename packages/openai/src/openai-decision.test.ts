@@ -2,6 +2,7 @@ import {
   APICallError,
   InvalidResponseDataError,
   InvalidArgumentError,
+  type JSONObject,
 } from '@ai-sdk/provider';
 import {
   WORKFLOW_DESERIALIZE,
@@ -17,7 +18,7 @@ const fixture = JSON.parse(
   readFileSync('src/__fixtures__/decision.json', 'utf8'),
 );
 const options = {
-  state: 'A billing issue with a workaround.',
+  state: [{ type: 'text', text: 'A billing issue with a workaround.' }],
   questions: {
     department: {
       type: 'choice',
@@ -81,7 +82,12 @@ it('sends all primitives directly to Decisions with configured authentication an
   );
   expect(JSON.parse(request?.body as string)).toEqual({
     model: 'gpt-6-luna',
-    input: options.state,
+    input: [
+      {
+        role: 'user',
+        content: [{ type: 'input_text', text: options.state[0].text }],
+      },
+    ],
     questions: [
       {
         type: 'choice',
@@ -142,7 +148,7 @@ it('preserves native values, maps reordered named answers, and exposes confidenc
 it('serializes structured input and rubrics, omits null descriptions, and preserves boolean criteria', async () => {
   const { model, fetch } = setup();
   await model.doDecide({
-    state: { ticket: ['charged twice'] },
+    state: [{ type: 'json', value: { ticket: ['charged twice'] } }],
     questions: {
       department: {
         type: 'choice',
@@ -166,7 +172,12 @@ it('serializes structured input and rubrics, omits null descriptions, and preser
   });
   expect(JSON.parse(fetch.mock.calls[0][1]?.body as string)).toEqual({
     model: 'gpt-6-luna',
-    input: '{"ticket":["charged twice"]}',
+    input: [
+      {
+        role: 'user',
+        content: [{ type: 'input_json', data: { ticket: ['charged twice'] } }],
+      },
+    ],
     questions: [
       {
         name: 'department',
@@ -194,6 +205,100 @@ it('serializes structured input and rubrics, omits null descriptions, and preser
       },
     ],
   });
+});
+
+it.each([
+  {
+    value: [{ charge: 49 }, { charge: 49 }],
+    part: { type: 'input_json', data: [{ charge: 49 }, { charge: 49 }] },
+  },
+  { value: [], part: { type: 'input_text', text: '[]' } },
+  {
+    value: [{ charge: 49 }, 49],
+    part: { type: 'input_text', text: '[{"charge":49},49]' },
+  },
+  {
+    value: 'charged twice',
+    part: { type: 'input_text', text: '"charged twice"' },
+  },
+  { value: null, part: { type: 'input_text', text: 'null' } },
+])(
+  'sends JSON state natively only when it is an object or array of objects: $value',
+  async ({ value, part }) => {
+    const { model, fetch } = setup();
+    await model.doDecide({ ...options, state: [{ type: 'json', value }] });
+    expect(
+      JSON.parse(fetch.mock.calls[0][1]?.body as string).input[0].content,
+    ).toEqual([part]);
+  },
+);
+
+function nested(levels: number): JSONObject {
+  let value: JSONObject = { leaf: true };
+  for (let level = 1; level < levels; level++) value = { next: value };
+  return value;
+}
+
+function withKeys(count: number): JSONObject {
+  return Object.fromEntries(
+    Array.from({ length: count }, (_, i) => [`k${i}`, 0]),
+  );
+}
+
+it.each([
+  { label: '32 container levels', value: nested(32), native: true },
+  { label: '33 container levels', value: nested(33), native: false },
+  { label: '9,000 values', value: withKeys(9_000), native: true },
+  {
+    label: '10,000 keys plus the root',
+    value: withKeys(10_000),
+    native: false,
+  },
+  {
+    label: '200 KiB of JSON',
+    value: { blob: 'x'.repeat(200 * 1024) },
+    native: true,
+  },
+  {
+    label: 'more than 256 KiB of JSON',
+    value: { blob: 'x'.repeat(256 * 1024) },
+    native: false,
+  },
+  {
+    label: 'more than 256 KiB of multibyte UTF-8',
+    value: { blob: 'é'.repeat(140 * 1024) },
+    native: false,
+  },
+])(
+  'falls back to input_text beyond input_json limits: $label',
+  async ({ value, native }) => {
+    const { model, fetch } = setup();
+    await model.doDecide({ ...options, state: [{ type: 'json', value }] });
+    const [part] = JSON.parse(fetch.mock.calls[0][1]?.body as string).input[0]
+      .content;
+    expect(part).toEqual(
+      native
+        ? { type: 'input_json', data: value }
+        : { type: 'input_text', text: JSON.stringify(value) },
+    );
+  },
+);
+
+it('sends promptCacheKey without warning and omits it when unset', async () => {
+  const { model, fetch } = setup();
+  const result = await model.doDecide({
+    ...options,
+    providerOptions: { openai: { promptCacheKey: 'tenant-42' } },
+  });
+  expect(result.warnings).toEqual([]);
+  expect(JSON.parse(fetch.mock.calls[0][1]?.body as string)).toMatchObject({
+    prompt_cache_key: 'tenant-42',
+  });
+
+  await model.doDecide(options);
+  expect(JSON.parse(fetch.mock.calls[1][1]?.body as string)).not.toHaveProperty(
+    'prompt_cache_key',
+  );
 });
 
 it('warns about unsupported Responses options without sending them', async () => {
@@ -403,7 +508,7 @@ it.each([
   { criteria: {}, expected: 'Refund?' },
   { criteria: { true: null, false: null }, expected: 'Refund?' },
   {
-    criteria: { true: 'Money back', false: null },
+    criteria: { true: 'Money back' },
     expected: 'Refund?\n\nCriteria for true:\nMoney back',
   },
   {
@@ -411,7 +516,7 @@ it.each([
     expected: 'Refund?\n\nCriteria for false:\n["Status request"]',
   },
 ] as const)(
-  'formats only supplied non-null boolean criteria',
+  'formats only supplied boolean criteria',
   async ({ criteria, expected }) => {
     const { model, fetch } = setup();
     await model.doDecide({
@@ -494,6 +599,88 @@ it.each(['department', 'severity', 'refund'] as const)(
   },
 );
 
+it.each(['iVBORw==', new Uint8Array([0x89, 0x50, 0x4e, 0x47])])(
+  'maps ordered state parts to native text and inline images',
+  async data => {
+    const { model, fetch } = setup();
+    await model.doDecide({
+      ...options,
+      state: [
+        { type: 'text', text: 'Inspect this package.' },
+        { type: 'json', value: ['glass vase', null] },
+        { type: 'file', mediaType: 'image/png', data: { type: 'data', data } },
+        { type: 'text', text: 'Look for cracks.' },
+      ],
+    });
+    expect(JSON.parse(fetch.mock.calls[0][1]?.body as string).input).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'input_text', text: 'Inspect this package.' },
+          { type: 'input_text', text: '["glass vase",null]' },
+          { type: 'input_image', image_url: 'data:image/png;base64,iVBORw==' },
+          { type: 'input_text', text: 'Look for cracks.' },
+        ],
+      },
+    ]);
+  },
+);
+
+it.each(['low', 'high', 'auto', 'original'])(
+  'sends %s image detail from file part provider options',
+  async imageDetail => {
+    const { model, fetch } = setup();
+    await model.doDecide({
+      ...options,
+      state: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+          providerOptions: { openai: { imageDetail } },
+        },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'iVBORw==' },
+        },
+      ],
+    });
+    expect(
+      JSON.parse(fetch.mock.calls[0][1]?.body as string).input[0].content,
+    ).toEqual([
+      {
+        type: 'input_image',
+        image_url: 'data:image/png;base64,iVBORw==',
+        detail: imageDetail,
+      },
+      { type: 'input_image', image_url: 'data:image/png;base64,iVBORw==' },
+    ]);
+  },
+);
+
+it.each([
+  { mediaType: 'audio/wav', data: { type: 'data' as const, data: 'AAAA' } },
+  { mediaType: 'image/svg+xml', data: { type: 'data' as const, data: 'AAAA' } },
+  {
+    mediaType: 'image/png',
+    data: { type: 'reference' as const, reference: { openai: 'file-123' } },
+  },
+  {
+    mediaType: 'image/png',
+    data: {
+      type: 'url' as const,
+      url: new URL('https://example.com/image.png'),
+    },
+  },
+])('rejects unsupported decision files before the API call: %j', async part => {
+  const { model, fetch } = setup();
+  await expect(
+    model.doDecide({ ...options, state: [{ type: 'file', ...part }] }),
+  ).rejects.toMatchObject({ name: 'AI_UnsupportedFunctionalityError' });
+  expect(fetch).not.toHaveBeenCalled();
+});
+
 it('fails the decision when an unnamed question is refused', async () => {
   const answers = fixture.answers.map((answer: { name: string }) =>
     answer.name === 'refund' ? { type: 'refusal', name: null } : answer,
@@ -506,3 +693,89 @@ it('fails the decision when an unnamed question is refused', async () => {
     data: body,
   });
 });
+
+it.each([{}, { instructions: undefined }, { instructions: null }])(
+  'sends criteria-only questions without locally rejecting missing instructions: %j',
+  async instructionFields => {
+    const { model, fetch } = setup();
+    await model.doDecide({
+      ...options,
+      questions: {
+        department: {
+          type: 'choice',
+          criteria: options.questions.department.criteria,
+          ...instructionFields,
+        },
+        severity: {
+          type: 'score',
+          criteria: options.questions.severity.criteria,
+          ...instructionFields,
+        },
+        refund: {
+          type: 'boolean',
+          criteria: { true: 'Requests money back', false: ['Status inquiry'] },
+          ...instructionFields,
+        },
+      },
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(
+      JSON.parse(fetch.mock.calls[0][1]?.body as string).questions,
+    ).toStrictEqual(
+      JSON.parse(
+        JSON.stringify([
+          {
+            type: 'choice',
+            name: 'department',
+            ...instructionFields,
+            choices: [
+              { value: 'technical', description: 'Bugs' },
+              { value: 'billing', description: 'Charges' },
+            ],
+          },
+          {
+            type: 'score',
+            name: 'severity',
+            ...instructionFields,
+            levels: [
+              { label: '0', description: 'Low' },
+              { label: '1', description: 'Medium' },
+              { label: '2', description: 'High' },
+            ],
+          },
+          {
+            type: 'predicate',
+            name: 'refund',
+            instructions:
+              'Criteria for true:\nRequests money back\n\nCriteria for false:\n["Status inquiry"]',
+          },
+        ]),
+      ),
+    );
+  },
+);
+
+it('warns about unsupported maxOutputTokens without sending it', async () => {
+  const { model, fetch } = setup();
+  const result = await model.doDecide({ ...options, maxOutputTokens: 512 });
+  expect(result.warnings).toEqual([
+    { type: 'unsupported', feature: 'maxOutputTokens' },
+  ]);
+  const body = JSON.parse(fetch.mock.calls[0][1]?.body as string);
+  expect(body).not.toHaveProperty('maxOutputTokens');
+  expect(body).not.toHaveProperty('max_output_tokens');
+});
+
+it.each([undefined, 'none', 'provider-default', 'high'] as const)(
+  'warns about unsupported reasoning without sending it: %s',
+  async reasoning => {
+    const { model, fetch } = setup();
+    const result = await model.doDecide({ ...options, reasoning });
+    expect(result.warnings).toEqual(
+      reasoning == null ? [] : [{ type: 'unsupported', feature: 'reasoning' }],
+    );
+    const body = JSON.parse(fetch.mock.calls[0][1]?.body as string);
+    expect(body).not.toHaveProperty('reasoning');
+    expect(body).not.toHaveProperty('reasoning_effort');
+  },
+);

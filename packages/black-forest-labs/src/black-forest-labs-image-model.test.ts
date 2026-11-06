@@ -16,7 +16,7 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
 const prompt = 'A cute baby sea otter';
 
 function createBasicModel({
-  modelId = 'test-model',
+  modelId = 'flux-2-pro',
   headers,
   fetch,
   currentDate,
@@ -45,7 +45,7 @@ function createBasicModel({
 
 describe('BlackForestLabsImageModel', () => {
   const server = createTestServer({
-    'https://api.example.com/v1/test-model': {
+    'https://api.example.com/v1/flux-2-pro': {
       response: {
         type: 'json-value',
         body: {
@@ -55,6 +55,12 @@ describe('BlackForestLabsImageModel', () => {
       },
     },
     'https://api.example.com/v1/flux-3-image': {
+      response: {
+        type: 'json-value',
+        body: { id: 'req-123', polling_url: 'https://api.example.com/poll' },
+      },
+    },
+    'https://api.example.com/v1/flux-3-image-klein': {
       response: {
         type: 'json-value',
         body: { id: 'req-123', polling_url: 'https://api.example.com/poll' },
@@ -89,6 +95,18 @@ describe('BlackForestLabsImageModel', () => {
         },
       },
     },
+    'https://api.example.com/v1/get_result': {
+      response: {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          status: 'Ready',
+          result: {
+            sample: 'https://api.example.com/image.png',
+          },
+        },
+      },
+    },
     'https://api.example.com/image.png': {
       response: {
         type: 'binary',
@@ -101,7 +119,7 @@ describe('BlackForestLabsImageModel', () => {
         body: Buffer.from('test-binary-content'),
       },
     },
-    'https://api.bfl.ai/v1/test-model': {
+    'https://api.bfl.ai/v1/flux-2-pro': {
       response: {
         type: 'json-value',
         body: {
@@ -143,6 +161,11 @@ describe('BlackForestLabsImageModel', () => {
         supportsMaskInputs: false,
       },
       {
+        modelId: 'flux-3-image-klein',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
         modelId: 'flux-pro-1.0-fill',
         supportsFileInputs: true,
         supportsMaskInputs: true,
@@ -168,7 +191,7 @@ describe('BlackForestLabsImageModel', () => {
         supportsMaskInputs: false,
       },
       {
-        modelId: 'custom-image-model',
+        modelId: 'flux-2-pro',
         supportsFileInputs: undefined,
         supportsMaskInputs: undefined,
       },
@@ -320,7 +343,7 @@ describe('BlackForestLabsImageModel', () => {
     });
 
     it('includes all cost and megapixel fields when provided by submit API', async () => {
-      server.urls['https://api.example.com/v1/test-model'].response = {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
         type: 'json-value',
         body: {
           id: 'req-123',
@@ -351,7 +374,7 @@ describe('BlackForestLabsImageModel', () => {
     });
 
     it('omits cost and megapixel fields from providerMetadata when not provided by submit API', async () => {
-      server.urls['https://api.example.com/v1/test-model'].response = {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
         type: 'json-value',
         body: {
           id: 'req-123',
@@ -379,7 +402,7 @@ describe('BlackForestLabsImageModel', () => {
     });
 
     it('handles null cost and megapixel fields from submit API', async () => {
-      server.urls['https://api.example.com/v1/test-model'].response = {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
         type: 'json-value',
         body: {
           id: 'req-123',
@@ -425,7 +448,7 @@ describe('BlackForestLabsImageModel', () => {
 
       expect(server.calls[0].requestMethod).toBe('POST');
       expect(server.calls[0].requestUrl).toBe(
-        'https://api.example.com/v1/test-model',
+        'https://api.example.com/v1/flux-2-pro',
       );
       expect(server.calls[1].requestMethod).toBe('GET');
       expect(server.calls[1].requestUrl).toBe(
@@ -466,7 +489,7 @@ describe('BlackForestLabsImageModel', () => {
     });
 
     it('sends the API key when the polling URL is on a sibling bfl.ai cluster host', async () => {
-      const model = new BlackForestLabsImageModel('test-model', {
+      const model = new BlackForestLabsImageModel('flux-2-pro', {
         provider: 'black-forest-labs.image',
         baseURL: 'https://api.bfl.ai/v1',
         headers: () => ({ 'x-key': 'test-key' }),
@@ -491,7 +514,7 @@ describe('BlackForestLabsImageModel', () => {
     });
 
     it('does not send credentials to signed image URLs on a BFL delivery host', async () => {
-      const model = new BlackForestLabsImageModel('test-model', {
+      const model = new BlackForestLabsImageModel('flux-2-pro', {
         provider: 'black-forest-labs.image',
         baseURL: 'https://api.bfl.ai/v1',
         headers: () => ({
@@ -517,7 +540,7 @@ describe('BlackForestLabsImageModel', () => {
       expect(downloadCall?.requestHeaders.authorization).toBeUndefined();
     });
 
-    it.each(['test-model', 'flux-3-image'])(
+    it.each(['flux-2-pro', 'flux-3-image'])(
       'preserves headers for same-origin custom proxy downloads with %s',
       async modelId => {
         await createBasicModel({
@@ -556,7 +579,7 @@ describe('BlackForestLabsImageModel', () => {
           result: { sample: 'https://api.bfl.ai/image.png' },
         },
       };
-      await new BlackForestLabsImageModel('test-model', {
+      await new BlackForestLabsImageModel('flux-2-pro', {
         provider: 'black-forest-labs.image',
         baseURL: 'https://api.bfl.ai/v1',
         headers: () => ({
@@ -688,7 +711,7 @@ describe('BlackForestLabsImageModel', () => {
     });
 
     it('handles API errors with message and detail', async () => {
-      server.urls['https://api.example.com/v1/test-model'].response = {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
         type: 'error',
         status: 400,
         body: JSON.stringify({
@@ -713,7 +736,7 @@ describe('BlackForestLabsImageModel', () => {
       ).rejects.toMatchObject({
         message: '{"error":"Invalid prompt"}',
         statusCode: 400,
-        url: 'https://api.example.com/v1/test-model',
+        url: 'https://api.example.com/v1/flux-2-pro',
       });
     });
 
@@ -788,12 +811,320 @@ describe('BlackForestLabsImageModel', () => {
       expect(pollCalls.length).toBe(3);
     });
 
+    it('polls get_result by id when the submit response has no polling_url', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+      server.urls['https://api.example.com/v1/get_result'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'Ready',
+          result: {
+            sample: 'https://api.example.com/image.png',
+            seed: 42,
+          },
+        },
+      };
+
+      const result = await createBasicModel().doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      expect(result.images).toHaveLength(1);
+      expect(server.calls[1].requestMethod).toBe('GET');
+      expect(server.calls[1].requestUrl).toBe(
+        'https://api.example.com/v1/get_result?id=req-webhook',
+      );
+      expect(server.calls[1].requestHeaders['x-key']).toBe('test-key');
+      expect(result.providerMetadata?.blackForestLabs.images[0]).toMatchObject({
+        seed: 42,
+      });
+    });
+
+    it('retries get_result while a webhook job is not yet registered', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+
+      let attempts = 0;
+      server.urls['https://api.example.com/v1/get_result'].response = () => {
+        attempts += 1;
+        if (attempts <= 2) {
+          return {
+            type: 'error',
+            status: 404,
+            body: JSON.stringify({
+              id: 'req-webhook',
+              status: 'Task not found',
+            }),
+          };
+        }
+        return {
+          type: 'json-value',
+          body: {
+            id: 'req-webhook',
+            status: 'Ready',
+            result: { sample: 'https://api.example.com/image.png' },
+          },
+        };
+      };
+
+      const result = await createBasicModel({
+        pollIntervalMillis: 10,
+        pollTimeoutMillis: 1000,
+      }).doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      expect(result.images).toHaveLength(1);
+      expect(attempts).toBe(3);
+    });
+
+    it('retries get_result when the poll response status is Task not found', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+
+      let attempts = 0;
+      server.urls['https://api.example.com/v1/get_result'].response = () => {
+        attempts += 1;
+        if (attempts === 1) {
+          return {
+            type: 'json-value',
+            body: { id: 'req-webhook', status: 'Task not found' },
+          };
+        }
+        return {
+          type: 'json-value',
+          body: {
+            id: 'req-webhook',
+            status: 'Ready',
+            result: { sample: 'https://api.example.com/image.png' },
+          },
+        };
+      };
+
+      const result = await createBasicModel({
+        pollIntervalMillis: 10,
+        pollTimeoutMillis: 1000,
+      }).doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+      });
+
+      expect(result.images).toHaveLength(1);
+      expect(attempts).toBe(2);
+    });
+
+    it('fails with a clear error when get_result keeps answering 404 Task not found', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+      server.urls['https://api.example.com/v1/get_result'].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          id: 'req-webhook',
+          status: 'Task not found',
+        }),
+      };
+
+      await expect(
+        createBasicModel({
+          pollIntervalMillis: 10,
+          pollTimeoutMillis: 100,
+        }).doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          seed: undefined,
+          aspectRatio: '1:1',
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Black Forest Labs task req-webhook was not found via get_result before timing out',
+      );
+    });
+
+    it('gives up on Task not found without waiting for the overall poll timeout', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+      server.urls['https://api.example.com/v1/get_result'].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          id: 'req-webhook',
+          status: 'Task not found',
+        }),
+      };
+
+      // The not-found grace period must end long before this timeout, so the
+      // test would fail on its 2s deadline if the cap were not enforced.
+      await expect(
+        createBasicModel({
+          pollIntervalMillis: 5,
+          pollTimeoutMillis: 5000,
+        }).doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          seed: undefined,
+          aspectRatio: '1:1',
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Black Forest Labs task req-webhook was not found via get_result before timing out',
+      );
+    }, 2000);
+
+    it('does not retry get_result 404 responses that are not Task not found', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+      server.urls['https://api.example.com/v1/get_result'].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({ message: 'Unknown request id' }),
+      };
+
+      await expect(
+        createBasicModel({
+          pollIntervalMillis: 10,
+          pollTimeoutMillis: 1000,
+        }).doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          seed: undefined,
+          aspectRatio: '1:1',
+          providerOptions: {},
+        }),
+      ).rejects.toMatchObject({
+        message: 'Unknown request id',
+        statusCode: 404,
+      });
+
+      const getResultCalls = server.calls.filter(
+        c =>
+          c.requestMethod === 'GET' &&
+          c.requestUrl.startsWith('https://api.example.com/v1/get_result'),
+      );
+      expect(getResultCalls).toHaveLength(1);
+    });
+
+    it('rejects with AbortError when aborted during the not-found retry delay', async () => {
+      server.urls['https://api.example.com/v1/flux-2-pro'].response = {
+        type: 'json-value',
+        body: {
+          id: 'req-webhook',
+          status: 'processing',
+          webhook_url: 'https://example.com/webhook',
+        },
+      };
+      server.urls['https://api.example.com/v1/get_result'].response = {
+        type: 'error',
+        status: 404,
+        body: JSON.stringify({
+          id: 'req-webhook',
+          status: 'Task not found',
+        }),
+      };
+
+      const abortController = new AbortController();
+      const pending = createBasicModel({
+        pollIntervalMillis: 500,
+        pollTimeoutMillis: 5000,
+      }).doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        seed: undefined,
+        aspectRatio: '1:1',
+        providerOptions: {},
+        abortSignal: abortController.signal,
+      });
+
+      // Abort once the not-found retry delay is in progress.
+      await vi.waitFor(() => {
+        expect(
+          server.calls.filter(
+            c =>
+              c.requestMethod === 'GET' &&
+              c.requestUrl.startsWith('https://api.example.com/v1/get_result'),
+          ),
+        ).toHaveLength(1);
+      });
+      abortController.abort();
+
+      await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    });
+
     it('enforces pollTimeoutMillis while a polling request is pending', async () => {
       let pollingSignal: AbortSignal | null | undefined;
       const fetch: FetchFunction = async (input, init) => {
         const url = input instanceof Request ? input.url : input.toString();
 
-        if (url === 'https://api.example.com/v1/test-model') {
+        if (url === 'https://api.example.com/v1/flux-2-pro') {
           return new Response(
             JSON.stringify({
               id: 'req-123',
@@ -908,7 +1239,7 @@ describe('BlackForestLabsImageModel', () => {
 
       expect(result.response).toStrictEqual({
         timestamp: testDate,
-        modelId: 'test-model',
+        modelId: 'flux-2-pro',
         headers: expect.any(Object),
       });
     });
@@ -945,7 +1276,7 @@ describe('BlackForestLabsImageModel', () => {
             blackForestLabs: {
               resolution,
               grounding: false,
-              safetyTolerance: 4,
+              safetyTolerance: 7,
               version: 'latest',
             },
           },
@@ -955,7 +1286,7 @@ describe('BlackForestLabsImageModel', () => {
           aspect_ratio: '16:9',
           resolution,
           grounding: false,
-          safety_tolerance: 4,
+          safety_tolerance: 7,
           version: 'latest',
         });
       },
@@ -1127,7 +1458,7 @@ describe('BlackForestLabsImageModel', () => {
     });
 
     it.each([
-      { safetyTolerance: 5 },
+      { safetyTolerance: 8 },
       { safetyTolerance: -1 },
       { safetyTolerance: 1.5 },
       { resolution: '8k' },
@@ -1259,12 +1590,258 @@ describe('BlackForestLabsImageModel', () => {
     });
   });
 
+  describe('FLUX 3 Klein', () => {
+    const modelId = 'flux-3-image-klein';
+    const callOptions: Parameters<BlackForestLabsImageModel['doGenerate']>[0] =
+      {
+        prompt,
+        n: 1,
+        files: undefined,
+        mask: undefined,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      };
+
+    it('leaves resolution and aspect ratio defaults to the endpoint', async () => {
+      const result = await createBasicModel({ modelId }).doGenerate(
+        callOptions,
+      );
+      expect(await server.calls[0].requestBodyJson).toEqual({ prompt });
+      expect(result.warnings).toEqual([]);
+    });
+
+    it.each(['768sq', '1k', '1.5k', '2k', '4k'])(
+      'sends resolution %s without explicit dimensions',
+      async resolution => {
+        const result = await createBasicModel({ modelId }).doGenerate({
+          ...callOptions,
+          aspectRatio: '16:9',
+          providerOptions: { blackForestLabs: { resolution } },
+        });
+        expect(await server.calls[0].requestBodyJson).toEqual({
+          prompt,
+          aspect_ratio: '16:9',
+          resolution,
+        });
+        expect(result.warnings).toEqual([]);
+      },
+    );
+
+    it('sends URL, binary and base64 references in the images array', async () => {
+      await createBasicModel({ modelId }).doGenerate({
+        ...callOptions,
+        files: [
+          { type: 'url', url: 'https://example.com/reference.png' },
+          {
+            type: 'file',
+            data: new Uint8Array([1, 2, 3]),
+            mediaType: 'image/png',
+          },
+          { type: 'file', data: 'dGVzdA==', mediaType: 'image/png' },
+        ],
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        prompt,
+        images: ['https://example.com/reference.png', 'AQID', 'dGVzdA=='],
+      });
+    });
+
+    it('preserves seed, output format, steps and safety tolerance', async () => {
+      const result = await createBasicModel({ modelId }).doGenerate({
+        ...callOptions,
+        seed: 42,
+        providerOptions: {
+          blackForestLabs: {
+            outputFormat: 'png',
+            steps: 16,
+            safetyTolerance: 7,
+          },
+        },
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        prompt,
+        seed: 42,
+        output_format: 'png',
+        steps: 16,
+        safety_tolerance: 7,
+      });
+      expect(result.warnings).toEqual([]);
+    });
+
+    it.each([
+      '768x768',
+      '1024x1024',
+      '1536x1536',
+      '2048x2048',
+      '4096x4096',
+    ] as const)('sends exact dimensions for size %s', async size => {
+      const result = await createBasicModel({ modelId }).doGenerate({
+        ...callOptions,
+        size,
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        prompt,
+        width: Number(size.split('x')[0]),
+        height: Number(size.split('x')[1]),
+      });
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('prefers exact dimensions over aspect ratio and resolution', async () => {
+      const result = await createBasicModel({ modelId }).doGenerate({
+        ...callOptions,
+        size: '1536x640',
+        aspectRatio: '3:1',
+        providerOptions: { blackForestLabs: { resolution: '4k' } },
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        prompt,
+        width: 1536,
+        height: 640,
+      });
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('prefers provider dimensions over size and accepts a wide 4K image', async () => {
+      await createBasicModel({ modelId }).doGenerate({
+        ...callOptions,
+        size: '1024x1024',
+        providerOptions: { blackForestLabs: { width: 6256, height: 2688 } },
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        prompt,
+        width: 6256,
+        height: 2688,
+      });
+    });
+
+    it('accepts the minimum dimensions and fills the other dimension from size', async () => {
+      await createBasicModel({ modelId }).doGenerate({
+        ...callOptions,
+        size: '1024x64',
+        providerOptions: { blackForestLabs: { width: 64 } },
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        prompt,
+        width: 64,
+        height: 64,
+      });
+    });
+
+    it('normalizes reduced ultrawide aspect ratios', async () => {
+      await createBasicModel({ modelId }).doGenerate({
+        ...callOptions,
+        aspectRatio: '7:3',
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        prompt,
+        aspect_ratio: '21:9',
+      });
+    });
+
+    it('omits unsupported aspect ratios with a warning', async () => {
+      const result = await createBasicModel({ modelId }).doGenerate({
+        ...callOptions,
+        aspectRatio: '3:1',
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({ prompt });
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'aspectRatio',
+        }),
+      );
+    });
+
+    it('omits base-model and legacy options with warnings', async () => {
+      const result = await createBasicModel({ modelId }).doGenerate({
+        ...callOptions,
+        providerOptions: {
+          blackForestLabs: {
+            grounding: false,
+            version: 'latest',
+            guidance: 4,
+            inputImage: 'dGVzdA==',
+          },
+        },
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({ prompt });
+      expect(result.warnings).toEqual(
+        expect.arrayContaining([
+          { type: 'unsupported', feature: 'blackForestLabs.grounding' },
+          { type: 'unsupported', feature: 'blackForestLabs.version' },
+          { type: 'unsupported', feature: 'blackForestLabs.guidance' },
+          { type: 'unsupported', feature: 'blackForestLabs.inputImage' },
+        ]),
+      );
+      expect(result.warnings).toHaveLength(4);
+    });
+
+    it.each([
+      { width: 63, height: 64 },
+      { width: 64, height: 6257 },
+      { width: 6256, height: 6256 },
+      { width: 1024 },
+      { height: 1024 },
+      { steps: 0 },
+      { steps: 17 },
+      { safetyTolerance: 8 },
+      { resolution: '8k' },
+    ])(
+      'rejects invalid provider options %j before submission',
+      async blackForestLabs => {
+        await expect(
+          createBasicModel({ modelId }).doGenerate({
+            ...callOptions,
+            providerOptions: { blackForestLabs },
+          }),
+        ).rejects.toThrow();
+        expect(server.calls).toHaveLength(0);
+      },
+    );
+
+    it.each(['63x64', '6257x64', '4096x4108'] as const)(
+      'rejects unsupported size %s before submission',
+      async size => {
+        await expect(
+          createBasicModel({ modelId }).doGenerate({ ...callOptions, size }),
+        ).rejects.toThrow();
+        expect(server.calls).toHaveLength(0);
+      },
+    );
+
+    it('rejects masks before submission', async () => {
+      await expect(
+        createBasicModel({ modelId }).doGenerate({
+          ...callOptions,
+          mask: { type: 'url', url: 'https://example.com/mask.png' },
+        }),
+      ).rejects.toThrow('FLUX 3 image masks');
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('rejects more than ten reference images before submission', async () => {
+      await expect(
+        createBasicModel({ modelId }).doGenerate({
+          ...callOptions,
+          files: Array.from({ length: 11 }, () => ({
+            type: 'url' as const,
+            url: 'https://example.com/image.png',
+          })),
+        }),
+      ).rejects.toThrow('Black Forest Labs supports up to 10 input images.');
+      expect(server.calls).toHaveLength(0);
+    });
+  });
+
   describe('constructor', () => {
     it('exposes correct provider and model information', () => {
       const model = createBasicModel();
 
       expect(model.provider).toBe('black-forest-labs.image');
-      expect(model.modelId).toBe('test-model');
+      expect(model.modelId).toBe('flux-2-pro');
       expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(1);
     });

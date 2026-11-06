@@ -6,6 +6,9 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   convertToBase64,
@@ -132,18 +135,33 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
 
     // Create form data with base fields
     const formData = new FormData();
-    const blob =
-      audio instanceof Uint8Array
-        ? new Blob([audio as Uint8Array<ArrayBuffer>])
-        : new Blob([convertBase64ToUint8Array(audio)]);
-
     formData.append('model_id', this.modelId);
-    const fileExtension = mediaTypeToExtension(mediaType);
-    formData.append(
-      'file',
-      new File([blob], 'audio', { type: mediaType }),
-      `audio.${fileExtension}`,
-    );
+
+    // ElevenLabs accepts exactly one of `file` or `source_url`.
+    const sourceUrl = elevenlabsOptions?.sourceUrl;
+    if (sourceUrl != null) {
+      formData.append('source_url', sourceUrl);
+
+      if (audio.length > 0) {
+        warnings.push({
+          type: 'other',
+          message:
+            'ElevenLabs transcribes providerOptions.elevenlabs.sourceUrl; the audio input was ignored.',
+        });
+      }
+    } else {
+      const blob =
+        audio instanceof Uint8Array
+          ? new Blob([audio as Uint8Array<ArrayBuffer>])
+          : new Blob([convertBase64ToUint8Array(audio)]);
+      const fileExtension = mediaTypeToExtension(mediaType);
+      formData.append(
+        'file',
+        new File([blob], 'audio', { type: mediaType }),
+        `audio.${fileExtension}`,
+      );
+    }
+
     formData.append('diarize', String(elevenlabsOptions?.diarize ?? true));
 
     // Add provider-specific options
@@ -195,7 +213,10 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
         path: '/v1/speech-to-text',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: elevenlabsFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -214,7 +235,10 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
           endSecond: word.end ?? 0,
         })) ?? [],
       language: response.language_code,
-      durationInSeconds: response.words?.at(-1)?.end ?? undefined,
+      durationInSeconds:
+        response.audio_duration_secs ??
+        response.words?.at(-1)?.end ??
+        undefined,
       warnings,
       response: {
         timestamp: currentDate,
@@ -313,7 +337,10 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
       stream: createElevenLabsRealtimeTranscriptionStream({
         abortSignal: options.abortSignal,
         audio: options.audio,
-        headers: combineHeaders(this.config.headers?.(), options.headers),
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+        ),
         includeLanguageDetection:
           streamingOptions?.includeLanguageDetection === true,
         includeRawChunks: options.includeRawChunks,
@@ -720,28 +747,33 @@ function createElevenLabsRealtimeTranscriptionStream({
   });
 }
 
-const elevenlabsTranscriptionResponseSchema = z.object({
-  language_code: z.string(),
-  language_probability: z.number(),
-  text: z.string(),
-  words: z
-    .array(
-      z.object({
-        text: z.string(),
-        type: z.enum(['word', 'spacing', 'audio_event']),
-        start: z.number().nullish(),
-        end: z.number().nullish(),
-        speaker_id: z.string().nullish(),
-        characters: z
-          .array(
-            z.object({
-              text: z.string(),
-              start: z.number().nullish(),
-              end: z.number().nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-    )
-    .nullish(),
-});
+const elevenlabsTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio_duration_secs: z.number().nullish(),
+      language_code: z.string(),
+      language_probability: z.number(),
+      text: z.string(),
+      words: z
+        .array(
+          z.object({
+            text: z.string(),
+            type: z.enum(['word', 'spacing', 'audio_event']),
+            start: z.number().nullish(),
+            end: z.number().nullish(),
+            speaker_id: z.string().nullish(),
+            characters: z
+              .array(
+                z.object({
+                  text: z.string(),
+                  start: z.number().nullish(),
+                  end: z.number().nullish(),
+                }),
+              )
+              .nullish(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);

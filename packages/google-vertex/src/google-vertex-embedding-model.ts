@@ -1,8 +1,11 @@
+import { getGoogleVertexRequestConfig } from './google-vertex-model-catalog-config';
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
@@ -61,6 +64,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -116,7 +120,8 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
         body: {
           content: { parts: [{ text: values[0] }] },
           embedContentConfig: {
-            outputDimensionality: googleOptions.outputDimensionality,
+            outputDimensionality:
+              googleOptions.outputDimensionality ?? dimensions,
             taskType: googleOptions.taskType,
             title: googleOptions.title,
             autoTruncate: googleOptions.autoTruncate,
@@ -156,7 +161,8 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
           title: googleOptions.title,
         })),
         parameters: {
-          outputDimensionality: googleOptions.outputDimensionality,
+          outputDimensionality:
+            googleOptions.outputDimensionality ?? dimensions,
           autoTruncate: googleOptions.autoTruncate,
         },
       },
@@ -187,32 +193,40 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const googleVertexTextEmbeddingResponseSchema = z.object({
-  predictions: z.array(
+const googleVertexTextEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      embeddings: z.object({
-        values: z.array(z.number()),
-        statistics: z.object({
-          token_count: z.number(),
+      predictions: z.array(
+        z.object({
+          embeddings: z.object({
+            values: z.array(z.number()),
+            statistics: z.object({
+              token_count: z.number(),
+            }),
+          }),
         }),
-      }),
+      ),
     }),
   ),
-});
+);
 
-const googleVertexEmbedContentResponseSchema = z.object({
-  embedding: z.object({
-    values: z.array(z.number()),
-  }),
-  usageMetadata: z
-    .object({
-      promptTokenCount: z.number().nullish(),
-    })
-    .nullish(),
-});
+const googleVertexEmbedContentResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      embedding: z.object({
+        values: z.array(z.number()),
+      }),
+      usageMetadata: z
+        .object({
+          promptTokenCount: z.number().nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);
 
 function usesEmbedContentEndpoint(modelId: GoogleVertexEmbeddingModelId) {
   return (
-    modelId === 'gemini-embedding-2' || modelId === 'gemini-embedding-2-preview'
+    getGoogleVertexRequestConfig(modelId).embedding?.endpoint === 'embedContent'
   );
 }

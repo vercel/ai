@@ -16,6 +16,19 @@ function createEventStream(value: unknown): ReadableStream<Uint8Array> {
 }
 
 describe('uiMessageChunkSchema', () => {
+  it('accepts interrupted finish chunks over SSE', async () => {
+    const chunk = { type: 'finish', finishReason: 'interrupted' };
+
+    expect(
+      await convertReadableStreamToArray(
+        parseJsonEventStream({
+          stream: createEventStream(chunk),
+          schema: uiMessageChunkSchema,
+        }),
+      ),
+    ).toEqual([{ success: true, value: chunk, rawValue: chunk }]);
+  });
+
   it('returns UI message chunks', async () => {
     const chunk = await validateTypes({
       schema: uiMessageChunkSchema,
@@ -36,6 +49,30 @@ describe('uiMessageChunkSchema', () => {
         value: { type: 'reset-step' },
       }),
     ).resolves.toEqual({ type: 'reset-step' });
+  });
+
+  it('accepts steering message chunks over SSE', async () => {
+    const chunk = {
+      type: 'steering-message',
+      id: 'steer-1',
+      parts: [
+        { type: 'text', text: 'I meant Paris, Texas.' },
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          url: 'https://example.com/map.png',
+        },
+      ],
+    };
+
+    expect(
+      await convertReadableStreamToArray(
+        parseJsonEventStream({
+          stream: createEventStream(chunk),
+          schema: uiMessageChunkSchema,
+        }),
+      ),
+    ).toEqual([{ success: true, value: chunk, rawValue: chunk }]);
   });
 
   it('accepts known chunks with fields added by newer servers', async () => {

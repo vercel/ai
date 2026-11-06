@@ -4,6 +4,8 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
@@ -33,9 +35,10 @@ export interface AssemblyAIProvider extends ProviderV4 {
 
 export interface AssemblyAIProviderSettings {
   /**
-   * API key for authenticating requests.
+   * API key for authenticating requests. May be a string, promise, or a
+   * synchronous/asynchronous callback called before each request.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Custom headers to include in the requests.
@@ -56,16 +59,18 @@ export function createAssemblyAI(
   options: AssemblyAIProviderSettings = {},
 ): AssemblyAIProvider {
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        authorization: loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'ASSEMBLYAI_API_KEY',
-          description: 'AssemblyAI',
-        }),
-        ...options.headers,
-      },
-      `ai-sdk-assemblyai/${VERSION}`,
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          authorization: loadApiKey({
+            apiKey,
+            environmentVariableName: 'ASSEMBLYAI_API_KEY',
+            description: 'AssemblyAI',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-assemblyai/${VERSION}`,
+      ),
     );
 
   const createTranscriptionModel = (modelId: AssemblyAITranscriptionModelId) =>

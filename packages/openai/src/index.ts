@@ -15,12 +15,14 @@ export type { OpenAIRealtimeModelConfig as Experimental_OpenAIRealtimeModelConfi
 export type {
   OpenAILanguageModelResponsesOptions,
   OpenAIResponsesSystemMessageOptions,
+  OpenAIResponsesToolResultOptions,
   /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */
   OpenAILanguageModelResponsesOptions as OpenAIResponsesProviderOptions,
 } from './responses/openai-responses-language-model-options';
 export type { OpenAIToolOptions } from './responses/openai-responses-prepare-tools';
 export type {
   OpenAILanguageModelChatOptions,
+  OpenAIChatMessageProviderOptions,
   /** @deprecated Use `OpenAILanguageModelChatOptions` instead. */
   OpenAILanguageModelChatOptions as OpenAIChatLanguageModelOptions,
 } from './chat/openai-chat-language-model-options';

@@ -500,6 +500,111 @@ describe('LegacyOpenTelemetry', () => {
       expect(attrs['ai.prompt.messages']).toBeDefined();
     });
 
+    it.each([undefined, false])(
+      'redacts domain secrets in tool definitions with recordInputs=%s',
+      recordInputs => {
+        const stepTools = [
+          {
+            type: 'provider',
+            id: 'openai.code_interpreter',
+            name: 'python',
+            args: {
+              container: {
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets: [
+                    {
+                      domain: 'example.com',
+                      name: 'API_KEY',
+                      value: 'private-key',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ];
+        const originalTools = structuredClone(stepTools);
+        otelIntegration.onStart!(makeOnStartEvent({ recordInputs }));
+        otelIntegration.onStepStart!(makeStepStartEvent({ stepTools }));
+
+        const definitions = getStartSpanAttributes(tracer, 1)[
+          'ai.prompt.tools'
+        ];
+        if (recordInputs === false) {
+          expect(definitions).toBeUndefined();
+        } else {
+          expect(definitions).toEqual([
+            JSON.stringify({
+              type: 'provider',
+              id: 'openai.code_interpreter',
+              name: 'python',
+              args: {
+                container: {
+                  networkPolicy: {
+                    type: 'allowlist',
+                    allowedDomains: ['example.com'],
+                    domainSecrets: [
+                      {
+                        domain: 'example.com',
+                        name: 'API_KEY',
+                        value: '[redacted]',
+                      },
+                    ],
+                  },
+                },
+              },
+            }),
+          ]);
+        }
+        expect(stepTools).toEqual(originalTools);
+      },
+    );
+
+    it.each([undefined, false])(
+      'redacts MCP credentials in tool definitions with recordInputs=%s',
+      recordInputs => {
+        const stepTools = [
+          {
+            type: 'provider',
+            id: 'openai.mcp',
+            name: 'remote_tools',
+            args: {
+              serverLabel: 'example',
+              serverUrl: 'https://example.com/mcp',
+              authorization: 'mcp-private-token',
+              headers: { 'X-Custom-Key': 'mcp-private-key' },
+            },
+          },
+        ];
+        const originalTools = structuredClone(stepTools);
+        otelIntegration.onStart!(makeOnStartEvent({ recordInputs }));
+        otelIntegration.onStepStart!(makeStepStartEvent({ stepTools }));
+        const definitions = getStartSpanAttributes(tracer, 1)[
+          'ai.prompt.tools'
+        ];
+        expect(definitions).toEqual(
+          recordInputs === false
+            ? undefined
+            : [
+                JSON.stringify({
+                  type: 'provider',
+                  id: 'openai.mcp',
+                  name: 'remote_tools',
+                  args: {
+                    serverLabel: 'example',
+                    serverUrl: 'https://example.com/mcp',
+                    authorization: '[redacted]',
+                    headers: { 'X-Custom-Key': '[redacted]' },
+                  },
+                }),
+              ],
+        );
+        expect(stepTools).toEqual(originalTools);
+      },
+    );
+
     it('includes tool choice and tools when provided', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(
@@ -925,6 +1030,23 @@ describe('LegacyOpenTelemetry', () => {
       otelIntegration.onEnd!(makeFinishEvent());
 
       expect(tracer.spans).toHaveLength(0);
+    });
+  });
+
+  describe('onStepError', () => {
+    it('records error on the step span and keeps the root span open', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+
+      const error = new Error('step failed');
+      otelIntegration.onStepError!({ ...makeStepStartEvent(), error } as any);
+
+      const [rootSpan, stepSpan] = tracer.spans;
+      expect(stepSpan.recordException).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'step failed' }),
+      );
+      expect(stepSpan.end).toHaveBeenCalled();
+      expect(rootSpan.end).not.toHaveBeenCalled();
     });
   });
 
@@ -2624,6 +2746,39 @@ describe('LegacyOpenTelemetry integration with decide', () => {
     },
   );
 
+  it.each([true, false])(
+    'serializes decision image bytes with recordInputs=%s',
+    async recordInputs => {
+      const tracer = new IntegrationMockTracer();
+      const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xff]);
+      await experimental_decide({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { visible: { type: 'boolean', probability: 0.9 } },
+            warnings: [],
+          }),
+        }),
+        state: [{ type: 'file', mediaType: 'image/png', data: bytes }],
+        questions: {
+          visible: { type: 'boolean', instructions: 'Is the product visible?' },
+        },
+        telemetry: {
+          recordInputs,
+          integrations: new LegacyOpenTelemetry({ tracer }),
+        },
+      });
+      const attributes = tracer.jsonSpans.map(span => span.attributes);
+      expect(attributes).toHaveLength(2);
+      for (const value of attributes) {
+        expect(value['ai.decision.state']).toBe(
+          recordInputs
+            ? '[{"type":"file","mediaType":"image/png","data":"iVBOR///"}]'
+            : undefined,
+        );
+      }
+    },
+  );
+
   it.each(['current', 'deprecated'] as const)(
     'records decision inputs, outputs, and usage through the %s API',
     async api => {
@@ -2666,7 +2821,7 @@ describe('LegacyOpenTelemetry integration with decide', () => {
           "attributes": {
             "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
             "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
-            "ai.decision.state": "{"message":"Please refund me"}",
+            "ai.decision.state": "[{"type":"json","value":{"message":"Please refund me"}}]",
             "ai.model.id": "mock-model-id",
             "ai.model.provider": "mock-provider",
             "ai.operationId": "ai.decide.doDecide",

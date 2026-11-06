@@ -10,6 +10,28 @@ import { webSearch_20260318OutputSchema } from './tool/web-search_20260318';
 import { anthropicChunkSchema, anthropicResponseSchema } from './anthropic-api';
 
 describe('prepareTools', () => {
+  it('does not add the strict-tool beta for providers that only support native final output', async () => {
+    const result = await prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'report',
+          inputSchema: { type: 'object', properties: {} },
+          strict: true,
+        },
+      ],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
+      supportsStrictTools: false,
+    });
+
+    expect(result.betas).toEqual(new Set());
+    expect(result.tools?.[0]).not.toHaveProperty('strict');
+    expect(result.toolWarnings).toEqual([
+      expect.objectContaining({ type: 'unsupported', feature: 'strict' }),
+    ]);
+  });
+
   it('should return undefined tools and tool_choice when tools are null', async () => {
     const result = await prepareTools({
       tools: undefined,
@@ -241,6 +263,26 @@ describe('prepareTools', () => {
           ],
         }
       `);
+    });
+
+    it('should omit strict without warning when strict is false and strict tools are unsupported', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: false,
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: false,
+        supportsStrictTools: false,
+      });
+
+      expect(result.tools?.[0]).not.toHaveProperty('strict');
+      expect(result.toolWarnings).toEqual([]);
     });
 
     it('should include strict but not beta when supportsStructuredOutput is false but supportsStrictTools is true', async () => {
@@ -1475,7 +1517,7 @@ describe('prepareTools', () => {
     expect(result.toolChoice).toEqual({ type: 'any' });
   });
 
-  it('should handle tool choice "none"', async () => {
+  it('should preserve tools with tool choice "none"', async () => {
     const result = await prepareTools({
       tools: [
         {
@@ -1489,8 +1531,15 @@ describe('prepareTools', () => {
       supportsStructuredOutput: true,
       supportsStrictTools: true,
     });
-    expect(result.tools).toBeUndefined();
-    expect(result.toolChoice).toBeUndefined();
+    expect(result.tools).toEqual([
+      {
+        cache_control: undefined,
+        name: 'testFunction',
+        description: 'Test',
+        input_schema: {},
+      },
+    ]);
+    expect(result.toolChoice).toEqual({ type: 'none' });
   });
 
   it('should handle tool choice "tool"', async () => {
@@ -2115,7 +2164,7 @@ describe('rejectsForcedToolUse', () => {
     expect(result.toolWarnings).toMatchInlineSnapshot(`
       [
         {
-          "details": "toolChoice 'required' is not supported by this model because it rejects forced tool use. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+          "details": "toolChoice 'required' is not supported with this model or thinking configuration. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
           "feature": "toolChoice",
           "type": "unsupported",
         },
@@ -2173,7 +2222,8 @@ describe('rejectsForcedToolUse', () => {
       supportsStrictTools: true,
       rejectsForcedToolUse: true,
     });
-    expect(none.tools).toBeUndefined();
+    expect(none.tools).toHaveLength(2);
+    expect(none.toolChoice).toEqual({ type: 'none' });
     expect(none.toolWarnings).toEqual([]);
   });
 });

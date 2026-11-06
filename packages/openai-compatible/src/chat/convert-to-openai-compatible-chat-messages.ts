@@ -11,10 +11,13 @@ import type {
   OpenAICompatibleContentPart,
 } from './openai-compatible-api-types';
 import {
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertBase64ToUint8Array,
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
+  resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
@@ -37,6 +40,7 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
 
 function convertToOpenAICompatibleContentPart(
   part: LanguageModelV4TextPart | LanguageModelV4FilePart,
+  provider: string,
 ): OpenAICompatibleContentPart {
   const partMetadata = getOpenAIMetadata(part);
 
@@ -47,11 +51,26 @@ function convertToOpenAICompatibleContentPart(
     case 'file': {
       switch (part.data.type) {
         case 'reference': {
-          throw new UnsupportedFunctionalityError({
-            functionality: 'file parts with provider references',
-          });
+          return {
+            type: 'file',
+            file: {
+              file_id: resolveProviderReference({
+                reference: part.data.reference,
+                provider,
+              }),
+            },
+            ...partMetadata,
+          };
         }
         case 'text': {
+          if (getTopLevelMediaType(part.mediaType) === 'text') {
+            return {
+              type: 'text',
+              text: part.data.text,
+              ...partMetadata,
+            };
+          }
+
           throw new UnsupportedFunctionalityError({
             functionality: 'text file parts',
           });
@@ -166,6 +185,7 @@ function convertToolContentPart(
     LanguageModelV4ToolResultOutput,
     { type: 'content' }
   >['value'][number],
+  provider: string,
 ): OpenAICompatibleContentPart {
   if (part.type === 'custom') {
     throw new UnsupportedFunctionalityError({
@@ -173,15 +193,29 @@ function convertToolContentPart(
     });
   }
 
-  return convertToOpenAICompatibleContentPart(part);
+  return convertToOpenAICompatibleContentPart(part, provider);
+}
+
+function serializeToolCallArguments(input: unknown): string {
+  if (typeof input === 'string') {
+    try {
+      secureJsonParse(input);
+      return input;
+    } catch {
+      return JSON.stringify(input);
+    }
+  }
+  return stringifyWithBigIntAndCycles(input);
 }
 
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV4Prompt,
   {
+    provider = 'openaiCompatible',
     providerOptionsKey = 'google',
     supportsMultiPartToolContent = false,
   }: {
+    provider?: string;
     providerOptionsKey?: string;
     supportsMultiPartToolContent?: boolean;
   } = {},
@@ -207,7 +241,9 @@ export function convertToOpenAICompatibleChatMessages(
 
         messages.push({
           role: 'user',
-          content: content.map(convertToOpenAICompatibleContentPart),
+          content: content.map(part =>
+            convertToOpenAICompatibleContentPart(part, provider),
+          ),
           ...metadata,
         });
 
@@ -249,7 +285,7 @@ export function convertToOpenAICompatibleChatMessages(
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeToolCallArguments(part.input),
                 },
                 ...partMetadata,
                 // Include extra_content for Google Gemini thought signatures
@@ -298,12 +334,14 @@ export function convertToOpenAICompatibleChatMessages(
               break;
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
             case 'content':
               contentValue = supportsMultiPartToolContent
-                ? output.value.map(convertToolContentPart)
-                : JSON.stringify(output.value);
+                ? output.value.map(part =>
+                    convertToolContentPart(part, provider),
+                  )
+                : stringifyWithBigIntAndCycles(output.value);
               break;
           }
 
