@@ -174,6 +174,35 @@ describe('fetchWithValidatedRedirects', () => {
     expect(headers['x-key']).toBe('secret');
   });
 
+  it.each(['https://example.com/final', 'http://127.0.0.1/blocked'])(
+    'does not wait for redirect body cancellation before validating %s',
+    async location => {
+      const cancel = vi.fn(() => new Promise<void>(() => {}));
+      const fetch = vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(new ReadableStream({ cancel }), {
+            status: 302,
+            headers: { location },
+          }),
+        )
+        .mockResolvedValueOnce(okResponse());
+
+      const result = fetchWithValidatedRedirects({
+        url: 'https://example.com/start',
+        fetch,
+      });
+      if (location.startsWith('http://127.0.0.1/')) {
+        await expect(result).rejects.toThrow(DownloadError);
+        expect(fetch).toHaveBeenCalledTimes(1);
+      } else {
+        await expect(result).resolves.toHaveProperty('ok', true);
+        expect(fetch).toHaveBeenCalledTimes(2);
+      }
+      expect(cancel).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it('rejects once the redirect limit is exceeded', async () => {
     const fetchMock = vi
       .fn()

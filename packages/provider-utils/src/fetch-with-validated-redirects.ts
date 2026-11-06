@@ -164,10 +164,9 @@ export async function fetchWithValidatedRedirects({
 
     const location = response.headers?.get('location');
     if (response.status >= 300 && response.status < 400 && location) {
-      // Release the redirect response's connection before moving to the next
-      // hop. Whether that hop is followed or rejected by the SSRF guard, an
-      // unconsumed 3xx body would leak the underlying socket.
-      await cancelResponseBody(response);
+      // Start releasing the redirect response's connection without waiting:
+      // cancellation can stay pending when a fetch wrapper retains a clone.
+      void cancelResponseBody(response);
       const nextUrl = new URL(location, currentUrl).toString();
       // Provider keys can use arbitrary header names. Retain only User-Agent
       // when crossing origins, including when a later hop returns to the API.
