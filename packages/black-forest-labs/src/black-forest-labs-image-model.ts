@@ -388,6 +388,11 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       !baseHostname.endsWith('.bfl.ai');
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
+      credentialedOrigin: useCustomDownloadHeaders
+        ? this.config.baseURL
+        : undefined,
       // Signed BFL downloads need no credentials; custom proxies may need them.
       headers: useCustomDownloadHeaders
         ? combinedHeaders
@@ -472,6 +477,8 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     const fetchPollResult = async () => {
       const { value } = await getFromApi({
         url: url.toString(),
+        validateUrl: true,
+        trustedOrigin: this.config.baseURL,
         // The polling URL comes from the provider response; only send
         // credentials when it stays on a trusted provider host.
         headers: isTrustedUrl(url.toString(), this.config.baseURL)
