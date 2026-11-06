@@ -844,6 +844,14 @@ HTTP(S) tool-result files are downloaded and sent as inline data, subject to
 `toolResultDownloads.maxBytes`. Direct GCS tool-result forwarding is not supported
 for older Gemini models or MIME types outside the list above.
 
+<Note type="warning">
+  HTTP(S) tool-result files are downloaded using the `fetch` option of
+  `createGoogleVertex`; the Vertex API key is not sent to those hosts. For
+  untrusted URLs on Node.js, pass a `guarded-fetch` transport there. Direct
+  `gs://` references are fetched by Vertex instead. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
+</Note>
+
 ### Cached Content
 
 Google Vertex AI supports both explicit and implicit caching to help reduce costs on repetitive content.

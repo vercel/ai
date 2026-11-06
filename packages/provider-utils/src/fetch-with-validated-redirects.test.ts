@@ -31,6 +31,29 @@ function okResponse(): Response {
 }
 
 describe('fetchWithValidatedEndpoint', () => {
+  it.each(['default', 'forwarded global', 'custom'] as const)(
+    'uses the selected runtime transport (%s)',
+    async mode => {
+      const runtimeFetch = vi.fn().mockResolvedValue(okResponse());
+      const customFetch = vi.fn().mockResolvedValue(okResponse());
+      globalThis.fetch = runtimeFetch;
+      const selected = mode === 'custom' ? customFetch : runtimeFetch;
+      await fetchWithValidatedEndpoint({
+        url: 'https://files.example.com/file',
+        fetch: mode === 'default' ? undefined : selected,
+      });
+      expect(selected).toHaveBeenCalledExactlyOnceWith(
+        'https://files.example.com/file',
+        {
+          redirect: 'error',
+        },
+      );
+      expect(
+        mode === 'custom' ? runtimeFetch : customFetch,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
   it('validates the URL before issuing the request', async () => {
     const fetchMock = vi.fn();
 

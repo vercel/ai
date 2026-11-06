@@ -485,7 +485,7 @@ describe('edits', () => {
 
     expect(downloadBlobMock).toHaveBeenCalledWith(
       'https://example.com/apple.png',
-      { abortSignal },
+      { abortSignal, fetch: expect.any(Function) },
     );
     expect((request().body as FormData).getAll('image')).toHaveLength(1);
   });

@@ -335,6 +335,7 @@ export function createGoogleVertex(
       downloadToolResultFiles: {
         maxBytes: options.toolResultDownloads?.maxBytes ?? 7 * 1024 * 1024,
         supportsGoogleCloudStorageUrls: true,
+        fetch: options.fetch,
       },
     });
   };

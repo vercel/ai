@@ -195,7 +195,7 @@ experimental webhook delivery, see the [MCP Events guide](/docs/ai-sdk-core/mcp-
                       type: 'FetchFunction',
                       isOptional: true,
                       description:
-                        'Optional custom fetch implementation to use for HTTP requests. Useful for runtimes that need a request-local fetch.',
+                        'Optional custom fetch implementation for the built-in HTTP/SSE transport and its OAuth requests, e.g. a `guarded-fetch` transport for user-configured server URLs (see [Securing remote server URLs](/docs/ai-sdk-core/mcp-tools#securing-remote-server-urls)). Also useful for runtimes that need a request-local fetch.',
                     },
                   ],
                 },
