@@ -1,0 +1,105 @@
+---
+title: Septor Labs
+description: Use the Septor Labs OpenAI compatible API with the AI SDK.
+---
+
+# Septor Labs Provider
+
+[Septor Labs](https://septorlabs.com/) is a hosted AI gateway for agents. One API key works with OpenAI-style clients, and calls are routed to a healthy provider with automatic failover before the first token. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a Septor Labs API key in the [Septor Labs dashboard](https://septorlabs.com/) and set it as a server-side environment variable:
+
+```bash
+export SEPTOR_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a Septor Labs provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const septor = createOpenAICompatible({
+  name: 'septor',
+  apiKey: process.env.SEPTOR_API_KEY,
+  baseURL: 'https://api.septorlabs.com/v1',
+});
+```
+
+The `apiKey` setting sends your key as a Bearer token in the `Authorization` header.
+
+## Language Models
+
+Create a language model by passing a Septor Labs model ID to the provider instance:
+
+```ts
+const model = septor('deepseek-v4.1-flash');
+```
+
+You can also set the model ID to `auto` and let the router pick a model for each request.
+
+### Generate Text
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const septor = createOpenAICompatible({
+  name: 'septor',
+  apiKey: process.env.SEPTOR_API_KEY,
+  baseURL: 'https://api.septorlabs.com/v1',
+});
+
+const { text } = await generateText({
+  model: septor('deepseek-v4.1-flash'),
+  prompt: 'Explain what an AI gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+### Stream Text
+
+Use `streamText` to stream text as it is generated:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const septor = createOpenAICompatible({
+  name: 'septor',
+  apiKey: process.env.SEPTOR_API_KEY,
+  baseURL: 'https://api.septorlabs.com/v1',
+});
+
+const result = streamText({
+  model: septor('deepseek-v4.1-flash'),
+  prompt: 'Count from 1 to 5, separated by spaces.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Supported Models and Capabilities
+
+This integration uses Septor Labs's OpenAI-compatible Chat Completions endpoint for text generation and streaming. Support for tools, vision, and reasoning depends on the selected model.
+
+The model catalog changes over time. Browse current model IDs, capabilities, and pricing in the [model catalog](https://septorlabs.com/models), or use the authenticated [`GET /models`](https://api.septorlabs.com/v1/models) endpoint.
+
+## Resources
+
+- [Septor Labs documentation](https://septorlabs.com/docs/introduction)
+- [Septor Labs model catalog](https://septorlabs.com/models)
+- [Septor Labs pricing](https://septorlabs.com/pricing)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
