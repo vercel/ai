@@ -2,6 +2,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createVertex } from '@ai-sdk/google-vertex';
 import { describe, expect, it } from 'vitest';
 import { generateText } from './generate-text';
+import * as Output from './output';
 import { streamText } from './stream-text';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 
@@ -128,3 +129,99 @@ describe.each(['gemini-2.5-flash', 'gemini-3-flash-preview'])(
     );
   },
 );
+
+describe('Google toolChoice none with structured output', () => {
+  it.each(
+    ['google', 'vertex'].flatMap(providerName =>
+      ['gemini-2.5-flash', 'gemini-3-flash-preview'].flatMap(modelId =>
+        ['generateText', 'streamText'].map(mode => ({
+          providerName,
+          modelId,
+          mode,
+        })),
+      ),
+    ),
+  )(
+    '$mode with $providerName on $modelId',
+    async ({ providerName, modelId, mode }) => {
+      const requests: Array<{
+        tools?: unknown[];
+        toolConfig?: unknown;
+      }> = [];
+      const usesResponseTool = modelId === 'gemini-2.5-flash';
+      const settings = {
+        apiKey: 'test-api-key',
+        fetch: async (
+          _url: Parameters<typeof fetch>[0],
+          init?: RequestInit,
+        ) => {
+          requests.push(JSON.parse(init!.body as string));
+          const parts = usesResponseTool
+            ? [{ functionCall: { name: 'json', args: { message: 'Hello.' } } }]
+            : [{ text: '{"message":"Hello."}' }];
+          const body = {
+            candidates: [
+              { content: { role: 'model', parts }, finishReason: 'STOP' },
+            ],
+          };
+          return mode === 'generateText'
+            ? Response.json(body)
+            : new Response(`data: ${JSON.stringify(body)}\n\n`, {
+                headers: { 'Content-Type': 'text/event-stream' },
+              });
+        },
+      };
+      const provider =
+        providerName === 'google'
+          ? createGoogleGenerativeAI(settings)
+          : createVertex(settings);
+      const options = {
+        model: provider(modelId),
+        prompt: 'Say hello in JSON.',
+        tools: {
+          retrieval:
+            providerName === 'google'
+              ? provider.tools.fileSearch({
+                  fileSearchStoreNames: ['fileSearchStores/synthetic-store'],
+                })
+              : provider.tools.vertexRagStore({
+                  ragCorpus:
+                    'projects/synthetic/locations/us-central1/ragCorpora/unused',
+                }),
+          lookup: {
+            inputSchema: jsonSchema({ type: 'object', properties: {} }),
+          },
+        },
+        toolChoice: 'none' as const,
+        output: Output.object({
+          schema: jsonSchema({
+            type: 'object',
+            properties: { message: { type: 'string' } },
+            required: ['message'],
+            additionalProperties: false,
+          }),
+        }),
+        maxRetries: 0,
+      };
+      const result =
+        mode === 'generateText'
+          ? await generateText(options)
+          : streamText(options);
+
+      expect(await result.output).toEqual({ message: 'Hello.' });
+      expect(requests).toHaveLength(1);
+      expect(requests[0].tools).toEqual([
+        {
+          functionDeclarations: expect.arrayContaining([
+            expect.objectContaining({ name: 'lookup' }),
+          ]),
+        },
+      ]);
+      expect(requests[0].toolConfig).toEqual({
+        functionCallingConfig: usesResponseTool
+          ? { mode: 'ANY', allowedFunctionNames: ['json'] }
+          : { mode: 'NONE' },
+      });
+    },
+  );
+});
