@@ -15739,16 +15739,19 @@ describe('computer toolset', () => {
     },
   );
 
-  it('should reject malformed streamed member input', async () => {
-    prepareMemberResponse({ streaming: true, partialJson: '{' });
-    const { stream } = await provider('claude-opus-5-5').doStream({
-      prompt: TEST_PROMPT,
-      tools: [computerToolset],
-    });
-    await expect(convertReadableStreamToArray(stream)).rejects.toBeInstanceOf(
-      InvalidResponseDataError,
-    );
-  });
+  it.each(['{', 'null', '[]', '"text"', '1'])(
+    'should reject invalid streamed member input (%s)',
+    async partialJson => {
+      prepareMemberResponse({ streaming: true, partialJson });
+      const { stream } = await provider('claude-opus-5-5').doStream({
+        prompt: TEST_PROMPT,
+        tools: [computerToolset],
+      });
+      await expect(convertReadableStreamToArray(stream)).rejects.toBeInstanceOf(
+        InvalidResponseDataError,
+      );
+    },
+  );
 
   it.each([false, true])(
     'should preserve custom tool names on thread continuation (streaming: %s)',
