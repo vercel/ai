@@ -55,6 +55,13 @@ function prepareChunkLinesResponse(chunks: Array<Record<string, unknown>>) {
   };
 }
 
+function prepareJsonValueResponse(body: Record<string, unknown>) {
+  server.urls['https://api.cohere.com/v2/chat'].response = {
+    type: 'json-value',
+    body,
+  };
+}
+
 describe('doGenerate', () => {
   function prepareJsonResponse({
     content = [],
@@ -226,6 +233,63 @@ describe('doGenerate', () => {
         "id": "test-id",
       }
     `);
+  });
+
+  describe('response id', () => {
+    it('should use the id from the response', async () => {
+      prepareJsonValueResponse({
+        id: 'response-id',
+        message: { role: 'assistant', content: [] },
+        finish_reason: 'COMPLETE',
+      });
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.id).toBe('response-id');
+    });
+
+    it('should prefer id over generation_id', async () => {
+      prepareJsonValueResponse({
+        id: 'response-id',
+        generation_id: 'legacy-generation-id',
+        message: { role: 'assistant', content: [] },
+        finish_reason: 'COMPLETE',
+      });
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.id).toBe('response-id');
+    });
+
+    it('should fall back to generation_id', async () => {
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+        generation_id: 'legacy-generation-id',
+      });
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.id).toBe('legacy-generation-id');
+    });
+
+    it('should leave the id undefined when the response has neither', async () => {
+      prepareJsonValueResponse({
+        message: { role: 'assistant', content: [] },
+        finish_reason: 'COMPLETE',
+      });
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.id).toBeUndefined();
+    });
   });
 
   it('should extract finish reason', async () => {
