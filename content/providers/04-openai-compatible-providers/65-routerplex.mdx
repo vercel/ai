@@ -1,0 +1,85 @@
+---
+title: RouterPlex
+description: Use the RouterPlex OpenAI compatible API with the AI SDK.
+---
+
+# RouterPlex Provider
+
+[RouterPlex](https://routerplex.com) is an AI model router and gateway that provides unified access to LLMs with automatic fallback and routing. You can use its OpenAI-compatible Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The RouterPlex provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use RouterPlex, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const routerplex = createOpenAICompatible({
+  name: 'routerplex',
+  baseURL: 'https://api.routerplex.com/v1',
+  apiKey: process.env.ROUTERPLEX_API_KEY,
+});
+```
+
+<Note>
+  Follow the [RouterPlex documentation](https://docs.routerplex.com) to create an API
+  key, and set the `ROUTERPLEX_API_KEY` environment variable.
+</Note>
+
+## Language Models
+
+You can create RouterPlex models using the provider instance:
+
+```ts
+const model = routerplex('claude-sonnet-4-6');
+```
+
+### Example
+
+You can use RouterPlex language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const routerplex = createOpenAICompatible({
+  name: 'routerplex',
+  baseURL: 'https://api.routerplex.com/v1',
+  apiKey: process.env.ROUTERPLEX_API_KEY,
+});
+
+const { text } = await generateText({
+  model: routerplex('claude-sonnet-4-6'),
+  prompt: 'Write a short greeting to the team.',
+});
+
+console.log(text);
+```
+
+RouterPlex models also support streaming text with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const routerplex = createOpenAICompatible({
+  name: 'routerplex',
+  baseURL: 'https://api.routerplex.com/v1',
+  apiKey: process.env.ROUTERPLEX_API_KEY,
+});
+
+const result = streamText({
+  model: routerplex('claude-sonnet-4-6'),
+  prompt: 'Explain what an LLM router is in two sentences.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
