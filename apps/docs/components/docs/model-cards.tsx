@@ -32,6 +32,8 @@ interface ModelLogo {
 interface ModelCardData {
   color: string;
   features: ModelFeatures;
+  /** Documentation versions (e.g. `/v5`) whose provider index omits this card. */
+  hiddenInVersions?: string[];
   href: string;
   /** Static logo asset under public/images/icons. */
   logo?: ModelLogo;
@@ -430,6 +432,15 @@ const COMMUNITY_MODELS: ModelCardData[] = [
     logoIcon: CloudflareIcon,
   },
   {
+    title: 'Picsart',
+    logo: { src: '/images/icons/picsart.svg' },
+    href: '/providers/community-providers/picsart',
+    color: 'FF47FF',
+    features: {},
+    // Requires AI SDK 7; the pinned v5 and v6 snapshots have no Picsart page.
+    hiddenInVersions: ['/v5', '/v6'],
+  },
+  {
     title: 'Write your own',
     logoIcon: WriteYourOwnIcon,
     href: '/providers/community-providers/custom-providers',
@@ -448,19 +459,21 @@ const CardGrid = ({
   versionPrefix?: string;
 }) => (
   <div className="not-prose grid w-full grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fit,_minmax(300px,1fr))]">
-    {models.map(model => {
-      const href = model.versionedHrefs?.[versionPrefix] ?? model.href;
-      const features =
-        model.versionedFeatures?.[versionPrefix] ?? model.features;
-      return (
-        <ModelCard
-          {...model}
-          features={features}
-          href={resolveHref(href)}
-          key={model.title}
-        />
-      );
-    })}
+    {models
+      .filter(model => !model.hiddenInVersions?.includes(versionPrefix))
+      .map(model => {
+        const href = model.versionedHrefs?.[versionPrefix] ?? model.href;
+        const features =
+          model.versionedFeatures?.[versionPrefix] ?? model.features;
+        return (
+          <ModelCard
+            {...model}
+            features={features}
+            href={resolveHref(href)}
+            key={model.title}
+          />
+        );
+      })}
   </div>
 );
 
