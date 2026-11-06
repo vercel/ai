@@ -1141,6 +1141,33 @@ describe('generateObject', () => {
 
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
+
+    it('should not record provider metadata in telemetry when recordOutputs is false', async () => {
+      await generateObject({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "content": "answer" }' }],
+            providerMetadata: {
+              openai: {
+                logprobs: [
+                  { token: 'SECRET-TOKEN', logprob: -0.1, top_logprobs: [] },
+                ],
+              },
+            },
+          }),
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        experimental_telemetry: {
+          isEnabled: true,
+          recordOutputs: false,
+          tracer,
+        },
+      });
+
+      expect(JSON.stringify(tracer.jsonSpans)).not.toContain('SECRET-TOKEN');
+    });
   });
 
   describe('options.messages', () => {
