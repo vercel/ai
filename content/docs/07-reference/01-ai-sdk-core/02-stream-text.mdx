@@ -2182,6 +2182,11 @@ retain the content their contracts require.
           type: 'GenerateTextStartEvent',
           parameters: [
             {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for the generation call.',
+            },
+            {
               name: 'provider',
               type: 'string',
               description:
@@ -2266,6 +2271,11 @@ retain the content their contracts require.
               description: 'Random seed for reproducible generation.',
             },
             {
+              name: 'reasoning',
+              type: "'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined",
+              description: 'Reasoning effort level for the model.',
+            },
+            {
               name: 'maxRetries',
               type: 'number',
               description: 'Maximum number of retries for failed requests.',
@@ -2293,17 +2303,6 @@ retain the content their contracts require.
                 'The output specification for structured outputs, if configured.',
             },
             {
-              name: 'abortSignal',
-              type: 'AbortSignal | undefined',
-              description: 'Abort signal for cancelling the operation.',
-            },
-            {
-              name: 'include',
-              type: '{ requestBody?: boolean; requestMessages?: boolean } | undefined',
-              description:
-                'Settings for controlling what data is included in step results.',
-            },
-            {
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
@@ -2329,6 +2328,11 @@ retain the content their contracts require.
         {
           type: 'GenerateTextStepStartEvent',
           parameters: [
+            {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for the generation call.',
+            },
             {
               name: 'stepNumber',
               type: 'number',
@@ -2392,36 +2396,10 @@ retain the content their contracts require.
                 'Additional provider-specific options for this step.',
             },
             {
-              name: 'timeout',
-              type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number } | undefined',
-              description: 'Timeout configuration for the generation.',
-            },
-            {
-              name: 'headers',
-              type: 'Record<string, string | undefined> | undefined',
-              description: 'Additional HTTP headers sent with the request.',
-            },
-            {
-              name: 'stopWhen',
-              type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>> | undefined',
-              description: 'Condition(s) for stopping the generation.',
-            },
-            {
               name: 'output',
               type: 'OUTPUT | undefined',
               description:
                 'The output specification for structured outputs, if configured.',
-            },
-            {
-              name: 'abortSignal',
-              type: 'AbortSignal | undefined',
-              description: 'Abort signal for cancelling the operation.',
-            },
-            {
-              name: 'include',
-              type: '{ requestBody?: boolean; requestMessages?: boolean } | undefined',
-              description:
-                'Settings for controlling what data is included in step results.',
             },
             {
               name: 'runtimeContext',
