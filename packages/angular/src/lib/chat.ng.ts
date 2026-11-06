@@ -23,6 +23,7 @@ class AngularChatState<
   readonly #messages = signal<UI_MESSAGE[]>([]);
   readonly #status = signal<ChatStatus>('ready');
   readonly #error = signal<Error | undefined>(undefined);
+  readonly #queuedMessages = signal<UI_MESSAGE[]>([]);
 
   get messages(): UI_MESSAGE[] {
     return this.#messages();
@@ -46,6 +47,14 @@ class AngularChatState<
 
   set error(error: Error | undefined) {
     this.#error.set(error);
+  }
+
+  get experimental_queuedMessages(): UI_MESSAGE[] {
+    return this.#queuedMessages();
+  }
+
+  set experimental_queuedMessages(experimental_queuedMessages: UI_MESSAGE[]) {
+    this.#queuedMessages.set(experimental_queuedMessages);
   }
 
   constructor(initialMessages: UI_MESSAGE[] = []) {
