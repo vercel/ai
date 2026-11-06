@@ -974,7 +974,7 @@ console.log(text);`,
     slug: 'looot',
     name: 'looot',
     description:
-      'looot gives an agent one key and one prepaid balance for 2,500+ data API endpoints from 90+ providers: work emails, phone numbers, company and people search, Google results, web pages and LinkedIn profiles. The agent searches the catalog, reads the price before it runs, and pays per call. A failed call costs nothing.',
+      'looot gives an agent one key and one prepaid balance for 4,200+ data API operations from 300+ providers: work emails, phone numbers, company and people search, Google results, web pages and LinkedIn profiles. The agent searches the catalog, reads the price before it runs, and pays per call. A failed call costs nothing.',
     packageName: '@looot/ai-sdk',
     tags: ['data', 'enrichment', 'lead-generation', 'search'],
     apiKeyEnvName: 'LOOOT_TOKEN',
@@ -995,7 +995,7 @@ const { text } = await generateText({
 });
 
 console.log(text);`,
-    docsUrl: 'https://github.com/loootai/looot-ai-sdk#readme',
+    docsUrl: 'https://docs.looot.ai/integrations/ai-sdk',
     apiKeyUrl: 'https://looot.ai',
     websiteUrl: 'https://looot.ai',
     npmUrl: 'https://www.npmjs.com/package/@looot/ai-sdk',
