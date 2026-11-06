@@ -4279,7 +4279,14 @@ describe('doStream', () => {
         {
           "error": {
             "code": "CONTEXT_LENGTH_EXCEEDED",
+            "data": {
+              "code": "CONTEXT_LENGTH_EXCEEDED",
+              "message": "Context length exceeded",
+            },
+            "isRetryable": false,
             "message": "Context length exceeded",
+            "statusCode": 400,
+            "type": undefined,
           },
           "type": "error",
         },
@@ -4309,6 +4316,70 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should classify overloaded error stream parts as retryable', async () => {
+    const error = {
+      message: 'Our servers are currently overloaded. Please try again later.',
+      type: 'service_unavailable_error',
+      code: 'server_is_overloaded',
+      param: null,
+    };
+
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: ${JSON.stringify({ error })}\n\n`, 'data: [DONE]\n\n'],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const chunks = await convertReadableStreamToArray(stream);
+
+    expect(chunks.find(chunk => chunk.type === 'error')).toMatchObject({
+      type: 'error',
+      error: {
+        message: error.message,
+        type: error.type,
+        code: error.code,
+        statusCode: 503,
+        isRetryable: true,
+        data: error,
+      },
+    });
+  });
+
+  it('should classify insufficient quota error stream parts as non-retryable', async () => {
+    const error = {
+      message: 'You exceeded your current quota.',
+      type: 'insufficient_quota',
+      code: 'insufficient_quota',
+      param: null,
+    };
+
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: ${JSON.stringify({ error })}\n\n`, 'data: [DONE]\n\n'],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+    const chunks = await convertReadableStreamToArray(stream);
+
+    expect(chunks.find(chunk => chunk.type === 'error')).toMatchObject({
+      type: 'error',
+      error: {
+        message: error.message,
+        type: error.type,
+        code: error.code,
+        statusCode: 429,
+        isRetryable: false,
+        data: error,
+      },
+    });
   });
 
   it('should handle unparsable stream parts', async () => {
