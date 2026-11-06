@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: cartesia.speech('sonic-3.5'),
+    model: cartesia.speech('sonic-3.6'),
     text: 'Hello, welcome to Cartesia! This is a test of the text-to-speech API.',
     voice: 'a0e99841-438c-4a64-b679-ae501e7d6091',
   });
