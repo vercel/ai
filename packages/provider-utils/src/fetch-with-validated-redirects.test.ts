@@ -223,7 +223,7 @@ describe('fetchWithValidatedRedirects', () => {
   it('rejects a redirect to a private address without requesting it', async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(redirectResponse('http://169.254.169.254/'));
+      .mockResolvedValueOnce(redirectResponse('https://169.254.169.254/'));
 
     await expect(
       fetchWithValidatedRedirects({
@@ -254,7 +254,7 @@ describe('fetchWithValidatedRedirects', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(redirectWithBody('https://cdn.example.com/file'))
-      .mockResolvedValueOnce(redirectWithBody('http://169.254.169.254/'));
+      .mockResolvedValueOnce(redirectWithBody('https://169.254.169.254/'));
 
     await expect(
       fetchWithValidatedRedirects({
