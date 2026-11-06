@@ -1000,8 +1000,8 @@
     },
     {
       "name": "tool-package-must-follow-shared-conventions",
-      "description": "Every tool package must include its main file and expose its factory through the package index.",
-      "paths": ["packages/tool-{toolId}"],
+      "description": "Every single-tool package must include its main file and expose its factory through the package index.",
+      "paths": ["packages/tool-{toolId}", "!packages/tool-fs"],
       "must": [
         {
           "name": "tool-package-must-have-main-file",
@@ -1060,6 +1060,82 @@
           }
         }
       ]
+    },
+    {
+      "name": "filesystem-tool-collection-must-follow-shared-conventions",
+      "description": "The filesystem tool collection must include its member tools and expose its collection factory through the package index.",
+      "paths": ["packages/tool-fs"],
+      "must": [
+        {
+          "name": "filesystem-tool-collection-must-have-implementation-files",
+          "must": {
+            "haveType": "directory",
+            "haveFiles": [
+              "src/create-fs-tools.ts",
+              "src/fs-tool-settings.ts",
+              "src/read-tool.ts",
+              "src/write-tool.ts",
+              "src/edit-tool.ts",
+              "src/delete-file-tool.ts",
+              "src/list-tool.ts",
+              "src/glob-tool.ts",
+              "src/grep-tool.ts"
+            ]
+          }
+        },
+        {
+          "name": "filesystem-tool-collection-must-export-factory",
+          "for": { "files": "src/create-fs-tools.ts" },
+          "must": { "exportFunctions": ["createFsTools"] }
+        },
+        {
+          "name": "filesystem-tool-collection-index-must-export-experimental-factory",
+          "for": { "files": "src/index.ts" },
+          "must": {
+            "exportValues": [
+              {
+                "name": "createFsTools",
+                "alias": "experimental_createFsTools",
+                "from": "./create-fs-tools"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "filesystem-member-tool-must-follow-shared-conventions",
+      "description": "Every filesystem member tool must declare its inferred types and schemas before exporting its factory.",
+      "paths": ["packages/tool-fs/src/{fsToolId}-tool.ts"],
+      "must": {
+        "importValues": [
+          { "name": "tool", "from": "ai" },
+          { "name": "z", "from": "zod/v4" }
+        ],
+        "importTypes": [
+          { "name": "FsTool", "from": "./fs-tool-settings" },
+          { "name": "FsToolSettings", "from": "./fs-tool-settings" }
+        ],
+        "exportTypes": [
+          {
+            "name": "${fsToolId.toPascalCase()}Input",
+            "type": "z.infer<typeof inputSchema>"
+          },
+          {
+            "name": "${fsToolId.toPascalCase()}Output",
+            "type": "z.infer<typeof outputSchema>"
+          }
+        ],
+        "declareConstants": ["inputSchema", "outputSchema"],
+        "exportFunctions": ["create${fsToolId.toPascalCase()}Tool"],
+        "useDeclarationOrder": [
+          "${fsToolId.toPascalCase()}Input",
+          "${fsToolId.toPascalCase()}Output",
+          "inputSchema",
+          "outputSchema",
+          "create${fsToolId.toPascalCase()}Tool"
+        ]
+      }
     }
   ],
   "kebabToPascalMap": {
