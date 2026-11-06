@@ -1323,9 +1323,9 @@ class DefaultStreamTextResult<
                       ? JSON.stringify(finalStep.toolCalls)
                       : undefined,
                 },
-                'ai.response.providerMetadata': JSON.stringify(
-                  finalStep.providerMetadata,
-                ),
+                'ai.response.providerMetadata': {
+                  output: () => JSON.stringify(finalStep.providerMetadata),
+                },
                 'ai.usage.inputTokens': totalUsage.inputTokens,
                 'ai.usage.inputTokenDetails.noCacheTokens':
                   totalUsage.inputTokenDetails?.noCacheTokens,
@@ -2333,9 +2333,10 @@ class DefaultStreamTextResult<
                             'ai.response.reasoning': {
                               output: () => processedStep.reasoningText,
                             },
-                            'ai.response.providerMetadata': JSON.stringify(
-                              processedStep.providerMetadata,
-                            ),
+                            'ai.response.providerMetadata': {
+                              output: () =>
+                                JSON.stringify(processedStep.providerMetadata),
+                            },
                           },
                         }),
                       );

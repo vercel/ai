@@ -382,9 +382,9 @@ export async function generateObject<
                     'ai.response.model': responseData.modelId,
                     'ai.response.timestamp':
                       responseData.timestamp.toISOString(),
-                    'ai.response.providerMetadata': JSON.stringify(
-                      result.providerMetadata,
-                    ),
+                    'ai.response.providerMetadata': {
+                      output: () => JSON.stringify(result.providerMetadata),
+                    },
 
                     // TODO rename telemetry attributes to inputTokens and outputTokens
                     'ai.usage.promptTokens': result.usage.inputTokens.total,
@@ -449,9 +449,9 @@ export async function generateObject<
               'ai.response.object': {
                 output: () => JSON.stringify(object),
               },
-              'ai.response.providerMetadata': JSON.stringify(
-                resultProviderMetadata,
-              ),
+              'ai.response.providerMetadata': {
+                output: () => JSON.stringify(resultProviderMetadata),
+              },
 
               // TODO rename telemetry attributes to inputTokens and outputTokens
               'ai.usage.promptTokens': usage.inputTokens,

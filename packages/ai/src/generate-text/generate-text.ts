@@ -903,9 +903,9 @@ export async function generateText<
                         'ai.response.model': responseData.modelId,
                         'ai.response.timestamp':
                           responseData.timestamp.toISOString(),
-                        'ai.response.providerMetadata': JSON.stringify(
-                          result.providerMetadata,
-                        ),
+                        'ai.response.providerMetadata': {
+                          output: () => JSON.stringify(result.providerMetadata),
+                        },
 
                         'ai.usage.inputTokens': result.usage.inputTokens.total,
                         'ai.usage.inputTokenDetails.noCacheTokens':
@@ -1251,9 +1251,10 @@ export async function generateText<
                     : JSON.stringify(toolCalls);
                 },
               },
-              'ai.response.providerMetadata': JSON.stringify(
-                currentModelResponse.providerMetadata,
-              ),
+              'ai.response.providerMetadata': {
+                output: () =>
+                  JSON.stringify(currentModelResponse.providerMetadata),
+              },
             },
           }),
         );

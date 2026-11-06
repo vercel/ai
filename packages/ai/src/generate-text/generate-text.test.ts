@@ -5222,6 +5222,32 @@ describe('generateText', () => {
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
 
+    it('should not record provider metadata in telemetry when recordOutputs is false', async () => {
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'answer' }],
+            providerMetadata: {
+              openai: {
+                logprobs: [
+                  { token: 'SECRET-TOKEN', logprob: -0.1, top_logprobs: [] },
+                ],
+              },
+            },
+          }),
+        }),
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          recordOutputs: false,
+          tracer,
+        },
+      });
+
+      expect(JSON.stringify(tracer.jsonSpans)).not.toContain('SECRET-TOKEN');
+    });
+
     it('should record reasoning in telemetry when present', async () => {
       await generateText({
         model: modelWithReasoning,
