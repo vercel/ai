@@ -38,6 +38,13 @@ function prepareJsonFixtureResponse(
   };
 }
 
+function prepareJsonValueResponse(body: Record<string, unknown>) {
+  server.urls['https://api.cohere.com/v2/chat'].response = {
+    type: 'json-value',
+    body,
+  };
+}
+
 function prepareChunksFixtureResponse(
   filename: string,
   headers?: Record<string, string>,
@@ -80,6 +87,60 @@ describe('doGenerate', () => {
       });
 
       expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('response id', () => {
+    it('should use the id from the response', async () => {
+      prepareJsonFixtureResponse('cohere-text');
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.id).toBe('e7592632-1e3d-424f-b129-bd5f9f980f7b');
+    });
+
+    it('should prefer id over generation_id', async () => {
+      prepareJsonValueResponse({
+        id: 'response-id',
+        generation_id: 'legacy-generation-id',
+        message: { role: 'assistant', content: [] },
+        finish_reason: 'COMPLETE',
+      });
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.id).toBe('response-id');
+    });
+
+    it('should fall back to generation_id', async () => {
+      prepareJsonValueResponse({
+        generation_id: 'legacy-generation-id',
+        message: { role: 'assistant', content: [] },
+        finish_reason: 'COMPLETE',
+      });
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.id).toBe('legacy-generation-id');
+    });
+
+    it('should leave the id undefined when the response has neither', async () => {
+      prepareJsonValueResponse({
+        message: { role: 'assistant', content: [] },
+        finish_reason: 'COMPLETE',
+      });
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.id).toBeUndefined();
     });
   });
 
@@ -979,7 +1040,7 @@ describe('doGenerate', () => {
         modelId: response?.modelId,
       }).toMatchInlineSnapshot(`
         {
-          "id": undefined,
+          "id": "e7592632-1e3d-424f-b129-bd5f9f980f7b",
           "modelId": undefined,
           "timestamp": undefined,
         }

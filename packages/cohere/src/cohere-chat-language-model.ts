@@ -211,7 +211,9 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
       request: { body: args },
       response: {
         // TODO timestamp, model id
-        id: response.generation_id ?? undefined,
+        // Cohere v2 returns `id`; `generation_id` is the v1 field, kept only
+        // for compatibility with proxies/mocks that still return it.
+        id: response.id ?? response.generation_id ?? undefined,
         headers: responseHeaders,
         body: rawResponse,
       },
@@ -482,6 +484,7 @@ const cohereUsageSchema = () =>
 const cohereChatResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      id: z.string().nullish(),
       generation_id: z.string().nullish(),
       message: z.object({
         role: z.string(),
