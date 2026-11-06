@@ -353,6 +353,17 @@ describe('GoogleJSONAccumulator', () => {
       `);
     });
 
+    it('should skip an index that does not start an array replacing null', () => {
+      expect(
+        accumulate([
+          { jsonPath: '$.items', nullValue: null },
+          { jsonPath: '$.items[20000000]', numberValue: 1 },
+          { jsonPath: '$.rows[0]', nullValue: null },
+          { jsonPath: '$.rows[0][3000000]', numberValue: 2 },
+        ]).finalJSON.length,
+      ).toBeLessThan(100);
+    });
+
     it('should skip an index that leaves a gap in a nested array', () => {
       expect(
         accumulate([
