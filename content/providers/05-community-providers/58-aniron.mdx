@@ -1,0 +1,127 @@
+---
+title: Aniron
+description: Learn how to use the Aniron provider for the AI SDK.
+---
+
+# Aniron
+
+[Aniron](https://aniron.ai) serves open-weight and frontier models behind one OpenAI-compatible endpoint, paid for with prepaid credit: you top up, and requests stop when the credit is used up instead of running into an invoice. Keys can be capped per key or per sub-account.
+
+The Aniron provider for the AI SDK supports:
+
+- **Text generation**: streaming (with token usage on every stream), tool calling and structured output, on the models that support them
+- **Reasoning models**: reasoning effort on models that support it
+- **Image input**: on vision models
+
+## Setup
+
+The Aniron provider is available in the `@aniron/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@aniron/ai-sdk-provider" />
+
+Create an API key in the [Aniron portal](https://portal.aniron.ai) and set it as an environment variable:
+
+```bash
+ANIRON_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+You can import the default provider instance `aniron` from `@aniron/ai-sdk-provider`:
+
+```ts
+import { aniron } from '@aniron/ai-sdk-provider';
+```
+
+If you need a customized setup, you can use `createAniron` and create a provider instance with your settings:
+
+```ts
+import { createAniron } from '@aniron/ai-sdk-provider';
+
+const aniron = createAniron({
+  apiKey: process.env.ANIRON_API_KEY,
+  app: 'my-app',
+});
+```
+
+You can use the following optional settings to customize the Aniron provider instance:
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `ANIRON_API_KEY` environment variable, read on each request.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.aniron.ai/v1`.
+
+- **app** _string_
+
+  Your application's name, sent as the `X-Aniron-App` header so that usage can be broken down by app.
+  It defaults to `ai-sdk`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Language Models
+
+You can create language models using a provider instance.
+The first argument is the model ID, for example:
+
+```ts
+const model = aniron('aniron/deepseek-v4-flash');
+```
+
+### Example
+
+You can use Aniron language models to generate text with the `generateText` function:
+
+```ts
+import { aniron } from '@aniron/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: aniron('aniron/llama-3.3-70b'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Aniron language models can also be used in the `streamText` function
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+### Model Capabilities
+
+| Model                                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| --------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `aniron/deepseek-v4-flash`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `aniron/deepseek-v4-pro`                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `aniron/qwen3-coder-480b-a35b-instruct-turbo` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `aniron/qwen3-vl-235b-a22b-instruct`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `aniron/gpt-oss-120b`                         | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `aniron/llama-3.3-70b`                        | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+
+<Note>
+  The table above lists a few models. The full list, with context lengths,
+  prices and supported parameters, is served at
+  `https://portal-api.aniron.ai/v1/models`. You can also pass any available
+  model ID as a string.
+</Note>
+
+## Error Handling
+
+When an account's credit is used up, requests are refused with an error of type `budget_exceeded` until the account is topped up. Retrying does not help, so don't retry these.
+A rate limit is a different error (`throttling_error`, with a `Retry-After` header) and can be retried.
+
+## Additional Resources
+
+- [NPM Package](https://www.npmjs.com/package/@aniron/ai-sdk-provider)
+- [Aniron](https://aniron.ai)
+- [Aniron Portal](https://portal.aniron.ai)
