@@ -244,8 +244,8 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
       request: { body: args },
       response: {
         // TODO timestamp, model id
-        // The v2 chat response returns `id`. `generation_id` is kept as a
-        // fallback for older response shapes.
+        // Cohere v2 returns `id`; `generation_id` is the v1 field, kept only
+        // for compatibility with proxies/mocks that still return it.
         id: response.id ?? response.generation_id ?? undefined,
         headers: responseHeaders,
         body: rawResponse,
