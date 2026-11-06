@@ -576,7 +576,8 @@ export type GoogleInteractionsEnvironment =
 export type GoogleInteractionsRequestBody = {
   model?: string;
   agent?: string;
-  input: GoogleInteractionsInput;
+  input?: GoogleInteractionsInput;
+  continuation_token?: string;
   system_instruction?: string;
   tools?: Array<GoogleInteractionsTool>;
   response_format?: Array<GoogleInteractionsResponseFormatEntry>;
@@ -594,8 +595,8 @@ export type GoogleInteractionsRequestBody = {
    * poll `GET /interactions/{id}` until terminal.
    *
    * Required for agent calls -- the API returns
-   * `background=true is required for agent interactions.` otherwise. Not used
-   * for model-id calls.
+   * `background=true is required for agent interactions.` otherwise. Model calls
+   * may use it for server-managed long decode.
    */
   background?: boolean;
 };
@@ -603,6 +604,7 @@ export type GoogleInteractionsRequestBody = {
 export type GoogleInteractionsStatus =
   | 'in_progress'
   | 'requires_action'
+  | 'requires_continuation'
   | 'completed'
   | 'failed'
   | 'cancelled'

@@ -486,17 +486,51 @@ Things to keep in mind:
 
 #### Long decode with the Interactions API
 
-With the [Interactions API](#interactions-api), the AI SDK currently requires
-`background: true` for long decode. The server runs every request itself, so no
-client-side continuation is needed, and `usage` covers all requests. Set an
-explicit `maxOutputTokens` above 65,536 and keep `store` enabled (the default).
-The provider polls the interaction (or streams it, reconnecting when the
-connection drops) until it finishes.
+With the [Interactions API](#interactions-api), foreground calls automatically
+continue when a request reaches the per-request decode limit while
+`maxOutputTokens` budget remains. This works with both `generateText` and
+`streamText`, including `store: false`. Each continuation keeps the original
+cumulative token budget and settings.
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
+const result = await generateText({
+  model: google.interactions('gemini-4-argon'),
+  prompt: 'Prove that sqrt(2) is irrational, in detail.',
+  maxOutputTokens: 500_000,
+  providerOptions: {
+    google: { background: false }, // foreground is the default
+  },
+});
+```
+
+The provider combines the content and usage from every request into one result.
+Usage includes the input tokens billed again on each continuation. The final
+interaction ID is available in `providerMetadata.google.interactionId`; pass it
+as `providerOptions.google.previousInteractionId` on the next turn. Save the
+combined response: fetching that ID directly from Google returns only the final
+request's output, although its history includes the earlier requests.
+
+For streaming, all requests appear as one AI SDK stream with one final finish
+event. The provider automatically resumes a dropped foreground connection from
+the latest checkpoint when no output has been emitted since that checkpoint.
+If output has already been emitted after it, resuming could duplicate output, so
+the stream reports a `GoogleInteractionsContinuationError` instead. Non-streaming
+continuation failures throw the same error, with completed requests merged in
+`partialInteraction`. The error also carries the latest `continuationToken`, its
+owning `interactionId` when stored, and the original failure in `cause`.
+
+Use the AI SDK's `timeout` or `abortSignal` to limit the entire call across all
+continuations. Configure your HTTP client for read timeouts of 15 to 20 minutes.
+Pauses between checkpoint chunks are normal.
+
+Alternatively, set `background: true` with storage enabled (the default) for
+server-managed continuation. The provider polls the interaction or streams it,
+reconnecting with the latest event ID when the connection drops:
+
+```ts
 const result = await generateText({
   model: google.interactions('gemini-4-argon'),
   prompt: 'Prove that sqrt(2) is irrational, in detail.',
@@ -510,11 +544,10 @@ const result = await generateText({
 });
 ```
 
-Foreground client-side continuation is not yet supported by the AI SDK.
 If you do not set `maxOutputTokens`, non-streaming calls (`generateText`)
 default to 32,768 tokens and streaming calls (`streamText`) to 65,536 tokens.
-An interaction that reaches its limit finishes with `length`. Long decode is
-not available with the Vertex AI Interactions API.
+An interaction that exhausts its cumulative budget finishes with `length`.
+Long decode is not available with the Vertex AI Interactions API.
 
 The token budget includes both thinking and output tokens. To retain the previous
 64K budget for a non-streaming call, set `maxOutputTokens: 65_536` explicitly.

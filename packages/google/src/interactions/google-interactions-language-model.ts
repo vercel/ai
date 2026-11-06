@@ -22,6 +22,12 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from '../google-error';
+import { continueGoogleInteractionsStream } from './continue-google-interactions-stream';
+import { GoogleInteractionsContinuationError } from './google-interactions-continuation-error';
+import {
+  googleInteractionsContinuationBody,
+  mergeGoogleInteractionsResponses,
+} from './google-interactions-continuation';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
 import {
   convertGoogleInteractionsUsage,
@@ -528,6 +534,48 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       responseHeaders = polled.responseHeaders ?? responseHeaders;
     }
 
+    if (!isAgent && !isBackground) {
+      const sentTokens = new Set<string>();
+      while (response.status === 'requires_continuation') {
+        const token = response.continuation_token;
+        try {
+          if (token == null || token.length === 0 || sentTokens.has(token)) {
+            throw new Error(
+              'google.interactions: continuation requires a new non-empty token.',
+            );
+          }
+          options.abortSignal?.throwIfAborted();
+          sentTokens.add(token);
+          const next = await postJsonToApi({
+            url,
+            headers: await resolve(mergedHeaders),
+            body: googleInteractionsContinuationBody(
+              args,
+              token,
+              response.id ?? undefined,
+            ),
+            failedResponseHandler: googleFailedResponseHandler,
+            successfulResponseHandler: createJsonResponseHandler(
+              googleInteractionsResponseSchema,
+            ),
+            abortSignal: options.abortSignal,
+            fetch: this.config.fetch,
+          });
+          response = mergeGoogleInteractionsResponses(response, next.value);
+          rawResponse = response;
+          responseHeaders = next.responseHeaders;
+        } catch (cause) {
+          throw new GoogleInteractionsContinuationError({
+            cause,
+            continuationToken: token ?? undefined,
+            interactionId:
+              args.store === false ? undefined : (response.id ?? undefined),
+            partialInteraction: response,
+          });
+        }
+      }
+    }
+
     /*
      * `response.id` is omitted when `store: false` (fully stateless mode), and
      * the stream surface returns `id: ""` (empty string) for the same case.
@@ -641,17 +689,37 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
 
     const body = { ...args, stream: true };
 
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url,
-      headers: await resolve(mergedHeaders),
-      body,
-      failedResponseHandler: googleFailedResponseHandler,
-      successfulResponseHandler: createEventSourceResponseHandler(
-        googleInteractionsEventSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    const postStream = async (
+      requestBody: GoogleInteractionsRequestBody,
+      abortSignal = options.abortSignal,
+    ) =>
+      postJsonToApi({
+        url,
+        headers: await resolve(mergedHeaders),
+        body: requestBody,
+        failedResponseHandler: googleFailedResponseHandler,
+        successfulResponseHandler: createEventSourceResponseHandler(
+          googleInteractionsEventSchema,
+        ),
+        abortSignal,
+        fetch: this.config.fetch,
+      });
+    const { responseHeaders, value: firstResponse } = await postStream(body);
+    const response =
+      this.agent != null
+        ? firstResponse
+        : continueGoogleInteractionsStream({
+            stream: firstResponse,
+            store: args.store,
+            abortSignal: options.abortSignal,
+            continueStream: async (token, interactionId, signal) => {
+              const { value } = await postStream(
+                googleInteractionsContinuationBody(body, token, interactionId),
+                signal,
+              );
+              return value;
+            },
+          });
 
     /*
      * Google's API surfaces the applied service tier in the
