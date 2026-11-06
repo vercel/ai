@@ -1,5 +1,15 @@
 # @ai-sdk/baseten
 
+## 2.1.64
+
+### Patch Changes
+
+- fecbbb0: Refactor Baseten model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+- c4a8b80: Avoid empty structured-output answers from Baseten's DeepSeek V4 Pro 0813 when reasoning is enabled. Inject JSON instructions and the schema into the prompt instead of enabling the broken JSON mode, preserving reasoning and SDK output validation. Emit a compatibility warning that the server is not enforcing the schema.
+- Updated dependencies [b63c06a]
+- Updated dependencies [646a7e3]
+  - @ai-sdk/openai-compatible@3.0.86
+
 ## 2.1.63
 
 ### Patch Changes

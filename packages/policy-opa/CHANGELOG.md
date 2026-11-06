@@ -1,5 +1,11 @@
 # @ai-sdk/policy
 
+## 1.0.164
+
+### Patch Changes
+
+- ai@7.0.164
+
 ## 1.0.163
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/voyage
 
+## 2.0.76
+
+### Patch Changes
+
+- 793220f: Refactor Voyage model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+
 ## 2.0.75
 
 ### Patch Changes

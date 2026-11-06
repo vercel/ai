@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.92
+
+### Patch Changes
+
+- ae13fce: fix(mcp): include the canonical MCP resource in OAuth authorization, code exchange, and refresh requests when protected resource metadata is unavailable or custom resource validation returns undefined, preventing unbound authorization grants.
+
 ## 2.0.91
 
 ### Patch Changes

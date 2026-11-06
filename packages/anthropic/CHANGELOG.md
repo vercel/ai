@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 4.0.98
+
+### Patch Changes
+
+- 067dd77: Refactor Amazon Bedrock model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export the Anthropic catalog capability helper under its compatibility name for Bedrock to reuse. Request behavior is unchanged.
+- 25240d9: Refactor Anthropic AWS model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export Anthropic catalog metadata internally for Anthropic AWS to reuse. Request behavior is unchanged.
+- 457dc40: feat(anthropic): support adding tools by value in mid-conversation `toolChanges` (`inline-tools-2026-09-15`)
+- 6b101ac: Add support for creating and continuing Anthropic message threads, including automatic beta headers and thread error details for application-managed recovery.
+
 ## 4.0.97
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/moonshotai
 
+## 3.0.86
+
+### Patch Changes
+
+- 6f9adb1: Refactor Moonshot AI model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+
 ## 3.0.85
 
 ### Patch Changes

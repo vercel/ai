@@ -1,5 +1,14 @@
 # @ai-sdk/togetherai
 
+## 3.0.87
+
+### Patch Changes
+
+- eaaead3: Refactor Together AI model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+- Updated dependencies [b63c06a]
+- Updated dependencies [646a7e3]
+  - @ai-sdk/openai-compatible@3.0.86
+
 ## 3.0.86
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @ai-sdk/minimax
 
+## 3.0.75
+
+### Patch Changes
+
+- a92d2d7: Refactor MiniMax model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+- Updated dependencies [067dd77]
+- Updated dependencies [25240d9]
+- Updated dependencies [457dc40]
+- Updated dependencies [6b101ac]
+  - @ai-sdk/anthropic@4.0.98
+
 ## 3.0.74
 
 ### Patch Changes

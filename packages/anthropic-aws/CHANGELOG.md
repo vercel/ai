@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic-aws
 
+## 2.0.91
+
+### Patch Changes
+
+- 25240d9: Refactor Anthropic AWS model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export Anthropic catalog metadata internally for Anthropic AWS to reuse. Request behavior is unchanged.
+- 6b101ac: Add support for creating and continuing Anthropic message threads, including automatic beta headers and thread error details for application-managed recovery.
+- Updated dependencies [067dd77]
+- Updated dependencies [25240d9]
+- Updated dependencies [457dc40]
+- Updated dependencies [6b101ac]
+  - @ai-sdk/anthropic@4.0.98
+
 ## 2.0.90
 
 ### Patch Changes
