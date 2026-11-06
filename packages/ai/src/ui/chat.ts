@@ -257,8 +257,9 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   /**
    * Experimental. Queue messages that are sent while a response is in progress
    * or while the assistant waits for a tool result or approval, and send them
-   * one at a time after each response finishes. Stopping or an error pauses
-   * the queue until the next message is sent.
+   * one at a time after each response finishes. Stopping, an error or an
+   * interrupted response pauses the queue until the next message is sent.
+   * Editing a message or regenerating clears the queue.
    *
    * @default false
    */
@@ -428,8 +429,42 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     ]);
 
     await this.stop();
-    await this.sendNextQueuedMessage({ force: true });
+    await this.resumeQueue({ skipWaitForUser: true });
   };
+
+  // the user sending a message resumes a paused queue (after a stop, an error
+  // or an interruption). an answered approval that was not sent yet goes
+  // first, the queue continues when its response finishes:
+  private async resumeQueue({
+    skipWaitForUser,
+  }: {
+    skipWaitForUser: boolean;
+  }): Promise<void> {
+    this.isQueuePaused = false;
+
+    if (!this.isRequestInProgress() && this.hasUnsentApprovalResponse()) {
+      await this.sendMessage();
+      return;
+    }
+
+    await this.settleQueue({ skipWaitForUser });
+  }
+
+  // editing a message or regenerating rewrites the history that the queued
+  // messages were sent after, so they are dropped together with the response
+  // in progress:
+  private async clearQueueForHistoryChange(): Promise<void> {
+    if (!this.queueEnabled) {
+      return;
+    }
+
+    this.queuedMessageOptions.clear();
+    this.setQueuedMessages([]);
+
+    if (this.isRequestInProgress()) {
+      await this.stop();
+    }
+  }
 
   private isRequestInProgress(): boolean {
     return (
@@ -458,20 +493,50 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     );
   }
 
-  private async sendNextQueuedMessage({
-    force = false,
-  }: { force?: boolean } = {}): Promise<void> {
+  // an answered approval has to reach the model before the next user message,
+  // otherwise its tool call is left without a result:
+  private hasUnsentApprovalResponse(): boolean {
+    const lastMessage = this.lastMessage;
+
+    return (
+      lastMessage?.role === 'assistant' &&
+      lastMessage.parts.some(
+        part => isToolUIPart(part) && part.state === 'approval-responded',
+      ) &&
+      !lastMessage.parts.some(
+        part =>
+          isToolUIPart(part) &&
+          (part.state === 'approval-requested' ||
+            (!part.providerExecuted &&
+              (part.state === 'input-streaming' ||
+                part.state === 'input-available'))),
+      )
+    );
+  }
+
+  // every path that can leave the chat idle ends here. the queue then either
+  // sends its next message, stays paused until the user sends again, or waits
+  // for the user to answer a tool call. a stop that happened after the caller
+  // captured `stopGeneration` cancels the send:
+  private async settleQueue({
+    stopGeneration = this.stopGeneration,
+    skipWaitForUser = false,
+  }: {
+    stopGeneration?: number;
+    skipWaitForUser?: boolean;
+  } = {}): Promise<void> {
     const [message, ...rest] = this.experimental_queuedMessages;
 
     if (
       message == null ||
+      this.isQueuePaused ||
       this.isRequestInProgress() ||
-      (!force && !this.isQueuePaused && this.isWaitingForUser())
+      this.activeStopCount > 0 ||
+      stopGeneration !== this.stopGeneration ||
+      (!skipWaitForUser && this.isWaitingForUser())
     ) {
       return;
     }
-
-    this.isQueuePaused = false;
 
     const options = this.queuedMessageOptions.get(message.id);
     this.queuedMessageOptions.delete(message.id);
@@ -604,12 +669,15 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         queuedMessage,
       ]);
 
-      // a paused queue (after a stop or an error) resumes with the next message:
-      await this.sendNextQueuedMessage();
+      // a stopped response is not waiting for the user anymore, so resuming a
+      // paused queue skips that check:
+      await this.resumeQueue({ skipWaitForUser: this.isQueuePaused });
       return;
     }
 
     if (message.messageId != null) {
+      await this.clearQueueForHistoryChange();
+
       const messageIndex = this.state.messages.findIndex(
         m => m.id === message.messageId,
       );
@@ -669,6 +737,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }: {
     messageId?: string;
   } & ChatRequestOptions = {}): Promise<void> => {
+    await this.clearQueueForHistoryChange();
+
     const messageIndex =
       messageId == null
         ? this.state.messages.length - 1
@@ -749,6 +819,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     options,
   }) =>
     this.jobExecutor.run(async () => {
+      const stopGeneration = this.stopGeneration;
       const messages = this.state.messages;
 
       const updatePart = (
@@ -815,8 +886,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
               ...options,
             });
           }, shouldSend);
+          return;
         }
       }
+
+      // no await to avoid deadlocking
+      void this.settleQueue({ stopGeneration });
     });
 
   addToolOutput: ChatAddToolOutputFunction<UI_MESSAGE> = async ({
@@ -827,6 +902,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     options,
   }) =>
     this.jobExecutor.run(async () => {
+      const stopGeneration = this.stopGeneration;
       const messages = this.state.messages;
 
       const updatePart = (
@@ -911,8 +987,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
               }),
             shouldSend,
           );
+          return;
         }
       }
+
+      // the tool result can be what the queue was waiting for. no await to
+      // avoid deadlocking:
+      void this.settleQueue({ stopGeneration });
     });
 
   /** @deprecated Use addToolOutput */
@@ -1377,9 +1458,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           });
         }
       } finally {
-        // only the user resumes a paused queue, so a response that finishes on
-        // its own (e.g. an automatic resume) never clears the pause:
-        if (isAbort || isError) {
+        // a response that did not finish (stopped, failed or interrupted)
+        // pauses the queue until the user sends again. a response that finishes
+        // on its own (e.g. an automatic resume) never clears the pause:
+        if (
+          isAbort ||
+          isError ||
+          activeResponse?.state.finishReason === 'interrupted'
+        ) {
           this.isQueuePaused = true;
         }
 
@@ -1408,17 +1494,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         }),
       );
 
-      // the automatic request sends the next queued message when it finishes.
-      // a stop while sendAutomaticallyWhen was pending cancels the drain too, so
-      // a stopped or replaced chat never sends queued messages on its own:
-      if (
-        !sentAutomatically &&
-        this.queueEnabled &&
-        !this.isQueuePaused &&
-        stopGeneration === this.stopGeneration &&
-        this.activeStopCount === 0
-      ) {
-        await this.sendNextQueuedMessage();
+      // the automatic request settles the queue when it finishes. a stop while
+      // sendAutomaticallyWhen was pending cancels the send too, so a stopped or
+      // replaced chat never sends queued messages on its own:
+      if (!sentAutomatically) {
+        await this.settleQueue({ stopGeneration });
       }
     }
   }
