@@ -23,6 +23,36 @@ export interface Tool {
 
 export const tools: Tool[] = [
   {
+    slug: 'videogen',
+    name: 'VideoGen',
+    description:
+      'VideoGen tools for generating videos and media, editing projects, and exporting MP4 files. Use tool allowlists to expose only the operations an agent needs. Generation and editing require VideoGen credits and application-level user approval.',
+    packageName: '@videogen/ai-tool',
+    tags: ['video', 'images', 'audio', 'media'],
+    apiKeyEnvName: 'VIDEOGEN_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @videogen/ai-tool ai zod',
+      npm: 'npm install @videogen/ai-tool ai zod',
+      yarn: 'yarn add @videogen/ai-tool ai zod',
+      bun: 'bun add @videogen/ai-tool ai zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createVideogenTools } from '@videogen/ai-tool';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: createVideogenTools({ include: ['getMe', 'listFiles'] }),
+  stopWhen: isStepCount(3),
+  prompt: 'Read my VideoGen account and list five files. Do not generate media.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/video-gen/video-workflow-recipes/tree/main/integrations/ai-sdk-videogen#readme',
+    apiKeyUrl: 'https://app.videogen.io/api',
+    websiteUrl: 'https://videogen.io/videogen-mcp',
+    npmUrl: 'https://www.npmjs.com/package/@videogen/ai-tool',
+  },
+  {
     slug: 'code-execution',
     name: 'Code Execution',
     description:
