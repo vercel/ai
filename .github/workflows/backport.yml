@@ -508,7 +508,7 @@ jobs:
           # checkout reads could follow symlinks outside the repository.
           # Materialize the diff so a failed git command fails the step.
           # Renames are decomposed into independent deletions/additions.
-          git diff --no-ext-diff --no-renames --raw --no-abbrev -z "${PARENT_OID}" HEAD > "$DIFF"
+          git diff --no-ext-diff --no-renames --ignore-submodules=none --raw --no-abbrev -z "${PARENT_OID}" HEAD > "$DIFF"
           while IFS= read -r -d '' entry && IFS= read -r -d '' path; do
             read -r old_mode new_mode old_oid new_oid status <<< "${entry#:}"
             case "$status" in
