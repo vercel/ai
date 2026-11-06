@@ -95,6 +95,7 @@ export function filterTelemetryEvent<EVENT>(
       ranking: [],
       answers: {},
       segments: [],
+      words: [],
     });
     if (filtered.toolOutput != null) {
       filtered.toolOutput = {
