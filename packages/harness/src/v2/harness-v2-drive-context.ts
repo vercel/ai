@@ -12,6 +12,21 @@ import type { HarnessV2NetworkSandboxSession } from './harness-v2-network-sandbo
 import type { HarnessV2StreamPart } from './harness-v2-stream-part';
 
 /**
+ * Host-provided function that runs a keyed effect under its replay policy and
+ * records its output. Terminal outputs are replayed; retryable interruptions
+ * permit another attempt. Callback failures become error outputs, while
+ * serialization and persistence failures reject the call.
+ */
+export type HarnessV2EffectFunction = <
+  T extends SerializableValue = SerializableValue,
+>(
+  key: string,
+  options: Pick<HarnessV2Effect, 'name' | 'replay' | 'input'> &
+    Partial<Pick<HarnessV2Effect, 'deliveredSubmissionIds'>>,
+  fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>,
+) => Promise<HarnessV2EffectOutput<T>>;
+
+/**
  * Result of executing a tool through the host, including non-result outcomes.
  */
 export type HarnessV2ToolExecutionOutput<
@@ -96,12 +111,7 @@ export interface HarnessV2DriveContext {
   /**
    * Runs a keyed effect under the supplied replay policy and records its output.
    */
-  effect<T extends SerializableValue = SerializableValue>(
-    key: string,
-    options: Pick<HarnessV2Effect, 'name' | 'replay' | 'input'> &
-      Partial<Pick<HarnessV2Effect, 'deliveredSubmissionIds'>>,
-    fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>,
-  ): Promise<HarnessV2EffectOutput<T>>;
+  effect: HarnessV2EffectFunction;
 
   /**
    * Executes a host-owned tool and returns its result or suspension outcome.

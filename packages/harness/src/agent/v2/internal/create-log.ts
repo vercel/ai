@@ -14,6 +14,7 @@ import {
   type World,
 } from '@workflow/world';
 import type { JSONValue } from '@ai-sdk/provider';
+import { isValidHarnessAgentLogEvent } from './is-valid-harness-agent-log-event';
 import type {
   HarnessAgentLog,
   HarnessAgentLogEvent,
@@ -61,7 +62,7 @@ type LogListener = {
   /**
    * Callback invoked when a new event matches this listener.
    */
-  listener: () => void;
+  listener: (event: HarnessAgentLogEvent) => void;
   /**
    * Event-type allowlist and denylist applied before callback invocation.
    */
@@ -129,21 +130,7 @@ async function deserializeEvent(input: {
     );
   }
   const value = jsonDecodeSerializableValue({ value: envelope.event });
-  if (
-    value == null ||
-    typeof value !== 'object' ||
-    !('type' in value) ||
-    typeof value.type !== 'string' ||
-    !('data' in value) ||
-    !(
-      value.type === 'submission' ||
-      value.type === 'effect-start' ||
-      value.type === 'effect-end' ||
-      value.type.startsWith('harness:')
-    ) ||
-    !('id' in value) ||
-    typeof value.id !== 'string'
-  ) {
+  if (!isValidHarnessAgentLogEvent(value)) {
     throw new Error('HarnessAgentLog: invalid stored event.');
   }
   return {
@@ -263,7 +250,11 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
         )
           continue;
         try {
-          const result = listener.listener();
+          const result = listener.listener(
+            cloneSerializableValue({
+              value: record.event as SerializableValue,
+            }) as HarnessAgentLogEvent,
+          );
           void Promise.resolve(result).catch(() => {});
         } catch {}
       }

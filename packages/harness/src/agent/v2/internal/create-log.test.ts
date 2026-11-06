@@ -125,7 +125,7 @@ describe('createLog', () => {
     new TextEncoder().encode(
       JSON.stringify({
         version: 1,
-        event: { type: 'not-an-agent-event', data: null },
+        event: { type: 'not-an-agent-event', id: 'unknown-type', data: null },
       }),
     ),
     new TextEncoder().encode(
@@ -209,11 +209,105 @@ describe('createLog', () => {
     await writer.append({ type: 'harness:ignored', id: 'ignored', data: {} });
     await writer.append({ type: 'harness:allowed', id: 'allowed-1', data: {} });
     await vi.waitFor(() => expect(listener).toHaveBeenCalledTimes(1));
+    expect(listener).toHaveBeenCalledWith({
+      type: 'harness:allowed',
+      id: 'allowed-1',
+      data: {},
+    });
 
     unsubscribe();
     await writer.append({ type: 'harness:allowed', id: 'allowed-2', data: {} });
     await new Promise(resolve => setTimeout(resolve, 0));
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  test('delivers committed payloads in order before append resolves without awaiting listeners', async () => {
+    const { world, runId, log } = await setup();
+    const order: string[] = [];
+    const release = new DelayedPromise<void>();
+    const finished = vi.fn();
+    const unsubscribe = log.onAppend({
+      listener: async event => {
+        order.push(event.id);
+        await release.promise;
+        finished();
+      },
+    });
+    const earlier = {
+      type: 'harness:journal',
+      id: 'earlier',
+      data: 1,
+    } as const;
+    const own = { type: 'harness:journal', id: 'own', data: 2 } as const;
+    try {
+      await createLog({ world, runId }).append(earlier);
+      await log.append(own).then(() => order.push('resolved'));
+      expect(order).toEqual(['earlier', 'own', 'resolved']);
+      expect(finished).not.toHaveBeenCalled();
+    } finally {
+      release.resolve();
+      unsubscribe();
+    }
+  });
+
+  test('isolates each listener payload from other listeners, reads, and append input', async () => {
+    const { log } = await setup();
+    const data = {
+      nested: { count: 1 },
+      date: new Date(0),
+      bytes: new Uint8Array([1]),
+      map: new Map([['key', new Set(['original'])]]),
+    };
+    const event = { type: 'harness:journal', id: 'event', data } as const;
+    const unsubscribeMutating = log.onAppend({
+      listener: received => {
+        const value = received.data as typeof data;
+        value.nested.count = 2;
+        value.date.setTime(100);
+        value.bytes[0] = 2;
+        value.map.get('key')!.add('changed');
+      },
+    });
+    const listener = vi.fn();
+    const unsubscribe = log.onAppend({ listener });
+    try {
+      await expect(log.append(event)).resolves.toBe(true);
+      expect(listener).toHaveBeenCalledExactlyOnceWith(event);
+      expect((await log.read()).events).toEqual([event]);
+      expect(data.nested.count).toBe(1);
+      expect(data.date.getTime()).toBe(0);
+      expect(data.bytes).toEqual(new Uint8Array([1]));
+      expect(data.map.get('key')).toEqual(new Set(['original']));
+    } finally {
+      unsubscribeMutating();
+      unsubscribe();
+    }
+  });
+
+  test('does not replay cached events but delivers events first discovered after registration', async () => {
+    const { world, runId, log } = await setup();
+    const cached = { type: 'harness:journal', id: 'cached', data: 0 } as const;
+    const discovered = {
+      type: 'harness:journal',
+      id: 'discovered',
+      data: 1,
+    } as const;
+    await log.append(cached);
+    await createLog({ world, runId }).append(discovered);
+    const listener = vi.fn();
+    const unsubscribe = log.onAppend({ listener });
+    try {
+      expect((await log.read()).events).toEqual([cached, discovered]);
+      expect(listener).toHaveBeenCalledExactlyOnceWith(discovered);
+      await log.read();
+      await expect(log.append(discovered)).resolves.toBe(false);
+      expect(listener).toHaveBeenCalledTimes(1);
+      unsubscribe();
+      await log.append({ type: 'harness:journal', id: 'after', data: 2 });
+      expect(listener).toHaveBeenCalledTimes(1);
+    } finally {
+      unsubscribe();
+    }
   });
 
   test('serializes same-instance appends and snapshots queued input', async () => {
@@ -319,7 +413,7 @@ describe('createLog', () => {
     expect((await log.read()).events).toHaveLength(4);
   });
 
-  test('folds repeated physical records for one event ID only once', async () => {
+  test('folds and delivers repeated physical records for one event ID only once', async () => {
     const { world, runId, log } = await setup();
     const event = {
       type: 'harness:journal',
@@ -342,11 +436,21 @@ describe('createLog', () => {
       correlationId: 'physical-two',
       eventData: { stepName: 'harness-agent-log', input: bytes },
     });
-    await expect(log.read()).resolves.toEqual({ events: [event], position: 3 });
-    await expect(log.read({ after: 2 })).resolves.toEqual({
-      events: [],
-      position: 3,
-    });
+    const listener = vi.fn();
+    const unsubscribe = log.onAppend({ listener });
+    try {
+      await expect(log.read()).resolves.toEqual({
+        events: [event],
+        position: 3,
+      });
+      await expect(log.read({ after: 2 })).resolves.toEqual({
+        events: [],
+        position: 3,
+      });
+      expect(listener).toHaveBeenCalledExactlyOnceWith(event);
+    } finally {
+      unsubscribe();
+    }
   });
 
   test('reconciles before a resend and suppresses the original attempt when it commits late', async () => {

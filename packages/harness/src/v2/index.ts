@@ -6,6 +6,7 @@ export type {
 export type { HarnessV2 } from './harness-v2';
 export type {
   HarnessV2DriveContext,
+  HarnessV2EffectFunction,
   HarnessV2ToolExecutionOutput,
   HarnessV2ToolGateOutput,
 } from './harness-v2-drive-context';

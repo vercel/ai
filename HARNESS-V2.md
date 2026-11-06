@@ -59,6 +59,7 @@ Green and blue boxes are public API; the dashed orange box is internal.
 
 - **`HarnessAgent`:** the public consumer API that app code uses: `stream()`, `generate()`, sessions, stream parts, `UIMessage` streams and lifecycle callbacks. This API will not notably change, other than receiving the new `world?: World` setting.
 - **`HarnessV2`:** the public API for harness adapter makers: `drive()` with its drive context (`log`, `effect()`, `executeHostTool()`, `gateBuiltinTool()`, `emit()`). See section below for details.
+  - `HarnessV2EffectFunction` declares the generic call signature used by the `HarnessV2DriveContext.effect` property.
 - **`HarnessAgent` engine:** the internal layer, not exported. Among other things, it:
   - translates `HarnessV2` stream parts into consumer stream types
   - receives submissions in the session's inbox, tracks which ones were delivered, and applies withdrawals
@@ -66,6 +67,7 @@ Green and blue boxes are public API; the dashed orange box is internal.
   - gates built-in tools: start and end effect capture, tool approvals
   - records finished AI SDK steps as framework-internal log events, evaluates `stopWhen`, and holds the next step's start until the check is done
   - resolves effects a dead process left behind during recovery (`interrupted`, with `retryable` from `replay`)
+  - records yielded effect values as internal `effect-progress` events with `{ startId, partial }`; these events belong only to `HarnessAgentLogEvent`, never to `HarnessV2LogEvent`
 - **Harness adapters:** implementations of `HarnessV2`, such as Pi, Claude Code and Codex.
 - **World:** optional. Providing one opts in to durable mode; the engine then uses it for storage, queueing and streams. Adapters never access it directly.
 
@@ -151,7 +153,7 @@ type HarnessV2EffectOutput<
   | {
       /**
        * The attempt was cut off before it finished. `retryable: true` means
-       * it produced no output and the next `effect()` call for this key runs
+       * it produced no final output and the next `effect()` call for this key runs
        * `fn` again; `false` means the attempt is final and may have acted.
        */
       readonly type: 'interrupted';
@@ -353,6 +355,18 @@ interface HarnessV2EffectContext {
   startId: string;
 }
 
+/**
+ * Host-provided function that runs a keyed effect and records its output.
+ */
+type HarnessV2EffectFunction = <
+  T extends HarnessV2SerializableValue = HarnessV2SerializableValue,
+>(
+  key: string,
+  options: Pick<HarnessV2Effect, 'name' | 'replay' | 'input'> &
+    Partial<Pick<HarnessV2Effect, 'deliveredSubmissionIds'>>,
+  fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>,
+) => Promise<HarnessV2EffectOutput<T>>;
+
 interface HarnessV2DriveContext {
   /**
    * The session's append-only log: in memory without a World, backed by the
@@ -405,27 +419,41 @@ interface HarnessV2DriveContext {
    * there is one, otherwise writes the start event, runs `fn`, writes the end
    * event. After a crash, recovery records the attempt as `interrupted`, with
    * `retryable` set from `replay` (`safe` is retryable, `never` is not). A
-   * recorded retryable `interrupted` is never returned: `fn` runs again.
+   * recorded retryable `interrupted` is not replayed: `fn` runs again when
+   * the new drive's signal is active. An unfinished start alone is not proof
+   * that its process stopped; it requires engine recovery before retrying.
+   * Competing starts and ends are resolved in committed log order: the first
+   * eligible start and first end win, and late events cannot change them.
    *
    * Never rejects with the outcome of `fn`: a thrown error becomes an `error`
    * output, and an abort of `abortSignal` becomes an `interrupted` output, so
    * the first run and a replay return the same shape. The only exception is
-   * `HarnessInvalidDriveStateError` thrown from `fn`, which propagates to the agent.
+   * `HarnessInvalidDriveStateError` thrown from `fn`, which records an
+   * interruption before propagating to the agent. Serialization and storage
+   * failures reject rather than becoming callback error outputs; a failed
+   * interruption write also propagates its storage failure.
+   *
+   * Cancellation is cooperative: a pending callback or iterator operation
+   * must settle before interruption can be recorded. The current invocation
+   * returns its interruption without retrying under an aborted signal. An
+   * already-aborted drive starts no attempt, while committed terminal outputs
+   * remain replayable. Cancellation cannot overwrite a committed end.
    *
    * `fn` is either a regular async function, whose return value is the
    * output, or an async generator, whose yielded values are recorded as
    * partial results and whose last yielded value is the output (its return
    * value is ignored), the same contract as an AI SDK tool's `execute`.
+   * Every yield is committed before requesting the next value. Interruption
+   * includes the latest committed partial, including a yielded `undefined`.
+   * An async function returning `undefined` or a generator yielding nothing
+   * completes with `{ type: 'result', value: undefined }`.
    */
-  effect<T extends HarnessV2SerializableValue = HarnessV2SerializableValue>(
-    key: string,
-    options: Pick<HarnessV2Effect, 'name' | 'replay' | 'input'> &
-      Partial<Pick<HarnessV2Effect, 'deliveredSubmissionIds'>>,
-    fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>,
-  ): Promise<HarnessV2EffectOutput<T>>;
+  effect: HarnessV2EffectFunction;
   /**
    * Executes one of the app's own tools. The agent handles filtering,
    * approvals, client tool results, and recording the execution as an effect.
+   * Unlike a direct effect, a successful host tool result normalizes an
+   * `undefined` value to `null` before returning it to the adapter.
    */
   executeHostTool<
     T extends HarnessV2SerializableValue = HarnessV2SerializableValue,

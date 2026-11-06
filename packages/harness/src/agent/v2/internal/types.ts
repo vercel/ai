@@ -1,10 +1,33 @@
-import type { HarnessV2Effect } from '../../../v2/harness-v2-effect';
+import type {
+  HarnessV2Effect,
+  HarnessV2EffectContext,
+  HarnessV2EffectOutput,
+} from '../../../v2/harness-v2-effect';
 import type { HarnessV2Submission } from '../../../v2/harness-v2-submission';
 import type { SerializableValue } from '@ai-sdk/provider-utils';
 
 /**
+ * Runs a keyed effect and returns its committed output. Terminal outputs are
+ * replayed; recorded retryable interruptions permit a new attempt. Callback
+ * failures become error outputs, while persistence failures reject the call.
+ */
+export type HarnessAgentEffectFunction = <
+  T extends SerializableValue = SerializableValue,
+>(
+  key: string,
+  options: Pick<HarnessV2Effect, 'name' | 'replay' | 'input'> &
+    Partial<Pick<HarnessV2Effect, 'deliveredSubmissionIds'>>,
+  fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>,
+) => Promise<HarnessV2EffectOutput<T>>;
+
+/**
  * Event variants stored in the agent log, including events that are private to
  * the HarnessAgent engine.
+ *
+ * Runtime checks for common fields and supported event types live in
+ * is-valid-harness-agent-log-event.ts. Changes to these fields or event types
+ * must also update that helper and its tests. Variant-specific data payloads
+ * are not validated by the helper.
  */
 export type HarnessAgentLogEvent =
   | {
@@ -34,6 +57,33 @@ export type HarnessAgentLogEvent =
        * Effect definition before an output has been recorded.
        */
       readonly data: Omit<HarnessV2Effect, 'output'>;
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    }
+  | {
+      /**
+       * Records a complete yielded value, visible only to the agent engine.
+       */
+      readonly type: 'effect-progress';
+
+      /**
+       * Effect attempt and its latest yielded value.
+       */
+      readonly data: {
+        /**
+         * ID of the corresponding `effect-start` event.
+         */
+        readonly startId: string;
+
+        /**
+         * Complete yielded value used as partial output on interruption.
+         */
+        readonly partial: SerializableValue;
+      };
 
       /**
        * Stable event identity within the session, used for deduplication.
@@ -144,15 +194,20 @@ export type HarnessAgentLog = {
 
   /**
    * Registers a callback for matching new events and returns an unsubscribe
-   * function. Notifications are wake-up hints, not exactly-once delivery, and
-   * may include events first observed during registration. Callbacks are
-   * isolated from persistence and filtering applies to canonical events.
+   * function. Each matching canonical event first observed while registered is
+   * delivered once, in committed order, with an independent payload snapshot.
+   * Delivery is synchronous when a read or write folds the event, before that
+   * operation resolves. Previously cached events are not replayed; events first
+   * observed after registration may also appear in a subsequent read's history.
+   * Callback failures are isolated from persistence and other listeners, and
+   * asynchronous callback work is not awaited. External writes are discovered
+   * through advisory hints, polling, reads, or append reconciliation.
    */
   onAppend(options: {
     /**
      * Callback invoked when an event matches the listener configuration.
      */
-    listener: () => void;
+    listener: (event: HarnessAgentLogEvent) => void;
 
     /**
      * Optional allowlist and denylist for event types.
