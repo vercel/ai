@@ -37,6 +37,9 @@ jobs:
       - name: Run ultracite check
         run: pnpm run check
 
+      - name: Test MCP elicitation response logging
+        run: pnpm --filter=@example/next-openai test:mcp-elicitation
+
       - name: Test package preview tooling
         run: node --test tools/tarballs/*.test.mjs
 
