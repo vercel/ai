@@ -536,6 +536,93 @@ describe('AnthropicLanguageModel', () => {
   );
 
   describe.each(['generate', 'stream'] as const)(
+    'MCP tools with provider-enforced tool choice (%s)',
+    method => {
+      describe.each([false, true])(
+        'native structured output %s',
+        useStructuredOutput => {
+          it.each([
+            { type: 'none' },
+            { type: 'tool', toolName: 'selected' },
+          ] as const)(
+            'should preserve MCP configuration for $type',
+            async toolChoice => {
+              const options = {
+                prompt: TEST_PROMPT,
+                tools: [
+                  {
+                    type: 'function' as const,
+                    name: 'selected',
+                    inputSchema: { type: 'object' as const },
+                  },
+                ],
+                toolChoice,
+                ...(useStructuredOutput && {
+                  responseFormat: {
+                    type: 'json' as const,
+                    schema: {
+                      type: 'object' as const,
+                      properties: {},
+                      additionalProperties: false,
+                    },
+                  },
+                }),
+                providerOptions: {
+                  anthropic: {
+                    mcpServers: [
+                      {
+                        type: 'url',
+                        name: 'echo',
+                        url: 'https://echo.invalid/mcp',
+                        toolConfiguration: {
+                          enabled: true,
+                          allowedTools: ['selected'],
+                        },
+                      },
+                    ],
+                  },
+                },
+              };
+              if (method === 'generate') {
+                prepareJsonFixtureResponse('anthropic-text');
+                await provider('claude-sonnet-4-5').doGenerate(options);
+              } else {
+                prepareChunksFixtureResponse('anthropic-text');
+                const result =
+                  await provider('claude-sonnet-4-5').doStream(options);
+                await convertReadableStreamToArray(result.stream);
+              }
+              const body = await server.calls[0].requestBodyJson;
+              expect(body.tool_choice).toEqual(
+                toolChoice.type === 'none'
+                  ? { type: 'none' }
+                  : { type: 'tool', name: 'selected' },
+              );
+              expect(
+                body.tools.map((tool: { name: string }) => tool.name),
+              ).toEqual(['selected']);
+              expect(body.output_config?.format?.type).toEqual(
+                useStructuredOutput ? 'json_schema' : undefined,
+              );
+              expect(body.mcp_servers).toEqual([
+                {
+                  type: 'url',
+                  name: 'echo',
+                  url: 'https://echo.invalid/mcp',
+                  tool_configuration: {
+                    enabled: true,
+                    allowed_tools: ['selected'],
+                  },
+                },
+              ]);
+            },
+          );
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
     'named tool choice with inline tools (%s)',
     method => {
       const selectedTool = {
