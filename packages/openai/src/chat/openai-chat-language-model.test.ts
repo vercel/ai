@@ -655,6 +655,33 @@ describe('doGenerate', () => {
     );
   });
 
+  it('should report explicitly empty logprobs as an empty array', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-empty-logprobs',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: '' },
+            logprobs: { content: [], refusal: null },
+            finish_reason: 'stop',
+          },
+        ],
+      },
+    };
+
+    const response = await provider.chat('gpt-3.5-turbo').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: { openai: { logprobs: true } },
+    });
+
+    expect(response.providerMetadata?.openai.logprobs).toStrictEqual([]);
+  });
+
   it('should include refusal logprobs', async () => {
     const refusalLogprobs = [
       { token: 'I', logprob: -0.1, top_logprobs: [] },
@@ -3254,6 +3281,103 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should include content logprobs from all streamed chunks', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-content-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"logprobs":{"content":[{"token":"Hello","logprob":-0.1,"top_logprobs":[]}],"refusal":null},"finish_reason":null}]}\n\n`,
+        // empty logprobs must not interrupt the collection:
+        `data: {"id":"chatcmpl-content-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"content":" there"},"logprobs":{"content":[],"refusal":null},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"content":","},"logprobs":{"content":[{"token":",","logprob":-0.2,"top_logprobs":[]}],"refusal":null},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"content":" you"},"logprobs":{"content":[{"token":" you","logprob":-0.3,"top_logprobs":[]}],"refusal":null},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finishPart = parts.find(part => part.type === 'finish') as Extract<
+      (typeof parts)[number],
+      { type: 'finish' }
+    >;
+
+    expect(finishPart.finishReason).toStrictEqual({
+      unified: 'stop',
+      raw: 'stop',
+    });
+    // all streamed content logprobs are reported, not only the last chunk:
+    expect(finishPart.providerMetadata?.openai?.logprobs).toStrictEqual([
+      { token: 'Hello', logprob: -0.1, top_logprobs: [] },
+      { token: ',', logprob: -0.2, top_logprobs: [] },
+      { token: ' you', logprob: -0.3, top_logprobs: [] },
+    ]);
+  });
+
+  it('should include content and refusal logprobs from all streamed chunks', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-content-and-refusal-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":"Here"},"logprobs":{"content":[{"token":"Here","logprob":-0.1,"top_logprobs":[]}],"refusal":null},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-and-refusal-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":"I"},"logprobs":{"content":null,"refusal":[{"token":"I","logprob":-0.2,"top_logprobs":[]}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-and-refusal-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":" cannot"},"logprobs":{"content":null,"refusal":[{"token":" cannot","logprob":-0.3,"top_logprobs":[]}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-content-and-refusal-logprobs","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finishPart = parts.find(part => part.type === 'finish') as Extract<
+      (typeof parts)[number],
+      { type: 'finish' }
+    >;
+
+    expect(finishPart.finishReason).toStrictEqual({
+      unified: 'content-filter',
+      raw: 'stop',
+    });
+    expect(finishPart.providerMetadata?.openai?.logprobs).toStrictEqual([
+      { token: 'Here', logprob: -0.1, top_logprobs: [] },
+      { token: 'I', logprob: -0.2, top_logprobs: [] },
+      { token: ' cannot', logprob: -0.3, top_logprobs: [] },
+    ]);
+  });
+
+  it('should report a refusal and the finish reason from the same chunk', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-refusal-same-chunk","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}]}\n\n`,
+        // the last (refusal) delta and the finish reason arrive together:
+        `data: {"id":"chatcmpl-refusal-same-chunk","object":"chat.completion.chunk","created":1,"model":"gpt-4o-2024-08-06","choices":[{"index":0,"delta":{"refusal":"I cannot continue."},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'text-delta')).toStrictEqual([
+      { type: 'text-delta', id: '0', delta: 'I cannot continue.' },
+    ]);
+    expect(parts.find(part => part.type === 'finish')).toMatchObject({
+      finishReason: { unified: 'content-filter', raw: 'stop' },
+    });
   });
 
   it('should include refusal logprobs from a real response', async () => {

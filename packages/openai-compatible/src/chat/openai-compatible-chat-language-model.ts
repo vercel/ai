@@ -598,6 +598,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     };
 
     let finishReason: LanguageModelV4FinishReason | undefined;
+    let rawFinishReason: string | undefined = undefined;
     let usage:
       | z.infer<ReturnType<typeof openaiCompatibleTokenUsageSchema>>
       | undefined = undefined;
@@ -644,6 +645,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = { unified: 'error', raw: undefined };
+              rawFinishReason = undefined;
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -653,6 +655,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             // handle error chunks:
             if ('error' in chunk.value) {
               finishReason = { unified: 'error', raw: undefined };
+              rawFinishReason = undefined;
               controller.enqueue({
                 type: 'error',
                 error: chunk.value.error,
@@ -686,13 +689,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
             const choice = value.choices[0];
 
+            // store the raw finish reason and map it in `flush`, after all
+            // chunks have been read: many OpenAI-compatible servers send the
+            // last delta (which can contain a refusal) in the same chunk as
+            // the finish reason, and a refusal turns `stop` into
+            // `content-filter`:
             if (choice?.finish_reason != null) {
-              finishReason = {
-                unified: mapOpenAICompatibleFinishReason(choice.finish_reason, {
-                  hasRefusal,
-                }),
-                raw: choice.finish_reason ?? undefined,
-              };
+              rawFinishReason = choice.finish_reason;
             }
 
             if (choice?.delta == null) {
@@ -807,6 +810,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             pendingToolCalls.clear();
 
             toolCallTracker.flush();
+
+            // map the stored finish reason now that all deltas (including
+            // refusals that arrived in the same chunk as the finish reason)
+            // have been read:
+            if (rawFinishReason != null) {
+              finishReason = {
+                unified: mapOpenAICompatibleFinishReason(rawFinishReason, {
+                  hasRefusal,
+                }),
+                raw: rawFinishReason,
+              };
+            }
 
             if (finishReason == null) {
               finishReason = { unified: 'error', raw: undefined };
@@ -943,8 +958,15 @@ const OpenAICompatibleChatResponseSchema = lazySchema(() =>
           message: z.object({
             role: z.literal('assistant').nullish(),
             content: openAICompatibleContentSchema(),
-            // set instead of `content` when the model refuses to answer:
-            refusal: z.string().nullish(),
+            // set instead of `content` when the model refuses to answer. Some
+            // OpenAI-compatible servers send non-string values (e.g. `false`),
+            // which are ignored instead of failing the whole response:
+            refusal: z
+              .unknown()
+              .nullish()
+              .transform(value =>
+                typeof value === 'string' ? value : undefined,
+              ),
             reasoning_content: z.string().nullish(),
             reasoning: z.string().nullish(),
             tool_calls: z
@@ -988,8 +1010,15 @@ const chunkBaseSchema = () =>
           .object({
             role: z.enum(['assistant', '']).nullish(),
             content: openAICompatibleContentSchema(),
-            // set instead of `content` when the model refuses to answer:
-            refusal: z.string().nullish(),
+            // set instead of `content` when the model refuses to answer. Some
+            // OpenAI-compatible servers send non-string values (e.g. `false`),
+            // which are ignored instead of failing the whole response:
+            refusal: z
+              .unknown()
+              .nullish()
+              .transform(value =>
+                typeof value === 'string' ? value : undefined,
+              ),
             // Most openai-compatible models set `reasoning_content`, but some
             // providers serving `gpt-oss` set `reasoning`. See #7866
             reasoning_content: z.string().nullish(),
