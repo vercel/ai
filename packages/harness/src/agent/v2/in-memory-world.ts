@@ -883,17 +883,23 @@ export class InMemoryWorld implements World, Storable {
    *
    * Each event is cloned before `stripEventDataRefs` applies the requested
    * payload-resolution mode, so callers cannot mutate the stored event log.
+   * The cursor names the last returned event even at the tail, allowing later
+   * appends to be read without restarting pagination.
    */
   async listEvents(input: { params: ListEventsParams }) {
     const { params } = input;
     const events = this.eventRecords.get(params.runId) ?? [];
     const result = paginate({
-      items: events,
+      items:
+        params.pagination?.sortOrder === 'desc'
+          ? [...events].reverse()
+          : events,
       pagination: params.pagination,
       getKey: event => event.eventId,
     });
     return {
       ...result,
+      cursor: result.data.at(-1)?.eventId ?? params.pagination?.cursor ?? null,
       data: result.data.map(event =>
         stripEventDataRefs(cloneValue(event), params.resolveData ?? 'all'),
       ),
@@ -905,6 +911,7 @@ export class InMemoryWorld implements World, Storable {
    *
    * Event payload references are resolved or stripped using the same mode as
    * `listEvents`.
+   * The tail cursor is retained and the requested sort order is honored.
    */
   async listEventsByCorrelationId(input: {
     params: ListEventsByCorrelationIdParams;
@@ -914,12 +921,16 @@ export class InMemoryWorld implements World, Storable {
       event => event.correlationId === params.correlationId,
     );
     const result = paginate({
-      items: events,
+      items:
+        params.pagination?.sortOrder === 'desc'
+          ? [...events].reverse()
+          : events,
       pagination: params.pagination,
       getKey: event => event.eventId,
     });
     return {
       ...result,
+      cursor: result.data.at(-1)?.eventId ?? params.pagination?.cursor ?? null,
       data: result.data.map(event =>
         stripEventDataRefs(cloneValue(event), params.resolveData ?? 'all'),
       ),
@@ -933,6 +944,8 @@ export class InMemoryWorld implements World, Storable {
    * other event types require an existing run, except `run_started`, which may
    * initialize a partial run record. Event IDs follow insertion order, and the
    * event is appended only after its projection update succeeds.
+   * Duplicate live step creation is refused without changing the projection.
+   * A stale `eventCount` receives the intervening records through this commit.
    */
   async createEvent(input: {
     runId: string | null;
@@ -960,6 +973,15 @@ export class InMemoryWorld implements World, Storable {
       throw notFound({ entity: 'WorkflowRun', id: runId });
     }
 
+    if (
+      request.eventType === 'step_created' &&
+      this.stepRecords.get(runId)?.has(request.correlationId)
+    ) {
+      const error = new Error('InMemoryWorld: step already created.');
+      error.name = 'EntityConflictError';
+      throw error;
+    }
+
     const events = this.eventRecords.get(runId) ?? [];
     const createdAt = input.params?.occurredAt ?? new Date();
     const event = EventSchema.parse({
@@ -977,6 +999,21 @@ export class InMemoryWorld implements World, Storable {
     return {
       event: cloneValue(event),
       ...result,
+      ...(input.params?.eventCount !== undefined &&
+      input.params.eventCount < events.length - 1
+        ? {
+            events: events
+              .slice(input.params.eventCount)
+              .map(item =>
+                stripEventDataRefs(
+                  cloneValue(item),
+                  input.params?.resolveData ?? 'all',
+                ),
+              ),
+            cursor: event.eventId,
+            hasMore: false,
+          }
+        : {}),
     } as EventResult;
   }
 
@@ -1154,25 +1191,32 @@ export class InMemoryWorld implements World, Storable {
       requestedIndex < 0
         ? Math.max(0, stream.chunks.length + requestedIndex)
         : requestedIndex;
+    let canceled = false;
     return new ReadableStream<Uint8Array>({
-      pull: controller => {
-        if (index < stream.chunks.length) {
-          controller.enqueue(cloneValue(stream.chunks[index++]));
-          return;
+      pull: async controller => {
+        for (;;) {
+          if (canceled) return;
+          if (index < stream.chunks.length) {
+            controller.enqueue(cloneValue(stream.chunks[index++]));
+            return;
+          }
+          if (stream.done) {
+            controller.close();
+            return;
+          }
+          await new Promise<void>(resolve => {
+            const wake = () => {
+              stream.waiters.delete(wake);
+              resolve();
+            };
+            stream.waiters.add(wake);
+          });
         }
-        if (stream.done) {
-          controller.close();
-          return;
-        }
-        return new Promise<void>(resolve => {
-          const wake = () => {
-            stream.waiters.delete(wake);
-            resolve();
-          };
-          stream.waiters.add(wake);
-        });
       },
-      cancel: () => this.notifyStream({ stream }),
+      cancel: () => {
+        canceled = true;
+        this.notifyStream({ stream });
+      },
     });
   }
 

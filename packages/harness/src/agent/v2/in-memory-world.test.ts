@@ -1,5 +1,6 @@
 import {
   ValidQueueName,
+  slotToEventId,
   workflowRunIdSchema,
   type World,
 } from '@workflow/world';
@@ -7,6 +8,181 @@ import { describe, expect, test } from 'vitest';
 import { InMemoryWorld } from './in-memory-world';
 
 describe('InMemoryWorld', () => {
+  test('delivers chunks to already-waiting readers and cancels only the selected reader', async () => {
+    const world = new InMemoryWorld();
+    const runId = 'session-id';
+    const first = (await world.streams.get(runId, 'hints')).getReader();
+    const second = (await world.streams.get(runId, 'hints')).getReader();
+    const firstRead = first.read();
+    const secondRead = second.read();
+    await Promise.resolve();
+    await world.streams.write(runId, 'hints', 'first');
+    await expect(firstRead).resolves.toEqual({
+      value: new TextEncoder().encode('first'),
+      done: false,
+    });
+    await expect(secondRead).resolves.toEqual({
+      value: new TextEncoder().encode('first'),
+      done: false,
+    });
+    const canceledRead = first.read();
+    const nextRead = second.read();
+    await first.cancel();
+    await expect(canceledRead).resolves.toEqual({
+      value: undefined,
+      done: true,
+    });
+    await world.streams.write(runId, 'hints', 'second');
+    await expect(nextRead).resolves.toEqual({
+      value: new TextEncoder().encode('second'),
+      done: false,
+    });
+    await second.cancel();
+    first.releaseLock();
+    second.releaseLock();
+  });
+
+  test('retains event tail cursors and reports commits after a stale event count', async () => {
+    const world = new InMemoryWorld();
+    const runId = 'session-id';
+    await world.events.create(runId, {
+      eventType: 'run_created',
+      eventData: { deploymentId: 'test', workflowName: 'harness', input: [] },
+    });
+    const initial = await world.events.list({
+      runId,
+      pagination: { sortOrder: 'asc' },
+    });
+    expect(initial.cursor).toBe(slotToEventId(1));
+    const first = await world.events.create(
+      runId,
+      {
+        eventType: 'step_created',
+        correlationId: 'first',
+        eventData: { stepName: 'test', input: [] },
+      },
+      { eventCount: 1 },
+    );
+    expect(first.events).toBeUndefined();
+    const second = await world.events.create(
+      runId,
+      {
+        eventType: 'step_created',
+        correlationId: 'second',
+        eventData: { stepName: 'test', input: [] },
+      },
+      { eventCount: 1 },
+    );
+    expect(second.events?.map(event => event.eventId)).toEqual([
+      slotToEventId(2),
+      slotToEventId(3),
+    ]);
+    expect(second.cursor).toBe(slotToEventId(3));
+    const next = await world.events.list({
+      runId,
+      pagination: { sortOrder: 'asc', cursor: initial.cursor!, limit: 1 },
+    });
+    expect(next.data.map(event => event.eventId)).toEqual([slotToEventId(2)]);
+    expect(next.hasMore).toBe(true);
+    const tail = await world.events.list({
+      runId,
+      pagination: { sortOrder: 'asc', cursor: next.cursor! },
+    });
+    expect(tail.data.map(event => event.eventId)).toEqual([slotToEventId(3)]);
+    expect(tail.cursor).toBe(slotToEventId(3));
+    expect(
+      (
+        await world.events.list({
+          runId,
+          pagination: { sortOrder: 'asc', cursor: tail.cursor! },
+        })
+      ).data,
+    ).toEqual([]);
+    const restored = new InMemoryWorld();
+    await restored.seed({ runId, data: await world.export({ runId }) });
+    await restored.events.create(runId, {
+      eventType: 'step_started',
+      correlationId: 'second',
+    });
+    const resumed = await restored.events.list({
+      runId,
+      pagination: { sortOrder: 'asc', cursor: tail.cursor! },
+    });
+    expect(resumed.data.map(event => event.eventId)).toEqual([
+      slotToEventId(4),
+    ]);
+    const descending = await restored.events.list({
+      runId,
+      pagination: { sortOrder: 'desc', limit: 2 },
+    });
+    expect(descending.data.map(event => event.eventId)).toEqual([
+      slotToEventId(4),
+      slotToEventId(3),
+    ]);
+    const correlation = await restored.events.listByCorrelationId({
+      runId,
+      correlationId: 'second',
+      pagination: { sortOrder: 'desc', limit: 1 },
+    });
+    expect(correlation.data.map(event => event.eventId)).toEqual([
+      slotToEventId(4),
+    ]);
+    const preceding = await restored.events.listByCorrelationId({
+      runId,
+      correlationId: 'second',
+      pagination: { sortOrder: 'desc', cursor: correlation.cursor! },
+    });
+    expect(preceding.data.map(event => event.eventId)).toEqual([
+      slotToEventId(3),
+    ]);
+  });
+
+  test('arbitrates concurrent step creation without overwriting or consuming a slot', async () => {
+    const world = new InMemoryWorld();
+    const runId = 'session-id';
+    await world.events.create(runId, {
+      eventType: 'run_created',
+      eventData: { deploymentId: 'test', workflowName: 'harness', input: [] },
+    });
+    const results = await Promise.allSettled(
+      [1, 2].map(value =>
+        world.events.create(
+          runId,
+          {
+            eventType: 'step_created',
+            correlationId: 'same',
+            eventData: { stepName: 'test', input: value },
+          },
+          { eventCount: 1 },
+        ),
+      ),
+    );
+    expect(results.map(result => result.status)).toEqual([
+      'fulfilled',
+      'rejected',
+    ]);
+    expect(results[1]).toMatchObject({
+      reason: { name: 'EntityConflictError' },
+    });
+    expect((await world.steps.get(runId, 'same')).input).toBe(1);
+    const next = await world.events.create(
+      runId,
+      { eventType: 'step_started', correlationId: 'same' },
+      { eventCount: 2 },
+    );
+    expect(next.event?.eventId).toBe(slotToEventId(3));
+    const restored = new InMemoryWorld();
+    await restored.seed({ runId, data: await world.export({ runId }) });
+    await expect(
+      restored.events.create(runId, {
+        eventType: 'step_created',
+        correlationId: 'same',
+        eventData: { stepName: 'test', input: 3 },
+      }),
+    ).rejects.toMatchObject({ name: 'EntityConflictError' });
+    expect((await restored.steps.get(runId, 'same')).input).toBe(1);
+  });
+
   test('implements the Workflow World storage, queue, and stream surfaces', async () => {
     const world: World = new InMemoryWorld();
     const runId = 'session-id';
