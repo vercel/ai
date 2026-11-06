@@ -175,7 +175,7 @@ export class SseMCPTransport implements MCPTransport {
             const error = new MCPClientError({
               message: errorMessage,
               statusCode: response.status,
-              url: this.url.href,
+              url: this.url.origin,
               responseBody: text ?? undefined,
             });
             this.onerror?.(error);

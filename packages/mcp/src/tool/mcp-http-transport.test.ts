@@ -56,6 +56,9 @@ describe('HttpMCPTransport', () => {
       },
     },
     'http://localhost:4000/stream': {},
+    'http://localhost:4000/s/secret-path-token/mcp': {
+      response: { type: 'error', status: 500, body: 'Internal Server Error' },
+    },
   });
 
   let transport: HttpMCPTransport;
@@ -798,9 +801,36 @@ describe('HttpMCPTransport', () => {
     expect(error).toBeInstanceOf(MCPClientError);
     expect((error as Error).message).toContain('POSTing to endpoint');
     expect((error as MCPClientError).statusCode).toBe(500);
-    expect((error as MCPClientError).url).toBe('http://localhost:4000/mcp');
+    expect((error as MCPClientError).url).toBe('http://localhost:4000');
     expect((error as MCPClientError).responseBody).toBe(
       'Internal Server Error',
+    );
+  });
+
+  it('keeps only the origin of the URL on errors, so a token in the path or query is not exposed', async () => {
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/s/secret-path-token/mcp?api_key=secret-query-token',
+    });
+    await transport.start();
+
+    let captured: unknown;
+    transport.onerror = e => {
+      captured = e;
+    };
+
+    await expect(
+      transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'initialize',
+        id: 1,
+        params: {},
+      }),
+    ).rejects.toThrow('POSTing to endpoint');
+
+    const error = captured as MCPClientError;
+    expect(error.url).toBe('http://localhost:4000');
+    expect(JSON.stringify({ ...error, message: error.message })).not.toMatch(
+      /secret/,
     );
   });
 
@@ -832,7 +862,7 @@ describe('HttpMCPTransport', () => {
     expect(captured).toBeInstanceOf(MCPClientError);
     const error = captured as MCPClientError;
     expect(error.statusCode).toBe(404);
-    expect(error.url).toBe('http://localhost:4000/mcp');
+    expect(error.url).toBe('http://localhost:4000');
     expect(error.responseBody).toBe('Not Found');
     expect(error.message).toContain('does not support HTTP transport');
   });
@@ -865,7 +895,7 @@ describe('HttpMCPTransport', () => {
     expect(captured).toBeInstanceOf(MCPClientError);
     const error = captured as MCPClientError;
     expect(error.statusCode).toBe(503);
-    expect(error.url).toBe('http://localhost:4000/mcp');
+    expect(error.url).toBe('http://localhost:4000');
     expect(error.message).toContain('GET SSE failed');
   });
 

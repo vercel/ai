@@ -91,7 +91,7 @@ describe('SseMCPTransport', () => {
 
     expect(caughtError).toBeInstanceOf(MCPClientError);
     expect(caughtError?.statusCode).toBe(500);
-    expect(caughtError?.url).toBe('http://localhost:3000/sse');
+    expect(caughtError?.url).toBe('http://localhost:3000');
     expect(caughtError?.responseBody).toBe('Internal Server Error');
   });
 
