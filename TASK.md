@@ -73,7 +73,9 @@ The steps are below:
 - All harness configurations in this app will run on a durable `World`.
 - Initially, only include a simple example for the new `harness-pi-v2`.
 
-16. [ ] Implement `packages/harness-ai-sdk`, a new custom AI SDK harness where developers build their own durable `HarnessAgent` compatible harness on top of `ToolLoopAgent`.
+16. [ ] Define `HarnessV2Store` and its engine counterpart `HarnessAgentStore`, under the hood relying on specific `HarnessAgentLog` events (e.g. with type `store:...`), and include the adapter-specific type on `HarnessV2DriveContext`.
+
+17. [ ] Implement `packages/harness-ai-sdk`, a new custom AI SDK harness where developers build their own durable `HarnessAgent` compatible harness on top of `ToolLoopAgent`.
 
 - Ignore existing harnesses' code structure and architectural conventions. We'll want to build this as ideal as it is for the new architecture.
 

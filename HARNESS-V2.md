@@ -367,6 +367,20 @@ type HarnessV2EffectFunction = <
   fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>,
 ) => Promise<HarnessV2EffectOutput<T>>;
 
+/**
+ * Key-value storage for the session, for state the harness changes that
+ * must survive drives (e.g. a setting the harness changes mid-turn). The
+ * agent stores it in the log, so it is ordered with effects and part of
+ * lifecycle state. Never for secrets: use `credentials`.
+ */
+interface HarnessV2Store {
+  get<T extends HarnessV2SerializableValue>(
+    key: string,
+  ): Promise<T | undefined>;
+  set(key: string, value: HarnessV2SerializableValue): Promise<void>;
+  delete(key: string): Promise<void>;
+}
+
 interface HarnessV2DriveContext {
   /**
    * The session's append-only log: in memory without a World, backed by the
@@ -414,6 +428,10 @@ interface HarnessV2DriveContext {
      */
     onAppend(listener: () => void): () => void;
   };
+  /**
+   * Key-value store for the session, under the hood relying on log events.
+   */
+  store: HarnessV2Store;
   /**
    * Runs `fn` as one Workflow step: returns the recorded output for `key` if
    * there is one, otherwise writes the start event, runs `fn`, writes the end
