@@ -80,6 +80,9 @@ export async function fetchWithValidatedEndpoint({
  * target (e.g. an internal address) before we ever see its URL, defeating the
  * guard.
  *
+ * Manually followed redirects from HTTPS to HTTP are rejected before requesting
+ * the target.
+ *
  * Request headers are also protected: {@link sanitizeRequestHeaders} strips
  * proxy/metadata/cookie/hop-by-hop headers before the first request, and all
  * caller headers except `User-Agent` are dropped on a cross-origin redirect.
@@ -191,6 +194,16 @@ export async function fetchWithValidatedRedirects({
       // the cloned branch is consumed.
       void cancelResponseBody(response);
       const nextUrl = new URL(location, currentUrl).toString();
+
+      if (
+        new URL(currentUrl).protocol === 'https:' &&
+        new URL(nextUrl).protocol === 'http:'
+      ) {
+        throw new DownloadError({
+          url,
+          message: 'Redirect from HTTPS to HTTP was blocked',
+        });
+      }
 
       // Drop all caller headers except the user-agent before following a
       // redirect that crosses origin. Only stripping Authorization (as the

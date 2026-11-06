@@ -152,24 +152,37 @@ describe('discoverOAuthProtectedResourceMetadata', () => {
     );
   });
 
-  it('rejects redirects from protected resource discovery to private addresses', async () => {
-    mockFetch.mockResolvedValueOnce(
-      new Response(null, {
-        status: 302,
-        headers: {
-          location: 'http://169.254.169.254/latest/meta-data',
-        },
-      }),
-    );
+  it.each([
+    {
+      location: 'https://169.254.169.254/latest/meta-data',
+      error: /169\.254\.169\.254/,
+    },
+    {
+      location:
+        'http://resource.example.com/.well-known/oauth-protected-resource',
+      error: /Redirect from HTTPS to HTTP was blocked/,
+    },
+  ])(
+    'rejects protected resource discovery redirects to $location',
+    async ({ location, error }) => {
+      mockFetch.mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: {
+            location,
+          },
+        }),
+      );
 
-    await expect(
-      discoverOAuthProtectedResourceMetadata(
-        'https://resource.example.com/mcp',
-      ),
-    ).rejects.toThrow(/169\.254\.169\.254/);
+      await expect(
+        discoverOAuthProtectedResourceMetadata(
+          'https://resource.example.com/mcp',
+        ),
+      ).rejects.toThrow(error);
 
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-  });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('returns metadata when first fetch fails but second without MCP header succeeds', async () => {
     // Set up a counter to control behavior
@@ -690,22 +703,35 @@ describe('discoverAuthorizationServerMetadata', () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it('rejects authorization server discovery redirects to private addresses', async () => {
-    mockFetch.mockResolvedValueOnce(
-      new Response(null, {
-        status: 302,
-        headers: {
-          location: 'http://127.0.0.1:4000/.well-known/openid-configuration',
-        },
-      }),
-    );
+  it.each([
+    {
+      location: 'https://127.0.0.1:4000/.well-known/openid-configuration',
+      error: /127\.0\.0\.1/,
+    },
+    {
+      location:
+        'http://auth.example.com/.well-known/oauth-authorization-server',
+      error: /Redirect from HTTPS to HTTP was blocked/,
+    },
+  ])(
+    'rejects authorization server discovery redirects to $location',
+    async ({ location, error }) => {
+      mockFetch.mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: {
+            location,
+          },
+        }),
+      );
 
-    await expect(
-      discoverAuthorizationServerMetadata('https://auth.example.com'),
-    ).rejects.toThrow(/127\.0\.0\.1/);
+      await expect(
+        discoverAuthorizationServerMetadata('https://auth.example.com'),
+      ).rejects.toThrow(error);
 
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-  });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('returns OAuth metadata when issuer matches path-aware discovery issuer', async () => {
     const tenantMetadata = {
