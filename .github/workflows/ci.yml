@@ -41,6 +41,9 @@ jobs:
       - name: Test package preview tooling
         run: node --test tools/tarballs/*.test.mjs
 
+      - name: Test backport upload
+        run: python3 .github/scripts/test-backport-upload.py
+
   build-examples_matrix:
     name: 'Build Examples (${{ matrix.shard }})'
     runs-on: ubuntu-latest

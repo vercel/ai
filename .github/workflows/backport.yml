@@ -498,28 +498,49 @@ jobs:
           DELETIONS="${WORK}/deletions.json"
           BODY_FILE="${WORK}/body.txt"
           PAYLOAD="${WORK}/payload.json"
+          DIFF="${WORK}/diff"
 
           git log -1 --format=%b HEAD > "$BODY_FILE"
           echo '[]' > "$ADDITIONS"
           echo '[]' > "$DELETIONS"
 
-          # Collect added/modified files (rename-aware diff is decomposed
-          # into delete+add via --no-renames so each path is independent).
-          while IFS= read -r -d '' path; do
-            [ -z "$path" ] && continue
-            b64="${WORK}/b64"
-            base64 -w0 < "$path" | tr -d '\n' > "$b64"
-            jq -c --arg p "$path" --rawfile c "$b64" \
-              '. + [{path: $p, contents: $c}]' \
-              "$ADDITIONS" > "${ADDITIONS}.tmp"
-            mv "${ADDITIONS}.tmp" "$ADDITIONS"
-          done < <(git diff --no-renames --name-only --diff-filter=AM -z "${PARENT_OID}" HEAD)
-
-          while IFS= read -r -d '' path; do
-            [ -z "$path" ] && continue
-            jq -c --arg p "$path" '. + [{path: $p}]' "$DELETIONS" > "${DELETIONS}.tmp"
-            mv "${DELETIONS}.tmp" "$DELETIONS"
-          done < <(git diff --no-renames --name-only --diff-filter=D -z "${PARENT_OID}" HEAD)
+          # Read modes and blob IDs from Git, never from checkout paths:
+          # checkout reads could follow symlinks outside the repository.
+          # Materialize the diff so a failed git command fails the step.
+          # Renames are decomposed into independent deletions/additions.
+          git diff --no-ext-diff --no-renames --ignore-submodules=none --raw --no-abbrev -z "${PARENT_OID}" HEAD > "$DIFF"
+          while IFS= read -r -d '' entry && IFS= read -r -d '' path; do
+            read -r old_mode new_mode old_oid new_oid status <<< "${entry#:}"
+            case "$status" in
+              D)
+                jq -c --arg p "$path" '. + [{path: $p}]' "$DELETIONS" > "${DELETIONS}.tmp"
+                mv "${DELETIONS}.tmp" "$DELETIONS"
+                ;;
+              A|M|T)
+                # createCommitOnBranch cannot specify file modes. Only
+                # upload non-executable regular files; other modes and
+                # conversions require a manual backport to preserve them.
+                case "$old_mode:$new_mode" in
+                  000000:100644|100644:100644) ;;
+                  *)
+                    echo "::error::Cannot automatically backport file mode ${old_mode} -> ${new_mode}. Backport this change manually."
+                    printf 'Path: %q\n' "$path"
+                    exit 1
+                    ;;
+                esac
+                b64="${WORK}/b64"
+                git cat-file blob "$new_oid" | base64 | tr -d '\n' > "$b64"
+                jq -c --arg p "$path" --rawfile c "$b64" \
+                  '. + [{path: $p, contents: $c}]' \
+                  "$ADDITIONS" > "${ADDITIONS}.tmp"
+                mv "${ADDITIONS}.tmp" "$ADDITIONS"
+                ;;
+              *)
+                echo "::error::Unsupported backport diff status: ${status}"
+                exit 1
+                ;;
+            esac
+          done < "$DIFF"
 
           # Reset the remote branch to the base branch tip (or create it
           # fresh). This is the "branch already exists, force-push" path
