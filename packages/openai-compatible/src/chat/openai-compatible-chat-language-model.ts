@@ -63,8 +63,12 @@ export type OpenAICompatibleChatConfig = {
    * Optional function to transform the request body before sending it to the API.
    * This is useful for proxy providers that may require a different request format
    * than the official OpenAI API.
+   * The optional warnings array can be used to report request transformations.
    */
-  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+  transformRequestBody?: (
+    args: Record<string, any>,
+    warnings?: LanguageModelV2CallWarning[],
+  ) => Record<string, any>;
 
   /**
    * Optional usage converter for OpenAI-compatible providers with different
@@ -115,8 +119,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  private transformRequestBody(args: Record<string, any>): Record<string, any> {
-    return this.config.transformRequestBody?.(args) ?? args;
+  private transformRequestBody(
+    args: Record<string, any>,
+    warnings: LanguageModelV2CallWarning[],
+  ): Record<string, any> {
+    return this.config.transformRequestBody?.(args, warnings) ?? args;
   }
 
   private convertUsage(
@@ -244,7 +251,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args, warnings } = await this.getArgs({ ...options });
 
-    const transformedArgs = this.transformRequestBody(args);
+    const transformedArgs = this.transformRequestBody(args, warnings);
     const body = JSON.stringify(transformedArgs);
 
     const {
@@ -354,15 +361,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings } = await this.getArgs({ ...options });
 
-    const body = this.transformRequestBody({
-      ...args,
-      stream: true,
+    const body = this.transformRequestBody(
+      {
+        ...args,
+        stream: true,
 
-      // only include stream_options when in strict compatibility mode:
-      stream_options: this.config.includeUsage
-        ? { include_usage: true }
-        : undefined,
-    });
+        // only include stream_options when in strict compatibility mode:
+        stream_options: this.config.includeUsage
+          ? { include_usage: true }
+          : undefined,
+      },
+      warnings,
+    );
 
     const metadataExtractor =
       this.config.metadataExtractor?.createStreamExtractor();
