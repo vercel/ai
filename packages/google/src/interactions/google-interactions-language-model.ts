@@ -1,3 +1,4 @@
+import { googleFilesUrlPattern } from '../google-supported-file-url';
 import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
@@ -107,6 +108,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV3 {
       return this.config.supportedUrls();
     }
     return {
+      '*': [googleFilesUrlPattern],
       'image/*': [/^https?:\/\/.+/],
       'application/pdf': [/^https?:\/\/.+/],
       'audio/*': [/^https?:\/\/.+/],

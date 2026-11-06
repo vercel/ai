@@ -1,3 +1,7 @@
+import {
+  googleInteractionsFileOptionsSchema,
+  type GoogleInteractionsFileOptions,
+} from './google-interactions-file-options';
 import type {
   LanguageModelV3FilePart,
   LanguageModelV3Prompt,
@@ -9,7 +13,8 @@ import type {
   GoogleInteractionsContent,
   GoogleInteractionsContentBlock,
   GoogleInteractionsFunctionResultContent,
-  GoogleInteractionsImageContent,
+  GoogleInteractionsFunctionResultPart,
+  GoogleInteractionsFileProcessing,
   GoogleInteractionsInput,
   GoogleInteractionsStep,
   GoogleInteractionsTextContent,
@@ -212,6 +217,7 @@ export function convertToGoogleInteractionsInput({
             });
             continue;
           }
+          const attachments: Array<GoogleInteractionsContent> = [];
           const block = convertToolResultPart({
             toolCallId: part.toolCallId,
             toolName: part.toolName,
@@ -220,8 +226,10 @@ export function convertToGoogleInteractionsInput({
               | string
               | undefined,
             warnings,
+            mediaResolution,
+            attachments,
           });
-          content.push(block);
+          content.push(block, ...attachments);
         }
         if (content.length > 0) {
           steps.push({ type: 'user_input', content });
@@ -270,6 +278,7 @@ function convertFilePartToContent({
       kind = 'video';
       break;
     case 'application':
+    case 'text':
       kind = 'document';
       break;
     default:
@@ -284,10 +293,18 @@ function convertFilePartToContent({
     return undefined;
   }
 
+  const fileOptions = googleInteractionsFileOptionsSchema.parse(
+    Object.fromEntries(
+      Object.entries(part.providerOptions?.google ?? {}).filter(
+        ([, value]) => value != null,
+      ),
+    ),
+  );
+  const resolution = fileOptions.resolution ?? mediaResolution;
   const resolutionField =
-    mediaResolution != null && (kind === 'image' || kind === 'video')
-      ? { resolution: mediaResolution }
-      : {};
+    resolution != null && kind !== 'audio' ? { resolution } : {};
+  const processingField =
+    kind !== 'image' ? getFileProcessingField(fileOptions.processing) : {};
 
   if (part.data instanceof URL) {
     return {
@@ -295,6 +312,7 @@ function convertFilePartToContent({
       uri: part.data.toString(),
       ...(isFullMediaType(part.mediaType) ? { mime_type: part.mediaType } : {}),
       ...resolutionField,
+      ...processingField,
     };
   }
 
@@ -311,7 +329,75 @@ function convertFilePartToContent({
     data: convertToBase64(part.data),
     mime_type: part.mediaType,
     ...resolutionField,
+    ...processingField,
   };
+}
+
+function getFileProcessingField(
+  processing: GoogleInteractionsFileOptions['processing'],
+): { processing?: GoogleInteractionsFileProcessing } {
+  if (processing == null) {
+    return {};
+  }
+
+  if (processing === 'agentic' || processing === 'static') {
+    return { processing };
+  }
+
+  if (processing.type === 'static') {
+    return {
+      processing: {
+        type: 'static',
+        ...(processing.startOffset != null
+          ? { start_offset: `${processing.startOffset}s` }
+          : {}),
+        ...(processing.endOffset != null
+          ? { end_offset: `${processing.endOffset}s` }
+          : {}),
+        ...(processing.fps != null ? { fps: processing.fps } : {}),
+        ...(processing.contentLayers != null
+          ? { content_layers: processing.contentLayers }
+          : {}),
+        ...(processing.pageOptions != null
+          ? {
+              page_options: {
+                ...(processing.pageOptions.startPage != null
+                  ? { start_page: processing.pageOptions.startPage }
+                  : {}),
+                ...(processing.pageOptions.endPage != null
+                  ? { end_page: processing.pageOptions.endPage }
+                  : {}),
+                ...(processing.pageOptions.contentLayers != null
+                  ? { content_layers: processing.pageOptions.contentLayers }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(processing.spreadsheetOptions != null
+          ? {
+              spreadsheet_options: {
+                ...(processing.spreadsheetOptions.sheetIndex != null
+                  ? { sheet_index: processing.spreadsheetOptions.sheetIndex }
+                  : {}),
+                ...(processing.spreadsheetOptions.visibleCells != null
+                  ? {
+                      visible_cells: processing.spreadsheetOptions.visibleCells,
+                    }
+                  : {}),
+                ...(processing.spreadsheetOptions.contentLayers != null
+                  ? {
+                      content_layers:
+                        processing.spreadsheetOptions.contentLayers,
+                    }
+                  : {}),
+              },
+            }
+          : {}),
+      },
+    };
+  }
+
+  return {};
 }
 
 /*
@@ -392,12 +478,16 @@ function convertToolResultPart({
   output,
   signature,
   warnings,
+  mediaResolution,
+  attachments,
 }: {
   toolCallId: string;
   toolName: string;
   output: LanguageModelV3ToolResultOutput;
   signature: string | undefined;
   warnings: Array<SharedV3Warning>;
+  mediaResolution?: GoogleInteractionsMediaResolution;
+  attachments: Array<GoogleInteractionsContent>;
 }): GoogleInteractionsFunctionResultContent {
   const base = {
     type: 'function_result' as const,
@@ -422,64 +512,36 @@ function convertToolResultPart({
         result: output.reason ?? 'Tool execution denied by user.',
       };
     case 'content': {
-      const blocks: Array<
-        GoogleInteractionsTextContent | GoogleInteractionsImageContent
-      > = [];
+      const blocks: Array<GoogleInteractionsFunctionResultPart> = [];
       for (const item of output.value) {
         if (item.type === 'text') {
           blocks.push({ type: 'text', text: item.text });
-        } else if (item.type === 'image-data') {
-          const imageBlock = filePartToImageBlock({
+        } else if (
+          item.type === 'file-data' ||
+          item.type === 'file-url' ||
+          item.type === 'image-data' ||
+          item.type === 'image-url'
+        ) {
+          const fileBlock = convertFilePartToContent({
             part: {
               type: 'file',
-              mediaType: item.mediaType,
-              data: item.data,
+              mediaType:
+                item.type === 'image-url'
+                  ? 'image/*'
+                  : (item.mediaType ?? 'application/*'),
+              data:
+                item.type === 'image-url' || item.type === 'file-url'
+                  ? new URL(item.url)
+                  : item.data,
+              providerOptions: item.providerOptions,
             },
             warnings,
+            mediaResolution,
           });
-          if (imageBlock != null) {
-            blocks.push(imageBlock);
-          }
-        } else if (item.type === 'image-url') {
-          const imageBlock = filePartToImageBlock({
-            part: {
-              type: 'file',
-              mediaType: 'image/*',
-              data: new URL(item.url),
-            },
-            warnings,
-          });
-          if (imageBlock != null) {
-            blocks.push(imageBlock);
-          }
-        } else if (item.type === 'file-data' || item.type === 'file-url') {
-          const mediaType =
-            item.type === 'file-data' ? item.mediaType : 'application/*';
-          const topLevel = getTopLevelMediaType(mediaType);
-          if (topLevel !== 'image') {
-            warnings.push({
-              type: 'other',
-              message: `google.interactions: tool-result file with mediaType "${mediaType}" is not supported (Interactions \`function_result.result\` accepts only text and image content); part dropped.`,
-            });
-            continue;
-          }
-          const imageBlock = filePartToImageBlock({
-            part:
-              item.type === 'file-data'
-                ? {
-                    type: 'file',
-                    mediaType: item.mediaType,
-                    data: item.data,
-                  }
-                : {
-                    type: 'file',
-                    mediaType,
-                    data: new URL(item.url),
-                  },
-            warnings,
-          });
-          if (imageBlock != null) {
-            blocks.push(imageBlock);
+          if (fileBlock != null) {
+            if (fileBlock.type === 'document' || fileBlock.type === 'audio')
+              attachments.push(fileBlock);
+            else blocks.push(fileBlock);
           }
         } else {
           warnings.push({
@@ -488,44 +550,15 @@ function convertToolResultPart({
           });
         }
       }
+      if (attachments.length > 0) {
+        blocks.push({
+          type: 'text',
+          text: 'Tool output files are attached after this function result.',
+        });
+      }
       return { ...base, result: blocks };
     }
   }
-}
-
-function filePartToImageBlock({
-  part,
-  warnings,
-}: {
-  part: {
-    type: 'file';
-    mediaType: string;
-    data: Uint8Array | string | URL;
-    filename?: string;
-  };
-  warnings: Array<SharedV3Warning>;
-}): GoogleInteractionsImageContent | undefined {
-  if (part.data instanceof URL) {
-    return {
-      type: 'image',
-      uri: part.data.toString(),
-      ...(isFullMediaType(part.mediaType) ? { mime_type: part.mediaType } : {}),
-    };
-  }
-
-  if (!isFullMediaType(part.mediaType)) {
-    warnings.push({
-      type: 'other',
-      message: `google.interactions: tool-result image part requires a full IANA media type (e.g. "image/png"), got "${part.mediaType}"; part dropped.`,
-    });
-    return undefined;
-  }
-
-  return {
-    type: 'image',
-    data: convertToBase64(part.data),
-    mime_type: part.mediaType,
-  };
 }
 
 /*

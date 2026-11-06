@@ -1,3 +1,4 @@
+import { googleFilesUrlPattern } from './google-supported-file-url';
 import type {
   EmbeddingModelV3,
   Experimental_VideoModelV3,
@@ -219,6 +220,7 @@ export function createGoogleGenerativeAI(
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
         '*': [
+          googleFilesUrlPattern,
           // Google Generative Language "files" endpoint
           // e.g. https://generativelanguage.googleapis.com/v1beta/files/...
           new RegExp(`^${baseURL}/files/.*$`),

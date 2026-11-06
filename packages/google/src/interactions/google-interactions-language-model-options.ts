@@ -41,6 +41,7 @@ export type GoogleInteractionsModelId =
   | 'gemini-4-carbon'
   | 'gemini-4-hydrogen'
   | 'gemini-4-neon'
+  | 'gemini-4-argon-file-processing-eap'
   | 'gemini-nano-banana-2.1'
   | 'lyria-3-clip-preview'
   | 'lyria-3-pro-preview'
