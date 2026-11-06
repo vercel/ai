@@ -1,0 +1,135 @@
+---
+title: LiteRT-LM
+description: Learn how to use the LiteRT-LM provider to run models on phones and in the browser.
+---
+
+# LiteRT-LM Provider
+
+[ai-sdk-litert-lm](https://github.com/john-rocky/ai-sdk-litert-lm) is a community provider for [LiteRT-LM](https://ai.google.dev/edge/litert-lm), Google's runtime for LLMs on the device. It runs `.litertlm` models on iOS, on Android and in the browser, with the same line of code. A model downloads once and is kept on the device. A browser keeps it only on HTTPS or localhost.
+
+On a phone the provider runs on [`react-native-litert-lm`](https://github.com/hung-yueh/react-native-litert-lm). In a browser it runs on [`@litert-lm/core`](https://www.npmjs.com/package/@litert-lm/core) with WebGPU. Your bundler picks the right one.
+
+## Setup
+
+In an Expo app, for iOS, Android and web:
+
+```bash
+npx expo install ai-sdk-litert-lm ai react-native-litert-lm react-native-nitro-modules @ungap/structured-clone @stardazed/streams-text-encoding
+npx expo install @litert-lm/core react-dom react-native-web
+```
+
+A phone also needs the `react-native-litert-lm` config plugin, the AI SDK's polyfills and a native build. The [README](https://github.com/john-rocky/ai-sdk-litert-lm#install) has the steps, and those for bare React Native.
+
+In a browser-only app:
+
+<InstallPackages packages="ai-sdk-litert-lm ai @litert-lm/core" />
+
+## Provider Instance
+
+You can import the default provider instance `litertlm` from `ai-sdk-litert-lm`:
+
+```ts
+import { litertlm } from 'ai-sdk-litert-lm';
+```
+
+## Language Models
+
+Create a model with a Hugging Face repo, a URL or a path on the phone:
+
+```ts
+const model = litertlm('hf://litert-community/gemma-4-E2B-it-litert-lm');
+```
+
+| Model ID                               | What loads                                   |
+| -------------------------------------- | -------------------------------------------- |
+| `hf://org/repo` or `org/repo`          | A file chosen from the repo for the platform |
+| `hf://org/repo@revision/file.litertlm` | That file at that revision                   |
+| `https://…/model.litertlm`             | That URL                                     |
+| `/path/to/model.litertlm`              | A file on the phone                          |
+
+You can pass settings with the model. They apply when it loads:
+
+- **backend** _'gpu' | 'cpu' | 'npu'_
+
+  Where the model runs. `npu` is for phones, with a bundle compiled for the phone's chip.
+
+- **maxContextTokens** _number_
+
+  Tokens the conversation can hold: prompt, history and output together.
+
+- **temperature**, **topK**, **topP** _number_
+
+  Sampling defaults, used when a call doesn't set its own.
+
+- **accessToken** _string_
+
+  Hugging Face token of the user loading a gated or private model.
+
+## Examples
+
+### `generateText`
+
+```ts
+import { generateText } from 'ai';
+import { litertlm } from 'ai-sdk-litert-lm';
+
+const { text } = await generateText({
+  model: litertlm('hf://litert-community/gemma-4-E2B-it-litert-lm'),
+  prompt: 'What is the capital of France? Answer with one word.',
+});
+```
+
+### `streamText`
+
+```ts
+import { streamText } from 'ai';
+import { litertlm } from 'ai-sdk-litert-lm';
+
+const result = streamText({
+  model: litertlm('hf://litert-community/gemma-4-E2B-it-litert-lm'),
+  prompt: 'Write two sentences about the sea.',
+});
+
+for await (const text of result.textStream) {
+  console.log(text);
+}
+```
+
+### Tools
+
+```ts
+import { generateText, stepCountIs, tool } from 'ai';
+import { litertlm } from 'ai-sdk-litert-lm';
+import { z } from 'zod';
+
+const { text } = await generateText({
+  model: litertlm('hf://litert-community/gemma-4-E2B-it-litert-lm'),
+  tools: {
+    get_weather: tool({
+      description: 'Get the current weather for a city.',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ city, temperature: 21 }),
+    }),
+  },
+  stopWhen: stepCountIs(3),
+  prompt: 'What is the weather in Tokyo right now? Use the get_weather tool.',
+});
+```
+
+### Download ahead of time
+
+The first call downloads and loads the model. To do that on your own schedule:
+
+```ts
+import { litertlm } from 'ai-sdk-litert-lm';
+
+const model = litertlm('hf://litert-community/gemma-4-E2B-it-litert-lm');
+
+await model.prepare({
+  onProgress: ({ fraction }) => console.log(fraction),
+});
+```
+
+## Differences Between a Phone and a Browser
+
+On a phone, sampling and tools apply when the model loads, so the provider reloads the model when they change, and the call carries a warning. In a browser they apply per call. `Output.object` is enforced by the engine on a phone, unless the call also has tools. Otherwise it's an instruction to the model, with a warning, as it always is in a browser. The [README](https://github.com/john-rocky/ai-sdk-litert-lm#what-changes-per-call) has the full table.
