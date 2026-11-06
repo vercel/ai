@@ -104,6 +104,19 @@ function join(parts: Uint8Array[], length: number): Uint8Array {
   return bytes;
 }
 
+/**
+ * Whether the byte at `end` is escaped: it follows an odd number of
+ * backslashes. They are counted back to `start`, where no escape sequence is
+ * open.
+ */
+function isEscaped(bytes: Uint8Array, start: number, end: number): boolean {
+  let at = end;
+  while (at > start && bytes[at - 1] === BACKSLASH) {
+    at--;
+  }
+  return ((end - at) & 1) === 1;
+}
+
 export function createJsonBinaryFieldScanner(
   paths: BinaryFieldPaths,
   minBytes = DEFAULT_BINARY_FIELD_MIN_BYTES,
@@ -253,12 +266,51 @@ export function createJsonBinaryFieldScanner(
         if (padding === 0) {
           let pending = bits;
           let count = chars;
-          for (
-            let value;
-            index < length && (value = sextet[chunk[index]]) < 64;
-            index++
-          ) {
+          for (;;) {
+            // At a group border, whole groups of four characters are decoded
+            // at once, up to the first group with a byte that is not a base64
+            // character.
+            if (count === 0) {
+              let groups = (length - index) >> 2;
+              while (groups > 0) {
+                if (at + 3 > segment.length) {
+                  grow();
+                }
+                const out = segment;
+                const start = at;
+                const end =
+                  start + 3 * Math.min(groups, ((out.length - start) / 3) | 0);
+                let position = start;
+                while (position < end) {
+                  const a = sextet[chunk[index]];
+                  const b = sextet[chunk[index + 1]];
+                  const c = sextet[chunk[index + 2]];
+                  const d = sextet[chunk[index + 3]];
+                  if ((a | b | c | d) > 63) {
+                    break;
+                  }
+                  out[position++] = (a << 2) | (b >> 4);
+                  out[position++] = (b << 4) | (c >> 2);
+                  out[position++] = (c << 6) | d;
+                  index += 4;
+                }
+                at = position;
+                total += position - start;
+                if (position < end) {
+                  break;
+                }
+                groups -= (position - start) / 3;
+              }
+            }
+
+            // One character: a group that a chunk border cut, or the
+            // characters before the byte that ends the run.
+            const value = index < length ? sextet[chunk[index]] : 64;
+            if (value > 63) {
+              break;
+            }
             pending = (pending << 6) | value;
+            index++;
             if (++count === 4) {
               if (at + 3 > segment.length) {
                 grow();
@@ -292,6 +344,24 @@ export function createJsonBinaryFieldScanner(
           restore();
           mode = SKIP;
           from = index--;
+        }
+      } else if (mode === SKIP && !escaped) {
+        // A string that is not extracted goes into the skeleton as it is, so
+        // only its end matters: the first quote that is not escaped. Native
+        // searches pass over long strings, such as reasoning signatures, in
+        // one step.
+        let quote = chunk.indexOf(QUOTE, index);
+        while (quote !== -1 && isEscaped(chunk, index, quote)) {
+          quote = chunk.indexOf(QUOTE, quote + 1);
+        }
+        if (quote === -1) {
+          // The string goes on in the next chunk, whose first byte a
+          // backslash at the end of this one may escape.
+          escaped = isEscaped(chunk, index, length);
+          index = length;
+        } else {
+          mode = OUTSIDE;
+          index = quote;
         }
       } else if (mode !== OUTSIDE) {
         if (mode === KEY) {
