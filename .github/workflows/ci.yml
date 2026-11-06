@@ -40,6 +40,9 @@ jobs:
       - name: Test package preview tooling
         run: node --test tools/tarballs/*.test.mjs
 
+      - name: Test backport upload
+        run: python3 .github/scripts/test-backport-upload.py
+
       - name: Validate docs <PropertiesTable> usage
         run: pnpm run validate:docs
 
