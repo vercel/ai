@@ -1001,7 +1001,7 @@
     {
       "name": "tool-package-must-follow-shared-conventions",
       "description": "Every tool package must include its main file and expose its factory through the package index.",
-      "paths": ["packages/tool-{toolId}"],
+      "paths": ["packages/tool-{toolId}", "!packages/tool-fs"],
       "must": [
         {
           "name": "tool-package-must-have-main-file",
@@ -1060,6 +1060,78 @@
           }
         }
       ]
+    },
+    {
+      "name": "filesystem-tool-collection-must-follow-shared-conventions",
+      "description": "The filesystem tool collection must expose its factory and include each tool implementation.",
+      "paths": ["packages/tool-fs"],
+      "must": [
+        {
+          "name": "filesystem-tool-collection-must-have-required-files",
+          "must": {
+            "haveType": "directory",
+            "haveFiles": [
+              "src/create-fs-tools.ts",
+              "src/read-tool.ts",
+              "src/write-tool.ts",
+              "src/edit-tool.ts",
+              "src/delete-file-tool.ts",
+              "src/list-tool.ts",
+              "src/glob-tool.ts",
+              "src/grep-tool.ts"
+            ]
+          }
+        },
+        {
+          "name": "filesystem-tool-collection-must-export-factory",
+          "for": { "files": "src/create-fs-tools.ts" },
+          "must": { "exportFunctions": ["createFsTools"] }
+        },
+        {
+          "name": "filesystem-tool-collection-index-must-export-experimental-factory",
+          "for": { "files": "src/index.ts" },
+          "must": {
+            "exportValues": [
+              {
+                "name": "createFsTools",
+                "alias": "experimental_createFsTools",
+                "from": "./create-fs-tools"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "filesystem-tool-implementation-must-follow-shared-conventions",
+      "description": "Every filesystem tool must declare its schemas and inferred types before exporting its factory.",
+      "paths": ["packages/tool-fs/src/{toolId}-tool.ts"],
+      "must": {
+        "importValues": [
+          { "name": "tool", "from": "ai" },
+          { "name": "z", "from": "zod/v4" }
+        ],
+        "importTypes": [{ "name": "FsTool", "from": "./fs-tool-settings" }],
+        "exportTypes": [
+          {
+            "name": "${toolId.toPascalCase()}Input",
+            "type": "z.infer<typeof inputSchema>"
+          },
+          {
+            "name": "${toolId.toPascalCase()}Output",
+            "type": "z.infer<typeof outputSchema>"
+          }
+        ],
+        "declareConstants": ["inputSchema", "outputSchema"],
+        "exportFunctions": ["create${toolId.toPascalCase()}Tool"],
+        "useDeclarationOrder": [
+          "${toolId.toPascalCase()}Input",
+          "${toolId.toPascalCase()}Output",
+          "inputSchema",
+          "outputSchema",
+          "create${toolId.toPascalCase()}Tool"
+        ]
+      }
     }
   ],
   "kebabToPascalMap": {
