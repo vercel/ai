@@ -1,0 +1,291 @@
+---
+title: Venice AI
+description: Learn how to use the Venice AI community provider.
+---
+
+# Venice AI Provider
+
+[venice-ai-sdk-provider](https://github.com/dpuyosa/venice-ai-sdk-provider) is a community provider that gives the AI SDK access to [Venice AI](https://venice.ai/) language and embedding models. Venice's privacy protections depend on the selected model. See the [Venice privacy documentation](https://docs.venice.ai/overview/privacy) when choosing a model.
+
+## Setup
+
+The Venice AI provider is available in the `venice-ai-sdk-provider` package and requires Node.js 24 or later. Choose a package version whose `ai` peer dependency supports your installed AI SDK major version.
+
+<Note type="warning">
+  Version 2.2.0 of the community provider declares support for AI SDK 6 (`ai:
+  ^6.0.90`). For AI SDK 7, use the [OpenAI-compatible
+  integration](#openai-compatible-integration) until the community provider
+  publishes a release that declares AI SDK 7 support.
+</Note>
+
+Install the community provider with:
+
+<InstallPackages packages="venice-ai-sdk-provider" />
+
+Set your Venice API key as an environment variable:
+
+```bash
+export VENICE_API_KEY=your-api-key
+```
+
+You can create an API key in the [Venice API Keys dashboard](https://venice.ai/settings/api).
+
+## Provider Instance
+
+You can import the default `venice` provider instance from `venice-ai-sdk-provider`. It reads the API key from the `VENICE_API_KEY` environment variable:
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+```
+
+If you need a customized setup, import `createVenice` and create a provider instance:
+
+```ts
+import { createVenice } from 'venice-ai-sdk-provider';
+
+const venice = createVenice({
+  apiKey: process.env.VENICE_API_KEY,
+});
+```
+
+The `createVenice` function accepts the following optional settings:
+
+- **apiKey** _string_
+
+  API key sent in the `Authorization` header. It defaults to the `VENICE_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Base URL for API requests. It defaults to `https://api.venice.ai/api/v1`.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Custom headers to include in requests.
+
+- **queryParams** _Record&lt;string, string&gt;_
+
+  Custom query parameters to include in request URLs.
+
+- **fetch** _FetchFunction_
+
+  Custom fetch implementation. You can use it to intercept requests or provide a custom implementation for testing.
+
+- **includeUsage** _boolean_
+
+  Include token usage information in streaming responses. Defaults to disabled.
+
+- **supportsStructuredOutputs** _boolean_
+
+  Enable JSON schema output for models that support it. Defaults to disabled.
+  See [Structured Output](#structured-output) for an example.
+
+## Language Models
+
+Call the provider with a Venice model ID to create a language model:
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+
+const model = venice('venice-uncensored-1-2');
+```
+
+Use `generateText` to generate a complete response:
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: venice('venice-uncensored-1-2'),
+  prompt: 'Write a vegetarian lasagna recipe for four people.',
+});
+
+console.log(text);
+```
+
+Venice changes its model catalog over time. See the [Venice Models documentation](https://docs.venice.ai/models/overview) for the current model IDs and their capabilities.
+
+### Streaming
+
+Use `streamText` to read text as it is generated:
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: venice('venice-uncensored-1-2'),
+  prompt: 'Write a short story about a robot learning to cook.',
+});
+
+for await (const text of result.textStream) {
+  process.stdout.write(text);
+}
+```
+
+## Tool Calling
+
+Use a model with function calling support to call tools. Install Zod to define tool input schemas:
+
+<InstallPackages packages="zod" />
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+import { generateText, isStepCount, tool } from 'ai';
+import * as z4 from 'zod/v4';
+
+const { text } = await generateText({
+  model: venice('z-ai-glm-5-3-flash'),
+  prompt:
+    'Use the temperature conversion tool to convert 22 Celsius to Fahrenheit.',
+  tools: {
+    celsiusToFahrenheit: tool({
+      description: 'Convert a temperature in Celsius to Fahrenheit.',
+      inputSchema: z4.object({
+        celsius: z4.number(),
+      }),
+      execute: async ({ celsius }) => ({ fahrenheit: (celsius * 9) / 5 + 32 }),
+    }),
+  },
+  stopWhen: isStepCount(2),
+});
+
+console.log(text);
+```
+
+`stopWhen: isStepCount(2)` allows a second model call to answer using the tool result. Without a continuation condition, `generateText` stops after the first step. See [Tool Calling](/docs/ai-sdk-core/tools-and-tool-calling) for more examples.
+
+## Structured Output
+
+Use `Output.object()` with a Zod schema and a model that supports response schemas. Set `supportsStructuredOutputs: true` when creating the provider so it sends the schema to Venice:
+
+```ts
+import { createVenice } from 'venice-ai-sdk-provider';
+import { generateText, Output } from 'ai';
+import * as z4 from 'zod/v4';
+
+const venice = createVenice({
+  supportsStructuredOutputs: true,
+});
+
+const { output } = await generateText({
+  model: venice('venice-uncensored-1-2'),
+  output: Output.object({
+    schema: z4.object({
+      name: z4.string(),
+      ingredients: z4.array(z4.string()),
+      steps: z4.array(z4.string()),
+    }),
+  }),
+  prompt: 'Generate a vegetarian lasagna recipe for four people.',
+});
+
+console.log(output);
+```
+
+Without `supportsStructuredOutputs: true`, the provider uses JSON object mode and does not send the schema to Venice. The AI SDK still validates the generated output against your schema. Install `zod` as shown in [Tool Calling](#tool-calling).
+
+Model capabilities vary. Check `supportsFunctionCalling`, `supportsResponseSchema`, `supportsVision`, and `supportsReasoningEffort` in the [Venice model catalog](https://api.venice.ai/api/v1/models?type=text) before using a feature.
+
+## Venice-Specific Options
+
+Pass Venice-specific language model options through `providerOptions.venice`.
+
+### Web Search
+
+Enable real-time web search for a request with `veniceParameters.enableWebSearch`:
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: venice('venice-uncensored-1-2'),
+  prompt: 'What are the latest developments in AI?',
+  providerOptions: {
+    venice: {
+      veniceParameters: {
+        enableWebSearch: 'auto',
+      },
+    },
+  },
+});
+```
+
+The supported values are `'off'`, `'on'`, and `'auto'`. Other Venice parameters include web scraping, web citations, X search, and control over thinking responses. The community provider uses camelCase options, such as `enableWebSearch`, and converts them to Venice API fields, such as `enable_web_search`. See the [Venice API documentation](https://docs.venice.ai/api-reference/endpoint/chat/completions) for details.
+
+End-to-end encryption requires client-side encryption, attestation verification, and response decryption. Setting `veniceParameters.enableE2ee` alone does not implement that flow. See [Venice's TEE and E2EE guide](https://docs.venice.ai/guides/features/tee-e2ee-models) for the required implementation.
+
+### Reasoning
+
+Use `reasoningEffort` to control the reasoning depth of models that support it:
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: venice('qwen3-235b-a22b-thinking-2507'),
+  prompt: 'Prove that there are infinitely many prime numbers.',
+  providerOptions: {
+    venice: {
+      reasoningEffort: 'high',
+    },
+  },
+});
+```
+
+The provider accepts `'none'`, `'minimal'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'`. The Qwen model above supports `'low'`, `'medium'`, and `'high'`. Check `reasoningEffortOptions` in the model catalog for the values supported by each model. See [Venice's reasoning guide](https://docs.venice.ai/guides/features/reasoning-models) for details.
+
+## Embedding Models
+
+Use the `.embeddingModel()` factory method to create an embedding model:
+
+```ts
+import { venice } from 'venice-ai-sdk-provider';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: venice.embeddingModel('text-embedding-bge-m3'),
+  value: 'A sunny day at the beach',
+});
+
+console.log(embedding);
+```
+
+## OpenAI-Compatible Integration
+
+Venice also works with the official `@ai-sdk/openai` provider. Use this integration for AI SDK 7 while the community package's SDK 7 update is pending, or when you prefer the OpenAI adapter. The community provider exposes Venice-specific settings through `providerOptions.venice`; those options are specific to that package.
+
+Install the AI SDK 7 packages:
+
+<InstallPackages packages="ai@7 @ai-sdk/openai@4" />
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const venice = createOpenAI({
+  apiKey: process.env.VENICE_API_KEY,
+  baseURL: 'https://api.venice.ai/api/v1',
+});
+
+const { text } = await generateText({
+  model: venice.chat('venice-uncensored-1-2'),
+  prompt: 'Write a vegetarian lasagna recipe for four people.',
+});
+
+console.log(text);
+```
+
+Use `.chat()` to select Venice's `/chat/completions` endpoint. Calling the OpenAI provider directly selects the Responses API, which has different capabilities. The community provider's `venice(modelId)` already selects chat completions.
+
+See [Venice's official AI SDK integration guide](https://docs.venice.ai/guides/integrations/vercel-ai-sdk) for Next.js and React chat examples, and its [Responses API guide](https://docs.venice.ai/guides/features/responses-api) before using that endpoint.
+
+## Additional Resources
+
+- [Venice AI SDK provider repository](https://github.com/dpuyosa/venice-ai-sdk-provider)
+- [Venice API documentation](https://docs.venice.ai/)
+- [Venice AI SDK integration guide](https://docs.venice.ai/guides/integrations/vercel-ai-sdk)
+- [Venice model catalog](https://docs.venice.ai/models/overview)
+- [Venice API Keys dashboard](https://venice.ai/settings/api)
