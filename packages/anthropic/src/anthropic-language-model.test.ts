@@ -459,11 +459,21 @@ describe('AnthropicLanguageModel', () => {
             schema: { type: 'object' as const, properties: {} },
           };
 
-          it.each(['tool', 'none'] as const)(
-            'should reject conflicting inline tools with %s choice before sending a request',
-            async choice => {
+          it.each([
+            { choice: 'tool', providerAlias: false },
+            { choice: 'none', providerAlias: false },
+            { choice: 'tool', providerAlias: true },
+          ] as const)(
+            'should reject conflicting inline tools with $choice choice and providerAlias=$providerAlias before sending a request',
+            async ({ choice, providerAlias }) => {
               prepareJsonFixtureResponse('anthropic-json-tool.1');
 
+              const providerTool = {
+                type: 'provider' as const,
+                id: 'anthropic.web_fetch_20250910' as const,
+                name: 'selected',
+                args: {},
+              };
               const options = {
                 prompt: [
                   ...TEST_PROMPT,
@@ -476,10 +486,8 @@ describe('AnthropicLanguageModel', () => {
                           {
                             type: 'tool_addition',
                             tool: {
-                              type: 'provider',
-                              id: 'anthropic.web_fetch_20250910',
-                              name: 'web_fetch',
-                              args: {},
+                              ...providerTool,
+                              name: providerAlias ? 'other' : 'web_fetch',
                             },
                           },
                         ],
@@ -487,7 +495,7 @@ describe('AnthropicLanguageModel', () => {
                     },
                   },
                 ] satisfies LanguageModelV4Prompt,
-                tools: [selectedTool],
+                tools: [providerAlias ? providerTool : selectedTool],
                 toolChoice:
                   choice === 'tool'
                     ? { type: 'tool' as const, toolName: 'selected' }
@@ -510,13 +518,25 @@ describe('AnthropicLanguageModel', () => {
             },
           );
 
-          it.each(['tool', 'auto', 'required'] as const)(
-            'should preserve allowed inline tools with %s choice',
-            async choice => {
-              const inlineTool = {
-                ...selectedTool,
-                name: choice === 'tool' ? 'selected' : 'other',
-              };
+          it.each([
+            { choice: 'tool', providerAlias: false },
+            { choice: 'auto', providerAlias: false },
+            { choice: 'required', providerAlias: false },
+            { choice: 'tool', providerAlias: true },
+          ] as const)(
+            'should preserve allowed inline tools with $choice choice and providerAlias=$providerAlias',
+            async ({ choice, providerAlias }) => {
+              const inlineTool = providerAlias
+                ? {
+                    type: 'provider' as const,
+                    id: 'anthropic.web_search_20250305' as const,
+                    name: 'selected',
+                    args: {},
+                  }
+                : {
+                    ...selectedTool,
+                    name: choice === 'tool' ? 'selected' : 'other',
+                  };
               const options = {
                 prompt: [
                   ...TEST_PROMPT,
@@ -532,7 +552,7 @@ describe('AnthropicLanguageModel', () => {
                     },
                   },
                 ] satisfies LanguageModelV4Prompt,
-                tools: [selectedTool],
+                tools: [providerAlias ? inlineTool : selectedTool],
                 toolChoice:
                   choice === 'tool'
                     ? { type: 'tool' as const, toolName: 'selected' }
@@ -563,12 +583,14 @@ describe('AnthropicLanguageModel', () => {
               });
               expect(
                 body.tools.map((tool: { name: string }) => tool.name),
-              ).toEqual(['selected', 'json']);
+              ).toEqual([providerAlias ? 'web_search' : 'selected', 'json']);
               expect(body.messages[1].content[0]).toMatchObject({
                 type: 'tool_addition',
                 tool: {
                   type: 'tool_definition',
-                  definition: { name: inlineTool.name },
+                  definition: {
+                    name: providerAlias ? 'web_search' : inlineTool.name,
+                  },
                 },
               });
             },

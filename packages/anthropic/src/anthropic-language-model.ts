@@ -688,7 +688,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     });
 
     const toolsetNames = getAnthropicToolsetNames(tools);
-    const inlineToolDefinitions: AnthropicTool[] = [];
+    const inlineToolDefinitions: Array<{
+      sdkName: string;
+      definition: AnthropicTool;
+    }> = [];
 
     const { prompt: messagesPrompt, betas } = await convertToAnthropicPrompt({
       prompt,
@@ -715,7 +718,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         });
 
         if (definitions?.[0] != null) {
-          inlineToolDefinitions.push(definitions[0]);
+          inlineToolDefinitions.push({
+            sdkName: tool.name,
+            definition: definitions[0],
+          });
         }
 
         return {
@@ -1301,16 +1307,20 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       (toolChoice?.type === 'none' && jsonResponseTool != null)
     ) {
       const conflictingTool = inlineToolDefinitions.find(
-        tool =>
+        ({ sdkName, definition }) =>
           toolChoice.type === 'none' ||
-          !('name' in tool) ||
-          tool.name !== toolChoice.toolName,
+          // The JSON-tool path filters application tools by SDK name before
+          // conversion; the forced-choice fallback filters by provider name.
+          (jsonResponseTool != null
+            ? sdkName !== toolChoice.toolName
+            : !('name' in definition) ||
+              definition.name !== toolChoice.toolName),
       );
       if (conflictingTool != null) {
         const toolName =
-          'name' in conflictingTool
-            ? conflictingTool.name
-            : conflictingTool.type;
+          'name' in conflictingTool.definition
+            ? conflictingTool.definition.name
+            : conflictingTool.definition.type;
         const choice =
           toolChoice.type === 'tool'
             ? `named tool choice '${toolChoice.toolName}'`
