@@ -86,6 +86,22 @@ export const openaiChatResponseSchema = lazySchema(() =>
                   }),
                 )
                 .nullish(),
+              // logprobs of the refusal tokens (set instead of `content` when
+              // the model refuses to answer):
+              refusal: z
+                .array(
+                  z.object({
+                    token: z.string(),
+                    logprob: z.number(),
+                    top_logprobs: z.array(
+                      z.object({
+                        token: z.string(),
+                        logprob: z.number(),
+                      }),
+                    ),
+                  }),
+                )
+                .nullish(),
             })
             .nullish(),
           finish_reason: z.string().nullish(),
@@ -163,6 +179,22 @@ export const openaiChatChunkSchema = lazySchema(() =>
             logprobs: z
               .object({
                 content: z
+                  .array(
+                    z.object({
+                      token: z.string(),
+                      logprob: z.number(),
+                      top_logprobs: z.array(
+                        z.object({
+                          token: z.string(),
+                          logprob: z.number(),
+                        }),
+                      ),
+                    }),
+                  )
+                  .nullish(),
+                // logprobs of the refusal tokens (set instead of `content` when
+                // the model refuses to answer):
+                refusal: z
                   .array(
                     z.object({
                       token: z.string(),

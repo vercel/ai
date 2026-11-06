@@ -43,6 +43,15 @@ import {
 } from './openai-chat-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 
+type OpenAIChatLogprob = NonNullable<
+  NonNullable<
+    Extract<
+      OpenAIChatChunk,
+      { choices: unknown }
+    >['choices'][number]['logprobs']
+  >['content']
+>[number];
+
 type OpenAIChatConfig = {
   provider: string;
   headers: () => Record<string, string | undefined>;
@@ -432,8 +441,16 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       providerMetadata.openai.rejectedPredictionTokens =
         completionTokenDetails?.rejected_prediction_tokens;
     }
-    if (choice.logprobs?.content != null) {
-      providerMetadata.openai.logprobs = choice.logprobs.content;
+    // logprobs either follow the text content (content) or the refusal, so
+    // combine them in the order the text is emitted above. Explicitly empty
+    // logprobs are reported as an empty array, as before:
+    const contentLogprobs = choice.logprobs?.content;
+    const refusalLogprobs = choice.logprobs?.refusal;
+    if (contentLogprobs != null || refusalLogprobs != null) {
+      providerMetadata.openai.logprobs = [
+        ...(contentLogprobs ?? []),
+        ...(refusalLogprobs ?? []),
+      ];
     }
 
     return {
@@ -506,6 +523,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     let metadataExtracted = false;
     let isActiveText = false;
     let hasRefusal = false;
+    let rawFinishReason: string | undefined = undefined;
+    let hasLogprobs = false;
+
+    // logprobs of all streamed chunks (content token logprobs followed by
+    // refusal token logprobs), collected across chunks:
+    const streamedLogprobs: OpenAIChatLogprob[] = [];
 
     const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
 
@@ -531,6 +554,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = { unified: 'error', raw: undefined };
+              rawFinishReason = undefined;
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -540,6 +564,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
             // handle error chunks:
             if ('error' in value) {
               finishReason = { unified: 'error', raw: undefined };
+              rawFinishReason = undefined;
               controller.enqueue({ type: 'error', error: value.error });
               return;
             }
@@ -579,18 +604,29 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
             const choice = value.choices[0];
 
+            // store the raw finish reason and map it in `flush`, after all
+            // chunks have been read: some servers send the last delta (which
+            // can contain a refusal) in the same chunk as the finish reason,
+            // and a refusal turns `stop` into `content-filter`:
             if (choice?.finish_reason != null) {
-              finishReason = {
-                unified: mapOpenAIFinishReason({
-                  finishReason: choice.finish_reason,
-                  hasRefusal,
-                }),
-                raw: choice.finish_reason,
-              };
+              rawFinishReason = choice.finish_reason;
             }
 
-            if (choice?.logprobs?.content != null) {
-              providerMetadata.openai.logprobs = choice.logprobs.content;
+            // logprobs either follow the text content (content) or the refusal.
+            // They are streamed token by token, so collect the logprobs of all
+            // chunks (content logprobs followed by refusal logprobs) and report
+            // the complete list at the end of the stream:
+            if (choice?.logprobs != null) {
+              const contentLogprobs = choice.logprobs.content;
+              const refusalLogprobs = choice.logprobs.refusal;
+
+              if (contentLogprobs != null || refusalLogprobs != null) {
+                hasLogprobs = true;
+                streamedLogprobs.push(
+                  ...(contentLogprobs ?? []),
+                  ...(refusalLogprobs ?? []),
+                );
+              }
             }
 
             if (choice?.delta == null) {
@@ -655,6 +691,25 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
             }
 
             toolCallTracker.flush();
+
+            // map the stored finish reason now that all deltas (including
+            // refusals that arrived in the same chunk as the finish reason)
+            // have been read:
+            if (rawFinishReason != null) {
+              finishReason = {
+                unified: mapOpenAIFinishReason({
+                  finishReason: rawFinishReason,
+                  hasRefusal,
+                }),
+                raw: rawFinishReason,
+              };
+            }
+
+            // report the logprobs of all streamed chunks (content logprobs
+            // followed by refusal logprobs), not only the last chunk:
+            if (hasLogprobs) {
+              providerMetadata.openai.logprobs = streamedLogprobs;
+            }
 
             controller.enqueue({
               type: 'finish',

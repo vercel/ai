@@ -96,6 +96,7 @@ describe('config', () => {
 describe('doGenerate', () => {
   function prepareJsonResponse({
     content = '',
+    refusal = null,
     reasoning_content = '',
     reasoning = '',
     tool_calls,
@@ -112,6 +113,7 @@ describe('doGenerate', () => {
     headers,
   }: {
     content?: string | Array<Record<string, unknown>>;
+    refusal?: string | null;
     reasoning_content?: string;
     reasoning?: string;
     tool_calls?: Array<{
@@ -164,6 +166,7 @@ describe('doGenerate', () => {
             message: {
               role: 'assistant',
               content,
+              refusal,
               reasoning_content,
               reasoning,
               tool_calls,
@@ -177,6 +180,139 @@ describe('doGenerate', () => {
       },
     };
   }
+
+  it('should extract a refusal as text content', async () => {
+    prepareJsonResponse({
+      content: '',
+      refusal: "I'm sorry, but I can't assist with that request.",
+    });
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      {
+        type: 'text',
+        text: "I'm sorry, but I can't assist with that request.",
+      },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'content-filter',
+      raw: 'stop',
+    });
+  });
+
+  it('should extract content and refusal as text content', async () => {
+    prepareJsonResponse({
+      content: 'Here is the first part. ',
+      refusal: 'I cannot continue with the rest.',
+    });
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      { type: 'text', text: 'Here is the first part. ' },
+      { type: 'text', text: 'I cannot continue with the rest.' },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'content-filter',
+      raw: 'stop',
+    });
+  });
+
+  it('should keep the tool call finish reason when a refusal is present', async () => {
+    prepareJsonResponse({
+      content: '',
+      refusal: 'Let me look that up.',
+      tool_calls: [
+        {
+          id: 'call-1',
+          type: 'function',
+          function: {
+            name: 'test-tool',
+            arguments: '{"value":"Spark"}',
+          },
+        },
+      ],
+      finish_reason: 'tool_calls',
+    });
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      { type: 'text', text: 'Let me look that up.' },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: '{"value":"Spark"}',
+      },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'tool-calls',
+      raw: 'tool_calls',
+    });
+  });
+
+  it('should extract a refusal from a real response', async () => {
+    prepareJsonFixtureResponse('openai-compatible-refusal');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      {
+        type: 'text',
+        text: "I'm very sorry, but I can't assist with that.",
+      },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'content-filter',
+      raw: 'stop',
+    });
+  });
+
+  it('should ignore a non-string refusal instead of failing the response', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-non-string-refusal',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'grok-3',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Hello there.',
+              // some OpenAI-compatible servers send `false` instead of null:
+              refusal: false,
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      { type: 'text', text: 'Hello there.' },
+    ]);
+    expect(result.finishReason).toStrictEqual({
+      unified: 'stop',
+      raw: 'stop',
+    });
+  });
 
   describe('text (fixture)', () => {
     beforeEach(() => {
@@ -1872,6 +2008,317 @@ describe('doStream', () => {
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
+  describe('refusal', () => {
+    it('should stream a refusal as text deltas', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"grok-3","choices":[{"index":0,"delta":{"role":"assistant","content":null,"refusal":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"grok-3","choices":[{"index":0,"delta":{"content":"Here is the first part. "},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"grok-3","choices":[{"index":0,"delta":{"refusal":"I"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"grok-3","choices":[{"index":0,"delta":{"refusal":" cannot continue."},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"grok-3","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "chatcmpl-refusal",
+              "modelId": "grok-3",
+              "timestamp": 1970-01-01T00:00:01.000Z,
+              "type": "response-metadata",
+            },
+            {
+              "id": "txt-0",
+              "type": "text-start",
+            },
+            {
+              "delta": "Here is the first part. ",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "delta": "I",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "delta": " cannot continue.",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "id": "txt-0",
+              "type": "text-end",
+            },
+            {
+              "finishReason": {
+                "raw": "stop",
+                "unified": "content-filter",
+              },
+              "providerMetadata": {
+                "test-provider": {},
+              },
+              "type": "finish",
+              "usage": {
+                "inputTokens": {
+                  "cacheRead": undefined,
+                  "cacheWrite": undefined,
+                  "noCache": undefined,
+                  "total": undefined,
+                },
+                "outputTokens": {
+                  "reasoning": undefined,
+                  "text": undefined,
+                  "total": undefined,
+                },
+                "raw": undefined,
+              },
+            },
+          ]
+        `);
+    });
+
+    it('should stream a refusal from a real response', async () => {
+      prepareChunksFixtureResponse('openai-compatible-refusal');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "chatcmpl-Egy8JJMAXIgJFShRu005fXq2s5nXY",
+              "modelId": "gpt-4o-2024-08-06",
+              "timestamp": 2026-11-05T20:13:55.000Z,
+              "type": "response-metadata",
+            },
+            {
+              "id": "txt-0",
+              "type": "text-start",
+            },
+            {
+              "delta": "I'm",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "delta": " sorry",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "delta": ",",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "delta": " but",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "delta": " I",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "delta": " can't",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "delta": " assist",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "delta": " with",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "delta": " that",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "delta": " request",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "delta": ".",
+              "id": "txt-0",
+              "type": "text-delta",
+            },
+            {
+              "id": "txt-0",
+              "type": "text-end",
+            },
+            {
+              "finishReason": {
+                "raw": "stop",
+                "unified": "content-filter",
+              },
+              "providerMetadata": {
+                "test-provider": {
+                  "acceptedPredictionTokens": 0,
+                  "rejectedPredictionTokens": 0,
+                },
+              },
+              "type": "finish",
+              "usage": {
+                "inputTokens": {
+                  "cacheRead": 0,
+                  "cacheWrite": undefined,
+                  "noCache": 74,
+                  "total": 74,
+                },
+                "outputTokens": {
+                  "reasoning": 0,
+                  "text": 12,
+                  "total": 12,
+                },
+                "raw": {
+                  "completion_tokens": 12,
+                  "completion_tokens_details": {
+                    "accepted_prediction_tokens": 0,
+                    "audio_tokens": 0,
+                    "reasoning_tokens": 0,
+                    "rejected_prediction_tokens": 0,
+                  },
+                  "prompt_tokens": 74,
+                  "prompt_tokens_details": {
+                    "audio_tokens": 0,
+                    "cached_tokens": 0,
+                  },
+                  "total_tokens": 86,
+                },
+              },
+            },
+          ]
+        `);
+    });
+
+    it('should stream a refusal and the finish reason from the same chunk', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"grok-3","choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}]}\n\n`,
+          // many OpenAI-compatible servers send the last (refusal) delta and
+          // the finish reason in the same chunk:
+          `data: {"id":"chatcmpl-refusal","object":"chat.completion.chunk","created":1,"model":"grok-3","choices":[{"index":0,"delta":{"refusal":"I cannot continue."},"finish_reason":"stop"}]}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.filter(part => part.type === 'text-delta')).toStrictEqual([
+        { type: 'text-delta', id: 'txt-0', delta: 'I cannot continue.' },
+      ]);
+      expect(parts.find(part => part.type === 'finish')).toMatchObject({
+        finishReason: { unified: 'content-filter', raw: 'stop' },
+      });
+    });
+
+    it('should stream a refusal combined with tool calls', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-refusal-tool-calls","object":"chat.completion.chunk","created":1,"model":"grok-3","choices":[{"index":0,"delta":{"role":"assistant","content":null,"refusal":"Let me look that up."},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-refusal-tool-calls","object":"chat.completion.chunk","created":1,"model":"grok-3","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":"}}]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-refusal-tool-calls","object":"chat.completion.chunk","created":1,"model":"grok-3","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"Spark\\"}"}}]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-refusal-tool-calls","object":"chat.completion.chunk","created":1,"model":"grok-3","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            inputSchema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.filter(part => part.type === 'text-delta')).toStrictEqual([
+        { type: 'text-delta', id: 'txt-0', delta: 'Let me look that up.' },
+      ]);
+      expect(parts.find(part => part.type === 'tool-call')).toMatchObject({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: '{"value":"Spark"}',
+      });
+      expect(parts.find(part => part.type === 'finish')).toMatchObject({
+        // a tool call wins over the refusal:
+        finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+      });
+    });
+
+    it('should ignore a non-string refusal instead of failing the stream', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-non-string-refusal","object":"chat.completion.chunk","created":1,"model":"grok-3","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello","refusal":false},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-non-string-refusal","object":"chat.completion.chunk","created":1,"model":"grok-3","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.filter(part => part.type === 'error')).toStrictEqual([]);
+      expect(parts.filter(part => part.type === 'text-delta')).toStrictEqual([
+        { type: 'text-delta', id: 'txt-0', delta: 'Hello' },
+      ]);
+      expect(parts.find(part => part.type === 'finish')).toMatchObject({
+        finishReason: { unified: 'stop', raw: 'stop' },
+      });
     });
   });
 
