@@ -2170,7 +2170,61 @@ const result = await generateText({
 });
 ```
 
-To change a tool's definition, remove the old definition at the end of one request, then carry the conversation forward with the updated definition in `tools` on the next request.
+#### Defining Tools by Value
+
+A `tool_addition` can also define the tool by value with `tool`, in the same shape as an entry of the `tools` option. The tool does not need to be declared in `tools` up front, which lets you introduce tools that did not exist when the conversation started, for example after an MCP server connects. Defining a tool under an existing name replaces the earlier definition from that point on, so this also changes a tool's schema mid-conversation. The required `inline-tools-2026-09-15` beta header is added automatically.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-opus-4-8'),
+  // required for system messages inside `messages`:
+  allowSystemInMessages: true,
+  messages: [
+    { role: 'user', content: 'What is the weather forecast for Paris?' },
+    {
+      role: 'system',
+      content: '',
+      providerOptions: {
+        anthropic: {
+          toolChanges: [
+            {
+              type: 'tool_addition',
+              tool: {
+                type: 'function',
+                name: 'get_forecast',
+                description: 'Get 5-day forecast',
+                inputSchema: {
+                  type: 'object',
+                  properties: { city: { type: 'string' } },
+                  required: ['city'],
+                },
+              },
+            },
+          ],
+        },
+      },
+    },
+  ],
+});
+```
+
+<Note>
+  A tool defined by value is only known to the model. It is not part of the
+  `tools` option, so functions like `generateText` cannot execute its calls. Use
+  it when you handle the tool calls yourself, or declare the tool in `tools` and
+  add it by reference with `toolName` to have the AI SDK execute it.
+  `inputSchema` is a plain JSON Schema object.
+</Note>
+
+<Note>
+  The computer use tools cannot be defined in a message. Declare them in `tools`
+  and add them by reference with `toolName`. The AI SDK ignores such an addition
+  and emits a warning. A `tool_removal` always references the tool by
+  `toolName`.
+</Note>
 
 <Note>
   Tool changes are not supported on the initial system message. The AI SDK
