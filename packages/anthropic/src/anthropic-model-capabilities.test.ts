@@ -79,6 +79,23 @@ describe('getModelCapabilities', () => {
     });
   });
 
+  it('recognizes Fable 5.2 with the same capabilities as Fable 5.1', () => {
+    expect(getModelCapabilities('claude-fable-5-2')).toEqual({
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: true,
+      rejectsBudgetThinking: true,
+      rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: false,
+      isKnownModel: true,
+    });
+    expect(getModelCapabilities('claude-fable-5-2')).toEqual(
+      getModelCapabilities('claude-fable-5-1'),
+    );
+  });
+
   it('recognizes Opus 5.5 as always-adaptive and rejecting forced tool use', () => {
     expect(getModelCapabilities('claude-opus-5-5')).toEqual({
       maxOutputTokens: 128000,
