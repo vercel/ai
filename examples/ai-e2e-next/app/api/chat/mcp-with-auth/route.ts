@@ -112,8 +112,16 @@ export async function POST(req: Request) {
         const provider = session.provider;
         try {
           if (
-            !provider.pendingAuthorization ||
+            provider.pendingAuthorization &&
             provider.pendingAuthorization.expiresAt <= Date.now()
+          ) {
+            provider.clearAuthorization();
+          }
+          // Try saved access tokens first. The transport handles refresh or
+          // fresh authorization if the MCP server rejects the token.
+          if (
+            !provider.tokens()?.access_token &&
+            !provider.pendingAuthorization
           ) {
             provider.clearAuthorization();
             const result = await auth(provider, {
@@ -131,7 +139,8 @@ export async function POST(req: Request) {
             });
             return;
           }
-          if (!provider.tokens()) throw new Error('Authorization required');
+          if (!provider.tokens()?.access_token)
+            throw new Error('Authorization required');
 
           const mcpClient = await createMCPClient({
             transport: {
@@ -161,6 +170,14 @@ export async function POST(req: Request) {
           } finally {
             await mcpClient.close();
           }
+        } catch (error) {
+          // The transport can request consent while connecting or listing tools.
+          if (!provider.pendingAuthorization) throw error;
+          writer.write({
+            type: 'data-oauth',
+            data: { url: provider.pendingAuthorization.url },
+            transient: true,
+          });
         } finally {
           session.busy = false;
         }
