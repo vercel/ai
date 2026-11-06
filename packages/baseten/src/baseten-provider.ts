@@ -8,9 +8,11 @@ import {
   type EmbeddingModelV3,
   type LanguageModelV3,
   type ProviderV3,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  injectJsonInstructionIntoMessages,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -72,6 +74,42 @@ const basetenErrorStructure: ProviderErrorStructure<BasetenErrorData> = {
   errorToMessage: data =>
     typeof data.error === 'string' ? data.error : data.error.message,
 };
+
+function transformBasetenRequestBody(
+  args: Record<string, any>,
+  warnings?: SharedV3Warning[],
+): Record<string, any> {
+  const { response_format: responseFormat, ...restArgs } = args;
+
+  if (
+    args.model !== 'deepseek-ai/DeepSeek-V4-Pro-0813' ||
+    args.reasoning_effort === 'none' ||
+    (responseFormat?.type !== 'json_schema' &&
+      responseFormat?.type !== 'json_object')
+  ) {
+    return args;
+  }
+
+  // With JSON mode enabled, Baseten returns this model's answer as reasoning
+  // and leaves content empty. Keep reasoning and prompt for JSON instead.
+  warnings?.push({
+    type: 'compatibility',
+    feature: 'responseFormat',
+    details:
+      'JSON instructions are injected into the system message and response_format is omitted because Baseten DeepSeek V4 Pro 0813 returns JSON as reasoning when JSON mode and reasoning are combined. The response is not constrained by the server.',
+  });
+
+  return {
+    ...restArgs,
+    messages: [
+      ...injectJsonInstructionIntoMessages({
+        messages: [],
+        schema: responseFormat.json_schema?.schema,
+      }),
+      ...args.messages,
+    ],
+  };
+}
 
 export interface BasetenProviderSettings {
   /**
@@ -217,6 +255,7 @@ export function createBaseten(
       errorStructure: basetenErrorStructure,
       includeUsage: true,
       supportsStructuredOutputs: true,
+      transformRequestBody: transformBasetenRequestBody,
     });
   };
 
