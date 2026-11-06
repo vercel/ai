@@ -175,7 +175,7 @@ export class SseMCPTransport implements MCPTransport {
             const error = new MCPClientError({
               message: errorMessage,
               statusCode: response.status,
-              url: this.url.href,
+              url: this.url.origin,
               responseBody: text ?? undefined,
             });
             this.onerror?.(error);
@@ -349,7 +349,7 @@ export class SseMCPTransport implements MCPTransport {
           const error = new MCPClientError({
             message: `MCP SSE Transport Error: POSTing to endpoint (HTTP ${response.status}): ${text}`,
             statusCode: response.status,
-            url: endpoint.href,
+            url: endpoint.origin,
             responseBody: text ?? undefined,
           });
           throw error;
