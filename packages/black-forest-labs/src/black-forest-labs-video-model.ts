@@ -598,6 +598,8 @@ export class BlackForestLabsVideoModel implements VideoModelV3 {
 
     const { value, responseHeaders } = await getFromApi({
       url: pollingUrl,
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       headers: combinedHeaders,
       failedResponseHandler: bflFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(bflVideoPollSchema),
