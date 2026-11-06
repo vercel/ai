@@ -143,6 +143,37 @@ describe('fetchWithValidatedRedirects', () => {
     );
   });
 
+  it('preserves headers on the same origin and drops them permanently after crossing origins', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(redirectResponse('https://api.example.com/next'))
+      .mockResolvedValueOnce(redirectResponse('https://cdn.example.com/image'))
+      .mockResolvedValueOnce(redirectResponse('https://api.example.com/image'))
+      .mockResolvedValueOnce(okResponse());
+    const headers = {
+      'x-key': 'secret',
+      authorization: 'Bearer secret',
+      'custom-provider-key': 'secret',
+      'user-agent': 'test-agent',
+    };
+
+    await fetchWithValidatedRedirects({
+      url: 'https://api.example.com/start',
+      headers,
+      fetch,
+    });
+
+    for (const [, init] of fetch.mock.calls.slice(0, 2)) {
+      expect(Object.fromEntries(new Headers(init.headers))).toEqual(headers);
+    }
+    for (const [, init] of fetch.mock.calls.slice(2)) {
+      expect(Object.fromEntries(new Headers(init.headers))).toEqual({
+        'user-agent': 'test-agent',
+      });
+    }
+    expect(headers['x-key']).toBe('secret');
+  });
+
   it('rejects once the redirect limit is exceeded', async () => {
     const fetchMock = vi
       .fn()

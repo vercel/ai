@@ -74,6 +74,9 @@ export async function fetchWithValidatedEndpoint({
  * target (e.g. an internal address) before we ever see its URL, defeating the
  * SSRF guard.
  *
+ * All caller headers except User-Agent are dropped on cross-origin redirects.
+ * Callers must decide which credentials may be sent to the initial URL.
+ *
  * A `redirect: 'manual'` request yields an unreadable opaque response in the
  * browser (and in other spec-compliant fetch implementations), so the redirect
  * target cannot be validated here. In a real browser this is safe to follow
@@ -119,13 +122,14 @@ export async function fetchWithValidatedRedirects({
    */
   trustedOrigin?: string;
 }): Promise<Response> {
-  // Per-hop request options. Only the `redirect` mode varies between hops, so
-  // the rest is assembled once. `headers` is omitted entirely when not provided
-  // so callers that send none issue a bare request.
-  const baseInit: RequestInit = { signal: abortSignal };
-  if (headers !== undefined) {
-    baseInit.headers = headers;
-  }
+  let currentHeaders = headers === undefined ? undefined : new Headers(headers);
+  const perHopInit = (redirect: RequestRedirect): RequestInit => ({
+    signal: abortSignal,
+    redirect,
+    ...(currentHeaders === undefined
+      ? {}
+      : { headers: new Headers(currentHeaders) }),
+  });
 
   let currentUrl = url;
   // The bound also acts as a backstop against an unterminated redirect chain.
@@ -146,10 +150,7 @@ export async function fetchWithValidatedRedirects({
           ? globalThis.fetch
           : await getValidatedFetch(customFetch);
 
-    const response = await fetch(currentUrl, {
-      ...baseInit,
-      redirect: 'manual',
-    });
+    const response = await fetch(currentUrl, perHopInit('manual'));
 
     if (response.type === 'opaqueredirect') {
       if (!isBrowserRuntime()) {
@@ -158,7 +159,7 @@ export async function fetchWithValidatedRedirects({
           message: `Redirect from ${currentUrl} could not be validated and was blocked`,
         });
       }
-      return await fetch(currentUrl, { ...baseInit, redirect: 'follow' });
+      return await fetch(currentUrl, perHopInit('follow'));
     }
 
     const location = response.headers?.get('location');
@@ -167,7 +168,16 @@ export async function fetchWithValidatedRedirects({
       // hop. Whether that hop is followed or rejected by the SSRF guard, an
       // unconsumed 3xx body would leak the underlying socket.
       await cancelResponseBody(response);
-      currentUrl = new URL(location, currentUrl).toString();
+      const nextUrl = new URL(location, currentUrl).toString();
+      // Provider keys can use arbitrary header names. Retain only User-Agent
+      // when crossing origins, including when a later hop returns to the API.
+      if (currentHeaders !== undefined && !isSameOrigin(nextUrl, currentUrl)) {
+        const userAgent = currentHeaders.get('user-agent');
+        currentHeaders = new Headers(
+          userAgent == null ? undefined : { 'user-agent': userAgent },
+        );
+      }
+      currentUrl = nextUrl;
       continue;
     }
 
