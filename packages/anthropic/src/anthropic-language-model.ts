@@ -73,6 +73,7 @@ import {
 } from './convert-anthropic-usage';
 import {
   convertToAnthropicPrompt,
+  getInlineToolsFromPrompt,
   type AnthropicMediaPartConverter,
 } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
@@ -649,8 +650,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       thread != null && anthropicOptions?.cacheControl != null ? 1 : 0,
     );
 
+    const defaultEagerInputStreaming =
+      stream && (anthropicOptions?.toolStreaming ?? true);
+
+    // Tools that tool changes add by value are only known from the prompt.
+    const inlineTools = await getInlineToolsFromPrompt(prompt);
+
     const toolNameMapping = createToolNameMapping({
-      tools,
+      // later entries win when provider tool names collide, so the declared
+      // tools go last and an inline tool cannot take over their mapping:
+      tools: [...inlineTools, ...(tools ?? [])],
       providerToolNames: {
         'anthropic.code_execution_20250522': 'code_execution',
         'anthropic.code_execution_20250825': 'code_execution',
@@ -688,6 +697,28 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       toolsetNames,
       convertMediaPart: config.convertMediaPart,
+      convertInlineTool: async tool => {
+        const {
+          tools: definitions,
+          toolWarnings,
+          betas,
+        } = await prepareTools({
+          tools: [tool],
+          toolChoice: undefined,
+          cacheControlValidator,
+          supportsStructuredOutput,
+          supportsStrictTools,
+          // no stream-dependent defaults (eager input streaming): the
+          // definition is replayed on every request and has to stay identical
+          // between streaming and non-streaming calls to keep the cache.
+        });
+
+        return {
+          definition: definitions?.[0],
+          warnings: toolWarnings,
+          betas,
+        };
+      },
     });
 
     if (thread != null) {
@@ -1214,9 +1245,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       betas.add('server-side-fallback-2026-06-01');
     }
 
-    const defaultEagerInputStreaming =
-      stream && (anthropicOptions?.toolStreaming ?? true);
-
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
@@ -1246,6 +1274,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         : {
             tools: tools ?? [],
             toolChoice,
+            // tool changes can add tools when `tools` is empty, so the tool
+            // choice and parallel tool use settings still apply:
+            hasInlineTools: inlineTools.length > 0,
             disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
             cacheControlValidator,
             supportsStructuredOutput,

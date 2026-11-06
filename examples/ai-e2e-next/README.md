@@ -33,6 +33,24 @@ To run the example locally you need to:
 5. `pnpm install` to install the required dependencies.
 6. `pnpm dev` to launch the development server.
 
+## Local shell
+
+The `/chat/openai-local-shell`, `/chat/openai-shell`, and
+`/chat/openai-shell-skills` demos each share one sandbox across local chats.
+Their API routes are available only in local
+development and reject production, Vercel
+deployments (including `vercel dev`), non-loopback Host headers, forwarded external
+clients, and cross-origin browser requests before reading messages or invoking
+the agent. Run `pnpm dev`, which binds to `127.0.0.1`, and keep the server on
+loopback. Do not expose it through a public interface or tunnel; request headers
+cannot authenticate callers.
+
+For deployed use, authenticate callers, allocate sandboxes per authorized user or
+chat, verify ownership when retrieving them, and clean them up. Tool approval
+does not establish ownership of a sandbox.
+
+Run the route regression tests with `pnpm test:local-shell`.
+
 ## Code execution file downloads
 
 Anthropic code execution file downloads (including Anthropic on Microsoft) and

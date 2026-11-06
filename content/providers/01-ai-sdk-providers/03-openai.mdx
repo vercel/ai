@@ -2767,6 +2767,12 @@ When you request structured output, a refusal means that no object can be
 generated: `generateText` throws `NoObjectGeneratedError` with the refusal text
 on `error.text`.
 
+When you request logprobs, `providerMetadata.openai.logprobs` contains the
+logprobs of all emitted tokens: the content logprobs first, followed by the
+refusal logprobs. This is the same for `generateText` and `streamText`; with
+`streamText`, the logprobs of all streamed tokens are reported when the stream
+finishes.
+
 #### Logprobs
 
 OpenAI provides logprobs information for completion/chat models.
