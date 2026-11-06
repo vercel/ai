@@ -772,14 +772,13 @@ describe('createFsTools', () => {
         { pattern: '*.ts' },
         { sandbox, abortSignal: controller.signal },
       );
-      const timer = setTimeout(
-        () => controller.abort(new Error('cancelled during matching')),
-        0,
+      const timer = setImmediate(() =>
+        controller.abort(new Error('cancelled during matching')),
       );
       try {
         await expect(promise).rejects.toThrow('cancelled during matching');
       } finally {
-        clearTimeout(timer);
+        clearImmediate(timer);
       }
     });
 
