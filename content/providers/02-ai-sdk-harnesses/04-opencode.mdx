@@ -145,8 +145,7 @@ environment:
 
 - `auto` (default): use AI Gateway credentials when available, then use the
   credentials for the selected model provider.
-- `direct`: use the credentials for the selected model provider, never AI
-  Gateway credentials.
+- `direct`: use the credentials for the selected model provider.
 - `anthropic`: use Anthropic credentials.
 - `openai`: use OpenAI credentials.
 - `ai-gateway`: use AI Gateway credentials.
@@ -173,17 +172,10 @@ If no applicable credential environment variable is set, the adapter attempts
 to resolve a native subscription from the host system unless AI Gateway
 authentication is selected.
 
-With `auto`, `VERCEL_OIDC_TOKEN` counts as an AI Gateway credential, so a
-native subscription is not used while it is set. Select `direct` to use the
-selected provider's own credentials or native subscription instead.
-
 Select a specific authentication mode when you do not want automatic detection:
 
 ```ts
-const directHarness = createOpenCode({
-  auth: 'direct',
-  provider: 'github-copilot',
-});
+const directHarness = createOpenCode({ auth: 'direct' });
 const anthropicHarness = createOpenCode({ auth: 'anthropic' });
 const openAIHarness = createOpenCode({ auth: 'openai' });
 const gatewayHarness = createOpenCode({ auth: 'ai-gateway' });
