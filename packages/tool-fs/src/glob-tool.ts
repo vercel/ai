@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@ai-sdk/provider-utils';
 import { tool } from 'ai';
 import { posix } from 'node:path';
 import { z } from 'zod/v4';
@@ -11,7 +12,7 @@ import {
   type FsTool,
   type FsToolSettings,
 } from './fs-tool-settings';
-import { globToRegExp } from './glob-to-regexp';
+import { createGlobMatcher, MAX_GLOB_PATH_LENGTH } from './create-glob-matcher';
 
 export type GlobInput = z.infer<typeof inputSchema>;
 
@@ -75,7 +76,6 @@ export function createGlobTool(
       { abortSignal, experimental_sandbox },
     ) => {
       const sandbox = getSandbox(experimental_sandbox);
-      const matcher = globToRegExp(pattern);
       const matchBaseName = !pattern.includes('/');
 
       const error = (
@@ -87,6 +87,13 @@ export function createGlobTool(
         errorCode,
         message,
       });
+
+      let matcher: ReturnType<typeof createGlobMatcher>;
+      try {
+        matcher = createGlobMatcher(pattern);
+      } catch (cause) {
+        return error('search_failed', getErrorMessage(cause));
+      }
 
       const command = [
         `target=${shellQuotePath(path)}`,
@@ -121,27 +128,38 @@ export function createGlobTool(
             );
           }
 
-          const root = posix.normalize(path);
-          const files = result.stdout
-            .split('\n')
-            .filter(line => line !== '')
-            .map(stripDotSlash)
-            .filter(file => {
-              const relative =
-                posix.relative(root, file) || posix.basename(file);
-              return matcher.test(
-                matchBaseName ? posix.basename(relative) : relative,
-              );
-            })
-            .sort();
+          try {
+            const root = posix.normalize(path);
+            const files = result.stdout
+              .split('\n')
+              .filter(line => line !== '')
+              .map(file => {
+                if (file.length > MAX_GLOB_PATH_LENGTH) {
+                  throw new Error(
+                    `Glob paths must not exceed ${MAX_GLOB_PATH_LENGTH} characters.`,
+                  );
+                }
+                return stripDotSlash(file);
+              })
+              .filter(file => {
+                const relative =
+                  posix.relative(root, file) || posix.basename(file);
+                return matcher.test(
+                  matchBaseName ? posix.basename(relative) : relative,
+                );
+              })
+              .sort();
 
-          return {
-            type: 'files',
-            path,
-            pattern,
-            files: files.slice(0, settings.maxResults),
-            totalFiles: files.length,
-          };
+            return {
+              type: 'files',
+              path,
+              pattern,
+              files: files.slice(0, settings.maxResults),
+              totalFiles: files.length,
+            };
+          } catch (cause) {
+            return error('search_failed', getErrorMessage(cause));
+          }
         },
       });
     },

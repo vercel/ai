@@ -667,6 +667,73 @@ describe('createFsTools', () => {
       });
     });
 
+    it.each(['x'.repeat(1025), '[z-a]'])(
+      'returns a search error for an invalid or oversized pattern',
+      async pattern => {
+        const sandbox = await createProject();
+        const run = vi.spyOn(sandbox, 'run');
+        const tools = createFsTools();
+        const output = await execute(tools, 'glob', { pattern }, { sandbox });
+
+        expect(output).toMatchObject({
+          type: 'error',
+          errorCode: 'search_failed',
+        });
+        expect(run).not.toHaveBeenCalled();
+        expect(await toModelOutput(tools, 'glob', output)).toMatchObject({
+          type: 'error-text',
+        });
+      },
+    );
+
+    it('returns a search error when a returned path exceeds the length limit', async () => {
+      const sandbox = await createProject();
+      vi.spyOn(sandbox, 'run').mockResolvedValue({
+        exitCode: 0,
+        stdout: 'directory/'.repeat(410) + 'file.ts',
+        stderr: '',
+      });
+
+      expect(
+        await execute(
+          createFsTools(),
+          'glob',
+          { pattern: '*.ts' },
+          { sandbox },
+        ),
+      ).toMatchObject({
+        type: 'error',
+        errorCode: 'search_failed',
+        message: 'Error: Glob paths must not exceed 4096 characters.',
+      });
+    });
+
+    it('returns a search error when matching exceeds the shared work budget', async () => {
+      const sandbox = await createProject();
+      vi.spyOn(sandbox, 'run').mockResolvedValue({
+        exitCode: 0,
+        stdout: Array.from(
+          { length: 1000 },
+          (_, index) => `${'x'.repeat(256)}${index}.ts`,
+        ).join('\n'),
+        stderr: '',
+      });
+
+      expect(
+        await execute(
+          createFsTools(),
+          'glob',
+          { pattern: '*.ts' },
+          { sandbox },
+        ),
+      ).toMatchObject({
+        type: 'error',
+        errorCode: 'search_failed',
+        message:
+          'Error: Glob matching work limit exceeded. Use a more specific pattern or path.',
+      });
+    });
+
     it('limits results to maxResults', async () => {
       const sandbox = await createProject();
       const tools = createFsTools({ maxResults: 2 });

@@ -261,8 +261,16 @@ then while also treating typographic quotes, dashes, and spaces as ASCII.
 `glob` and `grep` run commands in the sandbox. They use ripgrep when the
 sandbox has it, which skips files ignored by `.gitignore`. Otherwise they fall
 back to `find` and `grep`, which skip only `.git` and `node_modules` and may
-return lines in a different order. Patterns use ripgrep syntax; the fallback
+return lines in a different order. `grep` patterns use ripgrep syntax; the fallback
 uses Perl-compatible regular expressions when `grep` supports them.
+
+`glob` matches paths with a non-backtracking matcher that supports `*`, `**`,
+`?`, character classes such as `[a-z]` and `[!a-z]`, `{a,b}` alternatives, and
+backslash escapes. Patterns are limited to 1,024 characters and returned sandbox
+paths to 4,096 characters. Matching has a shared work budget across all files in
+a search. Invalid patterns and searches exceeding these limits return a
+`search_failed` error; use a more specific pattern or search directory to reduce
+matching work.
 
 ### Options
 
