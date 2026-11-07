@@ -5,6 +5,8 @@ import { join } from 'path';
 // Both realtime transports add ~32 KiB to all exports; named probes guard tree shaking.
 // experimental_streamSpeech and the bundled gateway speech client add ~6 KiB.
 // Streaming image decoding also ships through the bundled Gateway image client.
+// Domain-credential sanitization adds about 2 KiB to telemetry.
+const NODE_LIMIT = 600 * 1024;
 const LIMIT = 595 * 1024;
 
 interface BundleResult {
@@ -56,8 +58,8 @@ async function bundleForNode(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 295 * 1024
-          : LIMIT,
+          ? 300 * 1024
+          : NODE_LIMIT,
   };
 }
 
