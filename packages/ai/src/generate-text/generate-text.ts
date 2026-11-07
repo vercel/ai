@@ -1226,25 +1226,23 @@ async function generateTextInternal<
                       });
                       return {
                         ...result,
-                        ...(result.request != null
-                          ? { request: sanitizeRequestMetadata(result.request) }
-                          : {}),
+                        ...(result.request && {
+                          request: sanitizeRequestMetadata(result.request),
+                        }),
                       };
                     },
                   },
                 );
 
-                const responseData = {
-                  id: result.response?.id ?? generateId(),
-                  timestamp: result.response?.timestamp ?? new Date(),
-                  modelId: result.response?.modelId ?? stepModel.modelId,
-                  headers: result.response?.headers,
-                  body: result.response?.body,
-                };
-
                 return {
                   ...result,
-                  response: responseData,
+                  response: {
+                    id: result.response?.id ?? generateId(),
+                    timestamp: result.response?.timestamp ?? new Date(),
+                    modelId: result.response?.modelId ?? stepModel.modelId,
+                    headers: result.response?.headers,
+                    body: result.response?.body,
+                  },
                 };
               });
               const responseTimeMs = now() - stepStartTimestampMs;

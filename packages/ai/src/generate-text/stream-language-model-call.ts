@@ -377,9 +377,9 @@ export async function streamLanguageModelCall<
       });
       return {
         ...result,
-        ...(result.request != null
-          ? { request: sanitizeRequestMetadata(result.request) }
-          : {}),
+        ...(result.request && {
+          request: sanitizeRequestMetadata(result.request),
+        }),
       };
     },
   });
