@@ -1,4 +1,5 @@
 import { secureJsonParse } from '@ai-sdk/provider-utils';
+import { TypeValidationError } from '@ai-sdk/provider';
 
 /** Redact SDK-owned credential fields on telemetry-only copies. */
 export function redactTelemetrySecrets<T>(value: T): T {
@@ -78,6 +79,26 @@ function redactValue<T>(value: T, seen: WeakMap<object, unknown>): T {
           : redacted !== child
       )
         replacements[key] = redacted;
+    }
+  }
+
+  if (TypeValidationError.isInstance(value)) {
+    let args = value.value;
+    for (const container of ['container', 'environment']) {
+      args = redactPath(args, [container, 'networkPolicy', 'domainSecrets']);
+    }
+    if (args !== value.value || Object.hasOwn(replacements, 'cause')) {
+      const redactedError = new TypeValidationError({
+        value: args,
+        cause: replacements.cause ?? value.cause,
+        context: value.context,
+      });
+      replacements.value = args;
+      replacements.message = redactedError.message;
+      replacements.stack = value.stack?.replace(
+        value.message,
+        redactedError.message,
+      );
     }
   }
 

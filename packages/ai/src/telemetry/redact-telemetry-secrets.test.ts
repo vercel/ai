@@ -1,7 +1,32 @@
 import { describe, expect, it } from 'vitest';
+import { TypeValidationError } from '@ai-sdk/provider';
 import { redactTelemetrySecrets } from './redact-telemetry-secrets';
 
 describe('redactTelemetrySecrets', () => {
+  it.each(['container', 'environment'])(
+    'redacts invalid %s arguments in validation error values, messages, and stacks',
+    container => {
+      const secret = 'synthetic-validation-credential';
+      const args = {
+        [container]: {
+          networkPolicy: { domainSecrets: [{ value: secret }] },
+        },
+      };
+      const error = new TypeValidationError({
+        value: args,
+        cause: new Error('invalid configuration'),
+      });
+      const redacted = redactTelemetrySecrets(error);
+      expect(TypeValidationError.isInstance(redacted)).toBe(true);
+      expect(JSON.stringify(redacted.value)).not.toContain(secret);
+      expect(redacted.message).toContain('[redacted]');
+      expect(redacted.stack).not.toContain(secret);
+      expect(error.value).toBe(args);
+      expect(error.message).toContain(secret);
+      expect(error.stack).toContain(secret);
+    },
+  );
+
   it.each(['code_interpreter', 'shell'])(
     'redacts %s definitions and request bodies without mutating originals',
     type => {
