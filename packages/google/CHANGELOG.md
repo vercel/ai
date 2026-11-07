@@ -1,5 +1,20 @@
 # @ai-sdk/google
 
+## 4.0.114
+
+### Patch Changes
+
+- 6400cf8: Add `resolveProviderOptions` to parse provider options that a model accepts under several `providerOptions` keys, either as aliases (`first`) or merged in order (`merge`), and use it for the existing multi-key lookups in the OpenAI, OpenAI-compatible, Anthropic, Google, and Amazon Bedrock models. Resolution behavior for these models is unchanged.
+- a210a29: Pass `providerOptions.google.labels` through to Google and Vertex AI Interactions requests, including streaming, so callers can attach request metadata such as `safety_identifier`.
+- 32dc1d2: Omit Google provider-defined tools, including File Search and Vertex RAG Store, when `toolChoice` is `none` so disabled tools cannot retrieve data or execute server-side. Preserve function declarations needed by conversation history while disabling function calling. This also applies when structured output uses a synthetic JSON response tool.
+- 26fc2a9: skip streamed tool-call array indexes that leave a gap so a small response can't build a huge sparse array
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
 ## 4.0.113
 
 ### Patch Changes
