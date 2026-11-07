@@ -17,6 +17,8 @@ type ReferenceContext = {
 };
 
 const maxSchemaDepth = 100;
+const maxSchemaNodes = 10_000;
+const maxSchemaSize = 1_000_000;
 
 const recursiveReferenceFunctionalityPrefix =
   'recursive JSON Schema reference:';
@@ -37,9 +39,11 @@ export function convertJSONSchemaToOpenAPISchema(
   jsonSchema: JSONSchema7Definition | undefined,
   isRoot = true,
 ): unknown {
-  const budget = { nodes: 10_000, size: 1_000_000 };
   // Bound the input too, including metadata copied while resolving references.
-  consumeSchemaBudget(jsonSchema, budget);
+  consumeSchemaBudget(jsonSchema, {
+    nodes: maxSchemaNodes,
+    size: maxSchemaSize,
+  });
 
   const rootSchema =
     typeof jsonSchema === 'object'
@@ -50,7 +54,7 @@ export function convertJSONSchemaToOpenAPISchema(
     definitions: rootSchema?.definitions,
     dollarDefinitions: rootSchema?.$defs,
     resolvingReferences: new Set(),
-    budget,
+    budget: { nodes: maxSchemaNodes, size: maxSchemaSize },
     depth: 0,
   });
 }

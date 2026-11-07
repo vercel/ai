@@ -190,7 +190,7 @@ it('should share the node budget across sibling schemas', () => {
   const input: JSONSchema7 = {
     type: 'object',
     properties: Object.fromEntries(
-      Array.from({ length: 2_000 }, (_, i) => [
+      Array.from({ length: 3_000 }, (_, i) => [
         `value${i}`,
         { type: 'string' },
       ]),
@@ -201,6 +201,39 @@ it('should share the node budget across sibling schemas', () => {
     'Google schema conversion exceeded its node, size, or depth limit.',
   );
 });
+
+it.each([
+  {
+    name: '2,000 properties',
+    schema: {
+      type: 'object',
+      properties: Object.fromEntries(
+        Array.from({ length: 2_000 }, (_, i) => [
+          `value${i}`,
+          { type: 'string' },
+        ]),
+      ),
+    },
+  },
+  {
+    name: '5,000 enum values',
+    schema: {
+      type: 'string',
+      enum: Array.from({ length: 5_000 }, (_, i) => `value${i}`),
+    },
+  },
+  {
+    name: '100 KB description',
+    schema: { type: 'string', description: 'x'.repeat(100_000) },
+  },
+])(
+  'should keep input and conversion budgets separate for $name',
+  ({ schema }) => {
+    expect(convertJSONSchemaToOpenAPISchema(schema as JSONSchema7)).toEqual(
+      schema,
+    );
+  },
+);
 
 it.each([
   { name: 'description', metadata: { description: 'x'.repeat(170_000) } },
