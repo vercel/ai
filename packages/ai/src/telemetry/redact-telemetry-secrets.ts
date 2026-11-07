@@ -153,9 +153,9 @@ function redactPath(value: unknown, [key, ...rest]: string[]): unknown {
       ? value.map(secret =>
           isRecord(secret) && 'value' in secret
             ? { ...secret, value: '[redacted]' }
-            : secret,
+            : '[redacted]',
         )
-      : value;
+      : '[redacted]';
   }
   if (!isRecord(value) || !(key in value)) return value;
   const redacted = redactPath(value[key], rest);

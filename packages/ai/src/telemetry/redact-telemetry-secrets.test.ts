@@ -3,6 +3,47 @@ import { TypeValidationError } from '@ai-sdk/provider';
 import { redactTelemetrySecrets } from './redact-telemetry-secrets';
 
 describe('redactTelemetrySecrets', () => {
+  it.each(['object', 'string', 'tuple', 'string-entry', 'object-entry'])(
+    'redacts malformed domainSecrets: %s',
+    shape => {
+      const secret = 'synthetic-malformed-credential';
+      const domainSecrets =
+        shape === 'object'
+          ? { value: secret }
+          : shape === 'string'
+            ? secret
+            : shape === 'tuple'
+              ? [['example.com', 'KEY', secret]]
+              : shape === 'string-entry'
+                ? [secret]
+                : [{ token: secret }];
+      for (const container of ['container', 'environment']) {
+        const args = { [container]: { networkPolicy: { domainSecrets } } };
+        const error = new TypeValidationError({
+          value: args,
+          cause: new Error('invalid configuration'),
+        });
+        const redacted = redactTelemetrySecrets(error);
+        expect(JSON.stringify(redacted)).not.toContain(secret);
+        expect(redacted.message).not.toContain(secret);
+        expect(redacted.stack).not.toContain(secret);
+        const event = {
+          tools: [
+            {
+              type: 'provider',
+              id: `openai.${container === 'container' ? 'code_interpreter' : 'shell'}`,
+              args,
+            },
+          ],
+        };
+        expect(JSON.stringify(redactTelemetrySecrets(event))).not.toContain(
+          secret,
+        );
+        expect(error.message).toContain(secret);
+      }
+    },
+  );
+
   it.each(['$&', '$`', "$'", '$$'])(
     'keeps replacement patterns literal in validation error stacks: %s',
     pattern => {

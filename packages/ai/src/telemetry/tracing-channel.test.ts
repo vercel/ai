@@ -189,77 +189,91 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
   describe.each(['generateText', 'streamText'] as const)(
     '%s domain secrets',
     operation => {
-      it('redacts invalid provider-tool arguments while preserving application errors', async () => {
-        const secret = 'synthetic-invalid-tool-credential';
-        const args = {
-          container: {
-            memoryLimit: '8g',
-            networkPolicy: {
-              type: 'allowlist',
-              allowedDomains: ['example.com'],
-              domainSecrets: [
-                { domain: 'example.com', name: 'KEY', value: secret },
-              ],
-            },
-          },
-        };
-        const fetch = vi.fn<typeof globalThis.fetch>();
-        const applicationErrors: unknown[] = [];
-        const observations: unknown[] = [];
-        const observe = (value: unknown) => {
-          observations.push(value);
-          const error = (value as { error?: Error }).error;
-          if (error) observations.push(error.message, error.stack);
-        };
-        const channel = diagnosticsChannel.tracingChannel(
-          AI_SDK_TELEMETRY_TRACING_CHANNEL,
-        );
-        const subscribers = {
-          start() {},
-          end() {},
-          asyncStart() {},
-          error: observe,
-          asyncEnd: observe,
-        };
-        channel.subscribe(subscribers);
-        try {
-          const options = {
-            model: createOpenAI({ apiKey: 'test-key', fetch }).responses(
-              'gpt-4.1-mini',
-            ),
-            prompt: 'Hello',
-            tools: {
-              code_interpreter: openai.tools.codeInterpreter(args as any),
-            },
-            onError: ({ error }: { error: unknown }) => {
-              applicationErrors.push(error);
-            },
-            telemetry: {
-              integrations: { onStepError: observe, onError: observe },
-            } satisfies TelemetryOptions,
+      it.each(['array', 'object', 'string', 'tuple'])(
+        'redacts invalid provider-tool arguments (%s) while preserving application errors',
+        async shape => {
+          const secret = 'synthetic-invalid-tool-credential';
+          const domainSecret = {
+            domain: 'example.com',
+            name: 'KEY',
+            value: secret,
           };
-          if (operation === 'generateText') {
-            await expect(
-              generateText(options).catch(error => {
+          const domainSecrets =
+            shape === 'array'
+              ? [domainSecret]
+              : shape === 'object'
+                ? domainSecret
+                : shape === 'string'
+                  ? secret
+                  : [['example.com', 'KEY', secret]];
+          const args = {
+            container: {
+              memoryLimit: '8g',
+              networkPolicy: {
+                type: 'allowlist',
+                allowedDomains: ['example.com'],
+                domainSecrets,
+              },
+            },
+          };
+          const fetch = vi.fn<typeof globalThis.fetch>();
+          const applicationErrors: unknown[] = [];
+          const observations: unknown[] = [];
+          const observe = (value: unknown) => {
+            observations.push(value);
+            const error = (value as { error?: Error }).error;
+            if (error) observations.push(error.message, error.stack);
+          };
+          const channel = diagnosticsChannel.tracingChannel(
+            AI_SDK_TELEMETRY_TRACING_CHANNEL,
+          );
+          const subscribers = {
+            start: observe,
+            end() {},
+            asyncStart() {},
+            error: observe,
+            asyncEnd: observe,
+          };
+          channel.subscribe(subscribers);
+          try {
+            const options = {
+              model: createOpenAI({ apiKey: 'test-key', fetch }).responses(
+                'gpt-4.1-mini',
+              ),
+              prompt: 'Hello',
+              tools: {
+                code_interpreter: openai.tools.codeInterpreter(args as any),
+              },
+              onError: ({ error }: { error: unknown }) => {
                 applicationErrors.push(error);
-                throw error;
-              }),
-            ).rejects.toBeInstanceOf(TypeValidationError);
-          } else {
-            await streamText(options).consumeStream();
+              },
+              telemetry: {
+                integrations: { onStepError: observe, onError: observe },
+              } satisfies TelemetryOptions,
+            };
+            if (operation === 'generateText') {
+              await expect(
+                generateText(options).catch(error => {
+                  applicationErrors.push(error);
+                  throw error;
+                }),
+              ).rejects.toBeInstanceOf(TypeValidationError);
+            } else {
+              await streamText(options).consumeStream();
+            }
+          } finally {
+            channel.unsubscribe(subscribers);
           }
-        } finally {
-          channel.unsubscribe(subscribers);
-        }
-        const applicationError = applicationErrors.at(
-          -1,
-        ) as TypeValidationError;
-        expect(applicationError.value).toEqual(args);
-        expect(applicationError.message).toContain(secret);
-        expect(fetch).not.toHaveBeenCalled();
-        expect(observations.length).toBeGreaterThan(0);
-        expect(JSON.stringify(observations)).not.toContain(secret);
-      });
+          const applicationError = applicationErrors.at(
+            -1,
+          ) as TypeValidationError;
+          expect(applicationError.value).toEqual(args);
+          expect(applicationError.message).toContain(secret);
+          expect(fetch).not.toHaveBeenCalled();
+          expect(observations.length).toBeGreaterThan(0);
+          expect(JSON.stringify(observations)).not.toContain(secret);
+        },
+      );
 
       it('redacts exhausted retry errors while preserving application errors', async () => {
         const secret = 'synthetic-retry-credential';
