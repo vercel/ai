@@ -29,6 +29,7 @@ import {
   isProviderStreamError,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
+  normalizeHeaders,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -1475,11 +1476,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     headers: Record<string, string | undefined> | undefined;
     providerOptions: LanguageModelV4CallOptions['providerOptions'];
   }) {
-    const combinedHeaders = combineHeaders(
-      configHeaders,
-      headers,
-      betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
-    );
+    const combinedHeaders = combineHeaders(configHeaders, headers);
+
+    if (betas.size > 0) {
+      // Replace all casing variants with the complete set of beta flags.
+      for (const name of Object.keys(combinedHeaders)) {
+        if (name.toLowerCase() === 'anthropic-beta') {
+          delete combinedHeaders[name];
+        }
+      }
+      combinedHeaders['anthropic-beta'] = Array.from(betas).join(',');
+    }
 
     return this.config.transformRequestHeaders
       ? this.config.transformRequestHeaders(combinedHeaders, providerOptions)
@@ -1490,8 +1497,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     configHeaders: Record<string, string | undefined> | undefined,
     requestHeaders: Record<string, string | undefined> | undefined,
   ) {
-    const configBetaHeader = configHeaders?.['anthropic-beta'] ?? '';
-    const requestBetaHeader = requestHeaders?.['anthropic-beta'] ?? '';
+    const configBetaHeader =
+      normalizeHeaders(configHeaders)['anthropic-beta'] ?? '';
+    const requestBetaHeader =
+      normalizeHeaders(requestHeaders)['anthropic-beta'] ?? '';
 
     return new Set(
       [
