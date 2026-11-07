@@ -1048,7 +1048,10 @@ describe('extractReasoningFromContentBlocks', () => {
         get: () => [{ type: 'reasoning', reasoning: 'Accumulated reasoning' }],
       });
 
-      expect(extractReasoningFromContentBlocks(chunk)).toBeUndefined();
+      expect(extractReasoningFromContentBlocks(chunk, true)).toBeUndefined();
+      expect(extractReasoningFromContentBlocks(chunk)).toBe(
+        'Accumulated reasoning',
+      );
     },
   );
 
@@ -1058,7 +1061,7 @@ describe('extractReasoningFromContentBlocks', () => {
       response_metadata: responseMetadata,
     });
 
-    expect(extractReasoningFromContentBlocks(chunk)).toBe('Delta');
+    expect(extractReasoningFromContentBlocks(chunk, true)).toBe('Delta');
   });
 
   it('should preserve contentBlocks when metadata has no reasoning snapshot', () => {
@@ -1070,7 +1073,7 @@ describe('extractReasoningFromContentBlocks', () => {
       get: () => [{ type: 'reasoning', reasoning: 'Delta' }],
     });
 
-    expect(extractReasoningFromContentBlocks(chunk)).toBe('Delta');
+    expect(extractReasoningFromContentBlocks(chunk, true)).toBe('Delta');
   });
 
   it('should preserve additional_kwargs reasoning deltas with terminal metadata', () => {
@@ -1080,7 +1083,7 @@ describe('extractReasoningFromContentBlocks', () => {
       additional_kwargs: { reasoning: { summary: [{ text: 'Delta' }] } },
     });
 
-    expect(extractReasoningFromContentBlocks(chunk)).toBe('Delta');
+    expect(extractReasoningFromContentBlocks(chunk, true)).toBe('Delta');
   });
 });
 

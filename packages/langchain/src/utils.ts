@@ -884,10 +884,12 @@ export function extractReasoningId(msg: unknown): string | undefined {
  * Handles both class instances and serialized LangChain message objects.
  *
  * @param msg - The message to extract reasoning from.
+ * @param skipReasoningSnapshot - Ignore terminal snapshots when reasoning was already emitted.
  * @returns The reasoning text if found, undefined otherwise.
  */
 export function extractReasoningFromContentBlocks(
   msg: unknown,
+  skipReasoningSnapshot = false,
 ): string | undefined {
   if (msg == null || typeof msg !== 'object') return undefined;
 
@@ -904,6 +906,7 @@ export function extractReasoningFromContentBlocks(
     kwargs.response_metadata as { output?: unknown[] } | undefined
   )?.output;
   const isSnapshotOnly =
+    skipReasoningSnapshot &&
     Array.isArray(output) &&
     output.some(isGPT5ReasoningOutput) &&
     (kwargs.content === '' ||
@@ -1756,7 +1759,11 @@ export function processLangGraphEvent(
           }
         }
 
-        const reasoning = extractReasoningFromContentBlocks(msg);
+        const reasoning = extractReasoningFromContentBlocks(
+          msg,
+          streamedReasoningMessageIds.has(msgId) ||
+            emittedReasoningIds.has(msgId),
+        );
         if (
           reasoning &&
           (!emittedReasoningIds.has(msgId) ||

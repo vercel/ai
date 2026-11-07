@@ -23,6 +23,47 @@ import {
 } from './__fixtures__/langgraph';
 
 describe('toUIMessageStream', () => {
+  it.each(['messages-only', 'streamEvents'])(
+    'should preserve terminal-only reasoning in %s streams',
+    async format => {
+      const terminal = new AIMessageChunk({
+        id: 'terminal-only',
+        content: [],
+        response_metadata: {
+          output: [
+            {
+              id: 'rs-terminal',
+              type: 'reasoning',
+              summary: [{ type: 'summary_text', text: 'Terminal reasoning' }],
+            },
+          ],
+        },
+      });
+      Object.defineProperty(terminal, 'contentBlocks', {
+        get: () => [{ type: 'reasoning', reasoning: 'Terminal reasoning' }],
+      });
+      const events = [
+        new AIMessageChunk({ id: 'terminal-only', content: 'Answer' }),
+        terminal,
+      ].map(chunk =>
+        format === 'messages-only'
+          ? ['messages', [chunk]]
+          : { event: 'on_chat_model_stream', data: { chunk } },
+      );
+      const messages = await convertReadableStreamToArray(
+        readUIMessageStream({
+          stream: toUIMessageStream(convertArrayToReadableStream(events)),
+        }),
+      );
+
+      expect(
+        messages.at(-1)?.parts.filter(part => part.type === 'reasoning'),
+      ).toMatchObject([
+        { type: 'reasoning', text: 'Terminal reasoning', state: 'done' },
+      ]);
+    },
+  );
+
   describe.each([
     {
       name: 'direct model streams',
