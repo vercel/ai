@@ -149,7 +149,10 @@ describe('doGenerate', () => {
           },
         },
       ],
-      tool_choice: 'any',
+      tool_choice: {
+        type: 'function',
+        function: { name: 'test-tool' },
+      },
     });
   });
 
@@ -1219,6 +1222,40 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it('sends native specific tool choice and keeps all function tools', async () => {
+    prepareChunksFixtureResponse('mistral-tool-call');
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'selected',
+          inputSchema: { type: 'object', properties: {} },
+        },
+        {
+          type: 'function',
+          name: 'other',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'selected' },
+    });
+
+    await convertReadableStreamToArray(stream);
+
+    const request = await server.calls[0].requestBodyJson;
+    expect(request.tool_choice).toEqual({
+      type: 'function',
+      function: { name: 'selected' },
+    });
+    expect(
+      request.tools.map(
+        (tool: { function: { name: string } }) => tool.function.name,
+      ),
+    ).toEqual(['selected', 'other']);
+  });
+
   it.each([
     ['missing', 'interrupted'],
     ['unknown_reason', 'other'],

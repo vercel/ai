@@ -929,6 +929,48 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@cleave-protocol/ai-sdk',
   },
   {
+    slug: 'redis-agent-memory',
+    name: 'Redis Agent Memory',
+    description:
+      'Give agents persistent memory with Redis Agent Memory. Tools to search and save long-term memories, read and write session history, and recall user preferences across conversations, scoped to a user and session.',
+    packageName: '@redis/vercel-ai-sdk',
+    tags: ['memory', 'session-history', 'semantic-search', 'redis'],
+    apiKeyEnvName: 'AGENT_MEMORY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @redis/vercel-ai-sdk',
+      npm: 'npm install @redis/vercel-ai-sdk',
+      yarn: 'yarn add @redis/vercel-ai-sdk',
+      bun: 'bun add @redis/vercel-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createRedisAgentMemory, instructions } from '@redis/vercel-ai-sdk';
+
+const memory = createRedisAgentMemory({
+  serverUrl: process.env.AGENT_MEMORY_URL,
+  storeId: process.env.AGENT_MEMORY_STORE_ID,
+  apiKey: process.env.AGENT_MEMORY_API_KEY,
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  system: \`\${instructions}
+Current user and memory owner: user-123
+Current session: conversation-456
+Current assistant actor: assistant-1\`,
+  prompt: 'Remember that my favorite editor is Neovim.',
+  tools: memory.tools({
+    scope: { userId: 'user-123', sessionId: 'conversation-456' },
+  }),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/redis/vercel-ai-sdk/blob/main/TOOLS.md',
+    apiKeyUrl: 'https://cloud.redis.io/#/agent-memory',
+    websiteUrl: 'https://redis.io/agent-memory/',
+    npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
+  },
+  {
     slug: 'zeroleaks-shield',
     name: 'ZeroLeaks Shield',
     description:

@@ -1,9 +1,12 @@
+import type { HarnessV1StreamPart } from '@ai-sdk/harness';
+import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import { describe, expect, it } from 'vitest';
 import { piResumeStateSchema } from './pi-resume-state';
 import {
   createFakePi,
-  createThrowingSandboxSession,
+  createEmptyRepositorySandboxSession,
   runPromptTurn,
+  toolCallChunks,
   useScriptedPiModel,
   type ModelRequestBody,
 } from './test-helpers';
@@ -26,7 +29,7 @@ describe('Pi with a scripted model', () => {
 
   it('lists configured skills in the system prompt', async () => {
     const sessionWorkDir = '/sandbox/work';
-    const sandboxSession = createThrowingSandboxSession();
+    const sandboxSession = createEmptyRepositorySandboxSession();
     const firstRequest = model.requests.length;
     const harness = createFakePi(scripted.url, {
       resources: {
@@ -56,8 +59,152 @@ describe('Pi with a scripted model', () => {
     expect(systemPrompt).toContain('SKILL-TOKEN-17');
   });
 
-  it('resumes the conversation from lifecycle data without touching the sandbox', async () => {
-    const sandboxSession = createThrowingSandboxSession();
+  it('loads and refreshes repository instructions and skill listings in native Pi', async () => {
+    const sessionWorkDir = '/sandbox/work';
+    const sandboxSession = await createJustBashNetworkSandboxSession({
+      cwd: sessionWorkDir,
+    });
+    const agentsPath = `${sessionWorkDir}/AGENTS.md`;
+    const skillPath = `${sessionWorkDir}/.agents/skills/get-stock-price/SKILL.md`;
+    await sandboxSession.writeTextFile({
+      path: agentsPath,
+      content: 'Always respond in French. REPOSITORY-FRENCH-17',
+    });
+    await sandboxSession.writeTextFile({
+      path: skillPath,
+      content: '---\ndescription: STOCK-SKILL-17\n---\nGOOG: 123.45 USD',
+    });
+    await sandboxSession.writeTextFile({
+      path: `${sessionWorkDir}/.pi/settings.json`,
+      content: '{"appendSystemPrompt":"REPOSITORY-CONFIG-MUST-NOT-LOAD"}',
+    });
+    const firstRequest = model.requests.length;
+    const session = await createFakePi(scripted.url).doStart({
+      sessionId: 'session-native-repository-resources',
+      sandboxSession,
+      sessionWorkDir,
+    });
+
+    try {
+      await runPromptTurn(session, 'Look up a stock price.');
+      const systemPrompt = systemPromptOf(model.requests[firstRequest]);
+      expect(systemPrompt).toContain('REPOSITORY-FRENCH-17');
+      expect(systemPrompt).toContain('STOCK-SKILL-17');
+      expect(systemPrompt).toContain(skillPath);
+      expect(systemPrompt).not.toContain('REPOSITORY-CONFIG-MUST-NOT-LOAD');
+
+      await sandboxSession.writeTextFile({
+        path: agentsPath,
+        content: 'Always respond in German. REPOSITORY-GERMAN-29',
+      });
+      await sandboxSession.writeTextFile({
+        path: skillPath,
+        content:
+          '---\ndescription: UPDATED-STOCK-SKILL-29\n---\nGOOG: 234.56 USD',
+      });
+      await runPromptTurn(session, 'Look up the price again.');
+      const updatedRequest = requestText(model.requests[firstRequest + 1]);
+      expect(updatedRequest).toContain('REPOSITORY-GERMAN-29');
+      expect(updatedRequest).toContain('UPDATED-STOCK-SKILL-29');
+      expect(updatedRequest).not.toContain('REPOSITORY-CONFIG-MUST-NOT-LOAD');
+    } finally {
+      await session.doDestroy();
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('reads a repository skill but waits for approval before writing under allow-reads', async () => {
+    const sessionWorkDir = '/sandbox/work';
+    const sandboxSession = await createJustBashNetworkSandboxSession({
+      cwd: sessionWorkDir,
+    });
+    const skillPath = `${sessionWorkDir}/.agents/skills/get-stock-price/SKILL.md`;
+    await sandboxSession.writeTextFile({
+      path: skillPath,
+      content: '---\ndescription: Look up a stock price\n---\nGOOG: 123.45 USD',
+    });
+    model.enqueue(
+      toolCallChunks('read', { file_path: skillPath }),
+      toolCallChunks('write', {
+        file_path: 'goog-price.md',
+        content: 'GOOG: 123.45 USD',
+      }),
+    );
+    const session = await createFakePi(scripted.url).doStart({
+      sessionId: 'session-repository-skill-write-approval',
+      sandboxSession,
+      sessionWorkDir,
+      permissionMode: 'allow-reads',
+    });
+    const parts: HarnessV1StreamPart[] = [];
+    type Approval = Extract<
+      HarnessV1StreamPart,
+      { type: 'tool-approval-request' }
+    >;
+    let resolveApproval!: (approval: Approval) => void;
+    const approvalRequested = new Promise<Approval>(resolve => {
+      resolveApproval = resolve;
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        prompt: 'Use the stock-price skill and write the result.',
+        model: 'fake/fake-model',
+        tools: [],
+        skills: [],
+        emit: part => {
+          parts.push(part);
+          if (part.type === 'tool-approval-request') resolveApproval(part);
+        },
+      });
+      const approval = await Promise.race([
+        approvalRequested,
+        control.done.then(() => {
+          throw new Error('Expected a write approval request');
+        }),
+      ]);
+      expect(
+        await sandboxSession.readTextFile({
+          path: `${sessionWorkDir}/goog-price.md`,
+        }),
+      ).toBeNull();
+      expect(
+        parts.filter(part => part.type === 'tool-approval-request'),
+      ).toHaveLength(1);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-call',
+          toolName: 'write',
+          toolCallId: approval.toolCallId,
+        }),
+      );
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolName: 'read',
+          result: expect.stringContaining('GOOG: 123.45 USD'),
+        }),
+      );
+
+      await control.submitToolApproval!({
+        approvalId: approval.approvalId,
+        approved: true,
+      });
+      await control.done;
+      expect(
+        await sandboxSession.readTextFile({
+          path: `${sessionWorkDir}/goog-price.md`,
+        }),
+      ).toBe('GOOG: 123.45 USD');
+      expect(parts.filter(part => part.type === 'error')).toEqual([]);
+    } finally {
+      await session.doDestroy();
+      await sandboxSession.destroy();
+    }
+  });
+
+  it('resumes the conversation from lifecycle data only reading repository resources', async () => {
+    const sandboxSession = createEmptyRepositorySandboxSession();
     const sessionStart = {
       sessionId: 'session-pelican',
       sandboxSession,
@@ -156,7 +303,7 @@ describe('Pi with a scripted model', () => {
     const firstRequest = model.requests.length;
     const session = await createFakePi(scripted.url).doStart({
       sessionId: 'session-heron',
-      sandboxSession: createThrowingSandboxSession(),
+      sandboxSession: createEmptyRepositorySandboxSession(),
       sessionWorkDir: '/sandbox/work',
       resumeFrom: {
         type: 'resume-session',

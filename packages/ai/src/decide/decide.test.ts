@@ -252,6 +252,7 @@ describe('input validation', () => {
       const { model, doDecide } = setup();
       for (const criteria of [
         undefined,
+        null,
         {},
         { true: null },
         { false: null },
@@ -270,6 +271,23 @@ describe('input validation', () => {
       expect(doDecide).not.toHaveBeenCalled();
     },
   );
+
+  it('forwards null Boolean criteria with instructions', async () => {
+    const { model, doDecide } = setup({
+      answers: { refund: answers.refund },
+      warnings: [],
+    });
+    const questions = {
+      refund: {
+        type: 'boolean',
+        instructions: 'Refund?',
+        criteria: null,
+      },
+    } as const;
+    const result = await decide({ model, state: 'text', questions });
+    expect(doDecide.mock.calls[0][0].questions).toBe(questions);
+    expect(result.answers).toEqual({ refund: answers.refund });
+  });
 
   const cyclic: Record<string, unknown> = {};
   cyclic.self = cyclic;
@@ -698,8 +716,8 @@ describe('telemetry', () => {
         operationId: 'ai.decide',
         provider: 'mock-provider',
         modelId: 'mock-model-id',
-        state,
-        questions,
+        state: {},
+        questions: {},
         runtimeContext: {},
         maxRetries: 2,
         recordInputs: false,
@@ -711,8 +729,8 @@ describe('telemetry', () => {
       expect.objectContaining({
         callId: 'test-call-id',
         operationId: 'ai.decide.doDecide',
-        state: [{ type: 'json', value: state }],
-        questions,
+        state: [],
+        questions: {},
       }),
     );
     expect(experimental_onDecisionModelCallEnd).toHaveBeenCalledWith(
@@ -735,12 +753,16 @@ describe('telemetry', () => {
     expect(decideOnStart).toHaveBeenCalledWith(
       expect.objectContaining({
         operationId: 'ai.decide',
+        state,
+        questions,
         runtimeContext: { requestId: 'request-1', secret: 'hidden' },
       }),
     );
     expect(decideOnEnd).toHaveBeenCalledWith(
       expect.objectContaining({
         operationId: 'ai.decide',
+        state,
+        questions,
         runtimeContext: { requestId: 'request-1', secret: 'hidden' },
       }),
     );
@@ -1041,6 +1063,20 @@ it('preserves normalized box coordinates', async () => {
   });
   expect(result.answers.target).toEqual({ type: 'box', box: validBox });
 });
+
+it.each([{}, { instructions: undefined }, { instructions: null }])(
+  'forwards optional Box instructions: %j',
+  async instructionFields => {
+    const model = boxModel(validBox);
+    const doDecide = vi.spyOn(model, 'doDecide');
+    const questions = {
+      target: { type: 'box', ...instructionFields },
+    } as const;
+    const result = await decide({ model, state: '', questions });
+    expect(doDecide.mock.calls[0][0].questions).toBe(questions);
+    expect(result.answers.target).toEqual({ type: 'box', box: validBox });
+  },
+);
 
 it.each([
   undefined,

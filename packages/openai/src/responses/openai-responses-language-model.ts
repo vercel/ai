@@ -23,8 +23,8 @@ import {
   createJsonResponseHandler,
   createToolNameMapping,
   generateId,
-  parseProviderOptions,
   postJsonToApi,
+  resolveProviderOptions,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -331,19 +331,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     const providerOptionsName = config.provider.includes('azure')
       ? 'azure'
       : 'openai';
-    let openaiOptions = await parseProviderOptions({
-      provider: providerOptionsName,
+    // The provider key (`azure`) and `openai` are alternatives: the first
+    // present one is used as a whole.
+    const { options: openaiOptions } = await resolveProviderOptions({
       providerOptions,
+      namespaces: [providerOptionsName, 'openai'],
+      resolution: 'first',
       schema: openaiLanguageModelResponsesOptionsSchema,
     });
-
-    if (openaiOptions == null && providerOptionsName !== 'openai') {
-      openaiOptions = await parseProviderOptions({
-        provider: 'openai',
-        providerOptions,
-        schema: openaiLanguageModelResponsesOptionsSchema,
-      });
-    }
 
     const resolvedReasoningEffort = resolveOpenAIReasoningEffort({
       providerReasoningEffort: openaiOptions?.reasoningEffort,
@@ -923,6 +918,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     let hasFunctionCall = false;
     const hostedToolSearchCallIds: string[] = [];
 
+    // flag that checks if the model refused to answer:
+    let hasRefusal = false;
+
     let structuredOutputText: string | undefined;
 
     // map response content to content array
@@ -1092,11 +1090,32 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             part.phase === 'final_answer'
           ) {
             structuredOutputText = part.content
-              .map(contentPart => contentPart.text)
+              .map(contentPart =>
+                contentPart.type === 'output_text'
+                  ? contentPart.text
+                  : contentPart.refusal,
+              )
               .join('');
           }
 
           for (const contentPart of part.content) {
+            if (contentPart.type === 'refusal') {
+              hasRefusal = true;
+
+              content.push({
+                type: 'text',
+                text: contentPart.refusal,
+                providerMetadata: {
+                  [providerOptionsName]: {
+                    itemId: part.id,
+                    ...(part.phase != null && { phase: part.phase }),
+                  } satisfies ResponsesTextProviderMetadata,
+                },
+              });
+
+              continue;
+            }
+
             if (
               options.providerOptions?.[providerOptionsName]?.logprobs &&
               contentPart.logprobs
@@ -1529,6 +1548,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         unified: mapOpenAIResponseFinishReason({
           finishReason: response.incomplete_details?.reason,
           hasFunctionCall,
+          hasRefusal,
         }),
         raw: response.incomplete_details?.reason ?? undefined,
       },
@@ -1657,6 +1677,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
+
+    // flag that checks if the model refused to answer:
+    let hasRefusal = false;
 
     const activeReasoning: Record<
       string,
@@ -2772,6 +2795,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               ) {
                 logprobs.push(value.logprobs);
               }
+            } else if (isRefusalDeltaChunk(value)) {
+              hasRefusal = true;
+
+              const itemId = resolveOutputItemId({
+                itemId: value.item_id,
+                outputIndex: value.output_index,
+              });
+              controller.enqueue({
+                type: 'text-delta',
+                id: itemId,
+                delta: value.delta,
+              });
+            } else if (isRefusalDoneChunk(value)) {
+              hasRefusal = true;
             } else if (value.type === 'response.reasoning_summary_part.added') {
               const itemId = resolveOutputItemId({
                 itemId: value.item_id,
@@ -2872,6 +2909,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   unified: mapOpenAIResponseFinishReason({
                     finishReason: value.response.incomplete_details?.reason,
                     hasFunctionCall,
+                    hasRefusal,
                   }),
                   raw: value.response.incomplete_details?.reason ?? undefined,
                 };
@@ -3012,6 +3050,18 @@ function isTextDeltaChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesChunk & { type: 'response.output_text.delta' } {
   return chunk.type === 'response.output_text.delta';
+}
+
+function isRefusalDeltaChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.refusal.delta' } {
+  return chunk.type === 'response.refusal.delta';
+}
+
+function isRefusalDoneChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.refusal.done' } {
+  return chunk.type === 'response.refusal.done';
 }
 
 function isOpenAIChatCompletionChunk(value: unknown): boolean {

@@ -1120,11 +1120,12 @@ async function generateTextInternal<
 
               // steering messages are delivered when they are in the messages
               // that are sent to the model after prepareStep:
-              const deliveredSteeringMessages =
+              const deliveredSteeringMessages = (
                 steeringRun?.resolveTakenMessages({
                   stepNumber,
                   sentMessages: stepMessages,
-                }) ?? [];
+                }) ?? []
+              ).map(({ message }) => message);
 
               const promptMessages = await convertToLanguageModelPrompt({
                 prompt: {
@@ -1212,8 +1213,8 @@ async function generateTextInternal<
                 const result = await executeLanguageModelCallInTelemetryContext(
                   {
                     ...languageModelCallStartEvent,
-                    execute: async () =>
-                      await stepModel.doGenerate({
+                    execute: async () => {
+                      const result = await stepModel.doGenerate({
                         ...stepCallSettings,
                         tools: stepTools,
                         toolChoice: stepToolChoice,
@@ -1222,24 +1223,26 @@ async function generateTextInternal<
                         providerOptions: stepProviderOptions,
                         abortSignal: mergedAbortSignal,
                         headers: headersWithUserAgent,
-                      }),
+                      });
+                      return {
+                        ...result,
+                        ...(result.request && {
+                          request: sanitizeRequestMetadata(result.request),
+                        }),
+                      };
+                    },
                   },
                 );
 
-                const responseData = {
-                  id: result.response?.id ?? generateId(),
-                  timestamp: result.response?.timestamp ?? new Date(),
-                  modelId: result.response?.modelId ?? stepModel.modelId,
-                  headers: result.response?.headers,
-                  body: result.response?.body,
-                };
-
                 return {
                   ...result,
-                  ...(result.request != null
-                    ? { request: sanitizeRequestMetadata(result.request) }
-                    : {}),
-                  response: responseData,
+                  response: {
+                    id: result.response?.id ?? generateId(),
+                    timestamp: result.response?.timestamp ?? new Date(),
+                    modelId: result.response?.modelId ?? stepModel.modelId,
+                    headers: result.response?.headers,
+                    body: result.response?.body,
+                  },
                 };
               });
               const responseTimeMs = now() - stepStartTimestampMs;

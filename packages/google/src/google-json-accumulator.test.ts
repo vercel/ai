@@ -317,6 +317,69 @@ describe('GoogleJSONAccumulator', () => {
     });
   });
 
+  describe('array index bounds', () => {
+    const accumulate = (partialArgs: PartialArg[]) => {
+      const accumulator = new GoogleJSONAccumulator();
+      let text = '';
+      for (const arg of partialArgs) {
+        text += accumulator.processPartialArgs([arg]).textDelta;
+      }
+      const { finalJSON, closingDelta } = accumulator.finalize();
+      return { finalJSON, text: text + closingDelta };
+    };
+
+    it('should skip an index that does not start a new array', () => {
+      expect(accumulate([{ jsonPath: '$.items[20000000]', numberValue: 1 }]))
+        .toMatchInlineSnapshot(`
+        {
+          "finalJSON": "{}",
+          "text": "{}",
+        }
+      `);
+    });
+
+    it('should skip an index that leaves a gap in an array', () => {
+      expect(
+        accumulate([
+          { jsonPath: '$.items[0]', stringValue: 'a' },
+          { jsonPath: '$.items[5]', stringValue: 'b' },
+          { jsonPath: '$.items[1]', stringValue: 'c' },
+        ]),
+      ).toMatchInlineSnapshot(`
+        {
+          "finalJSON": "{"items":["a","c"]}",
+          "text": "{"items":["a","c"]}",
+        }
+      `);
+    });
+
+    it('should skip an index that does not start an array replacing null', () => {
+      expect(
+        accumulate([
+          { jsonPath: '$.items', nullValue: null },
+          { jsonPath: '$.items[20000000]', numberValue: 1 },
+          { jsonPath: '$.rows[0]', nullValue: null },
+          { jsonPath: '$.rows[0][3000000]', numberValue: 2 },
+        ]).finalJSON.length,
+      ).toBeLessThan(100);
+    });
+
+    it('should skip an index that leaves a gap in a nested array', () => {
+      expect(
+        accumulate([
+          { jsonPath: '$.rows[0][0]', numberValue: 1 },
+          { jsonPath: '$.rows[0][3000000]', numberValue: 2 },
+          { jsonPath: '$.rows[2000000].name', stringValue: 'x' },
+        ]),
+      ).toMatchInlineSnapshot(`
+        {
+          "finalJSON": "{"rows":[[1]]}",
+          "text": "{"rows":[[1]]}",
+        }
+      `);
+    });
+  });
+
   describe('nested paths', () => {
     it('should build nested object from dotted jsonPath', () => {
       const accumulator = new GoogleJSONAccumulator();

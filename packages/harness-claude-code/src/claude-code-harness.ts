@@ -135,6 +135,11 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxBudgetUsd?: number;
   /**
+   * Absolute paths of directories Claude can access in addition to the session
+   * working directory.
+   */
+  readonly additionalDirectories?: ReadonlyArray<string>;
+  /**
    * Only use the MCP servers configured with `mcpServers`, and ignore any other
    * MCP configuration such as a project `.mcp.json` or user settings.
    */
@@ -191,6 +196,12 @@ export type ClaudeCodeHarnessSettings = {
   readonly startupTimeoutMs?: number;
   /** Maximum milliseconds to wait for the first turn event. Defaults to 120000. */
   readonly turnStartTimeoutMs?: number;
+  /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
@@ -861,6 +872,7 @@ const claudeCodeBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
   lastSeenEventId: z.number(),
+  startId: z.string().optional(),
   sandboxId: z.string().optional(),
 });
 
@@ -1101,6 +1113,7 @@ export function createClaudeCode(
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
+            startId: coords.startId,
             finishListenerAttachment,
             ...(resumeSessionId ? { resumeSessionId } : {}),
             // The live bridge was spawned by another process; this one owns no
@@ -1110,6 +1123,7 @@ export function createClaudeCode(
             maxTurns: settings.maxTurns,
             skillOverrides: settings.skillOverrides,
             maxBudgetUsd: settings.maxBudgetUsd,
+            additionalDirectories: settings.additionalDirectories,
             strictMcpConfig: settings.strictMcpConfig,
             questionTimeoutMs: settings.questionTimeoutMs,
             excludeDynamicSections: settings.excludeDynamicSections,
@@ -1201,7 +1215,7 @@ export function createClaudeCode(
       });
 
       const proc = await toolSafeSandboxSession.spawn({
-        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}${settings.hostDisconnectTimeoutMs !== undefined ? ` --host-disconnect-timeout-ms ${shellQuote(String(settings.hostDisconnectTimeoutMs))}` : ''}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -1284,10 +1298,12 @@ export function createClaudeCode(
         sessionId: startOpts.sessionId,
         channel,
         finishListenerAttachment,
+        startId: respawnStrategy === 'replay' ? coords?.startId : undefined,
         proc,
         maxTurns: settings.maxTurns,
         skillOverrides: settings.skillOverrides,
         maxBudgetUsd: settings.maxBudgetUsd,
+        additionalDirectories: settings.additionalDirectories,
         strictMcpConfig: settings.strictMcpConfig,
         questionTimeoutMs: settings.questionTimeoutMs,
         excludeDynamicSections: settings.excludeDynamicSections,
@@ -1338,11 +1354,13 @@ export function createClaudeCode(
 function createSession({
   sessionId,
   channel,
+  startId,
   finishListenerAttachment,
   proc,
   maxTurns,
   skillOverrides,
   maxBudgetUsd,
+  additionalDirectories,
   strictMcpConfig,
   questionTimeoutMs,
   excludeDynamicSections,
@@ -1373,12 +1391,14 @@ function createSession({
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
+  startId?: string;
   finishListenerAttachment: (() => void) | undefined;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
   skillOverrides: ClaudeCodeHarnessSettings['skillOverrides'];
   maxBudgetUsd: number | undefined;
+  additionalDirectories: ReadonlyArray<string> | undefined;
   strictMcpConfig: boolean | undefined;
   questionTimeoutMs: number | undefined;
   excludeDynamicSections: boolean | undefined;
@@ -1435,6 +1455,7 @@ function createSession({
    * stop/detach must record for exact resume.
    */
   let lastClaudeSessionId = resumeSessionId;
+  let activeStartId = startId;
 
   /*
    * Wire the channel into one turn's worth of events and return the control
@@ -1446,10 +1467,23 @@ function createSession({
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
+    startId?: string;
   }): {
     control: HarnessV1PromptControl;
     sendStart: (message: Extract<InboundMessage, { type: 'start' }>) => void;
   } => {
+    activeStartId = turnOpts.startId;
+    let expectedStartId = turnOpts.startId;
+    let isSettled = false;
+    const belongsToTurn = (event: { startId?: string }): boolean => {
+      if (isSettled) return false;
+      if (event.startId == null) return true;
+      if (expectedStartId == null) {
+        expectedStartId = event.startId;
+        activeStartId = event.startId;
+      }
+      return event.startId === expectedStartId;
+    };
     let pendingResolve: (() => void) | undefined;
     let pendingReject: ((err: unknown) => void) | undefined;
     const done = new Promise<void>((resolve, reject) => {
@@ -1465,14 +1499,19 @@ function createSession({
       pendingStart = undefined;
       clearTimeout(startTimer);
     };
-    const forward = (event: HarnessV1StreamPart) => {
+    const forward = (event: HarnessV1StreamPart & { startId?: string }) => {
       clearPendingStart();
+      /*
+       * Keep the event object: the channel attaches a non-enumerable replay
+       * checkpoint that must reach the consumer for step-boundary suspension.
+       * Only the adapter's wire-level turn identifier is removed.
+       */
+      delete event.startId;
       try {
         turnOpts.emit(event);
       } catch {}
     };
 
-    let isSettled = false;
     const settleSuccess = () => {
       if (isSettled) return;
       isSettled = true;
@@ -1516,6 +1555,10 @@ function createSession({
       channel.onReconnect(() => {
         if (pendingStart == null || isSettled || awaitingStartSend) return;
         const hello = getBridgeHello();
+        if (hello?.capabilities?.idempotentStart === true) {
+          sendPendingStart();
+          return;
+        }
         if (
           hello?.state !== 'waiting' ||
           hello.lastSeq == null ||
@@ -1523,15 +1566,11 @@ function createSession({
         ) {
           return;
         }
-        if (hello?.capabilities?.idempotentStart === true) {
-          sendPendingStart();
-        } else {
-          failStart(
-            new Error(
-              'claude-code bridge is waiting for a start after reconnect and does not support safe start retries.',
-            ),
-          );
-        }
+        failStart(
+          new Error(
+            'claude-code bridge is waiting for a start after reconnect and does not support safe start retries.',
+          ),
+        );
       }),
     );
 
@@ -1567,12 +1606,14 @@ function createSession({
     for (const type of eventTypes) {
       unsubs.push(
         channel.on(type, msg => {
+          if (!belongsToTurn(msg)) return;
           forward(msg);
         }),
       );
     }
     unsubs.push(
       channel.on('finish', msg => {
+        if (!belongsToTurn(msg)) return;
         const metadata = (
           msg as {
             harnessMetadata?: { 'claude-code'?: { sessionId?: unknown } };
@@ -1587,6 +1628,7 @@ function createSession({
     );
     unsubs.push(
       channel.on('error', msg => {
+        if (!belongsToTurn(msg)) return;
         forward(msg);
         settleError(msg.error);
       }),
@@ -1669,7 +1711,7 @@ function createSession({
           channel.lastSeenEventId ?? 0,
           getBridgeHello()?.lastSeq ?? 0,
         );
-        pendingStart = { ...message, startId: generateId() };
+        pendingStart = { ...message, startId: expectedStartId };
         startTimer = setTimeout(() => {
           if (isSettled || pendingStart == null) return;
           failStart(
@@ -1697,6 +1739,7 @@ function createSession({
     skills: ReadonlyArray<HarnessV1Skill>;
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
+    startId?: string;
   }): Promise<ReturnType<typeof wireTurn>> => {
     if (
       turnOpts.responseFormat?.type === 'json' &&
@@ -1723,6 +1766,7 @@ function createSession({
     return wireTurn({
       emit: turnOpts.emit,
       abortSignal: turnOpts.abortSignal,
+      startId: turnOpts.startId,
     });
   };
 
@@ -1730,7 +1774,10 @@ function createSession({
     sessionId,
     isResume,
     doPromptTurn: async promptOpts => {
-      const { control, sendStart } = await prepareTurn(promptOpts);
+      const { control, sendStart } = await prepareTurn({
+        ...promptOpts,
+        startId: generateId(),
+      });
 
       /*
        * A signal that was already aborted has settled the turn inside
@@ -1762,6 +1809,9 @@ function createSession({
         maxTurns,
         ...(skillOverrides !== undefined ? { skillOverrides } : {}),
         ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+        ...(additionalDirectories !== undefined
+          ? { additionalDirectories: [...additionalDirectories] }
+          : {}),
         ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
         ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
         ...(excludeDynamicSections !== undefined
@@ -1801,7 +1851,10 @@ function createSession({
       return control;
     },
     doContinueTurn: async continueOpts => {
-      const { control, sendStart } = await prepareTurn(continueOpts);
+      const { control, sendStart } = await prepareTurn({
+        ...continueOpts,
+        startId: rerunContinue ? generateId() : activeStartId,
+      });
 
       /*
        * attach / replay: the still-running (or disk-replayed) turn streams into
@@ -1846,6 +1899,9 @@ function createSession({
           maxTurns,
           ...(skillOverrides !== undefined ? { skillOverrides } : {}),
           ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+          ...(additionalDirectories !== undefined
+            ? { additionalDirectories: [...additionalDirectories] }
+            : {}),
           ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
           ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
           ...(excludeDynamicSections !== undefined
@@ -1914,6 +1970,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
+            ...(activeStartId == null ? {} : { startId: activeStartId }),
             ...(sandboxId == null ? {} : { sandboxId }),
           },
           ...(lastClaudeSessionId
@@ -2073,6 +2130,7 @@ function createSession({
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
+            ...(activeStartId == null ? {} : { startId: activeStartId }),
             ...(sandboxId == null ? {} : { sandboxId }),
           },
           ...(lastClaudeSessionId

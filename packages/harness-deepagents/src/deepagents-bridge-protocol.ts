@@ -26,6 +26,7 @@ const thinkingSchema = z.discriminatedUnion('type', [
 
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   prompt: harnessPromptContentSchema,
+  readableSkillRoots: z.array(z.string()).optional(),
   mcpServers: z.record(z.string(), z.unknown()).optional(),
   /*
    * Appended to Deep Agents's native system prompt when the bridge constructs

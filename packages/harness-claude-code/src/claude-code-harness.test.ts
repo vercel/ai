@@ -7,6 +7,9 @@ import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import type * as NodeFsPromises from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { z } from 'zod/v4';
 
@@ -154,7 +157,11 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     }
     close(): void {}
   }
-  return { ...actual, SandboxChannel: FakeSandboxChannel };
+  return {
+    ...actual,
+    SandboxChannel: FakeSandboxChannel,
+    readMacOSKeychainPassword: vi.fn(async () => undefined),
+  };
 });
 
 vi.mock('ws', () => ({ WebSocket: wsMock.FakeWebSocket }));
@@ -321,7 +328,31 @@ async function startWithFakeBridgeSocket(
 }
 
 describe('createClaudeCode adapter', () => {
-  beforeEach(() => {
+  let homeDirectory: string;
+
+  beforeEach(async () => {
+    homeDirectory = await mkdtemp(join(tmpdir(), 'claude-code-harness-'));
+    vi.stubEnv('HOME', homeDirectory);
+    vi.stubEnv('USERPROFILE', homeDirectory);
+    vi.stubEnv('CLAUDE_CONFIG_DIR', homeDirectory);
+    for (const name of [
+      'AI_GATEWAY_API_KEY',
+      'VERCEL_OIDC_TOKEN',
+      'ANTHROPIC_API_KEY',
+      'ANTHROPIC_AUTH_TOKEN',
+      'CLAUDE_CODE_OAUTH_TOKEN',
+      'ANTHROPIC_BASE_URL',
+    ]) {
+      vi.stubEnv(name, undefined);
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        throw new Error(
+          'Unexpected network request in Claude Code adapter test',
+        );
+      }),
+    );
     sentMessages.length = 0;
     openCalls.length = 0;
     reconnects.length = 0;
@@ -333,9 +364,12 @@ describe('createClaudeCode adapter', () => {
     wsMock.reset();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    await rm(homeDirectory, { recursive: true, force: true });
   });
 
   it('declares the harness id and builtin tools', () => {
@@ -1211,8 +1245,9 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends strict MCP config and the budget limit to the bridge', async () => {
+  it('sends additional directories, strict MCP config, and the budget limit to the bridge', async () => {
     const harness = createClaudeCode({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
@@ -1234,6 +1269,7 @@ describe('createClaudeCode adapter', () => {
     void Promise.resolve(control.done).catch(() => {});
 
     expect(lastStart()).toMatchObject({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
@@ -1373,6 +1409,145 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('ignores an aborted turn tail while the next turn waits for its own answer', async () => {
+    const harness = createClaudeCode({ auth: { ANTHROPIC_API_KEY: 'test' } });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const abort = new AbortController();
+    const first = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Count.',
+      emit: () => {},
+      abortSignal: abort.signal,
+    });
+    const firstId = lastStart().startId;
+    const firstDone = expect(first.done).rejects.toThrow('cancelled');
+    abort.abort(new Error('cancelled'));
+    await firstDone;
+
+    const events: unknown[] = [];
+    const second = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Answer pineapple.',
+      emit: event => events.push(event),
+    });
+    const secondId = lastStart().startId;
+    expect(secondId).not.toBe(firstId);
+    const stale = [
+      { type: 'stream-start' },
+      { type: 'text-start', id: 'old' },
+      { type: 'text-delta', id: 'old', delta: 'two' },
+      { type: 'text-end', id: 'old' },
+      { type: 'reasoning-start', id: 'old-reasoning' },
+      { type: 'reasoning-delta', id: 'old-reasoning', delta: 'old' },
+      { type: 'reasoning-end', id: 'old-reasoning' },
+      { type: 'tool-input-start', id: 'old-tool', toolName: 'bash' },
+      { type: 'tool-input-delta', id: 'old-tool', delta: '{}' },
+      { type: 'tool-input-end', id: 'old-tool' },
+      {
+        type: 'tool-call',
+        toolCallId: 'old-tool',
+        toolName: 'bash',
+        input: '{}',
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'old-tool',
+        toolName: 'bash',
+        result: 'old',
+      },
+      {
+        type: 'tool-approval-request',
+        toolCallId: 'old-tool',
+        approvalId: 'old-approval',
+      },
+      { type: 'compaction', phase: 'start' },
+      { type: 'raw', rawValue: 'old' },
+      { type: 'finish-step', finishReason: { unified: 'stop' }, usage: {} },
+      {
+        type: 'finish',
+        harnessMetadata: { 'claude-code': { sessionId: 'wrong-conversation' } },
+      },
+      { type: 'error', error: 'old failure' },
+    ];
+    for (const event of stale)
+      dispatchChannelEvent({ ...event, startId: firstId });
+    const settled = vi.fn();
+    void Promise.resolve(second.done).then(settled, settled);
+    await Promise.resolve();
+    expect(events).toEqual([]);
+    expect(settled).not.toHaveBeenCalled();
+
+    for (const event of [
+      { type: 'stream-start' },
+      { type: 'text-start', id: 'new' },
+      { type: 'text-delta', id: 'new', delta: 'pineapple' },
+      { type: 'text-end', id: 'new' },
+      { type: 'finish' },
+    ])
+      dispatchChannelEvent({ ...event, startId: secondId });
+    await second.done;
+    expect(events).toEqual([
+      { type: 'stream-start' },
+      { type: 'text-start', id: 'new' },
+      { type: 'text-delta', id: 'new', delta: 'pineapple' },
+      { type: 'text-end', id: 'new' },
+      { type: 'finish' },
+    ]);
+    const third = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Again.',
+      emit: () => {},
+    });
+    expect(lastStart()).not.toHaveProperty('resumeSessionId');
+    dispatchChannelEvent({ type: 'finish', startId: lastStart().startId });
+    await third.done;
+    await session.doDestroy();
+  });
+
+  it('does not clear the startup deadline for events from another turn', async () => {
+    const harness = createClaudeCode({
+      auth: { ANTHROPIC_API_KEY: 'test' },
+      turnStartTimeoutMs: 100,
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sessionWorkDir: '/w',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+    });
+    vi.useFakeTimers();
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    const done = expect(control.done).rejects.toThrow(
+      'did not emit a turn event within 100ms',
+    );
+    dispatchChannelEvent({ type: 'stream-start', startId: 'previous-turn' });
+    dispatchChannelEvent({ type: 'finish', startId: 'previous-turn' });
+    await vi.advanceTimersByTimeAsync(100);
+    await done;
+    expect(sentMessages).toContainEqual({ type: 'abort' });
+    expect(vi.getTimerCount()).toBe(0);
+    await session.doDestroy();
+  });
+
   it('does not start a bridge turn when the signal is already aborted', async () => {
     const harness = createClaudeCode();
     const session = await harness.doStart({
@@ -1407,6 +1582,38 @@ describe('createClaudeCode adapter', () => {
 
     await session.doDestroy();
   });
+
+  it.each([
+    [{ hostDisconnectTimeoutMs: 60_000 }, '60000'],
+    [{}, undefined],
+  ])(
+    'passes the host disconnect timeout to the bridge (%o)',
+    async (settings, expected) => {
+      const spawns: string[] = [];
+      const spawnEnvs: Array<Record<string, string | undefined>> = [];
+      const harness = createClaudeCode(settings);
+      const session = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          spawns,
+          spawnEnvs,
+          writes: [],
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      });
+
+      expect(
+        spawns[0]?.match(/--host-disconnect-timeout-ms '?(\d+)'?/)?.[1],
+      ).toBe(expected);
+      expect(spawnEnvs[0]).not.toHaveProperty(
+        'BRIDGE_HOST_DISCONNECT_TIMEOUT_MS',
+      );
+
+      await session.doDestroy();
+    },
+  );
 
   it('sends environment configuration and tool hints when rerunning a continued turn', async () => {
     const env = { DEPLOYMENT_ENV: 'staging' };
@@ -1469,8 +1676,9 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends strict MCP config and the budget limit when rerunning a continued turn', async () => {
+  it('sends additional directories, strict MCP config, and the budget limit when rerunning a continued turn', async () => {
     const harness = createClaudeCode({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
@@ -1497,6 +1705,7 @@ describe('createClaudeCode adapter', () => {
     void Promise.resolve(control.done).catch(() => {});
 
     expect(lastStart()).toMatchObject({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
       continue: true,
@@ -1505,8 +1714,9 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends strict MCP config and the budget limit after attaching', async () => {
+  it('sends additional directories, strict MCP config, and the budget limit after attaching', async () => {
     const harness = createClaudeCode({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
@@ -1536,6 +1746,7 @@ describe('createClaudeCode adapter', () => {
     void Promise.resolve(control.done).catch(() => {});
 
     expect(lastStart()).toMatchObject({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });

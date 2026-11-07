@@ -9,12 +9,6 @@ export async function POST(req: Request) {
     console.log('[respond] RESPONSE RECEIVED FROM FRONTEND');
     console.log('[respond] ID:', response.id);
     console.log('[respond] Action:', response.action);
-    if (response.action === 'accept') {
-      console.log(
-        '[respond] Content:',
-        JSON.stringify(response.content, null, 2),
-      );
-    }
     console.log('[respond] ========================================');
 
     // Resolve the pending elicitation with the user's response
@@ -38,10 +32,9 @@ export async function POST(req: Request) {
     console.log('[respond] ID:', response.id);
     console.log('[respond] ========================================');
     return Response.json({ success: true });
-  } catch (error) {
+  } catch {
     console.error('[respond] ========================================');
     console.error('[respond] ERROR processing response');
-    console.error('[respond] Error:', error);
     console.error('[respond] ========================================');
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }

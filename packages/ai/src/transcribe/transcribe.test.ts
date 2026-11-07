@@ -1,4 +1,8 @@
-import type { JSONObject, TranscriptionModelV4 } from '@ai-sdk/provider';
+import {
+  APICallError,
+  type JSONObject,
+  type TranscriptionModelV4,
+} from '@ai-sdk/provider';
 import {
   afterEach,
   beforeEach,
@@ -86,6 +90,197 @@ describe('transcribe', () => {
     logWarningsSpy.mockRestore();
   });
 
+  it.each(['http:', 'https:'])(
+    'passes %s audio URLs directly to capable models with accurate telemetry',
+    async protocol => {
+      const url = new URL(`${protocol}//example.com/large-audio.mp3`);
+      const events: Array<{ byteLength?: number; mediaType?: string }> = [];
+      const doGenerate = vi.fn();
+      const doGenerateFromUrl = vi.fn(async () =>
+        createMockResponse(sampleTranscript),
+      );
+      const controller = new AbortController();
+      const result = await transcribe({
+        model: new MockTranscriptionModelV4({ doGenerate, doGenerateFromUrl }),
+        audio: url,
+        maxRetries: 0,
+        abortSignal: controller.signal,
+        headers: { 'custom-header': 'value' },
+        providerOptions: { groq: { language: 'en' } },
+        timestampGranularities: ['word', 'segment'],
+        telemetry: {
+          integrations: {
+            onStart: event => {
+              if ('audio' in event) events.push(event.audio);
+            },
+            onEnd: event => {
+              if ('audio' in event) events.push(event.audio);
+            },
+          },
+        },
+      });
+      expect(result.text).toBe(sampleTranscript.text);
+      expect(doGenerate).not.toHaveBeenCalled();
+      expect(doGenerateFromUrl).toHaveBeenCalledWith({
+        audio: url,
+        abortSignal: controller.signal,
+        headers: expect.objectContaining({ 'custom-header': 'value' }),
+        providerOptions: { groq: { language: 'en' } },
+        timestampGranularities: ['word', 'segment'],
+      });
+      expect(events).toEqual([
+        { byteLength: undefined, mediaType: undefined },
+        { byteLength: undefined, mediaType: undefined },
+      ]);
+    },
+  );
+
+  it('retries native URL calls without switching to file upload', async () => {
+    const audio = new URL('https://example.com/audio.mp3');
+    const doGenerate = vi.fn();
+    const doGenerateFromUrl = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new APICallError({
+          message: 'Retry this request',
+          url: 'https://example.com/transcriptions',
+          requestBodyValues: {},
+          statusCode: 429,
+          responseHeaders: { 'retry-after-ms': '0' },
+          isRetryable: true,
+        }),
+      )
+      .mockResolvedValue(createMockResponse(sampleTranscript));
+    const result = await transcribe({
+      model: new MockTranscriptionModelV4({ doGenerate, doGenerateFromUrl }),
+      audio,
+      maxRetries: 1,
+    });
+    expect(result.text).toBe(sampleTranscript.text);
+    expect(doGenerateFromUrl).toHaveBeenCalledTimes(2);
+    expect(doGenerateFromUrl).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ audio }),
+    );
+    expect(doGenerate).not.toHaveBeenCalled();
+  });
+
+  it('downloads locally when native URL transcription is declined and retries only the file call', async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(audioData, {
+        headers: { 'content-type': 'Audio/MPEG; charset=binary' },
+      }),
+    );
+    globalThis.fetch = fetchMock;
+    const doGenerateFromUrl = vi.fn(async () => undefined);
+    const doGenerate = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new APICallError({
+          message: 'Retry file',
+          url: 'https://example.com/transcriptions',
+          requestBodyValues: {},
+          statusCode: 429,
+          responseHeaders: { 'retry-after-ms': '0' },
+        }),
+      )
+      .mockResolvedValue(createMockResponse(sampleTranscript));
+    const onEnd = vi.fn();
+    const controller = new AbortController();
+    try {
+      const result = await transcribe({
+        model: new MockTranscriptionModelV4({ doGenerate, doGenerateFromUrl }),
+        audio: new URL('https://example.com/redirect'),
+        maxRetries: 1,
+        abortSignal: controller.signal,
+        timestampGranularities: [],
+        telemetry: { integrations: { onEnd } },
+      });
+      expect(result.text).toBe(sampleTranscript.text);
+      expect(doGenerateFromUrl).toHaveBeenCalledOnce();
+      expect(doGenerateFromUrl).toHaveBeenCalledWith(
+        expect.objectContaining({ timestampGranularities: [] }),
+      );
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(fetchMock.mock.calls[0][1].signal).toBe(controller.signal);
+      expect(doGenerate).toHaveBeenCalledTimes(2);
+      expect(doGenerate).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          audio: audioData,
+          mediaType: 'audio/mpeg',
+          timestampGranularities: [],
+        }),
+      );
+      expect(onEnd).toHaveBeenCalledWith(
+        expect.objectContaining({
+          audio: { byteLength: audioData.byteLength, mediaType: 'audio/mpeg' },
+        }),
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('emits a correlated error when native URL transcription fails', async () => {
+    const error = new Error('Provider could not fetch audio');
+    const onStart = vi.fn();
+    const onEnd = vi.fn();
+    const onError = vi.fn();
+    await expect(
+      transcribe({
+        model: new MockTranscriptionModelV4({
+          doGenerateFromUrl: async () => {
+            throw error;
+          },
+        }),
+        audio: new URL('https://example.com/audio.mp3'),
+        maxRetries: 0,
+        telemetry: { integrations: { onStart, onEnd, onError } },
+        _internal: { generateCallId: () => 'url-error' },
+      }),
+    ).rejects.toBe(error);
+    expect(onStart).toHaveBeenCalledWith(
+      expect.objectContaining({ callId: 'url-error' }),
+    );
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ callId: 'url-error', error }),
+    );
+    expect(onEnd).not.toHaveBeenCalled();
+  });
+
+  it('preserves explicit custom downloads even for URL-capable models', async () => {
+    const download = vi.fn(async () => ({
+      data: audioData,
+      mediaType: 'audio/mpeg',
+    }));
+    const doGenerateFromUrl = vi.fn();
+    const doGenerate = vi.fn(async () => createMockResponse(sampleTranscript));
+    await transcribe({
+      model: new MockTranscriptionModelV4({ doGenerate, doGenerateFromUrl }),
+      audio: new URL('https://example.com/audio.mp3'),
+      download,
+    });
+    expect(download).toHaveBeenCalledOnce();
+    expect(doGenerateFromUrl).not.toHaveBeenCalled();
+    expect(doGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({ audio: audioData, mediaType: 'audio/mpeg' }),
+    );
+  });
+
+  it('continues sending bytes to file transcription for URL-capable models', async () => {
+    const doGenerateFromUrl = vi.fn();
+    const doGenerate = vi.fn(async () => createMockResponse(sampleTranscript));
+    await transcribe({
+      model: new MockTranscriptionModelV4({ doGenerate, doGenerateFromUrl }),
+      audio: audioData,
+    });
+    expect(doGenerateFromUrl).not.toHaveBeenCalled();
+    expect(doGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({ audio: audioData }),
+    );
+  });
+
   it('should send args to doGenerate', async () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
@@ -118,6 +313,42 @@ describe('transcribe', () => {
       abortSignal,
       providerOptions: {},
     });
+  });
+
+  it('should pass timestampGranularities to the model', async () => {
+    let capturedArgs!: Parameters<TranscriptionModelV4['doGenerate']>[0];
+
+    await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            ...sampleTranscript,
+          });
+        },
+      }),
+      audio: audioData,
+      timestampGranularities: ['word', 'segment'],
+    });
+
+    expect(capturedArgs.timestampGranularities).toEqual(['word', 'segment']);
+  });
+
+  it('should preserve an empty timestampGranularities request', async () => {
+    let capturedArgs!: Parameters<TranscriptionModelV4['doGenerate']>[0];
+
+    await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse(sampleTranscript);
+        },
+      }),
+      audio: audioData,
+      timestampGranularities: [],
+    });
+
+    expect(capturedArgs.timestampGranularities).toEqual([]);
   });
 
   it('should detect MP4 audio with an ftyp box', async () => {
@@ -226,6 +457,61 @@ describe('transcribe', () => {
     ]);
   });
 
+  it.each([
+    'application/octet-stream',
+    'application/octet-stream; charset=binary',
+    'Application/Octet-Stream',
+    'binary/octet-stream',
+    'text/plain',
+    'audio/*',
+  ])(
+    'should detect downloaded audio when media type is %s',
+    async downloadedMediaType => {
+      const aacAudioData = new Uint8Array([0xff, 0xf1, 0x50, 0x40]);
+      let capturedArgs!: Parameters<TranscriptionModelV4['doGenerate']>[0];
+
+      await transcribe({
+        model: new MockTranscriptionModelV4({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              ...sampleTranscript,
+            });
+          },
+        }),
+        audio: new URL('https://example.com/audio'),
+        download: async () => ({
+          data: aacAudioData,
+          mediaType: downloadedMediaType,
+        }),
+      });
+
+      expect(capturedArgs.mediaType).toBe('audio/aac');
+    },
+  );
+
+  it('should normalize downloaded audio media type with parameters', async () => {
+    let capturedArgs!: Parameters<TranscriptionModelV4['doGenerate']>[0];
+
+    await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            ...sampleTranscript,
+          });
+        },
+      }),
+      audio: new URL('https://example.com/audio'),
+      download: async () => ({
+        data: audioData,
+        mediaType: 'Audio/MPEG; charset=binary',
+      }),
+    });
+
+    expect(capturedArgs.mediaType).toBe('audio/mpeg');
+  });
+
   it('should return warnings', async () => {
     const result = await transcribe({
       model: new MockTranscriptionModelV4({
@@ -330,7 +616,96 @@ describe('transcribe', () => {
         },
       ],
       providerMetadata: {},
+      words: undefined,
     });
+    expect(result.words).toBeUndefined();
+  });
+
+  it.each([
+    { timestampGranularities: undefined },
+    { timestampGranularities: [] },
+    { timestampGranularities: ['word'] },
+  ] as const)(
+    'should return provider word timings with $timestampGranularities',
+    async ({ timestampGranularities }) => {
+      const words = [
+        { text: 'Hello', startSecond: 0, endSecond: 0.4 },
+        { text: 'world', startSecond: 0.4, endSecond: 1 },
+      ];
+      const result = await transcribe({
+        model: new MockTranscriptionModelV4({
+          doGenerate: async () => ({
+            ...createMockResponse({
+              ...sampleTranscript,
+            }),
+            words,
+          }),
+        }),
+        audio: audioData,
+        timestampGranularities:
+          timestampGranularities == null
+            ? undefined
+            : [...timestampGranularities],
+      });
+
+      expect(result.segments).toEqual(sampleTranscript.segments);
+      expect(result.words).toEqual(words);
+    },
+  );
+
+  it('should not send word timings to telemetry when recordOutputs is false', async () => {
+    const words = [
+      { text: 'Hello', startSecond: 0, endSecond: 0.4 },
+      { text: 'world', startSecond: 0.4, endSecond: 1 },
+    ];
+    const onEnd = vi.fn();
+
+    const result = await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async () => ({
+          ...createMockResponse({ ...sampleTranscript }),
+          words,
+        }),
+      }),
+      audio: audioData,
+      telemetry: { integrations: { onEnd }, recordOutputs: false },
+    });
+
+    expect(onEnd).toHaveBeenCalledWith(
+      expect.objectContaining({ text: '', segments: [], words: [] }),
+    );
+    expect(result.words).toEqual(words);
+  });
+
+  it('should preserve an empty array of provider word timings', async () => {
+    const result = await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async () => ({
+          ...createMockResponse(sampleTranscript),
+          words: [],
+        }),
+      }),
+      audio: audioData,
+    });
+
+    expect(result.words).toEqual([]);
+  });
+
+  it('should preserve word-level segments returned by the provider', async () => {
+    const segments = [
+      { text: 'Hello', startSecond: 0, endSecond: 0.4 },
+      { text: 'world', startSecond: 0.4, endSecond: 1 },
+    ];
+    const result = await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async () =>
+          createMockResponse({ ...sampleTranscript, segments }),
+      }),
+      audio: audioData,
+    });
+
+    expect(result.segments).toEqual(segments);
+    expect(result.words).toBeUndefined();
   });
 
   it('should return an empty transcript', async () => {
@@ -360,6 +735,7 @@ describe('transcribe', () => {
         transcribe({
           model: new MockTranscriptionModelV4(),
           audio: new URL('https://example.com/audio'),
+          timestampGranularities: ['word'],
           download: async () => {
             throw error;
           },
@@ -372,6 +748,8 @@ describe('transcribe', () => {
                     type: 'start',
                     callId: transcriptionEvent.callId,
                     audio: transcriptionEvent.audio,
+                    timestampGranularities:
+                      transcriptionEvent.timestampGranularities,
                   });
                 }
               },
@@ -393,6 +771,7 @@ describe('transcribe', () => {
           type: 'start',
           callId: 'call-download-error',
           audio: { byteLength: undefined, mediaType: undefined },
+          timestampGranularities: ['word'],
         },
         {
           type: 'error',
@@ -595,12 +974,82 @@ describe('transcribe', () => {
           text: sampleTranscript.text,
           audio: { byteLength: 4, mediaType: 'audio/wav' },
           usage: { inputTokens: 12 },
-          providerMetadata: { mock: { traceId: 'trace-1' } },
+          providerMetadata: undefined,
           functionId: 'transcribe-audio',
         },
       },
     ]);
   });
+
+  it.each([
+    { timestampGranularities: undefined },
+    { timestampGranularities: [] },
+    { timestampGranularities: ['word', 'segment'] },
+  ] as const)(
+    'should include timestampGranularities $timestampGranularities in start telemetry',
+    async ({ timestampGranularities }) => {
+      const events: TranscriptionStartEvent[] = [];
+
+      await transcribe({
+        model: new MockTranscriptionModelV4({
+          doGenerate: async () => createMockResponse(sampleTranscript),
+        }),
+        audio: audioData,
+        timestampGranularities:
+          timestampGranularities == null
+            ? undefined
+            : [...timestampGranularities],
+        telemetry: {
+          integrations: {
+            onStart: event => {
+              const transcriptionEvent = event as TranscriptionStartEvent;
+              if (transcriptionEvent.operationId === 'ai.transcribe') {
+                events.push(transcriptionEvent);
+              }
+            },
+          },
+        },
+      });
+
+      expect(events).toHaveLength(1);
+      expect(events[0].timestampGranularities).toEqual(timestampGranularities);
+    },
+  );
+
+  it.each([
+    { words: undefined },
+    { words: [] },
+    { words: [{ text: 'Hello', startSecond: 0, endSecond: 0.4 }] },
+  ])(
+    'should include provider words $words in end telemetry',
+    async ({ words }) => {
+      const events: TranscriptionEndEvent[] = [];
+
+      const result = await transcribe({
+        model: new MockTranscriptionModelV4({
+          doGenerate: async () => ({
+            ...createMockResponse(sampleTranscript),
+            ...(words === undefined ? {} : { words }),
+          }),
+        }),
+        audio: audioData,
+        telemetry: {
+          integrations: {
+            onEnd: event => {
+              const transcriptionEvent = event as TranscriptionEndEvent;
+              if (transcriptionEvent.operationId === 'ai.transcribe') {
+                events.push(transcriptionEvent);
+              }
+            },
+          },
+        },
+      });
+
+      expect(events).toHaveLength(1);
+      expect(events[0].words).toEqual(words);
+      expect(result.words).toEqual(words);
+    },
+  );
 
   it('should emit a telemetry error event when transcription fails', async () => {
     const error = new Error('transcription failed');

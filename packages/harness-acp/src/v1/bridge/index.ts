@@ -107,6 +107,9 @@ let activeQuestionRequest:
 await runBridge<StartMessage>({
   bridgeType,
   bridgeStateDir,
+  ...(args.hostDisconnectTimeoutMs !== undefined
+    ? { hostDisconnectTimeoutMs: args.hostDisconnectTimeoutMs }
+    : {}),
   onStart: runTurn,
   onStop: () => (session == null ? {} : { sessionId: session.sessionId }),
   onExit: () => {
@@ -1009,11 +1012,13 @@ function parseArgs({ args }: { args: ReadonlyArray<string> }): {
   workDir?: string;
   bridgeStateDir?: string;
   bridgeType?: string;
+  hostDisconnectTimeoutMs?: number;
 } {
   const result: {
     workDir?: string;
     bridgeStateDir?: string;
     bridgeType?: string;
+    hostDisconnectTimeoutMs?: number;
   } = {};
   for (let index = 0; index < args.length; index++) {
     const value = args[index + 1];
@@ -1022,6 +1027,8 @@ function parseArgs({ args }: { args: ReadonlyArray<string> }): {
     else if (args[index] === '--bridge-state-dir')
       result.bridgeStateDir = value;
     else if (args[index] === '--bridge-type') result.bridgeType = value;
+    else if (args[index] === '--host-disconnect-timeout-ms')
+      result.hostDisconnectTimeoutMs = Number(value);
   }
   return result;
 }

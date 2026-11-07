@@ -22,6 +22,9 @@ type DeepAgentOptions = {
     wrapToolCall?: (request: any, handler: any) => Promise<unknown>;
   }>;
   model?: unknown;
+  memory?: string[];
+  skills?: string[];
+  interruptOn?: Record<string, unknown>;
   systemPrompt?: string | { suffix?: string };
 };
 
@@ -35,13 +38,19 @@ type ChatAnthropicOptions = {
 };
 
 const state = vi.hoisted(() => ({
+  hostDisconnectTimeoutMs: undefined as number | undefined,
   createDeepAgentOptions: [] as DeepAgentOptions[],
+  repositoryResourceOptions: undefined as
+    | { workDir: string; homeDir: string; skillsPaths?: ReadonlyArray<string> }
+    | undefined,
   originalArgv: [] as string[],
   prunedAfterEventTypes: [] as Array<string | undefined>,
   responseFormat: undefined as
     | { type: 'json'; schema: Record<string, unknown> }
     | undefined,
   headers: undefined as Record<string, string> | undefined,
+  skillsPaths: undefined as string[] | undefined,
+  permissionMode: undefined as 'allow-reads' | undefined,
   prompt: undefined as unknown,
   streamInputs: [] as Array<unknown>,
   hostToolResponse: undefined as
@@ -83,13 +92,30 @@ vi.mock('deepagents', () => ({
   LocalShellBackend: class {},
 }));
 
+vi.mock('./repository-resources', () => ({
+  createDeepAgentsRepositoryResourceMiddlewares: (options: {
+    workDir: string;
+    homeDir: string;
+    skillsPaths?: ReadonlyArray<string>;
+  }) => {
+    state.repositoryResourceOptions = options;
+    return {
+      memory: { name: 'confinedMemory' },
+      skills: { name: 'confinedSkills' },
+    };
+  },
+}));
+
 vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
   ...(await importOriginal<Record<string, unknown>>()),
   runBridge: async ({
     onStart,
+    hostDisconnectTimeoutMs,
   }: {
     onStart: (start: unknown, turn: unknown) => Promise<void>;
+    hostDisconnectTimeoutMs?: number;
   }) => {
+    state.hostDisconnectTimeoutMs = hostDisconnectTimeoutMs;
     await onStart(
       {
         prompt: state.prompt,
@@ -111,6 +137,8 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
               ],
         responseFormat: state.responseFormat,
         headers: state.headers,
+        skillsPaths: state.skillsPaths,
+        permissionMode: state.permissionMode,
       },
       {
         emit: (event: Record<string, unknown>) => {
@@ -202,9 +230,12 @@ describe('Deep Agents bridge instructions', () => {
   beforeEach(() => {
     restorePath();
     state.createDeepAgentOptions = [];
+    state.repositoryResourceOptions = undefined;
     state.prunedAfterEventTypes = [];
     state.responseFormat = undefined;
     state.headers = undefined;
+    state.skillsPaths = undefined;
+    state.permissionMode = undefined;
     state.prompt = 'What is the capital of France?';
     state.streamInputs = [];
     state.hostToolResponse = undefined;
@@ -219,6 +250,8 @@ describe('Deep Agents bridge instructions', () => {
       'bridge.mjs',
       '--workdir',
       '/tmp/harness-deepagents-test/work',
+      '--home-dir',
+      '/home/sandbox',
       '--bridge-state-dir',
       '/tmp/harness-deepagents-test/state',
     );
@@ -241,6 +274,21 @@ describe('Deep Agents bridge instructions', () => {
       [existingPath, path.dirname(rgPath)].join(path.delimiter),
     );
   });
+
+  it.each([
+    [['--host-disconnect-timeout-ms', '60000'], 60_000],
+    [[], undefined],
+  ])(
+    'passes the host disconnect timeout argument to the bridge (%j)',
+    async (extraArgs, expected) => {
+      state.hostDisconnectTimeoutMs = undefined;
+      process.argv.push(...extraArgs);
+
+      await import('./index');
+
+      expect(state.hostDisconnectTimeoutMs).toBe(expected);
+    },
+  );
 
   it('keeps a usable fallback PATH when PATH is unavailable', async () => {
     delete process.env.PATH;
@@ -265,6 +313,52 @@ describe('Deep Agents bridge instructions', () => {
     expect(state.createDeepAgentOptions[0]?.systemPrompt).toEqual({
       suffix: 'Answer every question in German.',
     });
+  });
+
+  it('uses confined middleware for workDir instructions and skills', async () => {
+    state.skillsPaths = [
+      '/tmp/harness-deepagents-test/work/.agents/skills',
+      '/home/sandbox/.agents/skills',
+    ];
+    state.permissionMode = 'allow-reads';
+
+    await import('./index');
+
+    const options = state.createDeepAgentOptions[0];
+    expect({
+      memory: options?.memory,
+      skills: options?.skills,
+      systemPrompt: options?.systemPrompt,
+      writeApproval: options?.interruptOn?.write_file,
+    }).toMatchInlineSnapshot(`
+      {
+        "memory": undefined,
+        "skills": undefined,
+        "systemPrompt": {
+          "suffix": "Answer every question in German.",
+        },
+        "writeApproval": {
+          "allowedDecisions": [
+            "approve",
+            "reject",
+          ],
+        },
+      }
+    `);
+    expect(state.repositoryResourceOptions).toEqual({
+      workDir: '/tmp/harness-deepagents-test/work',
+      homeDir: '/home/sandbox',
+      skillsPaths: [
+        '/tmp/harness-deepagents-test/work/.agents/skills',
+        '/home/sandbox/.agents/skills',
+      ],
+    });
+    expect(options?.middleware?.map(middleware => middleware.name)).toContain(
+      'confinedMemory',
+    );
+    expect(options?.middleware?.map(middleware => middleware.name)).toContain(
+      'confinedSkills',
+    );
   });
 
   it('installs MCP tool error recovery in the native agent', async () => {
