@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.325
+
+### Patch Changes
+
+- 4ac871e: hide provider metadata from telemetry when recordOutputs is false
+- Updated dependencies [f0dee4b]
+  - @ai-sdk/provider-utils@4.0.65
+  - @ai-sdk/gateway@3.0.231
+
 ## 6.0.324
 
 ### Patch Changes

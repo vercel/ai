@@ -1,5 +1,13 @@
 # @ai-sdk/anthropic
 
+## 3.0.140
+
+### Patch Changes
+
+- c8feb7c: Disable MCP connector tools when structured output falls back to the JSON response tool and the caller selects no tools or a named application tool, and when a named application tool choice falls back to automatic tool selection.
+- Updated dependencies [f0dee4b]
+  - @ai-sdk/provider-utils@4.0.65
+
 ## 3.0.139
 
 ### Patch Changes
