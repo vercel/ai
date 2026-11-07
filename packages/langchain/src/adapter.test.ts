@@ -2389,6 +2389,207 @@ describe('toUIMessageStream', () => {
     expect(textEndIdx).toBeGreaterThan(-1);
   });
 
+  describe('LangGraph reasoning deduplication', () => {
+    const createValuesMessage = (toolCalls = false) => ({
+      id: 'reasoning-message',
+      type: 'ai',
+      content: 'Answer',
+      contentBlocks: [{ type: 'text', id: 'text-block', text: 'Answer' }],
+      ...(toolCalls && {
+        tool_calls: [{ id: 'call-1', name: 'search', args: {} }],
+      }),
+      response_metadata: {
+        output: [
+          {
+            id: 'rs_snapshot',
+            type: 'reasoning',
+            summary: [{ type: 'summary_text', text: 'Thinking carefully' }],
+          },
+        ],
+      },
+    });
+
+    it.each([false, true])(
+      'should emit streamed reasoning once across snapshots (step advances: %s)',
+      async advanceStep => {
+        const values = ['values', { messages: [createValuesMessage()] }];
+        const terminalChunk = new AIMessageChunk({
+          id: 'reasoning-message',
+          content: [],
+          response_metadata: createValuesMessage().response_metadata,
+        });
+        // Newer LangChain builds derive these blocks from terminal metadata.
+        Object.defineProperty(terminalChunk, 'contentBlocks', {
+          get: () => [{ type: 'reasoning', reasoning: 'Thinking carefully' }],
+        });
+        const events = [
+          ...['Thinking', ' carefully'].map(reasoning => [
+            'messages',
+            [
+              new AIMessageChunk({
+                id: 'reasoning-message',
+                content: [{ type: 'reasoning', reasoning }],
+              }),
+              { langgraph_step: 1 },
+            ],
+          ]),
+          [
+            'messages',
+            [
+              new AIMessageChunk({
+                id: 'reasoning-message',
+                content: 'Answer',
+              }),
+              { langgraph_step: 1 },
+            ],
+          ],
+          ['messages', [terminalChunk, { langgraph_step: 1 }]],
+          ...(advanceStep
+            ? [
+                [
+                  'messages',
+                  [
+                    new AIMessageChunk({ id: 'next-message', content: 'Next' }),
+                    { langgraph_step: 2 },
+                  ],
+                ],
+              ]
+            : []),
+          values,
+          values,
+        ];
+        const chunks = await convertReadableStreamToArray(
+          toUIMessageStream(convertArrayToReadableStream(events)),
+        );
+
+        expect(
+          chunks.filter(chunk => chunk.type === 'reasoning-start'),
+        ).toEqual([{ type: 'reasoning-start', id: 'reasoning-message' }]);
+        expect(
+          chunks.filter(chunk => chunk.type === 'reasoning-delta'),
+        ).toEqual([
+          {
+            type: 'reasoning-delta',
+            id: 'reasoning-message',
+            delta: 'Thinking',
+          },
+          {
+            type: 'reasoning-delta',
+            id: 'reasoning-message',
+            delta: ' carefully',
+          },
+        ]);
+        expect(chunks.filter(chunk => chunk.type === 'reasoning-end')).toEqual([
+          { type: 'reasoning-end', id: 'reasoning-message' },
+        ]);
+
+        const messages = await convertReadableStreamToArray(
+          readUIMessageStream({ stream: convertArrayToReadableStream(chunks) }),
+        );
+        expect(
+          messages.at(-1)?.parts.filter(part => part.type === 'reasoning'),
+        ).toMatchObject([
+          { type: 'reasoning', text: 'Thinking carefully', state: 'done' },
+        ]);
+      },
+    );
+
+    it.each([
+      { toolCalls: false, earlyReasoningId: false },
+      { toolCalls: true, earlyReasoningId: false },
+      { toolCalls: false, earlyReasoningId: true },
+      { toolCalls: true, earlyReasoningId: true },
+    ])(
+      'should preserve snapshot-only reasoning with ID-bearing text: %j',
+      async ({ toolCalls, earlyReasoningId }) => {
+        const values = [
+          'values',
+          { messages: [createValuesMessage(toolCalls)] },
+        ];
+        const chunks = await convertReadableStreamToArray(
+          toUIMessageStream(
+            convertArrayToReadableStream([
+              [
+                'messages',
+                [
+                  new AIMessageChunk({
+                    id: 'reasoning-message',
+                    content: [{ type: 'reasoning', reasoning: '' }],
+                    ...(earlyReasoningId && {
+                      additional_kwargs: {
+                        reasoning: { id: 'rs_snapshot', summary: [] },
+                      },
+                    }),
+                  }),
+                ],
+              ],
+              [
+                'messages',
+                [
+                  new AIMessageChunk({
+                    id: 'reasoning-message',
+                    content: [
+                      { type: 'text', id: 'text-block', text: 'Answer' },
+                    ],
+                  }),
+                ],
+              ],
+              values,
+              values,
+            ]),
+          ),
+        );
+
+        expect(
+          chunks.filter(chunk => chunk.type.startsWith('reasoning-')),
+        ).toEqual([
+          { type: 'reasoning-start', id: 'reasoning-message' },
+          {
+            type: 'reasoning-delta',
+            id: 'reasoning-message',
+            delta: 'Thinking carefully',
+          },
+          { type: 'reasoning-end', id: 'reasoning-message' },
+        ]);
+      },
+    );
+
+    it('should not replay a values snapshot when reasoning deltas arrive later', async () => {
+      const chunks = await convertReadableStreamToArray(
+        toUIMessageStream(
+          convertArrayToReadableStream([
+            ['values', { messages: [createValuesMessage()] }],
+            [
+              'messages',
+              [
+                new AIMessageChunk({
+                  id: 'reasoning-message',
+                  content: [
+                    { type: 'reasoning', reasoning: 'Thinking carefully' },
+                  ],
+                }),
+              ],
+            ],
+          ]),
+        ),
+      );
+
+      expect(chunks.filter(chunk => chunk.type === 'reasoning-delta')).toEqual([
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-message',
+          delta: 'Thinking carefully',
+        },
+      ]);
+      expect(
+        chunks.filter(chunk => chunk.type === 'reasoning-start'),
+      ).toHaveLength(1);
+      expect(
+        chunks.filter(chunk => chunk.type === 'reasoning-end'),
+      ).toHaveLength(1);
+    });
+  });
+
   it('should handle model stream with reasoning contentBlocks', async () => {
     // Non-array events are treated as model stream chunks (AIMessageChunk)
     const reasoningChunk = new AIMessageChunk({

@@ -23,6 +23,7 @@ import {
   getMessageText,
   isImageGenerationOutput,
   extractImageOutputs,
+  extractReasoningFromContentBlocks,
   processLangGraphEvent,
   isCitationContentBlock,
   extractCitationsFromContentBlocks,
@@ -1025,6 +1026,64 @@ describe('extractImageOutputs', () => {
   });
 });
 
+describe('extractReasoningFromContentBlocks', () => {
+  const responseMetadata = {
+    output: [
+      {
+        type: 'reasoning',
+        id: 'rs_snapshot',
+        summary: [{ type: 'summary_text', text: 'Accumulated reasoning' }],
+      },
+    ],
+  };
+
+  it.each(['', []])(
+    'should ignore reasoning derived from terminal metadata with empty content: %j',
+    content => {
+      const chunk = new AIMessageChunk({
+        content,
+        response_metadata: responseMetadata,
+      });
+      Object.defineProperty(chunk, 'contentBlocks', {
+        get: () => [{ type: 'reasoning', reasoning: 'Accumulated reasoning' }],
+      });
+
+      expect(extractReasoningFromContentBlocks(chunk)).toBeUndefined();
+    },
+  );
+
+  it('should preserve reasoning deltas when metadata is also present', () => {
+    const chunk = new AIMessageChunk({
+      content: [{ type: 'reasoning', reasoning: 'Delta' }],
+      response_metadata: responseMetadata,
+    });
+
+    expect(extractReasoningFromContentBlocks(chunk)).toBe('Delta');
+  });
+
+  it('should preserve contentBlocks when metadata has no reasoning snapshot', () => {
+    const chunk = new AIMessageChunk({
+      content: [],
+      response_metadata: { output: [] },
+    });
+    Object.defineProperty(chunk, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: 'Delta' }],
+    });
+
+    expect(extractReasoningFromContentBlocks(chunk)).toBe('Delta');
+  });
+
+  it('should preserve additional_kwargs reasoning deltas with terminal metadata', () => {
+    const chunk = new AIMessageChunk({
+      content: [],
+      response_metadata: responseMetadata,
+      additional_kwargs: { reasoning: { summary: [{ text: 'Delta' }] } },
+    });
+
+    expect(extractReasoningFromContentBlocks(chunk)).toBe('Delta');
+  });
+});
+
 describe('processLangGraphEvent', () => {
   const createMockState = (): LangGraphEventState => ({
     messageSeen: new Map(),
@@ -1041,6 +1100,7 @@ describe('processLangGraphEvent', () => {
     unfinishedToolCallsByNamespace: new Map(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
+    streamedReasoningMessageIds: new Set<string>(),
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
     currentStepsByNamespace: new Map(),
@@ -3085,6 +3145,7 @@ describe('processLangGraphEvent - sources', () => {
     unfinishedToolCallsByNamespace: new Map(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
+    streamedReasoningMessageIds: new Set<string>(),
     messageReasoningIds: new Map(),
     toolCallInfoByIndex: new Map(),
     currentStepsByNamespace: new Map(),

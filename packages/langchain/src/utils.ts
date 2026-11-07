@@ -898,8 +898,21 @@ export function extractReasoningFromContentBlocks(
       ? (msgObj.kwargs as Record<string, unknown>)
       : msgObj;
 
+  // Empty terminal chunks can derive contentBlocks from accumulated response
+  // metadata. Those blocks are snapshots, not streaming deltas.
+  const output = (
+    kwargs.response_metadata as { output?: unknown[] } | undefined
+  )?.output;
+  const isSnapshotOnly =
+    Array.isArray(output) &&
+    output.some(isGPT5ReasoningOutput) &&
+    (kwargs.content === '' ||
+      (Array.isArray(kwargs.content) && kwargs.content.length === 0));
+
   // Check contentBlocks (Anthropic-style) - highest priority
-  const contentBlocks = (kwargs as { contentBlocks?: unknown[] }).contentBlocks;
+  const contentBlocks = isSnapshotOnly
+    ? undefined
+    : (kwargs as { contentBlocks?: unknown[] }).contentBlocks;
   if (Array.isArray(contentBlocks)) {
     const reasoningParts: string[] = [];
     for (const block of contentBlocks) {
@@ -1425,6 +1438,7 @@ export function processLangGraphEvent(
     emittedToolCalls,
     emittedImages,
     emittedReasoningIds,
+    streamedReasoningMessageIds,
     messageReasoningIds,
     toolCallInfoByIndex,
     emittedToolCallsByKey,
@@ -1731,8 +1745,8 @@ export function processLangGraphEvent(
          *
          * Important: Early chunks may have reasoning ID but no content, later chunks may
          * have content but no reasoning ID. We capture the ID when first seen and reuse it.
-         * We also immediately add to emittedReasoningIds to prevent values events from
-         * emitting the same reasoning (values events can arrive between streaming chunks).
+         * Only mark reasoning as emitted after sending content, so an ID-only
+         * chunk does not suppress reasoning available only in values.
          */
         // Capture reasoning ID when we first see it (even if no content yet)
         const chunkReasoningId = extractReasoningId(msg);
@@ -1740,13 +1754,14 @@ export function processLangGraphEvent(
           if (!messageReasoningIds.has(msgId)) {
             messageReasoningIds.set(msgId, chunkReasoningId);
           }
-          // Immediately mark as emitted to prevent values from duplicating
-          // This must happen as soon as we see the ID, before content arrives
-          emittedReasoningIds.add(chunkReasoningId);
         }
 
         const reasoning = extractReasoningFromContentBlocks(msg);
-        if (reasoning) {
+        if (
+          reasoning &&
+          (!emittedReasoningIds.has(msgId) ||
+            streamedReasoningMessageIds.has(msgId))
+        ) {
           // Use stored reasoning ID, or current chunk's ID, or fall back to message ID
           const reasoningId =
             messageReasoningIds.get(msgId) ?? chunkReasoningId ?? msgId;
@@ -1765,6 +1780,7 @@ export function processLangGraphEvent(
           });
           // Also ensure the reasoning ID is marked (handles case where ID wasn't in first chunk)
           emittedReasoningIds.add(reasoningId);
+          streamedReasoningMessageIds.add(msgId);
         }
 
         /**
@@ -1984,6 +2000,9 @@ export function processLangGraphEvent(
     }
 
     case 'values': {
+      // Preserve streamed message IDs before finalizing their active parts.
+      const streamedMessageIds = new Set(messageSeen.keys());
+
       /**
        * Finalize all pending message chunks
        */
@@ -2281,7 +2300,8 @@ export function processLangGraphEvent(
 
             /**
              * Check for reasoning content that wasn't streamed
-             * Use reasoning block ID for deduplication as it's consistent across streaming and values.
+             * Streaming chunks can omit the provider reasoning block ID, so also
+             * check whether this message already emitted reasoning content.
              *
              * IMPORTANT: Handle two cases differently:
              * 1. Message has reasoning WITHOUT tool_calls → emit reasoning (pure reasoning case)
@@ -2290,7 +2310,7 @@ export function processLangGraphEvent(
              *    AND tool_calls. We skip those to avoid duplicate reasoning entries.)
              */
             const reasoningId = extractReasoningId(msg);
-            const wasStreamedThisRequest = messageSeen.has(msgId);
+            const wasStreamedThisRequest = streamedMessageIds.has(msgId);
             const hasToolCalls = toolCalls && toolCalls.length > 0;
 
             /**
@@ -2303,6 +2323,7 @@ export function processLangGraphEvent(
             const shouldEmitReasoning =
               reasoningId &&
               !emittedReasoningIds.has(reasoningId) &&
+              !streamedReasoningMessageIds.has(msgId) &&
               (wasStreamedThisRequest || !hasToolCalls);
 
             if (shouldEmitReasoning) {
@@ -2321,6 +2342,8 @@ export function processLangGraphEvent(
                 });
                 controller.enqueue({ type: 'reasoning-end', id: msgId });
                 emittedReasoningIds.add(reasoningId);
+                // A values snapshot can precede the first reasoning delta.
+                emittedReasoningIds.add(msgId);
               }
             }
 
