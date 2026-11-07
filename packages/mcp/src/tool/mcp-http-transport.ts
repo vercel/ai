@@ -63,7 +63,7 @@ export class HttpMCPTransport implements MCPTransport {
     url,
     headers,
     authProvider,
-    redirect = 'follow',
+    redirect = 'error',
     fetch: fetchFn,
   }: {
     url: string;

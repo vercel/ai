@@ -114,7 +114,7 @@ It currently does not support accepting notifications from an MCP server, and cu
                       type: "'follow' | 'error'",
                       isOptional: true,
                       description:
-                        "Controls how HTTP redirects are handled for transport requests. Set to 'error' to reject any redirect response, preventing servers from redirecting requests to unintended hosts. Defaults to 'follow'.",
+                        "Controls how HTTP redirects are handled for transport requests. Defaults to 'error' for HTTP transport and 'follow' for SSE transport. Only set to 'follow' when redirect destinations are trusted, since redirects can reach unintended hosts and private networks.",
                     },
                   ],
                 },
