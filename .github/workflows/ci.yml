@@ -158,6 +158,9 @@ jobs:
       - name: Build packages
         run: pnpm run build:packages
 
+      - name: Test MCP OAuth session isolation
+        run: pnpm --filter=@example/next-openai test:mcp-auth
+
       - name: Archive package build artifacts
         run: tar -czf package-build-artifacts.tgz packages/*/dist
 
