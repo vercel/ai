@@ -7,10 +7,14 @@ import {
   DefaultChatTransport,
   isStaticToolUIPart,
   TextStreamChatTransport,
+  type ChatTransport,
+  type UIMessage,
   type UIMessageChunk,
 } from 'ai';
+import { render } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
 import { Chat } from './chat.svelte.js';
+import ChatResume from './tests/chat-resume.svelte';
 import { promiseWithResolvers } from './utils.svelte.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -34,6 +38,64 @@ function createFileList(...files: File[]): FileList {
 
 const server = createTestServer({
   '/api/chat': {},
+});
+
+describe('resume', () => {
+  it('should resume an ongoing stream when the component mounts', async () => {
+    const reconnectToStream = vi.fn(
+      async () =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({ type: 'text-start', id: '0' });
+            controller.enqueue({ type: 'text-delta', id: '0', delta: 'Hello' });
+            controller.enqueue({ type: 'text-end', id: '0' });
+            controller.close();
+          },
+        }),
+    );
+    const transport = {
+      sendMessages: async () => new ReadableStream<UIMessageChunk>(),
+      reconnectToStream,
+    } satisfies ChatTransport<UIMessage>;
+
+    const {
+      component: { chat },
+    } = render(ChatResume, {
+      options: {
+        id: 'chat-id',
+        resume: true,
+        transport,
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(reconnectToStream).toHaveBeenCalledOnce();
+      expect(chat.messages.at(0)?.parts).toEqual([
+        { type: 'text', text: 'Hello', state: 'done' },
+      ]);
+    });
+    expect(reconnectToStream).toHaveBeenCalledWith(
+      expect.objectContaining({ chatId: 'chat-id' }),
+    );
+  });
+
+  it('should not resume a stream by default', async () => {
+    const reconnectToStream = vi.fn(async () => null);
+    const transport = {
+      sendMessages: async () => new ReadableStream<UIMessageChunk>(),
+      reconnectToStream,
+    } satisfies ChatTransport<UIMessage>;
+
+    render(ChatResume, {
+      options: {
+        id: 'chat-id',
+        transport,
+      },
+    });
+
+    await Promise.resolve();
+    expect(reconnectToStream).not.toHaveBeenCalled();
+  });
 });
 
 describe('data protocol stream', () => {
