@@ -3,7 +3,7 @@ import type {
   HarnessV2EffectContext,
   HarnessV2EffectOutput,
 } from '../../../v2/harness-v2-effect';
-import type { HarnessV2Submission } from '../../../v2/harness-v2-submission';
+import type { HarnessV2LogEvent } from '../../../v2/harness-v2-log';
 import type { SerializableValue } from '@ai-sdk/provider';
 
 /**
@@ -22,7 +22,12 @@ export type HarnessAgentEffectFunction = <
 
 /**
  * Event variants stored in the agent log, including events that are private to
- * the HarnessAgent engine.
+ * the HarnessAgent engine. Public event shapes are reused with required IDs
+ * for every stored event, including adapter-defined events.
+ *
+ * Additional union variants beyond HarnessV2LogEvent support framework-internal
+ * behavior, such as tracking partial effect output. These events are not exposed
+ * to harness adapters and therefore do not belong in HarnessV2LogEvent.
  *
  * Runtime checks for common fields and supported event types live in
  * is-valid-harness-agent-log-event.ts. Changes to these fields or event types
@@ -30,40 +35,13 @@ export type HarnessAgentEffectFunction = <
  * are not validated by the helper.
  */
 export type HarnessAgentLogEvent =
-  | {
-      /**
-       * A user prompt or steering message submitted to the session.
-       */
-      readonly type: 'submission';
-
-      /**
-       * Submission payload, including its turn settings when applicable.
-       */
-      readonly data: HarnessV2Submission;
-
+  | (HarnessV2LogEvent & {
       /**
        * Stable event identity within the session, used for deduplication.
        * Independent of the event's committed log position.
        */
       readonly id: string;
-    }
-  | {
-      /**
-       * Marks the start of a host-managed effect attempt.
-       */
-      readonly type: 'effect-start';
-
-      /**
-       * Effect definition before an output has been recorded.
-       */
-      readonly data: Omit<HarnessV2Effect, 'output'>;
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
+    })
   | {
       /**
        * Records a complete yielded value, visible only to the agent engine.
@@ -84,50 +62,6 @@ export type HarnessAgentLogEvent =
          */
         readonly partial: SerializableValue;
       };
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
-  | {
-      /**
-       * Marks completion or interruption of an effect attempt.
-       */
-      readonly type: 'effect-end';
-
-      /**
-       * Start event ID and output recorded for the effect.
-       */
-      readonly data: {
-        /**
-         * ID of the corresponding `effect-start` event.
-         */
-        readonly startId: string;
-
-        /**
-         * Final or interrupted outcome for the effect attempt.
-         */
-        readonly output: NonNullable<HarnessV2Effect['output']>;
-      };
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
-  | {
-      /**
-       * Adapter-defined event namespace accepted by the public append method.
-       */
-      readonly type: `harness:${string}`;
-
-      /**
-       * Serializable adapter-specific event payload.
-       */
-      readonly data: SerializableValue;
 
       /**
        * Stable event identity within the session, used for deduplication.
