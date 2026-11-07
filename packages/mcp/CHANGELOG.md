@@ -1,5 +1,13 @@
 # @ai-sdk/mcp
 
+## 1.0.102
+
+### Patch Changes
+
+- 9b739b0: Reject HTTP transport redirects by default to prevent MCP servers from redirecting requests to unintended hosts or private networks. GET, POST, and DELETE requests now use `redirect: 'error'`; explicitly configured private endpoints remain supported. Redirect following remains available through `redirect: 'follow'` for trusted destinations.
+- Updated dependencies [f0dee4b]
+  - @ai-sdk/provider-utils@4.0.65
+
 ## 1.0.101
 
 ### Patch Changes

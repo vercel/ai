@@ -1,5 +1,12 @@
 # @ai-sdk/voyage
 
+## 1.0.42
+
+### Patch Changes
+
+- Updated dependencies [f0dee4b]
+  - @ai-sdk/provider-utils@4.0.65
+
 ## 1.0.41
 
 ### Patch Changes

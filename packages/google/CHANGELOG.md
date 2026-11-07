@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 3.0.143
+
+### Patch Changes
+
+- 93f4a18: Bound Google JSON Schema conversion work, output size, and depth to prevent excessive resource use when inlining repeated local references. Input inspection and conversion each have a separate budget of 10,000 visited JSON values and a conservative 1,000,000-character serialized-size allowance, with a depth limit of 100. Schemas exceeding these limits now fail with a controlled error, including large schemas that were previously accepted. String-size accounting reserves six characters per UTF-16 code unit for JSON escaping.
+- f3c2cb3: skip streamed tool-call array indexes that leave a gap so a small response can't build a huge sparse array
+- Updated dependencies [f0dee4b]
+  - @ai-sdk/provider-utils@4.0.65
+
 ## 3.0.142
 
 ### Patch Changes

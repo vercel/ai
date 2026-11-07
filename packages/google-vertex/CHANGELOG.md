@@ -1,5 +1,19 @@
 # @ai-sdk/google-vertex
 
+## 4.0.228
+
+### Patch Changes
+
+- 37931c8: only send google cloud credentials from the maas provider to its own api, not to image urls from a response or their redirects
+- Updated dependencies [93f4a18]
+- Updated dependencies [f0dee4b]
+- Updated dependencies [f3c2cb3]
+- Updated dependencies [c8feb7c]
+  - @ai-sdk/google@3.0.143
+  - @ai-sdk/provider-utils@4.0.65
+  - @ai-sdk/anthropic@3.0.140
+  - @ai-sdk/openai-compatible@2.0.92
+
 ## 4.0.227
 
 ### Patch Changes

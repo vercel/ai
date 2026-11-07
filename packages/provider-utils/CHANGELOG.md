@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.65
+
+### Patch Changes
+
+- f0dee4b: Reject HTTPS-to-HTTP redirects in validated downloads before requesting the insecure target, including when it matches a configured trusted origin.
+
 ## 4.0.64
 
 ### Patch Changes
