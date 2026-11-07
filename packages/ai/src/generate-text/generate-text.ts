@@ -1213,8 +1213,8 @@ async function generateTextInternal<
                 const result = await executeLanguageModelCallInTelemetryContext(
                   {
                     ...languageModelCallStartEvent,
-                    execute: async () =>
-                      await stepModel.doGenerate({
+                    execute: async () => {
+                      const result = await stepModel.doGenerate({
                         ...stepCallSettings,
                         tools: stepTools,
                         toolChoice: stepToolChoice,
@@ -1223,7 +1223,14 @@ async function generateTextInternal<
                         providerOptions: stepProviderOptions,
                         abortSignal: mergedAbortSignal,
                         headers: headersWithUserAgent,
-                      }),
+                      });
+                      return {
+                        ...result,
+                        ...(result.request != null
+                          ? { request: sanitizeRequestMetadata(result.request) }
+                          : {}),
+                      };
+                    },
                   },
                 );
 
@@ -1237,9 +1244,6 @@ async function generateTextInternal<
 
                 return {
                   ...result,
-                  ...(result.request != null
-                    ? { request: sanitizeRequestMetadata(result.request) }
-                    : {}),
                   response: responseData,
                 };
               });

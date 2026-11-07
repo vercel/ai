@@ -360,11 +360,11 @@ export async function streamLanguageModelCall<
   const {
     stream: languageModelStream,
     response,
-    request: rawRequest,
+    request,
   } = await executeLanguageModelCallInTelemetryContext({
     ...languageModelCallStartEvent,
-    execute: async () =>
-      await resolvedModel.doStream({
+    execute: async () => {
+      const result = await resolvedModel.doStream({
         ...callSettings,
         tools: stepTools,
         toolChoice: stepToolChoice,
@@ -374,10 +374,15 @@ export async function streamLanguageModelCall<
         abortSignal,
         headers,
         includeRawChunks,
-      }),
+      });
+      return {
+        ...result,
+        ...(result.request != null
+          ? { request: sanitizeRequestMetadata(result.request) }
+          : {}),
+      };
+    },
   });
-
-  const request = sanitizeRequestMetadata(rawRequest);
 
   const standardizedStream = languageModelStream.pipeThrough(
     createLanguageModelV4StreamPartToLanguageModelStreamPartTransform({
