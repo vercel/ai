@@ -1,5 +1,21 @@
 # @ai-sdk/google-vertex
 
+## 3.0.188
+
+### Patch Changes
+
+- 5eaea4b: Omit Google provider-defined tools, including File Search and Vertex RAG Store, when `toolChoice` is `none` so disabled tools cannot retrieve data or execute server-side. Preserve function declarations needed by conversation history while disabling function calling.
+- Updated dependencies [49c554d]
+- Updated dependencies [db18e4f]
+- Updated dependencies [16b4736]
+- Updated dependencies [ce27f15]
+- Updated dependencies [b753c03]
+- Updated dependencies [5eaea4b]
+  - @ai-sdk/provider-utils@3.0.45
+  - @ai-sdk/openai-compatible@1.0.62
+  - @ai-sdk/anthropic@2.0.113
+  - @ai-sdk/google@2.0.109
+
 ## 3.0.187
 
 ### Patch Changes

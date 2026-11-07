@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 2.0.113
+
+### Patch Changes
+
+- 16b4736: Keep computer toolset actions tied to the returned member name and reject disabled or unavailable members before emitting tool calls. Apply member configuration to local input validation and reject malformed streamed member input.
+- Updated dependencies [49c554d]
+- Updated dependencies [b753c03]
+  - @ai-sdk/provider-utils@3.0.45
+
 ## 2.0.112
 
 ### Patch Changes

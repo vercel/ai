@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 3.0.45
+
+### Patch Changes
+
+- 49c554d: Validate response-supplied Black Forest Labs polling and image URLs, including redirects, to block requests to private destinations outside the configured provider origin. Preserve self-hosted endpoints and withhold credentials from foreign origins and cross-origin redirects.
+- b753c03: Reject HTTPS-to-HTTP redirects in validated downloads before requesting the insecure target, including when it matches a configured trusted origin.
+
 ## 3.0.44
 
 ### Patch Changes

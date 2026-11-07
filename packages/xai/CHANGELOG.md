@@ -1,5 +1,20 @@
 # @ai-sdk/xai
 
+## 2.0.103
+
+### Patch Changes
+
+- 8549a1d: feat(xai): add `safetyIdentifier` Responses provider option
+
+  Sends `safety_identifier` with Responses API requests so xAI can attribute a policy violation to one end user, and exposes the echoed value on `providerMetadata.xai.safetyIdentifier`.
+
+- Updated dependencies [49c554d]
+- Updated dependencies [db18e4f]
+- Updated dependencies [ce27f15]
+- Updated dependencies [b753c03]
+  - @ai-sdk/provider-utils@3.0.45
+  - @ai-sdk/openai-compatible@1.0.62
+
 ## 2.0.102
 
 ### Patch Changes
