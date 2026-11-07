@@ -21,6 +21,7 @@ describe('redactTelemetrySecrets', () => {
         tools: { tool },
         stepTools: [tool],
         request,
+        response: { body: { tools: [rawTool] } },
         steps: [{ request }],
       });
 

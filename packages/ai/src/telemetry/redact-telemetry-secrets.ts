@@ -27,8 +27,10 @@ function redactValue<T>(value: T, seen: WeakMap<object, unknown>): T {
     }
   }
 
-  if (isRecord(value.request) && value.request.body != null) {
-    const body = value.request.body;
+  for (const key of ['request', 'response']) {
+    const metadata = value[key];
+    if (!isRecord(metadata) || metadata.body == null) continue;
+    const body = metadata.body;
     let redactedBody: unknown;
     if (typeof body === 'string') {
       try {
@@ -45,7 +47,7 @@ function redactValue<T>(value: T, seen: WeakMap<object, unknown>): T {
       redactedBody = redactValue(body, seen);
     }
     if (redactedBody !== body)
-      replacements.request = { ...value.request, body: redactedBody };
+      replacements[key] = { ...metadata, body: redactedBody };
   }
 
   for (const key of [

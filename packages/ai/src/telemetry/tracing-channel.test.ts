@@ -322,6 +322,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
               usage,
               warnings: [],
               request: { body },
+              response: { body: JSON.parse(body) },
             },
             doStream: {
               stream: convertArrayToReadableStream([
