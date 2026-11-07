@@ -202,6 +202,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
       }),
+      ...(options.safetyIdentifier != null && {
+        safety_identifier: options.safetyIdentifier,
+      }),
       ...(options.serviceTier != null && {
         service_tier: options.serviceTier,
       }),
@@ -450,7 +453,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
       ...((response.usage?.cost_in_usd_ticks != null ||
-        response.service_tier != null) && {
+        response.service_tier != null ||
+        response.safety_identifier != null) && {
         providerMetadata: {
           xai: {
             ...(response.usage?.cost_in_usd_ticks != null && {
@@ -458,6 +462,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             }),
             ...(response.service_tier != null && {
               serviceTier: response.service_tier,
+            }),
+            ...(response.safety_identifier != null && {
+              safetyIdentifier: response.safety_identifier,
             }),
           },
         },
@@ -508,6 +515,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     let hasFunctionCall = false;
     let usage: LanguageModelV3Usage | undefined = undefined;
     let serviceTier: string | undefined = undefined;
+    let safetyIdentifier: string | undefined = undefined;
     let costInUsdTicks: number | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
@@ -704,6 +712,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               }
 
               serviceTier = response.service_tier ?? undefined;
+              safetyIdentifier = response.safety_identifier ?? undefined;
 
               if (event.type === 'response.incomplete') {
                 const reason =
@@ -1060,11 +1069,14 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
-              ...((costInUsdTicks != null || serviceTier != null) && {
+              ...((costInUsdTicks != null ||
+                serviceTier != null ||
+                safetyIdentifier != null) && {
                 providerMetadata: {
                   xai: {
                     ...(costInUsdTicks != null && { costInUsdTicks }),
                     ...(serviceTier != null && { serviceTier }),
+                    ...(safetyIdentifier != null && { safetyIdentifier }),
                   },
                 },
               }),

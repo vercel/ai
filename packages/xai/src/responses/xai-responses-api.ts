@@ -318,6 +318,7 @@ export const xaiResponsesResponseSchema = () =>
     usage: xaiResponsesUsageSchema().nullish(),
     status: z.string(),
     service_tier: z.string().nullish(),
+    safety_identifier: z.string().nullish(),
   });
 export const xaiResponsesResponseSchemaValidator = lazySchema(() =>
   zodSchema(xaiResponsesResponseSchema()),
@@ -599,6 +600,7 @@ export const xaiResponsesChunkSchema = lazySchema(() =>
           incomplete_details: z.object({ reason: z.string() }).nullish(),
           usage: xaiResponsesUsageSchema().nullish(),
           service_tier: z.string().nullish(),
+          safety_identifier: z.string().nullish(),
         }),
       }),
       z.object({
