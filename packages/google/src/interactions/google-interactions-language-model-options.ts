@@ -53,6 +53,8 @@ export type GoogleInteractionsModelId =
 export const googleInteractionsLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
+      /** User-defined request metadata, including `safety_identifier`. */
+      labels: z.record(z.string(), z.string()).nullish(),
       previousInteractionId: z.string().nullish(),
       store: z.boolean().nullish(),
 
