@@ -970,4 +970,43 @@ console.log(text);`,
     websiteUrl: 'https://redis.io/agent-memory/',
     npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
+  {
+    slug: 'clawfetch',
+    name: 'ClawFetch',
+    description:
+      'Pay-per-call web intelligence for agents: fetch pages as readable text, render JavaScript sites, pull structured JSON from 17 site extractors (GitHub, npm, PyPI, Hacker News, YouTube, SEC EDGAR and more), parse documents, enrich companies and run multi-source research. No API key or account; each call is paid with an x402 USDC micropayment on Base.',
+    packageName: '@clawfetch/ai-sdk',
+    tags: [
+      'web-fetch',
+      'scraping',
+      'extraction',
+      'research',
+      'x402',
+      'payments',
+    ],
+    apiKeyEnvName: 'CLAWFETCH_PRIVATE_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @clawfetch/ai-sdk',
+      npm: 'npm install @clawfetch/ai-sdk',
+      yarn: 'yarn add @clawfetch/ai-sdk',
+      bun: 'bun add @clawfetch/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { clawfetchTools } from '@clawfetch/ai-sdk';
+
+const { fetchUrl, extractData, researchTopic } = clawfetchTools();
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt: 'What changed in the latest release of vercel/ai on GitHub?',
+  tools: { fetchUrl, extractData, researchTopic },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/clawfetch/integrations/tree/main/typescript/ai-sdk#readme',
+    websiteUrl: 'https://clawfetch.ai',
+    npmUrl: 'https://www.npmjs.com/package/@clawfetch/ai-sdk',
+  },
 ];
