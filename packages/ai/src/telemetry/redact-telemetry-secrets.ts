@@ -97,7 +97,7 @@ function redactValue<T>(value: T, seen: WeakMap<object, unknown>): T {
       replacements.message = redactedError.message;
       replacements.stack = value.stack?.replace(
         value.message,
-        redactedError.message,
+        () => redactedError.message,
       );
     }
   }

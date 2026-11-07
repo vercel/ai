@@ -3,6 +3,25 @@ import { TypeValidationError } from '@ai-sdk/provider';
 import { redactTelemetrySecrets } from './redact-telemetry-secrets';
 
 describe('redactTelemetrySecrets', () => {
+  it.each(['$&', '$`', "$'", '$$'])(
+    'keeps replacement patterns literal in validation error stacks: %s',
+    pattern => {
+      const secret = 'synthetic-stack-credential';
+      const error = new TypeValidationError({
+        value: {
+          container: {
+            fileIds: [pattern],
+            networkPolicy: { domainSecrets: [{ value: secret }] },
+          },
+        },
+        cause: new Error('invalid configuration'),
+      });
+      const redacted = redactTelemetrySecrets(error);
+      expect(redacted.stack).not.toContain(secret);
+      expect(redacted.stack).toContain(redacted.message);
+    },
+  );
+
   it.each(['container', 'environment'])(
     'redacts invalid %s arguments in validation error values, messages, and stacks',
     container => {
