@@ -202,6 +202,29 @@ it('should share the node budget across sibling schemas', () => {
   );
 });
 
+it('should bound compact branching references with small leaves', () => {
+  const definitions: NonNullable<JSONSchema7['definitions']> = {
+    value11: { type: 'string' },
+  };
+  // Fixed depth: even without the guard this fixture has only 2,048 leaves.
+  for (let i = 10; i >= 0; i--) {
+    const reference = { $ref: `#/definitions/value${i + 1}` };
+    definitions[`value${i}`] = {
+      type: 'object',
+      properties: { first: reference, second: reference },
+    };
+  }
+
+  expect(() =>
+    convertJSONSchemaToOpenAPISchema({
+      $ref: '#/definitions/value0',
+      definitions,
+    }),
+  ).toThrow(
+    'Google schema conversion exceeded its node, size, or depth limit.',
+  );
+});
+
 it.each([
   {
     name: '2,000 properties',
