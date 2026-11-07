@@ -2,7 +2,7 @@ import base64
 import json
 import urllib.parse
 from pydantic import BaseModel
-from typing import Any, List, Optional
+from typing import List, Optional
 from .types import ClientAttachment, ClientPart, ToolInvocation
 
 
@@ -22,7 +22,7 @@ def _get_tool_response_content(part: ClientPart) -> Optional[str]:
     if part.state == 'output-available':
         return json.dumps(part.output)
     if part.state == 'output-error':
-        error_val = getattr(part, 'errorText', None)
+        error_val = part.errorText
         if error_val is None:
             error_val = part.output if part.output is not None else 'Tool execution failed'
         return json.dumps(error_val)
@@ -81,7 +81,10 @@ def convert_to_openai_messages(messages: List[ClientMessage]):
 
         current_tool_parts = [
             part for part in (message.parts or [])
-            if part.type.startswith('tool-')
+            if (
+                part.type.startswith('tool-')
+                or (part.type == 'dynamic-tool' and part.toolName is not None)
+            )
             and part.toolCallId is not None
             and part.input is not None
             and _get_tool_response_content(part) is not None
@@ -93,7 +96,11 @@ def convert_to_openai_messages(messages: List[ClientMessage]):
                     'id': part.toolCallId,
                     'type': 'function',
                     'function': {
-                        'name': part.type[5:],
+                        'name': (
+                            part.type[5:]
+                            if part.type.startswith('tool-')
+                            else part.toolName
+                        ),
                         'arguments': json.dumps(part.input),
                     },
                 }
@@ -114,6 +121,7 @@ def convert_to_openai_messages(messages: List[ClientMessage]):
                 }
                 for part in current_tool_parts
             )
+            # Prefer current UI parts over legacy toolInvocations if both have results.
             continue
 
         if (message.toolInvocations):

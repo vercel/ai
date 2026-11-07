@@ -18,6 +18,7 @@ class ToolInvocation(BaseModel):
 
 class ClientPart(BaseModel):
     type: str
+    toolName: Optional[str] = None
     toolCallId: Optional[str] = None
     text: Optional[str] = None
     url: Optional[str] = None
