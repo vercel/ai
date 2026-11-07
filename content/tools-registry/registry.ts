@@ -974,7 +974,7 @@ console.log(text);`,
     slug: 'keenable',
     name: 'Keenable',
     description:
-      'Keenable is a web search API built for AI agents that needs no API key: the tools fall back to public endpoints, so an example using them runs for whoever copies it. Search returns ranked pages with the page text already extracted, so most questions are answered without a second call, and the fetch tool reads any URL as clean markdown. An optional KEENABLE_API_KEY only lifts the rate limit.',
+      'Keenable is a web search API built for AI agents. Search returns ranked pages with their text already extracted, and the fetch tool reads any URL as clean markdown. No API key is required.',
     packageName: '@keenable/ai-sdk',
     tags: ['search', 'web', 'extraction'],
     apiKeyEnvName: 'KEENABLE_API_KEY',
@@ -995,7 +995,7 @@ const { text } = await generateText({
 });
 
 console.log(text);`,
-    docsUrl: 'https://docs.keenable.ai/integrations/vercel-ai-sdk',
+    docsUrl: 'https://docs.keenable.ai/integrations/vercel',
     apiKeyUrl: 'https://keenable.ai/console',
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
