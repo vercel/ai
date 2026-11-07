@@ -12,10 +12,10 @@ You can create your own provider package that leverages the AI SDK's [OpenAI Com
 ```bash
 packages/example/
 ├── src/
-│   ├── example-chat-settings.ts       # Chat model types and settings
-│   ├── example-completion-settings.ts # Completion model types and settings
-│   ├── example-embedding-settings.ts  # Embedding model types and settings
-│   ├── example-image-settings.ts      # Image model types and settings
+│   ├── example-chat-options.ts        # Chat model ids
+│   ├── example-completion-options.ts  # Completion model ids
+│   ├── example-embedding-options.ts   # Embedding model ids
+│   ├── example-image-options.ts       # Image model ids
 │   ├── example-provider.ts            # Main provider implementation
 │   ├── example-provider.test.ts       # Provider tests
 │   └── index.ts                       # Public exports
@@ -27,7 +27,7 @@ packages/example/
 
 ### Key Files
 
-1. **example-chat-settings.ts** - Define chat model IDs and settings:
+1. **example-chat-options.ts** - Define chat model IDs:
 
 ```ts
 export type ExampleChatModelId =
@@ -36,7 +36,7 @@ export type ExampleChatModelId =
   | (string & {});
 ```
 
-The completion, embedding, and image settings are implemented similarly to the chat settings.
+The completion, embedding, and image model ids are defined similarly to the chat model ids.
 
 2. **example-provider.ts** - Main provider implementation:
 
@@ -57,7 +57,7 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-// Import your model id and settings here.
+// Import your model ids here.
 
 export interface ExampleProviderSettings {
   /**
@@ -87,42 +87,27 @@ export interface ExampleProvider {
   /**
 Creates a model for text generation.
 */
-  (
-    modelId: ExampleChatModelId,
-    settings?: ExampleChatSettings,
-  ): LanguageModelV4;
+  (modelId: ExampleChatModelId): LanguageModelV4;
 
   /**
 Creates a chat model for text generation.
 */
-  chatModel(
-    modelId: ExampleChatModelId,
-    settings?: ExampleChatSettings,
-  ): LanguageModelV4;
+  chatModel(modelId: ExampleChatModelId): LanguageModelV4;
 
   /**
 Creates a completion model for text generation.
 */
-  completionModel(
-    modelId: ExampleCompletionModelId,
-    settings?: ExampleCompletionSettings,
-  ): LanguageModelV4;
+  completionModel(modelId: ExampleCompletionModelId): LanguageModelV4;
 
   /**
 Creates a text embedding model for text generation.
 */
-  embeddingModel(
-    modelId: ExampleEmbeddingModelId,
-    settings?: ExampleEmbeddingSettings,
-  ): EmbeddingModelV4;
+  embeddingModel(modelId: ExampleEmbeddingModelId): EmbeddingModelV4;
 
   /**
 Creates an image model for image generation.
 */
-  imageModel(
-    modelId: ExampleImageModelId,
-    settings?: ExampleImageSettings,
-  ): ImageModelV4;
+  imageModel(modelId: ExampleImageModelId): ImageModelV4;
 }
 
 export function createExample(
@@ -160,51 +145,29 @@ export function createExample(
     fetch: options.fetch,
   });
 
-  const createChatModel = (
-    modelId: ExampleChatModelId,
-    settings: ExampleChatSettings = {},
-  ) => {
+  const createChatModel = (modelId: ExampleChatModelId) => {
     return new OpenAICompatibleChatLanguageModel(
       modelId,
-      settings,
       getCommonModelConfig('chat'),
     );
   };
 
-  const createCompletionModel = (
-    modelId: ExampleCompletionModelId,
-    settings: ExampleCompletionSettings = {},
-  ) =>
+  const createCompletionModel = (modelId: ExampleCompletionModelId) =>
     new OpenAICompatibleCompletionLanguageModel(
       modelId,
-      settings,
       getCommonModelConfig('completion'),
     );
 
-  const createEmbeddingModel = (
-    modelId: ExampleEmbeddingModelId,
-    settings: ExampleEmbeddingSettings = {},
-  ) =>
+  const createEmbeddingModel = (modelId: ExampleEmbeddingModelId) =>
     new OpenAICompatibleEmbeddingModel(
       modelId,
-      settings,
       getCommonModelConfig('embedding'),
     );
 
-  const createImageModel = (
-    modelId: ExampleImageModelId,
-    settings: ExampleImageSettings = {},
-  ) =>
-    new OpenAICompatibleImageModel(
-      modelId,
-      settings,
-      getCommonModelConfig('image'),
-    );
+  const createImageModel = (modelId: ExampleImageModelId) =>
+    new OpenAICompatibleImageModel(modelId, getCommonModelConfig('image'));
 
-  const provider = (
-    modelId: ExampleChatModelId,
-    settings?: ExampleChatSettings,
-  ) => createChatModel(modelId, settings);
+  const provider = (modelId: ExampleChatModelId) => createChatModel(modelId);
 
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
