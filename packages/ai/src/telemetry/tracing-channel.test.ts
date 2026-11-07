@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { openai } from '@ai-sdk/openai';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
@@ -17,6 +18,7 @@ import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
 import type { InferTelemetryEvent } from './telemetry';
+import type { TelemetryOptions } from './telemetry-options';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
   type TelemetryTracingChannelMessage,
@@ -177,6 +179,152 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
   beforeEach(() => {
     globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;
   });
+
+  describe.each(['generateText', 'streamText'] as const)(
+    '%s domain secrets',
+    operation => {
+      it.each([false, true])(
+        'redacts telemetry with include.requestBody=%s while preserving provider and application data',
+        async requestBody => {
+          const secret = 'synthetic-domain-credential';
+          const tools = {
+            code_interpreter: openai.tools.codeInterpreter({
+              container: {
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets: [
+                    { domain: 'example.com', name: 'API_KEY', value: secret },
+                  ],
+                },
+              },
+            }),
+          };
+          const body = JSON.stringify({
+            tools: [
+              {
+                type: 'code_interpreter',
+                container: {
+                  type: 'auto',
+                  network_policy: {
+                    type: 'allowlist',
+                    allowed_domains: ['example.com'],
+                    domain_secrets: [
+                      { domain: 'example.com', name: 'API_KEY', value: secret },
+                    ],
+                  },
+                },
+              },
+            ],
+          });
+          const usage = {
+            inputTokens: {
+              total: 1,
+              noCache: 1,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: { total: 1, text: 1, reasoning: undefined },
+          };
+          const model = new MockLanguageModelV4({
+            doGenerate: {
+              content: [{ type: 'text', text: 'OK' }],
+              finishReason: { unified: 'stop', raw: undefined },
+              usage,
+              warnings: [],
+              request: { body },
+            },
+            doStream: {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'OK' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: undefined },
+                  usage,
+                },
+              ]),
+              request: { body },
+            },
+          });
+          const integrationEvents: unknown[] = [];
+          const options = {
+            model,
+            tools,
+            prompt: 'Hello',
+            include: { requestBody },
+            telemetry: {
+              integrations: {
+                onStart: event => {
+                  integrationEvents.push(event);
+                },
+                onLanguageModelCallStart: event => {
+                  integrationEvents.push(event);
+                },
+                onLanguageModelCallEnd: event => {
+                  integrationEvents.push(event);
+                },
+                onEnd: event => {
+                  integrationEvents.push(event);
+                },
+              },
+            } satisfies TelemetryOptions,
+          };
+          let endMessages: TelemetryTracingChannelAsyncEndMessage[] = [];
+          const startMessages = await collectTracingChannelStartMessages(
+            async () => {
+              endMessages = await collectTracingChannelAsyncEndMessages(
+                async () => {
+                  const result =
+                    operation === 'generateText'
+                      ? await generateText(options)
+                      : streamText(options);
+                  if ('consumeStream' in result) await result.consumeStream();
+                  expect(await result.text).toBe('OK');
+                  expect((await result.request).body).toBe(
+                    requestBody ? body : undefined,
+                  );
+                },
+              );
+            },
+          );
+          const providerTools =
+            operation === 'generateText'
+              ? model.doGenerateCalls[0].tools
+              : model.doStreamCalls[0].tools;
+          expect(JSON.stringify(providerTools)).toContain(secret);
+          expect(tools.code_interpreter.args.container).toMatchObject({
+            networkPolicy: { domainSecrets: [{ value: secret }] },
+          });
+          expect(
+            startMessages.some(message => message.type === 'languageModelCall'),
+          ).toBe(true);
+          expect(
+            endMessages.some(message => message.type === 'languageModelCall'),
+          ).toBe(true);
+          for (const messages of [
+            startMessages,
+            endMessages,
+            integrationEvents,
+          ]) {
+            expect(JSON.stringify(messages)).not.toContain(secret);
+            expect(JSON.stringify(messages)).toContain('[redacted]');
+          }
+          const providerResult = endMessages.find(
+            message => message.type === 'languageModelCall',
+          )!.result as { request: { body: string } };
+          expect(
+            JSON.parse(providerResult.request.body).tools[0].container
+              .network_policy.domain_secrets,
+          ).toEqual([
+            { domain: 'example.com', name: 'API_KEY', value: '[redacted]' },
+          ]);
+        },
+      );
+    },
+  );
 
   it('does not trace callback-only lifecycle events', async () => {
     const event = { callId: 'tracing-channel-callback-only' };

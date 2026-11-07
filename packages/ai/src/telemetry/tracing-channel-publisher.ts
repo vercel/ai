@@ -5,6 +5,7 @@ import {
   type TelemetryTracingChannelMessage,
 } from './tracing-channel';
 import { isNodeRuntime } from '../util/is-node-runtime';
+import { redactTelemetrySecrets } from './redact-telemetry-secrets';
 
 type DiagnosticsChannel = typeof diagnosticsChannelModule;
 type AsyncHooks = typeof asyncHooksModule;
@@ -104,9 +105,11 @@ export async function runWithTracingChannelSpan<T>(
     );
 
     // tracePromise publishes its resolved value on the channel. Keep the
-    // application's result separately when content recording is disabled.
+    // application's result separately from the telemetry-only copy.
     return recordResult
-      ? executePromise
+      ? executePromise.then(redactTelemetrySecrets, error => {
+          throw redactTelemetrySecrets(error);
+        })
       : executePromise.then(
           () => undefined,
           () => {
@@ -116,7 +119,10 @@ export async function runWithTracingChannelSpan<T>(
   };
 
   try {
-    await tracingChannel.tracePromise(tracedExecute, message);
+    await tracingChannel.tracePromise(
+      tracedExecute,
+      redactTelemetrySecrets(message),
+    );
     return executionResult as T;
   } catch {
     if (hasExecutionError) {
@@ -170,7 +176,9 @@ export function openTelemetryChannelSpanContext({
     return undefined;
   }
 
-  const context = message as TelemetryTracingChannelMessage & {
+  const context = redactTelemetrySecrets(
+    message,
+  ) as TelemetryTracingChannelMessage & {
     result?: unknown;
     error?: unknown;
   };
@@ -200,13 +208,13 @@ export function openTelemetryChannelSpanContext({
 
     if (error !== undefined) {
       context.error = recordResult
-        ? error
+        ? redactTelemetrySecrets(error)
         : new Error('AI SDK operation failed');
       safePublish(() => tracingChannel.error.publish(context));
     }
 
     if (recordResult && result !== undefined) {
-      context.result = result;
+      context.result = redactTelemetrySecrets(result);
     }
 
     safePublish(() => tracingChannel.asyncEnd.publish(context));

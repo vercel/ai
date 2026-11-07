@@ -19,6 +19,7 @@ import {
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 import type { TelemetryOptions } from './telemetry-options';
 import { filterTelemetryEvent } from './filter-telemetry-event';
+import { redactTelemetrySecrets } from './redact-telemetry-secrets';
 
 /**
  * The subset of `TelemetryDispatcher` keys whose values are Callback callbacks.
@@ -101,7 +102,9 @@ function augmentEvent<EVENT>(
     }
   }
 
-  return filterTelemetryEvent(augmentedEvent, telemetry);
+  return redactTelemetrySecrets(
+    filterTelemetryEvent(augmentedEvent, telemetry),
+  );
 }
 
 /**
