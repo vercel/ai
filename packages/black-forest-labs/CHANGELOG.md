@@ -1,5 +1,24 @@
 # @ai-sdk/black-forest-labs
 
+## 0.0.34
+
+### Patch Changes
+
+- 49c554d: Validate response-supplied Black Forest Labs polling and image URLs, including redirects, to block requests to private destinations outside the configured provider origin. Preserve self-hosted endpoints and withhold credentials from foreign origins and cross-origin redirects.
+- ec24878: fix: poll get_result when a webhook submit response has no polling URL
+
+  Setting `webhookUrl` makes Black Forest Labs return a webhook-shaped submit
+  response without `polling_url`, which caused `generateImage` to fail response
+  validation. The submit schema now accepts that response shape, and generation
+  polls the `get_result` endpoint by request id so the call still returns the
+  image. Transient `Task not found` responses are retried for a short grace
+  period; a task that never becomes visible now fails with an error naming the
+  request id instead of a generic poll timeout.
+
+- Updated dependencies [49c554d]
+- Updated dependencies [b753c03]
+  - @ai-sdk/provider-utils@3.0.45
+
 ## 0.0.33
 
 ### Patch Changes

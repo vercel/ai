@@ -1,5 +1,22 @@
 # ai
 
+## 5.0.286
+
+### Patch Changes
+
+- f15d448: hide provider metadata from telemetry when recordOutputs is false
+- 417a92c: Preserve `toolChoice: 'none'` when SDK tools are omitted or empty so providers can disable native tools configured through provider options.
+
+  For Perplexity native tools, also update `@ai-sdk/perplexity` to `2.1.6` or a later compatible version, which includes the provider-side guard.
+
+- Updated dependencies [c6c7ae0]
+- Updated dependencies [49c554d]
+- Updated dependencies [ebc2cd9]
+- Updated dependencies [b753c03]
+- Updated dependencies [a7ebf30]
+  - @ai-sdk/gateway@2.0.177
+  - @ai-sdk/provider-utils@3.0.45
+
 ## 5.0.285
 
 ### Patch Changes

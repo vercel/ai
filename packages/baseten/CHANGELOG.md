@@ -1,5 +1,17 @@
 # @ai-sdk/baseten
 
+## 0.1.15
+
+### Patch Changes
+
+- db18e4f: Avoid empty structured-output answers from Baseten's DeepSeek V4 Pro 0813 when reasoning is enabled. Fall back to JSON prompt instructions while keeping reasoning and SDK output validation, and report the fallback through request transformation warnings.
+- Updated dependencies [49c554d]
+- Updated dependencies [db18e4f]
+- Updated dependencies [ce27f15]
+- Updated dependencies [b753c03]
+  - @ai-sdk/provider-utils@3.0.45
+  - @ai-sdk/openai-compatible@1.0.62
+
 ## 0.1.14
 
 ### Patch Changes
