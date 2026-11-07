@@ -53,6 +53,8 @@ function redactValue<T>(value: T, seen: WeakMap<object, unknown>): T {
     'steps',
     'finalStep',
     'error',
+    'errors',
+    'lastError',
     'cause',
     'requestBodyValues',
   ]) {

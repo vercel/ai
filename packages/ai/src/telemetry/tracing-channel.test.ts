@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { openai } from '@ai-sdk/openai';
+import { APICallError } from '@ai-sdk/provider';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
@@ -25,6 +26,7 @@ import {
 } from './tracing-channel';
 import { isNodeRuntime } from '../util/is-node-runtime';
 import { VERSION } from '../version';
+import { RetryError } from '../util/retry-error';
 
 vi.mock('../version', () => ({
   VERSION: '0.0.0-test',
@@ -183,6 +185,93 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
   describe.each(['generateText', 'streamText'] as const)(
     '%s domain secrets',
     operation => {
+      it('redacts exhausted retry errors while preserving application errors', async () => {
+        const secret = 'synthetic-retry-credential';
+        const providerError = new APICallError({
+          message: 'provider unavailable',
+          url: 'https://api.example.com/responses',
+          statusCode: 500,
+          responseHeaders: { 'retry-after-ms': '0' },
+          requestBodyValues: {
+            tools: [
+              {
+                type: 'code_interpreter',
+                container: {
+                  network_policy: { domain_secrets: [{ value: secret }] },
+                },
+              },
+            ],
+          },
+        });
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => {
+            throw providerError;
+          },
+          doStream: async () => {
+            throw providerError;
+          },
+        });
+        const applicationErrors: unknown[] = [];
+        const integrationEvents: unknown[] = [];
+        const messages: unknown[] = [];
+        const subscribers = {
+          start() {},
+          end() {},
+          asyncStart() {},
+          error: (message: unknown) => {
+            messages.push(message);
+          },
+          asyncEnd: (message: unknown) => {
+            messages.push(message);
+          },
+        };
+        const channel = diagnosticsChannel.tracingChannel(
+          AI_SDK_TELEMETRY_TRACING_CHANNEL,
+        );
+        channel.subscribe(subscribers);
+        try {
+          const options = {
+            model,
+            prompt: 'Hello',
+            maxRetries: 1,
+            onError: ({ error }: { error: unknown }) => {
+              applicationErrors.push(error);
+            },
+            telemetry: {
+              integrations: {
+                onStepError: event => {
+                  integrationEvents.push(event);
+                },
+                onError: event => {
+                  integrationEvents.push(event);
+                },
+              },
+            } satisfies TelemetryOptions,
+          };
+          if (operation === 'generateText') {
+            await expect(
+              generateText(options).catch(error => {
+                applicationErrors.push(error);
+                throw error;
+              }),
+            ).rejects.toBeInstanceOf(RetryError);
+          } else {
+            await streamText(options).consumeStream();
+          }
+        } finally {
+          channel.unsubscribe(subscribers);
+        }
+        const applicationError = applicationErrors.at(-1) as RetryError;
+        expect(applicationError).toBeInstanceOf(RetryError);
+        expect(applicationError.lastError).toBe(providerError);
+        expect(applicationError.errors).toEqual([providerError, providerError]);
+        expect(JSON.stringify(providerError)).toContain(secret);
+        expect(messages.length).toBeGreaterThan(0);
+        expect(integrationEvents.length).toBeGreaterThan(0);
+        expect(JSON.stringify(messages)).not.toContain(secret);
+        expect(JSON.stringify(integrationEvents)).not.toContain(secret);
+      });
+
       it.each([false, true])(
         'redacts telemetry with include.requestBody=%s while preserving provider and application data',
         async requestBody => {
