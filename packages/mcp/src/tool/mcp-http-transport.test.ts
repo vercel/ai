@@ -1007,7 +1007,7 @@ describe('HttpMCPTransport', () => {
       fetchSpy.mockRestore();
     });
 
-    it('should default redirect to follow', async () => {
+    it('should default redirect to error', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
       transport = new HttpMCPTransport({
@@ -1027,10 +1027,105 @@ describe('HttpMCPTransport', () => {
 
       expect(fetchSpy).toHaveBeenCalledWith(
         'http://localhost:4000/mcp',
-        expect.objectContaining({ redirect: 'follow', method: 'GET' }),
+        expect.objectContaining({ redirect: 'error', method: 'GET' }),
       );
 
       fetchSpy.mockRestore();
+    });
+
+    it.each(['GET', 'POST', 'DELETE'])(
+      'should reject %s redirects by default',
+      async method => {
+        const fetchSpy = vi.spyOn(globalThis, 'fetch');
+        const endpoint = 'http://localhost:4000/mcp';
+        const errors = vi.fn();
+        const redirectResponse = {
+          type: 'error' as const,
+          status: 307,
+          headers: { location: 'http://localhost:4000/stream' },
+        };
+        server.urls['http://localhost:4000/stream'].response = {
+          type: 'empty',
+          status: 405,
+        };
+        server.urls[endpoint].response =
+          method === 'GET' ? redirectResponse : { type: 'empty', status: 405 };
+        transport = new HttpMCPTransport({ url: endpoint });
+        transport.onerror = errors;
+
+        try {
+          await transport.start();
+          await vi.waitFor(() => expect(server.calls).toHaveLength(1));
+
+          if (method === 'DELETE') {
+            server.urls[endpoint].response = {
+              type: 'json-value',
+              body: { jsonrpc: '2.0', id: 1, result: {} },
+              headers: { 'mcp-session-id': 'redirect-test-session' },
+            };
+            await transport.send({
+              jsonrpc: '2.0',
+              method: 'initialize',
+              id: 1,
+            });
+          }
+
+          server.urls[endpoint].response = redirectResponse;
+          if (method === 'GET') {
+            await vi.waitFor(() => expect(errors).toHaveBeenCalled());
+          } else if (method === 'POST') {
+            await expect(
+              transport.send({ jsonrpc: '2.0', method: 'ping', id: 1 }),
+            ).rejects.toThrow();
+          } else {
+            await transport.close();
+          }
+
+          expect(fetchSpy).toHaveBeenCalledWith(
+            endpoint,
+            expect.objectContaining({ method, redirect: 'error' }),
+          );
+          expect(server.calls.some(call => call.requestMethod === method)).toBe(
+            true,
+          );
+          expect(server.calls.every(call => call.requestUrl === endpoint)).toBe(
+            true,
+          );
+        } finally {
+          if (method !== 'DELETE') {
+            await transport.close();
+          }
+          fetchSpy.mockRestore();
+        }
+      },
+    );
+
+    it('should allow explicitly following redirects', async () => {
+      server.urls['http://localhost:4000/mcp'].response = {
+        type: 'error',
+        status: 307,
+        headers: { location: 'http://localhost:4000/stream' },
+      };
+      server.urls['http://localhost:4000/stream'].response = {
+        type: 'empty',
+        status: 405,
+      };
+      transport = new HttpMCPTransport({
+        url: 'http://localhost:4000/mcp',
+        redirect: 'follow',
+      });
+
+      try {
+        await transport.start();
+        await vi.waitFor(() => {
+          expect(server.calls.map(call => call.requestUrl)).toEqual([
+            'http://localhost:4000/mcp',
+            'http://localhost:4000/stream',
+          ]);
+        });
+      } finally {
+        await transport.close();
+      }
     });
   });
 

@@ -43,11 +43,16 @@ const mcpClient = await createMCPClient({
     // optional: provide an OAuth client provider for automatic authorization
     authProvider: myOAuthClientProvider,
 
-    // optional: reject redirect responses to prevent SSRF
+    // optional: reject redirect responses (the default for HTTP transport)
     redirect: 'error',
   },
 });
 ```
+
+The built-in HTTP transport rejects redirects by default for GET, POST, and DELETE
+requests. Configure the final MCP endpoint URL directly, including private endpoints
+you intend to access. Only set `redirect: 'follow'` when you trust all redirect
+destinations, since redirects can reach unintended hosts and private networks.
 
 Alternatively, you can use `StreamableHTTPClientTransport` from MCP's official TypeScript SDK:
 
