@@ -7,6 +7,7 @@
     "build": "next build",
     "test:downloads": "vitest run --config vitest.downloads.config.ts",
     "test:local-shell": "vitest run --config vitest.local-shell.config.ts",
+    "test:mcp-auth": "vitest run --config vitest.mcp-auth.config.ts",
     "test:mcp-elicitation": "vitest run --config vitest.mcp-elicitation.config.ts",
     "start": "next start"
   },
