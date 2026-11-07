@@ -970,4 +970,34 @@ console.log(text);`,
     websiteUrl: 'https://redis.io/agent-memory/',
     npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
+  {
+    slug: 'onlinecompiler',
+    name: 'OnlineCompiler.io',
+    description:
+      'Run code in 46 languages, or judge it against test cases, in a fresh sandbox with no network. runCode returns the output, errors, exit code, time and memory; runTests returns a verdict per test and a score. Free plan with 100,000 runs a month.',
+    packageName: 'onlinecompiler',
+    tags: ['code-execution', 'sandbox', 'testing'],
+    apiKeyEnvName: 'ONLINECOMPILER_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add onlinecompiler',
+      npm: 'npm install onlinecompiler',
+      yarn: 'yarn add onlinecompiler',
+      bun: 'bun add onlinecompiler',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { onlinecompilerTools } from 'onlinecompiler/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'What is the 40th Fibonacci number? Compute it.',
+  tools: onlinecompilerTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://onlinecompiler.io/docs/ai-sdk',
+    apiKeyUrl: 'https://api.onlinecompiler.io/compilers/api-keys/',
+    websiteUrl: 'https://onlinecompiler.io',
+    npmUrl: 'https://www.npmjs.com/package/onlinecompiler',
+  },
 ];
