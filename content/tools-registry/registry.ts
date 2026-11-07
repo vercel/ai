@@ -986,16 +986,14 @@ console.log(text);`,
     ],
     apiKeyEnvName: 'CLAWFETCH_PRIVATE_KEY',
     installCommand: {
-      pnpm: 'pnpm add @clawfetch/ai-sdk ai zod',
-      npm: 'npm install @clawfetch/ai-sdk ai zod',
-      yarn: 'yarn add @clawfetch/ai-sdk ai zod',
-      bun: 'bun add @clawfetch/ai-sdk ai zod',
+      pnpm: 'pnpm add @clawfetch/ai-sdk',
+      npm: 'npm install @clawfetch/ai-sdk',
+      yarn: 'yarn add @clawfetch/ai-sdk',
+      bun: 'bun add @clawfetch/ai-sdk',
     },
     codeExample: `import { generateText, isStepCount } from 'ai';
 import { clawfetchTools } from '@clawfetch/ai-sdk';
 
-// Tools are paid per call in USDC on Base via x402 (fetch $0.001, research $0.02).
-// The paying wallet is read from CLAWFETCH_PRIVATE_KEY; the model sees each price.
 const { fetchUrl, extractData, researchTopic } = clawfetchTools();
 
 const { text } = await generateText({
