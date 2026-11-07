@@ -953,7 +953,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     let blockCounter = 0;
 
     // Track emitted sources to prevent duplicates
-    const emittedSourceUrls = new Set<string>();
+    const emittedSourceKeys = new Set<string>();
     // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
@@ -1137,11 +1137,13 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             });
             if (sources != null) {
               for (const source of sources) {
-                if (
-                  source.sourceType === 'url' &&
-                  !emittedSourceUrls.has(source.url)
-                ) {
-                  emittedSourceUrls.add(source.url);
+                const sourceKey =
+                  source.sourceType === 'url'
+                    ? `url:${source.url}`
+                    : `document:${source.title}:${source.filename ?? ''}`;
+
+                if (!emittedSourceKeys.has(sourceKey)) {
+                  emittedSourceKeys.add(sourceKey);
                   controller.enqueue(source);
                 }
               }

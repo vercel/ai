@@ -9022,6 +9022,125 @@ describe('doStream', () => {
     `);
   });
 
+  it('should stream document sources from File Search and RAG retrievedContext', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'The total is $42.' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                groundingChunks: [
+                  {
+                    retrievedContext: {
+                      text: 'Invoice total is $42.',
+                      fileSearchStore: 'fileSearchStores/invoices-store',
+                      title: 'invoice-2026.pdf',
+                    },
+                  },
+                  {
+                    retrievedContext: {
+                      uri: 'gs://bucket/reports/annual.pdf',
+                      title: 'Annual report',
+                      text: 'Revenue grew.',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "filename": "invoices-store",
+          "id": "test-id",
+          "mediaType": "application/octet-stream",
+          "sourceType": "document",
+          "title": "invoice-2026.pdf",
+          "type": "source",
+        },
+        {
+          "filename": "annual.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "sourceType": "document",
+          "title": "Annual report",
+          "type": "source",
+        },
+      ]
+    `);
+  });
+
+  it('should deduplicate document sources across chunks', async () => {
+    const groundingMetadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            text: 'Invoice total is $42.',
+            fileSearchStore: 'fileSearchStores/invoices-store',
+            title: 'invoice-2026.pdf',
+          },
+        },
+      ],
+    };
+
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'first chunk' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'final chunk' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata,
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toHaveLength(1);
+  });
+
   it('should stream files', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
