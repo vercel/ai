@@ -15,6 +15,7 @@ import type {
   HarnessAgentEffectFunction,
   HarnessAgentLog,
   HarnessAgentLogEvent,
+  HarnessAgentStreamWriter,
 } from './types';
 
 /**
@@ -109,6 +110,10 @@ async function executeCallback(input: {
    */
   attempt: EffectRecord;
   /**
+   * Emit function passed to the callback, bound to this attempt.
+   */
+  emit: HarnessV2EffectContext['emit'];
+  /**
    * Rejects execution if committed events could not be folded into records.
    */
   checkState: () => void;
@@ -119,7 +124,7 @@ async function executeCallback(input: {
     context: HarnessV2EffectContext,
   ) => PromiseLike<SerializableValue> | AsyncIterable<SerializableValue>;
 }): Promise<CallbackOutput> {
-  const { log, abortSignal, attempt, checkState, fn } = input;
+  const { log, abortSignal, attempt, emit, checkState, fn } = input;
 
   /**
    * Separates drive-rebuild errors and cancellation from ordinary callback
@@ -150,7 +155,7 @@ async function executeCallback(input: {
   let pending: PromiseLike<SerializableValue> | undefined;
   let iterator: AsyncIterator<SerializableValue> | undefined;
   try {
-    result = fn({ abortSignal, startId: attempt.start.id });
+    result = fn({ abortSignal, startId: attempt.start.id, emit });
     if (Symbol.asyncIterator in result)
       iterator = result[Symbol.asyncIterator]();
     else pending = result;
@@ -220,6 +225,8 @@ async function executeCallback(input: {
  * Records are reconstructed once and updated by a log subscription. The caller
  * must abort the drive signal when the drive ends to release that subscription;
  * active effects retain it until their interruption persistence has settled.
+ * Each executed attempt's callback emits through the stream writer, tagged with
+ * its start ID; the writer is flushed before the attempt's end is committed.
  */
 export function createEffectFunction(input: {
   /**
@@ -230,8 +237,12 @@ export function createEffectFunction(input: {
    * Cancellation signal for this drive, passed unchanged to callbacks.
    */
   abortSignal: AbortSignal;
+  /**
+   * Writer for the session's stream, used by each attempt's `emit`.
+   */
+  writer: HarnessAgentStreamWriter;
 }): HarnessAgentEffectFunction {
-  const { log, abortSignal } = input;
+  const { log, abortSignal, writer } = input;
 
   /**
    * Effect keys with active invocations in this drive, including initialization
@@ -484,13 +495,30 @@ export function createEffectFunction(input: {
         }) as HarnessV2EffectOutput<T>;
       }
 
-      const result = await executeCallback({
-        log,
-        abortSignal,
-        attempt,
-        checkState,
-        fn,
-      });
+      /*
+       * Parts are tagged with the attempt that produced them, so readers can
+       * withdraw them if the attempt is interrupted. Emits after the callback
+       * settled are dropped, and the writer is flushed before the end commits:
+       * a committed end therefore implies the attempt's parts were written or
+       * failed, never still buffered in a process that may die.
+       */
+      let emitting = true;
+      let result: CallbackOutput;
+      try {
+        result = await executeCallback({
+          log,
+          abortSignal,
+          attempt,
+          emit: part => {
+            if (emitting) writer.emit({ part, startId: start.id });
+          },
+          checkState,
+          fn,
+        });
+      } finally {
+        emitting = false;
+      }
+      await writer.flush();
       const output = await finishAttempt({
         startId: start.id,
         output: result.output,

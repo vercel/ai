@@ -2,7 +2,10 @@ import { expectTypeOf, test } from 'vitest';
 import type { SerializableValue } from '@ai-sdk/provider';
 import type { HarnessV2EffectFunction } from '../../../index';
 import type { HarnessV2DriveContext } from '../../../v2/harness-v2-drive-context';
-import type { HarnessV2EffectError } from '../../../v2/harness-v2-effect';
+import type {
+  HarnessV2EffectContext,
+  HarnessV2EffectError,
+} from '../../../v2/harness-v2-effect';
 import type {
   HarnessV2Log,
   HarnessV2LogEvent,
@@ -67,6 +70,9 @@ test('keeps step and turn finish parts out of the adapter stream parts', () => {
   >().toBeNever();
   expectTypeOf<
     Parameters<HarnessV2DriveContext['unsafeEmit']>[0]
+  >().toEqualTypeOf<HarnessV2StreamPart>();
+  expectTypeOf<
+    Parameters<HarnessV2EffectContext['emit']>[0]
   >().toEqualTypeOf<HarnessV2StreamPart>();
 });
 

@@ -1,4 +1,5 @@
 import type { SerializableValue } from '@ai-sdk/provider';
+import type { HarnessV2StreamPart } from './harness-v2-stream-part';
 
 /**
  * Serializable error data recorded in the log or emitted to the stream. Never
@@ -114,4 +115,17 @@ export interface HarnessV2EffectContext {
    * ID of the log entry that started this effect attempt.
    */
   startId: string;
+
+  /**
+   * Emits a stream part produced by this attempt, already normalized, to the
+   * agent's output. This is the regular way for a harness to emit stream
+   * parts.
+   *
+   * Replay-safe: a replayed effect does not run its callback, so nothing is
+   * emitted again. After a crash, the agent withdraws the output of
+   * interrupted attempts. Parts emitted after the attempt's callback settled,
+   * or after the drive aborted, are dropped. Throws synchronously if the part
+   * is not serializable.
+   */
+  emit(part: HarnessV2StreamPart): void;
 }

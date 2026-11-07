@@ -360,8 +360,8 @@ interface HarnessV2EffectContext {
    *
    * Replay-safe: a replayed effect does not run its callback, so nothing is
    * emitted again. The agent attributes each part to this attempt; after a
-   * crash it restores the parts of finished attempts and withdraws the parts
-   * of interrupted ones. Parts emitted after the attempt ended are dropped.
+   * crash it withdraws the output of interrupted attempts. Parts emitted
+   * after the attempt ended are dropped.
    * Step and turn ends go through `finishStep()` and `finishTurn()` on the
    * drive context.
    */
@@ -718,7 +718,8 @@ type HarnessV2StreamPart =
      * The step continues with new parts and still ends with `finish-step`.
      *
      * Not needed after a crash: when a drive starts while the previous one
-     * left a step unfinished, the agent withdraws that step itself.
+     * left a step unfinished, the agent withdraws the interrupted attempts'
+     * output itself.
      */
     readonly type: 'reset-step';
   };
@@ -730,7 +731,7 @@ export type HarnessTextStreamPart<TOOLS extends ToolSet> =
   | {
       /**
        * Withdraws every part since the last `start-step`: the step was cut
-       * off (e.g. by a crash in durable mode) and starts over. Consumers
+       * off (e.g. a runtime retry) and starts over. Consumers
        * that accumulate parts must drop that step's parts.
        */
       type: 'reset-step';
@@ -741,25 +742,34 @@ export type HarnessTextStreamPart<TOOLS extends ToolSet> =
 
 After a crash, a new drive reruns the harness from the log. Any stream part emitted again during that rerun would duplicate output consumers already saw, since the World stream is append-only. Stream emission is therefore split so that every path is replay-safe:
 
-| Output                                                      | API                        | Replay-safe because                                                                                                                                |
-| ----------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Content parts (text, reasoning, tool parts)                 | `effectContext.emit()`     | A replayed effect does not run its callback; after a crash, the engine restores parts of finished attempts and withdraws parts of interrupted ones |
-| Step end (`finish-step`)                                    | `finishStep({ key, ... })` | The engine appends a log event under `key` and emits only when that append was new                                                                 |
-| Turn end (`finish`)                                         | `finishTurn({ ... })`      | Same, keyed by the prompt submission that started the turn                                                                                         |
-| Output of a runtime that cannot run steps inside `effect()` | `unsafeEmit()`             | Undesirable exception: the harness must never emit already emitted parts again                                                                     |
+| Output                                                      | API                        | Replay-safe because                                                                                                 |
+| ----------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Content parts (text, reasoning, tool parts)                 | `effectContext.emit()`     | A replayed effect does not run its callback; after a crash, the engine withdraws the output of interrupted attempts |
+| Step end (`finish-step`)                                    | `finishStep({ key, ... })` | The engine appends a log event under `key` and emits only when that append was new                                  |
+| Turn end (`finish`)                                         | `finishTurn({ ... })`      | Same, keyed by the prompt submission that started the turn                                                          |
+| Output of a runtime that cannot run steps inside `effect()` | `unsafeEmit()`             | Undesirable exception: the harness must never emit already emitted parts again                                      |
 
 - `HarnessV2StreamPart` has no `finish-step` and `finish` variants, since a harness must never emit them manually. The engine-only `HarnessAgentStreamPart` is a full copy of `HarnessV2StreamPart` that additionally contains them; it is what the engine's writer emits, with the finish parts produced only through `finishStep()` and `finishTurn()`.
 - `finishStep()` is awaited by the harness, which gives the engine its hold point: it records the step and evaluates `stopWhen` before the next step starts.
-- Crash between the log append and the stream write of a finish part: when a drive starts while the turn is unfinished, the engine first re-emits the latest recorded `finish-step` (tagged with its key), then emits `reset-step`. Readers deduplicate parts by key.
-- Recovery of an unfinished step: the engine emits `reset-step`, then reads the step's lines back from the World stream and re-emits the parts whose effect attempt finished. Without this, a reset would withdraw the output of a model call that completed before the crash, and since its effect replays without running the callback, that output would never be emitted again.
+- Crash between the log append and the stream write of a finish part: when a drive starts while the turn is unfinished, the engine first re-emits the latest recorded `finish-step` (tagged with its key). Readers deduplicate parts by key.
+- Crash recovery truncates, scoped to interrupted attempts, following the same approach as truncating a cut-off reply to its committed length:
+  - At the start of a drive in an unfinished turn, the drive finds the interrupted attempts in the log (an `effect-start` without `effect-end`, or an end with `interrupted` output) and writes an engine-only withdraw record listing their `startId`s. It does not emit `reset-step` and does not read the stream. Withdrawing an attempt again has no further effect.
+  - The engine's stream reader computes what to drop from what it delivered for the withdrawn attempts: it counts text and reasoning characters separately and emits a consumer-facing truncation part that drops that many characters off the end of each kind. It also drops any later records of withdrawn attempts, which covers late writes from the dead process.
+  - Consumers drop tool inputs without a matching `tool-call` when they receive the truncation part.
+  - The truncation part's name and shape are decided with the consumer stream translation.
+  - Limits: truncating from the end assumes withdrawn text and reasoning come last, which holds because model calls in a turn run one after another. `unsafeEmit()` output cannot be withdrawn.
+  - Harness adapters are not involved: the engine has the attempt identities (log) and the attempt-tagged records (stream).
+- Reader cursors are positioned relative to the turn's start chunk. A resumed reader re-reads from there, using the skipped records only to rebuild which attempt produced which part.
+- `reset-step` remains for runtime retries within a running drive.
+- Writes are in strict order: one World write in flight per writer, the same model as the Workflow runtime's stream writer behind `@ai-sdk/workflow`. Stream order is what `reset-step`, finish parts and reader-side attribution depend on.
 
-The engine implements all of this on one internal stream writer per drive, created by `createStreamWriter()`. Stream lines carry the engine-only tags (`startId`, `key`) in an envelope around the part; adapters never see or pass them:
+The engine implements all of this on one internal stream writer per drive, created by `createStreamWriter()`, writing to one World stream per session. Stream records carry the engine-only tags (`startId`, `key`) in an envelope around the part, or are engine-only withdraw records; adapters never see or pass them:
 
 ```ts
 type HarnessAgentStreamWriter = {
   /**
    * Emits an engine-tagged part. `startId` attributes it to an effect attempt,
-   * which makes it restorable after a crash if the attempt finished. `key`
+   * which lets readers withdraw it if the attempt was interrupted. `key`
    * deduplicates a step or turn finish part on read.
    */
   emit(
@@ -768,16 +778,18 @@ type HarnessAgentStreamWriter = {
       | { startId?: string; key: string }
     ),
   ): void;
-  /** Untagged part (the drive context's `unsafeEmit()`); withdrawn for good by a recovery reset. */
+  /** Untagged part (the drive context's `unsafeEmit()`); never withdrawable. */
   unsafeEmit(part: HarnessAgentStreamPart): void;
+  /** Engine-only withdraw record withdrawing the output of these attempts. */
+  withdraw(opts: { startIds: readonly string[] }): void;
   /** Resolves once every write issued so far has landed or failed. */
   flush(): Promise<void>;
-  /** Ends the stream after flushing. */
+  /** Ends the stream after flushing; only when the session ends. */
   close(): Promise<void>;
 };
 ```
 
-- `effectContext.emit` is built by `createEffectFunction()` per attempt, as `writer.emit({ part, startId })`, and drops parts once the attempt ended.
+- `effectContext.emit` is built by `createEffectFunction()` per attempt, as `writer.emit({ part, startId })`, and drops parts once the attempt ended. The writer is flushed before the attempt's end is committed, so a committed end implies its parts were written or failed.
 - The drive context's `unsafeEmit` is built where the drive context is assembled, as `writer.unsafeEmit(part)`, fenced by the drive's `abortSignal`.
 - `finishStep()` and `finishTurn()` call `writer.emit({ part, key })` after their log append returned `true`.
 

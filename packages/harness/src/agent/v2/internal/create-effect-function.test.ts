@@ -2,14 +2,22 @@ import type { SerializableValue } from '@ai-sdk/provider';
 import { DelayedPromise } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
-import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
+import type {
+  HarnessV2EffectContext,
+  HarnessV2EffectOutput,
+} from '../../../v2/harness-v2-effect';
 import { InMemoryWorld } from '../in-memory-world';
 import { createEffectFunction } from './create-effect-function';
 import { createLog } from './create-log';
+import {
+  createStreamWriter,
+  decodeStreamRecords,
+} from './create-stream-writer';
 import type {
   HarnessAgentEffectFunction,
   HarnessAgentLog,
   HarnessAgentLogEvent,
+  HarnessAgentStreamRecord,
 } from './types';
 
 const abortControllers = new Set<AbortController>();
@@ -23,6 +31,44 @@ function createAbortController(): AbortController {
   const controller = new AbortController();
   abortControllers.add(controller);
   return controller;
+}
+
+/**
+ * Creates an effect function with a stream writer bound to the same drive
+ * signal, writing to the given World or to a separate one.
+ */
+function createTestEffectFunction(input: {
+  log: HarnessAgentLog;
+  abortSignal: AbortSignal;
+  world?: InMemoryWorld;
+  runId?: string;
+}): HarnessAgentEffectFunction {
+  return createEffectFunction({
+    log: input.log,
+    abortSignal: input.abortSignal,
+    writer: createStreamWriter({
+      world: input.world ?? new InMemoryWorld(),
+      runId: input.runId ?? 'effect-session',
+      abortSignal: input.abortSignal,
+    }),
+  });
+}
+
+/**
+ * Reads every record written to a session's stream so far.
+ */
+async function readStream(input: {
+  world: InMemoryWorld;
+  runId: string;
+}): Promise<HarnessAgentStreamRecord[]> {
+  const { data } = await input.world.streams.getChunks(
+    input.runId,
+    input.runId + '_harness_agent_stream',
+    { limit: 1000 },
+  );
+  return decodeStreamRecords({
+    text: data.map(chunk => new TextDecoder().decode(chunk.data)).join(''),
+  });
 }
 
 const options: Parameters<HarnessAgentEffectFunction>[1] = {
@@ -40,9 +86,11 @@ async function setup() {
   });
   const log = createLog({ world, runId });
   const abortController = createAbortController();
-  const effect = createEffectFunction({
+  const effect = createTestEffectFunction({
     log,
     abortSignal: abortController.signal,
+    world,
+    runId,
   });
   return { world, runId, log, abortController, effect };
 }
@@ -349,7 +397,7 @@ describe('createEffectFunction', () => {
     expect(output).toEqual({ type: 'result', value: { answer: 42 } });
     if (output.type === 'result') output.value.answer = 0;
 
-    const replay = createEffectFunction({
+    const replay = createTestEffectFunction({
       log: createLog({ world, runId }),
       abortSignal: AbortSignal.abort(),
     });
@@ -380,7 +428,7 @@ describe('createEffectFunction', () => {
       expect(output).toEqual({ type: 'error', error: { message } });
       const replacement = vi.fn(async () => 'unexpected');
       expect(
-        await createEffectFunction({
+        await createTestEffectFunction({
           log: createLog({ world, runId }),
           abortSignal: createAbortController().signal,
         })('key', options, replacement),
@@ -533,7 +581,7 @@ describe('createEffectFunction', () => {
       expect(fn).not.toHaveBeenCalled();
       expect((await log.read()).events).toEqual([]);
       expect(
-        await createEffectFunction({
+        await createTestEffectFunction({
           log,
           abortSignal: createAbortController().signal,
         })('key', { ...options, replay }, fn),
@@ -610,7 +658,7 @@ describe('createEffectFunction', () => {
       ).toHaveLength(1);
       const retry = vi.fn(async () => 'retry');
       expect(
-        await createEffectFunction({
+        await createTestEffectFunction({
           log,
           abortSignal: createAbortController().signal,
         })('key', { ...options, replay }, retry),
@@ -673,7 +721,7 @@ describe('createEffectFunction', () => {
         },
       ]);
       const retry = vi.fn(async () => 'retry');
-      const replayed = await createEffectFunction({
+      const replayed = await createTestEffectFunction({
         log,
         abortSignal: createAbortController().signal,
       })('key', { ...options, replay }, retry);
@@ -774,7 +822,7 @@ describe('createEffectFunction', () => {
       return pending.promise;
     });
     const calls = [log, secondLog].map(current =>
-      createEffectFunction({
+      createTestEffectFunction({
         log: current,
         abortSignal: createAbortController().signal,
       })('key', options, fn).catch(error => {
@@ -996,7 +1044,7 @@ describe('createEffectFunction', () => {
     });
     expect(read).toHaveBeenCalledTimes(1);
     expect(
-      await createEffectFunction({
+      await createTestEffectFunction({
         log: createLog({ world, runId }),
         abortSignal: createAbortController().signal,
       })('key', options, fn),
@@ -1195,7 +1243,7 @@ describe('createEffectFunction', () => {
         .mockImplementation(opts => vi.fn(onAppend(opts)));
       const abortController = createAbortController();
       if (state === 'already-aborted') abortController.abort();
-      const replay = createEffectFunction({
+      const replay = createTestEffectFunction({
         log,
         abortSignal: abortController.signal,
       });
@@ -1227,7 +1275,7 @@ describe('createEffectFunction', () => {
       .spyOn(log, 'onAppend')
       .mockImplementation(opts => vi.fn(onAppend(opts)));
     const abortController = createAbortController();
-    const effect = createEffectFunction({
+    const effect = createTestEffectFunction({
       log,
       abortSignal: abortController.signal,
     });
@@ -1273,7 +1321,7 @@ describe('createEffectFunction', () => {
       .spyOn(log, 'onAppend')
       .mockImplementation(opts => vi.fn(onAppend(opts)));
     const abortController = createAbortController();
-    const effect = createEffectFunction({
+    const effect = createTestEffectFunction({
       log,
       abortSignal: abortController.signal,
     });
@@ -1327,7 +1375,7 @@ describe('createEffectFunction', () => {
           return () => {};
         },
       };
-      const effect = createEffectFunction({
+      const effect = createTestEffectFunction({
         log,
         abortSignal: createAbortController().signal,
       });
@@ -1365,7 +1413,7 @@ describe('createEffectFunction', () => {
           return () => {};
         },
       };
-      const effect = createEffectFunction({
+      const effect = createTestEffectFunction({
         log,
         abortSignal: createAbortController().signal,
       });
@@ -1424,4 +1472,118 @@ describe('createEffectFunction', () => {
       expect(fn).toHaveBeenCalledTimes(1);
     },
   );
+
+  describe('stream emission', () => {
+    const part = (delta: string) => ({
+      type: 'text-delta' as const,
+      id: 'text',
+      delta,
+    });
+
+    test('tags callback parts with the attempt start ID', async () => {
+      const { effect, log, world, runId } = await setup();
+      await effect('key', options, async ({ emit }) => {
+        emit(part('a'));
+        emit(part('b'));
+        return 'done';
+      });
+      const [start] = (await log.read({ types: ['effect-start'] })).events;
+      expect(await readStream({ world, runId })).toEqual([
+        { part: part('a'), startId: start.id },
+        { part: part('b'), startId: start.id },
+      ]);
+    });
+
+    test('drops parts emitted after the callback settled', async () => {
+      const { effect, world, runId } = await setup();
+      let lateEmit: HarnessV2EffectContext['emit'] | undefined;
+      await effect('key', options, async ({ emit }) => {
+        lateEmit = emit;
+        return 'done';
+      });
+      lateEmit?.(part('late'));
+      expect(await readStream({ world, runId })).toEqual([]);
+    });
+
+    test('commits the effect end only after emitted parts were written', async () => {
+      const { effect, log, world, runId } = await setup();
+      const write = world.streams.write.bind(world.streams);
+      const pending = new DelayedPromise<void>();
+      const streamName = runId + '_harness_agent_stream';
+      const writeSpy = vi
+        .spyOn(world.streams, 'write')
+        .mockImplementation(async (...args) => {
+          if (args[1] === streamName) await pending.promise;
+          return write(...args);
+        });
+      const running = effect('key', options, async ({ emit }) => {
+        emit(part('a'));
+        return 'done';
+      });
+      await vi.waitFor(() =>
+        expect(writeSpy).toHaveBeenCalledWith(
+          runId,
+          streamName,
+          expect.any(String),
+        ),
+      );
+      expect((await log.read({ types: ['effect-end'] })).events).toEqual([]);
+      pending.resolve();
+      expect(await running).toEqual({ type: 'result', value: 'done' });
+      expect(await readStream({ world, runId })).toHaveLength(1);
+    });
+
+    test('does not emit when replaying a committed output', async () => {
+      const { effect, world, runId } = await setup();
+      await effect('key', options, async ({ emit }) => {
+        emit(part('a'));
+        return 'done';
+      });
+      const replayed = vi.fn(async ({ emit }: HarnessV2EffectContext) => {
+        emit(part('again'));
+        return 'again';
+      });
+      expect(
+        await createTestEffectFunction({
+          log: createLog({ world, runId }),
+          abortSignal: createAbortController().signal,
+          world,
+          runId,
+        })('key', options, replayed),
+      ).toEqual({ type: 'result', value: 'done' });
+      expect(replayed).not.toHaveBeenCalled();
+      expect(await readStream({ world, runId })).toEqual([
+        { part: part('a'), startId: expect.any(String) },
+      ]);
+    });
+
+    test('tags a retried attempt with its own start ID', async () => {
+      const { effect, log, world, runId, abortController } = await setup();
+      expect(
+        await effect('key', options, async ({ emit }) => {
+          emit(part('cut off'));
+          await new Promise(resolve => setTimeout(resolve, 0));
+          abortController.abort();
+          return 'too late';
+        }),
+      ).toEqual({ type: 'interrupted', retryable: true });
+      expect(
+        await createTestEffectFunction({
+          log: createLog({ world, runId }),
+          abortSignal: createAbortController().signal,
+          world,
+          runId,
+        })('key', options, async ({ emit }) => {
+          emit(part('retried'));
+          return 'done';
+        }),
+      ).toEqual({ type: 'result', value: 'done' });
+      const starts = (await log.read({ types: ['effect-start'] })).events;
+      expect(starts).toHaveLength(2);
+      expect(await readStream({ world, runId })).toEqual([
+        { part: part('cut off'), startId: starts[0].id },
+        { part: part('retried'), startId: starts[1].id },
+      ]);
+    });
+  });
 });

@@ -454,3 +454,123 @@ export type HarnessAgentStreamPart =
        */
       type: 'reset-step';
     };
+
+/**
+ * Stream record carrying a part, plus the engine-only tags readers use to
+ * attribute and deduplicate it.
+ */
+export type HarnessAgentStreamPartRecord = {
+  /**
+   * Stream part to translate for consumers.
+   */
+  part: HarnessAgentStreamPart;
+
+  /**
+   * Effect attempt that emitted the part, if any.
+   */
+  startId?: string;
+
+  /**
+   * Log key deduplicating a step or turn finish part, if any.
+   */
+  key?: string;
+};
+
+/**
+ * Engine-only stream record instructing readers to withdraw the output of
+ * interrupted effect attempts.
+ */
+export type HarnessAgentStreamWithdrawRecord = {
+  /**
+   * Effect attempts whose output readers withdraw.
+   */
+  withdraw: string[];
+};
+
+/**
+ * One decoded record of a session's stream.
+ */
+export type HarnessAgentStreamRecord =
+  | HarnessAgentStreamPartRecord
+  | HarnessAgentStreamWithdrawRecord;
+
+/**
+ * Ordered, best-effort writer for one session's stream, owned by one drive.
+ *
+ * Emitting never blocks: records are encoded synchronously, then written in
+ * strict order, with exactly one World write in flight at a time. Records
+ * emitted during the same synchronous burst, or while a write is in flight,
+ * share the next chunk. Failed writes are ignored, since the stream carries
+ * output, never session state. Once the drive's abort signal fires, records not
+ * yet sent are discarded and new records are dropped.
+ */
+export type HarnessAgentStreamWriter = {
+  /**
+   * Emits a part tagged with the effect attempt that produced it and/or the
+   * log key of a step or turn finish. `startId` lets readers withdraw the part
+   * if its attempt was interrupted; `key` lets readers drop duplicate finishes.
+   * Throws synchronously if the part is not serializable.
+   */
+  emit(
+    opts: {
+      /**
+       * Stream part to write.
+       */
+      part: HarnessAgentStreamPart;
+    } & (
+      | {
+          /**
+           * Effect attempt that produced the part.
+           */
+          startId: string;
+
+          /**
+           * Log key of a step or turn finish part.
+           */
+          key?: string;
+        }
+      | {
+          /**
+           * Effect attempt that produced the part.
+           */
+          startId?: string;
+
+          /**
+           * Log key of a step or turn finish part.
+           */
+          key: string;
+        }
+    ),
+  ): void;
+
+  /**
+   * Emits an untagged part, as produced by the drive context's `unsafeEmit()`.
+   * Readers can never withdraw it. Throws synchronously if the part is not
+   * serializable.
+   */
+  unsafeEmit(part: HarnessAgentStreamPart): void;
+
+  /**
+   * Writes the engine-only withdraw record withdrawing the output of the given
+   * effect attempts.
+   */
+  withdraw(opts: {
+    /**
+     * Start IDs of the attempts whose output readers withdraw.
+     */
+    startIds: readonly string[];
+  }): void;
+
+  /**
+   * Resolves once every record emitted so far has been written or failed.
+   */
+  flush(): Promise<void>;
+
+  /**
+   * Stops accepting records, flushes, then closes the World stream (best
+   * effort). Only call it when the session ends, never at the end of a drive,
+   * since the stream spans every drive of the session. Calling it again has
+   * no effect.
+   */
+  close(): Promise<void>;
+};
