@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { setImmediate } from 'node:timers/promises';
 import {
   HarnessCapabilityUnsupportedError,
   isHarnessV1BuiltinToolIncluded,
@@ -11,7 +12,10 @@ import {
   type HarnessV1StartOptions,
   type HarnessV1StreamPart,
 } from '@ai-sdk/harness';
-import { getRestrictedSandboxSession } from '@ai-sdk/harness/utils';
+import {
+  extractHarnessPromptContent,
+  getRestrictedSandboxSession,
+} from '@ai-sdk/harness/utils';
 import { asSchema, secureJsonParse } from '@ai-sdk/provider-utils';
 import type { FxHarnessSettings } from './fx-harness';
 import { createFxMcpRuntime } from './fx-mcp';
@@ -20,17 +24,20 @@ import {
   createFxStateStore,
   fxResumeStateSchema,
   type FxStoredState,
+  type FxModelRecord,
   type FxToolRecord,
 } from './fx-resume-state';
 import {
   createFxRuntime,
-  type FxAgent,
+  type FxEngine,
   type FxPrompt,
   type FxTool,
   type FxToolResult,
   type FxTurn,
+  type FxSessionUpdate,
 } from './fx-runtime';
 import { createFxSkillsRuntime } from './fx-skills';
+import { resolveFxAuthentication } from './fx-subscription';
 import {
   fxJsonValue,
   fxToolRequiresApproval,
@@ -46,52 +53,27 @@ type FxRegisteredTool = {
 };
 
 function toPrompt(prompt: HarnessV1PromptTurnOptions['prompt']): FxPrompt {
-  if (typeof prompt === 'string') return prompt;
-  if (typeof prompt.content === 'string') return prompt.content;
-  return prompt.content.map(part => {
-    if (part.type === 'text') return { type: 'text' as const, text: part.text };
-    if (
-      part.type === 'image' &&
-      (typeof part.image === 'string' ||
-        part.image instanceof Uint8Array ||
-        part.image instanceof ArrayBuffer)
-    ) {
-      return {
-        type: 'image' as const,
-        data:
-          typeof part.image === 'string'
-            ? part.image
-            : Buffer.from(
-                part.image instanceof ArrayBuffer
-                  ? new Uint8Array(part.image)
-                  : part.image,
-              ).toString('base64'),
-        mimeType: part.mediaType ?? 'image/png',
-      };
-    }
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'fx',
-      message:
-        'fx prompts support text and inline images, not files or image URLs.',
-    });
-  });
+  const content = extractHarnessPromptContent({ prompt });
+  if (typeof content === 'string') return content;
+  return content.map(part =>
+    part.type === 'text'
+      ? { type: 'text' as const, text: part.text }
+      : {
+          type: 'image' as const,
+          data: part.data,
+          mimeType: part.mediaType,
+        },
+  );
 }
 
 export async function createFxSession(options: {
   startOpts: HarnessV1StartOptions;
   settings: FxHarnessSettings;
-  environment: Record<string, string>;
   builtinTools: Record<string, HarnessV1BuiltinTool<any, any>>;
   clientApp: string;
 }): Promise<HarnessV1Session> {
   const { startOpts, settings } = options;
   startOpts.abortSignal?.throwIfAborted();
-  const apiKey = options.environment.AI_GATEWAY_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      'fx requires AI_GATEWAY_API_KEY or VERCEL_OIDC_TOKEN in the host environment or an explicit authentication environment.',
-    );
-  }
   const resume =
     startOpts.continueFrom ??
     startOpts.resumeFrom?.continueFrom ??
@@ -102,6 +84,9 @@ export async function createFxSession(options: {
   ) {
     throw new Error('Cannot import lifecycle state from a different harness.');
   }
+  const freshAuthentication = resume
+    ? undefined
+    : await resolveFxAuthentication({ auth: settings.auth });
   const sandbox = getRestrictedSandboxSession(startOpts.sandboxSession);
   const store = await createFxStateStore({
     sandbox,
@@ -113,7 +98,15 @@ export async function createFxSession(options: {
   });
   const state: FxStoredState = resume
     ? await store.load()
-    : { version: 1, sdkVersion: '0.0.13' };
+    : { version: 1, sdkVersion: '0.0.14' };
+  const authentication =
+    freshAuthentication ??
+    (await resolveFxAuthentication({
+      auth: settings.auth,
+      requiredProvider: state.provider ?? 'gateway',
+    }));
+  state.provider = authentication.provider;
+  state.sdkVersion = '0.0.14';
   const remote = createFxRemoteOps({
     sandbox,
     workDir: startOpts.sessionWorkDir,
@@ -195,10 +188,11 @@ export async function createFxSession(options: {
     const signal = opts.abortSignal
       ? AbortSignal.any([controller.signal, opts.abortSignal])
       : controller.signal;
-    let runtime: FxAgent | undefined;
+    let runtime: FxEngine | undefined;
     let runtimeTurn: FxTurn | undefined;
     let transport: ReturnType<typeof createFxTransport> | undefined;
     let mcp: Awaited<ReturnType<typeof createFxMcpRuntime>> | undefined;
+    let credentialFailure: { error: unknown } | undefined;
     const results = new Map<string, FxToolSubmission>();
     const approvals = new Map<string, { approved: boolean; reason?: string }>();
     const registeredTools = new Map<string, FxRegisteredTool>();
@@ -228,7 +222,25 @@ export async function createFxSession(options: {
       turnState.emittedKeys.push(input.key);
       emit(input.part);
     }
-    const translator = createFxTranslator({ turnId: turnState.id, emit });
+    const translator = createFxTranslator({
+      turnId: turnState.id,
+      emit,
+      emitOnce,
+    });
+    /*
+     * ACP diagnostics and model hooks arrive before the async turn iterator
+     * yields their parsed events. Keep request identities and boundaries in
+     * that order so buffered output cannot be attributed to a later request.
+     */
+    const pendingOutput: Array<
+      { requestIndex: number; record: FxModelRecord } | (() => void)
+    > = [];
+    function flushOutput() {
+      while (typeof pendingOutput[0] === 'function') {
+        const flush = pendingOutput.shift() as () => void;
+        if (!suspending) flush();
+      }
+    }
     function flushStep(requestIndex: number) {
       const step = translator.steps.get(requestIndex);
       if (step)
@@ -346,7 +358,7 @@ export async function createFxSession(options: {
     async function publishToolBatch(input: { requestIndex: number }) {
       signal.throwIfAborted();
       const batch: Array<{ record: FxToolRecord; tool: FxRegisteredTool }> = [];
-      for (const call of translator.toolCalls.get(input.requestIndex) ?? []) {
+      for (const call of transport?.toolCalls.get(input.requestIndex) ?? []) {
         const tool = registeredTools.get(call.toolName);
         if (!tool) continue;
         let value: unknown;
@@ -522,6 +534,7 @@ export async function createFxSession(options: {
                 ? builtin.description
                 : name,
             inputSchema: await asSchema(builtin.inputSchema).jsonSchema,
+            idempotent: false,
             execute: async (value, context) => {
               const operation = remote[name as keyof typeof remote];
               if (!operation)
@@ -552,6 +565,7 @@ export async function createFxSession(options: {
             name: spec.name,
             description: spec.description ?? spec.name,
             inputSchema: spec.inputSchema ?? { type: 'object', properties: {} },
+            idempotent: false,
             execute: async () => undefined,
           };
           registeredTools.set(spec.name, {
@@ -594,7 +608,11 @@ export async function createFxSession(options: {
           });
         }
         transport = createFxTransport({
-          baseUrl: options.environment.AI_GATEWAY_BASE_URL,
+          provider: authentication.provider,
+          baseUrl:
+            authentication.provider === 'gateway'
+              ? authentication.baseUrl
+              : undefined,
           headers: {
             ...settings.headers,
             ...startOpts.headers,
@@ -604,9 +622,9 @@ export async function createFxSession(options: {
           turn: turnState,
           responseFormat: turnState.responseFormat,
           save,
-          onPart: translator.onPart,
           onRequest: ({ requestIndex, modelId }) => {
-            if (requestIndex > 0) flushStep(requestIndex - 1);
+            if (requestIndex > 0)
+              pendingOutput.push(() => flushStep(requestIndex - 1));
             emitOnce({ key: 'start', part: { type: 'stream-start', modelId } });
           },
           beforeRelease: async ({ requestIndex }) => {
@@ -621,7 +639,27 @@ export async function createFxSession(options: {
         });
         signal.throwIfAborted();
         runtime = await createFxRuntime({
-          apiKey,
+          ...(authentication.provider === 'gateway'
+            ? { apiKey: authentication.apiKey }
+            : {
+                provider: authentication.provider,
+                credentials: async () => {
+                  try {
+                    return await authentication.subscription.read();
+                  } catch (error) {
+                    credentialFailure = { error };
+                    throw error;
+                  }
+                },
+                onCredentials: async credentials => {
+                  try {
+                    await authentication.subscription.write({ credentials });
+                  } catch (error) {
+                    credentialFailure = { error };
+                    throw error;
+                  }
+                },
+              }),
           ...(opts.model ? { model: opts.model } : {}),
           ...(settings.effort ? { effort: settings.effort } : {}),
           ...serviceTierOptions,
@@ -639,22 +677,41 @@ export async function createFxSession(options: {
           checkpoint: state.checkpoint
             ? Buffer.from(state.checkpoint, 'base64')
             : undefined,
+          hooks: {
+            onEvent: event => {
+              const requestIndex = transport!.requestIndex;
+              const record = turnState.models[requestIndex];
+              if (event.type === 'model.end' && record) {
+                translator.onModelEnd({
+                  data: event.data,
+                  requestIndex,
+                });
+                pendingOutput.push(() =>
+                  translator.endOutput({ requestIndex, record }),
+                );
+              }
+            },
+          },
           onEvent: event => {
             if (event.type !== 'acp.receive') return;
             const message = event.message as {
               method?: string;
               params?: {
-                update?: {
-                  sessionUpdate?: string;
-                  toolCallId?: string;
-                  name?: string;
-                  toolName?: string;
-                  title?: string;
-                  content?: { type?: string; text?: string };
-                };
+                update?: FxSessionUpdate;
               };
             };
             const update = message.params?.update;
+            const requestIndex = transport!.requestIndex;
+            const record = turnState.models[requestIndex];
+            if (
+              message.method === 'session/update' &&
+              record &&
+              update?.content?.text &&
+              (update.sessionUpdate === 'agent_thought_chunk' ||
+                (update.sessionUpdate === 'agent_message_chunk' &&
+                  !update.content.text.startsWith('[context]')))
+            )
+              pendingOutput.push({ requestIndex, record });
             if (
               update?.sessionUpdate === 'user_message_chunk' &&
               update.content?.type === 'text'
@@ -686,16 +743,44 @@ export async function createFxSession(options: {
         notify();
         const draining = (async () => {
           for await (const event of runtimeTurn!) {
+            flushOutput();
+            if (
+              event.type === 'text_delta' ||
+              event.type === 'reasoning_delta'
+            ) {
+              const context = pendingOutput.shift();
+              if (!context || typeof context === 'function') {
+                const failedRequest = transport?.rejectedResponses.get(
+                  transport.requestIndex + 1,
+                );
+                if (failedRequest)
+                  throw new Error(
+                    `fx ${authentication.provider} model request ${failedRequest.modelId ?? '(unknown model)'} failed with HTTP ${failedRequest.status}.`,
+                  );
+                throw new Error(
+                  'fx parsed output could not be matched to its model request.',
+                );
+              }
+              if (!suspending) translator.onDelta({ event, ...context });
+            }
             if (event.type === 'user_message') recordSteer(event.text);
           }
+          flushOutput();
         })();
         const [result] = await Promise.all([runtimeTurn.result, draining]);
+        /*
+         * A native turn can drain buffered output in one microtask chain.
+         * Let the stream consumer react to that output, including aborting or
+         * suspending, before committing the turn as completed.
+         */
+        await setImmediate();
         if (suspending) return;
         signal.throwIfAborted();
         flushStep(transport.requestIndex);
         const finishReason = translator.steps.get(transport.requestIndex)
           ?.finishReason ?? {
-          unified: result.stopReason === 'max_tokens' ? 'length' : 'stop',
+          unified:
+            result.stopReason === 'max_output_tokens' ? 'length' : 'stop',
           raw: result.stopReason,
         };
         state.checkpoint = Buffer.from(await runtime.checkpoint()).toString(
@@ -711,8 +796,9 @@ export async function createFxSession(options: {
       } catch (error) {
         if (!suspending) {
           state.turn = undefined;
-          emit({ type: 'error', error });
-          throw error;
+          const failure = credentialFailure ? credentialFailure.error : error;
+          emit({ type: 'error', error: failure });
+          throw failure;
         }
       } finally {
         try {
@@ -773,6 +859,7 @@ export async function createFxSession(options: {
         );
         pendingSteers.push(text);
         await runtimeTurn!.steer(text);
+        recordSteer(text);
         await save();
       },
     };

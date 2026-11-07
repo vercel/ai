@@ -43,10 +43,12 @@ import {
 import { createMcpToolErrorMiddleware } from './mcp-tool-errors';
 import {
   loadMemorySaver,
+  pruneMemorySaver,
   removeMemorySaverSnapshot,
   saveMemorySaver,
 } from './persistent-memory-saver';
 import { createBuiltinToolFilteringMiddleware } from './tool-filtering';
+import { createDeepAgentsRepositoryResourceMiddlewares } from './repository-resources';
 
 const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 procEnv.PATH = [
@@ -155,10 +157,13 @@ function createModelMiddleware() {
 
 const args = parseArgs(argv.slice(2));
 const workdir = args.workdir;
+const homeDir = args.homeDir;
 const bridgeStateDir = args.bridgeStateDir;
-if (!workdir || !bridgeStateDir) {
+if (!workdir || !homeDir || !bridgeStateDir) {
   // eslint-disable-next-line no-console
-  console.error('deepagents bridge: missing --workdir / --bridge-state-dir');
+  console.error(
+    'deepagents bridge: missing --workdir / --home-dir / --bridge-state-dir',
+  );
   process.exit(1);
 }
 const conversationCheckpointPath = `${bridgeStateDir}/conversation.checkpoint`;
@@ -286,10 +291,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit = (event: Record<string, unknown>) =>
     turn.emit(event as BridgeEvent);
 
-  const interruptOn = buildInterruptOn(
-    start.permissionMode,
-    start.builtinToolFiltering,
-  );
+  const interruptOn = buildInterruptOn({
+    permissionMode: start.permissionMode,
+    builtinToolFiltering: start.builtinToolFiltering,
+    workDir: workdir,
+    readableSkillRoots: start.readableSkillRoots ?? [],
+  });
   const config = {
     version: 'v2' as const,
     configurable: { thread_id: 'bridge-session' },
@@ -302,6 +309,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     instructions: start.instructions,
     tools: start.tools,
     skillsPaths: start.skillsPaths,
+    permissionMode: start.permissionMode,
+    builtinToolFiltering: start.builtinToolFiltering,
+    readableSkillRoots: start.readableSkillRoots,
   });
   const rebuildAgent =
     agent == null ||
@@ -325,6 +335,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       },
     );
     const middleware = [
+      ...Object.values(
+        createDeepAgentsRepositoryResourceMiddlewares({
+          workDir: workdir,
+          homeDir,
+          skillsPaths: start.skillsPaths,
+        }),
+      ),
       createMcpToolErrorMiddleware({
         mcpToolNames: () => mcpToolNames,
         abortSignal: () => currentTurn?.abortSignal,
@@ -350,8 +367,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       systemPrompt: start.instructions
         ? { suffix: start.instructions }
         : undefined,
-      // Native skills loaded from the source dirs ($HOME-materialized + <workDir> for repo-provided skills).
-      ...(start.skillsPaths?.length ? { skills: start.skillsPaths } : {}),
       ...(middleware.length > 0 ? { middleware } : {}),
       // Gate built-in tools behind HITL approval when the permission mode requires it.
       ...(interruptOn ? { interruptOn } : {}),
@@ -395,7 +410,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   };
 
   let resumeInput: unknown = {
-    messages: [{ role: 'user', content: start.prompt }],
+    messages: [
+      {
+        role: 'user',
+        content:
+          typeof start.prompt === 'string'
+            ? start.prompt
+            : start.prompt.map(part =>
+                part.type === 'text'
+                  ? part
+                  : {
+                      type: 'image' as const,
+                      mimeType: part.mediaType,
+                      data: part.data,
+                    },
+              ),
+      },
+    ],
   };
   let emittedStructuredOutput = false;
 
@@ -517,7 +548,16 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 await runBridge<StartMessage>({
   bridgeType: 'deepagents',
   bridgeStateDir: bridgeStateDir!,
-  onStart: runTurn,
+  ...(args.hostDisconnectTimeoutMs !== undefined
+    ? { hostDisconnectTimeoutMs: Number(args.hostDisconnectTimeoutMs) }
+    : {}),
+  onStart: async (start, turn) => {
+    try {
+      await runTurn(start, turn);
+    } finally {
+      pruneMemorySaver({ saver: checkpointer });
+    }
+  },
   onStop: async () => {
     await closeMcpClient();
     await saveMemorySaver({

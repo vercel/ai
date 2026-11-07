@@ -11,11 +11,9 @@ import {
   type HarnessV1ContinueTurnState,
   type HarnessV1CredentialForwarding,
   type HarnessV1MintBridgeTokenCallback,
-  type HarnessV1Prompt,
   type HarnessV1PromptControl,
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
-  type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
   type HarnessV1Session,
   type HarnessV1Skill,
@@ -27,20 +25,24 @@ import {
   applyCredentialForwarding,
   classifyDiskLog,
   createBridgeToken,
+  createBridgeWebSocketConnect,
   resolveSandboxCredentialEnvironment,
   createBridgeErrorHandler,
   createBridgeStartupError,
   experimental_createBridgeUserMessageSubmitter,
   drainBridgeProcessStream,
+  extractHarnessPromptContent,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
+  resolveBridgeEndpoint,
+  resolveBridgePort,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  validateBridgeSandboxSettings,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
-  withBridgeToken,
   writeSkills,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
@@ -103,7 +105,8 @@ export type CodexHarnessSettings = {
   /**
    * Additional configuration passed through to Codex as-is. Codex config keys
    * typically use snake_case and must be provided in that form. Values managed
-   * by this adapter take precedence over conflicting entries.
+   * by this adapter take precedence over conflicting entries, except for the
+   * model_reasoning_summary default, which callers can override.
    */
   readonly codexConfig?: Record<string, unknown>;
   /**
@@ -134,6 +137,12 @@ export type CodexHarnessSettings = {
   readonly portEndpoint?: HarnessV1PortEndpoint;
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
+  /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
@@ -246,18 +255,13 @@ export function createCodex(
       const toolSafeSandboxSession =
         getRestrictedSandboxSession(sandboxSession);
       const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
-      validateBasicSandboxSettings({
+      validateBridgeSandboxSettings({
         sandboxSession,
-        port: settings.port,
-        portEndpoint: settings.portEndpoint,
+        sandboxId,
+        portOverride: settings.port,
+        portEndpointOverride: settings.portEndpoint,
+        mintBridgeToken: settings.mintBridgeToken,
       });
-      if (settings.mintBridgeToken != null && sandboxId == null) {
-        throw new HarnessCapabilityUnsupportedError({
-          harnessId: 'codex',
-          message:
-            'The codex harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
-        });
-      }
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -380,18 +384,17 @@ export function createCodex(
        */
       if (coords) {
         try {
-          const endpoint = await resolveBridgeEndpoint({
+          const attachEndpoint = await resolveBridgeEndpoint({
             sandboxSession,
-            override: settings.portEndpoint,
             port: coords.port,
-          });
-          const attachEndpoint = withBridgeToken({
-            endpoint,
+            portEndpointOverride: settings.portEndpoint,
             token: coords.token,
           });
           const attachChannel: CodexChannel = new SandboxChannel({
-            connect: ({ abortSignal }) =>
-              openWebSocket({ ...attachEndpoint, abortSignal }),
+            connect: createBridgeWebSocketConnect({
+              endpoint: attachEndpoint,
+              webSocketConstructor: WebSocket,
+            }),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
@@ -455,7 +458,7 @@ export function createCodex(
 
       const port = resolveBridgePort({
         sandboxSession,
-        override: settings.port,
+        portOverride: settings.port,
       });
       const token =
         settings.mintBridgeToken == null
@@ -502,7 +505,7 @@ export function createCodex(
       });
 
       const proc = await toolSafeSandboxSession.spawn({
-        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}${settings.hostDisconnectTimeoutMs !== undefined ? ` --host-disconnect-timeout-ms ${shellQuote(String(settings.hostDisconnectTimeoutMs))}` : ''}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -540,16 +543,20 @@ export function createCodex(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const endpoint = await resolveBridgeEndpoint({
+      const bridgeEndpoint = await resolveBridgeEndpoint({
         sandboxSession,
-        override: settings.portEndpoint,
         port: boundPort,
+        portEndpointOverride: settings.portEndpoint,
+        token,
       });
-      const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
       const channel: CodexChannel = new SandboxChannel({
-        connect: ({ abortSignal }) =>
-          openWebSocket({ ...bridgeEndpoint, abortSignal }),
+        connect: createBridgeWebSocketConnect({
+          endpoint: bridgeEndpoint,
+          webSocketConstructor: WebSocket,
+          openRetryTimeoutMs: timeoutMs,
+          startAbortSignal: startOpts.abortSignal,
+        }),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
@@ -592,128 +599,6 @@ export function createCodex(
       });
     },
   };
-}
-
-function resolveBridgePort({
-  sandboxSession,
-  override,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: number | undefined;
-}): number {
-  if (override !== undefined) return override;
-  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
-    return sandboxSession.ports[0];
-  }
-  throw new HarnessCapabilityUnsupportedError({
-    harnessId: 'codex',
-    message:
-      'The codex harness needs a TCP port exposed by the sandbox. ' +
-      'Create the sandbox with `ports: [<port>]` or pass `createCodex({ port })`.',
-  });
-}
-
-function validateBasicSandboxSettings({
-  sandboxSession,
-  port,
-  portEndpoint,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  port: number | undefined;
-  portEndpoint: HarnessV1PortEndpoint | undefined;
-}): void {
-  if ('getPortEndpoint' in sandboxSession) return;
-  if (port == null) {
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'codex',
-      message:
-        'The codex harness requires an explicit `port` when using a basic sandbox session.',
-    });
-  }
-  if (portEndpoint == null) {
-    throw new HarnessCapabilityUnsupportedError({
-      harnessId: 'codex',
-      message:
-        'The codex harness requires an explicit `portEndpoint` when using a basic sandbox session.',
-    });
-  }
-}
-
-async function resolveBridgeEndpoint({
-  sandboxSession,
-  override,
-  port,
-}: {
-  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
-  override: HarnessV1PortEndpoint | undefined;
-  port: number;
-}): Promise<HarnessV1PortEndpoint> {
-  if (override != null) return override;
-  if ('getPortEndpoint' in sandboxSession) {
-    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
-  }
-  throw new HarnessCapabilityUnsupportedError({
-    harnessId: 'codex',
-    message:
-      'The codex harness requires an explicit `portEndpoint` when using a basic sandbox session.',
-  });
-}
-
-function openWebSocket({
-  url,
-  headers,
-  abortSignal,
-}: HarnessV1PortEndpoint & { abortSignal: AbortSignal }): Promise<WebSocket> {
-  return new Promise((resolve, reject) => {
-    if (abortSignal.aborted) {
-      reject(abortSignal.reason ?? new Error('WebSocket connection aborted'));
-      return;
-    }
-
-    const ws = new WebSocket(url, {
-      headers: headers == null ? undefined : { ...headers },
-    });
-
-    let settled = false;
-    const cleanup = () => {
-      abortSignal.removeEventListener('abort', onAbort);
-      ws.off('open', onOpen);
-      ws.off('error', onError);
-    };
-    const rejectWithCleanup = (error: unknown) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      ws.once('error', () => {});
-      try {
-        ws.terminate();
-      } catch {
-        try {
-          ws.close();
-        } catch {
-          // best-effort
-        }
-      }
-      reject(error);
-    };
-    const onOpen = () => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve(ws);
-    };
-    const onError = (err: Error) => {
-      rejectWithCleanup(err);
-    };
-    const onAbort = () =>
-      rejectWithCleanup(
-        abortSignal.reason ?? new Error('WebSocket connection aborted'),
-      );
-
-    ws.once('open', onOpen);
-    ws.once('error', onError);
-    abortSignal.addEventListener('abort', onAbort, { once: true });
-  });
 }
 
 function createSession({
@@ -1028,7 +913,9 @@ function createSession({
 
       const startMessage = {
         type: 'start' as const,
-        prompt: extractUserText(promptOpts.prompt),
+        prompt: extractHarnessPromptContent({
+          prompt: promptOpts.prompt,
+        }),
         tools,
         ...(promptOpts.responseFormat == null
           ? {}
@@ -1371,27 +1258,4 @@ function fingerprintCodexTurnConfiguration({
     },
   );
   return `v2:${createHash('sha256').update(canonical).digest('hex')}`;
-}
-
-/*
- * Reduce a `HarnessV1Prompt` to the plain user text the bridge forwards to
- * Codex. The adapter does not yet map file and image parts into app-server
- * turn input, so throw rather than silently dropping them and producing a
- * truncated prompt.
- */
-function extractUserText(prompt: HarnessV1Prompt): string {
-  if (typeof prompt === 'string') return prompt;
-  const { content } = prompt;
-  if (typeof content === 'string') return content;
-  const parts: string[] = [];
-  for (const part of content) {
-    if (part.type !== 'text') {
-      throw new HarnessCapabilityUnsupportedError({
-        harnessId: 'codex',
-        message: `The codex harness does not yet support user message parts of type '${part.type}'. Pass a string or a user message whose content contains only text parts.`,
-      });
-    }
-    parts.push(part.text);
-  }
-  return parts.join('\n\n');
 }

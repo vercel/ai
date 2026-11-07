@@ -1748,6 +1748,124 @@ describe('OpenResponsesLanguageModel', () => {
   });
 
   describe('doStream', () => {
+    it.each(['throw', 'reject'] as const)(
+      'preserves extension item decoding errors when the stream ends (%s)',
+      async failure => {
+        const error = new Error('Extension item decoding failed');
+        const extension = createDocumentSearchExtension({
+          providerExecuted: true,
+        });
+        extension.decodeItem = () => {
+          if (failure === 'reject') {
+            return Promise.reject(error);
+          }
+          throw error;
+        };
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'response.output_item.done',
+              sequence_number: 0,
+              output_index: 0,
+              item: {
+                id: 'search-1',
+                type: 'acme:document_search_receipt',
+                status: 'completed',
+                call_id: 'call-1',
+                name: 'documentSearch',
+              },
+            })}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('test-model', [
+          extension,
+        ]).doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.filter(part => part.type === 'error')).toEqual([
+          { type: 'error', error },
+        ]);
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: { unified: 'error', raw: undefined },
+          }),
+        ]);
+      },
+    );
+
+    it('preserves extension errors when the stream ends', async () => {
+      const error = new Error('Extension failed');
+      const extension = createDocumentSearchExtension({
+        providerExecuted: true,
+      });
+      extension.decodeEvent = () => {
+        throw error;
+      };
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({ type: 'acme:document_search_input', sequence_number: 0, call_id: 'call-1', name: 'documentSearch', delta: '{}' })}\n\n`,
+        ],
+      };
+      const { stream } = await createModel('test-model', [extension]).doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts).toContainEqual({ type: 'error', error });
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+        }),
+      );
+    });
+
+    it.each([false, true])(
+      'handles a truncated stream (with error: %s)',
+      async withError => {
+        const events = fs
+          .readFileSync(
+            'src/responses/__fixtures__/lmstudio-basic.1.chunks.txt',
+            'utf8',
+          )
+          .split('\n')
+          .filter(Boolean)
+          .map(line => JSON.parse(line));
+        const firstText = events.findIndex(
+          event => event.type === 'response.output_text.delta',
+        );
+        expect(firstText).toBeGreaterThanOrEqual(0);
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks: [
+            ...events
+              .slice(0, firstText + 1)
+              .map(event => `data: ${JSON.stringify(event)}\n\n`),
+            ...(withError ? ['data: {invalid-json}\n\n'] : []),
+          ],
+        };
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+        expect(parts.filter(part => part.type === 'error')).toHaveLength(
+          withError ? 1 : 0,
+        );
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({
+            finishReason: {
+              unified: withError ? 'error' : 'interrupted',
+              raw: undefined,
+            },
+          }),
+        ]);
+      },
+    );
+
     function prepareChunksFixtureResponse(filename: string) {
       const chunks = fs
         .readFileSync(
@@ -1776,6 +1894,64 @@ describe('OpenResponsesLanguageModel', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+
+      it('should forward server response metadata from the response.created event', async () => {
+        const chunks = [
+          `data: ${JSON.stringify({
+            type: 'response.created',
+            sequence_number: 0,
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              created_at: 1750000000,
+              status: 'in_progress',
+              model: 'server-reported-model-id',
+              output: [],
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            sequence_number: 1,
+            output_index: 0,
+            item: {
+              id: 'msg_1',
+              type: 'message',
+              status: 'in_progress',
+              role: 'assistant',
+              content: [],
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_text.delta',
+            sequence_number: 2,
+            item_id: 'msg_1',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Hello',
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ];
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks,
+        };
+
+        const result = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(parts.slice(0, 2)).toStrictEqual([
+          { type: 'stream-start', warnings: [] },
+          {
+            type: 'response-metadata',
+            id: 'resp_123',
+            timestamp: new Date(1750000000 * 1000),
+            modelId: 'server-reported-model-id',
+          },
+        ]);
       });
     });
 
@@ -2474,6 +2650,12 @@ describe('OpenResponsesLanguageModel', () => {
               {
                 "type": "stream-start",
                 "warnings": [],
+              },
+              {
+                "id": "resp_051ebd7ab60063870069d4fe8ac1348194bf06d0a4646af05f",
+                "modelId": "gpt-4.1-nano-2025-04-14",
+                "timestamp": 2026-04-07T12:54:35.000Z,
+                "type": "response-metadata",
               },
               {
                 "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",

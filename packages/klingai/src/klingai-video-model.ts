@@ -1,4 +1,9 @@
 import {
+  getKlingAIVideoModelEntry,
+  getKlingAIApiModelName,
+  type KlingAIVideoMode,
+} from './klingai-model-catalog';
+import {
   AISDKError,
   NoSuchModelError,
   type Experimental_VideoModelV4 as VideoModelV4,
@@ -9,10 +14,14 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   type FetchFunction,
+  encodePathSegment,
   getFromApi,
   getTopLevelMediaType,
   parseProviderOptions,
@@ -27,8 +36,6 @@ import {
   type KlingAIVideoModelOptions,
 } from './klingai-video-model-options';
 import type { KlingAIVideoModelId } from './klingai-video-settings';
-
-type KlingAIVideoMode = 't2v' | 'i2v' | 'mi2v' | 'motion-control';
 
 function fileToImageString(file: VideoModelV4File): string {
   if (file.type === 'url') {
@@ -130,9 +137,8 @@ function resolveImageTail(
  * Detects the video generation mode from the model ID suffix.
  */
 function detectMode(modelId: string): KlingAIVideoMode {
-  if (modelId.endsWith('-t2v')) return 't2v';
-  if (modelId.endsWith('-i2v')) return 'i2v';
-  if (modelId.endsWith('-motion-control')) return 'motion-control';
+  const mode = getKlingAIVideoModelEntry(modelId).requestConfig.video.mode;
+  if (mode != null) return mode;
   throw new NoSuchModelError({ modelId, modelType: 'videoModel' });
 }
 
@@ -145,27 +151,6 @@ const modeEndpointMap: Record<KlingAIVideoMode, string> = {
   mi2v: '/v1/videos/multi-image2video',
   'motion-control': '/v1/videos/motion-control',
 };
-
-/**
- * Derives the KlingAI API `model_name` from the SDK model ID.
- * Strips the mode suffix and converts dots to hyphens.
- *
- * Examples:
- * - 'kling-v2.6-t2v' → 'kling-v2-6'
- * - 'kling-v2.1-master-i2v' → 'kling-v2-1-master'
- * - 'kling-v1-t2v' → 'kling-v1'
- * - 'kling-v3.0-t2v' → 'kling-v3'
- */
-function getApiModelName(modelId: string, mode: KlingAIVideoMode): string {
-  const suffix =
-    mode === 'motion-control'
-      ? '-motion-control'
-      : mode === 'mi2v'
-        ? '-i2v'
-        : `-${mode}`;
-  const baseName = modelId.slice(0, -suffix.length);
-  return baseName.replace(/\.0$/, '').replace(/\./g, '-');
-}
 
 /**
  * Known provider option keys that are handled explicitly and should not be
@@ -314,7 +299,7 @@ export class KlingAIVideoModel implements VideoModelV4 {
     };
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
-      url: `${this.config.baseURL}${endpointPath}/${taskId}`,
+      url: `${this.config.baseURL}${endpointPath}/${encodePathSegment(taskId)}`,
       validateUrl: true,
       trustedOrigin: this.config.baseURL,
       headers: combineHeaders(
@@ -378,7 +363,7 @@ export class KlingAIVideoModel implements VideoModelV4 {
       });
     }
 
-    if (options.seed) {
+    if (options.seed != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'seed',
@@ -475,7 +460,7 @@ export class KlingAIVideoModel implements VideoModelV4 {
   ): Record<string, unknown> {
     const mode = 't2v' as const;
     const body: Record<string, unknown> = {
-      model_name: getApiModelName(this.modelId, mode),
+      model_name: getKlingAIApiModelName(this.modelId, mode),
     };
 
     if (options.prompt != null) {
@@ -562,7 +547,7 @@ export class KlingAIVideoModel implements VideoModelV4 {
   ): Record<string, unknown> {
     const mode = 'i2v' as const;
     const body: Record<string, unknown> = {
-      model_name: getApiModelName(this.modelId, mode),
+      model_name: getKlingAIApiModelName(this.modelId, mode),
     };
 
     if (options.prompt != null) {
@@ -670,7 +655,7 @@ export class KlingAIVideoModel implements VideoModelV4 {
     warnings: SharedV4Warning[],
   ): Record<string, unknown> {
     const body: Record<string, unknown> = {
-      model_name: getApiModelName(this.modelId, 'mi2v'),
+      model_name: getKlingAIApiModelName(this.modelId, 'mi2v'),
       image_list: referenceImages.map(image => ({
         image: fileToImageString(image),
       })),
@@ -748,7 +733,7 @@ export class KlingAIVideoModel implements VideoModelV4 {
 
     const mode = 'motion-control' as const;
     const body: Record<string, unknown> = {
-      model_name: getApiModelName(this.modelId, mode),
+      model_name: getKlingAIApiModelName(this.modelId, mode),
       video_url: klingaiOptions.videoUrl,
       character_orientation: klingaiOptions.characterOrientation,
       mode: klingaiOptions.mode,
@@ -816,64 +801,72 @@ export class KlingAIVideoModel implements VideoModelV4 {
 }
 
 // Response schema for task creation (POST)
-const klingaiCreateTaskSchema = z.object({
-  code: z.number(),
-  message: z.string(),
-  request_id: z.string().nullish(),
-  data: z
-    .object({
-      task_id: z.string(),
-      task_status: z.string().nullish(),
-      task_info: z
+const klingaiCreateTaskSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      code: z.number(),
+      message: z.string(),
+      request_id: z.string().nullish(),
+      data: z
         .object({
-          external_task_id: z.string().nullish(),
+          task_id: z.string(),
+          task_status: z.string().nullish(),
+          task_info: z
+            .object({
+              external_task_id: z.string().nullish(),
+            })
+            .nullish(),
+          created_at: z.number().nullish(),
+          updated_at: z.number().nullish(),
         })
         .nullish(),
-      created_at: z.number().nullish(),
-      updated_at: z.number().nullish(),
-    })
-    .nullish(),
-});
+    }),
+  ),
+);
 
 // Response schema for task status query (GET)
-const klingaiTaskStatusSchema = z.object({
-  code: z.number(),
-  message: z.string(),
-  request_id: z.string().nullish(),
-  data: z
-    .object({
-      task_id: z.string(),
-      task_status: z.string(),
-      task_status_msg: z.string().nullish(),
-      task_info: z
+const klingaiTaskStatusSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      code: z.number(),
+      message: z.string(),
+      request_id: z.string().nullish(),
+      data: z
         .object({
-          external_task_id: z.string().nullish(),
-        })
-        .nullish(),
-      watermark_info: z
-        .object({
-          enabled: z.boolean().nullish(),
-        })
-        .nullish(),
-      final_unit_deduction: z.string().nullish(),
-      created_at: z.number().nullish(),
-      updated_at: z.number().nullish(),
-      task_result: z
-        .object({
-          videos: z
-            .array(
-              z.object({
-                id: z.string().nullish(),
-                url: z.string().nullish(),
-                watermark_url: z.string().nullish(),
-                duration: z.string().nullish(),
-              }),
-            )
+          task_id: z.string(),
+          task_status: z.string(),
+          task_status_msg: z.string().nullish(),
+          task_info: z
+            .object({
+              external_task_id: z.string().nullish(),
+            })
+            .nullish(),
+          watermark_info: z
+            .object({
+              enabled: z.boolean().nullish(),
+            })
+            .nullish(),
+          final_unit_deduction: z.string().nullish(),
+          created_at: z.number().nullish(),
+          updated_at: z.number().nullish(),
+          task_result: z
+            .object({
+              videos: z
+                .array(
+                  z.object({
+                    id: z.string().nullish(),
+                    url: z.string().nullish(),
+                    watermark_url: z.string().nullish(),
+                    duration: z.string().nullish(),
+                  }),
+                )
+                .nullish(),
+            })
             .nullish(),
         })
         .nullish(),
-    })
-    .nullish(),
-});
+    }),
+  ),
+);
 
-type KlingAITaskResponse = z.infer<typeof klingaiTaskStatusSchema>;
+type KlingAITaskResponse = InferSchema<typeof klingaiTaskStatusSchema>;

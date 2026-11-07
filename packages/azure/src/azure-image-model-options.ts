@@ -4,6 +4,7 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { getAzureModelEntry } from './azure-model-catalog';
 import { azureMaiImageModelOptionsShape } from './azure-mai-image-model-options';
 
 export const azureImageModelOptions = lazySchema(() =>
@@ -20,15 +21,6 @@ export const azureImageModelOptions = lazySchema(() =>
 
 export type AzureImageModelOptions = InferSchema<typeof azureImageModelOptions>;
 
-// Lowercase model IDs served by the MAI image API.
-const maiImageModels = new Set([
-  'mai-image-2.5',
-  'mai-image-2.5-flash',
-  'mai-image-2.5-pro',
-  'mai-image-2.6',
-  'mai-image-2.6-flash',
-]);
-
 export function isMAIImageModel(modelId: string) {
-  return maiImageModels.has(modelId.toLowerCase());
+  return getAzureModelEntry(modelId)?.requestConfig?.image?.api === 'mai';
 }

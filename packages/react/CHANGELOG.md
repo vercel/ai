@@ -1,5 +1,239 @@
 # @ai-sdk/react
 
+## 4.0.168
+
+### Patch Changes
+
+- Updated dependencies [ae13fce]
+  - @ai-sdk/mcp@2.0.92
+  - ai@7.0.164
+
+## 4.0.167
+
+### Patch Changes
+
+- e0143b0: feat(ai): support provider-owned realtime transports
+
+  Add an optional `createTransport` interface and `provider` connection capability.
+
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+  - @ai-sdk/mcp@2.0.91
+
+## 4.0.166
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+- Updated dependencies [857ca45]
+- Updated dependencies [4d6d830]
+  - @ai-sdk/provider-utils@5.0.74
+  - ai@7.0.162
+  - @ai-sdk/mcp@2.0.90
+
+## 4.0.165
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - ai@7.0.161
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/mcp@2.0.89
+
+## 4.0.164
+
+### Patch Changes
+
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
+## 4.0.163
+
+### Patch Changes
+
+- ai@7.0.159
+
+## 4.0.162
+
+### Patch Changes
+
+- 1afa510: Graduate `StdioMCPTransport`, `MCPClient.listPrompts`, `MCPClient.getPrompt`, and `MCPAppRenderer` to stable APIs. Deprecate their experimental names while retaining them as compatible aliases. MCP events remain experimental.
+- Updated dependencies [7716e18]
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [c3af430]
+- Updated dependencies [1afa510]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - ai@7.0.158
+  - @ai-sdk/mcp@2.0.88
+  - @ai-sdk/provider@4.0.35
+
+## 4.0.161
+
+### Patch Changes
+
+- Updated dependencies [0cc4921]
+- Updated dependencies [61a315e]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/mcp@2.0.87
+
+## 4.0.160
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 4.0.159
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [ade2a33]
+- Updated dependencies [b6b9dca]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/mcp@2.0.86
+  - ai@7.0.155
+
+## 4.0.158
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [e64ed82]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/mcp@2.0.85
+
+## 4.0.157
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [84d7880]
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/mcp@2.0.84
+  - @ai-sdk/provider@4.0.34
+  - ai@7.0.153
+  - @ai-sdk/provider-utils@5.0.68
+
+## 4.0.156
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 4.0.155
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 4.0.154
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [8e18d59]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - ai@7.0.150
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/mcp@2.0.83
+
+## 4.0.153
+
+### Patch Changes
+
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/mcp@2.0.82
+  - @ai-sdk/provider-utils@5.0.66
+
+## 4.0.152
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [060d419]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/mcp@2.0.81
+  - ai@7.0.148
+
+## 4.0.151
+
+### Patch Changes
+
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 4.0.150
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+- Updated dependencies [2b8185e]
+  - ai@7.0.146
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/mcp@2.0.80
+
+## 4.0.149
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 4.0.148
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [fce9210]
+- Updated dependencies [0ed59e2]
+  - @ai-sdk/provider@4.0.30
+  - ai@7.0.144
+  - @ai-sdk/mcp@2.0.79
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 4.0.147
 
 ### Patch Changes

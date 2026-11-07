@@ -1,4 +1,16 @@
+import { isLocalDevelopmentRequest } from '../../code-execution-files/is-local-development-request';
+
 export async function GET(req: Request) {
+  if (!isLocalDevelopmentRequest(req)) {
+    return new Response(
+      'File downloads are only available in local development.',
+      {
+        status: 403,
+        headers: { 'Cache-Control': 'no-store' },
+      },
+    );
+  }
+
   const { searchParams } = new URL(req.url);
   const containerId = searchParams.get('container_id');
   const fileId = searchParams.get('file_id');

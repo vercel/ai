@@ -8,21 +8,25 @@ export class MockTranscriptionModelV4 implements TranscriptionModelV4 {
 
   doGenerate: TranscriptionModelV4['doGenerate'];
   doStream: TranscriptionModelV4['doStream'];
+  doGenerateFromUrl: TranscriptionModelV4['doGenerateFromUrl'];
 
   constructor({
     provider = 'mock-provider',
     modelId = 'mock-model-id',
     doGenerate = notImplemented,
     doStream,
+    doGenerateFromUrl,
   }: {
     provider?: TranscriptionModelV4['provider'];
     modelId?: TranscriptionModelV4['modelId'];
     doGenerate?: TranscriptionModelV4['doGenerate'];
     doStream?: TranscriptionModelV4['doStream'];
+    doGenerateFromUrl?: TranscriptionModelV4['doGenerateFromUrl'];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;
     this.doGenerate = doGenerate;
     this.doStream = doStream;
+    this.doGenerateFromUrl = doGenerateFromUrl;
   }
 }

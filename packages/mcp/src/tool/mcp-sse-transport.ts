@@ -58,7 +58,7 @@ export class SseMCPTransport implements MCPTransport {
     this.headers = headers;
     this.authProvider = authProvider;
     this.redirectMode = redirect;
-    this.fetchFn = fetchFn ?? globalThis.fetch;
+    this.fetchFn = fetchFn ?? globalThis.fetch.bind(globalThis);
   }
 
   setProtocolVersion(version: string): void {

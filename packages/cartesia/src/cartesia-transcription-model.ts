@@ -7,6 +7,9 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   connectToWebSocket,
   convertBase64ToUint8Array,
@@ -154,7 +157,10 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
         path: '/stt',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: cartesiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -222,6 +228,21 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
       });
     }
 
+    for (const name of Object.keys(TURN_THRESHOLD_PARAMS) as Array<
+      keyof typeof TURN_THRESHOLD_PARAMS
+    >) {
+      if (
+        cartesiaOptions?.streaming?.turnDetection === false &&
+        cartesiaOptions.streaming[name] != null
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: `providerOptions.cartesia.streaming.${name}`,
+          details: 'Turn thresholds require turnDetection to be enabled.',
+        });
+      }
+    }
+
     // Always validate the declared media type — an explicit
     // `streaming.encoding` override must not bypass the allowlist.
     const inferredEncoding = cartesiaEncodingFromInputAudioFormat(
@@ -285,7 +306,10 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
   ): Promise<string> {
     const { value } = await postJsonToApi({
       url: this.config.url({ path: '/access-token', modelId: this.modelId }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: { grants: { stt: true } },
       failedResponseHandler: cartesiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -508,6 +532,13 @@ const LINEAR_PCM_STREAMING_ENCODINGS: ReadonlySet<string> = new Set(
   ),
 );
 
+const TURN_THRESHOLD_PARAMS = {
+  turnStartThreshold: 'turn_start_threshold',
+  turnEagerEndThreshold: 'turn_eager_end_threshold',
+  turnEndThreshold: 'turn_end_threshold',
+  turnEndTimeoutMs: 'turn_end_timeout_ms',
+} as const;
+
 function buildCartesiaStreamingTranscriptionUrl({
   baseURL,
   version,
@@ -541,6 +572,18 @@ function buildCartesiaStreamingTranscriptionUrl({
   if (!useTurnDetection && providerOptions?.language != null) {
     url.searchParams.set('language', providerOptions.language);
   }
+  const streaming = providerOptions?.streaming;
+  for (const keyterm of streaming?.keyterms ?? []) {
+    url.searchParams.append('keyterm', keyterm);
+  }
+  if (useTurnDetection) {
+    for (const [option, param] of Object.entries(TURN_THRESHOLD_PARAMS)) {
+      const value = streaming?.[option as keyof typeof TURN_THRESHOLD_PARAMS];
+      if (value != null) {
+        url.searchParams.set(param, String(value));
+      }
+    }
+  }
   return url;
 }
 
@@ -567,21 +610,29 @@ function isStreamingTranscriptionModelId(modelId: string): boolean {
   return modelId !== 'ink-whisper' && !modelId.startsWith('ink-whisper-');
 }
 
-const cartesiaTranscriptionResponseSchema = z.object({
-  text: z.string(),
-  language: z.string().nullish(),
-  duration: z.number().nullish(),
-  words: z
-    .array(
-      z.object({
-        word: z.string(),
-        start: z.number(),
-        end: z.number(),
-      }),
-    )
-    .nullish(),
-});
+const cartesiaTranscriptionResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      text: z.string(),
+      language: z.string().nullish(),
+      duration: z.number().nullish(),
+      words: z
+        .array(
+          z.object({
+            word: z.string(),
+            start: z.number(),
+            end: z.number(),
+          }),
+        )
+        .nullish(),
+    }),
+  ),
+);
 
-const cartesiaAccessTokenResponseSchema = z.object({
-  token: z.string().min(1),
-});
+const cartesiaAccessTokenResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      token: z.string().min(1),
+    }),
+  ),
+);

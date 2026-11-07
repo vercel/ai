@@ -9,17 +9,18 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  fetchWithValidatedEndpoint,
   getFromApi,
-  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   removeUndefinedEntries,
   resolve,
   serializeModelOptions,
-  validateDownloadUrl,
   withUserAgentSuffix,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -459,23 +460,22 @@ export class TopazVideoModel implements VideoModelV4 {
       });
     }
 
-    // The upload URL comes from the Topaz response body. `getFromApi` cannot
-    // be used for a PUT, so the same trust decision is made explicitly here:
-    // validate unless the URL points back at the configured base URL, and
-    // never attach the API key (presigned URLs carry their own credentials).
-    if (!isSameOrigin(url, this.config.baseURL)) {
-      validateDownloadUrl(url);
-    }
-
-    const fetchImpl = this.config.fetch ?? globalThis.fetch;
-    const response = await fetchImpl(url, {
-      method: 'PUT',
-      headers: withUserAgentSuffix(
-        { 'Content-Type': contentType },
-        `ai-sdk-topaz/${VERSION}`,
-      ) as HeadersInit,
-      body: bytes as BodyInit,
-      signal: abortSignal,
+    // Validate response-supplied upload URLs and reject redirects before the
+    // video body can be replayed to another destination. Presigned URLs carry
+    // their own credentials, so never attach the API key.
+    const response = await fetchWithValidatedEndpoint({
+      url,
+      trustedOrigin: this.config.baseURL,
+      fetch: this.config.fetch,
+      init: {
+        method: 'PUT',
+        headers: withUserAgentSuffix(
+          { 'Content-Type': contentType },
+          `ai-sdk-topaz/${VERSION}`,
+        ) as HeadersInit,
+        body: bytes as BodyInit,
+        signal: abortSignal,
+      },
     });
 
     if (!response.ok) {
@@ -778,30 +778,39 @@ function buildFilter(
 }
 
 // `cost` (credits) and `time` (seconds) are [lowerBound, upperBound] pairs.
-const topazVideoEstimatesSchema = z
-  .object({
-    cost: z.array(z.number()).nullish(),
-    time: z.array(z.number()).nullish(),
-  })
-  .nullish();
-
-const topazVideoExpressResponseSchema = z.object({
-  requestId: z.string().nullish(),
-  uploadUrls: z.array(z.string()).nullish(),
-  estimates: topazVideoEstimatesSchema,
-});
-
-const topazVideoStatusResponseSchema = z.object({
-  status: z.string().nullish(),
-  message: z.string().nullish(),
-  errorCode: z.string().nullish(),
-  // Documented as a string, accepted as a number too.
-  outputSize: z.union([z.string(), z.number()]).nullish(),
-  estimates: topazVideoEstimatesSchema,
-  download: z
+const topazVideoEstimatesSchema = () =>
+  z
     .object({
-      url: z.string().nullish(),
-      expiresAt: z.union([z.string(), z.number()]).nullish(),
+      cost: z.array(z.number()).nullish(),
+      time: z.array(z.number()).nullish(),
     })
-    .nullish(),
-});
+    .nullish();
+
+const topazVideoExpressResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      requestId: z.string().nullish(),
+      uploadUrls: z.array(z.string()).nullish(),
+      estimates: topazVideoEstimatesSchema(),
+    }),
+  ),
+);
+
+const topazVideoStatusResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.string().nullish(),
+      message: z.string().nullish(),
+      errorCode: z.string().nullish(),
+      // Documented as a string, accepted as a number too.
+      outputSize: z.union([z.string(), z.number()]).nullish(),
+      estimates: topazVideoEstimatesSchema(),
+      download: z
+        .object({
+          url: z.string().nullish(),
+          expiresAt: z.union([z.string(), z.number()]).nullish(),
+        })
+        .nullish(),
+    }),
+  ),
+);

@@ -1,8 +1,9 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
+import type { LanguageModelV4GenerateResult } from '@ai-sdk/provider';
 import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { embed } from '../embed/embed';
 import { embedMany } from '../embed/embed-many';
@@ -16,11 +17,17 @@ import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
+import type { InferTelemetryEvent } from './telemetry';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
   type TelemetryTracingChannelMessage,
 } from './tracing-channel';
 import { isNodeRuntime } from '../util/is-node-runtime';
+import { VERSION } from '../version';
+
+vi.mock('../version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 type TelemetryTracingChannelAsyncEndMessage = TelemetryTracingChannelMessage & {
   result?: unknown;
@@ -221,6 +228,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       [
         {
           "event": {
+            "aiVersion": "0.0.0-test",
             "callId": "tracing-channel-generate-text",
             "functionId": "enabled-function",
             "recordInputs": undefined,
@@ -278,6 +286,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     expect(capturedContext).toMatchInlineSnapshot(`
       {
         "event": {
+          "aiVersion": "0.0.0-test",
           "callId": "language-model-call",
           "functionId": "execution-function",
           "modelId": "mock-model",
@@ -344,6 +353,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     expect(capturedContext).toMatchInlineSnapshot(`
       {
         "event": {
+          "aiVersion": "0.0.0-test",
           "callId": "tool-call",
           "functionId": "execution-function",
           "messages": [],
@@ -561,7 +571,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
-  it('filters tracing context using telemetry allowlists', async () => {
+  it('includes the SDK version with allowlisted context on every tracing span', async () => {
     const usage = {
       inputTokens: {
         total: 3,
@@ -708,6 +718,26 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         telemetry,
       });
     });
+
+    expect(messages.map(message => message.type)).toEqual(
+      expect.arrayContaining([
+        'generateText',
+        'streamText',
+        'step',
+        'languageModelCall',
+        'executeTool',
+        'embed',
+        'embedMany',
+        'rerank',
+        'experimental_decide',
+      ]),
+    );
+
+    for (const message of messages) {
+      expect((message.event as InferTelemetryEvent<unknown>).aiVersion).toBe(
+        VERSION,
+      );
+    }
 
     for (const type of [
       'generateText',
@@ -920,6 +950,130 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       (decideMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
     ).toEqual({ requestId: 'request-1' });
   });
+
+  describe.each(['generateText', 'streamText'] as const)(
+    '%s request metadata',
+    api => {
+      it.each([
+        {
+          request: {
+            body: 'keep',
+            url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+          },
+          expected: { body: 'keep', url: 'https://model.example.test:8443' },
+        },
+        {
+          request: { body: 'keep', url: 'not a URL' },
+          expected: { body: 'keep' },
+        },
+        {
+          request: { body: 'keep', url: 'data:text/plain,secret' },
+          expected: { body: 'keep' },
+        },
+        { request: { body: 'keep' }, expected: { body: 'keep' } },
+        { request: undefined, expected: undefined },
+      ])(
+        'sanitizes $request before telemetry observes the provider result',
+        async ({ request, expected }) => {
+          type Request = LanguageModelV4GenerateResult['request'];
+          const tracedRequests: Request[] = [];
+          const integrationRequests: Request[] = [];
+          const providerRequest =
+            request == null ? undefined : Object.freeze({ ...request });
+          const snapshotRequest = (result: { request?: Request }) =>
+            result.request == null ? result.request : { ...result.request };
+          const channel = diagnosticsChannel.tracingChannel(
+            AI_SDK_TELEMETRY_TRACING_CHANNEL,
+          );
+          const subscribers = {
+            start() {},
+            end() {},
+            asyncStart() {},
+            asyncEnd(message: unknown) {
+              const telemetry =
+                message as TelemetryTracingChannelAsyncEndMessage;
+              if (telemetry.type === 'languageModelCall') {
+                tracedRequests.push(
+                  snapshotRequest(
+                    telemetry.result as LanguageModelV4GenerateResult,
+                  ),
+                );
+              }
+            },
+            error() {},
+          };
+          const finish = {
+            finishReason: { unified: 'stop' as const, raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: { total: 1, text: 1, reasoning: undefined },
+            },
+          };
+          const model = new MockLanguageModelV4({
+            doGenerate: {
+              content: [{ type: 'text', text: 'Hello' }],
+              warnings: [],
+              request: providerRequest,
+              ...finish,
+            },
+            doStream: {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: 'text-1' },
+                { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+                { type: 'text-end', id: 'text-1' },
+                { type: 'finish', ...finish },
+              ]),
+              request: providerRequest,
+            },
+          });
+
+          channel.subscribe(subscribers);
+          try {
+            const options = {
+              model,
+              prompt: 'Hello',
+              telemetry: {
+                integrations: [
+                  {
+                    executeLanguageModelCall: async <T>({
+                      execute,
+                    }: {
+                      execute: () => PromiseLike<T>;
+                    }) => {
+                      const result = await execute();
+                      integrationRequests.push(
+                        snapshotRequest(
+                          result as LanguageModelV4GenerateResult,
+                        ),
+                      );
+                      return result;
+                    },
+                  },
+                ],
+              },
+            };
+            const result =
+              api === 'generateText'
+                ? await generateText(options)
+                : streamText(options);
+            expect(await result.text).toBe('Hello');
+          } finally {
+            channel.unsubscribe(subscribers);
+          }
+
+          expect(tracedRequests).toEqual([expected]);
+          expect(integrationRequests).toEqual([expected]);
+          expect(providerRequest).toEqual(request);
+        },
+      );
+    },
+  );
 
   it('publishes the embed result on asyncEnd', async () => {
     const messages = await collectTracingChannelAsyncEndMessages(async () => {

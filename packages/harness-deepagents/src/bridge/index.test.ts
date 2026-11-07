@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { rgPath } from '@vscode/ripgrep';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { pruneMemorySaver } from './persistent-memory-saver';
 import { SANDBOX_PATH_FALLBACK } from './local-shell-backend';
 
 const originalPath = process.env.PATH;
@@ -21,6 +22,9 @@ type DeepAgentOptions = {
     wrapToolCall?: (request: any, handler: any) => Promise<unknown>;
   }>;
   model?: unknown;
+  memory?: string[];
+  skills?: string[];
+  interruptOn?: Record<string, unknown>;
   systemPrompt?: string | { suffix?: string };
 };
 
@@ -34,12 +38,21 @@ type ChatAnthropicOptions = {
 };
 
 const state = vi.hoisted(() => ({
+  hostDisconnectTimeoutMs: undefined as number | undefined,
   createDeepAgentOptions: [] as DeepAgentOptions[],
+  repositoryResourceOptions: undefined as
+    | { workDir: string; homeDir: string; skillsPaths?: ReadonlyArray<string> }
+    | undefined,
   originalArgv: [] as string[],
+  prunedAfterEventTypes: [] as Array<string | undefined>,
   responseFormat: undefined as
     | { type: 'json'; schema: Record<string, unknown> }
     | undefined,
   headers: undefined as Record<string, string> | undefined,
+  skillsPaths: undefined as string[] | undefined,
+  permissionMode: undefined as 'allow-reads' | undefined,
+  prompt: undefined as unknown,
+  streamInputs: [] as Array<unknown>,
   hostToolResponse: undefined as
     | { output: unknown; isError?: boolean; toolResult?: unknown }
     | undefined,
@@ -52,7 +65,8 @@ vi.mock('deepagents', () => ({
   createDeepAgent: (options: DeepAgentOptions) => {
     state.createDeepAgentOptions.push(options);
     return {
-      streamEvents: async function* () {
+      streamEvents: async function* (input: unknown) {
+        state.streamInputs.push(input);
         if (state.hostToolResponse !== undefined) {
           const hostTool = options.tools?.find(tool => tool.name === 'weather');
           if (!hostTool)
@@ -78,16 +92,33 @@ vi.mock('deepagents', () => ({
   LocalShellBackend: class {},
 }));
 
+vi.mock('./repository-resources', () => ({
+  createDeepAgentsRepositoryResourceMiddlewares: (options: {
+    workDir: string;
+    homeDir: string;
+    skillsPaths?: ReadonlyArray<string>;
+  }) => {
+    state.repositoryResourceOptions = options;
+    return {
+      memory: { name: 'confinedMemory' },
+      skills: { name: 'confinedSkills' },
+    };
+  },
+}));
+
 vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
   ...(await importOriginal<Record<string, unknown>>()),
   runBridge: async ({
     onStart,
+    hostDisconnectTimeoutMs,
   }: {
     onStart: (start: unknown, turn: unknown) => Promise<void>;
+    hostDisconnectTimeoutMs?: number;
   }) => {
+    state.hostDisconnectTimeoutMs = hostDisconnectTimeoutMs;
     await onStart(
       {
-        prompt: 'What is the capital of France?',
+        prompt: state.prompt,
         instructions: 'Answer every question in German.',
         thinking: { type: 'adaptive', display: 'summarized' },
         effort: 'max',
@@ -106,6 +137,8 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
               ],
         responseFormat: state.responseFormat,
         headers: state.headers,
+        skillsPaths: state.skillsPaths,
+        permissionMode: state.permissionMode,
       },
       {
         emit: (event: Record<string, unknown>) => {
@@ -121,6 +154,21 @@ vi.mock('@ai-sdk/harness/bridge', async importOriginal => ({
     );
   },
 }));
+
+vi.mock('./persistent-memory-saver', async importOriginal => {
+  const actual = (await importOriginal()) as Record<string, unknown> & {
+    pruneMemorySaver: typeof pruneMemorySaver;
+  };
+  return {
+    ...actual,
+    pruneMemorySaver: (args: Parameters<typeof pruneMemorySaver>[0]) => {
+      state.prunedAfterEventTypes.push(
+        state.emitted.at(-1)?.type as string | undefined,
+      );
+      actual.pruneMemorySaver(args);
+    },
+  };
+});
 
 vi.mock('@langchain/anthropic', () => ({
   ChatAnthropic: class {
@@ -157,7 +205,10 @@ vi.mock('@langchain/core/tools', () => ({
 
 vi.mock('@langchain/langgraph', () => ({
   Command: class {},
-  MemorySaver: class {},
+  MemorySaver: class {
+    storage = Object.create(null);
+    writes = Object.create(null);
+  },
 }));
 
 vi.mock('@langchain/mcp-adapters', () => ({
@@ -179,8 +230,14 @@ describe('Deep Agents bridge instructions', () => {
   beforeEach(() => {
     restorePath();
     state.createDeepAgentOptions = [];
+    state.repositoryResourceOptions = undefined;
+    state.prunedAfterEventTypes = [];
     state.responseFormat = undefined;
     state.headers = undefined;
+    state.skillsPaths = undefined;
+    state.permissionMode = undefined;
+    state.prompt = 'What is the capital of France?';
+    state.streamInputs = [];
     state.hostToolResponse = undefined;
     state.hostToolOutput = undefined;
     state.receivedToolCallId = undefined;
@@ -193,6 +250,8 @@ describe('Deep Agents bridge instructions', () => {
       'bridge.mjs',
       '--workdir',
       '/tmp/harness-deepagents-test/work',
+      '--home-dir',
+      '/home/sandbox',
       '--bridge-state-dir',
       '/tmp/harness-deepagents-test/state',
     );
@@ -216,6 +275,21 @@ describe('Deep Agents bridge instructions', () => {
     );
   });
 
+  it.each([
+    [['--host-disconnect-timeout-ms', '60000'], 60_000],
+    [[], undefined],
+  ])(
+    'passes the host disconnect timeout argument to the bridge (%j)',
+    async (extraArgs, expected) => {
+      state.hostDisconnectTimeoutMs = undefined;
+      process.argv.push(...extraArgs);
+
+      await import('./index');
+
+      expect(state.hostDisconnectTimeoutMs).toBe(expected);
+    },
+  );
+
   it('keeps a usable fallback PATH when PATH is unavailable', async () => {
     delete process.env.PATH;
 
@@ -226,12 +300,65 @@ describe('Deep Agents bridge instructions', () => {
     );
   });
 
+  it('prunes checkpoint history after the turn has emitted its finish event', async () => {
+    await import('./index');
+
+    expect(state.emitted.at(-1)?.type).toBe('finish');
+    expect(state.prunedAfterEventTypes).toEqual(['finish']);
+  });
+
   it('appends instructions to the native system prompt', async () => {
     await import('./index');
 
     expect(state.createDeepAgentOptions[0]?.systemPrompt).toEqual({
       suffix: 'Answer every question in German.',
     });
+  });
+
+  it('uses confined middleware for workDir instructions and skills', async () => {
+    state.skillsPaths = [
+      '/tmp/harness-deepagents-test/work/.agents/skills',
+      '/home/sandbox/.agents/skills',
+    ];
+    state.permissionMode = 'allow-reads';
+
+    await import('./index');
+
+    const options = state.createDeepAgentOptions[0];
+    expect({
+      memory: options?.memory,
+      skills: options?.skills,
+      systemPrompt: options?.systemPrompt,
+      writeApproval: options?.interruptOn?.write_file,
+    }).toMatchInlineSnapshot(`
+      {
+        "memory": undefined,
+        "skills": undefined,
+        "systemPrompt": {
+          "suffix": "Answer every question in German.",
+        },
+        "writeApproval": {
+          "allowedDecisions": [
+            "approve",
+            "reject",
+          ],
+        },
+      }
+    `);
+    expect(state.repositoryResourceOptions).toEqual({
+      workDir: '/tmp/harness-deepagents-test/work',
+      homeDir: '/home/sandbox',
+      skillsPaths: [
+        '/tmp/harness-deepagents-test/work/.agents/skills',
+        '/home/sandbox/.agents/skills',
+      ],
+    });
+    expect(options?.middleware?.map(middleware => middleware.name)).toContain(
+      'confinedMemory',
+    );
+    expect(options?.middleware?.map(middleware => middleware.name)).toContain(
+      'confinedSkills',
+    );
   });
 
   it('installs MCP tool error recovery in the native agent', async () => {
@@ -408,6 +535,29 @@ describe('Deep Agents bridge instructions', () => {
     expect(state.emitted.filter(event => event.type === 'tool-result')).toEqual(
       [expect.objectContaining({ result: { status: 'ready' } })],
     );
+  });
+
+  it('passes user text and inline images as LangChain content blocks', async () => {
+    state.prompt = [
+      { type: 'text', text: 'Describe this image.' },
+      { type: 'image', data: 'AQID', mediaType: 'image/png' },
+    ];
+
+    await import('./index');
+
+    expect(state.streamInputs).toEqual([
+      {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image.' },
+              { type: 'image', mimeType: 'image/png', data: 'AQID' },
+            ],
+          },
+        ],
+      },
+    ]);
   });
 
   it('emits one errored host-tool result without duplicating on_tool_end', async () => {

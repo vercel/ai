@@ -1,3 +1,4 @@
+import { getLumaImageModelEntry } from './luma-model-catalog';
 import {
   InvalidResponseDataError,
   type ImageModelV4,
@@ -5,12 +6,16 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
+  type InferSchema,
   combineHeaders,
   createBinaryResponseHandler,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
+  encodePathSegment,
   getFromApi,
   postJsonToApi,
   lazySchema,
@@ -31,7 +36,7 @@ const DEFAULT_MAX_POLL_ATTEMPTS = 60000 / DEFAULT_POLL_INTERVAL_MILLIS;
 interface LumaImageModelConfig {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string>;
+  headers?: Resolvable<Record<string, string>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -40,18 +45,23 @@ interface LumaImageModelConfig {
 
 export class LumaImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 1;
+  get maxImagesPerCall(): number {
+    return getLumaImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
+  }
   readonly pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS;
   readonly maxPollAttempts = DEFAULT_MAX_POLL_ATTEMPTS;
 
   get supportsFileInputs(): boolean | undefined {
-    return this.modelId === 'photon-1' || this.modelId === 'photon-flash-1'
-      ? true
-      : undefined;
+    const support = getLumaImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get supportsMaskInputs(): boolean | undefined {
-    return this.supportsFileInputs === true ? false : undefined;
+    const support = getLumaImageModelEntry(this.modelId).capabilities.image
+      .maskInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get provider(): string {
@@ -134,10 +144,11 @@ export class LumaImageModel implements ImageModelV4 {
     );
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const fullHeaders = combineHeaders(this.config.headers?.(), headers);
+    const getHeaders = async () =>
+      combineHeaders(await resolve(this.config.headers), headers);
     const { value: generationResponse, responseHeaders } = await postJsonToApi({
       url: this.getLumaGenerationsUrl(),
-      headers: fullHeaders,
+      headers: await getHeaders(),
       body: {
         prompt,
         ...(aspectRatio ? { aspect_ratio: aspectRatio } : {}),
@@ -155,7 +166,7 @@ export class LumaImageModel implements ImageModelV4 {
 
     const imageUrl = await this.pollForImageUrl(
       generationResponse.id,
-      fullHeaders,
+      getHeaders,
       abortSignal,
       {
         pollIntervalMillis: pollIntervalMillis ?? undefined,
@@ -178,7 +189,7 @@ export class LumaImageModel implements ImageModelV4 {
 
   private async pollForImageUrl(
     generationId: string,
-    headers: Record<string, string | undefined>,
+    headers: Resolvable<Record<string, string | undefined>>,
     abortSignal: AbortSignal | undefined,
     pollSettings?: { pollIntervalMillis?: number; maxPollAttempts?: number },
   ): Promise<string> {
@@ -192,7 +203,7 @@ export class LumaImageModel implements ImageModelV4 {
       const { value: statusResponse } = await getFromApi({
         url,
         validateUrl: false,
-        headers,
+        headers: await resolve(headers),
         abortSignal,
         fetch: this.config.fetch,
         failedResponseHandler: this.createLumaErrorHandler(),
@@ -345,9 +356,9 @@ export class LumaImageModel implements ImageModelV4 {
   }
 
   private getLumaGenerationsUrl(generationId?: string) {
-    return `${this.config.baseURL}/dream-machine/v1/generations/${
-      generationId ?? 'image'
-    }`;
+    return `${this.config.baseURL}/dream-machine/v1/generations/${encodePathSegment(
+      generationId ?? 'image',
+    )}`;
   }
 
   private async downloadImage(
@@ -387,23 +398,27 @@ const lumaGenerationResponseSchema = lazySchema(() =>
   ),
 );
 
-const lumaErrorSchema = z.object({
-  detail: z.array(
+const lumaErrorSchema = lazySchema(() =>
+  zodSchema(
     z.object({
-      type: z.string(),
-      loc: z.array(z.string()),
-      msg: z.string(),
-      input: z.string(),
-      ctx: z
-        .object({
-          expected: z.string(),
-        })
-        .nullish(),
+      detail: z.array(
+        z.object({
+          type: z.string(),
+          loc: z.array(z.string()),
+          msg: z.string(),
+          input: z.string(),
+          ctx: z
+            .object({
+              expected: z.string(),
+            })
+            .nullish(),
+        }),
+      ),
     }),
   ),
-});
+);
 
-export type LumaErrorData = z.infer<typeof lumaErrorSchema>;
+export type LumaErrorData = InferSchema<typeof lumaErrorSchema>;
 
 /**
  * Provider options schema for Luma image generation.

@@ -28,10 +28,14 @@ When the SDK fetches a URL taken from a provider response, it:
 
 - **Rejects private, loopback, and link-local targets** — IPv4 (`10/8`,
   `172.16/12`, `192.168/16`, `127/8`, `169.254/16`, CGNAT, multicast, …) and the
-  equivalent IPv6 ranges, plus `localhost` and `.local`. Non-`http(s)` schemes
-  are rejected too.
+  equivalent IPv6 ranges, plus `localhost`, `.local`, `.localhost`, and
+  `.internal` hostnames. Non-`http(s)` schemes are rejected too.
 - **Re-validates every redirect hop** — a URL that passes but then redirects to
   an internal address is blocked; the redirect is never followed blindly.
+- **Rejects HTTPS downgrades on server-side downloads** — a redirect from HTTPS
+  to HTTP is blocked before requesting the insecure target, even when that target
+  matches `trustedOrigin`. Initial HTTP URLs and HTTP-to-HTTPS upgrades remain
+  supported.
 - **Validates DNS at connection time on Node.js** — every resolved address is
   checked, and the socket is pinned to the validated DNS result so DNS
   rebinding cannot introduce a different address between validation and

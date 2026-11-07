@@ -8,13 +8,14 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
-    model: mistral.transcription('voxtral-mini-latest'),
+    model: mistral.transcription('voxtral-mini-transcribe-3-0'),
     audio: await readFile('data/galileo.mp3'),
     providerOptions: {
       mistral: {
         timestampGranularities: ['segment'],
         diarize: true,
-        contextBias: ['Galileo_Galilei'],
+        returnLanguage: true,
+        contextBias: ['Galileo Galilei', 'A recording about astronomy.'],
       } satisfies MistralTranscriptionModelOptions,
     },
   });

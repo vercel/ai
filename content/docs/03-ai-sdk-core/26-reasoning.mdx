@@ -24,7 +24,7 @@ The `reasoning` parameter accepts the following values:
 | Value                | Behavior                                                             |
 | -------------------- | -------------------------------------------------------------------- |
 | `'provider-default'` | Use the provider's default reasoning behavior (default when omitted) |
-| `'none'`             | Disable reasoning                                                    |
+| `'none'`             | Disable reasoning (lowest reasoning level if it cannot be disabled)  |
 | `'minimal'`          | Bare-minimum reasoning                                               |
 | `'low'`              | Fast, concise reasoning                                              |
 | `'medium'`           | Balanced reasoning                                                   |
@@ -80,9 +80,15 @@ This design lets you use the portable `reasoning` parameter by default and fall 
 
 The `reasoning` parameter is supported by providers including OpenAI, Anthropic, Google, xAI, Groq, DeepSeek, Moonshot AI, Fireworks, Amazon Bedrock, Mistral, Cohere, Alibaba, Open Responses, OpenAI Compatible, and Perplexity. Each provider translates the value to its native reasoning API.
 
-Providers with a distinct native maximum tier, such as supported OpenAI, Anthropic, DeepSeek, and Moonshot AI models, receive `'max'` directly. Amazon Bedrock preserves `'max'` for its Anthropic and OpenAI effort mappings, while Amazon Nova 2 maps `'xhigh'` and `'max'` to `'high'` with a compatibility warning. Providers whose highest native tier is lower coerce `'max'` to their closest supported tier and emit a compatibility warning when their adapter supports warning propagation. OpenAI-compatible and Open Responses endpoints receive `'max'` directly so compatible servers can interpret it.
+### How values are mapped
 
-Some providers use a numeric token budget instead of an enum for reasoning control. In those cases, `'max'` maps to 95% of the model's maximum output tokens by default, subject to the provider's minimum and maximum reasoning budget limits.
+When a model does not support the requested value, the provider uses the closest supported value, rounding down. The values are ordered `none` < `minimal` < `low` < `medium` < `high` < `xhigh` < `max`, so `'xhigh'` becomes `'high'` on a model without an `xhigh` level. If there is no lower value, the next higher one is used.
+
+Rounding never turns reasoning off: other values never map to `'none'`, and `'none'` on a model that cannot disable reasoning maps to the model's lowest level. Providers emit a `compatibility` warning whenever the value they send differs from the requested value. Values set in `providerOptions` are sent unchanged (see [Precedence Rules](#precedence-rules)).
+
+Providers only round values for models and model families they recognize by model ID, so newer versions of a known family use that family's levels. Unrecognized model IDs, such as fine-tuned or custom models, and OpenAI-compatible and Open Responses endpoints receive the value directly and the API decides whether it is supported.
+
+For providers that use a token budget, the value maps to a percentage of the model's maximum output tokens (`'max'` maps to 95% by default), within the provider's budget limits.
 
 Maximum reasoning can substantially increase token usage, latency, cost, and the chance of reaching request or output limits. Use it when the model's additional reasoning depth is worth those tradeoffs.
 

@@ -95,6 +95,61 @@ function messageResultBody(text: string) {
 }
 
 describe('Anthropic batch', () => {
+  it('rejects message threads before making an API request', async () => {
+    const batch = createAnthropic({ apiKey: 'test-key' }).experimental_batch();
+    await expect(
+      batch.doStartBatch({
+        requests: [
+          {
+            id: 'thread-request',
+            ...request('Hello', {
+              providerOptions: { anthropic: { thread: { type: 'create' } } },
+            }),
+          },
+        ],
+      }),
+    ).rejects.toThrow('Message Batches do not support message threads');
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('exposes the applied service tier from batch result usage', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          custom_id: 'tier',
+          result: {
+            type: 'succeeded',
+            message: {
+              ...messageResultBody('OK'),
+              usage: {
+                input_tokens: 1,
+                output_tokens: 1,
+                service_tier: 'batch',
+              },
+            },
+          },
+        }) + '\n',
+      ],
+    };
+    const batch = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+    const [result] = await convertReadableStreamToArray(
+      await batch.doGetBatchResults({ batchId: 'msgbatch_123' }),
+    );
+    expect(result.status).toBe('succeeded');
+    if (result.status !== 'succeeded')
+      throw new Error('Expected a succeeded result');
+    expect(result.result.providerMetadata).toMatchObject({
+      anthropic: { serviceTier: 'batch' },
+    });
+  });
+
   it('rejects unsupported request types before making an API request', async () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',
@@ -262,6 +317,26 @@ describe('Anthropic batch', () => {
     expect(betas).toHaveLength(2);
     expect(new Set(betas).size).toBe(betas.length);
   });
+
+  it.each(['batch-beta', [123], null])(
+    'rejects invalid batch-level betas %j before making an API request',
+    async anthropicBeta => {
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      await expect(
+        model.doStartBatch({
+          requests: [{ id: 'request-1', ...request('Hello') }],
+          providerOptions: { anthropic: { anthropicBeta } },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'providerOptions',
+      });
+      expect(server.calls).toHaveLength(0);
+    },
+  );
 
   it('rejects per-request betas before making an API request', async () => {
     const model = createAnthropic({
