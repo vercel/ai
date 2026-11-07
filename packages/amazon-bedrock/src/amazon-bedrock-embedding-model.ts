@@ -1,8 +1,11 @@
+import { getAmazonBedrockEmbeddingModelFamily } from './amazon-bedrock-model-catalog';
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -41,7 +44,10 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
   }
 
   private get modelFamily() {
-    return this.config.modelFamily ?? detectEmbeddingModelFamily(this.modelId);
+    return (
+      this.config.modelFamily ??
+      getAmazonBedrockEmbeddingModelFamily(this.modelId)
+    );
   }
 
   static [WORKFLOW_SERIALIZE](model: AmazonBedrockEmbeddingModel) {
@@ -197,50 +203,34 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
   }
 }
 
-function isCohereEmbeddingModel(modelId: string) {
-  // Use `includes` so cross-region inference profile ids (e.g.
-  // `us.cohere.embed-v4:0`, `global.cohere.embed-v4:0`) are detected too.
-  return modelId.includes('cohere.embed-');
-}
-
-function isNovaEmbeddingModel(modelId: string) {
-  return modelId.includes('amazon.nova-') && modelId.includes('embed');
-}
-
-function detectEmbeddingModelFamily(
-  modelId: string,
-): NonNullable<AmazonBedrockEmbeddingModelSettings['modelFamily']> {
-  return isNovaEmbeddingModel(modelId)
-    ? 'nova'
-    : isCohereEmbeddingModel(modelId)
-      ? 'cohere'
-      : 'titan';
-}
-
-const AmazonBedrockEmbeddingResponseSchema = z.union([
-  // Titan-style response
-  z.object({
-    embedding: z.array(z.number()),
-    inputTextTokenCount: z.number(),
-  }),
-  // Nova-style response
-  z.object({
-    embeddings: z.array(
+const AmazonBedrockEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.union([
+      // Titan-style response
       z.object({
-        embeddingType: z.string(),
         embedding: z.array(z.number()),
+        inputTextTokenCount: z.number(),
       }),
-    ),
-    inputTokenCount: z.number().optional(),
-  }),
-  // Cohere v3-style response
-  z.object({
-    embeddings: z.array(z.array(z.number())),
-  }),
-  // Cohere v4-style response
-  z.object({
-    embeddings: z.object({
-      float: z.array(z.array(z.number())),
-    }),
-  }),
-]);
+      // Nova-style response
+      z.object({
+        embeddings: z.array(
+          z.object({
+            embeddingType: z.string(),
+            embedding: z.array(z.number()),
+          }),
+        ),
+        inputTokenCount: z.number().optional(),
+      }),
+      // Cohere v3-style response
+      z.object({
+        embeddings: z.array(z.array(z.number())),
+      }),
+      // Cohere v4-style response
+      z.object({
+        embeddings: z.object({
+          float: z.array(z.array(z.number())),
+        }),
+      }),
+    ]),
+  ),
+);

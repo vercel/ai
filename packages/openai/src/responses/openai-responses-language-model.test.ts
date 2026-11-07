@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   type LanguageModelV4Content,
   type LanguageModelV4FunctionTool,
   type LanguageModelV4GenerateResult,
@@ -347,6 +348,10 @@ describe('OpenAIResponsesLanguageModel', () => {
               input_tokens_details: {
                 cached_tokens: 234,
                 cache_write_tokens: 45,
+                cache_write_tokens_details: {
+                  ttl_30m_tokens: 15,
+                  ttl_12h_tokens: 30,
+                },
                 future_input_detail: {
                   tokens: 7,
                 },
@@ -412,6 +417,10 @@ describe('OpenAIResponsesLanguageModel', () => {
               "input_tokens": 345,
               "input_tokens_details": {
                 "cache_write_tokens": 45,
+                "cache_write_tokens_details": {
+                  "ttl_12h_tokens": 30,
+                  "ttl_30m_tokens": 15,
+                },
                 "cached_tokens": 234,
                 "future_input_detail": {
                   "tokens": 7,
@@ -1337,7 +1346,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       );
 
       it.each(['none', 'minimal'])(
-        'should omit unsupported GPT-6 reasoning effort %s',
+        'should send provider reasoning effort %s unchanged for GPT-6 models',
         async reasoningEffort => {
           const { warnings } = await createModel('gpt-6-astra').doGenerate({
             prompt: TEST_PROMPT,
@@ -1348,21 +1357,31 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           });
 
-          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
             model: 'gpt-6-astra',
-            input: [
-              {
-                role: 'user',
-                content: [{ type: 'input_text', text: 'Hello' }],
-              },
-            ],
+            reasoning: { effort: reasoningEffort },
+          });
+          expect(warnings).toStrictEqual([]);
+        },
+      );
+
+      it.each(['none', 'minimal'] as const)(
+        'should map unsupported GPT-6 reasoning %s to the lowest supported effort',
+        async reasoning => {
+          const { warnings } = await createModel('gpt-6-astra').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning,
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
+            model: 'gpt-6-astra',
+            reasoning: { effort: 'low' },
           });
           expect(warnings).toStrictEqual([
             {
-              type: 'unsupported',
-              feature: 'reasoningEffort',
-              details:
-                'gpt-6-astra only supports the following reasoning efforts: low, medium, high, xhigh, max',
+              type: 'compatibility',
+              feature: 'reasoning',
+              details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "low".`,
             },
           ]);
         },
@@ -1412,6 +1431,60 @@ describe('OpenAIResponsesLanguageModel', () => {
             details: 'logprobs is not supported for reasoning models',
           },
         ]);
+      });
+
+      it('should keep logprob settings for GPT-5 reasoning models', async () => {
+        const { warnings } = await createModel('gpt-5.5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'low',
+              logprobs: 5,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.top_logprobs).toBe(5);
+        expect(body.include).toStrictEqual(['message.output_text.logprobs']);
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it.each([
+        ['gpt-5.5', 'minimal', 'low'],
+        ['gpt-5.1', 'xhigh', 'high'],
+        ['gpt-5-nano', 'none', 'minimal'],
+      ] as const)(
+        'should map unsupported reasoning for %s from %s to %s',
+        async (modelId, reasoning, expectedEffort) => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning,
+          });
+
+          expect((await server.calls[0].requestBodyJson).reasoning.effort).toBe(
+            expectedEffort,
+          );
+          expect(warnings).toStrictEqual([
+            {
+              type: 'compatibility',
+              feature: 'reasoning',
+              details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "${expectedEffort}".`,
+            },
+          ]);
+        },
+      );
+
+      it('should send max reasoning for GPT-5.6 models', async () => {
+        const { warnings } = await createModel('gpt-5.6-luna').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning.effort).toBe(
+          'max',
+        );
+        expect(warnings).toStrictEqual([]);
       });
 
       it('should let GPT-5.6 use its default effort with pro mode', async () => {
@@ -1901,6 +1974,129 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send a 12h promptCacheOptions ttl and prewarm', async () => {
+        const { warnings } = await createModel('gpt-6.1-sol').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheOptions: {
+                mode: 'implicit',
+                ttl: '12h',
+                prewarm: true,
+              },
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6.1-sol',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          prompt_cache_options: {
+            mode: 'implicit',
+            ttl: '12h',
+            prewarm: true,
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send a 12h ttl on a prompt cache breakpoint', async () => {
+        await createModel('gpt-6.1-sol').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Stable prefix',
+                  providerOptions: {
+                    openai: {
+                      promptCacheBreakpoint: { mode: 'explicit', ttl: '12h' },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          input: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'input_text',
+                  text: 'Stable prefix',
+                  prompt_cache_breakpoint: { mode: 'explicit', ttl: '12h' },
+                },
+              ],
+            },
+          ],
+        });
+      });
+
+      it('should reject an unsupported promptCacheOptions ttl', async () => {
+        await expect(
+          createModel('gpt-6.1-sol').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              openai: { promptCacheOptions: { ttl: '24h' } },
+            },
+          }),
+        ).rejects.toThrow(InvalidArgumentError);
+      });
+
+      it('should return empty content for a prewarm response', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_prewarm',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            model: 'gpt-6.1-sol',
+            output: [],
+            usage: {
+              input_tokens: 2048,
+              input_tokens_details: {
+                cached_tokens: 0,
+                cache_write_tokens: 2048,
+                cache_write_tokens_details: {
+                  ttl_30m_tokens: 0,
+                  ttl_12h_tokens: 2048,
+                },
+              },
+              output_tokens: 0,
+              output_tokens_details: { reasoning_tokens: 0 },
+              total_tokens: 2048,
+            },
+          },
+        };
+
+        const result = await createModel('gpt-6.1-sol').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { promptCacheOptions: { ttl: '12h', prewarm: true } },
+          },
+        });
+
+        expect(result.content).toStrictEqual([]);
+        expect(result.warnings).toStrictEqual([]);
+        expect(result.usage.inputTokens).toStrictEqual({
+          total: 2048,
+          noCache: 0,
+          cacheRead: 0,
+          cacheWrite: 2048,
+        });
+        expect(result.usage.outputTokens.total).toBe(0);
+      });
+
       it('should insert a reasoning effort configuration update before the prompt', async () => {
         const { warnings } = await createModel('gpt-6-astra').doGenerate({
           prompt: TEST_PROMPT,
@@ -1987,6 +2183,22 @@ describe('OpenAIResponsesLanguageModel', () => {
               'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation',
           },
         ]);
+      });
+
+      it('should send prompt cache retention for GPT-5 models', async () => {
+        const { warnings } = await createModel('gpt-5.5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheRetention: '24h',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).prompt_cache_retention,
+        ).toBe('24h');
+        expect(warnings).toStrictEqual([]);
       });
 
       it('should omit legacy prompt cache retention for GPT-6 models', async () => {
@@ -4278,6 +4490,196 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('shell tool with execution controls', () => {
+      function prepareShellCallResponse(
+        action: Record<string, unknown>,
+        shellCallOutput?: Record<string, unknown>,
+      ) {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_shell_controls',
+            object: 'response',
+            created_at: 1764712894,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-5.1',
+            output: [
+              {
+                id: 'sh_1',
+                type: 'shell_call',
+                status: 'completed',
+                call_id: 'call_1',
+                action,
+              },
+              ...(shellCallOutput ? [shellCallOutput] : []),
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: { effort: 'none', summary: null },
+            store: true,
+            temperature: 1,
+            text: { format: { type: 'text' } },
+            tool_choice: 'auto',
+            tools: [{ type: 'shell' }],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 10,
+              input_tokens_details: { cached_tokens: 0 },
+              output_tokens: 5,
+              output_tokens_details: { reasoning_tokens: 0 },
+              total_tokens: 15,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
+      }
+
+      it('should forward timeout_ms and max_output_length to the tool call input', async () => {
+        prepareShellCallResponse({
+          commands: ['echo hi'],
+          timeout_ms: 1000,
+          max_output_length: 10000,
+        });
+
+        const result = await createModel('gpt-5.1').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo hi"],"timeoutMs":1000,"maxOutputLength":10000}}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_1",
+                },
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should omit null timeout_ms and max_output_length from the tool call input', async () => {
+        prepareShellCallResponse({
+          commands: ['echo hi'],
+          timeout_ms: null,
+          max_output_length: null,
+        });
+
+        const result = await createModel('gpt-5.1').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo hi"]}}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_1",
+                },
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should forward max_output_length from a provider-executed shell_call_output to the tool result', async () => {
+        prepareShellCallResponse(
+          { commands: ['echo hi'], timeout_ms: null, max_output_length: 10000 },
+          {
+            id: 'sho_1',
+            type: 'shell_call_output',
+            status: 'completed',
+            call_id: 'call_1',
+            max_output_length: 10000,
+            output: [
+              {
+                stdout: 'hi',
+                stderr: '',
+                outcome: { type: 'exit', exit_code: 0 },
+              },
+            ],
+          },
+        );
+
+        const result = await createModel('gpt-5.1').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: { environment: { type: 'containerAuto' } },
+            },
+          ],
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo hi"],"maxOutputLength":10000}}",
+              "providerExecuted": true,
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_1",
+                },
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "maxOutputLength": 10000,
+                "output": [
+                  {
+                    "outcome": {
+                      "exitCode": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "hi",
+                  },
+                ],
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('shell tool with container (no skills)', () => {
       let result: LanguageModelV4GenerateResult;
 
@@ -4849,7 +5251,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     describe.each([true, false])(
       'web search status with action: %s',
       withAction => {
-        it.each(['failed', 'incomplete'])(
+        it.each(['failed', 'incomplete', 'searching'])(
           'should mark %s web searches as tool errors',
           async status => {
             server.urls['https://api.openai.com/v1/responses'].response = {
@@ -5146,6 +5548,38 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           },
         });
+      });
+    });
+
+    describe('mcp tunnel tool', () => {
+      it('should send a tunnel target without legacy target fields', async () => {
+        prepareJsonFixtureResponse('openai-mcp-tool.1');
+        const options = {
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider' as const,
+              id: 'openai.mcp' as const,
+              name: 'MCP',
+              args: {
+                serverLabel: 'private',
+                tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+                allowedTools: { readOnly: true },
+                requireApproval: 'always',
+              },
+            },
+          ],
+        };
+        await createModel('gpt-5-mini').doGenerate(options);
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'mcp',
+            server_label: 'private',
+            tunnel_id: 'tunnel_0123456789abcdef0123456789abcdef',
+            allowed_tools: { read_only: true },
+            require_approval: 'always',
+          },
+        ]);
       });
     });
 
@@ -6898,6 +7332,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         );
 
         expect(textParts).toHaveLength(2);
+        expect(result.structuredOutputText).toBeUndefined();
         expect(textParts[0].providerMetadata?.openai).toMatchObject({
           itemId: 'msg_0465b6d1ae1f97c500699f883243a481a3b50b985223592984',
           phase: 'commentary',
@@ -6907,10 +7342,894 @@ describe('OpenAIResponsesLanguageModel', () => {
           phase: 'final_answer',
         });
       });
+
+      function message(
+        id: string,
+        phase: 'commentary' | 'final_answer' | undefined,
+        ...texts: string[]
+      ) {
+        return {
+          type: 'message',
+          id,
+          role: 'assistant',
+          status: 'completed',
+          phase,
+          content: texts.map(text => ({
+            type: 'output_text',
+            text,
+            annotations: [],
+          })),
+        };
+      }
+
+      it.each([
+        {
+          name: 'JSON commentary before a final answer',
+          output: [
+            message('draft', 'commentary', '{"items":[]}'),
+            message('final', 'final_answer', '{"items":["result"]}'),
+          ],
+          expectedTexts: ['{"items":[]}', '{"items":["result"]}'],
+          structuredOutputText: '{"items":["result"]}',
+        },
+        {
+          name: 'non-JSON commentary before a final answer',
+          output: [
+            message('draft', 'commentary', 'Let me think.'),
+            message('final', 'final_answer', '{"items":["result"]}'),
+          ],
+          expectedTexts: ['Let me think.', '{"items":["result"]}'],
+          structuredOutputText: '{"items":["result"]}',
+        },
+        {
+          name: 'identical final answers',
+          output: [
+            message('first', 'final_answer', '{"items":["result"]}'),
+            message('last', 'final_answer', '{"items":["result"]}'),
+          ],
+          expectedTexts: ['{"items":["result"]}', '{"items":["result"]}'],
+          structuredOutputText: '{"items":["result"]}',
+        },
+        {
+          name: 'different final answers followed by commentary',
+          output: [
+            message('first', 'final_answer', '{"items":[]}'),
+            message('last', 'final_answer', '{"items":["result"]}'),
+            message('commentary', 'commentary', 'Finished.'),
+          ],
+          expectedTexts: ['{"items":[]}', '{"items":["result"]}', 'Finished.'],
+          structuredOutputText: '{"items":["result"]}',
+        },
+        {
+          name: 'a final answer split across text parts',
+          output: [
+            message('draft', 'commentary', '{"items":[]}'),
+            message('final', 'final_answer', '{"items":', '["result"]}'),
+          ],
+          expectedTexts: ['{"items":[]}', '{"items":', '["result"]}'],
+          structuredOutputText: '{"items":["result"]}',
+        },
+        {
+          name: 'a malformed final answer without falling back to a draft',
+          output: [
+            message('first', 'final_answer', '{"items":[]}'),
+            message('last', 'final_answer', '{"items":'),
+          ],
+          expectedTexts: ['{"items":[]}', '{"items":'],
+          structuredOutputText: '{"items":',
+        },
+        {
+          name: 'an empty final answer without falling back to a draft',
+          output: [
+            message('first', 'final_answer', '{"items":[]}'),
+            message('last', 'final_answer', ''),
+          ],
+          expectedTexts: ['{"items":[]}', ''],
+          structuredOutputText: '',
+        },
+        {
+          name: 'a final answer without text parts',
+          output: [
+            message('first', 'final_answer', '{"items":[]}'),
+            message('last', 'final_answer'),
+          ],
+          expectedTexts: ['{"items":[]}'],
+          structuredOutputText: '',
+        },
+        {
+          name: 'messages without phases',
+          output: [
+            message('first', undefined, '{"items":'),
+            message('last', undefined, '["result"]}'),
+          ],
+          expectedTexts: ['{"items":', '["result"]}'],
+          structuredOutputText: undefined,
+        },
+        {
+          name: 'commentary without an explicit final answer',
+          output: [message('commentary', 'commentary', '{"items":[]}')],
+          expectedTexts: ['{"items":[]}'],
+          structuredOutputText: undefined,
+        },
+      ])(
+        'should preserve all text and select structured output for $name',
+        async ({ output, expectedTexts, structuredOutputText }) => {
+          server.urls['https://api.openai.com/v1/responses'].response = {
+            type: 'json-value',
+            body: {
+              id: 'resp_json',
+              model: 'gpt-5.3-codex',
+              output,
+              usage: { input_tokens: 13, output_tokens: 7 },
+            },
+          };
+
+          const result = await createModel('gpt-5.3-codex').doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: { type: 'json' },
+          });
+
+          expect(result.content.map(part => part.type)).toEqual(
+            expectedTexts.map(() => 'text'),
+          );
+          expect(
+            result.content
+              .filter(part => part.type === 'text')
+              .map(part => part.text),
+          ).toEqual(expectedTexts);
+          expect(result.structuredOutputText).toBe(structuredOutputText);
+        },
+      );
+
+      it.each([
+        ['openai', 'openai'],
+        ['azure.responses', 'azure'],
+      ])(
+        'should preserve all content and response details while selecting structured output for %s',
+        async (provider, providerMetadataKey) => {
+          const annotations = [
+            {
+              type: 'url_citation',
+              start_index: 0,
+              end_index: 5,
+              url: 'https://example.com/draft',
+              title: 'Draft source',
+            },
+          ];
+          const draftLogprobs = [
+            { token: 'Draft', logprob: -0.1, top_logprobs: [] },
+          ];
+          const finalLogprobs = [
+            { token: '{', logprob: -0.2, top_logprobs: [] },
+          ];
+          const body = {
+            id: 'resp_json',
+            model: 'gpt-4o',
+            output: [
+              {
+                ...message('draft', 'commentary'),
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Draft.',
+                    annotations,
+                    logprobs: draftLogprobs,
+                  },
+                ],
+              },
+              {
+                type: 'reasoning',
+                id: 'reasoning',
+                encrypted_content: 'encrypted',
+                summary: [{ type: 'summary_text', text: 'Thinking.' }],
+              },
+              {
+                type: 'function_call',
+                id: 'function',
+                call_id: 'call',
+                name: 'weather',
+                arguments: '{"location":"Paris"}',
+              },
+              {
+                ...message('final', 'final_answer'),
+                content: [
+                  {
+                    type: 'output_text',
+                    text: '{"items":',
+                    annotations: [],
+                    logprobs: finalLogprobs,
+                  },
+                  {
+                    type: 'output_text',
+                    text: '["result"]}',
+                    annotations: [],
+                  },
+                ],
+              },
+            ],
+            usage: {
+              input_tokens: 13,
+              input_tokens_details: { cached_tokens: 3 },
+              output_tokens: 7,
+              output_tokens_details: { reasoning_tokens: 2 },
+            },
+          };
+          server.urls['https://api.openai.com/v1/responses'].response = {
+            type: 'json-value',
+            body,
+          };
+
+          const result = await new OpenAIResponsesLanguageModel('gpt-4o', {
+            provider,
+            url: ({ path }) => `https://api.openai.com/v1${path}`,
+            headers: () => ({ Authorization: 'Bearer APIKEY' }),
+            generateId: mockId(),
+          }).doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: {
+              type: 'json',
+              schema: {
+                type: 'object',
+                properties: {
+                  items: { type: 'array', items: { type: 'string' } },
+                },
+                required: ['items'],
+                additionalProperties: false,
+              },
+            },
+            providerOptions: { [providerMetadataKey]: { logprobs: 1 } },
+          });
+
+          expect(result.content).toEqual([
+            {
+              type: 'text',
+              text: 'Draft.',
+              providerMetadata: {
+                [providerMetadataKey]: {
+                  itemId: 'draft',
+                  phase: 'commentary',
+                  annotations,
+                },
+              },
+              citations: [
+                {
+                  startIndex: 0,
+                  endIndex: 5,
+                  source: {
+                    type: 'source',
+                    sourceType: 'url',
+                    id: 'https://example.com/draft',
+                    url: 'https://example.com/draft',
+                    title: 'Draft source',
+                  },
+                },
+              ],
+            },
+            {
+              type: 'source',
+              sourceType: 'url',
+              id: 'id-0',
+              url: 'https://example.com/draft',
+              title: 'Draft source',
+            },
+            {
+              type: 'reasoning',
+              text: 'Thinking.',
+              providerMetadata: {
+                [providerMetadataKey]: {
+                  itemId: 'reasoning',
+                  reasoningEncryptedContent: 'encrypted',
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call',
+              toolName: 'weather',
+              input: '{"location":"Paris"}',
+              providerMetadata: {
+                [providerMetadataKey]: { itemId: 'function' },
+              },
+            },
+            ...['{"items":', '["result"]}'].map(text => ({
+              type: 'text',
+              text,
+              providerMetadata: {
+                [providerMetadataKey]: {
+                  itemId: 'final',
+                  phase: 'final_answer',
+                },
+              },
+            })),
+          ]);
+          expect(result.structuredOutputText).toBe('{"items":["result"]}');
+          expect(
+            result.providerMetadata?.[providerMetadataKey].logprobs,
+          ).toEqual([draftLogprobs, finalLogprobs]);
+          expect(result.finishReason).toEqual({
+            unified: 'tool-calls',
+            raw: undefined,
+          });
+          expect(result.usage).toMatchObject({
+            inputTokens: { total: 13, noCache: 10, cacheRead: 3 },
+            outputTokens: { total: 7, text: 5, reasoning: 2 },
+            raw: body.usage,
+          });
+          expect(result.response?.body).toEqual(body);
+        },
+      );
+    });
+
+    it('should surface a refusal content part as text and map the finish reason to content-filter', async () => {
+      prepareJsonFixtureResponse('openai-refusal.1');
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'response',
+          schema: {
+            type: 'object',
+            properties: { steps: { type: 'array', items: { type: 'string' } } },
+            required: ['steps'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: "I'm sorry, I can't assist with that.",
+          providerMetadata: {
+            openai: {
+              itemId: 'msg_0390d4b158946a22006aebf39c868487d0aa03f83805e9f8a7',
+            },
+          },
+        },
+      ]);
+      expect(result.structuredOutputText).toBeUndefined();
+      expect(result.finishReason).toEqual({
+        unified: 'content-filter',
+        raw: undefined,
+      });
+    });
+
+    it('should surface output_text and refusal parts from the same message', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_refusal_mixed',
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_refusal_mixed',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Here is what I can share.',
+                  annotations: [],
+                },
+                {
+                  type: 'refusal',
+                  refusal: "I can't share the rest.",
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 13, output_tokens: 7 },
+        },
+      };
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'Here is what I can share.',
+          providerMetadata: {
+            openai: { itemId: 'msg_refusal_mixed' },
+          },
+        },
+        {
+          type: 'text',
+          text: "I can't share the rest.",
+          providerMetadata: {
+            openai: { itemId: 'msg_refusal_mixed' },
+          },
+        },
+      ]);
+      expect(result.finishReason).toEqual({
+        unified: 'content-filter',
+        raw: undefined,
+      });
+    });
+
+    it('should keep two message items as separate text parts', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_two_messages',
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_first',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'First message.',
+                  annotations: [],
+                },
+              ],
+            },
+            {
+              id: 'msg_second',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Second message.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 13, output_tokens: 7 },
+        },
+      };
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'First message.',
+          providerMetadata: {
+            openai: { itemId: 'msg_first' },
+          },
+        },
+        {
+          type: 'text',
+          text: 'Second message.',
+          providerMetadata: {
+            openai: { itemId: 'msg_second' },
+          },
+        },
+      ]);
+      expect(result.finishReason).toEqual({ unified: 'stop', raw: undefined });
+    });
+
+    it('should include a refusal in structuredOutputText for a final answer', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_refusal_final',
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_refusal_final',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              phase: 'final_answer',
+              content: [
+                {
+                  type: 'refusal',
+                  refusal: "I'm sorry, but I can't assist with that request.",
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 13, output_tokens: 7 },
+        },
+      };
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json' },
+      });
+
+      expect(result.structuredOutputText).toBe(
+        "I'm sorry, but I can't assist with that request.",
+      );
+      expect(result.finishReason).toEqual({
+        unified: 'content-filter',
+        raw: undefined,
+      });
+    });
+
+    it('should prefer tool-calls over content-filter when a refusal is accompanied by a function call', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_refusal_function_call',
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_refusal_function_call',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'refusal',
+                  refusal: "I can't do that, but I can check the weather.",
+                },
+              ],
+            },
+            {
+              type: 'function_call',
+              id: 'fc_1',
+              call_id: 'call_1',
+              name: 'weather',
+              arguments: '{"location":"Paris"}',
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 13, output_tokens: 7 },
+        },
+      };
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: TEST_TOOLS,
+      });
+
+      expect(result.content.map(part => part.type)).toEqual([
+        'text',
+        'tool-call',
+      ]);
+      expect(result.finishReason).toEqual({
+        unified: 'tool-calls',
+        raw: undefined,
+      });
     });
   });
 
   describe('doStream', () => {
+    it('should stream refusal content parts as text and map the finish reason to content-filter', async () => {
+      prepareChunksFixtureResponse('openai-refusal.1');
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'response',
+          schema: {
+            type: 'object',
+            properties: { steps: { type: 'array', items: { type: 'string' } } },
+            required: ['steps'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_0c23285ace96282b006aebf3a5d14487d0a7209e6699450427",
+            "modelId": "gpt-4o-2024-08-06",
+            "timestamp": 2026-11-05T03:10:29.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+              },
+            },
+            "type": "text-start",
+          },
+          {
+            "delta": "I'm",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " very",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " sorry",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": ",",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " but",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " I",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " can't",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " assist",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " with",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " that",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": ".",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+              },
+            },
+            "type": "text-end",
+          },
+          {
+            "finishReason": {
+              "raw": undefined,
+              "unified": "content-filter",
+            },
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_0c23285ace96282b006aebf3a5d14487d0a7209e6699450427",
+                "serviceTier": "default",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 55,
+                "total": 55,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 13,
+                "total": 13,
+              },
+              "raw": {
+                "input_tokens": 55,
+                "input_tokens_details": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 13,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+                "total_tokens": 68,
+              },
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should prefer tool-calls over content-filter when a refusal is streamed with a function call', async () => {
+      const messageItem = {
+        id: 'msg_refusal_function_call',
+        type: 'message',
+        status: 'completed',
+        role: 'assistant',
+        content: [
+          {
+            type: 'refusal',
+            refusal: "I can't do that, but I can check the weather.",
+          },
+        ],
+      };
+      const functionCallItem = {
+        id: 'fc_1',
+        type: 'function_call',
+        name: 'weather',
+        call_id: 'call_1',
+        arguments: '{"location":"Paris"}',
+        status: 'completed',
+      };
+
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          {
+            type: 'response.created',
+            response: { id: 'r1', created_at: 1, model: 'gpt-4o' },
+          },
+          {
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: { ...messageItem, status: 'in_progress', content: [] },
+          },
+          {
+            type: 'response.refusal.delta',
+            item_id: 'msg_refusal_function_call',
+            output_index: 0,
+            content_index: 0,
+            delta: "I can't do that, but I can check the weather.",
+          },
+          {
+            type: 'response.refusal.done',
+            item_id: 'msg_refusal_function_call',
+            output_index: 0,
+            content_index: 0,
+            refusal: "I can't do that, but I can check the weather.",
+          },
+          {
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: messageItem,
+          },
+          {
+            type: 'response.output_item.added',
+            output_index: 1,
+            item: { ...functionCallItem, arguments: '', status: 'in_progress' },
+          },
+          {
+            type: 'response.function_call_arguments.delta',
+            item_id: 'fc_1',
+            output_index: 1,
+            delta: '{"location":"Paris"}',
+          },
+          {
+            type: 'response.function_call_arguments.done',
+            item_id: 'fc_1',
+            output_index: 1,
+            arguments: '{"location":"Paris"}',
+          },
+          {
+            type: 'response.output_item.done',
+            output_index: 1,
+            item: functionCallItem,
+          },
+          {
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              output: [messageItem, functionCallItem],
+              usage: { input_tokens: 1, output_tokens: 2 },
+            },
+          },
+        ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        tools: TEST_TOOLS,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.map(part => part.type)).toEqual([
+        'stream-start',
+        'response-metadata',
+        'text-start',
+        'text-delta',
+        'text-end',
+        'tool-input-start',
+        'tool-input-delta',
+        'tool-input-end',
+        'tool-call',
+        'finish',
+      ]);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'tool-calls', raw: undefined },
+      });
+      expect(
+        parts
+          .filter(part => part.type === 'text-delta')
+          .map(part => part.delta)
+          .join(''),
+      ).toBe("I can't do that, but I can check the weather.");
+    });
+
+    it.each([
+      [undefined, undefined, 'interrupted'],
+      ['response.completed', undefined, 'stop'],
+      ['response.incomplete', 'max_output_tokens', 'length'],
+      ['response.incomplete', 'unknown_reason', 'other'],
+    ] as const)(
+      'maps a stream ending with %s (%s) to %s',
+      async (type, reason, unified) => {
+        const events = [
+          {
+            type: 'response.created',
+            response: {
+              id: 'r1',
+              created_at: 1,
+              model: 'gpt-4o',
+              status: 'in_progress',
+            },
+          },
+          {
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'message',
+              id: 'msg1',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+          },
+          {
+            type: 'response.output_text.delta',
+            item_id: 'msg1',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Partial answer',
+          },
+          ...(type == null
+            ? []
+            : [
+                {
+                  type,
+                  response: {
+                    incomplete_details: reason == null ? null : { reason },
+                  },
+                },
+              ]),
+        ];
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+        };
+        const { stream } = await createModel('gpt-4o').doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts).toContainEqual(
+          expect.objectContaining({
+            type: 'text-delta',
+            delta: 'Partial answer',
+          }),
+        );
+        expect(parts.filter(part => part.type === 'error')).toEqual([]);
+        expect(parts.filter(part => part.type === 'finish')).toEqual([
+          expect.objectContaining({ finishReason: { unified, raw: reason } }),
+        ]);
+      },
+    );
+
     it('preserves repeated citation ranges and versioned fragment URLs with Unicode text in generation and streaming', async () => {
       const text = '🧪 café — 東京 café';
       const url = 'https://example.com/article?oldid=42#:~:text=caf%C3%A9';
@@ -7106,6 +8425,62 @@ describe('OpenAIResponsesLanguageModel', () => {
             itemId: 'fc_async',
             async: true,
           },
+        },
+      });
+    });
+
+    it('should finish a prewarm stream with no content', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_prewarm',
+              created_at: 1,
+              model: 'gpt-6.1-sol',
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              output: [],
+              usage: {
+                input_tokens: 2048,
+                input_tokens_details: {
+                  cached_tokens: 0,
+                  cache_write_tokens: 2048,
+                  cache_write_tokens_details: {
+                    ttl_30m_tokens: 0,
+                    ttl_12h_tokens: 2048,
+                  },
+                },
+                output_tokens: 0,
+              },
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createModel('gpt-6.1-sol').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: { promptCacheOptions: { ttl: '12h', prewarm: true } },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      expect(
+        events.filter(event =>
+          ['text-start', 'text-delta', 'error'].includes(event.type),
+        ),
+      ).toStrictEqual([]);
+      expect(events.at(-1)).toMatchObject({
+        type: 'finish',
+        usage: {
+          inputTokens: { total: 2048, noCache: 0, cacheWrite: 2048 },
+          outputTokens: { total: 0 },
         },
       });
     });
@@ -8431,7 +9806,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     describe.each([true, false])(
       'streaming web search status with action: %s',
       withAction => {
-        it.each(['failed', 'incomplete'])(
+        it.each(['failed', 'incomplete', 'searching'])(
           'should mark %s web searches as tool errors',
           async status => {
             const item = {
@@ -9317,6 +10692,224 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('shell tool with execution controls', () => {
+      function prepareShellCallChunks(
+        action: Record<string, unknown>,
+        shellCallOutput?: Record<string, unknown>,
+      ) {
+        const shellCall = {
+          id: 'sh_1',
+          type: 'shell_call',
+          status: 'completed',
+          call_id: 'call_1',
+          action,
+        };
+        const output = [
+          shellCall,
+          ...(shellCallOutput ? [shellCallOutput] : []),
+        ];
+        const items = output.map(
+          (item, index) =>
+            `data: ${JSON.stringify({
+              type: 'response.output_item.done',
+              sequence_number: index + 1,
+              output_index: index,
+              item,
+            })}\n\n`,
+        );
+
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: ${JSON.stringify({
+              type: 'response.created',
+              sequence_number: 0,
+              response: {
+                id: 'resp_shell_controls',
+                object: 'response',
+                created_at: 1764713372,
+                status: 'in_progress',
+                model: 'gpt-5.1',
+                output: [],
+              },
+            })}\n\n`,
+            ...items,
+            `data: ${JSON.stringify({
+              type: 'response.completed',
+              sequence_number: output.length + 1,
+              response: {
+                id: 'resp_shell_controls',
+                object: 'response',
+                created_at: 1764713372,
+                status: 'completed',
+                model: 'gpt-5.1',
+                output,
+                usage: {
+                  input_tokens: 10,
+                  input_tokens_details: { cached_tokens: 0 },
+                  output_tokens: 5,
+                  output_tokens_details: { reasoning_tokens: 0 },
+                  total_tokens: 15,
+                },
+              },
+            })}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+      }
+
+      it('should forward timeout_ms and max_output_length to the streamed tool call input', async () => {
+        prepareShellCallChunks({
+          commands: ['echo hi'],
+          timeout_ms: 1000,
+          max_output_length: 10000,
+        });
+
+        const result = await createModel('gpt-5.1').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(parts.filter(part => part.type === 'tool-call'))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo hi"],"timeoutMs":1000,"maxOutputLength":10000}}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_1",
+                },
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should omit null timeout_ms and max_output_length from the streamed tool call input', async () => {
+        prepareShellCallChunks({
+          commands: ['echo hi'],
+          timeout_ms: null,
+          max_output_length: null,
+        });
+
+        const result = await createModel('gpt-5.1').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(parts.filter(part => part.type === 'tool-call'))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo hi"]}}",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_1",
+                },
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should forward max_output_length from a streamed provider-executed shell_call_output to the tool result', async () => {
+        prepareShellCallChunks(
+          { commands: ['echo hi'], timeout_ms: null, max_output_length: 10000 },
+          {
+            id: 'sho_1',
+            type: 'shell_call_output',
+            status: 'completed',
+            call_id: 'call_1',
+            max_output_length: 10000,
+            output: [
+              {
+                stdout: 'hi',
+                stderr: '',
+                outcome: { type: 'exit', exit_code: 0 },
+              },
+            ],
+          },
+        );
+
+        const result = await createModel('gpt-5.1').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: { environment: { type: 'containerAuto' } },
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(
+          parts.filter(
+            part => part.type === 'tool-call' || part.type === 'tool-result',
+          ),
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"action":{"commands":["echo hi"],"maxOutputLength":10000}}",
+              "providerExecuted": true,
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "sh_1",
+                },
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-call",
+            },
+            {
+              "result": {
+                "maxOutputLength": 10000,
+                "output": [
+                  {
+                    "outcome": {
+                      "exitCode": 0,
+                      "type": "exit",
+                    },
+                    "stderr": "",
+                    "stdout": "hi",
+                  },
+                ],
+              },
+              "toolCallId": "call_1",
+              "toolName": "shell",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('shell tool with container (no skills)', () => {
       it('should stream shell tool results with container execution', async () => {
         prepareChunksFixtureResponse('openai-shell-container.1');
@@ -9545,6 +11138,37 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('mcp tool', () => {
+      it('should send a tunnel target without legacy target fields', async () => {
+        prepareChunksFixtureResponse('openai-mcp-tool.1');
+        const options = {
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider' as const,
+              id: 'openai.mcp' as const,
+              name: 'MCP',
+              args: {
+                serverLabel: 'private',
+                tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+                allowedTools: { readOnly: true },
+                requireApproval: 'always',
+              },
+            },
+          ],
+        };
+        const { stream } = await createModel('gpt-5-mini').doStream(options);
+        await convertReadableStreamToArray(stream);
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'mcp',
+            server_label: 'private',
+            tunnel_id: 'tunnel_0123456789abcdef0123456789abcdef',
+            allowed_tools: { read_only: true },
+            require_approval: 'always',
+          },
+        ]);
+      });
+
       it('should stream mcp tool results (list tools, tool calls, tool results)', async () => {
         prepareChunksFixtureResponse('openai-mcp-tool.1');
 

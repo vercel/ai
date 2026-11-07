@@ -27,21 +27,28 @@ type FakeSocket = {
   socket: WebSocket;
   deliver(message: object, seq?: number): void;
   drop(code?: number): void;
+  setReadyState(readyState: number): void;
   sent: string[];
+  closes: Array<{ code: number; reason: string }>;
 };
 
 function makeFakeSocket(): FakeSocket {
   const handlers: Record<string, Array<(...args: unknown[]) => void>> = {};
   const sent: string[] = [];
+  const closes: Array<{ code: number; reason: string }> = [];
   const fake = {
+    OPEN: 1,
+    readyState: 1,
     on(event: string, handler: (...args: unknown[]) => void) {
       (handlers[event] ??= []).push(handler);
     },
     send(data: string) {
       sent.push(data);
     },
-    close(code = 1000) {
-      for (const h of handlers.close ?? []) h(code, Buffer.from(''));
+    close(code = 1000, reason = '') {
+      closes.push({ code, reason });
+      fake.readyState = 3;
+      for (const h of handlers.close ?? []) h(code, Buffer.from(reason));
     },
   };
   return {
@@ -52,9 +59,14 @@ function makeFakeSocket(): FakeSocket {
       for (const h of handlers.message ?? []) h(raw);
     },
     drop(code = 1006) {
+      fake.readyState = 3;
       for (const h of handlers.close ?? []) h(code, Buffer.from(''));
     },
+    setReadyState(readyState) {
+      fake.readyState = readyState;
+    },
     sent,
+    closes,
   };
 }
 
@@ -89,6 +101,35 @@ function makeChannel(
 }
 
 describe('SandboxChannel', () => {
+  it('notifies sends asynchronously and after reconnect handlers for queued frames', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    const notifications: string[] = [];
+    channel.send(
+      { type: 'start' },
+      { onSent: () => notifications.push('start') },
+    );
+    expect(notifications).toEqual([]);
+    await flush();
+    expect(notifications).toEqual(['start']);
+
+    connector.current().drop();
+    channel.send(
+      { type: 'abort' },
+      { onSent: () => notifications.push('abort') },
+    );
+    channel.onReconnect(() => notifications.push('reconnected'));
+    expect(notifications).toEqual(['start']);
+    await flush();
+    expect(notifications).toEqual(['start', 'reconnected', 'abort']);
+    expect(connector.current().sent).toEqual([
+      JSON.stringify({ type: 'resume', lastSeenEventId: 0 }),
+      JSON.stringify({ type: 'abort' }),
+    ]);
+    channel.close();
+  });
+
   it('dispatches outbound messages by type', async () => {
     const connector = makeConnector();
     const channel = makeChannel(connector);
@@ -267,6 +308,10 @@ describe('SandboxChannel', () => {
     expect(cursor).toBe(2);
     expect(closeReason).toBe('suspended');
     expect(channel.lastSeenEventId).toBe(2);
+    // the bridge reads the reason off the wire to tell a suspend from a drop:
+    expect(connector.current().closes).toEqual([
+      { code: 1000, reason: 'suspended' },
+    ]);
 
     // Frames arriving after suspend are ignored — the cursor must not advance
     // past what was delivered (the bridge replays the rest to the next slice).
@@ -421,6 +466,113 @@ describe('SandboxChannel', () => {
       JSON.stringify({ type: 'abort' }),
     ]);
   });
+
+  it.each(['disconnected', 2, 3] as const)(
+    'lets the caller own replay when the socket is %s',
+    async state => {
+      const connector = makeConnector();
+      const channel = makeChannel(connector);
+      await channel.open();
+      const first = connector.current();
+      if (state === 'disconnected') first.drop();
+      else first.setReadyState(state);
+      const onSent = vi.fn();
+      channel.send({ type: 'abort' }, { onSent, queueIfDisconnected: false });
+      if (state !== 'disconnected') first.drop();
+      await flush();
+      expect(first.sent).toEqual([]);
+      expect(connector.current().sent).toEqual([
+        JSON.stringify({ type: 'resume', lastSeenEventId: 0 }),
+      ]);
+      expect(onSent).not.toHaveBeenCalled();
+      channel.close();
+    },
+  );
+
+  it.each([2, 3])(
+    'queues sends before the close event at readyState %s',
+    async readyState => {
+      const connector = makeConnector();
+      const channel = makeChannel(connector);
+      await channel.open();
+      const first = connector.current();
+      first.setReadyState(readyState);
+
+      const onSent = vi.fn();
+      channel.send({ type: 'abort' }, { onSent });
+      expect(first.sent).toEqual([]);
+      expect(onSent).not.toHaveBeenCalled();
+
+      first.drop();
+      await flush();
+      expect(connector.current().sent).toEqual([
+        JSON.stringify({ type: 'resume', lastSeenEventId: 0 }),
+        JSON.stringify({ type: 'abort' }),
+      ]);
+      expect(onSent).toHaveBeenCalledExactlyOnceWith();
+    },
+  );
+
+  it('propagates synchronous send errors on an open socket', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    const error = new Error('send failed');
+    vi.spyOn(connector.current().socket, 'send').mockImplementation(() => {
+      throw error;
+    });
+
+    const onSent = vi.fn();
+    expect(() => channel.send({ type: 'abort' }, { onSent })).toThrow(error);
+    await flush();
+    expect(onSent).not.toHaveBeenCalled();
+  });
+
+  it.each(['closing', 'throwing'] as const)(
+    'retains unsent frames when a reconnecting socket is %s during the flush',
+    async failure => {
+      const first = makeFakeSocket();
+      const second = makeFakeSocket();
+      const third = makeFakeSocket();
+      const sockets = [first, second, third];
+      let connections = 0;
+      const channel = new SandboxChannel<Outbound, Inbound>({
+        connect: async () => sockets[connections++].socket,
+        outboundSchema,
+        reconnect: { initialDelayMs: 1, maxDelayMs: 1, maxElapsedMs: 200 },
+      });
+      const start = JSON.stringify({ type: 'start' });
+      const abort = JSON.stringify({ type: 'abort' });
+      vi.spyOn(second.socket, 'send').mockImplementation(data => {
+        if (data === abort && failure === 'throwing') {
+          throw new Error('send failed');
+        }
+        second.sent.push(data as string);
+        if (data === start && failure === 'closing') second.setReadyState(2);
+      });
+      await channel.open();
+      first.drop();
+      const onFirstStartSent = vi.fn();
+      const onAbortSent = vi.fn();
+      const onLastStartSent = vi.fn();
+      channel.send({ type: 'start' }, { onSent: onFirstStartSent });
+      channel.send({ type: 'abort' }, { onSent: onAbortSent });
+      channel.send({ type: 'start' }, { onSent: onLastStartSent });
+      await flush();
+
+      const resume = JSON.stringify({ type: 'resume', lastSeenEventId: 0 });
+      expect(second.sent).toEqual([resume, start]);
+      if (failure === 'closing') {
+        second.drop();
+        await flush();
+      }
+      expect(connections).toBe(3);
+      expect(third.sent).toEqual([resume, abort, start]);
+      expect(onFirstStartSent).toHaveBeenCalledExactlyOnceWith();
+      expect(onAbortSent).toHaveBeenCalledExactlyOnceWith();
+      expect(onLastStartSent).toHaveBeenCalledExactlyOnceWith();
+    },
+  );
 
   it('fires onClose on a host-initiated close (terminal)', async () => {
     const connector = makeConnector();
@@ -592,6 +744,23 @@ describe('SandboxChannel', () => {
     await vi.waitFor(() => expect(signals).toHaveLength(2));
     expect(signals[0]).not.toBe(signals[1]);
     expect(signals.every(signal => !signal.aborted)).toBe(true);
+  });
+
+  it('passes the connect reason for the initial open and reconnects', async () => {
+    const connector = makeConnector();
+    const reasons: Array<string | undefined> = [];
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: async ({ reason }) => {
+        reasons.push(reason);
+        return connector.connect();
+      },
+      outboundSchema,
+      reconnect: { initialDelayMs: 1, maxDelayMs: 1, maxElapsedMs: 200 },
+    });
+    await channel.open();
+    connector.current().drop();
+    await vi.waitFor(() => expect(reasons).toHaveLength(2));
+    expect(reasons).toEqual(['open', 'reconnect']);
   });
 
   it('seeds lastSeenEventId and advances it as events arrive', async () => {

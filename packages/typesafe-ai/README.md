@@ -1,4 +1,4 @@
-# AI SDK TypeSafe Provider
+# AI SDK - TypeSafe Provider
 
 The **[TypeSafe provider](https://ai-sdk.dev/providers/ai-sdk-providers/typesafe-ai)**
 for the [AI SDK](https://ai-sdk.dev/docs) decides answers to Choice, Score, and Boolean
@@ -6,11 +6,11 @@ questions using TypeSafe's System One models.
 
 ## Setup
 
-```sh
-pnpm add @ai-sdk/typesafe-ai ai
+```bash
+npm i ai @ai-sdk/typesafe-ai
 ```
 
-Set `TYPESAFE_AI_API_KEY`, then pass a decision model instance:
+## Usage
 
 ```ts
 import { typeSafeAi } from '@ai-sdk/typesafe-ai';
@@ -35,28 +35,4 @@ const result = await experimental_decide({
 console.log(result.answers);
 ```
 
-Decision is experimental. The package exports `typeSafeAi`, `createTypeSafeAi`,
-`TypeSafeAiProviderSettings`, `TypeSafeAiProvider`,
-`Experimental_TypeSafeAiDecisionModelId`, and `VERSION`.
-
-## Configuration
-
-`createTypeSafeAi({ apiKey, baseURL, headers, fetch })` supports an explicit key,
-custom headers, a custom fetch implementation, and a base URL. The base URL
-defaults to `TYPESAFE_AI_BASE_URL`, then `https://api.typesafe.ai/v1`. An
-explicit `baseURL` takes precedence over the environment variable. The default
-key comes from `TYPESAFE_AI_API_KEY`. Language, embedding, and image model
-factories are unsupported.
-
-All questions are sent in one request against shared state. Choice supports up to
-255 options; Score supports 2–10 ordered levels; Boolean maps to TypeSafe's Noul
-primitive. Instructions and descriptions accept structured JSON. No
-provider-specific options are currently defined.
-
-Native distributions and scores are preserved. TypeSafe returns rounded values;
-`result.rounding` declares two decimal places so core can validate rounding error
-without changing the numbers. TypeSafe confidence is separate from probability:
-find it at `result.providerMetadata.typesafe.confidence[questionId]`.
-
-See the [provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/typesafe-ai)
-and [TypeSafe API reference](https://docs.typesafe.ai/api).
+See the [TypeSafe Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/typesafe-ai) for more information.

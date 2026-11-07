@@ -1,3 +1,4 @@
+import { openaiCompatibleRequestDefaults } from '../openai-compatible-model-catalog';
 import {
   InvalidResponseDataError,
   type APICallError,
@@ -13,14 +14,18 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   generateId,
   isCustomReasoning,
-  parseProviderOptions,
   postJsonToApi,
+  resolveProviderOptions,
   serializeModelOptions,
   StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
@@ -61,7 +66,7 @@ type OpenAICompatibleStreamingToolCallDelta = StreamingToolCallDelta & {
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   includeUsage?: boolean;
@@ -95,11 +100,25 @@ export type OpenAICompatibleChatConfig = {
   ) => Record<string, any>;
 
   /**
+   * Optional function to map the top-level `reasoning` option to the
+   * `reasoning_effort` request value. It is not applied to a `reasoningEffort`
+   * from provider options, which is always sent unchanged. By default, the
+   * reasoning value is sent directly.
+   */
+  mapReasoning?: (options: {
+    reasoning: Exclude<
+      LanguageModelV4CallOptions['reasoning'],
+      'provider-default' | undefined
+    >;
+    warnings: SharedV4Warning[];
+  }) => string | undefined;
+
+  /**
    * Optional usage converter for OpenAI-compatible providers with different
    * token accounting semantics.
    */
   convertUsage?: (
-    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+    usage: z.infer<ReturnType<typeof openaiCompatibleTokenUsageSchema>>,
   ) => LanguageModelV4Usage;
 };
 
@@ -151,7 +170,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     );
     this.failedResponseHandler = createJsonErrorResponseHandler(errorStructure);
 
-    this.supportsStructuredOutputs = config.supportsStructuredOutputs ?? false;
+    this.supportsStructuredOutputs =
+      config.supportsStructuredOutputs ??
+      openaiCompatibleRequestDefaults.language.supportsStructuredOutputs;
   }
 
   get provider(): string {
@@ -174,7 +195,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   }
 
   private convertUsage(
-    usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+    usage: z.infer<ReturnType<typeof openaiCompatibleTokenUsageSchema>>,
   ): LanguageModelV4Usage {
     return (
       this.config.convertUsage?.(usage) ??
@@ -200,14 +221,22 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
 
-    // Parse provider options - check for deprecated 'openai-compatible' key
-    const deprecatedOptions = await parseProviderOptions({
-      provider: 'openai-compatible',
-      providerOptions,
-      schema: openaiCompatibleLanguageModelChatOptions,
-    });
+    // All option keys are merged in order; later keys win.
+    const { options: resolvedCompatibleOptions, namespaces } =
+      await resolveProviderOptions({
+        providerOptions,
+        namespaces: [
+          'openai-compatible',
+          'openaiCompatible',
+          this.providerOptionsName,
+          toCamelCase(this.providerOptionsName),
+        ],
+        resolution: 'merge',
+        schema: openaiCompatibleLanguageModelChatOptions,
+      });
 
-    if (deprecatedOptions != null) {
+    // Check for deprecated 'openai-compatible' key
+    if (namespaces.includes('openai-compatible')) {
       warnings.push({
         type: 'deprecated',
         setting: "providerOptions key 'openai-compatible'",
@@ -222,24 +251,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       warnings,
     });
 
-    const compatibleOptions = Object.assign(
-      deprecatedOptions ?? {},
-      (await parseProviderOptions({
-        provider: 'openaiCompatible',
-        providerOptions,
-        schema: openaiCompatibleLanguageModelChatOptions,
-      })) ?? {},
-      (await parseProviderOptions({
-        provider: this.providerOptionsName,
-        providerOptions,
-        schema: openaiCompatibleLanguageModelChatOptions,
-      })) ?? {},
-      (await parseProviderOptions({
-        provider: toCamelCase(this.providerOptionsName),
-        providerOptions,
-        schema: openaiCompatibleLanguageModelChatOptions,
-      })) ?? {},
-    );
+    const compatibleOptions = resolvedCompatibleOptions ?? {};
 
     const strictJsonSchema = compatibleOptions?.strictJsonSchema ?? true;
 
@@ -273,6 +285,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       this.providerOptionsName,
       providerOptions,
     );
+
+    const reasoningEffort =
+      compatibleOptions.reasoningEffort !== undefined
+        ? compatibleOptions.reasoningEffort
+        : isCustomReasoning(reasoning)
+          ? this.config.mapReasoning != null
+            ? this.config.mapReasoning({ reasoning, warnings })
+            : reasoning
+          : undefined;
 
     return {
       metadataKey,
@@ -319,10 +340,17 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           ),
         ),
 
-        reasoning_effort:
-          compatibleOptions.reasoningEffort ??
-          (isCustomReasoning(reasoning) ? reasoning : undefined),
-        verbosity: compatibleOptions.textVerbosity,
+        // only write reasoning_effort when it has a value: an explicit `null` must be
+        // sent as `null`, and an unset option must not overwrite a raw
+        // `reasoning_effort` passed through provider options:
+        ...(reasoningEffort !== undefined
+          ? { reasoning_effort: reasoningEffort }
+          : {}),
+        // an unset textVerbosity must not overwrite a raw `verbosity`
+        // passed through provider options:
+        ...(compatibleOptions.textVerbosity !== undefined
+          ? { verbosity: compatibleOptions.textVerbosity }
+          : {}),
 
         // messages:
         messages: convertToOpenAICompatibleChatMessages(prompt, {
@@ -357,7 +385,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: transformedBody,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -377,8 +408,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
     const content: Array<LanguageModelV4Content> = [];
 
-    content.push(...convertOpenAICompatibleContent(choice.message.content));
-
     // reasoning content:
     const reasoning =
       choice.message.reasoning_content ?? choice.message.reasoning;
@@ -387,6 +416,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         type: 'reasoning',
         text: reasoning,
       });
+    }
+
+    content.push(...convertOpenAICompatibleContent(choice.message.content));
+
+    // When the model refuses to answer, the API returns the refusal in
+    // `refusal` and sets `content` to null, so surface it as text instead of
+    // dropping it. Content and refusal are both returned when the model
+    // refuses after answering, so keep both:
+    const refusal = choice.message.refusal;
+    const hasRefusal = refusal != null && refusal.length > 0;
+    if (hasRefusal) {
+      content.push({ type: 'text', text: refusal });
     }
 
     // tool calls:
@@ -431,7 +472,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     return {
       content,
       finishReason: {
-        unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
+        unified: mapOpenAICompatibleFinishReason(choice.finish_reason, {
+          hasRefusal,
+        }),
         raw: choice.finish_reason ?? undefined,
       },
       usage: this.convertUsage(responseBody.usage),
@@ -474,7 +517,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -546,13 +592,16 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     };
 
     let finishReason: LanguageModelV4FinishReason | undefined;
-    let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
-      undefined;
+    let rawFinishReason: string | undefined = undefined;
+    let usage:
+      | z.infer<ReturnType<typeof openaiCompatibleTokenUsageSchema>>
+      | undefined = undefined;
     let metadataExtracted = false;
     let isActiveReasoning = false;
     let isActiveText = false;
+    let hasRefusal = false;
     const convertUsage = (
-      usage: z.infer<typeof openaiCompatibleTokenUsageSchema>,
+      usage: z.infer<ReturnType<typeof openaiCompatibleTokenUsageSchema>>,
     ) => this.convertUsage(usage);
 
     return {
@@ -590,6 +639,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = { unified: 'error', raw: undefined };
+              rawFinishReason = undefined;
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -599,6 +649,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             // handle error chunks:
             if ('error' in chunk.value) {
               finishReason = { unified: 'error', raw: undefined };
+              rawFinishReason = undefined;
               controller.enqueue({
                 type: 'error',
                 error: chunk.value.error,
@@ -608,7 +659,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
             // TODO we lost type safety on Chunk, most likely due to the error schema. MUST FIX
             // remove this workaround when the issue is fixed
-            const value = chunk.value as z.infer<typeof chunkBaseSchema>;
+            const value = chunk.value as z.infer<
+              ReturnType<typeof chunkBaseSchema>
+            >;
 
             // Extract and emit response metadata once. Usually it comes in the
             // first chunk, but some providers prepend a placeholder chunk with
@@ -630,11 +683,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
             const choice = value.choices[0];
 
+            // store the raw finish reason and map it in `flush`, after all
+            // chunks have been read: many OpenAI-compatible servers send the
+            // last delta (which can contain a refusal) in the same chunk as
+            // the finish reason, and a refusal turns `stop` into
+            // `content-filter`:
             if (choice?.finish_reason != null) {
-              finishReason = {
-                unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
-                raw: choice.finish_reason ?? undefined,
-              };
+              rawFinishReason = choice.finish_reason;
             }
 
             if (choice?.delta == null) {
@@ -701,6 +756,16 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               }
             }
 
+            // When the model refuses to answer, the API streams the refusal in
+            // `refusal` instead of `content`. Content and refusal deltas can
+            // both occur, so append each to the same text part instead of
+            // dropping one:
+            const refusal = delta.refusal;
+            if (refusal != null && refusal.length > 0) {
+              hasRefusal = true;
+              enqueueTextDelta(refusal);
+            }
+
             if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // end active reasoning block before tool calls start
               if (isActiveReasoning) {
@@ -739,6 +804,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             pendingToolCalls.clear();
 
             toolCallTracker.flush();
+
+            // map the stored finish reason now that all deltas (including
+            // refusals that arrived in the same chunk as the finish reason)
+            // have been read:
+            if (rawFinishReason != null) {
+              finishReason = {
+                unified: mapOpenAICompatibleFinishReason(rawFinishReason, {
+                  hasRefusal,
+                }),
+                raw: rawFinishReason,
+              };
+            }
 
             if (finishReason == null) {
               finishReason = { unified: 'error', raw: undefined };
@@ -786,39 +863,41 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 }
 
 // Loose, nested objects included: the parsed value is returned as `usage.raw`.
-const openaiCompatibleTokenUsageSchema = z
-  .looseObject({
-    prompt_tokens: z.number().nullish(),
-    completion_tokens: z.number().nullish(),
-    total_tokens: z.number().nullish(),
-    prompt_tokens_details: z
-      .looseObject({
-        cached_tokens: z.number().nullish(),
-      })
-      .nullish(),
-    completion_tokens_details: z
-      .looseObject({
-        reasoning_tokens: z.number().nullish(),
-        accepted_prediction_tokens: z.number().nullish(),
-        rejected_prediction_tokens: z.number().nullish(),
-      })
-      .nullish(),
-  })
-  .nullish();
+const openaiCompatibleTokenUsageSchema = () =>
+  z
+    .looseObject({
+      prompt_tokens: z.number().nullish(),
+      completion_tokens: z.number().nullish(),
+      total_tokens: z.number().nullish(),
+      prompt_tokens_details: z
+        .looseObject({
+          cached_tokens: z.number().nullish(),
+        })
+        .nullish(),
+      completion_tokens_details: z
+        .looseObject({
+          reasoning_tokens: z.number().nullish(),
+          accepted_prediction_tokens: z.number().nullish(),
+          rejected_prediction_tokens: z.number().nullish(),
+        })
+        .nullish(),
+    })
+    .nullish();
 
-const openAICompatibleContentSchema = z
-  .union([
-    z.string(),
-    z.array(
-      z.looseObject({
-        type: z.string(),
-      }),
-    ),
-  ])
-  .nullish();
+const openAICompatibleContentSchema = () =>
+  z
+    .union([
+      z.string(),
+      z.array(
+        z.looseObject({
+          type: z.string(),
+        }),
+      ),
+    ])
+    .nullish();
 
 function convertOpenAICompatibleContent(
-  content: z.infer<typeof openAICompatibleContentSchema>,
+  content: z.infer<ReturnType<typeof openAICompatibleContentSchema>>,
 ): Array<Extract<LanguageModelV4Content, { type: 'text' | 'reasoning' }>> {
   if (content == null) {
     return [];
@@ -862,88 +941,111 @@ function convertOpenAICompatibleContent(
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const OpenAICompatibleChatResponseSchema = z.looseObject({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      message: z.object({
-        role: z.literal('assistant').nullish(),
-        content: openAICompatibleContentSchema,
-        reasoning_content: z.string().nullish(),
-        reasoning: z.string().nullish(),
-        tool_calls: z
-          .array(
-            z.object({
-              id: z.string().nullish(),
-              function: z.object({
-                name: z.string(),
-                arguments: z.string(),
-              }),
-              // Support for Google Gemini thought signatures via OpenAI compatibility
-              extra_content: z
-                .object({
-                  google: z
+const OpenAICompatibleChatResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.looseObject({
+      id: z.string().nullish(),
+      created: z.number().nullish(),
+      model: z.string().nullish(),
+      choices: z.array(
+        z.object({
+          message: z.object({
+            role: z.literal('assistant').nullish(),
+            content: openAICompatibleContentSchema(),
+            // set instead of `content` when the model refuses to answer. Some
+            // OpenAI-compatible servers send non-string values (e.g. `false`),
+            // which are ignored instead of failing the whole response:
+            refusal: z
+              .unknown()
+              .nullish()
+              .transform(value =>
+                typeof value === 'string' ? value : undefined,
+              ),
+            reasoning_content: z.string().nullish(),
+            reasoning: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  id: z.string().nullish(),
+                  function: z.object({
+                    name: z.string(),
+                    arguments: z.string(),
+                  }),
+                  // Support for Google Gemini thought signatures via OpenAI compatibility
+                  extra_content: z
                     .object({
-                      thought_signature: z.string().nullish(),
+                      google: z
+                        .object({
+                          thought_signature: z.string().nullish(),
+                        })
+                        .nullish(),
                     })
                     .nullish(),
-                })
-                .nullish(),
-            }),
-          )
-          .nullish(),
-      }),
-      finish_reason: z.string().nullish(),
-    }),
-  ),
-  usage: openaiCompatibleTokenUsageSchema,
-});
-
-const chunkBaseSchema = z.looseObject({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      delta: z
-        .object({
-          role: z.enum(['assistant', '']).nullish(),
-          content: openAICompatibleContentSchema,
-          // Most openai-compatible models set `reasoning_content`, but some
-          // providers serving `gpt-oss` set `reasoning`. See #7866
-          reasoning_content: z.string().nullish(),
-          reasoning: z.string().nullish(),
-          tool_calls: z
-            .array(
-              z.object({
-                index: z.number().nullish(), //google does not send index
-                id: z.string().nullish(),
-                function: z.object({
-                  name: z.string().nullish(),
-                  arguments: z.string().nullish(),
                 }),
-                // Support for Google Gemini thought signatures via OpenAI compatibility
-                extra_content: z
-                  .object({
-                    google: z
-                      .object({
-                        thought_signature: z.string().nullish(),
-                      })
-                      .nullish(),
-                  })
-                  .nullish(),
-              }),
-            )
-            .nullish(),
-        })
-        .nullish(),
-      finish_reason: z.string().nullish(),
+              )
+              .nullish(),
+          }),
+          finish_reason: z.string().nullish(),
+        }),
+      ),
+      usage: openaiCompatibleTokenUsageSchema(),
     }),
   ),
-  usage: openaiCompatibleTokenUsageSchema,
-});
+);
+
+const chunkBaseSchema = () =>
+  z.looseObject({
+    id: z.string().nullish(),
+    created: z.number().nullish(),
+    model: z.string().nullish(),
+    choices: z.array(
+      z.object({
+        delta: z
+          .object({
+            role: z.enum(['assistant', '']).nullish(),
+            content: openAICompatibleContentSchema(),
+            // set instead of `content` when the model refuses to answer. Some
+            // OpenAI-compatible servers send non-string values (e.g. `false`),
+            // which are ignored instead of failing the whole response:
+            refusal: z
+              .unknown()
+              .nullish()
+              .transform(value =>
+                typeof value === 'string' ? value : undefined,
+              ),
+            // Most openai-compatible models set `reasoning_content`, but some
+            // providers serving `gpt-oss` set `reasoning`. See #7866
+            reasoning_content: z.string().nullish(),
+            reasoning: z.string().nullish(),
+            tool_calls: z
+              .array(
+                z.object({
+                  index: z.number().nullish(), //google does not send index
+                  id: z.string().nullish(),
+                  function: z.object({
+                    name: z.string().nullish(),
+                    arguments: z.string().nullish(),
+                  }),
+                  // Support for Google Gemini thought signatures via OpenAI compatibility
+                  extra_content: z
+                    .object({
+                      google: z
+                        .object({
+                          thought_signature: z.string().nullish(),
+                        })
+                        .nullish(),
+                    })
+                    .nullish(),
+                }),
+              )
+              .nullish(),
+          })
+          .nullish(),
+        finish_reason: z.string().nullish(),
+      }),
+    ),
+    usage: openaiCompatibleTokenUsageSchema(),
+  });
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
@@ -951,4 +1053,4 @@ const createOpenAICompatibleChatChunkSchema = <
   ERROR_SCHEMA extends z.core.$ZodType,
 >(
   errorSchema: ERROR_SCHEMA,
-) => z.union([chunkBaseSchema, errorSchema]);
+) => z.union([chunkBaseSchema(), errorSchema]);

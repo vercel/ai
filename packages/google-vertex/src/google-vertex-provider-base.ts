@@ -1,3 +1,4 @@
+import { getGoogleVertexRequestConfig } from './google-vertex-model-catalog-config';
 import {
   GoogleInteractionsLanguageModel,
   GoogleLanguageModel,
@@ -8,6 +9,7 @@ import {
 } from '@ai-sdk/google/internal';
 import {
   InvalidArgumentError,
+  LoadAPIKeyError,
   type Experimental_VideoModelV4,
   type ImageModelV4,
   type LanguageModelV4,
@@ -50,23 +52,31 @@ const EXPRESS_MODE_BASE_URL =
 // Tuned models are served from a deployed endpoint and addressed by their
 // `endpoints/{id}` resource, which replaces `publishers/google/models/{id}`.
 // https://cloud.google.com/vertex-ai/generative-ai/docs/deploy/overview
-const ENDPOINT_MODEL_PREFIX = 'endpoints/';
-
 function isEndpointModelId(modelId: string): boolean {
-  return modelId.startsWith(ENDPOINT_MODEL_PREFIX);
+  return getGoogleVertexRequestConfig(modelId).language?.endpoint === true;
 }
 
 // set `x-goog-api-key` header to API key for express mode
 function createExpressModeFetch(
-  apiKey: string,
+  apiKey: Resolvable<string>,
   customFetch?: FetchFunction,
 ): FetchFunction {
   return async (url, init) => {
+    const resolvedApiKey = await resolve(apiKey);
+    if (
+      typeof apiKey !== 'string' &&
+      (typeof resolvedApiKey !== 'string' || !resolvedApiKey.trim())
+    ) {
+      throw new LoadAPIKeyError({
+        message: 'Google Vertex API key must be a non-empty string.',
+      });
+    }
+
     const modifiedInit: RequestInit = {
       ...init,
       headers: {
         ...(init?.headers ? normalizeHeaders(init.headers) : {}),
-        'x-goog-api-key': apiKey,
+        'x-goog-api-key': resolvedApiKey,
       },
     };
     return (customFetch ?? fetch)(url.toString(), modifiedInit);
@@ -153,8 +163,9 @@ export interface GoogleVertexProviderSettings {
    * Optional. The API key for the Google Cloud project. If provided, the
    * provider will use express mode with API key authentication. Defaults to
    * the value of the `GOOGLE_VERTEX_API_KEY` environment variable.
+   * A callback is resolved before each request and must return a non-empty key.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Your Google Vertex location. Defaults to the environment variable `GOOGLE_VERTEX_LOCATION`.
@@ -214,10 +225,13 @@ export interface GoogleVertexProviderSettings {
 export function createGoogleVertex(
   options: GoogleVertexProviderSettings = {},
 ): GoogleVertexProvider {
-  const apiKey = loadOptionalSetting({
-    settingValue: options.apiKey,
-    environmentVariableName: 'GOOGLE_VERTEX_API_KEY',
-  });
+  const apiKey =
+    typeof options.apiKey === 'string' || options.apiKey == null
+      ? loadOptionalSetting({
+          settingValue: options.apiKey,
+          environmentVariableName: 'GOOGLE_VERTEX_API_KEY',
+        })
+      : options.apiKey;
 
   const loadGoogleVertexProject = () =>
     loadSetting({
@@ -366,7 +380,7 @@ export function createGoogleVertex(
     });
 
   const createSpeechModel = (modelId: GoogleVertexSpeechModelId) => {
-    if (modelId.startsWith('chirp')) {
+    if (getGoogleVertexRequestConfig(modelId).speech?.api === 'cloud-tts') {
       if (apiKey) {
         throw new Error(
           'Google Vertex Chirp speech models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
@@ -400,7 +414,7 @@ export function createGoogleVertex(
     // Gemini transcription models (`gemini-3.5-transcribe[-live]`) use the
     // Vertex generateContent / Live API surfaces; everything else routes to
     // Cloud Speech-to-Text (Chirp, telephony).
-    if (modelId.startsWith('gemini')) {
+    if (getGoogleVertexRequestConfig(modelId).transcription?.api === 'gemini') {
       return new GoogleVertexGeminiTranscriptionModel(modelId, {
         provider: config.provider,
         baseURL: loadBaseURL(),

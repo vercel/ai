@@ -3,15 +3,19 @@ import type {
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ClientSecretOptions as RealtimeModelV4ClientSecretOptions,
   Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
+  Experimental_RealtimeModelV4ServerConnection as RealtimeModelV4ServerConnection,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
+import { removeUndefinedEntries } from '@ai-sdk/provider-utils';
 import { getGatewayRealtimeProtocols } from './gateway-realtime-auth';
 
 export type GatewayRealtimeModelConfig = {
   provider: string;
   baseURL: string;
   teamIdOrSlug?: string;
+  getHeaders: () => Promise<Record<string, string | undefined>>;
   /**
    * Mints a short-lived client secret (`vcst_`) for this model via the
    * Gateway's `/v1/realtime/client-secrets` endpoint. Implemented by the
@@ -35,6 +39,11 @@ export type GatewayRealtimeModelConfig = {
  */
 export class GatewayRealtimeModel implements RealtimeModelV4 {
   readonly specificationVersion = 'v4' as const;
+  readonly capabilities = {
+    conversation: 'turn-based',
+    transports: ['websocket'],
+    connections: ['client-secret-websocket', 'server-websocket'],
+  } as const;
   readonly provider: string;
   readonly modelId: string;
 
@@ -84,18 +93,47 @@ export class GatewayRealtimeModel implements RealtimeModelV4 {
     };
   }
 
+  async getServerWebSocketConfig(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): Promise<RealtimeModelV4ServerConnection> {
+    this.assertConversationIntent(options);
+
+    return {
+      url: toGatewayRealtimeUrl(this.config.baseURL, this.modelId),
+      headers: removeUndefinedEntries(await this.config.getHeaders()),
+    };
+  }
+
+  private assertConversationIntent(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): void {
+    if (options?.intent != null && options.intent !== 'conversation') {
+      throw new Error(
+        `AI Gateway realtime does not support the '${options.intent}' session intent on the normalized realtime route.`,
+      );
+    }
+  }
+
   parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent {
     // The Gateway emits normalized AI SDK realtime events, so no
     // provider-specific mapping is needed on the client.
     return raw as RealtimeModelV4ServerEvent;
   }
 
-  serializeClientEvent(event: RealtimeModelV4ClientEvent): unknown {
+  serializeClientEvent(
+    event: RealtimeModelV4ClientEvent,
+    options?: { intent?: RealtimeModelV4SessionIntent },
+  ): unknown {
+    this.assertConversationIntent(options);
     // The Gateway accepts normalized AI SDK realtime events directly.
     return event;
   }
 
-  buildSessionConfig(config: RealtimeModelV4SessionConfig): unknown {
+  buildSessionConfig(
+    config: RealtimeModelV4SessionConfig,
+    options?: { intent?: RealtimeModelV4SessionIntent },
+  ): unknown {
+    this.assertConversationIntent(options);
     // The session config is already normalized; the Gateway maps it to the
     // upstream provider's session payload server-side.
     return config;

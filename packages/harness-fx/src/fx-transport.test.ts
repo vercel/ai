@@ -1,9 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import { createFxTransport } from './fx-transport';
+import { createFxTransport, parseFxEvent } from './fx-transport';
 import type { FxTurnState } from './fx-resume-state';
-import { createFxTranslator } from './fx-translate';
-import type { HarnessV1StreamPart } from '@ai-sdk/harness';
 import { secureJsonParse } from '@ai-sdk/provider-utils';
 
 const fixture = readFileSync(
@@ -30,7 +28,266 @@ const request = {
   },
 };
 
+function responsesFixtures(provider: 'codex' | 'grok'): string[] {
+  const lines = readFileSync(
+    new URL(
+      `./__fixtures__/responses-${provider === 'codex' ? 'openai' : 'xai'}.chunks.txt`,
+      import.meta.url,
+    ),
+    'utf8',
+  )
+    .trim()
+    .split('\n');
+  const responses: string[] = [];
+  let body = '';
+  for (const line of lines) {
+    body += `data: ${line}\n\n`;
+    if (parseFxEvent(`data: ${line}`)?.type === 'response.completed') {
+      responses.push(body);
+      body = '';
+    }
+  }
+  return responses;
+}
+
+describe('fx subscription Responses transport', () => {
+  it.each(['codex', 'grok'] as const)(
+    'extracts complete %s tool batches before release and reconstructs them on replay',
+    async provider => {
+      const fixtures = responsesFixtures(provider);
+      const turn = createTurn();
+      let fetched = 0;
+      const fetch = vi.fn<typeof globalThis.fetch>(
+        async () => new Response(fixtures[fetched++]),
+      );
+      let liveCalls: unknown;
+      for (const replay of [false, true]) {
+        const transport = createFxTransport({
+          provider,
+          headers: {},
+          turn,
+          fetch,
+          save: async () => {},
+          onRequest() {},
+          beforeRelease({ requestIndex }) {
+            expect(turn.models[requestIndex].complete).toBe(true);
+          },
+        });
+        for (let index = 0; index < fixtures.length; index++) {
+          const response = await transport.fetch(
+            provider === 'codex'
+              ? 'https://chatgpt.com/backend-api/codex/responses'
+              : 'https://cli-chat-proxy.grok.com/v1/responses',
+            {
+              method: 'POST',
+              body: JSON.stringify({ model: 'supplied-model', input: [index] }),
+            },
+          );
+          expect(await response.text()).toBe(fixtures[index]);
+        }
+        const calls = [...transport.toolCalls.values()].flat().map(call => ({
+          toolName: call.toolName,
+          input: secureJsonParse(call.input as string),
+        }));
+        if (replay) expect(calls).toEqual(liveCalls);
+        else {
+          liveCalls = calls;
+          expect(calls).toHaveLength(provider === 'codex' ? 3 : 0);
+          if (provider === 'codex')
+            expect(calls[0]).toMatchInlineSnapshot(`
+            {
+              "input": {
+                "a": 12,
+                "b": 7,
+                "op": "add",
+              },
+              "toolName": "calculator",
+            }
+          `);
+        }
+        await transport.stop();
+      }
+      expect(fetch).toHaveBeenCalledTimes(fixtures.length);
+    },
+  );
+
+  it('does not journal rejected credentials and reuses the request index after a 401', async () => {
+    const fixture = responsesFixtures('codex')[0];
+    const turn = createTurn();
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(new Response('rejected secret', { status: 401 }))
+      .mockImplementation(async () => new Response(fixture));
+    const transport = createFxTransport({
+      provider: 'codex',
+      headers: {},
+      turn,
+      fetch,
+      save: async () => {},
+      onRequest() {},
+      beforeRelease() {},
+    });
+    const endpoint = 'https://chatgpt.com/backend-api/codex/responses';
+    const init = { method: 'POST', body: '{"model":"unchanged"}' };
+    expect((await transport.fetch(endpoint, init)).status).toBe(401);
+    expect(turn.models).toEqual([]);
+    await (await transport.fetch(endpoint, init)).text();
+    expect(transport.requestIndex).toBe(0);
+    expect(turn.models).toHaveLength(1);
+    expect(JSON.stringify(turn)).not.toContain('rejected secret');
+    await transport.stop();
+  });
+
+  it('keeps subscription tools unpublished when a captured response is truncated', async () => {
+    const fixture = responsesFixtures('codex')[0];
+    const beforeRelease = vi.fn();
+    const transport = createFxTransport({
+      provider: 'codex',
+      headers: {},
+      turn: createTurn(),
+      save: async () => {},
+      onRequest() {},
+      beforeRelease,
+      fetch: async () =>
+        new Response(
+          fixture.slice(
+            0,
+            fixture.indexOf('data: {"type":"response.completed"'),
+          ),
+        ),
+    });
+    await expect(
+      (
+        await transport.fetch(
+          'https://chatgpt.com/backend-api/codex/responses',
+          {
+            method: 'POST',
+            body: '{}',
+          },
+        )
+      ).text(),
+    ).rejects.toThrow('before a terminal event');
+    expect(beforeRelease).not.toHaveBeenCalled();
+    expect(transport.toolCalls.size).toBe(0);
+    await transport.stop();
+  });
+
+  it('scopes Gateway headers away from subscription, OAuth, and catalog requests', async () => {
+    const fixture = responsesFixtures('grok')[0];
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      async () => new Response(fixture),
+    );
+    const transport = createFxTransport({
+      provider: 'grok',
+      headers: { authorization: 'gateway-key', 'x-client-app': 'gateway' },
+      turn: createTurn(),
+      fetch,
+      responseFormat: { type: 'json', schema: { type: 'object' } },
+      save: async () => {},
+      onRequest() {},
+      beforeRelease() {},
+    });
+    for (const url of [
+      'https://auth.x.ai/oauth2/token',
+      'https://api.x.ai/v1/models',
+      'https://cli-chat-proxy.grok.com/v1/responses',
+    ]) {
+      await (
+        await transport.fetch(url, {
+          method: 'POST',
+          headers: { authorization: 'subscription' },
+          body: '{"model":"unchanged"}',
+        })
+      ).text();
+    }
+    expect(
+      fetch.mock.calls.map(([url, init]) => ({
+        url: String(url),
+        headers: Object.fromEntries(new Headers(init?.headers)),
+        body: secureJsonParse(init!.body as string),
+      })),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "body": {
+            "model": "unchanged",
+          },
+          "headers": {
+            "authorization": "subscription",
+          },
+          "url": "https://auth.x.ai/oauth2/token",
+        },
+        {
+          "body": {
+            "model": "unchanged",
+          },
+          "headers": {
+            "authorization": "subscription",
+          },
+          "url": "https://api.x.ai/v1/models",
+        },
+        {
+          "body": {
+            "model": "unchanged",
+            "text": {
+              "format": {
+                "name": "response",
+                "schema": {
+                  "type": "object",
+                },
+                "strict": true,
+                "type": "json_schema",
+              },
+            },
+          },
+          "headers": {
+            "authorization": "subscription",
+          },
+          "url": "https://cli-chat-proxy.grok.com/v1/responses",
+        },
+      ]
+    `);
+    await transport.stop();
+  });
+});
+
 describe('fx Gateway transport', () => {
+  it('converts a saved Gateway frame cursor to parsed output lengths on replay', async () => {
+    const textFixture = readFileSync(
+      new URL('./__fixtures__/gateway-1.sse.txt', import.meta.url),
+      'utf8',
+    );
+    const turn = createTurn();
+    const fetch = vi.fn(async () => new Response(textFixture));
+    const options = {
+      headers: {},
+      turn,
+      fetch,
+      save: async () => {},
+      onRequest() {},
+      beforeRelease() {},
+    };
+    const transport = createFxTransport(options);
+    await (await transport.fetch(request.url, request.init)).text();
+    await transport.stop();
+    const record = turn.models[0];
+    delete record.emittedOutput;
+    record.emittedParts = record.body
+      .split(/\r?\n\r?\n/)
+      .filter(Boolean).length;
+    const replay = createFxTransport(options);
+    await (await replay.fetch(request.url, request.init)).text();
+    expect(record.emittedOutput).toMatchInlineSnapshot(`
+      {
+        "finished": true,
+        "reasoning": 0,
+        "text": 5,
+      }
+    `);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await replay.stop();
+  });
+
   it('preserves passthrough Request fields when rewriting the Gateway URL', async () => {
     const controller = new AbortController();
     let forwarded!: Request;
@@ -40,7 +297,6 @@ describe('fx Gateway transport', () => {
       headers: { 'x-client-app': 'ai-sdk-harness-fx/test' },
       turn,
       save: async () => {},
-      onPart() {},
       onRequest() {},
       beforeRelease() {},
       fetch: async (input, init) => {
@@ -112,7 +368,6 @@ describe('fx Gateway transport', () => {
         headers: { 'x-client-app': 'adapter' },
         turn: createTurn(),
         save: async () => {},
-        onPart() {},
         onRequest() {},
         beforeRelease() {},
         fetch: async (input, init) => {
@@ -150,7 +405,7 @@ describe('fx Gateway transport', () => {
           "credentials": "omit",
           "headers": {
             "content-type": "text/plain;charset=UTF-8",
-            "x-client-app": "adapter",
+            "x-client-app": "caller",
             "x-override": "override",
           },
           "method": "PUT",
@@ -177,7 +432,6 @@ describe('fx Gateway transport', () => {
       const release = new Promise<void>(resolve => {
         resolveRelease = resolve;
       });
-      const translator = createFxTranslator({ turnId: 'test', emit() {} });
       const beforeRelease = vi.fn(async () => {
         resolvePublishing();
         await release;
@@ -188,7 +442,6 @@ describe('fx Gateway transport', () => {
         turn,
         fetch,
         save: async () => {},
-        onPart: translator.onPart,
         onRequest() {},
         beforeRelease,
       });
@@ -204,7 +457,7 @@ describe('fx Gateway transport', () => {
       expect(released).toBe(false);
       expect(beforeRelease).toHaveBeenCalledWith({ requestIndex: 0, replay });
       expect(
-        translator.toolCalls.get(0)?.map(call => ({
+        transport.toolCalls.get(0)?.map(call => ({
           ...call,
           input: secureJsonParse(call.input as string),
         })),
@@ -237,7 +490,6 @@ describe('fx Gateway transport', () => {
       headers: {},
       turn,
       save: async () => {},
-      onPart() {},
       onRequest() {},
       beforeRelease() {},
       fetch,
@@ -265,16 +517,12 @@ describe('fx Gateway transport', () => {
           headers: { 'content-type': 'text/event-stream' },
         }),
     );
-    const parts: Array<{ type: string; suppress: boolean }> = [];
     const options = {
       baseUrl: 'https://ai-gateway.vercel.sh',
       headers: {},
       turn,
       save,
       fetch,
-      onPart: (input: { part: { type: string }; suppress: boolean }) => {
-        parts.push({ type: input.part.type, suppress: input.suppress });
-      },
       onRequest() {},
       beforeRelease() {
         expect(turn.models[0].complete).toBe(true);
@@ -287,27 +535,24 @@ describe('fx Gateway transport', () => {
     ).toBe(fixture.trim());
     await transport.stop();
     expect(turn.models[0].complete).toBe(true);
-    expect(parts.some(part => part.type === 'tool-call')).toBe(true);
-    parts.length = 0;
+    expect(transport.toolCalls.get(0)).toHaveLength(1);
     const replay = createFxTransport(options);
     expect(await (await replay.fetch(request.url, request.init)).text()).toBe(
       fixture,
     );
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(parts.every(part => part.suppress)).toBe(true);
+    expect(replay.toolCalls).toEqual(transport.toolCalls);
     await replay.stop();
   });
 
   it('does not publish a tool batch from a response missing its terminal event', async () => {
     const turn = createTurn();
-    const translator = createFxTranslator({ turnId: 'test', emit() {} });
     const beforeRelease = vi.fn();
     const transport = createFxTransport({
       baseUrl: 'https://ai-gateway.vercel.sh',
       headers: {},
       turn,
       save: async () => {},
-      onPart: translator.onPart,
       onRequest() {},
       beforeRelease,
       fetch: async () =>
@@ -319,7 +564,7 @@ describe('fx Gateway transport', () => {
       (await transport.fetch(request.url, request.init)).text(),
     ).rejects.toThrow('before a terminal event');
     expect(beforeRelease).not.toHaveBeenCalled();
-    expect(translator.toolCalls.size).toBe(0);
+    expect(transport.toolCalls.size).toBe(0);
     await transport.stop();
   });
 
@@ -335,7 +580,6 @@ describe('fx Gateway transport', () => {
       turn: createTurn(),
       responseFormat,
       save: async () => {},
-      onPart() {},
       onRequest() {},
       beforeRelease() {},
       fetch,
@@ -357,7 +601,6 @@ describe('fx Gateway transport', () => {
       headers: {},
       turn,
       save: async () => {},
-      onPart() {},
       onRequest() {},
       beforeRelease() {},
       fetch: async () => new Response(fixture),
@@ -375,45 +618,7 @@ describe('fx Gateway transport', () => {
     await replay.stop();
   });
 
-  it('translates captured text and usage without duplicate output on replay', async () => {
-    const textFixture = readFileSync(
-      new URL('./__fixtures__/gateway-1.sse.txt', import.meta.url),
-      'utf8',
-    );
-    const turn = createTurn();
-    const events: HarnessV1StreamPart[] = [];
-    const translator = createFxTranslator({
-      turnId: 'test',
-      emit: event => events.push(event),
-    });
-    const options = {
-      baseUrl: 'https://ai-gateway.vercel.sh',
-      headers: {},
-      turn,
-      save: async () => {},
-      onPart: translator.onPart,
-      onRequest() {},
-      beforeRelease() {},
-      fetch: async () => new Response(textFixture),
-    };
-    const transport = createFxTransport(options);
-    await (await transport.fetch(request.url, request.init)).text();
-    expect(
-      events
-        .filter(event => event.type === 'text-delta')
-        .map(event => event.delta)
-        .join(''),
-    ).toBe('READY');
-    const count = events.length;
-    const replay = createFxTransport(options);
-    await (await replay.fetch(request.url, request.init)).text();
-    expect(events).toHaveLength(count);
-    expect(translator.totalUsage().inputTokens.total).toBeGreaterThan(0);
-    await transport.stop();
-    await replay.stop();
-  });
-
-  it('recomputes a response truncated at an event boundary with a new text ID', async () => {
+  it('recomputes a response truncated at an event boundary with a new attempt', async () => {
     const textFixture = readFileSync(
       new URL('./__fixtures__/gateway-1.sse.txt', import.meta.url),
       'utf8',
@@ -423,18 +628,12 @@ describe('fx Gateway transport', () => {
       textFixture.indexOf('data: {"type":"text-end"'),
     );
     const turn = createTurn();
-    const events: HarnessV1StreamPart[] = [];
-    const translator = createFxTranslator({
-      turnId: 'test',
-      emit: event => events.push(event),
-    });
     const fetch = vi.fn(async () => new Response(partial));
     const options = {
       baseUrl: 'https://ai-gateway.vercel.sh',
       headers: {},
       turn,
       save: async () => {},
-      onPart: translator.onPart,
       onRequest() {},
       beforeRelease() {},
       fetch,
@@ -450,10 +649,7 @@ describe('fx Gateway transport', () => {
     await (await replay.fetch(request.url, request.init)).text();
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(turn.models[0].attempt).toBe(1);
-    expect(events.filter(event => event.type === 'text-delta')).toEqual([
-      { type: 'text-delta', id: 'test:0:0:0', delta: 'READY' },
-      { type: 'text-delta', id: 'test:0:1:0', delta: 'READY' },
-    ]);
+    expect(turn.models[0].emittedOutput).toEqual({ text: 0, reasoning: 0 });
     await replay.stop();
   });
 });

@@ -1,0 +1,28 @@
+{
+  "description": "Live @vercel/sandbox 3.9.0 request and selected response fields. Native policy readback omits responseRules even though the proxy enforces them.",
+  "requestedPolicy": {
+    "allow": {
+      "registry.npmjs.org": [
+        {
+          "match": { "method": ["PUT", "POST", "DELETE"] },
+          "response": { "statusCode": 403 }
+        }
+      ],
+      "example.com": []
+    }
+  },
+  "createResponseNetworkPolicy": {
+    "mode": "custom",
+    "allowedDomains": ["registry.npmjs.org", "example.com"],
+    "responseRules": [
+      {
+        "domain": "registry.npmjs.org",
+        "statusCode": 403,
+        "matchDimensions": ["method"]
+      }
+    ]
+  },
+  "nativeReadback": {
+    "allow": ["registry.npmjs.org", "example.com"]
+  }
+}

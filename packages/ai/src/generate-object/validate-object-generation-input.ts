@@ -14,20 +14,6 @@ export function validateObjectGenerationInput({
   schemaDescription?: string;
   enumValues?: Array<unknown>;
 }) {
-  if (
-    output != null &&
-    output !== 'object' &&
-    output !== 'array' &&
-    output !== 'enum' &&
-    output !== 'no-schema'
-  ) {
-    throw new InvalidArgumentError({
-      parameter: 'output',
-      value: output,
-      message: 'Invalid output type.',
-    });
-  }
-
   if (output === 'no-schema') {
     if (schema != null) {
       throw new InvalidArgumentError({
@@ -63,14 +49,6 @@ export function validateObjectGenerationInput({
   }
 
   if (output === 'object') {
-    if (schema == null) {
-      throw new InvalidArgumentError({
-        parameter: 'schema',
-        value: schema,
-        message: 'Schema is required for object output.',
-      });
-    }
-
     if (enumValues != null) {
       throw new InvalidArgumentError({
         parameter: 'enumValues',
@@ -81,14 +59,6 @@ export function validateObjectGenerationInput({
   }
 
   if (output === 'array') {
-    if (schema == null) {
-      throw new InvalidArgumentError({
-        parameter: 'schema',
-        value: schema,
-        message: 'Element schema is required for array output.',
-      });
-    }
-
     if (enumValues != null) {
       throw new InvalidArgumentError({
         parameter: 'enumValues',
@@ -123,15 +93,7 @@ export function validateObjectGenerationInput({
       });
     }
 
-    if (enumValues == null) {
-      throw new InvalidArgumentError({
-        parameter: 'enumValues',
-        value: enumValues,
-        message: 'Enum values are required for enum output.',
-      });
-    }
-
-    for (const value of enumValues) {
+    for (const value of enumValues ?? []) {
       if (typeof value !== 'string') {
         throw new InvalidArgumentError({
           parameter: 'enumValues',

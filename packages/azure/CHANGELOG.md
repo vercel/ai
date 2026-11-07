@@ -1,5 +1,203 @@
 # @ai-sdk/azure
 
+## 4.0.118
+
+### Patch Changes
+
+- c6efa4b: Refactor Azure model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export the OpenAI catalog internally for Azure to reuse. Request behavior is unchanged.
+- Updated dependencies [c6efa4b]
+- Updated dependencies [f6dbf04]
+- Updated dependencies [646a7e3]
+- Updated dependencies [6b97088]
+  - @ai-sdk/openai@4.0.110
+
+## 4.0.117
+
+### Patch Changes
+
+- 27528db: Expose `customTool` through `azure.tools` for Azure Responses models, sharing the OpenAI custom tool factory and its raw string input support.
+- bf10079: Expose `azure.tools.applyPatch` for client-executed file edits through the Azure Responses API.
+- 934100c: Report the actual OpenAI Chat HTTP endpoint (also used by Azure Chat and Bedrock Mantle Chat) through optional request metadata and model-call end events. Record its host and port on OpenTelemetry chat spans without exposing URL credentials, paths, queries, or fragments. Expose only the sanitized HTTP origin in text and object generation results and step/finish callbacks. Providers that do not report an endpoint leave these attributes unset.
+- 5cc6d28: Expose `azure.tools.shell` for local and hosted shell execution through the Azure Responses API.
+- 41465fd: Expose optional transcription word timings separately from segments and accept shared timestampGranularities. Explicit provider timing settings take precedence. OpenAI now sends timestamp_granularities only with verbose_json and warns when a requested timing is unavailable or excluded.
+- Updated dependencies [27528db]
+- Updated dependencies [7139593]
+- Updated dependencies [7bb309d]
+- Updated dependencies [7a90522]
+- Updated dependencies [36802d4]
+- Updated dependencies [6549344]
+- Updated dependencies [5f9bb8e]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [243bf22]
+- Updated dependencies [5cc6d28]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/openai@4.0.109
+  - @ai-sdk/deepseek@3.0.80
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 4.0.116
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/deepseek@3.0.79
+  - @ai-sdk/openai@4.0.108
+
+## 4.0.115
+
+### Patch Changes
+
+- Updated dependencies [4ae6986]
+- Updated dependencies [4ae6986]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [226b7da]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/deepseek@3.0.78
+  - @ai-sdk/openai@4.0.107
+  - @ai-sdk/provider-utils@5.0.73
+
+## 4.0.114
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/deepseek@3.0.77
+  - @ai-sdk/openai@4.0.106
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 4.0.113
+
+### Patch Changes
+
+- Updated dependencies [47b1d8b]
+- Updated dependencies [d07b475]
+- Updated dependencies [61a315e]
+  - @ai-sdk/openai@4.0.105
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/deepseek@3.0.76
+
+## 4.0.112
+
+### Patch Changes
+
+- c3b6fef: fix(azure): treat all Azure Speech 502s as retryable again. MAI-Voice-2.1 now rejects unknown voices and unsupported styles with a 400, so the Envoy protocol-error 502 special case is removed.
+- Updated dependencies [57086ff]
+- Updated dependencies [01d7a03]
+- Updated dependencies [599a97f]
+- Updated dependencies [8375141]
+- Updated dependencies [7eac057]
+- Updated dependencies [436374e]
+- Updated dependencies [9026c7d]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/openai@4.0.104
+  - @ai-sdk/deepseek@3.0.75
+
+## 4.0.111
+
+### Patch Changes
+
+- 02dbab1: add azure.tools.toolSearch and support azure provider options on responses function tools
+- Updated dependencies [e64ed82]
+- Updated dependencies [02dbab1]
+- Updated dependencies [27a53b4]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/openai@4.0.103
+  - @ai-sdk/deepseek@3.0.74
+
+## 4.0.110
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/openai@4.0.102
+  - @ai-sdk/provider@4.0.34
+  - @ai-sdk/provider-utils@5.0.68
+  - @ai-sdk/deepseek@3.0.73
+
+## 4.0.109
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/deepseek@3.0.72
+  - @ai-sdk/openai@4.0.101
+
+## 4.0.108
+
+### Patch Changes
+
+- Updated dependencies [43ad966]
+- Updated dependencies [10026d1]
+  - @ai-sdk/openai@4.0.100
+  - @ai-sdk/deepseek@3.0.71
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/provider-utils@5.0.66
+
+## 4.0.107
+
+### Patch Changes
+
+- 7b4ad47: Defer construction of provider validation schemas until first use to reduce package import time.
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [df6fe35]
+- Updated dependencies [c787919]
+- Updated dependencies [0257b47]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/openai@4.0.99
+  - @ai-sdk/deepseek@3.0.70
+
+## 4.0.106
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [8b728ec]
+- Updated dependencies [3cb1dae]
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/openai@4.0.98
+  - @ai-sdk/deepseek@3.0.69
+
+## 4.0.105
+
+### Patch Changes
+
+- acbc819: Add an optional `modelId` setting to Azure OpenAI language-model factories for
+  accurate telemetry and capability detection with custom deployment names. Keep
+  the deployment ID for API routing and preserve existing behavior when the model
+  ID is omitted.
+- Updated dependencies [acbc819]
+- Updated dependencies [60cc252]
+  - @ai-sdk/openai@4.0.97
+  - @ai-sdk/provider@4.0.30
+  - @ai-sdk/deepseek@3.0.68
+  - @ai-sdk/provider-utils@5.0.63
+
 ## 4.0.104
 
 ### Patch Changes
