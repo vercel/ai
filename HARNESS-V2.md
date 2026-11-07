@@ -58,7 +58,7 @@ graph TD
 Green and blue boxes are public API; the dashed orange box is internal.
 
 - **`HarnessAgent`:** the public consumer API that app code uses: `stream()`, `generate()`, sessions, stream parts, `UIMessage` streams and lifecycle callbacks. This API will not notably change, other than receiving the new `world?: World` setting.
-- **`HarnessV2`:** the public API for harness adapter makers: `drive()` with its drive context (`log`, `effect()`, `executeHostTool()`, `gateBuiltinTool()`, `emit()`). See section below for details.
+- **`HarnessV2`:** the public API for harness adapter makers: `drive()` with its drive context (`log`, `effect()`, `executeHostTool()`, `gateBuiltinTool()`, `finishStep()`, `finishTurn()`, and the exceptional `emit()`). See section below for details.
   - `HarnessV2EffectFunction` declares the generic call signature used by the `HarnessV2DriveContext.effect` property.
 - **`HarnessAgent` engine:** the internal layer, not exported. Among other things, it:
   - translates `HarnessV2` stream parts into consumer stream types
@@ -104,7 +104,7 @@ export type HarnessV2 = {
    * stopped. Holds no state between calls: everything needed is in `context`.
    *
    * Resolves with nothing: the agent already knows why a drive ended, from
-   * the `finish` and `finish-step` parts emitted, the `suspended` outputs it
+   * the `finishStep()` and `finishTurn()` calls, the `suspended` outputs it
    * returned, the signals it aborted, or the error thrown. A drive that
    * returns with an unfinished turn and no such reason is driven again.
    */
@@ -353,6 +353,21 @@ interface HarnessV2EffectContext {
    * `effect-end` event carries as `startId`.
    */
   startId: string;
+  /**
+   * Emits a stream part produced by this attempt, already normalized, to the
+   * agent's output (stream results, live stream, UI). This is the regular way
+   * for a harness to emit content parts (text, reasoning, tool parts).
+   *
+   * Replay-safe: a replayed effect does not run its callback, so nothing is
+   * emitted again. The agent attributes each part to this attempt; after a
+   * crash it restores the parts of finished attempts and withdraws the parts
+   * of interrupted ones. Parts emitted after the attempt ended are dropped.
+   * `finish-step` and `finish` are excluded: use `finishStep()` and
+   * `finishTurn()` on the drive context.
+   */
+  emit(
+    part: Exclude<HarnessV2StreamPart, { type: 'finish-step' | 'finish' }>,
+  ): void;
 }
 
 /**
@@ -500,22 +515,50 @@ interface HarnessV2DriveContext {
     fence?: number;
   }>;
   /**
-   * Emits a stream part the harness produced, already normalized, to the
-   * agent's output (stream results, live stream, UI). Not session state: the
-   * agent fences it to this drive and suppresses it on replay.
+   * Finishes the current AI SDK step. Every step must be finished this way
+   * (there is no `start-step`: the agent adds it for consumers before a
+   * step's first part). `key` identifies the step within the session, chosen
+   * by the adapter like an effect key (e.g. `step:${n}` per turn).
    *
-   * Every AI SDK step must end with a `finish-step` part (there is no
-   * `start-step`: the agent adds it for consumers before a step's first part).
-   * The agent records each finished step in the log itself, so the steps
-   * `stopWhen` sees survive across drives; the adapter never reads them.
-   *
-   * Every turn must end with a `finish` part (`finishReason: 'error'` for a
-   * turn the runtime failed), which the agent records the same way. After a
-   * crash, the adapter cannot tell whether the `finish` of the latest turn
-   * was recorded, so when it finds that turn already finished (e.g. in its
-   * journal records), it emits `finish` again; the agent ignores duplicates.
+   * The agent records the step in the log under `key` and emits `finish-step`
+   * only on the first call for that key; a call replayed after a crash
+   * records and emits nothing. It resolves once the step is recorded and
+   * `stopWhen` was evaluated (which may abort `yieldRequested`), so the
+   * harness must await it before starting the next step.
    */
-  emit(part: HarnessV2StreamPart): void;
+  finishStep(opts: {
+    key: string;
+    finishReason: LanguageModelV4FinishReason;
+    usage: LanguageModelV4Usage;
+    harnessMetadata?: HarnessV2Metadata;
+  }): Promise<void>;
+  /**
+   * Finishes the current turn (`finishReason: 'error'` for a turn the
+   * runtime failed). Every turn must be finished this way. The agent derives
+   * the turn's identity from the prompt submission that started it, records
+   * the finish in the log and emits `finish` only on the first call; a call
+   * replayed after a crash records and emits nothing.
+   */
+  finishTurn(opts: {
+    finishReason: LanguageModelV4FinishReason;
+    totalUsage: LanguageModelV4Usage;
+    harnessMetadata?: HarnessV2Metadata;
+  }): Promise<void>;
+  /**
+   * Undesirable exception: only ever call this if the harness is unable to
+   * run its steps within an effect boundary via `effect()` (e.g. a closed
+   * runtime whose model calls happen inside its own process). Use the effect
+   * context's `emit()` otherwise.
+   *
+   * Emits a stream part outside any effect attempt. The agent fences it to
+   * this drive, but cannot attribute it to an attempt: it is never restored
+   * after a crash, and the harness itself must never emit parts again that
+   * it already emitted before (e.g. from replayed journal records).
+   * `finish-step` and `finish` are excluded.
+   */
+  emit(
+    part: Exclude<HarnessV2StreamPart, { type: 'finish-step' | 'finish' }>,
+  ): void;
   /**
    * Aborts when the drive must stop at once: preemption, a refused write, or
    * cancellation. The harness must stop its runtime and write nothing more.
@@ -618,7 +661,7 @@ const result = agent.stream({ prompt, session });
    1. Upside: more intuitive API design overall, alignment with `ToolLoopAgent`
    2. Downside: requires the developer to know the exact names of the respective harness’s built-in tools, which aren’t uniform
 
-### Glossary
+## Glossary
 
 **Existing AI SDK concepts:**
 
@@ -646,9 +689,25 @@ const result = agent.stream({ prompt, session });
 - **Queue job:** Item on the world's queue that wakes a run
 - **Log event:** Entry in the world's append-only event log (e.g. of type `run_created`, `step_started`, `step_completed`)
 
+## Misc decisions
+
+### Non-durable execution
+
+- Without a `world`, the engine uses an `InMemoryWorld`, so `HarnessV2` adapters and the log format are identical in both modes.
+- Non-durable still works across processes: the session's lifecycle state (readable from `HarnessAgentSession`) carries the history; only crash recovery mid-turn is lost (by definition of non-durable execution).
+- Lifecycle state is a full snapshot, always readable and storable the same way:
+  - with an `InMemoryWorld`: includes the whole log, and is the source of truth;
+  - with any other `World`: minimal (session id, `harnessId`, spec version); storing it is optional.
+- It reflects the last turn boundary (finished or suspended turn); read during a turn, it returns the state as of that boundary.
+- It is JSON: the engine converts devalue-serializable event data to JSON and back.
+- It never contains sensitive information..
+- Whether the log is included depends on the engine having created the `InMemoryWorld` (or a capability the World declares), not on an `instanceof` check.
+- No concurrency protection (like V1): two processes resuming the same state diverge.
+- Out of scope for now: incremental reads, moving a session between non-durable and durable mode, keeping the sandbox in sync with a restored older state.
+
 ### Stream handling (`HarnessV2StreamPart`)
 
-Adapters emit `HarnessV2StreamPart`s via `emit()`, on the level of language model stream parts (not `UIMessage` stream parts). The engine translates them into consumer stream parts, just like in V1.
+Adapters emit `HarnessV2StreamPart`s on the level of language model stream parts (not `UIMessage` stream parts). The engine translates them into consumer stream parts, just like in V1.
 
 When a step is cut off after streaming output (a crash mid-reply, or a retried model request), its replacement gets appended to the cut-off output, duplicating text. Following `@ai-sdk/workflow`'s `ModelCallStreamPart`, both stream part levels get a `reset-step` part:
 
@@ -682,21 +741,73 @@ export type HarnessTextStreamPart<TOOLS extends ToolSet> =
     };
 ```
 
-## `HarnessAgent`'s internal engine
+### Replay-safe stream emission
 
-### Non-durable execution
+After a crash, a new drive reruns the harness from the log. Any stream part emitted again during that rerun would duplicate output consumers already saw, since the World stream is append-only. Stream emission is therefore split so that every path is replay-safe:
 
-- Without a `world`, the engine uses an `InMemoryWorld`, so `HarnessV2` adapters and the log format are identical in both modes.
-- Non-durable still works across processes: the session's lifecycle state (readable from `HarnessAgentSession`) carries the history; only crash recovery mid-turn is lost (by definition of non-durable execution).
-- Lifecycle state is a full snapshot, always readable and storable the same way:
-  - with an `InMemoryWorld`: includes the whole log, and is the source of truth;
-  - with any other `World`: minimal (session id, `harnessId`, spec version); storing it is optional.
-- It reflects the last turn boundary (finished or suspended turn); read during a turn, it returns the state as of that boundary.
-- It is JSON: the engine converts devalue-serializable event data to JSON and back.
-- It never contains sensitive information..
-- Whether the log is included depends on the engine having created the `InMemoryWorld` (or a capability the World declares), not on an `instanceof` check.
-- No concurrency protection (like V1): two processes resuming the same state diverge.
-- Out of scope for now: incremental reads, moving a session between non-durable and durable mode, keeping the sandbox in sync with a restored older state.
+| Output | API | Replay-safe because |
+| --- | --- | --- |
+| Content parts (text, reasoning, tool parts) | `effectContext.emit()` | A replayed effect does not run its callback; after a crash, the engine restores parts of finished attempts and withdraws parts of interrupted ones |
+| Step end (`finish-step`) | `finishStep({ key, ... })` | The engine appends a log event under `key` and emits only when that append was new |
+| Turn end (`finish`) | `finishTurn({ ... })` | Same, keyed by the prompt submission that started the turn |
+| Output of a runtime that cannot run steps inside `effect()` | top-level `emit()` | Undesirable exception: the harness must never emit already emitted parts again |
+
+- `finish-step` and `finish` remain variants of `HarnessV2StreamPart` (the engine's writer emits them), but are only produced through `finishStep()` and `finishTurn()`: both adapter-facing `emit()` functions exclude them at the type level.
+- `finishStep()` is awaited by the harness, which gives the engine its hold point: it records the step and evaluates `stopWhen` before the next step starts.
+- Crash between the log append and the stream write of a finish part: when a drive starts while the turn is unfinished, the engine first re-emits the latest recorded `finish-step` (tagged with its key), then emits `reset-step`. Readers deduplicate parts by key.
+- Recovery of an unfinished step: the engine emits `reset-step`, then reads the step's lines back from the World stream and re-emits the parts whose effect attempt finished. Without this, a reset would withdraw the output of a model call that completed before the crash, and since its effect replays without running the callback, that output would never be emitted again.
+
+The engine implements all of this on one internal stream writer per drive, created by `createStreamWriter()`. Stream lines carry the engine-only tags (`startId`, `key`) in an envelope around the part; adapters never see or pass them:
+
+```ts
+type HarnessAgentStreamWriter = {
+  /**
+   * Emits an engine-tagged part. `startId` attributes it to an effect attempt,
+   * which makes it restorable after a crash if the attempt finished. `key`
+   * deduplicates a step or turn finish part on read.
+   */
+  emit(
+    opts: { part: HarnessV2StreamPart } & (
+      | { startId: string; key?: string }
+      | { startId?: string; key: string }
+    ),
+  ): void;
+  /** Untagged part (top-level drive `emit()`); withdrawn for good by a recovery reset. */
+  unsafeEmit(part: HarnessV2StreamPart): void;
+  /** Resolves once every write issued so far has landed or failed. */
+  flush(): Promise<void>;
+  /** Ends the stream after flushing. */
+  close(): Promise<void>;
+};
+```
+
+- `effectContext.emit` is built by `createEffectFunction()` per attempt, as `writer.emit({ part, startId })`, and drops parts once the attempt ended.
+- The top-level `emit` is built where the drive context is assembled, as `writer.unsafeEmit(part)`, fenced by the drive's `abortSignal`.
+- `finishStep()` and `finishTurn()` call `writer.emit({ part, key })` after their log append returned `true`.
+
+### Error representation (`HarnessV2EffectError`)
+
+Everything the engine writes to a World (log events and stream parts) must be serializable, so `Error` instances never cross that boundary. Errors are represented as plain data in the `HarnessV2` contract, and only turned into throwable errors in memory.
+
+- `HarnessV2EffectError` is the serializable error data type, defined in `packages/harness/src/v2/`. It is an object rather than a plain string, so fields (e.g. a `code`) can be added later without a breaking change:
+
+  ```ts
+  type HarnessV2EffectError = {
+    readonly message: string;
+  };
+  ```
+
+- Both the `error` stream part and the `error` effect output use it:
+  - `HarnessV2StreamPart`: `{ type: 'error'; error: HarnessV2EffectError }` (instead of `error: unknown`).
+  - `HarnessV2EffectOutput`: `{ type: 'error'; error: HarnessV2EffectError }` (instead of `error: string`).
+- Adapters normalize whatever their runtime throws into this shape before emitting the part; the engine never receives an `Error` instance through the contract.
+- `HarnessEffectError` is the throwable counterpart, in `packages/harness/src/errors/harness-effect-error.ts`. It extends `HarnessError` (marker pattern like the other harness errors) and is constructed from a `HarnessV2EffectError`, e.g. `new HarnessEffectError({ message, cause })`.
+- Naming convention: versioned spec names (`HarnessV2*Error`, like the provider spec's `BatchV4Error`) are serializable error data; unversioned `Harness*Error` names are classes extending `Error`.
+- How the engine translates the `error` stream part into the consumer-facing AI SDK `error` part (passing the object through vs. wrapping it in an `Error`) is decided with the stream part translation, not here.
+
+### Raw stream parts
+
+For the same reason, the `raw` stream part's payload is typed `SerializableValue` (from `@ai-sdk/provider`) instead of `unknown`: `{ type: 'raw'; rawValue: SerializableValue }`. Adapters pass the runtime's payload through as long as it is serializable, and convert it otherwise.
 
 ## Scratchpad
 

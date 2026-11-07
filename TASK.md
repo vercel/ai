@@ -47,9 +47,15 @@ The steps are below:
 8. [x] Scaffold `packages/harness/src/agent/v2/internal/create-effect-function.ts` with function `createEffectFunction(input): HarnessAgentEffectFunction`.
    - Add a `HarnessAgentEffectFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["effect"]` (redeclare it, DO NOT import).
    - The input for the `createEffectFunction()` function must include the `HarnessAgentLog`.
-9. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-emit-function.ts` with function `createEmitFunction(input): HarnessAgentEmitFunction`.
-   - Add a `HarnessAgentEmitFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["emit"]` (redeclare it, DO NOT import).
-   - The input for the `createEmit()` function must include a `stream` argument for the stream to emit these chunks to. Or maybe this also should come directly from the `World` instance that `HarnessAgent` uses, so alternatively the `world: World` could be passed.
+9. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-stream-writer.ts` with function `createStreamWriter(input): HarnessAgentStreamWriter`, and update the contract for replay-safe stream emission, per "Error representation", "Raw stream parts" and "Replay-safe stream emission" in HARNESS-V2.md.
+   - Add the `HarnessAgentStreamWriter` type (`emit`, `unsafeEmit`, `flush`, `close`) to `packages/harness/src/agent/v2/internal/types.ts`. There is no `createEmitFunction()` and no `HarnessAgentEmitFunction` type.
+   - The input for the `createStreamWriter()` function must include `world: World` and the session's `runId`; the writer writes to a per-session World stream.
+   - Add `HarnessV2EffectError` and use it for the `error` of `HarnessV2StreamPart` and `HarnessV2EffectOutput`; update `createEffectFunction()`'s error outputs accordingly.
+   - Type the `raw` stream part's `rawValue` as `SerializableValue`.
+   - Add the `HarnessEffectError` class in `packages/harness/src/errors/harness-effect-error.ts`, extending `HarnessError`.
+   - Add `emit()` to `HarnessV2EffectContext` and provide it from `createEffectFunction()`, whose input must additionally include the `HarnessAgentStreamWriter`. Each attempt's `emit` calls `writer.emit({ part, startId })` and drops parts once the attempt ended.
+   - Add `finishStep()` and `finishTurn()` to `HarnessV2DriveContext`, exclude `finish-step` and `finish` from its `emit()` parameter type, and document that `emit()` as the undesirable exception.
+   - Scaffold `createFinishStepFunction(input): HarnessAgentFinishStepFunction` and `createFinishTurnFunction(input): HarnessAgentFinishTurnFunction` in `packages/harness/src/agent/v2/internal/`, with both types in `types.ts` (redeclared, DO NOT import). Their inputs must include the `HarnessAgentLog` and the `HarnessAgentStreamWriter`; each appends its internal log event and calls `writer.emit({ part, key })` only if that append returned `true`.
 10. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-execute-host-tool-function.ts` with function `createExecuteHostToolFunction(input): HarnessAgentExecuteHostToolFunction`.
 
 - Add a `HarnessAgentExecuteHostToolFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["executeHostTool"]` (redeclare it, DO NOT import).
@@ -60,7 +66,7 @@ The steps are below:
 
 12. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-harness-v2-drive-context.ts` with function `createDriveContext(): HarnessV2DriveContext`.
 
-- The function receives inputs of types `HarnessAgentSession`, `HarnessAgentLog`, `HarnessAgentEffectFunction`, `HarnessAgentEmitFunction`, `HarnessAgentExecuteHostToolFunction`, `HarnessAgentGateBuiltinToolFunction`, etc and arranges them into the necessary aggregated shape.
+- The function receives inputs of types `HarnessAgentSession`, `HarnessAgentLog`, `HarnessAgentEffectFunction`, `HarnessAgentStreamWriter`, `HarnessAgentExecuteHostToolFunction`, `HarnessAgentGateBuiltinToolFunction`, etc and arranges them into the necessary aggregated shape.
 - It has to decorate `HarnessAgentLog` into `HarnessAgentV2Log`, and it has to create the sandbox session function based on the given session's sandbox session getter function. The other shapes should be compatible.
 
 13. [ ] Wire all the pieces that are individually handled by steps 7 to 11 together in `HarnessAgent`, so that the resulting `HarnessV2DriveContext` object can be passed to the `harness: HarnessV2` instance's `drive()` method.
