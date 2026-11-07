@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
+import type { LanguageModelV4GenerateResult } from '@ai-sdk/provider';
 import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -949,6 +950,130 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       (decideMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
     ).toEqual({ requestId: 'request-1' });
   });
+
+  describe.each(['generateText', 'streamText'] as const)(
+    '%s request metadata',
+    api => {
+      it.each([
+        {
+          request: {
+            body: 'keep',
+            url: 'https://user:password@model.example.test:8443/private?key=secret#fragment',
+          },
+          expected: { body: 'keep', url: 'https://model.example.test:8443' },
+        },
+        {
+          request: { body: 'keep', url: 'not a URL' },
+          expected: { body: 'keep' },
+        },
+        {
+          request: { body: 'keep', url: 'data:text/plain,secret' },
+          expected: { body: 'keep' },
+        },
+        { request: { body: 'keep' }, expected: { body: 'keep' } },
+        { request: undefined, expected: undefined },
+      ])(
+        'sanitizes $request before telemetry observes the provider result',
+        async ({ request, expected }) => {
+          type Request = LanguageModelV4GenerateResult['request'];
+          const tracedRequests: Request[] = [];
+          const integrationRequests: Request[] = [];
+          const providerRequest =
+            request == null ? undefined : Object.freeze({ ...request });
+          const snapshotRequest = (result: { request?: Request }) =>
+            result.request == null ? result.request : { ...result.request };
+          const channel = diagnosticsChannel.tracingChannel(
+            AI_SDK_TELEMETRY_TRACING_CHANNEL,
+          );
+          const subscribers = {
+            start() {},
+            end() {},
+            asyncStart() {},
+            asyncEnd(message: unknown) {
+              const telemetry =
+                message as TelemetryTracingChannelAsyncEndMessage;
+              if (telemetry.type === 'languageModelCall') {
+                tracedRequests.push(
+                  snapshotRequest(
+                    telemetry.result as LanguageModelV4GenerateResult,
+                  ),
+                );
+              }
+            },
+            error() {},
+          };
+          const finish = {
+            finishReason: { unified: 'stop' as const, raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: { total: 1, text: 1, reasoning: undefined },
+            },
+          };
+          const model = new MockLanguageModelV4({
+            doGenerate: {
+              content: [{ type: 'text', text: 'Hello' }],
+              warnings: [],
+              request: providerRequest,
+              ...finish,
+            },
+            doStream: {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: 'text-1' },
+                { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+                { type: 'text-end', id: 'text-1' },
+                { type: 'finish', ...finish },
+              ]),
+              request: providerRequest,
+            },
+          });
+
+          channel.subscribe(subscribers);
+          try {
+            const options = {
+              model,
+              prompt: 'Hello',
+              telemetry: {
+                integrations: [
+                  {
+                    executeLanguageModelCall: async <T>({
+                      execute,
+                    }: {
+                      execute: () => PromiseLike<T>;
+                    }) => {
+                      const result = await execute();
+                      integrationRequests.push(
+                        snapshotRequest(
+                          result as LanguageModelV4GenerateResult,
+                        ),
+                      );
+                      return result;
+                    },
+                  },
+                ],
+              },
+            };
+            const result =
+              api === 'generateText'
+                ? await generateText(options)
+                : streamText(options);
+            expect(await result.text).toBe('Hello');
+          } finally {
+            channel.unsubscribe(subscribers);
+          }
+
+          expect(tracedRequests).toEqual([expected]);
+          expect(integrationRequests).toEqual([expected]);
+          expect(providerRequest).toEqual(request);
+        },
+      );
+    },
+  );
 
   it('publishes the embed result on asyncEnd', async () => {
     const messages = await collectTracingChannelAsyncEndMessages(async () => {

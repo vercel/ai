@@ -1594,6 +1594,14 @@ await generateText({
 
 The following optional provider options are available:
 
+- **labels** _Record&lt;string, string&gt;_
+
+  User-defined metadata sent in the top-level `labels` field of the Interactions
+  request. For example, set `{ safety_identifier: 'opaque_user_123' }` to attach
+  an opaque end-user identifier. Other labels are preserved unchanged.
+  Vertex AI Interactions models also read labels from `providerOptions.google`,
+  not `providerOptions.googleVertex` or `providerOptions.vertex`.
+
 - **previousInteractionId** _string_
 
   Server-side interaction id from a prior turn. When set, the server pulls

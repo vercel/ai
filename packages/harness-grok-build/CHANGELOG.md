@@ -1,5 +1,19 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.115
+
+### Patch Changes
+
+- e4a6112: fix(harness): enforce workDir / project-level config isolation where possible and clearly document the gap otherwise
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/harness@1.0.176
+  - @ai-sdk/harness-acp@1.0.116
+
 ## 1.0.114
 
 ### Patch Changes
