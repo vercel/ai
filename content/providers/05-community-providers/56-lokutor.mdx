@@ -1,0 +1,98 @@
+---
+title: Lokutor
+description: Learn how to use the Lokutor provider for the AI SDK.
+---
+
+# Lokutor Provider
+
+[Lokutor](https://lokutor.com) provides text-to-speech and speech-to-text on its own speech models, in nine languages (English, Spanish, Catalan, Galician, Basque, Portuguese, French, Italian and German). The [Lokutor provider](https://github.com/lokutor-ai/ai-sdk-provider-lokutor) implements the AI SDK 7 speech and transcription model interfaces. It has no language model.
+
+For more information, see the [Lokutor documentation](https://docs.lokutor.com).
+
+## Setup
+
+The `@lokutor/ai-sdk-provider` package supports AI SDK 7 and the Provider V4 specification.
+
+<InstallPackages packages="@lokutor/ai-sdk-provider ai@^7" />
+
+Create an API key in the [Lokutor dashboard](https://app.lokutor.com) and set it as an environment variable:
+
+```bash
+export LOKUTOR_API_KEY="your_api_key_here"
+```
+
+## Provider Instance
+
+You can import the default provider instance `lokutor`, which reads `LOKUTOR_API_KEY`:
+
+```ts
+import { lokutor } from '@lokutor/ai-sdk-provider';
+```
+
+To customize the settings, use `createLokutor`:
+
+```ts
+import { createLokutor } from '@lokutor/ai-sdk-provider';
+
+const lokutor = createLokutor({
+  apiKey: process.env.LOKUTOR_API_KEY,
+  baseURL: 'https://api.lokutor.com/v1',
+});
+```
+
+Settings:
+
+- `apiKey`: overrides `LOKUTOR_API_KEY`.
+- `baseURL`: custom API base URL. Default `https://api.lokutor.com/v1`.
+- `headers`: additional request headers.
+- `fetch`: custom fetch implementation.
+
+## Speech Models
+
+Create speech models with the `.speech()` factory method and use them with `generateSpeech`.
+
+```ts
+import { generateSpeech } from 'ai';
+import { lokutor } from '@lokutor/ai-sdk-provider';
+
+const { audio } = await generateSpeech({
+  model: lokutor.speech('versa-2.0'),
+  text: 'Hello from Lokutor.',
+  voice: 'F1',
+  language: 'en',
+});
+
+await audio.writeToFile('./hello.wav');
+```
+
+The voice is a slot (`F1` to `F5`, `M1` to `M5`, or a `clone_...` id from your account) and the speaker you hear depends on `language`. The default is `F1` in `en`. The output is always WAV (16-bit PCM, 44.1 kHz, mono). `outputFormat`, `speed` and `instructions` are not supported and produce a warning.
+
+## Transcription Models
+
+Create transcription models with the `.transcription()` factory method and use them with `transcribe`.
+
+```ts
+import { transcribe } from 'ai';
+import { lokutor } from '@lokutor/ai-sdk-provider';
+import { readFile } from 'node:fs/promises';
+
+const { text, segments } = await transcribe({
+  model: lokutor.transcription('lokutor-stt'),
+  audio: await readFile('./meeting.wav'),
+  providerOptions: {
+    lokutor: { languageCode: 'es', diarize: true, numSpeakers: 3 },
+  },
+});
+```
+
+Input must be a WAV file. Provider options:
+
+- `languageCode` - `ca`, `de`, `en`, `es`, `eu`, `fr`, `gl`, `it` or `pt`. Detected when omitted.
+- `diarize` - label who said each word; speaker ids are returned in `providerMetadata.lokutor.speakers`. Diarization runs on a CPU service and is not real time.
+- `numSpeakers` - number of speakers (1 to 32), when known.
+
+## Additional Resources
+
+- [Lokutor Provider Repository](https://github.com/lokutor-ai/ai-sdk-provider-lokutor)
+- [NPM Package](https://www.npmjs.com/package/@lokutor/ai-sdk-provider)
+- [Lokutor Documentation](https://docs.lokutor.com)
