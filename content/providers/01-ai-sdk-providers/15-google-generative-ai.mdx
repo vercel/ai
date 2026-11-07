@@ -1210,6 +1210,16 @@ The errors that you get in this case look like this:
 `GenerateContentRequest.generation_config.response_schema.properties[occupation].type: must be specified`
 
 By default, structured outputs are enabled (and for tool calling they are required).
+
+The Google provider bounds schema conversion to prevent excessive resource use
+when expanding local references. Input inspection and conversion each have a
+separate budget of 10,000 visited JSON values and a conservative
+1,000,000-character serialized-size allowance, with a depth limit of 100.
+String-size accounting reserves six characters per UTF-16 code unit for JSON
+escaping. Schemas that exceed these limits throw `UnsupportedFunctionalityError`
+before a model request is sent. Reduce the schema's size, nesting, or repeated
+references to stay within these limits.
+
 You can disable structured outputs for object generation as a workaround:
 
 ```ts highlight="3,8"

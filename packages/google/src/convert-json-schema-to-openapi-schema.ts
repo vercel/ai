@@ -12,7 +12,13 @@ type ReferenceContext = {
   definitions: Record<string, JSONSchema7Definition> | undefined;
   dollarDefinitions: Record<string, JSONSchema7Definition> | undefined;
   resolvingReferences: ReadonlySet<string>;
+  budget: { nodes: number; size: number };
+  depth: number;
 };
+
+const maxSchemaDepth = 100;
+const maxSchemaNodes = 10_000;
+const maxSchemaSize = 1_000_000;
 
 const recursiveReferenceFunctionalityPrefix =
   'recursive JSON Schema reference:';
@@ -33,6 +39,12 @@ export function convertJSONSchemaToOpenAPISchema(
   jsonSchema: JSONSchema7Definition | undefined,
   isRoot = true,
 ): unknown {
+  // Bound the input too, including metadata copied while resolving references.
+  consumeSchemaBudget(jsonSchema, {
+    nodes: maxSchemaNodes,
+    size: maxSchemaSize,
+  });
+
   const rootSchema =
     typeof jsonSchema === 'object'
       ? (jsonSchema as JSONSchema7WithDefinitions)
@@ -42,6 +54,8 @@ export function convertJSONSchemaToOpenAPISchema(
     definitions: rootSchema?.definitions,
     dollarDefinitions: rootSchema?.$defs,
     resolvingReferences: new Set(),
+    budget: { nodes: maxSchemaNodes, size: maxSchemaSize },
+    depth: 0,
   });
 }
 
@@ -54,9 +68,33 @@ function convertJSONSchemaDefinition(
     return undefined;
   }
 
+  // Every visit is charged, even when the same definition was already expanded.
+  // Reserve space for emitted schema keywords and container punctuation.
+  referenceContext.budget.nodes--;
+  referenceContext.budget.size -= 128;
+  checkSchemaBudget(referenceContext.budget, referenceContext.depth);
+  referenceContext = {
+    ...referenceContext,
+    depth: referenceContext.depth + 1,
+  };
+
   if (typeof jsonSchema === 'boolean') {
     return { type: 'boolean', properties: {} };
   }
+
+  consumeSchemaBudget(
+    [
+      jsonSchema.$ref,
+      jsonSchema.type,
+      jsonSchema.description,
+      jsonSchema.required,
+      jsonSchema.format,
+      jsonSchema.const,
+      jsonSchema.enum,
+      jsonSchema.minLength,
+    ],
+    referenceContext.budget,
+  );
 
   if (jsonSchema.$ref != null) {
     return convertJSONSchemaReference({
@@ -141,6 +179,7 @@ function convertJSONSchemaDefinition(
   if (properties != null) {
     result.properties = Object.entries(properties).reduce(
       (acc, [key, value]) => {
+        consumeSchemaBudget(key, referenceContext.budget);
         acc[key] = convertJSONSchemaDefinition(value, false, referenceContext);
         return acc;
       },
@@ -207,6 +246,52 @@ function convertJSONSchemaDefinition(
   }
 
   return result;
+}
+
+function checkSchemaBudget(
+  budget: ReferenceContext['budget'],
+  depth: number,
+): void {
+  if (budget.nodes < 0 || budget.size < 0 || depth > maxSchemaDepth) {
+    throw new UnsupportedFunctionalityError({
+      functionality: 'JSON Schema conversion exceeding resource limits',
+      message:
+        'Google schema conversion exceeded its node, size, or depth limit.',
+    });
+  }
+}
+
+function consumeSchemaBudget(
+  value: unknown,
+  budget: ReferenceContext['budget'],
+  depth = 0,
+): void {
+  if (value === undefined) {
+    return;
+  }
+
+  budget.nodes--;
+  // A JSON string can require six characters per UTF-16 code unit when escaped.
+  // Other values reserve room for numbers, delimiters, and separators.
+  budget.size -= typeof value === 'string' ? value.length * 6 + 2 : 32;
+  checkSchemaBudget(budget, depth);
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      consumeSchemaBudget(item, budget, depth + 1);
+    }
+  } else if (value !== null && typeof value === 'object') {
+    for (const key in value) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        consumeSchemaBudget(key, budget, depth + 1);
+        consumeSchemaBudget(
+          (value as Record<string, unknown>)[key],
+          budget,
+          depth + 1,
+        );
+      }
+    }
+  }
 }
 
 type EnumValues = NonNullable<JSONSchema7['enum']>;
