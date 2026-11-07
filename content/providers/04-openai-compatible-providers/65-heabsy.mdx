@@ -1,0 +1,97 @@
+---
+title: Heabsy
+description: Use the Heabsy OpenAI compatible API with the AI SDK.
+---
+
+# Heabsy Provider
+
+[Heabsy](https://heabsy.com) is an EU-based inference API offering high-performance hosting for open-weight models (Qwen, GLM, MiMo, and others) with dedicated European infrastructure, zero data retention, and an OpenAI-compatible Chat Completions endpoint.
+
+You can use Heabsy with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The Heabsy provider is available via the `@ai-sdk/openai-compatible` module as it implements the OpenAI API standard. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use Heabsy, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const heabsy = createOpenAICompatible({
+  name: 'heabsy',
+  baseURL: 'https://api.heabsy.com/v1',
+  apiKey: process.env.HEABSY_API_KEY,
+  includeUsage: true,
+});
+```
+
+<Note>
+  Follow the [Heabsy Console](https://platform.heabsy.com) to create an API key. Make sure to set the `HEABSY_API_KEY` environment variable with your API key.
+</Note>
+
+## Language Models
+
+You can create Heabsy models using the provider instance. The first argument is a model ID from the [Heabsy model catalog](https://heabsy.com/models), such as `qwen38`:
+
+```ts
+const model = heabsy('qwen38');
+```
+
+Common model IDs include:
+- `qwen38` (Qwen3.8 27B, 524,288 token context window, tool calling)
+- `glm53`
+- `mimo`
+
+### Example
+
+You can use Heabsy language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const heabsy = createOpenAICompatible({
+  name: 'heabsy',
+  baseURL: 'https://api.heabsy.com/v1',
+  apiKey: process.env.HEABSY_API_KEY,
+  includeUsage: true,
+});
+
+const { text, usage } = await generateText({
+  model: heabsy('qwen38'),
+  prompt: 'Explain zero-retention data privacy in one sentence.',
+});
+
+console.log(text);
+console.log(usage);
+```
+
+### Streaming
+
+Heabsy language models also support streaming text responses with `streamText`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const heabsy = createOpenAICompatible({
+  name: 'heabsy',
+  baseURL: 'https://api.heabsy.com/v1',
+  apiKey: process.env.HEABSY_API_KEY,
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: heabsy('qwen38'),
+  prompt: 'Write a haiku about confidential inference.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
