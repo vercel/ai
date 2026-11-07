@@ -54,6 +54,14 @@ describe('redactTelemetrySecrets', () => {
     expect(redactTelemetrySecrets(event)).toBe(event);
   });
 
+  it.each(['keep', '<html>ordinary response</html>', 'invalid JSON'])(
+    'preserves unrelated non-JSON metadata: %s',
+    body => {
+      const event = { request: { body }, response: { body } };
+      expect(redactTelemetrySecrets(event)).toBe(event);
+    },
+  );
+
   it('redacts structured request bodies and safely handles unsafe JSON', () => {
     const body = {
       tools: [
@@ -68,9 +76,22 @@ describe('redactTelemetrySecrets', () => {
     expect(
       JSON.stringify(redactTelemetrySecrets({ request: { body } })),
     ).not.toContain('"secret"');
+    const serialized = JSON.stringify(body);
+    const escaped = serialized.replace(
+      'domain_secrets',
+      'domain\\u005fsecrets',
+    );
+    for (const key of ['request', 'response']) {
+      const redacted = redactTelemetrySecrets({ [key]: { body: escaped } });
+      expect(
+        JSON.parse(redacted[key].body).tools[0].container.network_policy
+          .domain_secrets,
+      ).toEqual([{ value: '[redacted]' }]);
+    }
     for (const unsafeBody of [
-      'invalid JSON',
-      '{"__proto__": {}, "tools": []}',
+      serialized.slice(0, -1),
+      serialized.replace('{', '{"__proto__": {},'),
+      escaped.slice(0, -1),
     ]) {
       expect(redactTelemetrySecrets({ request: { body: unsafeBody } })).toEqual(
         { request: { body: '[redacted]' } },

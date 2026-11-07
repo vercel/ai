@@ -33,6 +33,13 @@ function redactValue<T>(value: T, seen: WeakMap<object, unknown>): T {
     const body = metadata.body;
     let redactedBody: unknown;
     if (typeof body === 'string') {
+      // Escaped JSON keys can hide credential field names.
+      if (
+        !body.includes('domain_secrets') &&
+        !body.includes('domainSecrets') &&
+        !body.includes('\\')
+      )
+        continue;
       try {
         // Channel contexts are published synchronously, so use the secure
         // synchronous parser underlying parseJSON / safeParseJSON.
