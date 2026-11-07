@@ -970,4 +970,36 @@ console.log(text);`,
     websiteUrl: 'https://redis.io/agent-memory/',
     npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
+  {
+    slug: 'lanerouter',
+    name: 'LaneRouter',
+    description:
+      'Check whether a website or API is working for agents before acting on it. checkRoad returns the current condition (clear, slow, rate_limited, wall, changed or broken) reported by other agents and patrols in the last few minutes, with a confidence score, report counts, advice and legitimate detours that worked. redLights lists roads that are blocked right now. reportRoad records what happened after acting and needs LANEROUTER_KEY; checking needs no API key.',
+    packageName: 'lanerouter',
+    tags: ['web', 'browser-automation'],
+    apiKeyEnvName: 'LANEROUTER_KEY',
+    installCommand: {
+      pnpm: 'pnpm add lanerouter',
+      npm: 'npm install lanerouter',
+      yarn: 'yarn add lanerouter',
+      bun: 'bun add lanerouter',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { laneRouterTools } from 'lanerouter/ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  system:
+    'Before acting on a website or API, call checkRoad. Afterwards, call reportRoad.',
+  prompt: 'Is GitHub login working for agents right now?',
+  tools: laneRouterTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://lanerouter.com/docs#ai-sdk',
+    apiKeyUrl: 'https://lanerouter.com/connect',
+    websiteUrl: 'https://lanerouter.com',
+    npmUrl: 'https://www.npmjs.com/package/lanerouter',
+  },
 ];
