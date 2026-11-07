@@ -3112,6 +3112,159 @@ describe('streamText', () => {
       expect(await result.finishReason).toBe('stop');
     });
 
+    it('should back off before retrying a retryable in-stream overload error', async () => {
+      const doStream = vi.fn<LanguageModelV4['doStream']>();
+      let call = 0;
+      doStream.mockImplementation(async () => {
+        const attempt = call++;
+        if (attempt < 2) {
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'error',
+                error: new APICallError({
+                  message:
+                    'Our servers are currently overloaded. Please try again later.',
+                  url: 'https://api.example.com/v1/chat',
+                  requestBodyValues: {},
+                  statusCode: 529,
+                  isRetryable: true,
+                }),
+              },
+            ]),
+          };
+        }
+
+        return {
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'recovered' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        };
+      });
+
+      const onError = vi.fn();
+      const result = streamText({
+        model: new MockLanguageModelV4({ doStream }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        streamRetries: 2,
+        onError,
+      });
+
+      const textPromise = convertAsyncIterableToArray(result.textStream);
+
+      await vi.advanceTimersByTimeAsync(1_999);
+      expect(doStream).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(doStream).toHaveBeenCalledTimes(2);
+
+      await vi.advanceTimersByTimeAsync(3_999);
+      expect(doStream).toHaveBeenCalledTimes(2);
+      expect(onError).toHaveBeenCalledTimes(2);
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(doStream).toHaveBeenCalledTimes(3);
+
+      expect(await textPromise).toEqual(['recovered']);
+      expect(await result.finishReason).toBe('stop');
+    });
+
+    it('should honor retry-after before the next in-stream attempt', async () => {
+      const doStream = vi.fn<LanguageModelV4['doStream']>();
+      let call = 0;
+      doStream.mockImplementation(async () => {
+        const attempt = call++;
+        if (attempt === 0) {
+          return {
+            response: { headers: { 'retry-after-ms': '5000' } },
+            stream: convertArrayToReadableStream([
+              {
+                type: 'error',
+                error: new StreamProviderError({
+                  message:
+                    'Our servers are currently overloaded. Please try again later.',
+                  type: 'overloaded_error',
+                  statusCode: 529,
+                  isRetryable: true,
+                }),
+              },
+            ]),
+          };
+        }
+
+        return {
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        };
+      });
+
+      const onError = vi.fn();
+      const result = streamText({
+        model: new MockLanguageModelV4({ doStream }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        streamRetries: 1,
+        onError,
+      });
+
+      const textPromise = convertAsyncIterableToArray(result.textStream);
+
+      await vi.advanceTimersByTimeAsync(4_999);
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(doStream).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(await textPromise).toEqual(['hello']);
+      expect(doStream).toHaveBeenCalledTimes(2);
+    });
+
+    it('should cancel the stream retry wait when the abort signal fires', async () => {
+      const abortController = new AbortController();
+      let calls = 0;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            calls++;
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'error', error: new Error('provider overloaded') },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        streamRetries: 1,
+        abortSignal: abortController.signal,
+        onError: () => {
+          abortController.abort();
+        },
+      });
+
+      const consumed = result.consumeStream();
+      await vi.advanceTimersByTimeAsync(5_000);
+      await consumed;
+
+      expect(calls).toBe(1);
+    });
+
     it('should exclude failed-attempt text from structured output state', async () => {
       let callCount = 0;
 
@@ -4743,7 +4896,10 @@ describe('streamText', () => {
         onStepError,
       });
 
-      await result.consumeStream();
+      const consumed = result.consumeStream();
+      // Two stream retries wait 2s and then 4s before the attempts are exhausted.
+      await vi.advanceTimersByTimeAsync(10_000);
+      await consumed;
 
       expect(attempts).toBe(3);
       expect(onStepStart).toHaveBeenCalledTimes(1);

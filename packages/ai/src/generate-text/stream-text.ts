@@ -1,5 +1,6 @@
 import {
   AISDKError,
+  APICallError,
   getErrorMessage,
   UnsupportedFunctionalityError,
   type LanguageModelV4,
@@ -12,6 +13,7 @@ import {
   filterNullable,
   isAbortError,
   type Arrayable,
+  type RetryFunction,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
   type IdGenerator,
@@ -24,7 +26,11 @@ import {
   type UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
-import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
+import {
+  NoOutputGeneratedError,
+  StreamProviderError,
+  ToolChoiceViolationError,
+} from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { cloneModelMessages } from '../prompt/clone-model-message';
@@ -351,7 +357,7 @@ type StreamTextOptions<
  * If set and supported by the model, calls will generate deterministic results.
  *
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
- * @param streamRetries - Maximum number of retries for provider errors received after streaming starts. Set to 0 to disable automatic stream retries while allowing `onError` to request retries. Omit to disable all stream retry behavior. Default: 0.
+ * @param streamRetries - Maximum number of retries for provider errors received after streaming starts. Each recovery waits with the same exponential backoff as `maxRetries` (2 seconds, then 4, and so on) and honors `retry-after` headers from the failed attempt. `onError` is awaited before the wait, and `abortSignal` cancels it. Set to 0 to disable automatic stream retries while allowing `onError` to request retries. Omit to disable all stream retry behavior. Default: 0.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
@@ -728,6 +734,12 @@ function streamTextInternal<
        * request at most one additional retry after they are exhausted. Omit this
        * option to disable all stream retry behavior and preserve incremental tool
        * streaming for existing `onError` observers.
+       *
+       * Each recovery waits before the next provider call using the same
+       * exponential backoff as `maxRetries` (2 seconds, then 4, and so on). A
+       * `retry-after` or `retry-after-ms` header on the failed attempt overrides
+       * that delay when it falls within the same bounds as request-start retries.
+       * `onError` is awaited before the wait, and `abortSignal` cancels it.
        *
        * @default 0 (stream retry behavior disabled when omitted)
        */
@@ -2176,7 +2188,7 @@ class DefaultStreamTextResult<
       maxRetries: maxRetriesArg,
       abortSignal,
     });
-    const { maxRetries: streamRetries } = prepareRetries({
+    const { maxRetries: streamRetries, retry: retryStream } = prepareRetries({
       maxRetries: streamRetriesArg,
       abortSignal,
       parameter: 'streamRetries',
@@ -2940,6 +2952,20 @@ class DefaultStreamTextResult<
                 await languageModelStreamReader.cancel(error);
                 bufferedAttemptParts = [];
                 closeOpenAttemptParts();
+
+                // onError has already resolved. Wait with the same backoff
+                // strategy maxRetries uses, then re-dial.
+                await waitForStreamRetry({
+                  retry: streamRetryForAttempt({
+                    retryStream,
+                    streamRetries,
+                    attempt:
+                      automaticStreamRetryCount + callbackStreamRetryCount,
+                    abortSignal,
+                  }),
+                  error,
+                  responseHeaders: response?.headers,
+                });
 
                 let retryLanguageModelCall: Awaited<
                   ReturnType<typeof callLanguageModel>
@@ -3959,5 +3985,114 @@ class DefaultStreamTextResult<
       stream: this.textStream,
       ...init,
     });
+  }
+}
+
+// Defaults of retryWithExponentialBackoffRespectingRetryHeaders.
+const streamRetryInitialDelayInMs = 2000;
+const streamRetryBackoffFactor = 2;
+
+function streamRetryForAttempt({
+  retryStream,
+  streamRetries,
+  attempt,
+  abortSignal,
+}: {
+  retryStream: RetryFunction;
+  streamRetries: number;
+  attempt: number;
+  abortSignal: AbortSignal | undefined;
+}): RetryFunction {
+  // The strategy returned for streamRetries starts every call at the initial
+  // delay. Later attempts in the same step need a larger initial delay so the
+  // waits grow by the same factor as request-start retries.
+  if (attempt === 1 && streamRetries > 0) {
+    return retryStream;
+  }
+
+  return prepareRetries({
+    maxRetries: 1,
+    abortSignal,
+    parameter: 'streamRetries',
+    initialDelayInMs:
+      streamRetryInitialDelayInMs * streamRetryBackoffFactor ** (attempt - 1),
+  }).retry;
+}
+
+function failureObservedByStreamRetry(
+  error: unknown,
+  responseHeaders: Record<string, string> | undefined,
+): APICallError {
+  // The recovery loop has already decided to re-dial. Present that failure to
+  // the shared retry strategy so the wait uses exponential backoff and
+  // retry-after. Tool-choice violations never reach this helper.
+  const statusCode = streamRetryStatusCode(error);
+  const headers = APICallError.isInstance(error)
+    ? (error.responseHeaders ?? responseHeaders)
+    : responseHeaders;
+
+  return new APICallError({
+    message: getErrorMessage(error),
+    url: APICallError.isInstance(error) ? error.url : '',
+    requestBodyValues: APICallError.isInstance(error)
+      ? error.requestBodyValues
+      : {},
+    statusCode,
+    responseHeaders: headers,
+    responseBody: APICallError.isInstance(error)
+      ? error.responseBody
+      : undefined,
+    cause: error,
+    isRetryable: true,
+    data: APICallError.isInstance(error)
+      ? error.data
+      : StreamProviderError.isInstance(error)
+        ? error.data
+        : undefined,
+  });
+}
+
+function streamRetryStatusCode(error: unknown): number | undefined {
+  if (APICallError.isInstance(error) || StreamProviderError.isInstance(error)) {
+    return error.statusCode;
+  }
+
+  if (
+    typeof error === 'object' &&
+    error != null &&
+    'statusCode' in error &&
+    typeof error.statusCode === 'number'
+  ) {
+    return error.statusCode;
+  }
+
+  return undefined;
+}
+
+async function waitForStreamRetry({
+  retry,
+  error,
+  responseHeaders,
+}: {
+  retry: RetryFunction;
+  error: unknown;
+  responseHeaders?: Record<string, string>;
+}): Promise<void> {
+  const failure = failureObservedByStreamRetry(error, responseHeaders);
+  let observed = false;
+
+  try {
+    // The retry helper delays after a retryable failure and before its next
+    // invocation. Surface the in-stream error once, then let the caller re-dial.
+    await retry(async () => {
+      if (!observed) {
+        observed = true;
+        throw failure;
+      }
+    });
+  } catch (retryError) {
+    if (isAbortError(retryError)) {
+      throw retryError;
+    }
   }
 }

@@ -657,7 +657,8 @@ describe('streamText model output timeout boundaries', () => {
         onError: () => (retryKind === 'callback' ? { retry: true } : undefined),
       });
       const consuming = result.consumeStream();
-      await vi.advanceTimersByTimeAsync(250);
+      // Stream retries wait for the default 2s backoff before the next attempt.
+      await vi.advanceTimersByTimeAsync(2_250);
       await consuming;
       expect(attempts).toBe(2);
       expect(signal?.aborted).toBe(false);
@@ -725,7 +726,9 @@ describe('streamText model output timeout boundaries', () => {
       const consuming = (async () => {
         for await (const part of result.fullStream) parts.push(part.type);
       })();
-      await vi.advanceTimersByTimeAsync(continuation === 'step' ? 225 : 125);
+      await vi.advanceTimersByTimeAsync(
+        continuation === 'step' ? 225 : 125 + 2_000,
+      );
       expect(attempts).toBe(2);
       expect(signal?.aborted).toBe(false);
       await vi.advanceTimersByTimeAsync(50);
@@ -770,7 +773,8 @@ describe('streamText model output timeout boundaries', () => {
       onError: () => {},
     });
     const consuming = result.consumeStream();
-    await vi.advanceTimersByTimeAsync(100);
+    // 2s stream-retry backoff, then the fresh 50ms first-chunk budget.
+    await vi.advanceTimersByTimeAsync(2_100);
     expect(attempts).toBe(2);
     expect(signal?.reason.message).toBe('First chunk timeout of 50ms exceeded');
     await consuming;
