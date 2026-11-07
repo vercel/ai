@@ -177,6 +177,15 @@ export class SiliconFlowChatLanguageModel implements LanguageModelV4 {
     const choice = responseBody.choices[0];
     const content: Array<LanguageModelV4Content> = [];
 
+    // reasoning content (before text):
+    const reasoning = choice.message.reasoning_content;
+    if (reasoning != null && reasoning.length > 0) {
+      content.push({
+        type: 'reasoning',
+        text: reasoning,
+      });
+    }
+
     // tool calls:
     if (choice.message.tool_calls != null) {
       for (const toolCall of choice.message.tool_calls) {
@@ -255,6 +264,7 @@ export class SiliconFlowChatLanguageModel implements LanguageModelV4 {
     let usage: SiliconFlowChatTokenUsage | undefined = undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
+    let isActiveReasoning = false;
     let isActiveText = false;
 
     return {
@@ -319,10 +329,36 @@ export class SiliconFlowChatLanguageModel implements LanguageModelV4 {
 
             const delta = choice.delta;
 
+            // enqueue reasoning before text deltas:
+            if (delta.reasoning_content) {
+              if (!isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = true;
+              }
+
+              controller.enqueue({
+                type: 'reasoning-delta',
+                id: 'reasoning-0',
+                delta: delta.reasoning_content,
+              });
+            }
+
             if (delta.content) {
               if (!isActiveText) {
                 controller.enqueue({ type: 'text-start', id: 'txt-0' });
                 isActiveText = true;
+              }
+
+              // end reasoning when text starts:
+              if (isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = false;
               }
 
               controller.enqueue({
@@ -340,6 +376,10 @@ export class SiliconFlowChatLanguageModel implements LanguageModelV4 {
           },
 
           flush(controller) {
+            if (isActiveReasoning) {
+              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+            }
+
             if (isActiveText) {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }

@@ -69,6 +69,7 @@ export function convertToSiliconFlowChatMessages({
       }
       case 'assistant': {
         let text = '';
+        let reasoning: string | undefined;
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -82,8 +83,9 @@ export function convertToSiliconFlowChatMessages({
               break;
             }
             case 'reasoning': {
-              // SiliconFlow does not support reasoning_content in messages,
-              // so we skip it
+              // DeepSeek-V3.2 requires assistant reasoning to be sent back
+              // alongside tool calls for multi-step tool conversations.
+              reasoning = reasoning == null ? part.text : reasoning + part.text;
               break;
             }
             case 'tool-call': {
@@ -103,6 +105,7 @@ export function convertToSiliconFlowChatMessages({
         messages.push({
           role: 'assistant',
           content: text,
+          ...(reasoning != null && { reasoning_content: reasoning }),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
 

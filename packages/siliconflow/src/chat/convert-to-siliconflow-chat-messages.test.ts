@@ -160,7 +160,7 @@ describe('convertToSiliconFlowChatMessages', () => {
       `);
     });
 
-    it('should skip reasoning parts', () => {
+    it('should send reasoning back as reasoning_content', () => {
       const result = convertToSiliconFlowChatMessages({
         prompt: [
           {
@@ -179,8 +179,52 @@ describe('convertToSiliconFlowChatMessages', () => {
           "messages": [
             {
               "content": "Answer",
+              "reasoning_content": "thinking...",
               "role": "assistant",
               "tool_calls": undefined,
+            },
+          ],
+          "warnings": [],
+        }
+      `);
+    });
+
+    it('should send reasoning back alongside tool calls', () => {
+      const result = convertToSiliconFlowChatMessages({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'I should check the weather.' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_1',
+                toolName: 'get_weather',
+                input: { location: 'Paris' },
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "",
+              "reasoning_content": "I should check the weather.",
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{"location":"Paris"}",
+                    "name": "get_weather",
+                  },
+                  "id": "call_1",
+                  "type": "function",
+                },
+              ],
             },
           ],
           "warnings": [],

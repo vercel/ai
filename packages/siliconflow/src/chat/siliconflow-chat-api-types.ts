@@ -97,6 +97,7 @@ export const siliconFlowChatResponseSchema = z.object({
       message: z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
+        reasoning_content: z.string().nullish(),
         tool_calls: z
           .array(
             z.object({
@@ -130,6 +131,7 @@ export const siliconFlowChatChunkSchema = lazySchema(() =>
               .object({
                 role: z.enum(['assistant']).nullish(),
                 content: z.string().nullish(),
+                reasoning_content: z.string().nullish(),
                 tool_calls: z
                   .array(
                     z.object({
