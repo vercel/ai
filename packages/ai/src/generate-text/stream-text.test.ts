@@ -26281,6 +26281,75 @@ describe('streamText', () => {
   });
 
   describe('tools with preliminary results', () => {
+    describe('provider-executed tool with preliminary results', () => {
+      it('should include preliminary flag on provider-executed tool results in full stream', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'web_search',
+                input: `{ "query": "test" }`,
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'web_search',
+                result: { preliminary: 'data' },
+                preliminary: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'web_search',
+                result: { final: 'data' },
+                preliminary: false,
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          prompt: 'test-input',
+          tools: {
+            web_search: {
+              type: 'provider',
+              isProviderExecuted: true,
+              id: 'test.web_search',
+              inputSchema: z.object({ query: z.string() }),
+              outputSchema: z.unknown(),
+              args: {},
+            },
+          },
+        });
+
+        const parts = await convertAsyncIterableToArray(result.fullStream);
+        const toolResults = parts.filter(p => p.type === 'tool-result');
+        expect(toolResults).toHaveLength(2);
+        expect(toolResults[0]).toMatchObject({
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'web_search',
+          output: { preliminary: 'data' },
+          preliminary: true,
+          providerExecuted: true,
+        });
+        expect(toolResults[1]).toMatchObject({
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'web_search',
+          output: { final: 'data' },
+          preliminary: false,
+          providerExecuted: true,
+        });
+      });
+    });
+
     describe('single tool with preliminary results', () => {
       let result: StreamTextResult<any, any, any>;
 
