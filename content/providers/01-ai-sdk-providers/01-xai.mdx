@@ -568,6 +568,10 @@ The following provider options are available:
 
   The ID of the previous response from the model. You can use it to continue a conversation.
 
+- **safetyIdentifier** _string_
+
+  Provide a stable, preferably hashed end-user identifier for safety monitoring. xAI echoes it back on `providerMetadata.xai.safetyIdentifier`. See [How do I identify which of my end users caused a policy violation?](https://docs.x.ai/developers/faq/security#how-do-i-identify-which-of-my-end-users-caused-a-policy-violation).
+
 - **serviceTier** _'default' | 'priority'_
 
   Scheduling priority for the request. `'priority'` buys lower time-to-first-token and faster inter-token latency at a premium per-token price. The tier xAI actually applied comes back on `providerMetadata.xai.serviceTier`, and is `'default'` when priority capacity was unavailable. See [Priority Processing](https://docs.x.ai/developers/advanced-api-usage/priority-processing).

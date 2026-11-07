@@ -34,6 +34,8 @@ export const xaiLanguageModelResponsesOptions = lazySchema(() =>
         .optional(),
       logprobs: z.boolean().optional(),
       topLogprobs: z.number().int().min(0).max(8).optional(),
+      /** Stable identifier used to attribute policy violations to an end user. */
+      safetyIdentifier: z.string().optional(),
       serviceTier: z.enum(['default', 'priority']).optional(),
       /**
        * Whether to store the input message(s) and model response for later retrieval.
