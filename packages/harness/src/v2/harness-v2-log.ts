@@ -1,5 +1,5 @@
 import type { HarnessV2Effect } from './harness-v2-effect';
-import type { SerializableValue } from '@ai-sdk/provider-utils';
+import type { SerializableValue } from '@ai-sdk/provider';
 import type { HarnessV2Submission } from './harness-v2-submission';
 
 /**

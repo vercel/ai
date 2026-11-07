@@ -1,4 +1,4 @@
-import type { SerializableValue } from '@ai-sdk/provider-utils';
+import type { SerializableValue } from '@ai-sdk/provider';
 
 /**
  * Outcome returned by one invocation of a replay-aware effect.

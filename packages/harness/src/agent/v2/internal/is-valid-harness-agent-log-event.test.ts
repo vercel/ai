@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import type { SerializableValue } from '@ai-sdk/provider-utils';
+import type { SerializableValue } from '@ai-sdk/provider';
 import { isValidHarnessAgentLogEvent } from './is-valid-harness-agent-log-event';
 
 describe('isValidHarnessAgentLogEvent', () => {

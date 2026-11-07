@@ -1,7 +1,5 @@
-import type {
-  Experimental_SandboxSession as SandboxSession,
-  SerializableValue,
-} from '@ai-sdk/provider-utils';
+import type { SerializableValue } from '@ai-sdk/provider';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type {
   HarnessV2Effect,
   HarnessV2EffectContext,

@@ -5,7 +5,6 @@ import {
   jsonDecodeSerializableValue,
   jsonEncodeSerializableValue,
   parseJSON,
-  type SerializableValue,
 } from '@ai-sdk/provider-utils';
 import {
   requireEventSlot,
@@ -13,7 +12,7 @@ import {
   type EventResult,
   type World,
 } from '@workflow/world';
-import type { JSONValue } from '@ai-sdk/provider';
+import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 import { isValidHarnessAgentLogEvent } from './is-valid-harness-agent-log-event';
 import type {
   HarnessAgentLog,

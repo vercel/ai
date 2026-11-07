@@ -4,8 +4,7 @@ import {
   isArrayBuffer,
   isUint8Array,
 } from './uint8-utils';
-import type { JSONValue } from '@ai-sdk/provider';
-import type { SerializableValue } from './types/serializable-value';
+import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 
 const tagKey = '__ai_sdk_serializable_value__';
 

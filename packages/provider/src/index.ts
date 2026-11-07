@@ -20,6 +20,7 @@ export type {
 export * from './provider/index';
 export * from './realtime-model/v4/index';
 export * from './reranking-model/index';
+export * from './serializable-value/index';
 export * from './shared/index';
 export * from './skills/index';
 export * from './speech-model/index';

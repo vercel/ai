@@ -1,4 +1,4 @@
-import type { SerializableValue } from '@ai-sdk/provider-utils';
+import type { SerializableValue } from '@ai-sdk/provider';
 import type { HarnessAgentLogEvent } from './types';
 
 /**

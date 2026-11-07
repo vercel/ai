@@ -35,12 +35,11 @@ import {
   type WorldCapabilities,
 } from '@workflow/world';
 import { z } from 'zod';
-import type { JSONValue } from '@ai-sdk/provider';
+import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 import {
   cloneSerializableValue,
   jsonDecodeSerializableValue,
   jsonEncodeSerializableValue,
-  type SerializableValue,
 } from '@ai-sdk/provider-utils';
 
 /**

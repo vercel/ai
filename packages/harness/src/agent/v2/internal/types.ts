@@ -4,7 +4,7 @@ import type {
   HarnessV2EffectOutput,
 } from '../../../v2/harness-v2-effect';
 import type { HarnessV2Submission } from '../../../v2/harness-v2-submission';
-import type { SerializableValue } from '@ai-sdk/provider-utils';
+import type { SerializableValue } from '@ai-sdk/provider';
 
 /**
  * Runs a keyed effect and returns its committed output. Terminal outputs are

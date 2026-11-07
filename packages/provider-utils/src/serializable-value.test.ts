@@ -1,5 +1,4 @@
-import type { JSONValue } from '@ai-sdk/provider';
-import type { SerializableValue } from './types/serializable-value';
+import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 import {
   cloneSerializableValue,
   jsonDecodeSerializableValue,

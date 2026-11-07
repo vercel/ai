@@ -1,5 +1,5 @@
 import { expectTypeOf, test } from 'vitest';
-import type { SerializableValue } from '@ai-sdk/provider-utils';
+import type { SerializableValue } from '@ai-sdk/provider';
 import type { HarnessV2EffectFunction } from '../../../index';
 import type { HarnessV2DriveContext } from '../../../v2/harness-v2-drive-context';
 import type {

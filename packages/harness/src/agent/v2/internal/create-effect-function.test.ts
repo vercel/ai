@@ -1,4 +1,5 @@
-import { DelayedPromise, type SerializableValue } from '@ai-sdk/provider-utils';
+import type { SerializableValue } from '@ai-sdk/provider';
+import { DelayedPromise } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';

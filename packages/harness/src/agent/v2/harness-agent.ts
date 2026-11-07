@@ -1,8 +1,8 @@
+import { isSerializableValue } from '@ai-sdk/provider';
 import {
   generateId,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
-  type SerializableValue,
   type ToolSet,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -283,25 +283,18 @@ function assertCallOptionsSerializable(input: { options: object }): void {
  * with string-keyed data properties are accepted. Class instances are accepted
  * when their constructor defines `WORKFLOW_SERIALIZE`; other class instances,
  * cycles, accessors, and symbol keys on nested objects are rejected.
+ * Container recursion stays local so Workflow hooks are honored at every depth;
+ * non-container values are checked by the shared `isSerializableValue` guard.
  */
 function isHarnessSerializableValue(input: {
   value: unknown;
   ancestors: WeakSet<object>;
-}): input is { value: SerializableValue; ancestors: WeakSet<object> } {
+}): boolean {
   const { value, ancestors } = input;
 
-  if (
-    value === null ||
-    value === undefined ||
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'boolean' ||
-    typeof value === 'bigint'
-  ) {
-    return true;
+  if (value === null || typeof value !== 'object') {
+    return isSerializableValue(value);
   }
-
-  if (typeof value !== 'object') return false;
 
   if (ancestors.has(value)) return false;
   ancestors.add(value);
@@ -318,17 +311,6 @@ function isHarnessSerializableValue(input: {
         value: workflowSerialize.call(constructor, value),
         ancestors,
       });
-    }
-
-    if (
-      value instanceof Date ||
-      value instanceof RegExp ||
-      value instanceof URL ||
-      value instanceof URLSearchParams ||
-      value instanceof ArrayBuffer ||
-      ArrayBuffer.isView(value)
-    ) {
-      return true;
     }
 
     if (Array.isArray(value)) {
@@ -352,9 +334,8 @@ function isHarnessSerializableValue(input: {
     }
 
     const prototype = Object.getPrototypeOf(value);
-    return (
-      (prototype === Object.prototype || prototype === null) &&
-      Reflect.ownKeys(value).every(key => {
+    if (prototype === Object.prototype || prototype === null) {
+      return Reflect.ownKeys(value).every(key => {
         if (typeof key !== 'string') return false;
 
         const descriptor = Object.getOwnPropertyDescriptor(value, key);
@@ -363,8 +344,10 @@ function isHarnessSerializableValue(input: {
           'value' in descriptor &&
           isHarnessSerializableValue({ value: descriptor.value, ancestors })
         );
-      })
-    );
+      });
+    }
+
+    return isSerializableValue(value);
   } finally {
     ancestors.delete(value);
   }

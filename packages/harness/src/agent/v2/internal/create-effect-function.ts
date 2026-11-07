@@ -1,10 +1,10 @@
+import type { SerializableValue } from '@ai-sdk/provider';
 import {
   cloneSerializableValue,
   generateId,
   getErrorMessage,
   jsonDecodeSerializableValue,
   jsonEncodeSerializableValue,
-  type SerializableValue,
 } from '@ai-sdk/provider-utils';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type {
