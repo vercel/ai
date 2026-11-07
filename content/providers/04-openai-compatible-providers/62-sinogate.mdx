@@ -5,11 +5,7 @@ description: Use the SinoGate OpenAI compatible API with the AI SDK.
 
 # SinoGate Provider
 
-[SinoGate](https://sinogate.ai/) is an API gateway that provides access to
-Chinese language models (DeepSeek, Qwen, GLM, Kimi, and MiniMax) through a
-single OpenAI-compatible API, with automatic failover across upstreams and USD
-billing. You can use its Chat Completions endpoint with the AI SDK through the
-`@ai-sdk/openai-compatible` module.
+[SinoGate](https://sinogate.ai/) is an API gateway that provides access to Chinese language models (DeepSeek, Qwen, GLM, Kimi, and MiniMax) through a single OpenAI-compatible API. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
 
 ## Setup
 
@@ -17,8 +13,7 @@ Install the OpenAI Compatible provider:
 
 <InstallPackages packages="@ai-sdk/openai-compatible" />
 
-Create an API key at [SinoGate](https://sinogate.ai/) and set it as a
-server-side environment variable:
+Create an API key at [SinoGate](https://sinogate.ai/) and set it as a server-side environment variable:
 
 ```bash
 export SINOGATE_API_KEY=your-api-key
@@ -29,25 +24,24 @@ export SINOGATE_API_KEY=your-api-key
 Create a SinoGate provider instance with `createOpenAICompatible`:
 
 ```ts
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 const sinogate = createOpenAICompatible({
-  name: "sinogate",
+  name: 'sinogate',
   apiKey: process.env.SINOGATE_API_KEY,
-  baseURL: "https://api.sinogate.ai/v1",
+  baseURL: 'https://api.sinogate.ai/v1',
   includeUsage: true,
 });
 ```
 
-The `apiKey` setting sends the key as a Bearer token in the `Authorization`
-header. `includeUsage: true` requests usage information in streaming responses.
+The `apiKey` setting sends the key as a Bearer token in the `Authorization` header. `includeUsage: true` requests usage information in streaming responses.
 
 ## Language Models
 
 Create a language model by passing a SinoGate model ID to the provider instance:
 
 ```ts
-const model = sinogate("deepseek-v4-pro");
+const model = sinogate('deepseek-v4-pro');
 ```
 
 ### Example
@@ -55,19 +49,19 @@ const model = sinogate("deepseek-v4-pro");
 Use `generateText` to generate text with the model:
 
 ```ts
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateText } from "ai";
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
 
 const sinogate = createOpenAICompatible({
-  name: "sinogate",
+  name: 'sinogate',
   apiKey: process.env.SINOGATE_API_KEY,
-  baseURL: "https://api.sinogate.ai/v1",
+  baseURL: 'https://api.sinogate.ai/v1',
   includeUsage: true,
 });
 
 const { text } = await generateText({
-  model: sinogate("qwen3.7-max"),
-  prompt: "Explain what an API gateway does in one sentence.",
+  model: sinogate('qwen3.7-max'),
+  prompt: 'Explain what an API gateway does in one sentence.',
 });
 
 console.log(text);
@@ -77,8 +71,7 @@ You can also use SinoGate language models with `streamText`.
 
 ## Supported Models
 
-SinoGate exposes text model IDs such as the following through its
-OpenAI-compatible Chat Completions endpoint:
+SinoGate exposes text model IDs such as the following through its OpenAI-compatible Chat Completions endpoint:
 
 | Provider | Example Model IDs                            |
 | -------- | -------------------------------------------- |
@@ -88,9 +81,7 @@ OpenAI-compatible Chat Completions endpoint:
 | Moonshot | `kimi-k3`, `kimi-k3.1-pro`, `kimi-k2.7-code` |
 | MiniMax  | `MiniMax-M2.5`                               |
 
-The available models can change. Use the public
-[`GET /v1/models`](https://api.sinogate.ai/v1/models) endpoint or the
-[SinoGate model catalog](https://sinogate.ai/models) for the current model IDs.
+The available models can change. Use the public [`GET /v1/models`](https://api.sinogate.ai/v1/models) endpoint or the [SinoGate model catalog](https://sinogate.ai/models) for the current model IDs.
 
 ## Resources
 
