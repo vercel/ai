@@ -493,6 +493,50 @@ describe('XaiResponsesLanguageModel', () => {
           const requestBody = await server.calls[0].requestBodyJson;
           expect(requestBody.previous_response_id).toBe('resp_456');
         });
+
+        it('safetyIdentifier', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          const { providerMetadata } = await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                safetyIdentifier: 'hashed-user-123',
+              } satisfies XaiResponsesProviderOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.safety_identifier).toBe('hashed-user-123');
+          expect(providerMetadata).toBeUndefined();
+        });
+
+        it('should expose the echoed safety identifier in providerMetadata', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+            safety_identifier: 'hashed-user-123',
+          });
+
+          const result = await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+          });
+
+          expect(result.providerMetadata).toStrictEqual({
+            xai: { safetyIdentifier: 'hashed-user-123' },
+          });
+        });
       });
 
       it('should send image data in function call output', async () => {
@@ -2967,6 +3011,46 @@ describe('XaiResponsesLanguageModel', () => {
             },
           }
         `);
+      });
+
+      it('should expose the echoed safety identifier in finish providerMetadata', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+              safety_identifier: 'hashed-user-123',
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const finishPart = parts.find(part => part.type === 'finish');
+
+        expect(finishPart).toMatchObject({
+          type: 'finish',
+          providerMetadata: {
+            xai: { safetyIdentifier: 'hashed-user-123' },
+          },
+        });
       });
     });
   });
