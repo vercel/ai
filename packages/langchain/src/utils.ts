@@ -859,6 +859,21 @@ export function extractReasoningId(msg: unknown): string | undefined {
     return additionalKwargs.reasoning.id;
   }
 
+  // Check contentBlocks for reasoning block ID
+  const contentBlocks = (kwargs as { contentBlocks?: unknown[] }).contentBlocks;
+  if (Array.isArray(contentBlocks)) {
+    for (const block of contentBlocks) {
+      if (
+        block != null &&
+        typeof block === 'object' &&
+        'id' in block &&
+        typeof (block as { id: unknown }).id === 'string'
+      ) {
+        return (block as { id: string }).id;
+      }
+    }
+  }
+
   // Check response_metadata.output for reasoning block ID (GPT-5 final format)
   const responseMetadata = (
     kwargs as { response_metadata?: { output?: unknown[] } }
@@ -1765,6 +1780,7 @@ export function processLangGraphEvent(
           });
           // Also ensure the reasoning ID is marked (handles case where ID wasn't in first chunk)
           emittedReasoningIds.add(reasoningId);
+          emittedReasoningIds.add(msgId);
         }
 
         /**
@@ -2027,11 +2043,6 @@ export function processLangGraphEvent(
         if (seen.reasoning) {
           controller.enqueue({ type: 'reasoning-end', id });
         }
-
-        messageSeen.delete(id);
-        state.messageNamespaces.delete(id);
-        messageConcat.delete(id);
-        messageReasoningIds.delete(id);
       }
 
       /**
@@ -2303,6 +2314,8 @@ export function processLangGraphEvent(
             const shouldEmitReasoning =
               reasoningId &&
               !emittedReasoningIds.has(reasoningId) &&
+              !emittedReasoningIds.has(msgId) &&
+              !messageSeen.get(msgId)?.reasoning &&
               (wasStreamedThisRequest || !hasToolCalls);
 
             if (shouldEmitReasoning) {
@@ -2321,6 +2334,7 @@ export function processLangGraphEvent(
                 });
                 controller.enqueue({ type: 'reasoning-end', id: msgId });
                 emittedReasoningIds.add(reasoningId);
+                emittedReasoningIds.add(msgId);
               }
             }
 
@@ -2336,6 +2350,13 @@ export function processLangGraphEvent(
           }
         }
       }
+
+      for (const id of messageSeen.keys()) {
+        state.messageNamespaces.delete(id);
+        messageConcat.delete(id);
+        messageReasoningIds.delete(id);
+      }
+      messageSeen.clear();
 
       /**
        * Handle Human-in-the-Loop interrupts

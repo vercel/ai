@@ -2389,6 +2389,70 @@ describe('toUIMessageStream', () => {
     expect(textEndIdx).toBeGreaterThan(-1);
   });
 
+  it('should not emit duplicate reasoning blocks when streamed and followed by values snapshot (#24707)', async () => {
+    const reasoningChunk = new AIMessageChunk({
+      id: 'msg-reasoning-1',
+      content: [
+        { type: 'reasoning', reasoning: 'Deep reasoning step by step...' },
+      ],
+    });
+    const textChunk = new AIMessageChunk({
+      id: 'msg-reasoning-1',
+      content: 'Hello world',
+    });
+
+    const valuesData = {
+      messages: [
+        {
+          id: 'msg-reasoning-1',
+          type: 'ai',
+          content: 'Hello world',
+          response_metadata: {
+            output: [
+              {
+                id: 'rs_openai_123',
+                type: 'reasoning',
+                summary: [
+                  {
+                    type: 'summary_text',
+                    text: 'Deep reasoning step by step...',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [reasoningChunk]],
+      ['messages', [textChunk]],
+      ['values', valuesData],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    const reasoningStarts = result.filter(
+      (e: unknown) => (e as { type: string }).type === 'reasoning-start',
+    );
+    const reasoningDeltas = result.filter(
+      (e: unknown) => (e as { type: string }).type === 'reasoning-delta',
+    );
+    const reasoningEnds = result.filter(
+      (e: unknown) => (e as { type: string }).type === 'reasoning-end',
+    );
+
+    expect(reasoningStarts).toHaveLength(1);
+    expect(reasoningDeltas).toHaveLength(1);
+    expect(reasoningEnds).toHaveLength(1);
+    expect((reasoningDeltas[0] as { delta: string }).delta).toBe(
+      'Deep reasoning step by step...',
+    );
+  });
+
   it('should handle model stream with reasoning contentBlocks', async () => {
     // Non-array events are treated as model stream chunks (AIMessageChunk)
     const reasoningChunk = new AIMessageChunk({
