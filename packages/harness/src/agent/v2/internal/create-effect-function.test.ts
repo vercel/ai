@@ -377,7 +377,7 @@ describe('createEffectFunction', () => {
       const output = await effect('key', options, () => {
         throw error;
       });
-      expect(output).toEqual({ type: 'error', error: message });
+      expect(output).toEqual({ type: 'error', error: { message } });
       const replacement = vi.fn(async () => 'unexpected');
       expect(
         await createEffectFunction({
@@ -396,13 +396,13 @@ describe('createEffectFunction', () => {
       await effect('promise', options, async () => {
         throw new Error('promise failed');
       }),
-    ).toEqual({ type: 'error', error: 'Error: promise failed' });
+    ).toEqual({ type: 'error', error: { message: 'Error: promise failed' } });
     expect(
       await effect('iterator', options, async function* () {
         yield 'partial';
         throw new Error('iterator failed');
       }),
-    ).toEqual({ type: 'error', error: 'Error: iterator failed' });
+    ).toEqual({ type: 'error', error: { message: 'Error: iterator failed' } });
     expect(
       (await log.read({ types: ['effect-progress'] })).events.map(
         event => event.data,
@@ -644,7 +644,7 @@ describe('createEffectFunction', () => {
       await effect('key', options, async () => {
         throw new DOMException('failed', 'AbortError');
       }),
-    ).toEqual({ type: 'error', error: 'AbortError: failed' });
+    ).toEqual({ type: 'error', error: { message: 'AbortError: failed' } });
   });
 
   test.each(['safe', 'never'] as const)(
@@ -1014,7 +1014,7 @@ describe('createEffectFunction', () => {
       }),
     ).toEqual({
       type: 'error',
-      error: 'Unknown effect error',
+      error: { message: 'Unknown effect error' },
     });
   });
 

@@ -1,6 +1,18 @@
 import type { SerializableValue } from '@ai-sdk/provider';
 
 /**
+ * Serializable error data recorded in the log or emitted to the stream. Never
+ * an `Error` instance, so it can cross process boundaries through a World;
+ * `HarnessEffectError` is its throwable counterpart.
+ */
+export type HarnessV2EffectError = {
+  /**
+   * Human-readable error message.
+   */
+  readonly message: string;
+};
+
+/**
  * Outcome returned by one invocation of a replay-aware effect.
  */
 export type HarnessV2EffectOutput<
@@ -24,9 +36,9 @@ export type HarnessV2EffectOutput<
       readonly type: 'error';
 
       /**
-       * Error message recorded for this effect attempt.
+       * Serializable error recorded for this effect attempt.
        */
-      readonly error: string;
+      readonly error: HarnessV2EffectError;
     }
   | {
       /**

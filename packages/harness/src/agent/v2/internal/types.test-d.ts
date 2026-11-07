@@ -2,14 +2,17 @@ import { expectTypeOf, test } from 'vitest';
 import type { SerializableValue } from '@ai-sdk/provider';
 import type { HarnessV2EffectFunction } from '../../../index';
 import type { HarnessV2DriveContext } from '../../../v2/harness-v2-drive-context';
+import type { HarnessV2EffectError } from '../../../v2/harness-v2-effect';
 import type {
   HarnessV2Log,
   HarnessV2LogEvent,
 } from '../../../v2/harness-v2-log';
+import type { HarnessV2StreamPart } from '../../../v2/harness-v2-stream-part';
 import type {
   HarnessAgentEffectFunction,
   HarnessAgentLog,
   HarnessAgentLogEvent,
+  HarnessAgentStreamPart,
 } from './types';
 
 test('delivers internal events while accepting zero-argument listeners', () => {
@@ -56,4 +59,47 @@ test('keeps progress events internal to the agent', () => {
     };
     readonly id: string;
   }>();
+});
+
+test('keeps step and turn finish parts out of the adapter stream parts', () => {
+  expectTypeOf<
+    Extract<HarnessV2StreamPart, { type: 'finish-step' | 'finish' }>
+  >().toBeNever();
+  expectTypeOf<
+    Parameters<HarnessV2DriveContext['emit']>[0]
+  >().toEqualTypeOf<HarnessV2StreamPart>();
+});
+
+test('copies every adapter stream part into the agent stream parts', () => {
+  expectTypeOf<HarnessV2StreamPart>().toMatchTypeOf<HarnessAgentStreamPart>();
+  expectTypeOf<
+    Exclude<HarnessAgentStreamPart, { type: 'finish-step' | 'finish' }>
+  >().toEqualTypeOf<HarnessV2StreamPart>();
+});
+
+test('derives agent finish parts from the finish function options', () => {
+  expectTypeOf<
+    { type: 'finish-step' } & Omit<
+      Parameters<HarnessV2DriveContext['finishStep']>[0],
+      'key'
+    >
+  >().toMatchTypeOf<Extract<HarnessAgentStreamPart, { type: 'finish-step' }>>();
+  expectTypeOf<
+    { type: 'finish' } & Parameters<HarnessV2DriveContext['finishTurn']>[0]
+  >().toMatchTypeOf<Extract<HarnessAgentStreamPart, { type: 'finish' }>>();
+});
+
+test('carries only serializable error and raw payloads', () => {
+  expectTypeOf<
+    Extract<HarnessV2StreamPart, { type: 'error' }>['error']
+  >().toEqualTypeOf<HarnessV2EffectError>();
+  expectTypeOf<
+    Extract<HarnessAgentStreamPart, { type: 'error' }>['error']
+  >().toEqualTypeOf<HarnessV2EffectError>();
+  expectTypeOf<
+    Extract<HarnessV2StreamPart, { type: 'raw' }>['rawValue']
+  >().toEqualTypeOf<SerializableValue>();
+  expectTypeOf<
+    Extract<HarnessAgentStreamPart, { type: 'raw' }>['rawValue']
+  >().toEqualTypeOf<SerializableValue>();
 });

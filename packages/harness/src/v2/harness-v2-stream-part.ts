@@ -1,12 +1,12 @@
 import type {
   JSONValue,
-  LanguageModelV4FinishReason,
   LanguageModelV4StreamPart,
   LanguageModelV4ToolApprovalRequest,
   LanguageModelV4ToolCall,
   LanguageModelV4ToolResult,
-  LanguageModelV4Usage,
+  SerializableValue,
 } from '@ai-sdk/provider';
+import type { HarnessV2EffectError } from './harness-v2-effect';
 
 /**
  * Provider-scoped metadata emitted with harness stream events.
@@ -16,7 +16,7 @@ export type HarnessV2Metadata = Record<string, Record<string, JSONValue>>;
 /**
  * Warning emitted when a harness cannot honor a requested setting or tool.
  */
-type HarnessV2CallWarning =
+export type HarnessV2CallWarning =
   | {
       /**
        * The harness does not support a supplied setting.
@@ -63,6 +63,10 @@ type HarnessV2CallWarning =
 
 /**
  * Stream events a harness may emit while processing a session.
+ *
+ * Step and turn ends are not stream events a harness emits: they are signaled
+ * only through the drive context's `finishStep()` and `finishTurn()`, which
+ * produce the corresponding parts for consumers.
  */
 export type HarnessV2StreamPart =
   | {
@@ -224,48 +228,6 @@ export type HarnessV2StreamPart =
   | LanguageModelV4ToolResult
   | {
       /**
-       * Completes one model step.
-       */
-      type: 'finish-step';
-
-      /**
-       * Reason reported for the step's completion.
-       */
-      finishReason: LanguageModelV4FinishReason;
-
-      /**
-       * Usage attributed to this step.
-       */
-      usage: LanguageModelV4Usage;
-
-      /**
-       * Optional provider metadata associated with this step.
-       */
-      harnessMetadata?: HarnessV2Metadata;
-    }
-  | {
-      /**
-       * Completes the overall model call.
-       */
-      type: 'finish';
-
-      /**
-       * Reason reported for the call's completion.
-       */
-      finishReason: LanguageModelV4FinishReason;
-
-      /**
-       * Aggregate usage across all steps in the call.
-       */
-      totalUsage: LanguageModelV4Usage;
-
-      /**
-       * Optional provider metadata associated with the call.
-       */
-      harnessMetadata?: HarnessV2Metadata;
-    }
-  | {
-      /**
        * Reports a filesystem change made during the harness session.
        */
       type: 'file-change';
@@ -323,9 +285,10 @@ export type HarnessV2StreamPart =
       type: 'error';
 
       /**
-       * Original error value, which may not be serializable.
+       * Serializable error data, normalized by the adapter from whatever its
+       * runtime threw.
        */
-      error: unknown;
+      error: HarnessV2EffectError;
     }
   | {
       /**
@@ -334,9 +297,10 @@ export type HarnessV2StreamPart =
       type: 'raw';
 
       /**
-       * Unmodified adapter-specific payload.
+       * Adapter-specific payload, passed through unmodified if serializable
+       * and converted otherwise.
        */
-      rawValue: unknown;
+      rawValue: SerializableValue;
     }
   | {
       /**

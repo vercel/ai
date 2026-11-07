@@ -1,4 +1,8 @@
-import type { SerializableValue } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4FinishReason,
+  LanguageModelV4Usage,
+  SerializableValue,
+} from '@ai-sdk/provider';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type {
   HarnessV2Effect,
@@ -7,7 +11,10 @@ import type {
 } from './harness-v2-effect';
 import type { HarnessV2Log } from './harness-v2-log';
 import type { HarnessV2NetworkSandboxSession } from './harness-v2-network-sandbox-session';
-import type { HarnessV2StreamPart } from './harness-v2-stream-part';
+import type {
+  HarnessV2Metadata,
+  HarnessV2StreamPart,
+} from './harness-v2-stream-part';
 
 /**
  * Host-provided function that runs a keyed effect under its replay policy and
@@ -139,7 +146,71 @@ export interface HarnessV2DriveContext {
   }>;
 
   /**
-   * Emits one adapter stream event to the consumer.
+   * Finishes the current AI SDK step; every step must end this way. `key`
+   * identifies the step within the session, chosen like an effect key (e.g.
+   * `step:${n}` per turn).
+   *
+   * Records the step and emits `finish-step` only on the first call for `key`;
+   * a call replayed after a crash records and emits nothing. Resolves after
+   * the step is recorded and `stopWhen` was evaluated (which may abort
+   * `yieldRequested`), so it must be awaited before starting the next step.
+   */
+  finishStep(opts: {
+    /**
+     * Stable identity of the step within the session.
+     */
+    key: string;
+
+    /**
+     * Reason reported for the step's completion.
+     */
+    finishReason: LanguageModelV4FinishReason;
+
+    /**
+     * Usage attributed to this step.
+     */
+    usage: LanguageModelV4Usage;
+
+    /**
+     * Optional provider metadata associated with this step.
+     */
+    harnessMetadata?: HarnessV2Metadata;
+  }): Promise<void>;
+
+  /**
+   * Finishes the current turn (`finishReason: 'error'` for a turn the runtime
+   * failed); every turn must end this way. The turn's identity is derived from
+   * the prompt submission that started it.
+   *
+   * Records the finish and emits `finish` only on the first call for the turn;
+   * a call replayed after a crash records and emits nothing.
+   */
+  finishTurn(opts: {
+    /**
+     * Reason reported for the turn's completion.
+     */
+    finishReason: LanguageModelV4FinishReason;
+
+    /**
+     * Aggregate usage across all steps in the turn.
+     */
+    totalUsage: LanguageModelV4Usage;
+
+    /**
+     * Optional provider metadata associated with the turn.
+     */
+    harnessMetadata?: HarnessV2Metadata;
+  }): Promise<void>;
+
+  /**
+   * Undesirable exception: only ever call this if the harness is unable to run
+   * its steps within an effect boundary via `effect()`, e.g. a closed runtime
+   * whose model calls happen inside its own process.
+   *
+   * Emits a stream part outside any effect attempt. It is fenced to this
+   * drive, but never restored after a crash, so the harness must never emit
+   * parts again that it already emitted before (e.g. from replayed journal
+   * records). Step and turn ends go through `finishStep()` and `finishTurn()`.
    */
   emit(part: HarnessV2StreamPart): void;
 

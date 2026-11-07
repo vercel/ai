@@ -140,7 +140,7 @@ async function executeCallback(input: {
     } catch {
       message = 'Unknown effect error';
     }
-    return { output: { type: 'error', error: message } };
+    return { output: { type: 'error', error: { message } } };
   }
 
   checkState();

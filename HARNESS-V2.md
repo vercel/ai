@@ -362,12 +362,10 @@ interface HarnessV2EffectContext {
    * emitted again. The agent attributes each part to this attempt; after a
    * crash it restores the parts of finished attempts and withdraws the parts
    * of interrupted ones. Parts emitted after the attempt ended are dropped.
-   * `finish-step` and `finish` are excluded: use `finishStep()` and
-   * `finishTurn()` on the drive context.
+   * Step and turn ends go through `finishStep()` and `finishTurn()` on the
+   * drive context.
    */
-  emit(
-    part: Exclude<HarnessV2StreamPart, { type: 'finish-step' | 'finish' }>,
-  ): void;
+  emit(part: HarnessV2StreamPart): void;
 }
 
 /**
@@ -554,11 +552,9 @@ interface HarnessV2DriveContext {
    * this drive, but cannot attribute it to an attempt: it is never restored
    * after a crash, and the harness itself must never emit parts again that
    * it already emitted before (e.g. from replayed journal records).
-   * `finish-step` and `finish` are excluded.
+   * Step and turn ends go through `finishStep()` and `finishTurn()`.
    */
-  emit(
-    part: Exclude<HarnessV2StreamPart, { type: 'finish-step' | 'finish' }>,
-  ): void;
+  emit(part: HarnessV2StreamPart): void;
   /**
    * Aborts when the drive must stop at once: preemption, a refused write, or
    * cancellation. The harness must stop its runtime and write nothing more.
@@ -713,7 +709,7 @@ When a step is cut off after streaming output (a crash mid-reply, or a retried m
 
 ```ts
 type HarnessV2StreamPart =
-  // ... text-*, reasoning-*, tool parts, finish-step, finish, ...
+  // ... text-*, reasoning-*, tool parts, ...
   {
     /**
      * Withdraws every part emitted since the last `finish-step` (or since
@@ -745,14 +741,14 @@ export type HarnessTextStreamPart<TOOLS extends ToolSet> =
 
 After a crash, a new drive reruns the harness from the log. Any stream part emitted again during that rerun would duplicate output consumers already saw, since the World stream is append-only. Stream emission is therefore split so that every path is replay-safe:
 
-| Output | API | Replay-safe because |
-| --- | --- | --- |
-| Content parts (text, reasoning, tool parts) | `effectContext.emit()` | A replayed effect does not run its callback; after a crash, the engine restores parts of finished attempts and withdraws parts of interrupted ones |
-| Step end (`finish-step`) | `finishStep({ key, ... })` | The engine appends a log event under `key` and emits only when that append was new |
-| Turn end (`finish`) | `finishTurn({ ... })` | Same, keyed by the prompt submission that started the turn |
-| Output of a runtime that cannot run steps inside `effect()` | top-level `emit()` | Undesirable exception: the harness must never emit already emitted parts again |
+| Output                                                      | API                        | Replay-safe because                                                                                                                                |
+| ----------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Content parts (text, reasoning, tool parts)                 | `effectContext.emit()`     | A replayed effect does not run its callback; after a crash, the engine restores parts of finished attempts and withdraws parts of interrupted ones |
+| Step end (`finish-step`)                                    | `finishStep({ key, ... })` | The engine appends a log event under `key` and emits only when that append was new                                                                 |
+| Turn end (`finish`)                                         | `finishTurn({ ... })`      | Same, keyed by the prompt submission that started the turn                                                                                         |
+| Output of a runtime that cannot run steps inside `effect()` | top-level `emit()`         | Undesirable exception: the harness must never emit already emitted parts again                                                                     |
 
-- `finish-step` and `finish` remain variants of `HarnessV2StreamPart` (the engine's writer emits them), but are only produced through `finishStep()` and `finishTurn()`: both adapter-facing `emit()` functions exclude them at the type level.
+- `HarnessV2StreamPart` has no `finish-step` and `finish` variants, since a harness must never emit them manually. The engine-only `HarnessAgentStreamPart` is a full copy of `HarnessV2StreamPart` that additionally contains them; it is what the engine's writer emits, with the finish parts produced only through `finishStep()` and `finishTurn()`.
 - `finishStep()` is awaited by the harness, which gives the engine its hold point: it records the step and evaluates `stopWhen` before the next step starts.
 - Crash between the log append and the stream write of a finish part: when a drive starts while the turn is unfinished, the engine first re-emits the latest recorded `finish-step` (tagged with its key), then emits `reset-step`. Readers deduplicate parts by key.
 - Recovery of an unfinished step: the engine emits `reset-step`, then reads the step's lines back from the World stream and re-emits the parts whose effect attempt finished. Without this, a reset would withdraw the output of a model call that completed before the crash, and since its effect replays without running the callback, that output would never be emitted again.
@@ -767,13 +763,13 @@ type HarnessAgentStreamWriter = {
    * deduplicates a step or turn finish part on read.
    */
   emit(
-    opts: { part: HarnessV2StreamPart } & (
+    opts: { part: HarnessAgentStreamPart } & (
       | { startId: string; key?: string }
       | { startId?: string; key: string }
     ),
   ): void;
   /** Untagged part (top-level drive `emit()`); withdrawn for good by a recovery reset. */
-  unsafeEmit(part: HarnessV2StreamPart): void;
+  unsafeEmit(part: HarnessAgentStreamPart): void;
   /** Resolves once every write issued so far has landed or failed. */
   flush(): Promise<void>;
   /** Ends the stream after flushing. */

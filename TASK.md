@@ -54,7 +54,8 @@ The steps are below:
    - Type the `raw` stream part's `rawValue` as `SerializableValue`.
    - Add the `HarnessEffectError` class in `packages/harness/src/errors/harness-effect-error.ts`, extending `HarnessError`.
    - Add `emit()` to `HarnessV2EffectContext` and provide it from `createEffectFunction()`, whose input must additionally include the `HarnessAgentStreamWriter`. Each attempt's `emit` calls `writer.emit({ part, startId })` and drops parts once the attempt ended.
-   - Add `finishStep()` and `finishTurn()` to `HarnessV2DriveContext`, exclude `finish-step` and `finish` from its `emit()` parameter type, and document that `emit()` as the undesirable exception.
+   - Add `finishStep()` and `finishTurn()` to `HarnessV2DriveContext`, and document its `emit()` as the undesirable exception.
+   - Add an engine-side `HarnessAgentStreamPart` type to `packages/harness/src/agent/v2/internal/types.ts` as a full copy of `HarnessV2StreamPart`, then remove `finish-step` and `finish` from `HarnessV2StreamPart` (they remain on `HarnessAgentStreamPart`).
    - Scaffold `createFinishStepFunction(input): HarnessAgentFinishStepFunction` and `createFinishTurnFunction(input): HarnessAgentFinishTurnFunction` in `packages/harness/src/agent/v2/internal/`, with both types in `types.ts` (redeclared, DO NOT import). Their inputs must include the `HarnessAgentLog` and the `HarnessAgentStreamWriter`; each appends its internal log event and calls `writer.emit({ part, key })` only if that append returned `true`.
 10. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-execute-host-tool-function.ts` with function `createExecuteHostToolFunction(input): HarnessAgentExecuteHostToolFunction`.
 

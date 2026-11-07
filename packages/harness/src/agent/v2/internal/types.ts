@@ -1,10 +1,23 @@
 import type {
   HarnessV2Effect,
   HarnessV2EffectContext,
+  HarnessV2EffectError,
   HarnessV2EffectOutput,
 } from '../../../v2/harness-v2-effect';
 import type { HarnessV2LogEvent } from '../../../v2/harness-v2-log';
-import type { SerializableValue } from '@ai-sdk/provider';
+import type {
+  HarnessV2CallWarning,
+  HarnessV2Metadata,
+} from '../../../v2/harness-v2-stream-part';
+import type {
+  LanguageModelV4FinishReason,
+  LanguageModelV4StreamPart,
+  LanguageModelV4ToolApprovalRequest,
+  LanguageModelV4ToolCall,
+  LanguageModelV4ToolResult,
+  LanguageModelV4Usage,
+  SerializableValue,
+} from '@ai-sdk/provider';
 
 /**
  * Runs a keyed effect and returns its committed output. Terminal outputs are
@@ -149,3 +162,295 @@ export type HarnessAgentLog = {
     config?: HarnessAgentLogListenerConfig;
   }): () => void;
 };
+
+/**
+ * Stream events handled by the HarnessAgent engine: the engine-side superset of
+ * `HarnessV2StreamPart`. The `finish-step` and `finish` variants are produced
+ * only by the engine, from the drive context's `finishStep()` and
+ * `finishTurn()`; a harness never emits them.
+ *
+ * This union is redeclared rather than derived from `HarnessV2StreamPart`, so
+ * every change to that type must be mirrored here.
+ */
+export type HarnessAgentStreamPart =
+  | {
+      /**
+       * Begins a model or harness stream and may report call-level warnings.
+       */
+      type: 'stream-start';
+
+      /**
+       * Unsupported settings or tools encountered for this call.
+       */
+      warnings?: ReadonlyArray<HarnessV2CallWarning>;
+
+      /**
+       * Provider model identifier when the harness can report it.
+       */
+      modelId?: string;
+    }
+  | {
+      /**
+       * Begins a text segment whose deltas share the same ID.
+       */
+      type: 'text-start';
+
+      /**
+       * Identifier pairing this start with its deltas and end event.
+       */
+      id: string;
+
+      /**
+       * Optional provider metadata associated with this segment.
+       */
+      harnessMetadata?: HarnessV2Metadata;
+    }
+  | {
+      /**
+       * Emits an incremental text segment.
+       */
+      type: 'text-delta';
+
+      /**
+       * Identifier of the text segment being extended.
+       */
+      id: string;
+
+      /**
+       * Newly generated text, not the complete accumulated segment.
+       */
+      delta: string;
+
+      /**
+       * Optional provider metadata associated with this delta.
+       */
+      harnessMetadata?: HarnessV2Metadata;
+    }
+  | {
+      /**
+       * Ends the text segment identified by `id`.
+       */
+      type: 'text-end';
+
+      /**
+       * Identifier of the text segment being closed.
+       */
+      id: string;
+
+      /**
+       * Optional provider metadata associated with the end event.
+       */
+      harnessMetadata?: HarnessV2Metadata;
+    }
+  | {
+      /**
+       * Begins a reasoning segment whose deltas share the same ID.
+       */
+      type: 'reasoning-start';
+
+      /**
+       * Identifier pairing this start with its deltas and end event.
+       */
+      id: string;
+
+      /**
+       * Optional provider metadata associated with this segment.
+       */
+      harnessMetadata?: HarnessV2Metadata;
+    }
+  | {
+      /**
+       * Emits an incremental reasoning segment.
+       */
+      type: 'reasoning-delta';
+
+      /**
+       * Identifier of the reasoning segment being extended.
+       */
+      id: string;
+
+      /**
+       * Newly emitted reasoning text.
+       */
+      delta: string;
+
+      /**
+       * Optional provider metadata associated with this delta.
+       */
+      harnessMetadata?: HarnessV2Metadata;
+    }
+  | {
+      /**
+       * Ends the reasoning segment identified by `id`.
+       */
+      type: 'reasoning-end';
+
+      /**
+       * Identifier of the reasoning segment being closed.
+       */
+      id: string;
+
+      /**
+       * Optional provider metadata associated with the end event.
+       */
+      harnessMetadata?: HarnessV2Metadata;
+    }
+  | Extract<
+      LanguageModelV4StreamPart,
+      {
+        /**
+         * Begins streaming a tool call's input.
+         */
+        type: 'tool-input-start';
+      }
+    >
+  | Extract<
+      LanguageModelV4StreamPart,
+      {
+        /**
+         * Emits a delta of the tool call's input.
+         */
+        type: 'tool-input-delta';
+      }
+    >
+  | Extract<
+      LanguageModelV4StreamPart,
+      {
+        /**
+         * Marks the end of a tool call's input stream.
+         */
+        type: 'tool-input-end';
+      }
+    >
+  | (LanguageModelV4ToolCall & {
+      /**
+       * Adapter-native tool name when it differs from the exposed tool name.
+       */
+      nativeName?: string;
+    })
+  | LanguageModelV4ToolApprovalRequest
+  | LanguageModelV4ToolResult
+  | {
+      /**
+       * Completes one model step.
+       */
+      type: 'finish-step';
+
+      /**
+       * Reason reported for the step's completion.
+       */
+      finishReason: LanguageModelV4FinishReason;
+
+      /**
+       * Usage attributed to this step.
+       */
+      usage: LanguageModelV4Usage;
+
+      /**
+       * Optional provider metadata associated with this step.
+       */
+      harnessMetadata?: HarnessV2Metadata;
+    }
+  | {
+      /**
+       * Completes the overall model call.
+       */
+      type: 'finish';
+
+      /**
+       * Reason reported for the call's completion.
+       */
+      finishReason: LanguageModelV4FinishReason;
+
+      /**
+       * Aggregate usage across all steps in the call.
+       */
+      totalUsage: LanguageModelV4Usage;
+
+      /**
+       * Optional provider metadata associated with the call.
+       */
+      harnessMetadata?: HarnessV2Metadata;
+    }
+  | {
+      /**
+       * Reports a filesystem change made during the harness session.
+       */
+      type: 'file-change';
+
+      /**
+       * Kind of operation performed on the path.
+       */
+      event: 'create' | 'modify' | 'delete';
+
+      /**
+       * Path affected by the operation.
+       */
+      path: string;
+
+      /**
+       * Optional provider metadata associated with the change.
+       */
+      harnessMetadata?: HarnessV2Metadata;
+    }
+  | {
+      /**
+       * Reports that prior context was compacted.
+       */
+      type: 'compaction';
+
+      /**
+       * Whether compaction was explicitly requested or automatic.
+       */
+      trigger: 'manual' | 'auto';
+
+      /**
+       * Summary replacing the compacted context.
+       */
+      summary: string;
+
+      /**
+       * Token count before compaction, when available.
+       */
+      tokensBefore?: number;
+
+      /**
+       * Token count after compaction, when available.
+       */
+      tokensAfter?: number;
+
+      /**
+       * Optional provider metadata associated with compaction.
+       */
+      harnessMetadata?: HarnessV2Metadata;
+    }
+  | {
+      /**
+       * Reports an error surfaced by the harness.
+       */
+      type: 'error';
+
+      /**
+       * Serializable error data, normalized by the adapter from whatever its
+       * runtime threw.
+       */
+      error: HarnessV2EffectError;
+    }
+  | {
+      /**
+       * Carries an adapter-specific value without interpreting it.
+       */
+      type: 'raw';
+
+      /**
+       * Adapter-specific payload, passed through unmodified if serializable
+       * and converted otherwise.
+       */
+      rawValue: SerializableValue;
+    }
+  | {
+      /**
+       * Marks that the current model step's streamed content should reset.
+       */
+      type: 'reset-step';
+    };
