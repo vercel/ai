@@ -1141,3 +1141,92 @@ describe.each(['generate', 'stream'] as const)(
     });
   },
 );
+
+describe('MiniMax service tiers', () => {
+  const server = createTestServer({ [url]: {} });
+  const message = {
+    id: 'msg_tier',
+    type: 'message',
+    role: 'assistant',
+    model: 'minimax-m3.1-flash',
+    content: [],
+    stop_reason: 'end_turn',
+    usage: { input_tokens: 1, output_tokens: 1 },
+  };
+  const options = { prompt: TEST_PROMPT, maxOutputTokens: 16 };
+
+  it.each(['generate', 'stream'] as const)(
+    'sends priority admission when using %s',
+    async mode => {
+      server.urls[url].response =
+        mode === 'generate'
+          ? { type: 'json-value', body: message }
+          : {
+              type: 'stream-chunks',
+              chunks: [
+                { type: 'message_start', message },
+                {
+                  type: 'message_delta',
+                  delta: { stop_reason: 'end_turn' },
+                  usage: { output_tokens: 1 },
+                },
+                { type: 'message_stop' },
+              ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+            };
+      const callOptions = {
+        ...options,
+        providerOptions: { minimax: { serviceTier: 'priority' } },
+      };
+      const model = provider('minimax-m3.1-flash');
+      if (mode === 'generate') await model.doGenerate(callOptions);
+      else
+        await convertReadableStreamToArray(
+          (await model.doStream(callOptions)).stream,
+        );
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        service_tier: 'priority',
+      });
+    },
+  );
+
+  it('uses the MiniMax tier over a canonical namespace value', async () => {
+    server.urls[url].response = { type: 'json-value', body: message };
+    await provider('minimax-m3.1-flash').doGenerate({
+      ...options,
+      providerOptions: {
+        anthropic: { serviceTier: 'priority' },
+        minimax: { serviceTier: 'standard' },
+      },
+    });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      service_tier: 'standard',
+    });
+  });
+
+  it('warns and omits an Anthropic-only tier', async () => {
+    server.urls[url].response = { type: 'json-value', body: message };
+    const result = await provider('minimax-m3.1-flash').doGenerate({
+      ...options,
+      providerOptions: { anthropic: { serviceTier: 'auto' } },
+    });
+    expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+      'service_tier',
+    );
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({ type: 'unsupported', feature: 'serviceTier' }),
+    );
+  });
+
+  it.each([null, 'invalid'])(
+    'rejects an invalid tier %s before sending a request',
+    async serviceTier => {
+      await expect(
+        provider('minimax-m3.1-flash').doGenerate({
+          ...options,
+          providerOptions: { minimax: { serviceTier } },
+        }),
+      ).rejects.toThrow();
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+});

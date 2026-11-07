@@ -380,6 +380,36 @@ describe('chat', () => {
       ).toMatchInlineSnapshot(`"v1"`);
     });
 
+    it('should accept options under the azure key', async () => {
+      prepareJsonResponse();
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { azure: { user: 'azure-user' } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        user: 'azure-user',
+      });
+    });
+
+    it('should merge openai and azure options, preferring azure', async () => {
+      prepareJsonResponse();
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: { user: 'openai-user', logitBias: { 50256: -100 } },
+          azure: { user: 'azure-user' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        user: 'azure-user',
+        logit_bias: { 50256: -100 },
+      });
+    });
+
     it('should set the correct modified api version', async () => {
       prepareJsonResponse();
 
@@ -1921,6 +1951,551 @@ describe('responses', () => {
       it('should generate with reasoning encrypted content', async () => {
         expect(result).toMatchSnapshot();
       });
+    });
+
+    describe('custom tool', () => {
+      const sql = 'SELECT "name" FROM users WHERE age > 25';
+      const customCall = {
+        type: 'custom_tool_call',
+        id: 'ct_sql',
+        call_id: 'call_sql',
+        name: 'write_sql',
+        input: sql,
+        status: 'completed',
+      };
+      const customResponse = {
+        id: 'resp_custom',
+        created_at: 1741257730,
+        model: 'test-deployment',
+        output: [customCall],
+        usage: { input_tokens: 2, output_tokens: 4 },
+      };
+      const customTools = (): LanguageModelV4CallOptions['tools'] => {
+        const customTool = provider.tools.customTool({
+          description: 'Write a SQL query.',
+          format: { type: 'grammar', syntax: 'regex', definition: 'SELECT .+' },
+        });
+        return [
+          {
+            type: 'provider',
+            id: customTool.id,
+            name: 'write_sql',
+            args: customTool.args,
+          },
+        ];
+      };
+
+      it('exposes the shared provider-defined custom tool factory', () => {
+        expect(
+          createAzure({ resourceName: 'test-resource' }).tools.customTool({}),
+        ).toMatchObject({
+          type: 'provider',
+          id: 'openai.custom',
+          isProviderExecuted: false,
+        });
+      });
+
+      it('sends custom tool definitions and parses raw string inputs with Azure metadata', async () => {
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/responses'
+        ].response = {
+          type: 'json-value',
+          body: customResponse,
+        };
+        const result = await provider.responses('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: customTools(),
+          toolChoice: { type: 'required' },
+        });
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'custom',
+            name: 'write_sql',
+            description: 'Write a SQL query.',
+            format: {
+              type: 'grammar',
+              syntax: 'regex',
+              definition: 'SELECT .+',
+            },
+          },
+        ]);
+        expect(result.content).toMatchObject([
+          {
+            type: 'tool-call',
+            toolCallId: 'call_sql',
+            toolName: 'write_sql',
+            input: JSON.stringify(sql),
+            providerMetadata: { azure: { itemId: 'ct_sql' } },
+          },
+        ]);
+      });
+
+      it('streams raw custom input deltas and the final Azure tool call', async () => {
+        const deltas = ['SELECT "name"', ' FROM users WHERE age > 25'];
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/responses'
+        ].response = {
+          type: 'stream-chunks',
+          chunks: [
+            { type: 'response.created', response: customResponse },
+            {
+              type: 'response.output_item.added',
+              output_index: 0,
+              item: { ...customCall, input: '' },
+            },
+            ...deltas.map(delta => ({
+              type: 'response.custom_tool_call_input.delta',
+              item_id: 'ct_sql',
+              output_index: 0,
+              delta,
+            })),
+            {
+              type: 'response.output_item.done',
+              output_index: 0,
+              item: customCall,
+            },
+            { type: 'response.completed', response: customResponse },
+          ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        };
+        const { stream } = await provider
+          .responses('test-deployment')
+          .doStream({
+            prompt: TEST_PROMPT,
+            tools: customTools(),
+          });
+        const chunks = await convertReadableStreamToArray(stream);
+        expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([]);
+        expect(chunks).toContainEqual({
+          type: 'tool-input-start',
+          id: 'call_sql',
+          toolName: 'write_sql',
+          inputEncoding: 'text',
+        });
+        expect(
+          chunks
+            .filter(chunk => chunk.type === 'tool-input-delta')
+            .map(chunk => chunk.delta),
+        ).toEqual(deltas);
+        expect(chunks).toContainEqual(
+          expect.objectContaining({
+            type: 'tool-call',
+            toolCallId: 'call_sql',
+            toolName: 'write_sql',
+            input: JSON.stringify(sql),
+            providerMetadata: { azure: { itemId: 'ct_sql' } },
+          }),
+        );
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'custom',
+            name: 'write_sql',
+            description: 'Write a SQL query.',
+            format: {
+              type: 'grammar',
+              syntax: 'regex',
+              definition: 'SELECT .+',
+            },
+          },
+        ]);
+      });
+
+      it('sends custom tool results in follow-up prompts', async () => {
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/responses'
+        ].response = {
+          type: 'json-value',
+          body: { ...customResponse, output: [] },
+        };
+        await provider.responses('test-deployment').doGenerate({
+          tools: customTools(),
+          prompt: [
+            ...TEST_PROMPT,
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_sql',
+                  toolName: 'write_sql',
+                  input: sql,
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_sql',
+                  toolName: 'write_sql',
+                  output: { type: 'text', value: 'Query received.' },
+                },
+              ],
+            },
+          ],
+        });
+        expect((await server.calls[0].requestBodyJson).input).toContainEqual({
+          type: 'custom_tool_call_output',
+          call_id: 'call_sql',
+          output: 'Query received.',
+        });
+      });
+    });
+
+    describe('apply patch tool', () => {
+      const tools: LanguageModelV4CallOptions['tools'] = [
+        {
+          type: 'provider',
+          id: 'openai.apply_patch',
+          name: 'apply_patch',
+          args: {},
+        },
+      ];
+      const fixture = JSON.parse(
+        fs.readFileSync(
+          '../openai/src/responses/__fixtures__/openai-apply-patch-tool.1.json',
+          'utf8',
+        ),
+      );
+      const patch = fixture.output[0];
+      const input = { callId: patch.call_id, operation: patch.operation };
+      const url = 'https://test-resource.openai.azure.com/openai/v1/responses';
+
+      it('should expose a client-executed Azure tool factory', () => {
+        expect(
+          createAzure({ resourceName: 'test-resource' }).tools.applyPatch({
+            execute: async () => ({ status: 'completed' }),
+          }),
+        ).toMatchObject({ type: 'provider', id: 'openai.apply_patch' });
+      });
+
+      it('should send the native definition and retain Azure item metadata', async () => {
+        server.urls[url].response = { type: 'json-value', body: fixture };
+        const result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          { type: 'apply_patch' },
+        ]);
+        const call = result.content.find(part => part.type === 'tool-call');
+        expect(call).toMatchObject({
+          toolCallId: patch.call_id,
+          toolName: 'apply_patch',
+          providerMetadata: { azure: { itemId: patch.id } },
+        });
+        expect(JSON.parse(call!.input)).toEqual(input);
+        expect(result.finishReason.unified).toBe('tool-calls');
+      });
+
+      it('should stream the patch input with Azure item metadata', async () => {
+        const chunks = fs
+          .readFileSync(
+            '../openai/src/responses/__fixtures__/openai-apply-patch-tool.1.chunks.txt',
+            'utf8',
+          )
+          .split('\n')
+          .filter(line => line.trim().length > 0)
+          .map(line => `data: ${line}\n\n`);
+        server.urls[url].response = {
+          type: 'stream-chunks',
+          chunks: [...chunks, 'data: [DONE]\n\n'],
+        };
+        const { stream } = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools,
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          { type: 'apply_patch' },
+        ]);
+        const events = chunks.map(chunk => JSON.parse(chunk.slice(6)));
+        const streamedPatch = events.find(
+          event => event.type === 'response.output_item.done',
+        ).item;
+        const call = parts.find(part => part.type === 'tool-call');
+        expect(call).toMatchObject({
+          toolCallId: streamedPatch.call_id,
+          toolName: 'apply_patch',
+          providerMetadata: { azure: { itemId: streamedPatch.id } },
+        });
+        expect(JSON.parse(call!.input)).toEqual({
+          callId: streamedPatch.call_id,
+          operation: streamedPatch.operation,
+        });
+      });
+
+      it.each([true, false])(
+        'should serialize patch calls and results with store=%s',
+        async store => {
+          prepareJsonFixtureResponse('azure-text.1');
+          await createModel('test-deployment').doGenerate({
+            tools,
+            providerOptions: { azure: { store } },
+            prompt: [
+              ...TEST_PROMPT,
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: patch.call_id,
+                    toolName: 'apply_patch',
+                    input,
+                    providerOptions: { azure: { itemId: patch.id } },
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolCallId: patch.call_id,
+                    toolName: 'apply_patch',
+                    output: {
+                      type: 'json',
+                      value: { status: 'completed', output: 'Created file' },
+                    },
+                  },
+                ],
+              },
+            ],
+          });
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.store).toBe(store);
+          expect(body.input.slice(1)).toEqual([
+            store
+              ? { type: 'item_reference', id: patch.id }
+              : {
+                  type: 'apply_patch_call',
+                  id: patch.id,
+                  call_id: patch.call_id,
+                  status: 'completed',
+                  operation: patch.operation,
+                },
+            {
+              type: 'apply_patch_call_output',
+              call_id: patch.call_id,
+              status: 'completed',
+              output: 'Created file',
+            },
+          ]);
+        },
+      );
+    });
+
+    describe('shell tool', () => {
+      type Mode = 'local' | 'containerAuto' | 'containerReference';
+      const url = 'https://test-resource.openai.azure.com/openai/v1/responses';
+      const call = {
+        id: 'sh_test',
+        type: 'shell_call',
+        status: 'completed',
+        call_id: 'call_test',
+        action: {
+          commands: ['printf azure-shell'],
+          timeout_ms: 1000,
+          max_output_length: 1000,
+        },
+      };
+      const input = {
+        action: {
+          commands: call.action.commands,
+          timeoutMs: 1000,
+          maxOutputLength: 1000,
+        },
+      };
+      const output = {
+        output: [
+          {
+            stdout: 'azure-shell',
+            stderr: '',
+            outcome: { type: 'exit', exitCode: 0 },
+          },
+        ],
+      };
+      const nativeOutput = {
+        type: 'shell_call_output',
+        call_id: call.call_id,
+        output: [
+          {
+            stdout: 'azure-shell',
+            stderr: '',
+            outcome: { type: 'exit', exit_code: 0 },
+          },
+        ],
+      };
+      const tools = (mode: Mode): LanguageModelV4CallOptions['tools'] => [
+        {
+          type: 'provider',
+          id: 'openai.shell',
+          name: 'shell',
+          args: {
+            environment:
+              mode === 'local'
+                ? {
+                    type: 'local',
+                    skills: [
+                      {
+                        name: 'test',
+                        description: 'Test',
+                        path: '/skills/test',
+                      },
+                    ],
+                  }
+                : mode === 'containerAuto'
+                  ? { type: 'containerAuto' }
+                  : { type: 'containerReference', containerId: 'cntr_test' },
+          },
+        },
+      ];
+      const response = {
+        id: 'resp_test',
+        created_at: 1764713372,
+        model: 'test-deployment',
+        output: [call],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      };
+
+      it('should expose the shared Azure shell factory', () => {
+        expect(
+          createAzure({ resourceName: 'test-resource' }).tools.shell({
+            execute: async () => ({ output: [] }),
+          }),
+        ).toMatchObject({ type: 'provider', id: 'openai.shell' });
+      });
+
+      it.each(['local', 'containerAuto', 'containerReference'] as const)(
+        'should serialize %s and retain Azure metadata when generating',
+        async mode => {
+          server.urls[url].response = { type: 'json-value', body: response };
+          const result = await createModel('test-deployment').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: tools(mode),
+          });
+          expect((await server.calls[0].requestBodyJson).tools).toEqual([
+            {
+              type: 'shell',
+              environment:
+                mode === 'local'
+                  ? {
+                      type: 'local',
+                      skills: [
+                        {
+                          name: 'test',
+                          description: 'Test',
+                          path: '/skills/test',
+                        },
+                      ],
+                    }
+                  : mode === 'containerAuto'
+                    ? { type: 'container_auto' }
+                    : {
+                        type: 'container_reference',
+                        container_id: 'cntr_test',
+                      },
+            },
+          ]);
+          const toolCall = result.content.find(
+            part => part.type === 'tool-call',
+          );
+          expect(toolCall).toMatchObject({
+            toolCallId: call.call_id,
+            toolName: 'shell',
+            providerMetadata: { azure: { itemId: call.id } },
+          });
+          expect(JSON.parse(toolCall!.input)).toEqual(input);
+          expect(toolCall?.providerExecuted).toBe(
+            mode === 'local' ? undefined : true,
+          );
+        },
+      );
+
+      it.each(['local', 'containerAuto', 'containerReference'] as const)(
+        'should retain Azure metadata and execution mode for %s streams',
+        async mode => {
+          const events = [
+            { type: 'response.created', response: { ...response, output: [] } },
+            {
+              type: 'response.output_item.added',
+              output_index: 0,
+              item: { ...call, status: 'in_progress' },
+            },
+            { type: 'response.output_item.done', output_index: 0, item: call },
+            { type: 'response.completed', response },
+          ];
+          server.urls[url].response = {
+            type: 'stream-chunks',
+            chunks: events.map(event => `data: ${JSON.stringify(event)}\n\n`),
+          };
+          const { stream } = await createModel('test-deployment').doStream({
+            prompt: TEST_PROMPT,
+            tools: tools(mode),
+          });
+          const parts = await convertReadableStreamToArray(stream);
+          const toolCall = parts.find(part => part.type === 'tool-call');
+          expect(toolCall).toMatchObject({
+            toolCallId: call.call_id,
+            toolName: 'shell',
+            providerMetadata: { azure: { itemId: call.id } },
+          });
+          expect(JSON.parse(toolCall!.input)).toEqual(input);
+          expect(toolCall?.providerExecuted).toBe(
+            mode === 'local' ? undefined : true,
+          );
+        },
+      );
+
+      it.each([
+        { store: true, hosted: false },
+        { store: false, hosted: false },
+        { store: true, hosted: true },
+        { store: false, hosted: true },
+      ])(
+        'should round-trip shell results with $store storage and hosted=$hosted',
+        async ({ store, hosted }) => {
+          prepareJsonFixtureResponse('azure-text.1');
+          await createModel('test-deployment').doGenerate({
+            tools: tools(hosted ? 'containerAuto' : 'local'),
+            providerOptions: { azure: { store } },
+            prompt: [
+              ...TEST_PROMPT,
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: call.call_id,
+                    toolName: 'shell',
+                    input,
+                    providerExecuted: hosted,
+                    providerOptions: { azure: { itemId: call.id } },
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolCallId: call.call_id,
+                    toolName: 'shell',
+                    output: { type: 'json', value: output },
+                  },
+                ],
+              },
+            ],
+          });
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.store).toBe(store);
+          expect(body.input.slice(1)).toEqual([
+            store ? { type: 'item_reference', id: call.id } : call,
+            nativeOutput,
+          ]);
+        },
+      );
     });
 
     describe('tool search tool', () => {

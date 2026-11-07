@@ -228,8 +228,15 @@ function getBuiltinToolMetadata(tool: unknown): {
   return tool as { nativeName?: string; commonName?: string };
 }
 
-async function startOpenCodeSession({ resumed = false } = {}) {
+async function startOpenCodeSession({
+  resumed = false,
+  settings = {},
+}: {
+  resumed?: boolean;
+  settings?: Parameters<typeof createOpenCode>[0];
+} = {}) {
   harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+  const spawns: string[] = [];
   const sandbox = {
     async run({ command }: { command: string }) {
       return command === 'printf "%s" "$HOME"'
@@ -240,11 +247,12 @@ async function startOpenCodeSession({ resumed = false } = {}) {
       return null;
     },
     async writeTextFile() {},
-    async spawn() {
+    async spawn({ command }: { command: string }) {
+      spawns.push(command);
       return { async wait() {}, async kill() {} } as never;
     },
   };
-  const session = await createOpenCode().doStart({
+  const session = await createOpenCode(settings).doStart({
     sessionId: 's1',
     sandboxSession: {
       id: 'test-sandbox',
@@ -271,7 +279,7 @@ async function startOpenCodeSession({ resumed = false } = {}) {
         }
       : {}),
   });
-  return { session, channel: harnessUtilsMocks.channels.at(-1)! };
+  return { session, spawns, channel: harnessUtilsMocks.channels.at(-1)! };
 }
 
 describe('createOpenCode adapter', () => {
@@ -861,6 +869,132 @@ describe('createOpenCode adapter', () => {
     }
   });
 
+  it('brokers a native GitHub Copilot subscription with direct auth when VERCEL_OIDC_TOKEN is set', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const dataDirectory = await mkdtemp(join(tmpdir(), 'opencode-data-'));
+    const authDirectory = join(dataDirectory, 'opencode');
+    await mkdir(authDirectory, { recursive: true });
+    await writeFile(
+      join(authDirectory, 'auth.json'),
+      JSON.stringify({
+        'github-copilot': {
+          type: 'oauth',
+          access: 'copilot-oauth-access-token',
+          refresh: 'copilot-oauth-refresh-token',
+          expires: Date.now() + 60 * 60 * 1000,
+        },
+      }),
+    );
+    const environmentNames = [
+      'AI_GATEWAY_API_KEY',
+      'VERCEL_OIDC_TOKEN',
+      'GITHUB_TOKEN',
+      'GITHUB_COPILOT_TOKEN',
+      'XDG_DATA_HOME',
+    ] as const;
+    const originalEnvironment = Object.fromEntries(
+      environmentNames.map(name => [name, process.env[name]]),
+    );
+    delete process.env.AI_GATEWAY_API_KEY;
+    delete process.env.GITHUB_TOKEN;
+    delete process.env.GITHUB_COPILOT_TOKEN;
+    process.env.VERCEL_OIDC_TOKEN = 'vercel-oidc-token';
+    process.env.XDG_DATA_HOME = dataDirectory;
+
+    const spawnEnvironments: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const emptyStream = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async writeTextFile() {},
+      async spawn({ env }: { env: Record<string, string | undefined> }) {
+        spawnEnvironments.push(env);
+        return {
+          stdout: emptyStream(),
+          stderr: emptyStream(),
+          async wait() {},
+          async kill() {},
+        };
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      addRequestTransformations,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+
+    try {
+      const session = await createOpenCode({
+        auth: 'direct',
+        provider: 'github-copilot',
+      }).doStart({
+        sessionId: 's1',
+        sandboxSession,
+        sessionWorkDir: '/workspace/project',
+      });
+      const spawnEnvironment = spawnEnvironments.at(0);
+      const serializedEnvironment = JSON.stringify(spawnEnvironment);
+      const sandboxAuthContent = JSON.parse(
+        spawnEnvironment?.OPENCODE_AUTH_CONTENT ?? '{}',
+      ) as Record<string, { access?: string }>;
+      const sandboxAccessToken = sandboxAuthContent['github-copilot']?.access;
+
+      expect(sandboxAccessToken).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+      expect(addRequestTransformations).toHaveBeenCalledExactlyOnceWith([
+        {
+          match: expect.objectContaining({
+            host: 'api.githubcopilot.com',
+            headers: [
+              {
+                key: { exact: 'Authorization' },
+                value: { exact: `Bearer ${sandboxAccessToken}` },
+              },
+            ],
+          }),
+          transform: {
+            headers: { Authorization: 'Bearer copilot-oauth-refresh-token' },
+          },
+        },
+      ]);
+      expect(spawnEnvironment).not.toHaveProperty('AI_GATEWAY_API_KEY');
+      expect(spawnEnvironment).not.toHaveProperty('AI_GATEWAY_BASE_URL');
+      expect(serializedEnvironment).not.toContain('vercel-oidc-token');
+      expect(serializedEnvironment).not.toContain('copilot-oauth-access-token');
+      expect(serializedEnvironment).not.toContain(
+        'copilot-oauth-refresh-token',
+      );
+
+      await session.doDetach();
+    } finally {
+      for (const name of environmentNames) {
+        const value = originalEnvironment[name];
+        if (value == null) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
+  });
+
   it('customizes real credentials when request transformations are unavailable', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
@@ -1052,6 +1186,12 @@ describe('createOpenCode adapter', () => {
       ]),
     );
     expect(skillWrites).toHaveLength(2);
+    expect(harnessUtilsMocks.channels.at(-1)?.sent).toContainEqual(
+      expect.objectContaining({
+        type: 'start',
+        readableSkillRoots: ['/home/vercel-sandbox/.agents/skills/demo'],
+      }),
+    );
     expect(writes.some(write => write.path.includes('/.opencode/'))).toBe(
       false,
     );
@@ -1112,6 +1252,23 @@ describe('createOpenCode adapter', () => {
     await turn.done;
     await session.doDestroy();
   });
+
+  it.each([
+    [60_000, '60000'],
+    [undefined, undefined],
+  ])(
+    'passes hostDisconnectTimeoutMs %s to the bridge',
+    async (hostDisconnectTimeoutMs, expected) => {
+      const { session, spawns } = await startOpenCodeSession({
+        settings: { hostDisconnectTimeoutMs },
+      });
+
+      expect(
+        spawns.at(0)?.match(/--host-disconnect-timeout-ms '?(\d+)'?/)?.[1],
+      ).toBe(expected);
+      await session.doDestroy();
+    },
+  );
 
   it('passes native config through prompts, compaction, and resumed sessions', async () => {
     harnessUtilsMocks.channels.length = 0;

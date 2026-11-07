@@ -1032,7 +1032,7 @@ retain the content their contracts require.
               name: 'chunk',
               type: 'TextStreamPart<TOOLS>',
               description:
-                'The stream part. This is the same union as `stream` and includes `start`, `start-step`, `text-start`, `text-delta`, `text-end`, `reasoning-start`, `reasoning-delta`, `reasoning-end`, `custom`, `source`, `file`, `reasoning-file`, `tool-call`, `tool-input-start`, `tool-input-delta`, `tool-input-end`, `tool-result`, `tool-error`, `tool-output-denied`, `tool-approval-request`, `tool-approval-response`, `finish-step`, `finish`, `abort`, `error`, and `raw`.',
+                'The stream part. This is the same union as `stream` and includes `start`, `steering-message`, `start-step`, `text-start`, `text-delta`, `text-end`, `reasoning-start`, `reasoning-delta`, `reasoning-end`, `custom`, `source`, `file`, `reasoning-file`, `tool-call`, `tool-input-start`, `tool-input-delta`, `tool-input-end`, `tool-result`, `tool-error`, `tool-output-denied`, `tool-approval-request`, `tool-approval-response`, `finish-step`, `finish`, `abort`, `error`, `raw`, and `ping`.',
               properties: [
                 {
                   type: 'TextStreamPart',
@@ -3432,6 +3432,17 @@ retain the content their contracts require.
         'A stream with all events, including text deltas, tool calls, tool results, and errors. Well-formed mid-stream provider failures are emitted in error parts as StreamProviderError instances. You can use it as either an AsyncIterable or a ReadableStream. Only errors that stop the stream, such as network errors, are thrown.',
       properties: [
         {
+          type: 'TextStreamPingPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'ping'",
+              description:
+                'A transient provider heartbeat. It contains no generated content, does not reset model-output timeouts, and is omitted from text and UI message streams. Providers may require an explicit opt-in.',
+            },
+          ],
+        },
+        {
           type: 'TextStreamTextEndPart',
           description: 'End of a text block, including optional citations supporting that block.',
           parameters: [
@@ -3687,6 +3698,33 @@ retain the content their contracts require.
               type: 'tool execution return type',
               description:
                 'The result returned by the tool after execution has completed. The type is inferred from the tool execute function return type.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'steering-message'",
+              description:
+                'Experimental. A user message that was added to the run with `experimental_steering`. It is streamed before the `start-step` part of the step that received it.',
+            },
+            {
+              name: 'id',
+              type: 'string',
+              description: 'The id of the steering message.',
+            },
+            {
+              name: 'message',
+              type: 'UserModelMessage',
+              description: 'The user message that was added to the run.',
+            },
+            {
+              name: 'stepNumber',
+              type: 'number',
+              description:
+                'The number of the step whose model call received the message.',
             },
           ],
         },

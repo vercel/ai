@@ -1,3 +1,4 @@
+import { getDeepInfraLanguageModelEntry } from './deepinfra-model-catalog';
 import type {
   LanguageModelV4,
   EmbeddingModelV4,
@@ -125,7 +126,9 @@ export function createDeepInfra(
   const createChatModel = (modelId: DeepInfraChatModelId) => {
     return new DeepInfraChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
-      supportsStructuredOutputs: true,
+      supportsStructuredOutputs:
+        getDeepInfraLanguageModelEntry(modelId).capabilities.language
+          .structuredOutput.jsonSchema,
     });
   };
 

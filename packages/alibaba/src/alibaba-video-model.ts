@@ -1,3 +1,4 @@
+import { getAlibabaVideoModelEntry } from './alibaba-model-catalog';
 import {
   AISDKError,
   type Experimental_VideoModelV4 as VideoModelV4,
@@ -109,39 +110,6 @@ const alibabaVideoTaskStatusSchema = lazySchema(() =>
 type AlibabaVideoTaskStatusResponse = InferSchema<
   typeof alibabaVideoTaskStatusSchema
 >;
-
-// Only meaningful for ids that name their mode (wan2.6/wan2.7). wan3 ships a
-// single all-in-one id, so its mode comes from the media the request carries.
-function detectMode(modelId: string): 't2v' | 'i2v' | 'r2v' {
-  if (modelId.includes('-i2v')) return 'i2v';
-  if (modelId.includes('-r2v')) return 'r2v';
-  return 't2v';
-}
-
-/**
- * Request protocol, selected by model id:
- * - `legacy` (wan2.6 and earlier): `parameters.size`, `input.img_url`, and
- *   `input.reference_urls`.
- * - `wan27`: resolution tiers and `ratio` instead of `size`, `input.media`
- *   instead of `input.reference_urls`, no `shot_type`, audio always on.
- * - `wan3`: like `wan27`, plus a real `last_frame` slot, an `audio` toggle,
- *   a 480P tier, and one id covering every mode.
- */
-type AlibabaVideoProtocol = 'legacy' | 'wan27' | 'wan3';
-
-function detectProtocol(modelId: string): AlibabaVideoProtocol {
-  // `wanx` is the older id prefix (e.g. `wanx2.1-t2v-turbo`).
-  const version = /^wanx?(\d+)(?:\.(\d+))?(?=[.-]|$)/.exec(modelId);
-  if (version != null) {
-    const major = Number(version[1]);
-    const minor = Number(version[2] ?? 0);
-    if (major < 2 || (major === 2 && minor < 7)) return 'legacy';
-    if (major === 2) return 'wan27';
-  }
-
-  // Unrecognized IDs inherit the latest all-in-one media protocol.
-  return 'wan3';
-}
 
 // Maps SDK "WIDTHxHEIGHT" resolutions to Alibaba resolution tiers.
 const resolutionTierMap: Record<string, string> = {
@@ -329,7 +297,8 @@ export class AlibabaVideoModel implements VideoModelV4 {
     alibabaOptions: AlibabaVideoModelOptions | undefined;
   }> {
     const warnings: SharedV4Warning[] = [];
-    const mode = detectMode(this.modelId);
+    const mode = getAlibabaVideoModelEntry(this.modelId).requestConfig.video
+      .mode;
 
     const alibabaOptions = (await parseProviderOptions({
       provider: 'alibaba',
@@ -353,7 +322,8 @@ export class AlibabaVideoModel implements VideoModelV4 {
     }
 
     const startImage = resolveStartImage(options);
-    const protocol = detectProtocol(this.modelId);
+    const protocol = getAlibabaVideoModelEntry(this.modelId).requestConfig.video
+      .protocol;
     const wan27 = protocol === 'wan27';
     const wan3 = protocol === 'wan3';
     // Resolution tiers and input.media replaced size/img_url from wan2.7 on.

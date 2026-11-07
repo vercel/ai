@@ -1,3 +1,4 @@
+import { getAmazonBedrockLanguageModelEntry } from '../amazon-bedrock-model-catalog';
 import {
   OpenAIChatLanguageModel,
   OpenAIResponsesLanguageModel,
@@ -242,12 +243,7 @@ export function createBedrockMantle(
       });
     }
 
-    return `https://bedrock-mantle.${region}.api.aws/${
-      // Mantle serves these models under its separate OpenAI route.
-      /^(?:openai\.gpt-(?!oss-)|google\.gemma-4|xai\.)/.test(modelId)
-        ? 'openai/v1'
-        : 'v1'
-    }`;
+    return `https://bedrock-mantle.${region}.api.aws/${getAmazonBedrockLanguageModelEntry(modelId).requestConfig.language.mantleRoute}`;
   };
 
   const getHeaders = (): Record<string, string | undefined> =>

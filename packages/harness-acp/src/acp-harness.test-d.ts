@@ -1,5 +1,6 @@
 import { commonTool } from '@ai-sdk/harness';
 import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
+import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 import type { ToolCall } from '@agentclientprotocol/sdk';
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
@@ -23,6 +24,17 @@ const toolCallSettings = {
 } satisfies Pick<ACPHarnessSettings, 'isMcpToolCall' | 'resolveHostToolCall'>;
 
 describe('createACP built-in tool inference', () => {
+  test('accepts an optional synchronous or asynchronous sandbox preparation callback', () => {
+    expectTypeOf<ACPHarnessSettings['prepareSandbox']>().toEqualTypeOf<
+      | ((options: {
+          readonly sandbox: Experimental_SandboxSession;
+          readonly workDir: string;
+          readonly abortSignal?: AbortSignal;
+        }) => void | PromiseLike<void>)
+      | undefined
+    >();
+  });
+
   test('accepts only image as a non-text content type', () => {
     expectTypeOf<ACPV1Settings['nonTextContentTypes']>().toEqualTypeOf<
       ReadonlyArray<'image'> | undefined
@@ -45,6 +57,7 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'hostDisconnectTimeoutMs'
         | 'reconnect'
         | 'clientApp'
       >
@@ -56,6 +69,7 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'hostDisconnectTimeoutMs'
         | 'reconnect'
         | 'clientApp'
       >

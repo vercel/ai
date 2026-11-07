@@ -1,5 +1,59 @@
 # @ai-sdk/openai
 
+## 4.0.110
+
+### Patch Changes
+
+- c6efa4b: Refactor Azure model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export the OpenAI catalog internally for Azure to reuse. Request behavior is unchanged.
+- f6dbf04: fix(openai): surface Chat Completions refusals as text content
+
+  The Chat Completions model ignored `message.refusal` (non-streaming) and `delta.refusal` (streaming). When the model refused to answer, `content` was `null`, so the AI SDK returned empty text with a `stop` finish reason and silently dropped the refusal. Refusal text is now emitted as text content in both `generateText` and `streamText` results, and it is emitted in addition to content when the API returns both. A refusal with a `stop` finish reason is now reported as a `content-filter` finish reason, matching the Anthropic provider and the Responses API.
+
+- 646a7e3: fix(openai,openai-compatible): surface refusal logprobs and openai-compatible refusals
+
+  `@ai-sdk/openai`: Chat Completions responses that contain a refusal can return `logprobs.refusal` next to `logprobs.content`. The provider previously read only `logprobs.content`, so `providerMetadata.openai.logprobs` was empty or missing for refusals. Refusal logprobs are now included in emission order (content logprobs followed by refusal logprobs) in both `generateText` and `streamText`.
+
+  Streaming logprobs are now collected across all chunks in `streamText`: previously only the logprobs of the last streamed chunk were reported. This applies to content logprobs as well, so `providerMetadata.openai.logprobs` now contains the logprobs of every streamed token instead of only the last chunk's tokens. Explicitly empty logprobs (`logprobs: { content: [], refusal: null }`) are reported as an empty array, as before.
+
+  A refusal that arrives in the same streamed chunk as the `finish_reason` is now taken into account: such a response is reported with a `content-filter` finish reason instead of `stop`.
+
+  `@ai-sdk/openai-compatible`: Chat Completions responses that carry `message.refusal` (non-streaming) or `delta.refusal` (streaming) were ignored, so providers such as OpenAI served through `createOpenAICompatible` lost the refusal text and reported an empty `stop` response. Refusals are now returned as text content after any content text, and a non-empty refusal with a `stop` finish reason is reported as a `content-filter` finish reason. This also applies when the refusal and the finish reason arrive in the same streamed chunk. Non-string refusals (for example `refusal: false` from servers that use booleans) are ignored instead of failing the response.
+
+- 6b97088: fix(openai): handle refusal content parts in the Responses API
+
+  The Responses API returns a `refusal` content part instead of `output_text` when the model declines a request. The response schema rejected these parts, so non-streaming calls failed with an `APICallError` ("Invalid JSON response"), and streamed `response.refusal.delta` / `response.refusal.done` events were dropped, producing empty text. Refusal content parts and stream events are now parsed: the refusal explanation is surfaced as text and the finish reason is mapped to `content-filter`. When the response also contains a client-side function call, the finish reason stays `tool-calls` so the tools are still executed.
+
+## 4.0.109
+
+### Patch Changes
+
+- 27528db: Expose `customTool` through `azure.tools` for Azure Responses models, sharing the OpenAI custom tool factory and its raw string input support.
+- 7bb309d: add memoryLimit and networkPolicy properties in codeInterpreter tool
+- 7a90522: Add Secure MCP tunnel support to the OpenAI MCP tool via `tunnelId`. Tunnel targets cannot be combined with `serverUrl` or `connectorId`; existing URL and connector configurations remain compatible.
+- 6549344: feat(openai): support GPT Image 2.6 models with `complexity`, markup-guided edits (`markup`), animated GIF output (`outputFormat: 'gif'`, `frameCount`, `frameDurationMs`), and `safetyIdentifier` for image models
+- 5f9bb8e: feat (provider/openai): forward the `moderation` option to `/images/edits`
+- 934100c: Report the actual OpenAI Chat HTTP endpoint (also used by Azure Chat and Bedrock Mantle Chat) through optional request metadata and model-call end events. Record its host and port on OpenTelemetry chat spans without exposing URL credentials, paths, queries, or fragments. Expose only the sanitized HTTP origin in text and object generation results and step/finish callbacks. Providers that do not report an endpoint leave these attributes unset.
+- 892af4d: feat (provider/openai): implement server-side realtime extensions
+
+  `OpenAIRealtimeModel` now implements `getServerWebSocketConfig()`, returning the upstream realtime WebSocket URL for `conversation` and `transcription` intents plus header auth derived from the model's configured credentials. Dedicated transcription sessions serialize with `session.type: "transcription"` and the selected realtime model id. Translation is rejected until the normalized realtime codec supports its distinct wire protocol. The event mapper now populates normalized `usage` on `response-done` and `input-transcription-completed` (gross input/output token counts with cached portions reported separately; duration usage for duration-billed transcription).
+
+  Transcription serialization honors the explicit transcription model and rejects unsupported output settings. Gross token totals and reported modality/cache counts are retained; duration uses `seconds`. OpenAI Live retains its existing connection API and rejects unsupported intents.
+
+- 243bf22: Forward per-message `providerOptions.openai.name` on Chat Completions system, developer, user, and assistant messages. Validate names as strings and warn when configured on unsupported tool messages.
+- 5cc6d28: Expose `azure.tools.shell` for local and hosted shell execution through the Azure Responses API.
+- 41465fd: Expose optional transcription word timings separately from segments and accept shared timestampGranularities. Explicit provider timing settings take precedence. OpenAI now sends timestamp_granularities only with verbose_json and warns when a requested timing is unavailable or excluded.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 4.0.108
 
 ### Patch Changes

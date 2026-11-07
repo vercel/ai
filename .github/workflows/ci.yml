@@ -37,6 +37,15 @@ jobs:
       - name: Run ultracite check
         run: pnpm run check
 
+      - name: Test MCP elicitation response logging
+        run: pnpm --filter=@example/next-openai test:mcp-elicitation
+
+      - name: Test package preview tooling
+        run: node --test tools/tarballs/*.test.mjs
+
+      - name: Test backport upload
+        run: python3 .github/scripts/test-backport-upload.py
+
       - name: Validate docs <PropertiesTable> usage
         run: pnpm run validate:docs
 
@@ -211,6 +220,9 @@ jobs:
 
       - name: Build packages
         run: pnpm run build:packages
+
+      - name: Test MCP OAuth example
+        run: pnpm --filter @example/next-openai test:mcp-auth
 
       - name: Archive package build artifacts
         run: tar -czf package-build-artifacts.tgz packages/*/dist

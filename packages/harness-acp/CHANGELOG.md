@@ -1,5 +1,24 @@
 # @ai-sdk/harness-acp
 
+## 1.0.115
+
+### Patch Changes
+
+- a54f0fd: fix(harness): abort a running turn when its host disconnects for good
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+  - @ai-sdk/harness@1.0.175
+
+## 1.0.114
+
+### Patch Changes
+
+- deeb2bf: feat(harness-acp): add optional `prepareSandbox` callback support on `createACP()`
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 1.0.113
 
 ### Patch Changes

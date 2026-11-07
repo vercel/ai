@@ -1,5 +1,24 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.175
+
+### Patch Changes
+
+- a54f0fd: fix(harness): abort a running turn when its host disconnects for good
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+  - @ai-sdk/harness@1.0.175
+
+## 1.0.174
+
+### Patch Changes
+
+- bb8aa09: fix(harness-deepagents): require approval when accessing files outside of workDir with permission modes `allow-reads` and `allow-edits`
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 1.0.173
 
 ### Patch Changes

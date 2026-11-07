@@ -1,4 +1,4 @@
-import type { TranscriptionModelV4 } from '@ai-sdk/provider';
+import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
   lazySchema,
   zodSchema,
@@ -36,6 +36,37 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const timestamp = new Date();
     const maiModel = getMAITranscribeModel(this.modelId);
+    const warnings: SharedV4Warning[] = [];
+    let timestamps = azureOptions.timestamps;
+    if (options.timestampGranularities != null) {
+      const wantsWord = options.timestampGranularities.includes('word');
+      const wantsSegment = options.timestampGranularities.includes('segment');
+      if (
+        maiModel?.supportsTimestamps === false &&
+        (wantsWord || wantsSegment)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details: `${maiModel.name} cannot return word or segment timings.`,
+        });
+      } else if (timestamps == null) {
+        if (wantsWord) {
+          timestamps = 'word';
+        } else if (wantsSegment) {
+          timestamps = 'segment';
+        }
+      } else if (
+        (wantsWord && timestamps !== 'word') ||
+        (wantsSegment && timestamps === 'none')
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'timestampGranularities',
+          details: `providerOptions.azure.timestamps is "${timestamps}" and overrides the requested timestamp granularities.`,
+        });
+      }
+    }
     const formData = new FormData();
     formData.append(
       'audio',
@@ -57,7 +88,7 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
           model: maiModel?.name ?? this.modelId,
           modelOptions: {
             timestamps:
-              azureOptions.timestamps ??
+              timestamps ??
               (maiModel?.supportsTimestamps === false ? undefined : 'segment'),
             transcribeStyle: azureOptions.transcribeStyle,
           },
@@ -102,8 +133,24 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
         ? language
         : undefined;
 
+    const words = phrases.flatMap(phrase =>
+      (phrase.words ?? []).flatMap(word =>
+        word.offsetMilliseconds != null && word.durationMilliseconds != null
+          ? [
+              {
+                text: word.text,
+                startSecond: word.offsetMilliseconds / 1000,
+                endSecond:
+                  (word.offsetMilliseconds + word.durationMilliseconds) / 1000,
+              },
+            ]
+          : [],
+      ),
+    );
+
     return {
       text: value.combinedPhrases.map(phrase => phrase.text).join(' '),
+      ...(words.length > 0 ? { words } : {}),
       segments: phrases.flatMap(phrase =>
         phrase.offsetMilliseconds != null && phrase.durationMilliseconds != null
           ? [
@@ -122,7 +169,7 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
         value.durationMilliseconds != null
           ? value.durationMilliseconds / 1000
           : undefined,
-      warnings: [],
+      warnings,
       providerMetadata: {
         azure: { phrases },
       } satisfies AzureTranscriptionProviderMetadata,

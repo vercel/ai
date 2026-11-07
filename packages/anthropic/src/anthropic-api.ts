@@ -35,13 +35,26 @@ export interface AnthropicSystemMessage {
  * conversation's tool set without invalidating the prompt cache.
  *
  * Only valid inside system messages that appear in the `messages` array.
- * Requires the `mid-conversation-tool-changes-2026-07-01` beta.
+ * Changes by reference require the `mid-conversation-tool-changes-2026-07-01`
+ * beta. Additions by value (`tool_definition`) require the
+ * `inline-tools-2026-09-15` beta, which also covers changes by reference.
  */
-export interface AnthropicToolChangeContent {
-  type: 'tool_addition' | 'tool_removal';
-  tool: { type: 'tool_reference'; name: string };
-  cache_control?: never;
-}
+export type AnthropicToolChangeContent =
+  | {
+      type: 'tool_addition' | 'tool_removal';
+      tool: { type: 'tool_reference'; name: string };
+      cache_control?: never;
+    }
+  | {
+      type: 'tool_addition';
+      /**
+       * The tool definition, in the same shape as an entry of the top-level
+       * `tools` array. It replaces any earlier definition with the same name
+       * from this point on.
+       */
+      tool: { type: 'tool_definition'; definition: AnthropicTool };
+      cache_control?: never;
+    };
 
 export interface AnthropicUserMessage {
   role: 'user';
@@ -1072,12 +1085,14 @@ export const anthropicResponseSchema = lazySchema(() =>
       ),
       stop_reason: z.string().nullish(),
       stop_sequence: z.string().nullish(),
+      service_tier: z.string().nullish(),
       stop_details: anthropicStopDetailsSchema().nullish(),
       input_transformations: z
         .array(anthropicInputTransformationSchema())
         .nullish(),
       safeguard_results: z.array(anthropicSafeguardResultSchema()).nullish(),
       usage: z.looseObject({
+        service_tier: z.string().nullish(),
         input_tokens: z.number(),
         output_tokens: z.number(),
         output_tokens_details: z
@@ -1156,7 +1171,9 @@ export const anthropicChunkSchema = lazySchema(() =>
           id: z.string().nullish(),
           model: z.string().nullish(),
           role: z.string().nullish(),
+          service_tier: z.string().nullish(),
           usage: z.looseObject({
+            service_tier: z.string().nullish(),
             input_tokens: z.number(),
             cache_creation_input_tokens: z.number().nullish(),
             cache_read_input_tokens: z.number().nullish(),
@@ -1508,6 +1525,7 @@ export const anthropicChunkSchema = lazySchema(() =>
             .nullish(),
         }),
         usage: z.looseObject({
+          service_tier: z.string().nullish(),
           input_tokens: z.number().nullish(),
           output_tokens: z.number(),
           output_tokens_details: z

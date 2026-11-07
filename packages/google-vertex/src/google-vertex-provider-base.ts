@@ -1,3 +1,4 @@
+import { getGoogleVertexRequestConfig } from './google-vertex-model-catalog-config';
 import {
   GoogleInteractionsLanguageModel,
   GoogleLanguageModel,
@@ -51,10 +52,8 @@ const EXPRESS_MODE_BASE_URL =
 // Tuned models are served from a deployed endpoint and addressed by their
 // `endpoints/{id}` resource, which replaces `publishers/google/models/{id}`.
 // https://cloud.google.com/vertex-ai/generative-ai/docs/deploy/overview
-const ENDPOINT_MODEL_PREFIX = 'endpoints/';
-
 function isEndpointModelId(modelId: string): boolean {
-  return modelId.startsWith(ENDPOINT_MODEL_PREFIX);
+  return getGoogleVertexRequestConfig(modelId).language?.endpoint === true;
 }
 
 // set `x-goog-api-key` header to API key for express mode
@@ -381,7 +380,7 @@ export function createGoogleVertex(
     });
 
   const createSpeechModel = (modelId: GoogleVertexSpeechModelId) => {
-    if (modelId.startsWith('chirp')) {
+    if (getGoogleVertexRequestConfig(modelId).speech?.api === 'cloud-tts') {
       if (apiKey) {
         throw new Error(
           'Google Vertex Chirp speech models do not support Express Mode API keys. Use standard Google Cloud credentials instead.',
@@ -415,7 +414,7 @@ export function createGoogleVertex(
     // Gemini transcription models (`gemini-3.5-transcribe[-live]`) use the
     // Vertex generateContent / Live API surfaces; everything else routes to
     // Cloud Speech-to-Text (Chirp, telephony).
-    if (modelId.startsWith('gemini')) {
+    if (getGoogleVertexRequestConfig(modelId).transcription?.api === 'gemini') {
       return new GoogleVertexGeminiTranscriptionModel(modelId, {
         provider: config.provider,
         baseURL: loadBaseURL(),

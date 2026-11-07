@@ -328,6 +328,7 @@ describe('createGitHubCopilot', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      hostDisconnectTimeoutMs: 60_000,
       reconnect,
       mintBridgeToken,
     });
@@ -340,6 +341,7 @@ describe('createGitHubCopilot', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      hostDisconnectTimeoutMs: 60_000,
       reconnect,
       mintBridgeToken,
     });
