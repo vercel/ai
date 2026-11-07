@@ -108,6 +108,7 @@ export const BEDROCK_STOP_REASONS = [
   'end_turn',
   'length',
   'max_tokens',
+  'model_context_window_exceeded',
   'content-filter',
   'content_filtered',
   'guardrail_intervened',
