@@ -84,11 +84,6 @@ async function processMessages(
       model: openai('gpt-4o-mini'),
       tools,
       stopWhen: stepCountIs(10),
-      onStepFinish: async ({ toolResults }) => {
-        if (toolResults.length > 0) {
-          console.log('TOOL RESULTS:', JSON.stringify(toolResults, null, 2));
-        }
-      },
       system:
         'You are a helpful assistant. When asked to register a user, use the register_user tool.',
       messages: await convertToModelMessages(messages),
