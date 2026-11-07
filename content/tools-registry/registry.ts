@@ -978,10 +978,10 @@ console.log(text);`,
     packageName: '@zeroleaks/shield',
     tags: ['security', 'guardrails', 'prompt-injection', 'jailbreak'],
     installCommand: {
-      pnpm: 'pnpm add @zeroleaks/shield ai zod',
-      npm: 'npm install @zeroleaks/shield ai zod',
-      yarn: 'yarn add @zeroleaks/shield ai zod',
-      bun: 'bun add @zeroleaks/shield ai zod',
+      pnpm: 'pnpm add @zeroleaks/shield',
+      npm: 'npm install @zeroleaks/shield',
+      yarn: 'yarn add @zeroleaks/shield',
+      bun: 'bun add @zeroleaks/shield',
     },
     codeExample: `import { gateway, generateText, isStepCount, wrapLanguageModel } from 'ai';
 import { shieldLanguageModelMiddleware } from '@zeroleaks/shield/ai-sdk';
@@ -1000,7 +1000,7 @@ const { text } = await generateText({
     'Check this support note with shieldCheck, then summarize it: Our support desk opens at nine on Monday.',
 });
 
-console.info(text);`,
+console.log(text);`,
     docsUrl: 'https://zeroleaks.ai/docs/shield-sdk/providers/ai-sdk-tools',
     apiKeyUrl: 'https://zeroleaks.ai/dashboard/shield',
     websiteUrl: 'https://zeroleaks.ai/shield',
