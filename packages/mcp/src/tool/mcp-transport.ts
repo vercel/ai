@@ -58,6 +58,15 @@ export type MCPTransportConfig = {
    * An optional OAuth client provider to use for authentication for MCP servers.
    */
   authProvider?: OAuthClientProvider;
+
+  /**
+   * Controls how HTTP transport requests handle redirects.
+   * Only used by the HTTP transport.
+   * - `'follow'`: Follow redirects automatically. Only use for trusted destinations.
+   * - `'error'`: Reject any redirect response with an error.
+   * @default 'error'
+   */
+  redirect?: 'follow' | 'error';
 };
 
 export function createMcpTransport(config: MCPTransportConfig): MCPTransport {
