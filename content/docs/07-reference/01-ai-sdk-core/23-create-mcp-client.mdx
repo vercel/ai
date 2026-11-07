@@ -110,6 +110,13 @@ This feature is experimental and may change or be removed in the future.
                       description:
                         'Optional OAuth provider for authorization to access protected remote MCP servers.',
                     },
+                    {
+                      name: 'redirect',
+                      type: "'follow' | 'error'",
+                      isOptional: true,
+                      description:
+                        "Controls how HTTP transport requests handle redirects. Defaults to 'error' and is only used by the HTTP transport. Only set to 'follow' when all redirect destinations are trusted, since redirects can reach unintended hosts and private networks.",
+                    },
                   ],
                 },
               ],
