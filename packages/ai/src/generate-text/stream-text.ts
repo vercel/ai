@@ -1073,6 +1073,7 @@ function createOutputTransformStream<
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
   let lastPublishedValue: string | undefined = undefined;
+  let lastPublishedPartial: unknown = undefined;
   let hasPublishedValue = false;
 
   function resetOutputState() {
@@ -1081,6 +1082,7 @@ function createOutputTransformStream<
     textChunk = '';
     textProviderMetadata = undefined;
     lastPublishedValue = undefined;
+    lastPublishedPartial = undefined;
     hasPublishedValue = false;
   }
 
@@ -1208,6 +1210,12 @@ function createOutputTransformStream<
 
       // null should be allowed (valid JSON value) but undefined should not:
       if (result !== undefined) {
+        // Fast path: if the partial output reference is identical to the last published one,
+        // it has not changed, avoiding unnecessary stringification overhead:
+        if (hasPublishedValue && result.partial === lastPublishedPartial) {
+          return;
+        }
+
         // only send new value if it has changed:
         // For string partials (text output), compare directly to avoid unnecessary JSON.stringify overhead
         const currentValue =
@@ -1217,6 +1225,7 @@ function createOutputTransformStream<
         if (!hasPublishedValue || currentValue !== lastPublishedValue) {
           publishTextChunk({ controller, partialOutput: result.partial });
           lastPublishedValue = currentValue;
+          lastPublishedPartial = result.partial;
           hasPublishedValue = true;
         }
       }
