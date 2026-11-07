@@ -1,5 +1,27 @@
 # @ai-sdk/google-vertex
 
+## 5.0.134
+
+### Patch Changes
+
+- 977231e: only send google cloud credentials from the maas provider to its own api, not to image urls from a response or their redirects
+- 32dc1d2: Omit Google provider-defined tools, including File Search and Vertex RAG Store, when `toolChoice` is `none` so disabled tools cannot retrieve data or execute server-side. Preserve function declarations needed by conversation history while disabling function calling. This also applies when structured output uses a synthetic JSON response tool.
+- Updated dependencies [a161c0a]
+- Updated dependencies [6400cf8]
+- Updated dependencies [ba302a1]
+- Updated dependencies [f608c05]
+- Updated dependencies [32dc1d2]
+- Updated dependencies [26fc2a9]
+- Updated dependencies [5ab7ff1]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [b3088a7]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/anthropic@4.0.99
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/openai-compatible@3.0.87
+  - @ai-sdk/google@4.0.114
+  - @ai-sdk/provider@4.0.37
+
 ## 5.0.133
 
 ### Patch Changes
