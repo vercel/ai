@@ -447,7 +447,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     const args: GoogleInteractionsRequestBody = pruneUndefined({
       ...(isAgent ? { agent: this.agent } : { model: this.modelId }),
       input,
-      labels: googleOptions?.labels,
+      labels: googleOptions?.labels ?? undefined,
       system_instruction: systemInstruction,
       tools: toolsForBody,
       response_format:

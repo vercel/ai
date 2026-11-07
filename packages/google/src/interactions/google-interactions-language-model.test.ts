@@ -118,18 +118,26 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       });
     });
 
-    it.each([null, { invalid: 42 }])(
-      'rejects invalid labels %j before sending a request',
-      async labels => {
-        await expect(
-          model.doGenerate({
-            prompt: TEST_PROMPT,
-            providerOptions: { google: { labels } },
-          }),
-        ).rejects.toThrow();
-        expect(server.calls).toHaveLength(0);
-      },
-    );
+    it.each([undefined, null])('omits labels when set to %j', async labels => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { labels } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'labels',
+      );
+    });
+
+    it('rejects labels with non-string values before sending a request', async () => {
+      await expect(
+        model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { google: { labels: { invalid: 42 } } },
+        }),
+      ).rejects.toThrow();
+      expect(server.calls).toHaveLength(0);
+    });
   });
 
   describe('basic text', () => {
@@ -2501,6 +2509,22 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       stream: true,
     });
   });
+
+  it.each([undefined, null])(
+    'omits labels set to %j on streaming requests',
+    async labels => {
+      prepareChunksFixtureResponse('basic');
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { labels } },
+      });
+      await convertReadableStreamToArray(stream);
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'labels',
+      );
+    },
+  );
 
   it('serializes video response format controls and streams inline video data', async () => {
     server.urls[TEST_URL].response = {

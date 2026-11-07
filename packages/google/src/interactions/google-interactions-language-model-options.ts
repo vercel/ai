@@ -70,12 +70,14 @@ export type GoogleInteractionsVideoOptions = {
  * Provider-options schema for `google.interactions(...)` calls. Read from the
  * shared `providerOptions.google.*` namespace (per PRD); per-call options that
  * the AI SDK doesn't natively expose live here.
+ *
+ * All fields are `.nullish()` per the existing google provider convention.
  */
 export const googleInteractionsLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /** User-defined request metadata, including `safety_identifier`. */
-      labels: z.record(z.string(), z.string()).optional(),
+      labels: z.record(z.string(), z.string()).nullish(),
       previousInteractionId: z.string().nullish(),
       store: z.boolean().nullish(),
 

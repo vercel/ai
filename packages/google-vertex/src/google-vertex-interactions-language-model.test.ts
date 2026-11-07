@@ -18,9 +18,10 @@ const TEST_RESPONSE = {
 };
 const LABEL_CASES: Array<{
   name: string;
-  labels: Record<string, string> | undefined;
+  labels: Record<string, string> | null | undefined;
 }> = [
   { name: 'omitted', labels: undefined },
+  { name: 'null', labels: null },
   { name: 'empty', labels: {} },
   {
     name: 'provided',
@@ -77,7 +78,7 @@ describe.each(['generate', 'stream'] as const)(
 
         const body = await server.calls[0].requestBodyJson;
         expect(body.store).toBe(false);
-        if (labels === undefined) {
+        if (labels == null) {
           expect(body).not.toHaveProperty('labels');
         } else {
           expect(body.labels).toEqual(labels);
