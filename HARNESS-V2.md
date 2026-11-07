@@ -58,7 +58,7 @@ graph TD
 Green and blue boxes are public API; the dashed orange box is internal.
 
 - **`HarnessAgent`:** the public consumer API that app code uses: `stream()`, `generate()`, sessions, stream parts, `UIMessage` streams and lifecycle callbacks. This API will not notably change, other than receiving the new `world?: World` setting.
-- **`HarnessV2`:** the public API for harness adapter makers: `drive()` with its drive context (`log`, `effect()`, `executeHostTool()`, `gateBuiltinTool()`, `finishStep()`, `finishTurn()`, and the exceptional `emit()`). See section below for details.
+- **`HarnessV2`:** the public API for harness adapter makers: `drive()` with its drive context (`log`, `effect()`, `executeHostTool()`, `gateBuiltinTool()`, `finishStep()`, `finishTurn()`, and the exceptional `unsafeEmit()`). See section below for details. Stream parts are emitted through the effect context's `emit()`, the only adapter-facing function with that name.
   - `HarnessV2EffectFunction` declares the generic call signature used by the `HarnessV2DriveContext.effect` property.
 - **`HarnessAgent` engine:** the internal layer, not exported. Among other things, it:
   - translates `HarnessV2` stream parts into consumer stream types
@@ -554,7 +554,7 @@ interface HarnessV2DriveContext {
    * it already emitted before (e.g. from replayed journal records).
    * Step and turn ends go through `finishStep()` and `finishTurn()`.
    */
-  emit(part: HarnessV2StreamPart): void;
+  unsafeEmit(part: HarnessV2StreamPart): void;
   /**
    * Aborts when the drive must stop at once: preemption, a refused write, or
    * cancellation. The harness must stop its runtime and write nothing more.
@@ -746,7 +746,7 @@ After a crash, a new drive reruns the harness from the log. Any stream part emit
 | Content parts (text, reasoning, tool parts)                 | `effectContext.emit()`     | A replayed effect does not run its callback; after a crash, the engine restores parts of finished attempts and withdraws parts of interrupted ones |
 | Step end (`finish-step`)                                    | `finishStep({ key, ... })` | The engine appends a log event under `key` and emits only when that append was new                                                                 |
 | Turn end (`finish`)                                         | `finishTurn({ ... })`      | Same, keyed by the prompt submission that started the turn                                                                                         |
-| Output of a runtime that cannot run steps inside `effect()` | top-level `emit()`         | Undesirable exception: the harness must never emit already emitted parts again                                                                     |
+| Output of a runtime that cannot run steps inside `effect()` | `unsafeEmit()`             | Undesirable exception: the harness must never emit already emitted parts again                                                                     |
 
 - `HarnessV2StreamPart` has no `finish-step` and `finish` variants, since a harness must never emit them manually. The engine-only `HarnessAgentStreamPart` is a full copy of `HarnessV2StreamPart` that additionally contains them; it is what the engine's writer emits, with the finish parts produced only through `finishStep()` and `finishTurn()`.
 - `finishStep()` is awaited by the harness, which gives the engine its hold point: it records the step and evaluates `stopWhen` before the next step starts.
@@ -768,7 +768,7 @@ type HarnessAgentStreamWriter = {
       | { startId?: string; key: string }
     ),
   ): void;
-  /** Untagged part (top-level drive `emit()`); withdrawn for good by a recovery reset. */
+  /** Untagged part (the drive context's `unsafeEmit()`); withdrawn for good by a recovery reset. */
   unsafeEmit(part: HarnessAgentStreamPart): void;
   /** Resolves once every write issued so far has landed or failed. */
   flush(): Promise<void>;
@@ -778,7 +778,7 @@ type HarnessAgentStreamWriter = {
 ```
 
 - `effectContext.emit` is built by `createEffectFunction()` per attempt, as `writer.emit({ part, startId })`, and drops parts once the attempt ended.
-- The top-level `emit` is built where the drive context is assembled, as `writer.unsafeEmit(part)`, fenced by the drive's `abortSignal`.
+- The drive context's `unsafeEmit` is built where the drive context is assembled, as `writer.unsafeEmit(part)`, fenced by the drive's `abortSignal`.
 - `finishStep()` and `finishTurn()` call `writer.emit({ part, key })` after their log append returned `true`.
 
 ### Error representation (`HarnessV2EffectError`)

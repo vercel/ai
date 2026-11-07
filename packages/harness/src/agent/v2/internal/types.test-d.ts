@@ -66,7 +66,7 @@ test('keeps step and turn finish parts out of the adapter stream parts', () => {
     Extract<HarnessV2StreamPart, { type: 'finish-step' | 'finish' }>
   >().toBeNever();
   expectTypeOf<
-    Parameters<HarnessV2DriveContext['emit']>[0]
+    Parameters<HarnessV2DriveContext['unsafeEmit']>[0]
   >().toEqualTypeOf<HarnessV2StreamPart>();
 });
 

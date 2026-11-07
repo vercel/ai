@@ -211,8 +211,9 @@ export interface HarnessV2DriveContext {
    * drive, but never restored after a crash, so the harness must never emit
    * parts again that it already emitted before (e.g. from replayed journal
    * records). Step and turn ends go through `finishStep()` and `finishTurn()`.
+   * The regular way to emit stream parts is the effect context's `emit()`.
    */
-  emit(part: HarnessV2StreamPart): void;
+  unsafeEmit(part: HarnessV2StreamPart): void;
 
   /**
    * Aborts work when the session or current drive attempt is cancelled.
