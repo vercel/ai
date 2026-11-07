@@ -43,6 +43,8 @@ export const xaiResponsesProviderOptions = lazySchema(() =>
        * The ID of the previous response from the model.
        */
       previousResponseId: z.string().optional(),
+      /** Stable identifier used to attribute policy violations to an end user. */
+      safetyIdentifier: z.string().optional(),
     }),
   ),
 );

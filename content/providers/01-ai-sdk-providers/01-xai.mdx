@@ -131,6 +131,10 @@ The following optional provider options are available for xAI chat models:
 
   The ID of the previous response. You can use it to continue a conversation. Defaults to `undefined`.
 
+- **safetyIdentifier** _string_
+
+  Provide a stable, preferably hashed end-user identifier for safety monitoring. xAI echoes it back on `providerMetadata.xai.safetyIdentifier`. See [How do I identify which of my end users caused a policy violation?](https://docs.x.ai/developers/faq/security#how-do-i-identify-which-of-my-end-users-caused-a-policy-violation).
+
 ## Responses API (Agentic Tools)
 
 You can use the xAI Responses API with the `xai.responses(modelId)` factory method for server-side agentic tool calling. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.

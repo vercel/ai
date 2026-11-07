@@ -179,6 +179,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
       }),
+      ...(options.safetyIdentifier != null && {
+        safety_identifier: options.safetyIdentifier,
+      }),
     };
 
     if (xaiTools && xaiTools.length > 0) {
@@ -376,6 +379,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
         ? 'tool-calls'
         : mapXaiResponsesFinishReason(response.status),
       usage: convertXaiResponsesUsage(response.usage),
+      ...(response.safety_identifier != null && {
+        providerMetadata: {
+          xai: { safetyIdentifier: response.safety_identifier },
+        },
+      }),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -420,6 +428,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
       totalTokens: undefined,
     };
     let hasFunctionCall = false;
+    let safetyIdentifier: string | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -617,6 +626,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                 usage.reasoningTokens = converted.reasoningTokens;
                 usage.cachedInputTokens = converted.cachedInputTokens;
               }
+
+              safetyIdentifier = response.safety_identifier ?? undefined;
 
               if (event.type === 'response.incomplete') {
                 const reason =
@@ -894,7 +905,14 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
               }
             }
 
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              usage,
+              ...(safetyIdentifier != null && {
+                providerMetadata: { xai: { safetyIdentifier } },
+              }),
+            });
           },
         }),
       ),
