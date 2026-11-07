@@ -2,6 +2,8 @@ import { z } from 'zod/v4';
 
 // https://platform.minimax.io/docs/api-reference/text-chat-anthropic
 export type MiniMaxChatModelId =
+  | 'MiniMax-M3.1-Flash'
+  | 'MiniMax-M3'
   | 'minimax-m3.1-flash'
   | 'minimax-m3'
   | 'minimax-m2.7'
