@@ -1,5 +1,14 @@
 # @ai-sdk/harness-acp
 
+## 1.0.115
+
+### Patch Changes
+
+- a54f0fd: fix(harness): abort a running turn when its host disconnects for good
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+  - @ai-sdk/harness@1.0.175
+
 ## 1.0.114
 
 ### Patch Changes

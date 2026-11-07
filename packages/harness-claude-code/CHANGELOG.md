@@ -1,5 +1,15 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.179
+
+### Patch Changes
+
+- ae4e236: add an additionalDirectories setting and trust those directories like the working directory in file approvals
+- a54f0fd: fix(harness): abort a running turn when its host disconnects for good
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+  - @ai-sdk/harness@1.0.175
+
 ## 1.0.178
 
 ### Patch Changes

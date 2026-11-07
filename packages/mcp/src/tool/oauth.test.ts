@@ -19,6 +19,7 @@ import type { AuthorizationServerMetadata, OAuthTokens } from './oauth-types';
 import {
   AuthorizationServerMismatchError,
   InvalidClientError,
+  MCPClientOAuthError,
   ServerError,
   UnauthorizedClientError,
 } from '../error/oauth-error';
@@ -144,24 +145,37 @@ describe('discoverOAuthProtectedResourceMetadata', () => {
     );
   });
 
-  it('rejects redirects from protected resource discovery to private addresses', async () => {
-    mockFetch.mockResolvedValueOnce(
-      new Response(null, {
-        status: 302,
-        headers: {
-          location: 'http://169.254.169.254/latest/meta-data',
-        },
-      }),
-    );
+  it.each([
+    {
+      location: 'https://169.254.169.254/latest/meta-data',
+      error: /169\.254\.169\.254/,
+    },
+    {
+      location:
+        'http://resource.example.com/.well-known/oauth-protected-resource',
+      error: /Redirect from HTTPS to HTTP was blocked/,
+    },
+  ])(
+    'rejects protected resource discovery redirects to $location',
+    async ({ location, error }) => {
+      mockFetch.mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: {
+            location,
+          },
+        }),
+      );
 
-    await expect(
-      discoverOAuthProtectedResourceMetadata(
-        'https://resource.example.com/mcp',
-      ),
-    ).rejects.toThrow(/169\.254\.169\.254/);
+      await expect(
+        discoverOAuthProtectedResourceMetadata(
+          'https://resource.example.com/mcp',
+        ),
+      ).rejects.toThrow(error);
 
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-  });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('returns metadata when first fetch fails but second without MCP header succeeds', async () => {
     // Set up a counter to control behavior
@@ -682,22 +696,35 @@ describe('discoverAuthorizationServerMetadata', () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it('rejects authorization server discovery redirects to private addresses', async () => {
-    mockFetch.mockResolvedValueOnce(
-      new Response(null, {
-        status: 302,
-        headers: {
-          location: 'http://127.0.0.1:4000/.well-known/openid-configuration',
-        },
-      }),
-    );
+  it.each([
+    {
+      location: 'https://127.0.0.1:4000/.well-known/openid-configuration',
+      error: /127\.0\.0\.1/,
+    },
+    {
+      location:
+        'http://auth.example.com/.well-known/oauth-authorization-server',
+      error: /Redirect from HTTPS to HTTP was blocked/,
+    },
+  ])(
+    'rejects authorization server discovery redirects to $location',
+    async ({ location, error }) => {
+      mockFetch.mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: {
+            location,
+          },
+        }),
+      );
 
-    await expect(
-      discoverAuthorizationServerMetadata('https://auth.example.com'),
-    ).rejects.toThrow(/127\.0\.0\.1/);
+      await expect(
+        discoverAuthorizationServerMetadata('https://auth.example.com'),
+      ).rejects.toThrow(error);
 
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-  });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('returns OAuth metadata when issuer matches path-aware discovery issuer', async () => {
     const tenantMetadata = {
@@ -2613,6 +2640,80 @@ describe('auth function', () => {
           ? [`${issuer}/token`]
           : [`${issuer}/token`, `${issuer}/token`],
       );
+    },
+  );
+
+  it('does not authenticate an unbound stored token using a new registration', async () => {
+    setupClientErrorFlow({ errorCode: 'invalid_client' });
+
+    const originalTokens: OAuthTokens = {
+      access_token: 'test-access',
+      refresh_token: 'test-refresh',
+      token_type: 'Bearer',
+    };
+    let tokens: OAuthTokens | undefined = originalTokens;
+
+    // Stop before any token request; only test whether authentication is invoked.
+    const addClientAuthentication = vi.fn(() => {
+      throw new MCPClientOAuthError({
+        message: 'Unbound stored tokens must not reach client authentication',
+      });
+    });
+    const provider: OAuthClientProvider = {
+      ...mockProvider,
+      clientInformation: () => undefined,
+      saveClientInformation: vi.fn(() => {
+        expect(tokens).toBeUndefined();
+      }),
+      tokens: () => tokens,
+      invalidateCredentials: vi.fn(() => {
+        tokens = undefined;
+      }),
+      addClientAuthentication,
+    };
+
+    await expect(
+      auth(provider, { serverUrl: 'https://api.example.com/mcp-server' }),
+    ).resolves.toBe('REDIRECT');
+
+    expect(addClientAuthentication).not.toHaveBeenCalled();
+    expect(provider.invalidateCredentials).toHaveBeenCalledExactlyOnceWith(
+      'tokens',
+      { tokens: originalTokens },
+    );
+    expect(provider.saveClientInformation).toHaveBeenCalledOnce();
+    expect(provider.saveTokens).not.toHaveBeenCalled();
+    expect(provider.redirectToAuthorization).toHaveBeenCalledOnce();
+  });
+
+  it.each(['missing', 'ineffective'])(
+    'does not save a new binding when token invalidation is %s',
+    async invalidation => {
+      setupClientErrorFlow({ errorCode: 'invalid_client' });
+      const provider: OAuthClientProvider = {
+        ...mockProvider,
+        clientInformation: () => undefined,
+        saveClientInformation: vi.fn(),
+        tokens: () => ({
+          access_token: 'test-access',
+          refresh_token: 'test-refresh',
+          token_type: 'Bearer',
+        }),
+        invalidateCredentials: invalidation === 'missing' ? undefined : vi.fn(),
+      };
+
+      await expect(
+        auth(provider, { serverUrl: 'https://api.example.com/mcp-server' }),
+      ).rejects.toThrow(/must be cleared before starting authorization/);
+
+      expect(provider.saveClientInformation).not.toHaveBeenCalled();
+      expect(
+        provider.saveAuthorizationServerInformation,
+      ).not.toHaveBeenCalled();
+      expect(provider.redirectToAuthorization).not.toHaveBeenCalled();
+      expect(
+        mockFetch.mock.calls.some(([, init]) => init?.method === 'POST'),
+      ).toBe(false);
     },
   );
 

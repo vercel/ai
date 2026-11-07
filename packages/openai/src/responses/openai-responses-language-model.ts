@@ -23,8 +23,8 @@ import {
   createJsonResponseHandler,
   createToolNameMapping,
   generateId,
-  parseProviderOptions,
   postJsonToApi,
+  resolveProviderOptions,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -331,19 +331,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     const providerOptionsName = config.provider.includes('azure')
       ? 'azure'
       : 'openai';
-    let openaiOptions = await parseProviderOptions({
-      provider: providerOptionsName,
+    // The provider key (`azure`) and `openai` are alternatives: the first
+    // present one is used as a whole.
+    const { options: openaiOptions } = await resolveProviderOptions({
       providerOptions,
+      namespaces: [providerOptionsName, 'openai'],
+      resolution: 'first',
       schema: openaiLanguageModelResponsesOptionsSchema,
     });
-
-    if (openaiOptions == null && providerOptionsName !== 'openai') {
-      openaiOptions = await parseProviderOptions({
-        provider: 'openai',
-        providerOptions,
-        schema: openaiLanguageModelResponsesOptionsSchema,
-      });
-    }
 
     const resolvedReasoningEffort = resolveOpenAIReasoningEffort({
       providerReasoningEffort: openaiOptions?.reasoningEffort,

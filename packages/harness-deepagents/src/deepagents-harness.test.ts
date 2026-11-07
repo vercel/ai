@@ -304,6 +304,7 @@ describe('createDeepAgents', () => {
     expect(spawns.at(0)).toContain(
       "node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/deepagents/bridge.mjs'",
     );
+    expect(spawns.at(0)).toContain("--home-dir '/home/vercel-sandbox'");
     expect(spawns.at(0)).toContain(
       "--bootstrap-dir '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/deepagents'",
     );
@@ -381,6 +382,29 @@ describe('createDeepAgents', () => {
 
     await session.doDestroy();
   });
+
+  it.each([
+    [60_000, '60000'],
+    [undefined, undefined],
+  ])(
+    'passes hostDisconnectTimeoutMs %s to the bridge',
+    async (hostDisconnectTimeoutMs, expected) => {
+      const spawns: string[] = [];
+      const session = await createDeepAgents({
+        hostDisconnectTimeoutMs,
+      }).doStart({
+        sessionId: 'test-session',
+        sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+        sandboxSession: fakeSandboxSession({ spawns }),
+      });
+
+      expect(
+        spawns.at(0)?.match(/--host-disconnect-timeout-ms '?(\d+)'?/)?.[1],
+      ).toBe(expected);
+
+      await session.doDestroy();
+    },
+  );
 
   it('passes headers to the bridge for Gateway and direct auth', async () => {
     sentMessages.length = 0;

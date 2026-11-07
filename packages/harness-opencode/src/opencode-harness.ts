@@ -126,6 +126,12 @@ export type OpenCodeHarnessSettings = {
   readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
   /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
+  /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
    * backoff delays. Defaults to 30 seconds with exponential backoff from 50
@@ -579,7 +585,7 @@ export function createOpenCode(
       });
 
       const proc = await toolSafeSandboxSession.spawn({
-        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)} --skills-dir ${shellQuote(skillsDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)} --skills-dir ${shellQuote(skillsDir)}${settings.hostDisconnectTimeoutMs !== undefined ? ` --host-disconnect-timeout-ms ${shellQuote(String(settings.hostDisconnectTimeoutMs))}` : ''}`,
         env,
         abortSignal: startOpts.abortSignal,
       });

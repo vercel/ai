@@ -1,5 +1,16 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.178
+
+### Patch Changes
+
+- 89e6bc9: Read OpenCode subscriptions from `~/.local/share/opencode/auth.json` on Windows, where OpenCode stores them, and keep `~/.opencode/auth.json` as a fallback for the GitLab auth plugin.
+- a54f0fd: fix(harness): abort a running turn when its host disconnects for good
+- f779a62: fix(harness-opencode): ensure Google and Mistral models use OpenAI compatible endpoint when used with AI Gateway
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+  - @ai-sdk/harness@1.0.175
+
 ## 1.0.177
 
 ### Patch Changes

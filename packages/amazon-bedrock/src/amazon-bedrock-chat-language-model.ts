@@ -27,6 +27,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  resolveProviderOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -164,17 +165,14 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     // Parse provider options. Prefer `amazonBedrock`; fall back to legacy
     // `bedrock` key for backward compatibility.
     let amazonBedrockOptions =
-      (await parseProviderOptions({
-        provider: 'amazonBedrock',
-        providerOptions,
-        schema: amazonBedrockLanguageModelChatOptions,
-      })) ??
-      (await parseProviderOptions({
-        provider: 'bedrock',
-        providerOptions,
-        schema: amazonBedrockLanguageModelChatOptions,
-      })) ??
-      {};
+      (
+        await resolveProviderOptions({
+          providerOptions,
+          namespaces: ['amazonBedrock', 'bedrock'],
+          resolution: 'first',
+          schema: amazonBedrockLanguageModelChatOptions,
+        })
+      ).options ?? {};
 
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',

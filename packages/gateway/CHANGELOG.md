@@ -1,5 +1,13 @@
 # @ai-sdk/gateway
 
+## 4.0.137
+
+### Patch Changes
+
+- bace553: chore(provider/gateway): update gateway model settings files
+- 6737c77: docs(provider/gateway): document the OIDC auth fallback in `apiKey` JSDoc and README
+- bb4e2d0: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.136
 
 ### Patch Changes

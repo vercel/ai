@@ -16,13 +16,18 @@ export type OpenAISpeechModelId =
   | (string & {});
 
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
+/**
+ * Shape of the OpenAI speech model options. Exported so that routers that
+ * also call the OpenAI speech API (e.g. Azure) can accept these options under
+ * their own providerOptions key.
+ */
+export const openaiSpeechModelOptionsShape = () => ({
+  instructions: z.string().nullish(),
+  speed: z.number().min(0.25).max(4.0).nullish(),
+});
+
 export const openaiSpeechModelOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      instructions: z.string().nullish(),
-      speed: z.number().min(0.25).max(4.0).nullish(),
-    }),
-  ),
+  zodSchema(z.object(openaiSpeechModelOptionsShape())),
 );
 
 export type OpenAISpeechModelOptions = InferSchema<

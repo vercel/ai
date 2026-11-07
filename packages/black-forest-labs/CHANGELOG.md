@@ -1,5 +1,21 @@
 # @ai-sdk/black-forest-labs
 
+## 2.0.78
+
+### Patch Changes
+
+- eded4b8: fix: poll get_result when a webhook submit response has no polling URL
+
+  Setting `webhookUrl` makes Black Forest Labs return a webhook-shaped submit
+  response without `polling_url`, which caused `generateImage` to fail response
+  validation. The submit schema now accepts that response shape, and generation
+  polls the `get_result` endpoint by request id so the call still returns the
+  image. Transient `Task not found` responses are retried for a short grace
+  period; a task that never becomes visible now fails with an error naming the
+  request id instead of a generic poll timeout.
+
+- fbc2454: Refactor Black Forest Labs model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+
 ## 2.0.77
 
 ### Patch Changes

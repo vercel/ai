@@ -1,5 +1,11 @@
 # @ai-sdk/heygen
 
+## 3.0.18
+
+### Patch Changes
+
+- b667053: Refactor HeyGen model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+
 ## 3.0.17
 
 ### Patch Changes

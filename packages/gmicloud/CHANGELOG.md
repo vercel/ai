@@ -1,5 +1,14 @@
 # @ai-sdk/gmicloud
 
+## 3.0.57
+
+### Patch Changes
+
+- 2838776: Refactor GMI Cloud model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+- Updated dependencies [b63c06a]
+- Updated dependencies [646a7e3]
+  - @ai-sdk/openai-compatible@3.0.86
+
 ## 3.0.56
 
 ### Patch Changes

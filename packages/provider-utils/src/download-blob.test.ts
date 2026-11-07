@@ -264,7 +264,7 @@ describe('downloadBlob() SSRF protection', () => {
         ok: false,
         status: 302,
         headers: {
-          location: 'http://169.254.169.254/latest/meta-data/',
+          location: 'https://169.254.169.254/latest/meta-data/',
         },
         body: new TextEncoder().encode('redirecting'),
         onCancel,
@@ -297,7 +297,7 @@ describe('downloadBlob() SSRF protection', () => {
       createMockStreamResponse({
         ok: false,
         status: 307,
-        headers: { location: 'http://localhost:8080/admin' },
+        headers: { location: 'https://localhost:8080/admin' },
         body: new TextEncoder().encode('redirecting'),
         onCancel,
       }),

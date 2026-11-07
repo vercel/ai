@@ -1,3 +1,4 @@
+import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   createGoogleVertexMaas,
@@ -10,6 +11,7 @@ vi.mock('../../edge/google-vertex-auth-edge', () => ({
 }));
 
 vi.mock('../google-vertex-maas-provider', () => ({
+  loadGoogleVertexMaasBaseURL: () => 'https://example.com/v1',
   createGoogleVertexMaas: vi.fn(options => {
     const provider: any = vi.fn();
     provider.fetch = options.fetch;
@@ -18,7 +20,9 @@ vi.mock('../google-vertex-maas-provider', () => ({
   }),
 }));
 
-vi.mock('@ai-sdk/provider-utils', () => ({
+vi.mock('@ai-sdk/provider-utils', async importOriginal => ({
+  isSameOrigin: (await importOriginal<typeof ProviderUtilsModule>())
+    .isSameOrigin,
   resolve: vi.fn().mockImplementation(async value => {
     if (typeof value === 'function') return value();
     return value;
@@ -195,6 +199,26 @@ describe('google-vertex-maas-provider-edge', () => {
         },
       }),
     );
+  });
+
+  it('should not send credentials or custom headers to other origins', async () => {
+    vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
+    const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
+
+    const provider = createGoogleVertexMaas({
+      project: 'test-project',
+      headers: { 'X-Custom-Header': 'custom-value' },
+      fetch: mockFetch,
+    });
+
+    await (provider as any).fetch('https://other.example/image.png', {
+      headers: { Accept: 'image/*' },
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith('https://other.example/image.png', {
+      headers: { Accept: 'image/*' },
+    });
+    expect(generateAuthToken).not.toHaveBeenCalled();
   });
 
   it('should export default googleVertexMaas instance', () => {
