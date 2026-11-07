@@ -1,5 +1,14 @@
 # @ai-sdk/assemblyai
 
+## 1.0.50
+
+### Patch Changes
+
+- ecaca05: fix(assemblyai): surface AssemblyAI error messages from the documented flat error response shape
+- Updated dependencies [49c554d]
+- Updated dependencies [b753c03]
+  - @ai-sdk/provider-utils@3.0.45
+
 ## 1.0.49
 
 ### Patch Changes
