@@ -1,9 +1,6 @@
 import type {
+  JSONObject,
   JSONValue,
-  LanguageModelV4StreamPart,
-  LanguageModelV4ToolApprovalRequest,
-  LanguageModelV4ToolCall,
-  LanguageModelV4ToolResult,
   SerializableValue,
 } from '@ai-sdk/provider';
 import type { HarnessV2EffectError } from './harness-v2-effect';
@@ -12,6 +9,294 @@ import type { HarnessV2EffectError } from './harness-v2-effect';
  * Provider-scoped metadata emitted with harness stream events.
  */
 export type HarnessV2Metadata = Record<string, Record<string, JSONValue>>;
+
+/**
+ * Reason a model step or turn finished: a unified reason that is the same
+ * across harnesses, plus the raw reason reported by the runtime.
+ */
+export type HarnessV2FinishReason = {
+  /**
+   * Unified finish reason:
+   * - `stop`: the model generated a stop sequence
+   * - `length`: the model reached its maximum number of tokens
+   * - `content-filter`: a content filter stopped the model
+   * - `tool-calls`: the model triggered tool calls
+   * - `error`: the model or runtime stopped because of an error
+   * - `interrupted`: the stream ended without a completion signal; output may
+   *   be incomplete
+   * - `other`: the model stopped for another reason
+   */
+  unified:
+    | 'stop'
+    | 'length'
+    | 'content-filter'
+    | 'tool-calls'
+    | 'error'
+    | 'interrupted'
+    | 'other';
+
+  /**
+   * Raw finish reason as reported by the runtime or provider.
+   */
+  raw: string | undefined;
+};
+
+/**
+ * Token usage of a model step or turn.
+ */
+export type HarnessV2Usage = {
+  /**
+   * Input (prompt) token counts.
+   */
+  inputTokens: {
+    /**
+     * Total number of input tokens.
+     */
+    total: number | undefined;
+
+    /**
+     * Number of non-cached input tokens.
+     */
+    noCache: number | undefined;
+
+    /**
+     * Number of cached input tokens read.
+     */
+    cacheRead: number | undefined;
+
+    /**
+     * Number of cached input tokens written.
+     */
+    cacheWrite: number | undefined;
+  };
+
+  /**
+   * Output (completion) token counts.
+   */
+  outputTokens: {
+    /**
+     * Total number of output tokens.
+     */
+    total: number | undefined;
+
+    /**
+     * Number of text tokens.
+     */
+    text: number | undefined;
+
+    /**
+     * Number of reasoning tokens.
+     */
+    reasoning: number | undefined;
+  };
+
+  /**
+   * Usage in the shape the runtime or provider reports it, which may include
+   * information beyond the standard fields.
+   */
+  raw?: JSONObject;
+};
+
+/**
+ * Begins streaming a tool call's input.
+ */
+export type HarnessV2ToolInputStart = {
+  /**
+   * Begins streaming a tool call's input.
+   */
+  type: 'tool-input-start';
+
+  /**
+   * Identifier pairing this start with its deltas and end event.
+   */
+  id: string;
+
+  /**
+   * Name of the tool whose input is streamed.
+   */
+  toolName: string;
+
+  /**
+   * Encoding of the input deltas, JSON when omitted. Text deltas concatenate
+   * to a raw string; the final tool-call input is still JSON-encoded.
+   */
+  inputEncoding?: 'json' | 'text';
+
+  /**
+   * Optional provider metadata associated with the start event.
+   */
+  providerMetadata?: Record<string, JSONObject>;
+
+  /**
+   * Whether the harness executes the tool itself.
+   */
+  providerExecuted?: boolean;
+
+  /**
+   * Whether the tool is defined at runtime, e.g. an MCP tool.
+   */
+  dynamic?: boolean;
+
+  /**
+   * Optional human-readable title of the tool call.
+   */
+  title?: string;
+};
+
+/**
+ * Emits a delta of a tool call's input.
+ */
+export type HarnessV2ToolInputDelta = {
+  /**
+   * Emits a delta of a tool call's input.
+   */
+  type: 'tool-input-delta';
+
+  /**
+   * Identifier of the tool input being streamed.
+   */
+  id: string;
+
+  /**
+   * Input fragment to append.
+   */
+  delta: string;
+
+  /**
+   * Optional provider metadata associated with the delta.
+   */
+  providerMetadata?: Record<string, JSONObject>;
+};
+
+/**
+ * Marks the end of a tool call's input stream.
+ */
+export type HarnessV2ToolInputEnd = {
+  /**
+   * Marks the end of a tool call's input stream.
+   */
+  type: 'tool-input-end';
+
+  /**
+   * Identifier of the tool input being closed.
+   */
+  id: string;
+
+  /**
+   * Optional provider metadata associated with the end event.
+   */
+  providerMetadata?: Record<string, JSONObject>;
+};
+
+/**
+ * A complete tool call.
+ */
+export type HarnessV2ToolCall = {
+  /**
+   * Reports a complete tool call.
+   */
+  type: 'tool-call';
+
+  /**
+   * Identifier of the tool call, unique across all tool calls.
+   */
+  toolCallId: string;
+
+  /**
+   * Name of the tool to call.
+   */
+  toolName: string;
+
+  /**
+   * JSON-encoded tool input, matching the tool's input schema.
+   */
+  input: string;
+
+  /**
+   * Whether the harness executes the tool itself.
+   */
+  providerExecuted?: boolean;
+
+  /**
+   * Whether the tool is defined at runtime, e.g. an MCP tool.
+   */
+  dynamic?: boolean;
+
+  /**
+   * Optional provider metadata associated with the tool call.
+   */
+  providerMetadata?: Record<string, JSONObject>;
+};
+
+/**
+ * Approval request for a tool call executed by the harness.
+ */
+export type HarnessV2ToolApprovalRequest = {
+  /**
+   * Requests approval before a tool executed by the harness continues.
+   */
+  type: 'tool-approval-request';
+
+  /**
+   * Identifier referenced by the matching approval response.
+   */
+  approvalId: string;
+
+  /**
+   * Identifier of the tool call awaiting approval.
+   */
+  toolCallId: string;
+
+  /**
+   * Optional provider metadata associated with the approval request.
+   */
+  providerMetadata?: Record<string, JSONObject>;
+};
+
+/**
+ * Result of a tool call executed by the harness.
+ */
+export type HarnessV2ToolResult = {
+  /**
+   * Reports the result of a tool call executed by the harness.
+   */
+  type: 'tool-result';
+
+  /**
+   * Identifier of the tool call this result belongs to.
+   */
+  toolCallId: string;
+
+  /**
+   * Name of the tool that produced the result.
+   */
+  toolName: string;
+
+  /**
+   * JSON-serializable result of the tool call.
+   */
+  result: NonNullable<JSONValue>;
+
+  /**
+   * Whether the result is an error.
+   */
+  isError?: boolean;
+
+  /**
+   * Whether the result is preliminary and replaced by a later result.
+   */
+  preliminary?: boolean;
+
+  /**
+   * Whether the tool is defined at runtime, e.g. an MCP tool.
+   */
+  dynamic?: boolean;
+
+  /**
+   * Optional provider metadata associated with the tool result.
+   */
+  providerMetadata?: Record<string, JSONObject>;
+};
 
 /**
  * Warning emitted when a harness cannot honor a requested setting or tool.
@@ -191,41 +476,17 @@ export type HarnessV2StreamPart =
        */
       harnessMetadata?: HarnessV2Metadata;
     }
-  | Extract<
-      LanguageModelV4StreamPart,
-      {
-        /**
-         * Begins streaming a tool call's input.
-         */
-        type: 'tool-input-start';
-      }
-    >
-  | Extract<
-      LanguageModelV4StreamPart,
-      {
-        /**
-         * Emits a delta of the tool call's input.
-         */
-        type: 'tool-input-delta';
-      }
-    >
-  | Extract<
-      LanguageModelV4StreamPart,
-      {
-        /**
-         * Marks the end of a tool call's input stream.
-         */
-        type: 'tool-input-end';
-      }
-    >
-  | (LanguageModelV4ToolCall & {
+  | HarnessV2ToolInputStart
+  | HarnessV2ToolInputDelta
+  | HarnessV2ToolInputEnd
+  | (HarnessV2ToolCall & {
       /**
        * Adapter-native tool name when it differs from the exposed tool name.
        */
       nativeName?: string;
     })
-  | LanguageModelV4ToolApprovalRequest
-  | LanguageModelV4ToolResult
+  | HarnessV2ToolApprovalRequest
+  | HarnessV2ToolResult
   | {
       /**
        * Reports a filesystem change made during the harness session.

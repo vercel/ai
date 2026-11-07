@@ -513,19 +513,21 @@ interface HarnessV2DriveContext {
     fence?: number;
   }>;
   /**
-   * Finishes the current AI SDK step. Every step must be finished this way
-   * (there is no `start-step`: the agent adds it for consumers before a
-   * step's first part). `key` identifies the step within the session, chosen
-   * by the adapter like an effect key (e.g. `step:${n}` per turn).
+   * Finishes the current AI SDK step: one model call plus the tool calls
+   * resulting from it, however many effects that spans. Every step must be
+   * finished this way (there is no `start-step`: the agent adds it for
+   * consumers before a step's first part). `stepNumber` is counted by the
+   * adapter, zero-based within the current turn (like AI SDK's
+   * `StepResult.stepNumber`), and keeps counting across drives.
    *
-   * The agent records the step in the log under `key` and emits `finish-step`
-   * only on the first call for that key; a call replayed after a crash
-   * records and emits nothing. It resolves once the step is recorded and
-   * `stopWhen` was evaluated (which may abort `yieldRequested`), so the
+   * The agent records the step in the log and emits `finish-step` only on the
+   * first call for that `stepNumber` in the turn; a call replayed after a
+   * crash records and emits nothing. It resolves once the step is recorded
+   * and `stopWhen` was evaluated (which may abort `yieldRequested`), so the
    * harness must await it before starting the next step.
    */
   finishStep(opts: {
-    key: string;
+    stepNumber: number;
     finishReason: LanguageModelV4FinishReason;
     usage: LanguageModelV4Usage;
     harnessMetadata?: HarnessV2Metadata;
@@ -742,16 +744,23 @@ export type HarnessTextStreamPart<TOOLS extends ToolSet> =
 
 After a crash, a new drive reruns the harness from the log. Any stream part emitted again during that rerun would duplicate output consumers already saw, since the World stream is append-only. Stream emission is therefore split so that every path is replay-safe:
 
-| Output                                                      | API                        | Replay-safe because                                                                                                 |
-| ----------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Content parts (text, reasoning, tool parts)                 | `effectContext.emit()`     | A replayed effect does not run its callback; after a crash, the engine withdraws the output of interrupted attempts |
-| Step end (`finish-step`)                                    | `finishStep({ key, ... })` | The engine appends a log event under `key` and emits only when that append was new                                  |
-| Turn end (`finish`)                                         | `finishTurn({ ... })`      | Same, keyed by the prompt submission that started the turn                                                          |
-| Output of a runtime that cannot run steps inside `effect()` | `unsafeEmit()`             | Undesirable exception: the harness must never emit already emitted parts again                                      |
+| Output                                                      | API                               | Replay-safe because                                                                                                 |
+| ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Content parts (text, reasoning, tool parts)                 | `effectContext.emit()`            | A replayed effect does not run its callback; after a crash, the engine withdraws the output of interrupted attempts |
+| Step end (`finish-step`)                                    | `finishStep({ stepNumber, ... })` | The engine appends a log event keyed by the turn and `stepNumber`, and emits only when that append was new          |
+| Turn end (`finish`)                                         | `finishTurn({ ... })`             | Same, keyed by the prompt submission that started the turn                                                          |
+| Output of a runtime that cannot run steps inside `effect()` | `unsafeEmit()`                    | Undesirable exception: the harness must never emit already emitted parts again                                      |
 
 - `HarnessV2StreamPart` has no `finish-step` and `finish` variants, since a harness must never emit them manually. The engine-only `HarnessAgentStreamPart` is a full copy of `HarnessV2StreamPart` that additionally contains them; it is what the engine's writer emits, with the finish parts produced only through `finishStep()` and `finishTurn()`.
 - `finishStep()` is awaited by the harness, which gives the engine its hold point: it records the step and evaluates `stopWhen` before the next step starts.
-- Crash between the log append and the stream write of a finish part: when a drive starts while the turn is unfinished, the engine first re-emits the latest recorded `finish-step` (tagged with its key). Readers deduplicate parts by key.
+- Finish calls follow the same first-wins rule as effects: if the step or turn is already recorded, the call records and emits nothing, without comparing its options to the recorded ones.
+- Both finish calls are recorded in the log as engine-internal events (`finish-step` and `finish-turn` in `HarnessAgentLogEvent`), which is the source of truth; the stream parts are only emitted after a new append. The events store the call's options plus the turn's `submissionId`.
+- A session has at most one turn at a time, so the engine identifies it without input from the adapter: the current turn is the one started by the latest delivered `prompt` submission (delivered meaning listed in a committed `effect-start`'s `deliveredSubmissionIds`), whether that turn is finished or not. A finished turn stays current until the next prompt is delivered, so a drive that re-enters a finished turn's last step resolves its replayed finish calls to that turn.
+- Log event IDs, which double as the stream record keys, are `finish-step:${submissionId}:${stepNumber}` and `finish-turn:${submissionId}`.
+- `finishStep()` checks `stepNumber` (a non-negative integer) against the steps recorded for the current turn: lower is a replay, equal is a new step. A higher number, a new step for a finished turn, or a call before any prompt was delivered rejects with `HarnessInvalidDriveStateError`. `finishTurn()` on a finished turn is a replay; before any prompt was delivered it rejects. `finishTurn()` does not check that the turn's steps were finished.
+- Limit: an adapter that replays finish calls of turns older than the current one would misattribute them. Adapters must therefore rebuild from the log and re-enter at most the latest step, never replaying older turns.
+- `stopWhen` is not evaluated yet: `finishStep()` resolves once the step is recorded.
+- Crash between the log append and the stream write of a finish part: at the start of every drive, the engine re-emits the latest recorded finish parts, each tagged with its key: the latest `finish-step` of an unfinished turn, and the `finish` of the latest turn if it is finished. The engine cannot tell whether the original write landed, so readers deduplicate parts by key.
 - Crash recovery truncates, scoped to interrupted attempts, following the same approach as truncating a cut-off reply to its committed length:
   - At the start of a drive in an unfinished turn, the drive finds the interrupted attempts in the log (an `effect-start` without `effect-end`, or an end with `interrupted` output) and writes an engine-only withdraw record listing their `startId`s. It does not emit `reset-step` and does not read the stream. Withdrawing an attempt again has no further effect.
   - The engine's stream reader computes what to drop from what it delivered for the withdrawn attempts: it counts text and reasoning characters separately and emits a consumer-facing truncation part that drops that many characters off the end of each kind. It also drops any later records of withdrawn attempts, which covers late writes from the dead process.
@@ -791,7 +800,7 @@ type HarnessAgentStreamWriter = {
 
 - `effectContext.emit` is built by `createEffectFunction()` per attempt, as `writer.emit({ part, startId })`, and drops parts once the attempt ended. The writer is flushed before the attempt's end is committed, so a committed end implies its parts were written or failed.
 - The drive context's `unsafeEmit` is built where the drive context is assembled, as `writer.unsafeEmit(part)`, fenced by the drive's `abortSignal`.
-- `finishStep()` and `finishTurn()` call `writer.emit({ part, key })` after their log append returned `true`.
+- `finishStep()` and `finishTurn()` are built together by `createFinishFunctions()`, which reads the log once per drive and keeps their shared turn state current via `onAppend`, so calls never read the log. They call `writer.emit({ part, key })` after their log append returned `true`, with the step key or turn key as `key`.
 
 ### Error representation (`HarnessV2EffectError`)
 

@@ -13,6 +13,8 @@ import type {
 import type { HarnessV2StreamPart } from '../../../v2/harness-v2-stream-part';
 import type {
   HarnessAgentEffectFunction,
+  HarnessAgentFinishStepFunction,
+  HarnessAgentFinishTurnFunction,
   HarnessAgentLog,
   HarnessAgentLogEvent,
   HarnessAgentStreamPart,
@@ -46,6 +48,21 @@ test('redeclares the adapter effect signature without changing it', () => {
     HarnessV2DriveContext['effect']
   >();
   expectTypeOf<HarnessAgentEffectFunction>().toEqualTypeOf<HarnessV2EffectFunction>();
+});
+
+test('redeclares the adapter finish signatures without changing them', () => {
+  expectTypeOf<HarnessAgentFinishStepFunction>().toEqualTypeOf<
+    HarnessV2DriveContext['finishStep']
+  >();
+  expectTypeOf<HarnessAgentFinishTurnFunction>().toEqualTypeOf<
+    HarnessV2DriveContext['finishTurn']
+  >();
+});
+
+test('keeps finish events internal to the agent', () => {
+  expectTypeOf<
+    Extract<HarnessV2LogEvent, { type: 'finish-step' | 'finish-turn' }>
+  >().toBeNever();
 });
 
 test('keeps progress events internal to the agent', () => {
@@ -87,7 +104,7 @@ test('derives agent finish parts from the finish function options', () => {
   expectTypeOf<
     { type: 'finish-step' } & Omit<
       Parameters<HarnessV2DriveContext['finishStep']>[0],
-      'key'
+      'stepNumber'
     >
   >().toMatchTypeOf<Extract<HarnessAgentStreamPart, { type: 'finish-step' }>>();
   expectTypeOf<

@@ -1,8 +1,4 @@
-import type {
-  LanguageModelV4FinishReason,
-  LanguageModelV4Usage,
-  SerializableValue,
-} from '@ai-sdk/provider';
+import type { SerializableValue } from '@ai-sdk/provider';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type {
   HarnessV2Effect,
@@ -12,8 +8,10 @@ import type {
 import type { HarnessV2Log } from './harness-v2-log';
 import type { HarnessV2NetworkSandboxSession } from './harness-v2-network-sandbox-session';
 import type {
+  HarnessV2FinishReason,
   HarnessV2Metadata,
   HarnessV2StreamPart,
+  HarnessV2Usage,
 } from './harness-v2-stream-part';
 
 /**
@@ -146,30 +144,37 @@ export interface HarnessV2DriveContext {
   }>;
 
   /**
-   * Finishes the current AI SDK step; every step must end this way. `key`
-   * identifies the step within the session, chosen like an effect key (e.g.
-   * `step:${n}` per turn).
+   * Finishes the current AI SDK step (one model call plus the tool calls
+   * resulting from it, however many effects that spans); every step must end
+   * this way. `stepNumber` is counted by the adapter, zero-based within the
+   * current turn, including across drives: after a resume, the adapter must
+   * continue counting from the steps the turn already finished.
    *
-   * Records the step and emits `finish-step` only on the first call for `key`;
-   * a call replayed after a crash records and emits nothing. Resolves after
-   * the step is recorded and `stopWhen` was evaluated (which may abort
+   * Records the step and emits `finish-step` only on the first call for its
+   * `stepNumber` in the turn; a call replayed after a crash records and emits
+   * nothing, even if its other options differ. The current turn is the one
+   * started by the latest delivered prompt, even once it finished, so replays
+   * of a finished turn's last step still resolve. A `stepNumber` beyond the
+   * next unrecorded step, a new step for a finished turn, or a call before any
+   * prompt was delivered is rejected. Resolves after the
+   * step is recorded and `stopWhen` was evaluated (which may abort
    * `yieldRequested`), so it must be awaited before starting the next step.
    */
   finishStep(opts: {
     /**
-     * Stable identity of the step within the session.
+     * Zero-based number of the step within the current turn.
      */
-    key: string;
+    stepNumber: number;
 
     /**
      * Reason reported for the step's completion.
      */
-    finishReason: LanguageModelV4FinishReason;
+    finishReason: HarnessV2FinishReason;
 
     /**
      * Usage attributed to this step.
      */
-    usage: LanguageModelV4Usage;
+    usage: HarnessV2Usage;
 
     /**
      * Optional provider metadata associated with this step.
@@ -183,18 +188,21 @@ export interface HarnessV2DriveContext {
    * the prompt submission that started it.
    *
    * Records the finish and emits `finish` only on the first call for the turn;
-   * a call replayed after a crash records and emits nothing.
+   * a call replayed after a crash records and emits nothing, even if its
+   * options differ. The current turn is the one started by the latest
+   * delivered prompt, even once it finished. A call before any prompt was
+   * delivered is rejected.
    */
   finishTurn(opts: {
     /**
      * Reason reported for the turn's completion.
      */
-    finishReason: LanguageModelV4FinishReason;
+    finishReason: HarnessV2FinishReason;
 
     /**
      * Aggregate usage across all steps in the turn.
      */
-    totalUsage: LanguageModelV4Usage;
+    totalUsage: HarnessV2Usage;
 
     /**
      * Optional provider metadata associated with the turn.

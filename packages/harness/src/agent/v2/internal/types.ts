@@ -7,17 +7,17 @@ import type {
 import type { HarnessV2LogEvent } from '../../../v2/harness-v2-log';
 import type {
   HarnessV2CallWarning,
+  HarnessV2FinishReason,
   HarnessV2Metadata,
+  HarnessV2ToolApprovalRequest,
+  HarnessV2ToolCall,
+  HarnessV2ToolInputDelta,
+  HarnessV2ToolInputEnd,
+  HarnessV2ToolInputStart,
+  HarnessV2ToolResult,
+  HarnessV2Usage,
 } from '../../../v2/harness-v2-stream-part';
-import type {
-  LanguageModelV4FinishReason,
-  LanguageModelV4StreamPart,
-  LanguageModelV4ToolApprovalRequest,
-  LanguageModelV4ToolCall,
-  LanguageModelV4ToolResult,
-  LanguageModelV4Usage,
-  SerializableValue,
-} from '@ai-sdk/provider';
+import type { SerializableValue } from '@ai-sdk/provider';
 
 /**
  * Runs a keyed effect and returns its committed output. Terminal outputs are
@@ -81,7 +81,146 @@ export type HarnessAgentLogEvent =
        * Independent of the event's committed log position.
        */
       readonly id: string;
+    }
+  | {
+      /**
+       * Records a finished AI SDK step, visible only to the agent engine.
+       * Written by the drive context's `finishStep()` under the ID
+       * `finish-step:${submissionId}:${stepNumber}`.
+       */
+      readonly type: 'finish-step';
+
+      /**
+       * Step identity and the options the step was finished with.
+       */
+      readonly data: {
+        /**
+         * ID of the `prompt` submission that started the step's turn.
+         */
+        readonly submissionId: string;
+
+        /**
+         * Zero-based number of the step within its turn.
+         */
+        readonly stepNumber: number;
+
+        /**
+         * Reason reported for the step's completion.
+         */
+        readonly finishReason: HarnessV2FinishReason;
+
+        /**
+         * Usage attributed to the step.
+         */
+        readonly usage: HarnessV2Usage;
+
+        /**
+         * Provider metadata associated with the step, if any.
+         */
+        readonly harnessMetadata?: HarnessV2Metadata;
+      };
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    }
+  | {
+      /**
+       * Records a finished turn, visible only to the agent engine. Written by
+       * the drive context's `finishTurn()` under the ID
+       * `finish-turn:${submissionId}`.
+       */
+      readonly type: 'finish-turn';
+
+      /**
+       * Turn identity and the options the turn was finished with.
+       */
+      readonly data: {
+        /**
+         * ID of the `prompt` submission that started the turn.
+         */
+        readonly submissionId: string;
+
+        /**
+         * Reason reported for the turn's completion.
+         */
+        readonly finishReason: HarnessV2FinishReason;
+
+        /**
+         * Aggregate usage across all steps in the turn.
+         */
+        readonly totalUsage: HarnessV2Usage;
+
+        /**
+         * Provider metadata associated with the turn, if any.
+         */
+        readonly harnessMetadata?: HarnessV2Metadata;
+      };
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
     };
+
+/**
+ * Finishes the current AI SDK step. Same as `HarnessV2DriveContext['finishStep']`,
+ * redeclared so the engine does not depend on the adapter-facing type.
+ *
+ * The current turn is the one started by the latest delivered `prompt`
+ * submission, finished or not. A `stepNumber` below the turn's recorded step
+ * count is a replay and records and emits nothing; one equal to it records the
+ * step and emits `finish-step`; anything else rejects.
+ */
+export type HarnessAgentFinishStepFunction = (opts: {
+  /**
+   * Zero-based number of the step within the current turn.
+   */
+  stepNumber: number;
+
+  /**
+   * Reason reported for the step's completion.
+   */
+  finishReason: HarnessV2FinishReason;
+
+  /**
+   * Usage attributed to this step.
+   */
+  usage: HarnessV2Usage;
+
+  /**
+   * Optional provider metadata associated with this step.
+   */
+  harnessMetadata?: HarnessV2Metadata;
+}) => Promise<void>;
+
+/**
+ * Finishes the current turn. Same as `HarnessV2DriveContext['finishTurn']`,
+ * redeclared so the engine does not depend on the adapter-facing type.
+ *
+ * The current turn is the one started by the latest delivered `prompt`
+ * submission. If it is already finished, the call is a replay and records and
+ * emits nothing; otherwise it records the finish and emits `finish`.
+ */
+export type HarnessAgentFinishTurnFunction = (opts: {
+  /**
+   * Reason reported for the turn's completion.
+   */
+  finishReason: HarnessV2FinishReason;
+
+  /**
+   * Aggregate usage across all steps in the turn.
+   */
+  totalUsage: HarnessV2Usage;
+
+  /**
+   * Optional provider metadata associated with the turn.
+   */
+  harnessMetadata?: HarnessV2Metadata;
+}) => Promise<void>;
 
 /**
  * Event type filters for an agent-log append listener.
@@ -295,41 +434,17 @@ export type HarnessAgentStreamPart =
        */
       harnessMetadata?: HarnessV2Metadata;
     }
-  | Extract<
-      LanguageModelV4StreamPart,
-      {
-        /**
-         * Begins streaming a tool call's input.
-         */
-        type: 'tool-input-start';
-      }
-    >
-  | Extract<
-      LanguageModelV4StreamPart,
-      {
-        /**
-         * Emits a delta of the tool call's input.
-         */
-        type: 'tool-input-delta';
-      }
-    >
-  | Extract<
-      LanguageModelV4StreamPart,
-      {
-        /**
-         * Marks the end of a tool call's input stream.
-         */
-        type: 'tool-input-end';
-      }
-    >
-  | (LanguageModelV4ToolCall & {
+  | HarnessV2ToolInputStart
+  | HarnessV2ToolInputDelta
+  | HarnessV2ToolInputEnd
+  | (HarnessV2ToolCall & {
       /**
        * Adapter-native tool name when it differs from the exposed tool name.
        */
       nativeName?: string;
     })
-  | LanguageModelV4ToolApprovalRequest
-  | LanguageModelV4ToolResult
+  | HarnessV2ToolApprovalRequest
+  | HarnessV2ToolResult
   | {
       /**
        * Completes one model step.
@@ -339,12 +454,12 @@ export type HarnessAgentStreamPart =
       /**
        * Reason reported for the step's completion.
        */
-      finishReason: LanguageModelV4FinishReason;
+      finishReason: HarnessV2FinishReason;
 
       /**
        * Usage attributed to this step.
        */
-      usage: LanguageModelV4Usage;
+      usage: HarnessV2Usage;
 
       /**
        * Optional provider metadata associated with this step.
@@ -360,12 +475,12 @@ export type HarnessAgentStreamPart =
       /**
        * Reason reported for the call's completion.
        */
-      finishReason: LanguageModelV4FinishReason;
+      finishReason: HarnessV2FinishReason;
 
       /**
        * Aggregate usage across all steps in the call.
        */
-      totalUsage: LanguageModelV4Usage;
+      totalUsage: HarnessV2Usage;
 
       /**
        * Optional provider metadata associated with the call.

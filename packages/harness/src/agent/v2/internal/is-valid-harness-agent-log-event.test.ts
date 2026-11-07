@@ -8,6 +8,8 @@ describe('isValidHarnessAgentLogEvent', () => {
     'effect-start',
     'effect-progress',
     'effect-end',
+    'finish-step',
+    'finish-turn',
     'harness:journal',
     'harness:custom:event',
     'harness:',
