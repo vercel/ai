@@ -40,14 +40,18 @@ describe('number', () => {
   test('should handle e-notation numbers', () => {
     assert.strictEqual(fixJson('2.5e'), '2.5');
     assert.strictEqual(fixJson('2.5e-'), '2.5');
+    assert.strictEqual(fixJson('2.5e+'), '2.5');
     assert.strictEqual(fixJson('2.5e3'), '2.5e3');
+    assert.strictEqual(fixJson('2.5e+3'), '2.5e+3');
     assert.strictEqual(fixJson('-2.5e3'), '-2.5e3');
   });
 
   test('should handle uppercase e-notation numbers', () => {
     assert.strictEqual(fixJson('2.5E'), '2.5');
     assert.strictEqual(fixJson('2.5E-'), '2.5');
+    assert.strictEqual(fixJson('2.5E+'), '2.5');
     assert.strictEqual(fixJson('2.5E3'), '2.5E3');
+    assert.strictEqual(fixJson('2.5E+3'), '2.5E+3');
     assert.strictEqual(fixJson('-2.5E3'), '-2.5E3');
   });
 
