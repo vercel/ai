@@ -1755,6 +1755,10 @@ The following gateway provider options are available:
 
   Restricts routing to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers that do not train on prompt data will be used. If there are no providers available for the model that disallow prompt training, the request will fail.
 
+- **headquarters** _string[]_
+
+  Restricts routing to providers whose parent company is headquartered in the listed countries, given as ISO 3166-1 alpha-2 codes (for example `['US', 'DE']`). To exclude countries instead, prefix every code with `!`, as in `['!US']`. A list can't mix allowed and excluded countries. The filter applies to both BYOK and system credentials, since it's about the provider rather than the credential. Providers without a recorded headquarters country are always excluded. If no provider for the model is headquartered in an allowed country, the request fails.
+
 - **quotaEntityId** _string_
 
   The unique identifier for the entity against which quota is tracked. Used for quota management and enforcement purposes.
