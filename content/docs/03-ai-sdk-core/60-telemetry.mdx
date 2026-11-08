@@ -798,6 +798,36 @@ Output messages also include a `finish_reason` field (e.g. `"stop"`, `"tool_call
 
 Instructions supplied through `instructions` (or the deprecated `system` option) are recorded separately in `gen_ai.system_instructions` as a JSON array of `{ type: "text", content: "..." }` parts. System messages supplied as chat history with `allowSystemInMessages` remain in `gen_ai.input.messages` in their original positions.
 
+You can use the same formatting helpers directly from `@ai-sdk/otel` without
+registering a telemetry integration:
+
+```ts
+import {
+  formatInputMessages,
+  formatOutputMessages,
+  formatSystemInstructions,
+} from '@ai-sdk/otel';
+
+const systemInstructions = formatSystemInstructions(
+  'You are a helpful assistant.',
+);
+const inputMessages = formatInputMessages([
+  { role: 'user', content: [{ type: 'text', text: 'Hello!' }] },
+]);
+const outputMessages = formatOutputMessages({
+  text: 'Hi!',
+  finishReason: 'stop',
+});
+```
+
+`formatInputMessages` accepts a `LanguageModelV4Prompt`. Use
+`formatModelMessages({ prompt, messages })` for user-facing prompts and
+`ModelMessage` arrays, or `formatObjectOutputMessages({ objectText, finishReason })`
+for structured output serialized as text. These helpers return arrays of objects;
+call `JSON.stringify` when you need JSON strings. The package also exports the
+`SemConvInputMessage`, `SemConvOutputMessage`, `SemConvPart`, and
+`SemConvSystemInstruction` types.
+
 ##### GenAI tool call spans
 
 Tool call spans (`execute_tool {toolName}`) are nested under the step span and contain:
