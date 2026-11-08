@@ -1,0 +1,93 @@
+---
+title: Standard Compute
+description: Use the Standard Compute OpenAI compatible API with the AI SDK.
+---
+
+# Standard Compute Provider
+
+[Standard Compute](https://standardcompute.com) is an LLM API gateway with an OpenAI-compatible Chat Completions endpoint. Its `standardcompute` model ID routes each request to a model chosen for the task, and catalog model IDs pin a specific model.
+
+## Setup
+
+The Standard Compute provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use Standard Compute, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const standardcompute = createOpenAICompatible({
+  name: 'standardcompute',
+  baseURL: 'https://api.stdcmpt.com/v1',
+  apiKey: process.env.STANDARDCOMPUTE_API_KEY,
+  includeUsage: true, // Include usage information in streaming responses
+});
+```
+
+The `apiKey` setting sends your key as a Bearer token in the `Authorization` header. A US endpoint is also available at `https://us.stdcmpt.com/v1`.
+
+<Note>
+  Create an API key in the [Standard Compute
+  dashboard](https://standardcompute.com/dashboard/api-keys) and set it as the
+  `STANDARDCOMPUTE_API_KEY` environment variable.
+</Note>
+
+## Language Models
+
+You can create Standard Compute models using the provider instance. The first argument is a model ID. Use `standardcompute` for routed requests, or a model ID from the [model catalog](https://standardcompute.com/models), for example `anthropic/claude-sonnet-5.5`. The catalog is also available from `GET https://api.stdcmpt.com/v1/models`.
+
+```ts
+const routed = standardcompute('standardcompute');
+const pinned = standardcompute('anthropic/claude-sonnet-5.5');
+```
+
+### Example
+
+You can use Standard Compute language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const standardcompute = createOpenAICompatible({
+  name: 'standardcompute',
+  baseURL: 'https://api.stdcmpt.com/v1',
+  apiKey: process.env.STANDARDCOMPUTE_API_KEY,
+});
+
+const { text } = await generateText({
+  model: standardcompute('standardcompute'),
+  prompt: 'Explain what a mutex is in two sentences.',
+});
+
+console.log(text);
+```
+
+Standard Compute language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const standardcompute = createOpenAICompatible({
+  name: 'standardcompute',
+  baseURL: 'https://api.stdcmpt.com/v1',
+  apiKey: process.env.STANDARDCOMPUTE_API_KEY,
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: standardcompute('standardcompute'),
+  prompt: 'Write a haiku about compilers.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+See the [Standard Compute AI SDK guide](https://docs.standardcompute.com/frameworks/vercel-ai-sdk) for tool calling, structured output, reasoning and error handling.
