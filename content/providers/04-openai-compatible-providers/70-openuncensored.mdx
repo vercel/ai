@@ -1,0 +1,118 @@
+---
+title: Open Uncensored
+description: Use the Open Uncensored OpenAI compatible API with the AI SDK.
+---
+
+# Open Uncensored Provider
+
+[Open Uncensored](https://openuncensored.com) provides an OpenAI-compatible API for open-weight models, routing across multiple providers with automatic fallback. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Obtain an API key from [Open Uncensored](https://openuncensored.com/credits) and set it as an environment variable:
+
+```bash
+export OPENUNCENSORED_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const openUncensored = createOpenAICompatible({
+  name: 'openuncensored',
+  apiKey: process.env.OPENUNCENSORED_API_KEY,
+  baseURL: 'https://openuncensored.com/api/v1',
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+```
+
+## Language Models
+
+Create a language model by passing a model ID to the provider instance. Example model IDs include `deepseek-v4.1-flash-1017-uncensored`, `glm-5.3-flash-uncensored`, `qwen3.8-27b-uncensored-fast`, and `mimo-v2.6-flash-uncensored`:
+
+```ts
+const model = openUncensored('deepseek-v4.1-flash-1017-uncensored');
+```
+
+Use the [`GET https://openuncensored.com/api/v1/models`](https://openuncensored.com/api/v1/models) endpoint or the [model list](https://openuncensored.com/models) for all available model IDs.
+
+### Example
+
+Generate text using `generateText`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const openUncensored = createOpenAICompatible({
+  name: 'openuncensored',
+  apiKey: process.env.OPENUNCENSORED_API_KEY,
+  baseURL: 'https://openuncensored.com/api/v1',
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+
+const { text } = await generateText({
+  model: openUncensored('deepseek-v4.1-flash-1017-uncensored'),
+  prompt: 'Explain how a lock pick works in one sentence.',
+});
+
+console.log(text);
+```
+
+You can also use Open Uncensored models with `streamText`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const openUncensored = createOpenAICompatible({
+  name: 'openuncensored',
+  apiKey: process.env.OPENUNCENSORED_API_KEY,
+  baseURL: 'https://openuncensored.com/api/v1',
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: openUncensored('deepseek-v4.1-flash-1017-uncensored'),
+  prompt: 'Write a short poem about open access.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Capabilities
+
+Supported capabilities depend on the selected model and include:
+
+- **Text Generation and Streaming**: Available with `generateText` and `streamText`.
+- **Reasoning**: Reasoning models such as `glm-5.3-flash-uncensored` return reasoning text and tokens. You can set reasoning effort via provider options:
+  ```ts
+  const { text, reasoningText } = await generateText({
+    model: openUncensored('glm-5.3-flash-uncensored'),
+    prompt: 'Solve this step by step.',
+    providerOptions: {
+      openuncensored: { reasoningEffort: 'high' },
+    },
+  });
+  ```
+- **Structured Outputs**: With `supportsStructuredOutputs: true`, use `Output.object` with schemas on compatible models.
+- **Tool Calling**: Supports tool execution and multi-step tool loops with `stopWhen`.
+
+## Resources
+
+- [Open Uncensored Website](https://openuncensored.com)
+- [Open Uncensored Integration Docs](https://openuncensored.com/docs#integrations)
+- [Open Uncensored Models](https://openuncensored.com/models)
+- [AI SDK OpenAI Compatible Provider](/providers/openai-compatible-providers)
