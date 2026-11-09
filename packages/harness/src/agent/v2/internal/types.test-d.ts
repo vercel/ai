@@ -1,10 +1,12 @@
 import { expectTypeOf, test } from 'vitest';
-import type { SerializableValue } from '@ai-sdk/provider';
+import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 import type { ToolResultOutput } from '@ai-sdk/provider-utils';
 import type { HarnessV2EffectFunction } from '../../../index';
 import type {
   HarnessV2DriveContext,
   HarnessV2EffectOptions,
+  HarnessV2ToolExecutionValue,
+  HarnessV2ToolGateOutput,
   HarnessV2ToolResultOutput,
 } from '../../../v2/harness-v2-drive-context';
 import type {
@@ -22,6 +24,7 @@ import type {
   HarnessAgentExecuteHostToolFunction,
   HarnessAgentFinishStepFunction,
   HarnessAgentFinishTurnFunction,
+  HarnessAgentGateBuiltinToolFunction,
   HarnessAgentLog,
   HarnessAgentLogEvent,
   HarnessAgentStreamPart,
@@ -70,6 +73,31 @@ test('redeclares the adapter finish signatures without changing them', () => {
 test('redeclares the adapter host tool signature without changing it', () => {
   expectTypeOf<HarnessAgentExecuteHostToolFunction>().toEqualTypeOf<
     HarnessV2DriveContext['executeHostTool']
+  >();
+});
+
+test('redeclares the adapter built-in tool gate signature without changing it', () => {
+  expectTypeOf<HarnessAgentGateBuiltinToolFunction>().toEqualTypeOf<
+    HarnessV2DriveContext['gateBuiltinTool']
+  >();
+  expectTypeOf<
+    Parameters<HarnessV2DriveContext['gateBuiltinTool']>[0]['input']
+  >().toEqualTypeOf<JSONValue>();
+});
+
+test('reports approved built-in tool calls through effect output shapes', () => {
+  /**
+   * Approved variant of the built-in tool gate output.
+   */
+  type Approved = Extract<HarnessV2ToolGateOutput, { type: 'approved' }>;
+  expectTypeOf<Parameters<Approved['partial']>>().toEqualTypeOf<
+    [HarnessV2ToolExecutionValue]
+  >();
+  expectTypeOf<Parameters<Approved['result']>>().toEqualTypeOf<
+    [HarnessV2ToolExecutionValue]
+  >();
+  expectTypeOf<Parameters<Approved['error']>>().toEqualTypeOf<
+    [HarnessV2EffectError]
   >();
 });
 

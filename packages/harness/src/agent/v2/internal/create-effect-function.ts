@@ -6,6 +6,7 @@ import {
   jsonDecodeSerializableValue,
   jsonEncodeSerializableValue,
 } from '@ai-sdk/provider-utils';
+import { HarnessEffectError } from '../../../errors/harness-effect-error';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type {
   HarnessV2EffectContext,
@@ -130,6 +131,8 @@ async function executeCallback(options: {
   /**
    * Separates drive-rebuild errors and cancellation from ordinary callback
    * failures. The caller persists the output before propagating a rebuild error.
+   * A thrown `HarnessEffectError` is the throwable form of effect error data,
+   * so its message is recorded unchanged instead of the error's string form.
    */
   function callbackFailure(error: unknown): CallbackOutput {
     checkState();
@@ -140,6 +143,9 @@ async function executeCallback(options: {
       };
     }
     if (abortSignal.aborted) return { output: interruption(attempt) };
+    if (HarnessEffectError.isInstance(error)) {
+      return { output: { type: 'error', error: { message: error.message } } };
+    }
     let message: string;
     try {
       message = getErrorMessage(error) ?? String(error);

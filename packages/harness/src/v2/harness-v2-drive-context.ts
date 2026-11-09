@@ -6,6 +6,7 @@ import type {
 import type {
   HarnessV2Effect,
   HarnessV2EffectContext,
+  HarnessV2EffectError,
   HarnessV2EffectOutput,
 } from './harness-v2-effect';
 import type { HarnessV2Log } from './harness-v2-log';
@@ -104,44 +105,71 @@ export type HarnessV2ToolExecutionOutput<T extends JSONValue = JSONValue> =
     };
 
 /**
- * Outcome of gating a built-in tool before or during its execution.
+ * Outcome of gating a built-in tool before the runtime runs it. The adapter
+ * translates it into the runtime's own permission decision, e.g. a
+ * `PreToolUse` hook's allow or deny.
  */
 export type HarnessV2ToolGateOutput =
   | {
       /**
-       * The host approved the tool call and provides its completion callback.
+       * The runtime may run the call. Its start event is already committed,
+       * so a crash while the runtime runs it is recorded as `interrupted`.
        */
       readonly type: 'approved';
 
       /**
-       * Completes an approved call with its result, error, or interruption.
+       * Reports a partial value of the running call, e.g. streamed command
+       * output. Each value is complete and replaces the previous one; it is
+       * not a delta. The agent records it as the call's latest partial output
+       * and emits a preliminary `tool-result` part. Resolves once the value is
+       * committed; does nothing once the call ended.
        */
-      end(
-        output: Exclude<
-          HarnessV2ToolExecutionOutput,
-          { readonly type: 'suspended' }
-        >,
-      ): Promise<void>;
+      partial(value: HarnessV2ToolExecutionValue): Promise<void>;
+
+      /**
+       * Ends the call with the result the runtime reported, e.g. from its
+       * after-hook (`PostToolUse`). The agent records it and emits the final
+       * `tool-result` part. Resolves once the end is committed.
+       *
+       * Call exactly one of `result()` and `error()`: the first call wins, and
+       * later calls (including `partial()`) do nothing. A call that never
+       * ends is recorded as `interrupted` when the drive stops. Rejects if the
+       * value is not serializable (nothing is recorded, the call stays open)
+       * or if recording the call failed.
+       */
+      result(value: HarnessV2ToolExecutionValue): Promise<void>;
+
+      /**
+       * Ends the call with the failure the runtime reported, e.g. from its
+       * failure hook (`PostToolUseFailure`). The agent records it and emits an
+       * error `tool-result` part. Same rules as `result()`.
+       */
+      error(error: HarnessV2EffectError): Promise<void>;
     }
   | {
       /**
-       * The host denied the tool call.
+       * The runtime must not run the call. The adapter passes `reason` to it,
+       * e.g. as a `PreToolUse` deny reason.
        */
       readonly type: 'denied';
 
       /**
-       * Explanation supplied for the denial.
+       * Text for the model written by the agent, e.g. for a call that is
+       * already recorded, a tool that is not a built-in tool of the harness,
+       * or a drive that stopped.
        */
       readonly reason: string;
     }
   | {
       /**
-       * The call is waiting for approval outside the current drive.
+       * The call waits for an approval response that won't arrive while this
+       * drive runs. The adapter stops the runtime and ends its turn work.
        */
       readonly type: 'suspended';
 
       /**
-       * The suspended gate is awaiting an approval decision.
+       * Built-in tools have no client tool results, so approval is the only
+       * reason.
        */
       readonly reason: 'approval';
     };
@@ -192,12 +220,38 @@ export interface HarnessV2DriveContext {
   }): Promise<HarnessV2ToolExecutionOutput<T>>;
 
   /**
-   * Requests host approval before executing an adapter-owned built-in tool.
+   * Gates one of the harness's built-in tools, called from the runtime's
+   * permission point before the tool runs.
+   *
+   * Each call is recorded as the effect `tool:${toolCallId}` named
+   * `tool.${toolName}`, with the built-in tool's `replay` policy (`'never'`
+   * when omitted). A new call resolves `approved` once its start event is
+   * committed; the adapter then reports the runtime's outcome through the
+   * returned `result()` or `error()`. A call that is already recorded is
+   * `denied` and must not run again, unless it was interrupted with a
+   * retryable output (a `replay: 'safe'` tool), which approves a new attempt.
+   * A tool that is not one of the harness's built-in tools is recorded as an
+   * `error` and `denied` too. `input` must already be parsed from the model's
+   * JSON.
+   *
+   * The agent emits the `tool-result` parts (preliminary, final and error) of
+   * built-in tools itself, so the adapter must not emit them.
    */
   gateBuiltinTool(call: {
+    /**
+     * ID of the tool call, unique across all tool calls.
+     */
     toolCallId: string;
+
+    /**
+     * Name of the built-in tool to run.
+     */
     toolName: string;
-    input: unknown;
+
+    /**
+     * Tool input, already parsed from the model's JSON.
+     */
+    input: JSONValue;
   }): Promise<HarnessV2ToolGateOutput>;
 
   /**

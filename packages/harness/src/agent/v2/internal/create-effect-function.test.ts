@@ -1,6 +1,7 @@
 import type { SerializableValue } from '@ai-sdk/provider';
 import { DelayedPromise } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import { HarnessEffectError } from '../../../errors/harness-effect-error';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type {
   HarnessV2EffectContext,
@@ -503,6 +504,19 @@ describe('createEffectFunction', () => {
         event => event.data,
       ),
     ).toEqual([{ startId: expect.any(String), partial: 'partial' }]);
+  });
+
+  test('records the message of a thrown HarnessEffectError unchanged', async () => {
+    const { effect } = await setup();
+    expect(
+      await effect({
+        key: 'key',
+        ...effectOptions,
+        fn: async () => {
+          throw new HarnessEffectError({ message: 'command failed' });
+        },
+      }),
+    ).toEqual({ type: 'error', error: { message: 'command failed' } });
   });
 
   test('keeps undefined results, ignores generator returns, and allows zero yields', async () => {

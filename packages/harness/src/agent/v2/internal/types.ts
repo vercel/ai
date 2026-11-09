@@ -4,7 +4,10 @@ import type {
   HarnessV2EffectError,
   HarnessV2EffectOutput,
 } from '../../../v2/harness-v2-effect';
-import type { HarnessV2ToolExecutionOutput } from '../../../v2/harness-v2-drive-context';
+import type {
+  HarnessV2ToolExecutionOutput,
+  HarnessV2ToolGateOutput,
+} from '../../../v2/harness-v2-drive-context';
 import type { HarnessV2LogEvent } from '../../../v2/harness-v2-log';
 import type {
   HarnessV2CallWarning,
@@ -76,6 +79,35 @@ export type HarnessAgentExecuteHostToolFunction = <
    */
   input: JSONValue;
 }) => Promise<HarnessV2ToolExecutionOutput<T>>;
+
+/**
+ * Gates one of the harness's built-in tools before the runtime runs it. Same
+ * as `HarnessV2DriveContext['gateBuiltinTool']`, redeclared so the engine does
+ * not depend on the adapter-facing type.
+ *
+ * Each call is recorded as the effect `tool:${toolCallId}` under the built-in
+ * tool's replay policy. A new call is approved once its start is committed and
+ * stays open until the adapter reports its outcome. A call with a recorded
+ * output is denied; a recorded retryable interruption is approved again as a
+ * new attempt, like any effect. The `tool-result` parts are emitted by the
+ * engine.
+ */
+export type HarnessAgentGateBuiltinToolFunction = (call: {
+  /**
+   * ID of the tool call, unique across all tool calls.
+   */
+  toolCallId: string;
+
+  /**
+   * Name of the built-in tool to run.
+   */
+  toolName: string;
+
+  /**
+   * Tool input, already parsed from the model's JSON.
+   */
+  input: JSONValue;
+}) => Promise<HarnessV2ToolGateOutput>;
 
 /**
  * Event variants stored in the agent log, including events that are private to

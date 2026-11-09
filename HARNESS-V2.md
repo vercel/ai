@@ -313,27 +313,40 @@ type HarnessV2ToolGateOutput =
        */
       readonly type: 'approved';
       /**
-       * Writes the call's end event; call it exactly once, e.g. from the
-       * runtime's after-hook (`PostToolUse`). Use `denied` when the runtime
-       * did not run the call after all (e.g. another hook denied it).
-       *
-       * When the drive ends, the agent records every approved call whose
-       * `end()` was never called as `interrupted` and reports a development
-       * error, since the adapter missed the runtime's report for it.
+       * Reports a partial value of the running call (e.g. streamed command
+       * output). Each value is complete and replaces the previous one, not a
+       * delta. Recorded as the call's latest partial output (`effect-progress`)
+       * and emitted as a preliminary `tool-result` part. Resolves once
+       * committed; does nothing once the call ended.
        */
-      end(
-        output: Exclude<
-          HarnessV2ToolExecutionOutput,
-          { readonly type: 'suspended' }
-        >,
-      ): Promise<void>;
+      partial(value: HarnessV2ToolExecutionValue): Promise<void>;
+      /**
+       * Ends the call with the runtime's result, e.g. from its after-hook
+       * (`PostToolUse`). Recorded as the call's `effect-end` and emitted as
+       * the final `tool-result` part.
+       *
+       * Call exactly one of `result()` and `error()`: the first call wins and
+       * later calls (including `partial()`) do nothing. When the drive ends,
+       * the agent records every approved call that never ended as
+       * `interrupted` and reports a development error, since the adapter
+       * missed the runtime's report for it.
+       */
+      result(value: HarnessV2ToolExecutionValue): Promise<void>;
+      /**
+       * Ends the call with the runtime's failure, e.g. from its failure hook
+       * (`PostToolUseFailure`), emitted as an error `tool-result` part. Same
+       * rules as `result()`.
+       */
+      error(error: HarnessV2EffectError): Promise<void>;
     }
   | {
       /**
        * The runtime must not run the call, and the adapter passes `reason` to
        * it (e.g. as a `PreToolUse` deny reason). Text for the model written by
-       * the agent: for an approval response that denied the call, or a tool
-       * that is filtered out, already ran, or was interrupted.
+       * the agent: for a call that is already recorded (it ran or was
+       * interrupted), a tool that is not a built-in tool, a drive that
+       * stopped, and later an approval response that denied the call or a
+       * tool that is filtered out.
        */
       readonly type: 'denied';
       readonly reason: string;
@@ -511,9 +524,12 @@ interface HarnessV2DriveContext {
   }): Promise<HarnessV2ToolExecutionOutput<T>>;
   /**
    * Called from the runtime's permission point before a built-in tool runs.
-   * Resolves with `approved` (start event written), `denied` (an output to
-   * report instead of running it) or `suspended` (waiting for an approval).
-   * `input` must already be parsed from the model's JSON.
+   * Resolves with `approved` (start event written; the adapter reports the
+   * outcome through `result()` or `error()`), `denied` (a reason to report
+   * instead of running it, e.g. for a call that is already recorded) or
+   * `suspended` (waiting for an approval). The agent records the call as the
+   * effect `tool:${toolCallId}` and emits its `tool-result` parts; the adapter
+   * must not emit them. `input` must already be parsed from the model's JSON.
    */
   gateBuiltinTool(call: {
     toolCallId: string;
@@ -858,6 +874,21 @@ An adapter runs every host tool call through `executeHostTool()` instead of wrap
 - The engine emits the call's `tool-result` parts (preliminary values of generator tools, the final value, and errors with `isError: true`) through the attempt's `emit()`, so a replayed call emits nothing again. The part's `result` is typed `JSONValue`, which allows `null`.
 - A tool without `execute` that the provider does not execute is a client tool: the call resolves `suspended` (`client-tool`) without being recorded.
 - Not supported yet: tool approvals and active tool filtering.
+
+### Built-in tool gating (`gateBuiltinTool()`)
+
+A runtime runs its built-in tools itself, so the engine cannot run them inside an effect. Instead, an adapter calls `gateBuiltinTool()` from the runtime's permission point before a built-in tool runs (e.g. Claude Code's `PreToolUse` hook), and reports the outcome from the runtime's report after it ran (e.g. `PostToolUse` / `PostToolUseFailure`). Both ends form one effect, so every built-in call that ran has a committed start event first.
+
+- Each call is recorded as the effect `tool:${toolCallId}` named `tool.${toolName}`, like a host tool call. The replay policy comes from the built-in tool's `replay` field in `builtinTools`, defaulting to `'never'`.
+- `input` is typed `JSONValue` and rejects at runtime if it is not a plain JSON value. It is not validated against the tool's `inputSchema`, since the runtime validates its own tools.
+- A new call resolves `approved` once its start event is committed. The effect stays open until the adapter calls `result({ raw, modelOutput? })` or `error({ message })` on the approved output; `partial({ raw, modelOutput? })` reports complete intermediate values before that, recorded as `effect-progress`. Values have the shape of `HarnessV2ToolExecutionValue`, so readers of the log see the same shape as for host tools. `modelOutput` is for adapters that transform tool outputs for the model themselves (e.g. with AI SDK's `toModelOutput()`).
+- Exactly one of `result()` and `error()` ends the call; the first call wins and later calls do nothing. Values that are not JSON (or a `modelOutput` that is not serializable) reject without being recorded, and the call stays open.
+- The engine emits the call's `tool-result` parts (preliminary, final and error) through the effect attempt's `emit()`, so a replayed call emits nothing again and the parts of an interrupted attempt can be withdrawn. The adapter emits the built-in call's `tool-call` part, but never its results.
+- A call follows the same replay rules as any effect, so the gate only needs `effect()`: when the effect returns a recorded output instead of starting an attempt (a result, an error, or an interruption that is not retryable), the call is `denied` and does not run again. The reason tells the model what the log knows (`This call already ran in this session. Its recorded result: …` or `This call was interrupted in an earlier attempt and may or may not have taken effect.`, with any partial output appended).
+- A recorded retryable interruption (a `replay: 'safe'` built-in tool) starts a new attempt, so a call the runtime dispatches again with the same `toolCallId` is `approved` again, the same as a host tool call. A `'never'` built-in tool's interruption is not retryable, so it is denied.
+- A call to a tool that is not one of the harness's built-in tools is recorded as an `error` effect and `denied` with that error, so a replay gives the same answer.
+- A call made after the drive stopped is `denied` without being recorded. An approved call that has not ended when the drive stops is recorded as `interrupted`, with its last committed partial. Reporting such calls as a development error comes with wiring the drive.
+- Not supported yet: tool approvals (`suspended`) and active tool filtering.
 
 ## Scratchpad
 

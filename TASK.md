@@ -62,7 +62,7 @@ The steps are below:
 
 - Add a `HarnessAgentExecuteHostToolFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["executeHostTool"]` (redeclare it, DO NOT import).
 
-11. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-gate-builtin-tool-function.ts` with function `createGateBuiltinToolFunction(input): HarnessAgentGateBuiltinToolFunction`.
+11. [x] Scaffold `packages/harness/src/agent/v2/internal/create-gate-builtin-tool-function.ts` with function `createGateBuiltinToolFunction(input): HarnessAgentGateBuiltinToolFunction`.
 
 - Add a `HarnessAgentGateBuiltinToolFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["gateBuiltinTool"]` (redeclare it, DO NOT import).
 - Change the `input` of `HarnessV2DriveContext["gateBuiltinTool"]` from `unknown` to `JSONValue`, like `executeHostTool()` (see "Host tool execution" in HARNESS-V2.md).
