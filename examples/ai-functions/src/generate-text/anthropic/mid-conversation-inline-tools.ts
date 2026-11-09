@@ -7,6 +7,10 @@ run(async () => {
     model: anthropic('claude-opus-4-8'),
     // required for system messages inside `messages`:
     allowSystemInMessages: true,
+    // These inline tool definitions are controlled by the server.
+    providerOptions: {
+      anthropic: { allowInlineToolDefinitions: true },
+    },
     messages: [
       {
         role: 'user',
