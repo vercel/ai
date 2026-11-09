@@ -1,7 +1,9 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { LanguageModelV4GenerateResult } from '@ai-sdk/provider';
-import { openai } from '@ai-sdk/openai';
+import { createOpenAI, openai } from '@ai-sdk/openai';
+import { wrapLanguageModel } from '../middleware/wrap-language-model';
+import { RetryError } from '../util/retry-error';
 import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -955,129 +957,155 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
   describe.each(['generateText', 'streamText'] as const)(
     '%s request metadata',
     api => {
-      it('redacts domain credentials from telemetry without changing provider or application data', async () => {
-        const domainSecrets = [
-          { domain: 'example.com', name: 'KEY', value: 'test-domain-secret' },
-        ];
-        const tools = {
-          python: openai.tools.codeInterpreter({
-            container: {
-              networkPolicy: {
-                type: 'allowlist',
-                allowedDomains: ['example.com'],
-                domainSecrets,
-              },
-            },
-          }),
-        };
-        const body = {
-          tools: [
-            {
-              type: 'code_interpreter',
-              container: { network_policy: { domain_secrets: domainSecrets } },
-            },
-          ],
-        };
-        const request = Object.freeze({ body });
-        const finish = {
-          finishReason: { unified: 'stop' as const, raw: 'stop' },
-          usage: {
-            inputTokens: {
-              total: 1,
-              noCache: 1,
-              cacheRead: undefined,
-              cacheWrite: undefined,
-            },
-            outputTokens: { total: 0, text: 0, reasoning: undefined },
-          },
-        };
-        const model = new MockLanguageModelV4({
-          doGenerate: { content: [], warnings: [], request, ...finish },
-          doStream: {
-            stream: convertArrayToReadableStream([
-              { type: 'finish', ...finish },
-            ]),
-            request,
-          },
-        });
-        const recorded: string[] = [];
-        // Snapshot immediately so later mutations cannot hide published values.
-        const record = (value: unknown) => {
-          recorded.push(JSON.stringify(value));
-        };
-        const start = vi.fn(record);
-        const asyncEnd = vi.fn(record);
-        const channel = diagnosticsChannel.tracingChannel(
-          AI_SDK_TELEMETRY_TRACING_CHANNEL,
-        );
-        const onLanguageModelCallStart = vi.fn();
-        channel.start.subscribe(start);
-        channel.asyncEnd.subscribe(asyncEnd);
-        try {
-          const options = {
-            model,
-            tools,
-            prompt: 'Hello',
-            include: { requestBody: true },
-            onLanguageModelCallStart,
-            telemetry: {
-              integrations: {
-                onStart: record,
-                onStepEnd: record,
-                onEnd: record,
-                executeLanguageModelCall: async <T>({
-                  execute,
-                }: {
-                  execute: () => PromiseLike<T>;
-                }) => {
-                  const result = await execute();
-                  record(result);
-                  return result;
-                },
-              },
-            },
-          };
-          const result =
-            api === 'generateText'
-              ? await generateText(options)
-              : streamText(options);
-          expect(await result.text).toBe('');
-          expect((await result.finalStep).request.body).toBe(body);
-        } finally {
-          channel.start.unsubscribe(start);
-          channel.asyncEnd.unsubscribe(asyncEnd);
-        }
-        expect(start).toHaveBeenCalled();
-        const message = asyncEnd.mock.calls
-          .map(([value]) => value as TelemetryTracingChannelAsyncEndMessage)
-          .find(message => message.type === 'languageModelCall');
-        expect(
-          (message?.result as LanguageModelV4GenerateResult | undefined)
-            ?.request?.body,
-        ).toMatchObject({
-          tools: [
-            {
+      it.each([200, 503])(
+        'applies OpenAI redaction through middleware with HTTP %s',
+        async status => {
+          const domainSecrets = [
+            { domain: 'example.com', name: 'KEY', value: 'test-domain-secret' },
+          ];
+          const tools = {
+            python: openai.tools.codeInterpreter({
               container: {
-                network_policy: {
-                  domain_secrets: [
-                    { domain: 'example.com', name: 'KEY', value: '[redacted]' },
-                  ],
+                networkPolicy: {
+                  type: 'allowlist',
+                  allowedDomains: ['example.com'],
+                  domainSecrets,
                 },
               },
-            },
-          ],
-        });
-        expect(recorded.join('\n')).not.toContain('test-domain-secret');
-        const calls =
-          api === 'generateText' ? model.doGenerateCalls : model.doStreamCalls;
-        expect(calls[0].tools).toContainEqual(
-          expect.objectContaining({ args: tools.python.args }),
-        );
-        expect(onLanguageModelCallStart.mock.calls[0][0].tools[0].args).toBe(
-          tools.python.args,
-        );
-        expect(domainSecrets[0].value).toBe('test-domain-secret');
-      });
+            }),
+          };
+          const sentBodies: Record<string, unknown>[] = [];
+          const model = wrapLanguageModel({
+            middleware: {},
+            model: createOpenAI({
+              apiKey: 'test-key',
+              fetch: async (_url, init) => {
+                const body = JSON.parse(init!.body as string);
+                sentBodies.push(body);
+                if (status === 503)
+                  return new Response(
+                    JSON.stringify({ error: { message: 'Unavailable' } }),
+                    {
+                      status,
+                      headers: {
+                        'content-type': 'application/json',
+                        'retry-after-ms': '0',
+                      },
+                    },
+                  );
+                const response = {
+                  id: 'response-1',
+                  model: 'gpt-4o',
+                  created_at: 0,
+                  output: [],
+                  tools: body.tools,
+                  usage: { input_tokens: 1, output_tokens: 0, total_tokens: 1 },
+                };
+                return new Response(
+                  body.stream
+                    ? `data: ${JSON.stringify({ type: 'response.completed', response })}\n\n`
+                    : JSON.stringify(response),
+                  {
+                    headers: {
+                      'content-type': body.stream
+                        ? 'text/event-stream'
+                        : 'application/json',
+                    },
+                  },
+                );
+              },
+            }).responses('gpt-4o'),
+          });
+          const recorded: string[] = [];
+          // Snapshot at publication time, including nested retry errors.
+          const record = (value: unknown) => {
+            recorded.push(JSON.stringify(value));
+          };
+          const start = vi.fn(record);
+          const asyncEnd = vi.fn(record);
+          const channel = diagnosticsChannel.tracingChannel(
+            AI_SDK_TELEMETRY_TRACING_CHANNEL,
+          );
+          const onLanguageModelCallStart = vi.fn();
+          channel.start.subscribe(start);
+          channel.asyncEnd.subscribe(asyncEnd);
+          channel.error.subscribe(record);
+          try {
+            const options = {
+              model,
+              tools,
+              prompt: 'Hello',
+              maxRetries: 1,
+              include: { requestBody: true, responseBody: true },
+              onLanguageModelCallStart,
+              onError() {},
+              telemetry: {
+                integrations: {
+                  onStart: record,
+                  onStepEnd: record,
+                  onEnd: record,
+                  onError: record,
+                  onStepError: record,
+                  executeLanguageModelCall: async <T>({
+                    execute,
+                  }: {
+                    execute: () => PromiseLike<T>;
+                  }) => {
+                    const result = await execute();
+                    record(result);
+                    return result;
+                  },
+                },
+              },
+            };
+            if (status === 200) {
+              const result =
+                api === 'generateText'
+                  ? await generateText(options)
+                  : streamText(options);
+              expect(await result.text).toBe('');
+              expect(
+                JSON.stringify((await result.finalStep).request.body),
+              ).toContain('test-domain-secret');
+              if (api === 'generateText')
+                expect(
+                  JSON.stringify((await result.finalStep).response.body),
+                ).toContain('test-domain-secret');
+            } else {
+              let applicationError: unknown;
+              if (api === 'generateText')
+                applicationError = await generateText(options).catch(
+                  error => error,
+                );
+              else
+                for await (const part of streamText(options).fullStream) {
+                  if (part.type === 'error') applicationError = part.error;
+                }
+              expect(RetryError.isInstance(applicationError)).toBe(true);
+              const error = applicationError as RetryError;
+              expect(error.errors).toHaveLength(2);
+              expect(error.lastError).toBe(error.errors[1]);
+              for (const attempt of error.errors)
+                expect(JSON.stringify(attempt)).toContain('test-domain-secret');
+            }
+          } finally {
+            channel.start.unsubscribe(start);
+            channel.asyncEnd.unsubscribe(asyncEnd);
+            channel.error.unsubscribe(record);
+          }
+          expect(start).toHaveBeenCalled();
+          expect(asyncEnd).toHaveBeenCalled();
+          expect(recorded.join('\n')).toContain('[redacted]');
+          expect(recorded.join('\n')).not.toContain('test-domain-secret');
+          expect(sentBodies).toHaveLength(status === 200 ? 1 : 2);
+          for (const body of sentBodies)
+            expect(JSON.stringify(body)).toContain('test-domain-secret');
+          expect(onLanguageModelCallStart.mock.calls[0][0].tools[0].args).toBe(
+            tools.python.args,
+          );
+          expect(domainSecrets[0].value).toBe('test-domain-secret');
+        },
+      );
 
       it.each([
         {

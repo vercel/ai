@@ -1,9 +1,12 @@
+import { redactTelemetryValue } from '@ai-sdk/provider-utils';
+
 /**
- * Redact known provider credentials on telemetry-only copies. Only visit SDK
+ * Apply provider-owned credential redaction on telemetry-only copies. Only visit SDK
  * metadata containers, never arbitrary prompts, tool outputs, or user context.
  */
 export function redactTelemetryCredentials<T>(value: T): T {
   return replaceProperties(value, {
+    args: redactTelemetryValue,
     tools: redactTools,
     stepTools: redactTools,
     request: redactMetadata,
@@ -27,63 +30,19 @@ function redactMetadata(value: unknown): unknown {
 }
 
 function redactBody(value: unknown): unknown {
-  // OpenAI Responses request and response metadata contain object bodies.
-  return replaceProperties(value, { tools: redactTools });
+  // Gateways can forward standardized provider tool definitions in their body.
+  return replaceProperties(redactTelemetryValue(value), { tools: redactTools });
 }
 
 function redactTools(value: unknown): unknown {
-  if (Array.isArray(value)) return mapArray(value, redactTool);
+  if (Array.isArray(value)) return mapArray(value, redactTelemetryCredentials);
   if (!isRecord(value)) return value;
   return replaceProperties(
     value,
-    Object.fromEntries(Object.keys(value).map(key => [key, redactTool])),
+    Object.fromEntries(
+      Object.keys(value).map(key => [key, redactTelemetryCredentials]),
+    ),
   );
-}
-
-function redactTool(value: unknown): unknown {
-  if (!isRecord(value)) return value;
-
-  const providerTool = value.type === 'provider';
-  const type = providerTool ? value.id : value.type;
-  const containerKey =
-    type === 'openai.code_interpreter' || type === 'code_interpreter'
-      ? 'container'
-      : type === 'openai.shell' || type === 'shell'
-        ? 'environment'
-        : undefined;
-
-  const redactArgs = (args: unknown) =>
-    containerKey != null
-      ? replaceProperties(args, {
-          [containerKey]: container =>
-            replaceProperties(container, {
-              [providerTool ? 'networkPolicy' : 'network_policy']: policy =>
-                replaceProperties(policy, {
-                  [providerTool ? 'domainSecrets' : 'domain_secrets']:
-                    secrets =>
-                      mapArray(secrets, secret =>
-                        replaceProperties(secret, {
-                          value: () => '[redacted]',
-                        }),
-                      ),
-                }),
-            }),
-        })
-      : type === 'openai.mcp' || type === 'mcp'
-        ? replaceProperties(args, {
-            authorization: () => '[redacted]',
-            headers: headers =>
-              isRecord(headers)
-                ? Object.fromEntries(
-                    Object.keys(headers).map(key => [key, '[redacted]']),
-                  )
-                : headers,
-          })
-        : args;
-
-  return providerTool
-    ? replaceProperties(value, { args: redactArgs })
-    : redactArgs(value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

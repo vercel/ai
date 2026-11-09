@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { JSONValue } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
+import { redactOpenAIToolArgs } from '../redact-openai-tool-credentials';
 
 let cachedJsonValueSchema: z.ZodType<JSONValue> | undefined;
 const jsonValueSchema = (): z.ZodType<JSONValue> =>
@@ -139,6 +140,7 @@ export const mcpToolFactory = createProviderExecutedToolFactory<
   McpArgs
 >({
   id: 'openai.mcp',
+  redactArgs: args => redactOpenAIToolArgs('mcp', args),
   inputSchema: mcpInputSchema,
   outputSchema: mcpOutputSchema,
 });

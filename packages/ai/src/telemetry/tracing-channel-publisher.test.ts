@@ -1,3 +1,4 @@
+import { withTelemetryRedaction } from '@ai-sdk/provider-utils';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AI_SDK_TELEMETRY_TRACING_CHANNEL } from './tracing-channel';
@@ -115,7 +116,10 @@ describe.runIf(runningOnNode)(
         vi.mocked(isNodeRuntime).mockReturnValue(true);
         const result = {
           request: {
-            body: { tools: [{ type: 'mcp', authorization: 'test-token' }] },
+            body: withTelemetryRedaction(
+              { credential: 'test-token' },
+              value => ({ ...value, credential: '[redacted]' }),
+            ),
           },
         };
         const asyncEnd = vi.fn();
@@ -143,14 +147,12 @@ describe.runIf(runningOnNode)(
             recordResult
               ? {
                   request: {
-                    body: {
-                      tools: [{ type: 'mcp', authorization: '[redacted]' }],
-                    },
+                    body: { credential: '[redacted]' },
                   },
                 }
               : undefined,
           );
-          expect(result.request.body.tools[0].authorization).toBe('test-token');
+          expect(result.request.body.credential).toBe('test-token');
         } finally {
           channel.unsubscribe(subscribers);
         }
