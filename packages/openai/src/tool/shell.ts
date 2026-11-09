@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { SharedV4ProviderReference } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
+import { redactOpenAIToolArgs } from '../redact-openai-tool-credentials';
 
 export const shellInputSchema = lazySchema(() =>
   zodSchema(
@@ -210,6 +211,7 @@ export const shell = createProviderDefinedToolFactoryWithOutputSchema<
   ShellArgs
 >({
   id: 'openai.shell',
+  redactArgs: args => redactOpenAIToolArgs('shell', args),
   inputSchema: shellInputSchema,
   outputSchema: shellOutputSchema,
 });

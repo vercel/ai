@@ -1,5 +1,13 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.88
+
+### Patch Changes
+
+- c9c6402: feat(openai-compatible): add `prepareRequest` and `convertResponse` to `OpenAICompatibleChatLanguageModel` to build Chat Completions request bodies and convert Chat Completions responses without a network call
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
 ## 3.0.87
 
 ### Patch Changes

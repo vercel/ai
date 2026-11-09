@@ -32,6 +32,7 @@ import {
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
+import { withOpenAIResponseRedaction } from '../redact-openai-tool-credentials';
 import {
   prepareOpenAIConfigForWorkflowDeserialize,
   type OpenAIConfig,
@@ -809,11 +810,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     return {
       webSearchToolName,
-      args: {
+      args: withOpenAIResponseRedaction({
         ...baseArgs,
         tools: openaiTools,
         tool_choice: openaiToolChoice,
-      },
+      }),
       warnings: [...warnings, ...toolWarnings],
       store,
       toolNameMapping,
@@ -1559,7 +1560,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         timestamp: new Date(response.created_at! * 1000),
         modelId: response.model,
         headers: responseHeaders,
-        body: rawResponse,
+        body: withOpenAIResponseRedaction(rawResponse),
       },
       providerMetadata,
       warnings,
@@ -1590,10 +1591,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         await resolve(this.config.headers),
         options.headers,
       ),
-      body: {
+      body: withOpenAIResponseRedaction({
         ...body,
         stream: true,
-      },
+      }),
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         openaiResponsesChunkSchema,
