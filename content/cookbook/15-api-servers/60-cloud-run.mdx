@@ -1,0 +1,182 @@
+---
+title: Deploy to Google Cloud Run
+description: Deploy a Hono AI SDK server to Google Cloud Run with full streaming support.
+tags: ['api servers', 'streaming', 'deployment', 'cloud run', 'docker']
+---
+
+# Deploy to Google Cloud Run
+
+[Google Cloud Run](https://cloud.google.com/run) is a fully managed container platform that scales to zero and handles HTTPS, load balancing, and TLS automatically. It is a strong fit for AI SDK servers because streaming responses are returned as chunked HTTP, which Cloud Run passes through to clients without buffering—provided you set one critical response header.
+
+## The Streaming Gotcha: `X-Accel-Buffering`
+
+Cloud Run fronts your container with an nginx reverse proxy. By default, nginx buffers upstream responses before forwarding them. For ordinary JSON responses this is invisible. For [Server-Sent Events (SSE)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) and streaming text, buffering means the client sees nothing until the entire response completes—which defeats the purpose of streaming entirely.
+
+Setting the `X-Accel-Buffering: no` response header on every streaming route instructs nginx to forward bytes as they arrive:
+
+```ts filename='server.ts' highlight="8"
+app.post('/text', async c => {
+  const result = streamText({
+    model: openai('gpt-4o'),
+    prompt: 'Write a short poem about coding.',
+  });
+  const response = createTextStreamResponse({
+    stream: toTextStream({ stream: result.stream }),
+  });
+  response.headers.set('X-Accel-Buffering', 'no'); // disable proxy buffering
+  return response;
+});
+```
+
+Apply this header to every route that streams—`/` (UI message stream), `/text`, `/stream-data`, and any similar endpoints.
+
+## Dockerfile
+
+The following Dockerfile packages a Hono AI SDK server as a standalone image. Place it alongside your `package.json` and `src/` folder:
+
+```dockerfile filename='Dockerfile'
+FROM node:22-alpine AS deps
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# Copy manifests first for layer caching
+COPY package.json tsconfig.json ./
+RUN pnpm install --frozen-lockfile
+
+FROM node:22-alpine AS runner
+
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package.json ./
+COPY tsconfig.json ./
+COPY src/ ./src/
+
+# Cloud Run injects PORT (default 8080).
+ENV PORT=8080
+EXPOSE 8080
+
+# Run TypeScript directly with tsx.
+CMD ["node_modules/.bin/tsx", "src/server.ts"]
+```
+
+<Note>
+  The server must read `process.env.PORT` for its listen port. Cloud Run sets
+  this variable automatically to `8080`. The full working example, including the
+  Dockerfile used to test this guide, lives at
+  [`examples/hono/`](https://github.com/vercel/ai/tree/main/examples/hono).
+</Note>
+
+## Build and Deploy
+
+### 1. Store your API key in Secret Manager
+
+```bash
+# Create the secret (one-time)
+echo -n "sk-..." | gcloud secrets create openai-api-key \
+  --data-file=- \
+  --project YOUR_PROJECT_ID
+
+# Or add a new version to an existing secret
+echo -n "sk-..." | gcloud secrets versions add openai-api-key \
+  --data-file=- \
+  --project YOUR_PROJECT_ID
+```
+
+### 2. Build the container image with Cloud Build
+
+```bash
+# Run from the directory that contains your Dockerfile
+gcloud builds submit \
+  --tag gcr.io/YOUR_PROJECT_ID/ai-sdk-hono \
+  --project YOUR_PROJECT_ID
+```
+
+### 3. Deploy to Cloud Run
+
+```bash
+gcloud run deploy ai-sdk-hono \
+  --image gcr.io/YOUR_PROJECT_ID/ai-sdk-hono \
+  --platform managed \
+  --region us-central1 \
+  --project YOUR_PROJECT_ID \
+  --allow-unauthenticated \
+  --port 8080 \
+  --update-secrets OPENAI_API_KEY=openai-api-key:latest
+```
+
+Cloud Run injects `OPENAI_API_KEY` from Secret Manager at runtime. Your API key is never baked into the image.
+
+Replace `OPENAI_API_KEY` (and the corresponding secret name) with the appropriate variable for your chosen provider—for example, `ANTHROPIC_API_KEY` for the Anthropic provider.
+
+### 4. Note the service URL
+
+After `gcloud run deploy` completes, the CLI prints the service URL:
+
+```
+Service URL: https://ai-sdk-hono-xxxxxxxxxxxx-uc.a.run.app
+```
+
+## Testing
+
+### Health check
+
+```bash
+curl https://YOUR_SERVICE_URL/health
+```
+
+Expected response:
+
+```
+Hono AI SDK example server is running!
+```
+
+### Streaming text
+
+```bash
+curl -N -X POST https://YOUR_SERVICE_URL/text \
+  --max-time 30
+```
+
+Tokens should arrive incrementally in the terminal. If the terminal waits until the response is complete before printing anything, the `X-Accel-Buffering: no` header is missing from that route.
+
+### Verify the header
+
+```bash
+curl -sI -X POST https://YOUR_SERVICE_URL/text | grep -i x-accel
+```
+
+Expected:
+
+```
+x-accel-buffering: no
+```
+
+## Environment Variables
+
+| Variable         | Required | Description                                                   |
+| ---------------- | -------- | ------------------------------------------------------------- |
+| `PORT`           | No       | Listen port. Cloud Run sets this automatically to `8080`.     |
+| `OPENAI_API_KEY` | Yes      | API key for your LLM provider. Inject via `--update-secrets`. |
+
+## Cleanup
+
+To delete the Cloud Run service and the container image:
+
+```bash
+gcloud run services delete ai-sdk-hono \
+  --region us-central1 \
+  --project YOUR_PROJECT_ID \
+  --quiet
+
+gcloud container images delete gcr.io/YOUR_PROJECT_ID/ai-sdk-hono \
+  --quiet \
+  --force-delete-tags
+```
+
+## Troubleshooting
+
+- Streaming not working when [proxied](/docs/troubleshooting/streaming-not-working-when-proxied)
+- Streaming not working when [deployed](/docs/troubleshooting/streaming-not-working-when-deployed)
