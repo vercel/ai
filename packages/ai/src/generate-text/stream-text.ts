@@ -2263,6 +2263,13 @@ class DefaultStreamTextResult<
 
       // initial tool execution step stream
       if (deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0) {
+        if (abortSignal?.aborted) {
+          steeringRun?.end('aborted');
+          self.rejectResultPromises(abortSignal?.reason);
+          self.closeStream();
+          return;
+        }
+
         const {
           approvedToolApprovals: localApprovedToolApprovals,
           deniedToolApprovals: revalidationDeniedToolApprovals,
@@ -2440,6 +2447,13 @@ class DefaultStreamTextResult<
           }
         } finally {
           toolExecutionStepStreamController?.close();
+        }
+
+        if (abortSignal?.aborted) {
+          steeringRun?.end('aborted');
+          self.rejectResultPromises(abortSignal?.reason);
+          self.closeStream();
+          return;
         }
       }
 

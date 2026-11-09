@@ -839,6 +839,8 @@ async function generateTextInternal<
         localApprovedToolApprovals.length > 0 ||
         invalidToolApprovals.length > 0
       ) {
+        mergedAbortSignal?.throwIfAborted();
+
         const toolResults = await executeTools({
           toolCalls: localApprovedToolApprovals.map(
             toolApproval => toolApproval.toolCall,
@@ -936,6 +938,8 @@ async function generateTextInternal<
           role: 'tool',
           content: toolContent,
         });
+
+        mergedAbortSignal?.throwIfAborted();
       }
 
       const callSettings = prepareLanguageModelCallOptions(settings);
