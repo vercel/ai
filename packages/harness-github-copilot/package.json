@@ -45,7 +45,7 @@
     "zod": "^3.25.76 || ^4.1.8"
   },
   "devDependencies": {
-    "@github/copilot": "1.0.92",
+    "@github/copilot": "1.0.106",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vercel/ai-tsdown-config": "workspace:*",
