@@ -469,19 +469,19 @@ function createGatewayTranscriptionStream({
   });
 }
 
-const providerMetadataEntrySchema = () => z.object({}).catchall(z.unknown());
+const providerMetadataEntrySchema = () => z.catchall(z.object({}), z.unknown());
 
 const gatewayTranscriptionWarningSchema = () =>
   z.discriminatedUnion('type', [
     z.object({
       type: z.literal('unsupported'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('compatibility'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('deprecated'),
@@ -498,31 +498,31 @@ const gatewayTranscriptionResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       text: z.string(),
-      segments: z
-        .array(
+      segments: z.optional(
+        z.array(
           z.object({
             text: z.string(),
             startSecond: z.number(),
             endSecond: z.number(),
           }),
-        )
-        .optional(),
-      words: z
-        .array(
+        ),
+      ),
+      words: z.nullish(
+        z.array(
           z.object({
             text: z.string(),
             startSecond: z.number(),
             endSecond: z.number(),
           }),
-        )
-        .nullish(),
-      language: z.string().nullish(),
-      durationInSeconds: z.number().nullish(),
-      warnings: z.array(gatewayTranscriptionWarningSchema()).optional(),
-      usage: z.record(z.string(), z.json()).optional(),
-      providerMetadata: z
-        .record(z.string(), providerMetadataEntrySchema())
-        .optional(),
+        ),
+      ),
+      language: z.nullish(z.string()),
+      durationInSeconds: z.nullish(z.number()),
+      warnings: z.optional(z.array(gatewayTranscriptionWarningSchema())),
+      usage: z.optional(z.record(z.string(), z.json())),
+      providerMetadata: z.optional(
+        z.record(z.string(), providerMetadataEntrySchema()),
+      ),
     }),
   ),
 );

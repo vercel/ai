@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import * as z4 from 'zod/v4';
+import * as z4mini from 'zod/v4/mini';
 import { safeParseJSON } from './parse-json';
 import { asSchema, zodSchema, type StandardSchema } from './schema';
 
@@ -334,6 +335,45 @@ describe('zodSchema', () => {
         expect(error.name).toBe('ZodError');
         expect(typeof error.format).toBe('function');
         expect(typeof error.flatten).toBe('function');
+      });
+
+      it('preserves default error messages for Mini schemas', async () => {
+        const localeError = z4.core.config().localeError;
+        try {
+          z4.core.config({ localeError: undefined });
+          const schema = zodSchema(z4mini.object({ text: z4mini.string() }));
+          const result = await schema.validate?.({ text: 123 });
+
+          expect(result?.success).toBe(false);
+          if (result?.success !== false) {
+            throw new Error('Expected validation to fail');
+          }
+          expect(result.error).toBeInstanceOf(z4.ZodError);
+          expect((result.error as z4.ZodError).issues[0].message).toBe(
+            'Invalid input: expected string, received number',
+          );
+        } finally {
+          z4.core.config({ localeError });
+        }
+      });
+
+      it('preserves a configured locale for Mini schemas', async () => {
+        const localeError = z4.core.config().localeError;
+        try {
+          z4.core.config({ localeError: () => 'Configured error message' });
+          const schema = zodSchema(z4mini.object({ text: z4mini.string() }));
+          const result = await schema.validate?.({ text: 123 });
+
+          expect(result?.success).toBe(false);
+          if (result?.success !== false) {
+            throw new Error('Expected validation to fail');
+          }
+          expect((result.error as z4.ZodError).issues[0].message).toBe(
+            'Configured error message',
+          );
+        } finally {
+          z4.core.config({ localeError });
+        }
       });
 
       it('should validate output with transform', async () => {

@@ -23,7 +23,7 @@ import {
 export const systemModelMessageSchema: ZodType<SystemModelMessage> = z.object({
   role: z.literal('system'),
   content: z.string(),
-  providerOptions: providerMetadataSchema.optional(),
+  providerOptions: z.optional(providerMetadataSchema),
 });
 
 export const userModelMessageSchema: ZodType<UserModelMessage> = z.object({
@@ -32,7 +32,7 @@ export const userModelMessageSchema: ZodType<UserModelMessage> = z.object({
     z.string(),
     z.array(z.union([textPartSchema, imagePartSchema, filePartSchema])),
   ]),
-  providerOptions: providerMetadataSchema.optional(),
+  providerOptions: z.optional(providerMetadataSchema),
 });
 
 export const assistantModelMessageSchema: ZodType<AssistantModelMessage> =
@@ -53,13 +53,13 @@ export const assistantModelMessageSchema: ZodType<AssistantModelMessage> =
         ]),
       ),
     ]),
-    providerOptions: providerMetadataSchema.optional(),
+    providerOptions: z.optional(providerMetadataSchema),
   });
 
 export const toolModelMessageSchema: ZodType<ToolModelMessage> = z.object({
   role: z.literal('tool'),
   content: z.array(z.union([toolResultPartSchema, toolApprovalResponseSchema])),
-  providerOptions: providerMetadataSchema.optional(),
+  providerOptions: z.optional(providerMetadataSchema),
 });
 
 export const modelMessageSchema: ZodType<ModelMessage> = z.union([

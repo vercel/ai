@@ -5,7 +5,8 @@ import type {
 } from '@standard-schema/spec';
 import type * as z3 from 'zod/v3';
 import { safeParseAsync } from 'zod/v4';
-import { toJSONSchema, type $ZodType } from 'zod/v4/core';
+import { config, toJSONSchema, type $ZodType } from 'zod/v4/core';
+import en from 'zod/v4/locales/en.js';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
 
@@ -253,6 +254,12 @@ export function zod4Schema<OBJECT>(
     useReferences?: boolean;
   },
 ): Schema<OBJECT> {
+  // Mini does not initialize the default locale. Preserve classic Zod's error
+  // messages while allowing a consumer-configured locale to take precedence.
+  if (!config().localeError) {
+    config(en());
+  }
+
   // default to no references (to support openapi conversion for google)
   const useReferences = options?.useReferences ?? false;
 
