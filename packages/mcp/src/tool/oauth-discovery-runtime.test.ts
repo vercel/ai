@@ -229,6 +229,17 @@ describe.each([
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('does not infer browser trust from worker globals', async () => {
+    class WorkerScope {}
+    vi.stubGlobal('WorkerGlobalScope', WorkerScope);
+    vi.stubGlobal('self', new WorkerScope());
+
+    await expect(discoverAuthorizationServerMetadata(issuer)).rejects.toThrow(
+      /requires a custom fetch with connect-time DNS validation/,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('does not treat a window alias without a document as a browser', async () => {
     vi.stubGlobal('window', globalThis);
 
