@@ -1,5 +1,17 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.145
+
+### Patch Changes
+
+- e0eb120: feat(anthropic): add Claude Fable 5.2 support
+
+  - add the `claude-fable-5-2` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-fable-5-2` and `us.anthropic.claude-fable-5-2` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-fable-5.2` to `@ai-sdk/gateway`
+  - recognize `claude-fable-5-2` as a known model with the same capabilities as `claude-fable-5-1`: 128k max output tokens, always-on adaptive thinking, no sampling parameters, no forced tool use, and native structured outputs by default
+
+- Updated dependencies [e0eb120]
+  - @ai-sdk/anthropic@2.0.114
+
 ## 3.0.144
 
 ### Patch Changes
