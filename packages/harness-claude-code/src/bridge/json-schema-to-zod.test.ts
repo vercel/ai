@@ -59,7 +59,14 @@ describe('jsonSchemaToZodObject', () => {
           'default',
           defaultValue,
         );
-        expect(schema.parse({}).value).toBeUndefined();
+        if (required) {
+          expect(schema.safeParse({}).success).toBe(false);
+        } else {
+          expect(schema.parse({}).value).toBeUndefined();
+        }
+        expect(schema.parse({ value: 'provided' })).toEqual({
+          value: 'provided',
+        });
       },
     );
   });
@@ -115,7 +122,7 @@ describe('jsonSchemaToZodObject', () => {
       properties: {
         ...input.properties,
         nullable: {
-          anyOf: [{ type: 'number' }, { type: 'null' }],
+          type: ['number', 'null'],
           minimum: 1,
           default: null,
         },
