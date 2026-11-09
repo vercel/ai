@@ -1,0 +1,140 @@
+---
+title: Meta (Muse)
+description: Use Meta Muse models with the AI SDK through the Responses and Chat Completions APIs.
+---
+
+# Meta (Muse)
+
+[Meta Model API](https://dev.meta.ai/docs/quickstart) provides access to Muse models, including [Muse Ember](https://dev.meta.ai/docs/muse-ember).
+You can connect directly using `@ai-sdk/openai` for the Responses API or `@ai-sdk/openai-compatible` for Chat Completions.
+
+## Setup
+
+Create a Meta Model API key by following the [Meta quickstart](https://dev.meta.ai/docs/quickstart), and set the `MODEL_API_KEY` environment variable:
+
+```bash
+export MODEL_API_KEY="your-api-key"
+```
+
+The base URL is `https://api.meta.ai/v1`. Direct requests use Meta's model IDs, such as `muse-ember-1.0`. See Meta's [model catalog](https://dev.meta.ai/docs/models) for other available models.
+
+## Responses API
+
+Meta recommends the [Responses API](https://dev.meta.ai/docs/protocols/responses) for workflows that preserve reasoning across turns, such as agents that call tools.
+Install the OpenAI provider:
+
+<InstallPackages packages="@ai-sdk/openai" />
+
+Create a provider with Meta's base URL and API key, and select the Responses API explicitly:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const meta = createOpenAI({
+  baseURL: 'https://api.meta.ai/v1',
+  apiKey: process.env.MODEL_API_KEY,
+});
+
+const { text } = await generateText({
+  model: meta.responses('muse-ember-1.0'),
+  prompt: 'Explain why the sky is blue in two sentences.',
+  providerOptions: {
+    openai: {
+      store: false,
+      include: ['reasoning.encrypted_content'],
+    },
+  },
+});
+
+console.log(text);
+```
+
+With `store: false` and `include: ['reasoning.encrypted_content']`, the provider requests encrypted reasoning for stateless replay.
+When continuing a conversation, retain the complete `response.messages`, including their provider metadata, so encrypted reasoning can be sent with the next turn.
+These options use the `openai` key because the request is handled by `@ai-sdk/openai`.
+
+<Note>
+  In AI SDK 5, the OpenAI Responses provider does not recognize Muse model IDs
+  as reasoning models and does not send `reasoningEffort` or `reasoningSummary`
+  for them. These examples use Meta's default reasoning settings. To configure
+  reasoning effort in this version, use the Chat Completions example below.
+</Note>
+
+### Streaming
+
+Use the same provider and replay options with `streamText`:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const meta = createOpenAI({
+  baseURL: 'https://api.meta.ai/v1',
+  apiKey: process.env.MODEL_API_KEY,
+});
+
+const result = streamText({
+  model: meta.responses('muse-ember-1.0'),
+  prompt: 'Write a short poem about a glowing ember.',
+  providerOptions: {
+    openai: {
+      store: false,
+      include: ['reasoning.encrypted_content'],
+    },
+  },
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Chat Completions API
+
+For applications using Chat Completions, install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const meta = createOpenAICompatible({
+  name: 'meta',
+  baseURL: 'https://api.meta.ai/v1',
+  apiKey: process.env.MODEL_API_KEY,
+});
+
+const { text } = await generateText({
+  model: meta('muse-ember-1.0'),
+  prompt: 'Explain why the sky is blue in two sentences.',
+  providerOptions: {
+    meta: {
+      reasoningEffort: 'low',
+    },
+  },
+});
+
+console.log(text);
+```
+
+This provider sends requests to `/chat/completions`. Its options use the `meta` key, matching the configured provider `name`.
+Meta's Chat Completions endpoint supports function calling, but does not preserve reasoning across turns. See [Choosing an API](https://dev.meta.ai/docs/protocols) for the differences between endpoints.
+
+## AI Gateway
+
+You can also access Muse Ember through [Vercel AI Gateway](/providers/ai-sdk-providers/ai-gateway) using a Gateway API key in `AI_GATEWAY_API_KEY`:
+
+```ts
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'meta/muse-ember',
+  prompt: 'Explain why the sky is blue in two sentences.',
+});
+
+console.log(text);
+```
+
+Gateway uses the model ID `meta/muse-ember`; direct Meta requests use `muse-ember-1.0` and `MODEL_API_KEY`.
