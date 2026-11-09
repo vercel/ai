@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.232
+
+### Patch Changes
+
+- 706b42a: feat(provider/gateway): type the headquarters provider option
+
 ## 3.0.231
 
 ### Patch Changes
