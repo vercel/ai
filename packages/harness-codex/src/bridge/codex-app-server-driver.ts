@@ -438,6 +438,13 @@ export function createThreadParams({
   codexModel: string | undefined;
   codexConfig: Record<string, unknown>;
 }): Record<string, unknown> {
+  /*
+   * Codex app-server does not expose an option to skip reading project
+   * configuration. Project configuration is trust-gated, but the full-access
+   * permissions below can grant project trust automatically. Repository hooks
+   * still require separate per-hook trust before execution, so this is an
+   * accepted limitation rather than complete project configuration isolation.
+   */
   return {
     ...(codexModel == null ? {} : { model: codexModel }),
     cwd: workdir,

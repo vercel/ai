@@ -4542,6 +4542,125 @@ describe('runPrompt host input pauses', () => {
     ]);
   });
 
+  test('pauses for a host approval before waiting for another host result echo', async () => {
+    const gatedExecute = vi.fn(async ({ value }: { value: string }) => ({
+      value,
+    }));
+    const allowedExecute = vi.fn(async ({ value }: { value: string }) => ({
+      value,
+    }));
+    const gatedWrite = tool({
+      inputSchema: z.object({ value: z.string() }),
+      execute: gatedExecute,
+    });
+    const allowedWrite = tool({
+      inputSchema: z.object({ value: z.string() }),
+      execute: allowedExecute,
+    });
+    const pendingApprovals: HarnessV1PendingToolApproval[] = [];
+    const pendingResults: HarnessV1PendingToolResult[] = [];
+    const submittedResults: Array<
+      Parameters<HarnessV1PromptControl['submitToolResult']>[0]
+    > = [];
+    let resultEchoReceived = false;
+    let pendingResultBeforeEcho = false;
+    let echoTimer: ReturnType<typeof setTimeout> | undefined;
+    const { result, done } = runPrompt({
+      harness,
+      session: scriptedSession({
+        start: emit => {
+          emit({ type: 'stream-start', modelId: 'fake-model' });
+          emit({
+            type: 'tool-call',
+            toolCallId: 'gated-1',
+            toolName: 'gated_write',
+            input: JSON.stringify({ value: 'gated' }),
+          });
+          emit({
+            type: 'tool-call',
+            toolCallId: 'allowed-1',
+            toolName: 'allowed_write',
+            input: JSON.stringify({ value: 'allowed' }),
+          });
+          emit(boundary(6));
+        },
+        onSubmitToolResult: (submission, emit) => {
+          submittedResults.push(submission);
+          echoTimer = setTimeout(() => {
+            resultEchoReceived = true;
+            emit({
+              type: 'tool-result',
+              toolCallId: submission.toolCallId,
+              toolName: 'allowed_write',
+              result: submission.output as { value: string },
+            });
+          }, 100);
+        },
+      }),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { gated_write: gatedWrite, allowed_write: allowedWrite },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: {
+        gated_write: 'user-approval',
+        allowed_write: 'approved',
+      },
+      onPendingToolApproval: approval => pendingApprovals.push(approval),
+      onPendingToolResult: pendingResult => {
+        pendingResults.push(pendingResult);
+        pendingResultBeforeEcho ||= !resultEchoReceived;
+      },
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    try {
+      for await (const part of result.fullStream) parts.push(part);
+      await done;
+    } finally {
+      if (echoTimer != null) clearTimeout(echoTimer);
+    }
+
+    expect(gatedExecute).not.toHaveBeenCalled();
+    expect(allowedExecute).toHaveBeenCalledOnce();
+    expect(submittedResults).toEqual([
+      expect.objectContaining({
+        toolCallId: 'allowed-1',
+        output: { value: 'allowed' },
+      }),
+    ]);
+    expect(pendingApprovals).toEqual([
+      expect.objectContaining({
+        toolCallId: 'gated-1',
+        toolName: 'gated_write',
+        kind: 'custom',
+      }),
+    ]);
+    expect(pendingResults).toEqual([
+      expect.objectContaining({
+        toolCallId: 'allowed-1',
+        toolName: 'allowed_write',
+        input: JSON.stringify({ value: 'allowed' }),
+        completedResult: expect.objectContaining({
+          output: { value: 'allowed' },
+        }),
+      }),
+    ]);
+    expect(pendingResultBeforeEcho).toBe(true);
+    expect(resultEchoReceived).toBe(false);
+    expect(
+      parts.filter(part => part.type === 'tool-approval-request'),
+    ).toHaveLength(1);
+    expect(
+      parts
+        .filter(part => part.type === 'tool-result')
+        .map(part => part.toolCallId),
+    ).toEqual(['allowed-1']);
+  });
+
   test.each([
     { approved: true, fails: false, replay: false },
     { approved: false, fails: false, replay: false },

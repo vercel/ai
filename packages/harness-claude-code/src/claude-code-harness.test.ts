@@ -1245,8 +1245,9 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends strict MCP config and the budget limit to the bridge', async () => {
+  it('sends additional directories, strict MCP config, and the budget limit to the bridge', async () => {
     const harness = createClaudeCode({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
@@ -1268,6 +1269,7 @@ describe('createClaudeCode adapter', () => {
     void Promise.resolve(control.done).catch(() => {});
 
     expect(lastStart()).toMatchObject({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
@@ -1581,6 +1583,38 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it.each([
+    [{ hostDisconnectTimeoutMs: 60_000 }, '60000'],
+    [{}, undefined],
+  ])(
+    'passes the host disconnect timeout to the bridge (%o)',
+    async (settings, expected) => {
+      const spawns: string[] = [];
+      const spawnEnvs: Array<Record<string, string | undefined>> = [];
+      const harness = createClaudeCode(settings);
+      const session = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          spawns,
+          spawnEnvs,
+          writes: [],
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      });
+
+      expect(
+        spawns[0]?.match(/--host-disconnect-timeout-ms '?(\d+)'?/)?.[1],
+      ).toBe(expected);
+      expect(spawnEnvs[0]).not.toHaveProperty(
+        'BRIDGE_HOST_DISCONNECT_TIMEOUT_MS',
+      );
+
+      await session.doDestroy();
+    },
+  );
+
   it('sends environment configuration and tool hints when rerunning a continued turn', async () => {
     const env = { DEPLOYMENT_ENV: 'staging' };
     const toolHints = { search: { readOnly: true } };
@@ -1642,8 +1676,9 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends strict MCP config and the budget limit when rerunning a continued turn', async () => {
+  it('sends additional directories, strict MCP config, and the budget limit when rerunning a continued turn', async () => {
     const harness = createClaudeCode({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
@@ -1670,6 +1705,7 @@ describe('createClaudeCode adapter', () => {
     void Promise.resolve(control.done).catch(() => {});
 
     expect(lastStart()).toMatchObject({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
       continue: true,
@@ -1678,8 +1714,9 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends strict MCP config and the budget limit after attaching', async () => {
+  it('sends additional directories, strict MCP config, and the budget limit after attaching', async () => {
     const harness = createClaudeCode({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });
@@ -1709,6 +1746,7 @@ describe('createClaudeCode adapter', () => {
     void Promise.resolve(control.done).catch(() => {});
 
     expect(lastStart()).toMatchObject({
+      additionalDirectories: ['/vercel/sandbox/shared'],
       strictMcpConfig: true,
       maxBudgetUsd: 0.5,
     });

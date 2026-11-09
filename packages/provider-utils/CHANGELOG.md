@@ -1,5 +1,33 @@
 # @ai-sdk/provider-utils
 
+## 5.0.76
+
+### Patch Changes
+
+- 6400cf8: Add `resolveProviderOptions` to parse provider options that a model accepts under several `providerOptions` keys, either as aliases (`first`) or merged in order (`merge`), and use it for the existing multi-key lookups in the OpenAI, OpenAI-compatible, Anthropic, Google, and Amazon Bedrock models. Resolution behavior for these models is unchanged.
+- f608c05: Reject HTTPS-to-HTTP redirects in validated downloads before requesting the insecure target, including when it matches a configured trusted origin.
+- cab9c1f: Return undefined instead of throwing when detectMediaType receives an unsupported topLevelType that matches an inherited object property.
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider@4.0.37
+
+## 5.0.75
+
+### Patch Changes
+
+- 89aff56: feat(provider-utils): add an `experimental_binaryFields` option to `createJsonResponseHandler`
+
+  Providers whose JSON responses carry large base64 strings (images, files) can list their paths, e.g. `createJsonResponseHandler(schema, { experimental_binaryFields: ['images[*]'] })`. The body is then read as a stream and canonical base64 strings of 64 KiB and more are decoded to `Uint8Array` while they arrive, instead of holding about four copies of the body in memory (chunks, concatenated bytes, text, parsed string). `rawValue`, validation errors and `APICallError.responseBody` contain a short placeholder string instead of the data. Handlers without the option are unchanged. `readResponseWithSizeLimit` accepts an optional `onChunk` callback that receives each chunk instead of the chunks being collected.
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+
 ## 5.0.74
 
 ### Patch Changes

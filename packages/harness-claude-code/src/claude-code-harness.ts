@@ -135,6 +135,11 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxBudgetUsd?: number;
   /**
+   * Absolute paths of directories Claude can access in addition to the session
+   * working directory.
+   */
+  readonly additionalDirectories?: ReadonlyArray<string>;
+  /**
    * Only use the MCP servers configured with `mcpServers`, and ignore any other
    * MCP configuration such as a project `.mcp.json` or user settings.
    */
@@ -191,6 +196,12 @@ export type ClaudeCodeHarnessSettings = {
   readonly startupTimeoutMs?: number;
   /** Maximum milliseconds to wait for the first turn event. Defaults to 120000. */
   readonly turnStartTimeoutMs?: number;
+  /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
@@ -1112,6 +1123,7 @@ export function createClaudeCode(
             maxTurns: settings.maxTurns,
             skillOverrides: settings.skillOverrides,
             maxBudgetUsd: settings.maxBudgetUsd,
+            additionalDirectories: settings.additionalDirectories,
             strictMcpConfig: settings.strictMcpConfig,
             questionTimeoutMs: settings.questionTimeoutMs,
             excludeDynamicSections: settings.excludeDynamicSections,
@@ -1203,7 +1215,7 @@ export function createClaudeCode(
       });
 
       const proc = await toolSafeSandboxSession.spawn({
-        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}${settings.hostDisconnectTimeoutMs !== undefined ? ` --host-disconnect-timeout-ms ${shellQuote(String(settings.hostDisconnectTimeoutMs))}` : ''}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -1291,6 +1303,7 @@ export function createClaudeCode(
         maxTurns: settings.maxTurns,
         skillOverrides: settings.skillOverrides,
         maxBudgetUsd: settings.maxBudgetUsd,
+        additionalDirectories: settings.additionalDirectories,
         strictMcpConfig: settings.strictMcpConfig,
         questionTimeoutMs: settings.questionTimeoutMs,
         excludeDynamicSections: settings.excludeDynamicSections,
@@ -1347,6 +1360,7 @@ function createSession({
   maxTurns,
   skillOverrides,
   maxBudgetUsd,
+  additionalDirectories,
   strictMcpConfig,
   questionTimeoutMs,
   excludeDynamicSections,
@@ -1384,6 +1398,7 @@ function createSession({
   maxTurns: number | undefined;
   skillOverrides: ClaudeCodeHarnessSettings['skillOverrides'];
   maxBudgetUsd: number | undefined;
+  additionalDirectories: ReadonlyArray<string> | undefined;
   strictMcpConfig: boolean | undefined;
   questionTimeoutMs: number | undefined;
   excludeDynamicSections: boolean | undefined;
@@ -1794,6 +1809,9 @@ function createSession({
         maxTurns,
         ...(skillOverrides !== undefined ? { skillOverrides } : {}),
         ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+        ...(additionalDirectories !== undefined
+          ? { additionalDirectories: [...additionalDirectories] }
+          : {}),
         ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
         ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
         ...(excludeDynamicSections !== undefined
@@ -1881,6 +1899,9 @@ function createSession({
           maxTurns,
           ...(skillOverrides !== undefined ? { skillOverrides } : {}),
           ...(maxBudgetUsd !== undefined ? { maxBudgetUsd } : {}),
+          ...(additionalDirectories !== undefined
+            ? { additionalDirectories: [...additionalDirectories] }
+            : {}),
           ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
           ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
           ...(excludeDynamicSections !== undefined

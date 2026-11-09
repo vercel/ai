@@ -615,6 +615,10 @@ export type TextStreamRawPart = {
   rawValue: unknown;
 };
 
+export type TextStreamPingPart = {
+  type: 'ping';
+};
+
 export type TextStreamPart<TOOLS extends ToolSet> =
   | TextStreamTextStartPart
   | TextStreamTextEndPart
@@ -642,4 +646,5 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | TextStreamFinishPart
   | TextStreamAbortPart
   | TextStreamErrorPart
+  | TextStreamPingPart
   | TextStreamRawPart;

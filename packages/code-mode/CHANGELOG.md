@@ -1,5 +1,45 @@
 # @ai-sdk/code-mode
 
+## 1.0.123
+
+### Patch Changes
+
+- ai@7.0.166
+
+## 1.0.122
+
+### Patch Changes
+
+- Updated dependencies [883fcde]
+- Updated dependencies [6d21e8e]
+  - ai@7.0.165
+
+## 1.0.121
+
+### Patch Changes
+
+- ai@7.0.164
+
+## 1.0.120
+
+### Patch Changes
+
+- 3fab50a: fix(code-mode): name the tool in `CodeModeDetachedBridgeRequestError` messages instead of the internal `__codeMode.toolN` binding
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+
 ## 1.0.119
 
 ### Patch Changes

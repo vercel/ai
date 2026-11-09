@@ -48,6 +48,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   maxTurns: z.number().optional(),
   skillOverrides: skillOverridesSchema.optional(),
   maxBudgetUsd: z.number().optional(),
+  additionalDirectories: z.array(z.string()).optional(),
   strictMcpConfig: z.boolean().optional(),
   questionTimeoutMs: z.number().optional(),
   excludeDynamicSections: z.boolean().optional(),

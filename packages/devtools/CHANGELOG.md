@@ -1,5 +1,49 @@
 # @ai-sdk/devtools
 
+## 1.0.69
+
+### Patch Changes
+
+- ai@7.0.166
+
+## 1.0.68
+
+### Patch Changes
+
+- Updated dependencies [883fcde]
+- Updated dependencies [6d21e8e]
+- Updated dependencies [c70adf6]
+  - ai@7.0.165
+  - @ai-sdk/provider@4.0.37
+
+## 1.0.67
+
+### Patch Changes
+
+- ai@7.0.164
+
+## 1.0.66
+
+### Patch Changes
+
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+  - @ai-sdk/provider@4.0.36
+
 ## 1.0.65
 
 ### Patch Changes

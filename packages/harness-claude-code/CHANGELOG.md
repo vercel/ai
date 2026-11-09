@@ -1,5 +1,64 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.181
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.180
+
+### Patch Changes
+
+- e4a6112: fix(harness): enforce workDir / project-level config isolation where possible and clearly document the gap otherwise
+- 7a5a9c6: fix(harness-claude-code): run apiKeyHelper through the platform shell on Windows
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/harness@1.0.176
+
+## 1.0.179
+
+### Patch Changes
+
+- ae4e236: add an additionalDirectories setting and trust those directories like the working directory in file approvals
+- a54f0fd: fix(harness): abort a running turn when its host disconnects for good
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+  - @ai-sdk/harness@1.0.175
+
+## 1.0.178
+
+### Patch Changes
+
+- a9a6fe7: fix(harness-claude-code): map dotted AI Gateway model IDs in the `ANTHROPIC_DEFAULT_*_MODEL` variables to the ID shapes Claude Code expects
+- c7ebb56: map dotted ids in `CLAUDE_CODE_SUBAGENT_MODEL` to the ids Claude Code expects
+- 3bf70f8: Recover Claude Code turn starts lost on a dropped WebSocket connection using idempotent start identifiers. Bound the wait for the first turn event with `turnStartTimeoutMs` (120 seconds by default), and fail safely when reconnecting to an older bridge that has not accepted the start.
+
+  Preserve first delivery of turns submitted during an idle reconnect, including on older bridges, without sending duplicate starts or treating an unsent start as lost.
+
+  Clean up failed initial sends without leaving a delayed unhandled rejection, and replay pending steering only after the recovered start.
+
+  `SandboxChannel.send` accepts `queueIfDisconnected: false` for callers that own reconnect replay; discarded frames do not invoke `onSent`. The default continues queueing frames.
+
+- 5a05735: fix(harness-claude-code): isolate turn events after abort to prevent session reuse errors
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 1.0.177
 
 ### Patch Changes

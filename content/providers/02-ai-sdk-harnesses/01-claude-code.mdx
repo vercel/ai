@@ -139,6 +139,11 @@ Settings:
 - `turnStartTimeoutMs`: maximum time from submitting a turn's start to its first
   bridge event, defaulting to 120 seconds. If no event arrives, the turn fails
   and the connection closes. This is not a timeout on the complete turn.
+- `hostDisconnectTimeoutMs`: aborts a running turn when the host disconnects
+  and no host reconnects within this many milliseconds. A suspended turn is
+  not aborted. When unset, a turn keeps running in the sandbox after its host
+  disconnects, including when the host process is gone for good, until the
+  turn finishes or the sandbox stops.
 - `reconnect`: reconnect timing after an established bridge WebSocket
   connection drops. `maxElapsedMs` controls the total retry window, including
   connection establishment and backoff delays, and defaults to 30 seconds.
@@ -276,6 +281,14 @@ file changes only within the workdir. Paths outside those directories, including
 symlink targets, and paths that cannot be resolved require host approval.
 `allow-all` remains unrestricted. These approval rules are not a filesystem
 sandbox, and approved shell commands can access paths outside the workdir.
+
+## Known Limitations
+
+Claude Code does not allow toggling whether to discover project-level skills
+and `AGENTS.md` files individually from project-level configuration and hooks.
+Since the adapter disables reading project-level configuration and hooks for
+security reasons, it means Claude Code will not discover project-level skills
+and `AGENTS.md` instructions natively.
 
 ## Related
 

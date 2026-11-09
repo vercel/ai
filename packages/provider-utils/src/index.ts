@@ -76,6 +76,10 @@ export { normalizeBatchRequestCounts } from './normalize-batch-request-counts';
 export * from './parse-json';
 export { parseJsonEventStream } from './parse-json-event-stream';
 export { parseProviderOptions } from './parse-provider-options';
+export {
+  resolveProviderOptions,
+  type ProviderOptionsResolution,
+} from './resolve-provider-options';
 export * from './post-multipart-stream-to-api';
 export * from './post-to-api';
 export {
