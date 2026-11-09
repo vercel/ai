@@ -6,6 +6,7 @@ import type {
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
+import { createBridgeAuthKeyPair } from '@ai-sdk/harness/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
@@ -481,7 +482,7 @@ describe('codex adapter — attach replay mode', () => {
           threadId: 'thread-abc',
           bridge: {
             port: 4317,
-            token: 'token',
+            privateKey: createBridgeAuthKeyPair().privateKey,
             lastSeenEventId: 7,
           },
         },
@@ -514,7 +515,7 @@ describe('codex adapter — attach replay mode', () => {
           threadId: 'thread-abc',
           bridge: {
             port: 4317,
-            token: 'token',
+            privateKey: createBridgeAuthKeyPair().privateKey,
             lastSeenEventId: 7,
           },
         },

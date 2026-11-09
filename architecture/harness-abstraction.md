@@ -220,7 +220,7 @@ You can use the `credentialForwarding` setting if you handle credential brokerin
 - `credentialForwarding` allows you to inject custom placeholder credentials into the sandbox instead of the real credentials from environment variables.
 - Alternatively, provide placeholder credentials in the environment variables themselves.
 
-Never persist secrets in `sessionWorkDir`. Lifecycle state can contain bridge tokens or forwarded credentials, so callers must treat it as sensitive data and store and transmit it securely.
+Never persist secrets in `sessionWorkDir`. Lifecycle state can contain bridge private keys or forwarded credentials, so callers must treat it as sensitive data and store and transmit it securely.
 
 ## Lifecycle and resume
 
