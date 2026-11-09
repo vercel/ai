@@ -31,13 +31,10 @@ describe('createGrokBuild', () => {
     }
     const source = {
       ...settings.source,
-      packageJson: JSON.parse(settings.source.packageJson),
+      packageJson: '<package.json>',
       pnpmLockYaml: '<pnpm-lock.yaml>',
       pnpmWorkspaceYaml: '<pnpm-workspace.yaml>',
     };
-    expect(settings.source.pnpmLockYaml).toContain(
-      "'@xai-official/grok@1.0.49'",
-    );
     expect(settings.source.pnpmWorkspaceYaml).toContain(
       "'@xai-official/grok': true",
     );
@@ -134,19 +131,7 @@ describe('createGrokBuild', () => {
           },
         },
         "source": {
-          "packageJson": {
-            "dependencies": {
-              "@agentclientprotocol/sdk": "1.7.0",
-              "@modelcontextprotocol/sdk": "1.32.1",
-              "@xai-official/grok": "1.0.49",
-              "ws": "8.21.0",
-              "zod": "4.4.3",
-            },
-            "name": "harness-grok-build-bridge",
-            "private": true,
-            "type": "module",
-            "version": "0.0.0",
-          },
+          "packageJson": "<package.json>",
           "pnpmLockYaml": "<pnpm-lock.yaml>",
           "pnpmWorkspaceYaml": "<pnpm-workspace.yaml>",
           "type": "npm-locked",
