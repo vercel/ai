@@ -11,6 +11,9 @@ export function redactTelemetryCredentials<T>(value: T): T {
     steps: steps => mapArray(steps, redactTelemetryCredentials),
     finalStep: redactTelemetryCredentials,
     error: redactTelemetryCredentials,
+    // RetryError exposes both the full attempt history and the final error.
+    errors: errors => mapArray(errors, redactTelemetryCredentials),
+    lastError: redactTelemetryCredentials,
     // Provider errors carry the same request body outside request metadata.
     requestBodyValues: redactBody,
   });
