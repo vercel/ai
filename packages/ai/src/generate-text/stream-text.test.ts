@@ -22834,7 +22834,7 @@ describe('streamText', () => {
             });
 
             expect(
-              (await convertAsyncIterableToArray(result.fullStream)).map(
+              (await convertAsyncIterableToArray(result.stream)).map(
                 chunk => chunk.type,
               ),
             ).toEqual([
