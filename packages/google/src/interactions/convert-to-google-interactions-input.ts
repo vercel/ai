@@ -54,9 +54,8 @@ export type ConvertToGoogleInteractionsInputResult = {
  *   - text / image content → `model_output` step with a single `content` array
  *   - reasoning → `thought` step (`signature` + `summary`)
  *   - tool-call → `function_call` step
- * User turns (and tool-result turns from the previous round) are sent as
- * `user_input` steps whose `content[]` holds the user's parts (text, files,
- * and — for tool-result turns — `function_result` blocks).
+ * User turns are sent as `user_input` steps whose `content[]` holds the
+ * user's text and files. Tool results are top-level `function_result` inputs.
  *
  * Handles text parts, file parts (image / audio / document / video, all four
  * `data.type` shapes), tool-call/tool-result round-tripping, per-step
@@ -202,13 +201,8 @@ export function convertToGoogleInteractionsInput({
         break;
       }
       case 'tool': {
-        /*
-         * Tool-result messages are emitted as a `user_input` step whose
-         * content holds one `function_result` block per tool-result part.
-         * `function_result` remains a content-block type (it sits inside
-         * a step), not a top-level step type.
-         */
-        const content: Array<GoogleInteractionsContentBlock> = [];
+        // The EAP accepts document/audio results in top-level function_result
+        // inputs, but rejects them when nested inside user_input.content.
         for (const part of message.content) {
           if (part.type !== 'tool-result') {
             warnings.push({
@@ -217,22 +211,18 @@ export function convertToGoogleInteractionsInput({
             });
             continue;
           }
-          const attachments: Array<GoogleInteractionsContent> = [];
-          const block = convertToolResultPart({
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            output: part.output,
-            signature: part.providerOptions?.google?.signature as
-              | string
-              | undefined,
-            warnings,
-            mediaResolution,
-            attachments,
-          });
-          content.push(block, ...attachments);
-        }
-        if (content.length > 0) {
-          steps.push({ type: 'user_input', content });
+          steps.push(
+            convertToolResultPart({
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              output: part.output,
+              signature: part.providerOptions?.google?.signature as
+                | string
+                | undefined,
+              warnings,
+              mediaResolution,
+            }),
+          );
         }
         break;
       }
@@ -479,7 +469,6 @@ function convertToolResultPart({
   signature,
   warnings,
   mediaResolution,
-  attachments,
 }: {
   toolCallId: string;
   toolName: string;
@@ -487,7 +476,6 @@ function convertToolResultPart({
   signature: string | undefined;
   warnings: Array<SharedV3Warning>;
   mediaResolution?: GoogleInteractionsMediaResolution;
-  attachments: Array<GoogleInteractionsContent>;
 }): GoogleInteractionsFunctionResultContent {
   const base = {
     type: 'function_result' as const,
@@ -539,9 +527,7 @@ function convertToolResultPart({
             mediaResolution,
           });
           if (fileBlock != null) {
-            if (fileBlock.type === 'document' || fileBlock.type === 'audio')
-              attachments.push(fileBlock);
-            else blocks.push(fileBlock);
+            blocks.push(fileBlock);
           }
         } else {
           warnings.push({
@@ -549,12 +535,6 @@ function convertToolResultPart({
             message: `google.interactions: tool-result content part type "${(item as { type: string }).type}" is not supported; part dropped.`,
           });
         }
-      }
-      if (attachments.length > 0) {
-        blocks.push({
-          type: 'text',
-          text: 'Tool output files are attached after this function result.',
-        });
       }
       return { ...base, result: blocks };
     }

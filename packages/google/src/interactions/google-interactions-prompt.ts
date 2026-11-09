@@ -81,11 +81,8 @@ export type GoogleInteractionsFunctionResultContent = {
   signature?: string;
 };
 
-// Document and audio content must be attached to the surrounding user input.
-export type GoogleInteractionsFunctionResultPart =
-  | GoogleInteractionsTextContent
-  | GoogleInteractionsImageContent
-  | GoogleInteractionsVideoContent;
+// Files remain nested in top-level function_result inputs.
+export type GoogleInteractionsFunctionResultPart = GoogleInteractionsContent;
 
 /**
  * Annotation types attached to a `text` content block:
@@ -318,6 +315,7 @@ export type GoogleInteractionsBuiltinToolResultStep =
     } & GoogleInteractionsMCPServerToolResultStepPayload);
 
 export type GoogleInteractionsStep =
+  | GoogleInteractionsFunctionResultContent
   | GoogleInteractionsUserInputStep
   | GoogleInteractionsModelOutputStep
   | GoogleInteractionsFunctionCallStep
@@ -337,7 +335,6 @@ export type GoogleInteractionsContentBlock =
   | GoogleInteractionsAudioContent
   | GoogleInteractionsDocumentContent
   | GoogleInteractionsVideoContent
-  | GoogleInteractionsFunctionResultContent
   | { type: string; [k: string]: unknown };
 
 /**
