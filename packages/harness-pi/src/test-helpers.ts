@@ -152,23 +152,49 @@ const untouchable = () =>
     throw new Error('sandbox must not be touched');
   });
 
-export const createThrowingSandboxSession =
+export function mockCanonicalPathResolution({ command }: { command: string }) {
+  const frame = command.match(/realpath_marker='([^']+)'/)?.[1];
+  const targets = [...command.matchAll(/target='([^']+)'/g)].map(
+    match => match[1]!,
+  );
+  if (frame == null || targets.length === 0) return undefined;
+
+  return {
+    exitCode: 0,
+    stdout: targets
+      .map(target => `${Buffer.from(target).toString('base64')}${frame}`)
+      .join(''),
+    stderr: '',
+  };
+}
+
+export const createEmptyRepositorySandboxSession =
   (): HarnessV1NetworkSandboxSession => {
     const sandbox: HarnessV1NetworkSandboxSession = {
       id: 'sandbox',
       description: 'throwing sandbox',
       defaultWorkingDirectory: '/sandbox',
       ports: [],
-      run: untouchable(),
+      run: vi.fn(async ({ command }: { command: string }) => {
+        const result = mockCanonicalPathResolution({ command });
+        if (result != null) return result;
+        throw new Error('sandbox must not be touched');
+      }),
       spawn: untouchable(),
       readFile: untouchable(),
       readBinaryFile: untouchable(),
-      readTextFile: untouchable(),
+      readTextFile: vi.fn(async ({ path }) => {
+        expect(path).toBe('/sandbox/work/AGENTS.md');
+        return null;
+      }),
       writeFile: untouchable(),
       writeBinaryFile: untouchable(),
       writeTextFile: untouchable(),
       stat: untouchable(),
-      listDirectory: untouchable(),
+      listDirectory: vi.fn(async ({ path }) => {
+        expect(path).toBe('/sandbox/work/.agents/skills');
+        return null;
+      }),
       deleteFile: untouchable(),
       stop: untouchable(),
       destroy: untouchable(),

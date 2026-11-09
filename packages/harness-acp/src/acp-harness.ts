@@ -55,6 +55,12 @@ export type ACPHarnessSettings<
   readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
   /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
+  /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
    * backoff delays. Defaults to 30 seconds with exponential backoff from 50
@@ -73,6 +79,7 @@ export type ACPHarnessSettings<
   readonly credentialEnv?: ACPV1Settings['credentialEnv'];
   readonly credentialBrokering?: ACPV1Settings['credentialBrokering'];
   readonly authenticationFiles?: ACPV1Settings['authenticationFiles'];
+  readonly prepareSandbox?: ACPV1Settings['prepareSandbox'];
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -191,6 +198,7 @@ export function createACP<
         port: settings.port,
         portEndpoint: settings.portEndpoint,
         startupTimeoutMs: settings.startupTimeoutMs,
+        hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
         reconnect: settings.reconnect,
         clientApp,
         lifecycleStateSchema: acpResumeStateSchema satisfies z.ZodType<{

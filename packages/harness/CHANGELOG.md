@@ -1,5 +1,112 @@
 # @ai-sdk/harness
 
+## 1.0.178
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+- Updated dependencies [404ce3b]
+  - @ai-sdk/provider-utils@5.0.77
+  - ai@7.0.167
+
+## 1.0.177
+
+### Patch Changes
+
+- ai@7.0.166
+
+## 1.0.176
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [883fcde]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [6d21e8e]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - ai@7.0.165
+  - @ai-sdk/provider@4.0.37
+
+## 1.0.175
+
+### Patch Changes
+
+- 8e8033a: fix(harness): avoid deadlock on host tool approval pauses
+- a54f0fd: fix(harness): abort a running turn when its host disconnects for good
+  - ai@7.0.164
+
+## 1.0.174
+
+### Patch Changes
+
+- 3bf70f8: Recover Claude Code turn starts lost on a dropped WebSocket connection using idempotent start identifiers. Bound the wait for the first turn event with `turnStartTimeoutMs` (120 seconds by default), and fail safely when reconnecting to an older bridge that has not accepted the start.
+
+  Preserve first delivery of turns submitted during an idle reconnect, including on older bridges, without sending duplicate starts or treating an unsent start as lost.
+
+  Clean up failed initial sends without leaving a delayed unhandled rejection, and replay pending steering only after the recovered start.
+
+  `SandboxChannel.send` accepts `queueIfDisconnected: false` for callers that own reconnect replay; discarded frames do not invoke `onSent`. The default continues queueing frames.
+
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 1.0.173
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+- Updated dependencies [857ca45]
+- Updated dependencies [4d6d830]
+  - @ai-sdk/provider-utils@5.0.74
+  - ai@7.0.162
+
+## 1.0.172
+
+### Patch Changes
+
+- 8a20b57: feat(harness): defer sandbox setup, and optionally sandbox creation, to first use for harnesses without a bootstrap recipe
+
+  For a harness adapter that declares no sandbox bootstrap recipe (such as Pi), `HarnessAgent.createSession()` no longer runs the session's sandbox setup (`onBootstrap` when its marker is missing, the session work directory, and `onSession`) before the adapter starts. The setup runs on the first file, exec or spawn operation on the sandbox, and a failed setup is retried on the next one. Adapters with a recipe, such as Claude Code and Codex, keep setting up the sandbox in `createSession()`.
+
+  `sandboxSession` also accepts a `HarnessAgentSandboxCreator`, `{ defaultWorkingDirectory, createSandboxSession }`, to defer creating the sandbox itself. For an adapter without a recipe, `createSandboxSession` runs on the first file, exec or spawn operation, so a session whose turns never touch the sandbox never creates it. For any other adapter, `createSession()` calls it right away.
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - ai@7.0.161
+  - @ai-sdk/provider-utils@5.0.73
+
+## 1.0.171
+
+### Patch Changes
+
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
 ## 1.0.170
 
 ### Patch Changes

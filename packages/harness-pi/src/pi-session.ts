@@ -69,6 +69,7 @@ import {
   type PiRemoteOps,
 } from './pi-remote-ops';
 import { executePiSandboxRead } from './pi-read-operations';
+import { loadPiRepositoryResources } from './pi-repository-resources';
 import { expandPiSkillCommand } from './pi-skill-command';
 import {
   truncatePiToolModelOutput,
@@ -772,6 +773,9 @@ export async function createPiSession(
   let currentExtensionsResult:
     | ReturnType<DefaultResourceLoader['getExtensions']>
     | undefined;
+  let repositoryResources: Awaited<
+    ReturnType<typeof loadPiRepositoryResources>
+  > = { agentsFiles: [], skills: [], diagnostics: [] };
 
   const resourceLoader = new DefaultResourceLoader({
     cwd: sessionWorkDir,
@@ -801,10 +805,24 @@ export async function createPiSession(
     noPromptTemplates: true,
     noSkills: true,
     noContextFiles: true,
-    skillsOverride: base => ({
-      ...base,
-      skills: [...configuredSkills, ...harnessSkills],
+    agentsFilesOverride: () => ({
+      agentsFiles: repositoryResources.agentsFiles,
     }),
+    skillsOverride: base => {
+      const skills = [...configuredSkills, ...harnessSkills];
+      const names = new Set(skills.map(skill => skill.name));
+      for (const skill of repositoryResources.skills) {
+        if (!names.has(skill.name)) {
+          skills.push(skill);
+          names.add(skill.name);
+        }
+      }
+      return {
+        ...base,
+        skills,
+        diagnostics: [...base.diagnostics, ...repositoryResources.diagnostics],
+      };
+    },
   });
   await resourceLoader.reload();
   if (mcpRegistrationError != null) throw mcpRegistrationError;
@@ -1353,6 +1371,11 @@ export async function createPiSession(
       }
     }
 
+    if (!resourcesReloaded) {
+      await reloadResourcesOnly();
+      resourcesReloaded = true;
+    }
+
     const { customTools, builtinNames } = buildToolDefinitions(userTools);
     const toolNames = customTools.map(t => t.name);
 
@@ -1472,6 +1495,17 @@ export async function createPiSession(
       }
     }
 
+    const nextRepositoryResources = await loadPiRepositoryResources({
+      sandbox: toolSafeSandboxSession,
+      workDir: sessionWorkDir,
+      deniedRoots: fileToolPathPolicy?.deniedRoots,
+      abortSignal: turnOpts.abortSignal,
+    });
+    const repositoryResourcesChanged =
+      JSON.stringify(repositoryResources) !==
+      JSON.stringify(nextRepositoryResources);
+    repositoryResources = nextRepositoryResources;
+
     const userTools = turnOpts.tools;
     currentEmit = turnOpts.emit;
     const turnAbortController = new AbortController();
@@ -1537,6 +1571,15 @@ export async function createPiSession(
           turnAbortController.signal.throwIfAborted();
         }
 
+        if (!needsRebuild && repositoryResourcesChanged) {
+          /*
+           * Reloading the resource loader does not rebuild an existing Pi
+           * session's cached system prompt. Reapplying its current tool set
+           * refreshes instructions and skill listings without changing tools.
+           */
+          piSession!.setActiveToolsByName(piSession!.getActiveToolNames());
+        }
+
         // Fresh translator state for the new turn — keep the tool sets the
         // session was built with.
         const turnState = createPiTranslatorState({
@@ -1550,6 +1593,10 @@ export async function createPiSession(
           type: 'stream-start',
           ...(piSession?.model?.id ? { modelId: piSession.model.id } : {}),
         });
+
+        while (pendingCompactionParts.length > 0) {
+          currentEmit?.(pendingCompactionParts.shift()!);
+        }
 
         for (const [toolCallId, delivered] of turnOpts.replay
           ?.hostToolResults ?? []) {

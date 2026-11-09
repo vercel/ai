@@ -244,9 +244,195 @@ Initial usage may be incomplete; use `result.usage` for final token counts.
 Like other custom parts, this event is included in response content and forwarded
 to UI message streams. It is ignored when replaying conversation history to Anthropic.
 
+### Message Threads
+
+[Anthropic message threads](https://platform.claude.com/docs/en/build-with-claude/message-threads)
+reduce request upload size and time to first token in long conversations. The first
+request sends the full conversation; subsequent requests send only new messages.
+Token usage, pricing, and rate limits remain unchanged. Prompt caching is separate.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const model = anthropic('claude-sonnet-4-6');
+const first = await generateText({
+  model,
+  system: 'Keep replies brief.',
+  prompt: 'Remember that my favorite color is cobalt blue.',
+  providerOptions: { anthropic: { thread: { type: 'create' } } },
+});
+
+if (first.response.id == null) throw new Error('Missing message ID.');
+
+const second = await generateText({
+  model,
+  prompt: 'What is my favorite color?',
+  providerOptions: {
+    anthropic: {
+      thread: { type: 'continue', previousMessageId: first.response.id },
+    },
+  },
+});
+```
+
+The provider adds the `message-threads-2026-08-12` beta header. On continuation it
+omits `system` and tool definitions from the request, even if supplied: Anthropic
+retains them from the create request. If the create request used tools, you must
+supply identical tool definitions to the SDK on continuation for tool name mapping,
+execution, tool choice, and tool beta headers. They are not uploaded again.
+Supplied system instructions are ignored on continuation; the provider emits a
+compatibility warning when supplied system or tool definitions are omitted.
+Start a new thread to change instructions rather than passing new leading system
+messages to a continuation.
+
+**Conversation management is explicit.** The provider does not retain history,
+remove previously sent messages, or automatically replay requests. Keep a full
+local copy of the conversation. Passing the entire history on continuation can
+duplicate messages or cause an API error. For tool calls, continue with only the
+new tool results. In a multi-step agent, use `prepareStep` to update the response
+ID and select only new messages; simply setting `thread: { type: 'create' }` on an
+agent does not automatically continue its thread.
+
+For example, with an existing client-side `weather` tool:
+
+```ts
+import { ToolLoopAgent, stepCountIs } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model,
+  tools: { weather },
+  stopWhen: stepCountIs(5),
+  prepareStep: ({ steps }) => {
+    const previous = steps.at(-1);
+    if (previous == null) {
+      return { providerOptions: { anthropic: { thread: { type: 'create' } } } };
+    }
+    const previousMessageId = previous.response.id;
+    if (previousMessageId == null) throw new Error('Missing message ID.');
+    return {
+      messages: previous.response.messages.filter(m => m.role === 'tool'),
+      providerOptions: {
+        anthropic: { thread: { type: 'continue', previousMessageId } },
+      },
+    };
+  },
+});
+```
+
+This pattern is for a loop with client-side tools that execute without approval.
+Provider-executed tool continuations and tool-approval flows require their own
+message selection. The compatibility warning about retained instructions and tool
+definitions is expected in this example. Persist the original input and
+each step's response messages for recovery; never rerun completed tools just to
+rebuild history. Do not reuse a static continuation ID across multiple steps.
+
+**Pin content-dependent beta headers.** The beta header set is fixed for a thread,
+but features such as PDFs and Files API references enable headers based on the
+messages in the current request. For example, when creating a thread with a PDF,
+set `anthropicBeta: ['pdfs-2024-09-25']` on both the create request and every
+continuation, including text-only continuations. The provider warns when message
+content enables a beta that has not been pinned explicitly through `anthropicBeta`
+or request headers. Plan for the features the conversation will use; start a new
+thread with full history if a later turn needs additional beta headers.
+
+Threads expire five minutes after their last request and can become unavailable
+earlier. Inspect `APICallError.data.error.details.error_code` (after narrowing the
+unknown `data` value). On `thread_not_found`, `thread_already_continued`, or
+`thread_continue_in_flight`, replay the full conversation once with
+`thread: { type: 'create' }`, including the original system prompt and tools.
+Do not treat every 404 as an expired thread. Remove cache breakpoints from older
+replayed messages to stay within Anthropic's four-breakpoint limit. If the
+conversation cannot be stored, send the full history without `thread`.
+
+Continue only from the latest response ID, which can be continued once. With
+`streamText`, fully consume the stream before using `await result.response` to
+continue. Check that `await result.finishReason` is not `'interrupted'` before continuing.
+A partial or aborted stream must not be treated as a completed turn.
+If a stream drops, recovery is the application's responsibility; don't blindly
+append a replay to output already shown to the user.
+
+To change the system prompt, tools, model, thinking, tool choice, output format,
+context management, top-level cache control, or beta headers, start a new thread
+with the full history. Fixed fields must otherwise have the same values on every
+request. Send MCP configuration and container IDs on each request that needs them.
+After a fallback model responds, start a new thread with the full history. Detect
+this through a `fallback_message` entry in
+`providerMetadata.anthropic.iterations`. After a refusal (`finishReason ===
+'content-filter'` or `rawFinishReason === 'refusal'`), start a new thread with the
+refused turn removed or rephrased.
+
+On models that bind preserved thinking to the prompt prefix, changing system
+instructions or tools can invalidate earlier reasoning. Remove the earlier
+reasoning parts, or set `sendReasoning: false`, when creating that new thread.
+
+The provider-level interface accepts empty continuation prompts for `pause_turn`,
+but `generateText` and `streamText` currently reject empty `messages`. Check
+`rawFinishReason === 'pause_turn'` to detect this case. Resuming an empty turn
+requires using the provider-level `doGenerate` or `doStream` interface with the
+same fixed settings; the agent example above does not handle paused server turns.
+
+The `@ai-sdk/anthropic` provider supports this beta on the native Claude API and
+compatible Anthropic-managed endpoints. Anthropic's Claude Platform on AWS and
+Anthropic-managed Google Cloud are distinct from Amazon Bedrock and Vertex AI.
+The direct `@ai-sdk/anthropic-aws` provider supports message threads; with SigV4,
+use the same IAM role or IAM user throughout the thread.
+
+`@ai-sdk/amazon-bedrock/anthropic` and `@ai-sdk/google-vertex/anthropic` do not
+support message threads.
+
+Threads do not support Message Batches, compaction, or context editing other than
+`clear_thinking_20251015` with `keep: 'all'`. They are not eligible for zero data
+retention or HIPAA readiness. Contents are encrypted in memory, never written to
+durable storage, and deleted within one hour of their last use. There is no API
+to list, read, or delete threads. See Anthropic's documentation for platform
+availability and all limitations.
+
+### Streaming heartbeats
+
+To receive typed Anthropic heartbeat events, set
+`providerOptions.anthropic.includePings: true`. This option defaults to `false`
+and is handled locally; it is not sent in the Anthropic request body.
+
+```ts
+const result = streamText({
+  model: anthropic('claude-haiku-4-5'),
+  prompt: 'Explain how rainbows form.',
+  providerOptions: { anthropic: { includePings: true } },
+});
+
+for await (const part of result.stream) {
+  if (part.type === 'ping') console.log('Provider is still connected.');
+}
+```
+
+Pings are transient stream events. They do not contain generated output, change
+usage, reset model-output timeouts, or become response content. They are omitted
+from text projections and UI message streams. Raw pings remain available through
+`include.rawChunks` independently of this option. Workflow durable streams record stream parts, including
+pings, even though pings are excluded from generated content and UI messages.
+This option applies to the Anthropic Messages implementation (including wrappers
+that use it); Amazon Bedrock Converse does not emit typed Anthropic pings.
+
+Enable this option only when all normalized stream consumers support the `ping`
+part. In particular, a Gateway server must negotiate support before forwarding
+these parts to older SDK clients. This option does not add transport keepalives to
+UI responses; applications can send SSE comments at their transport boundary.
+
 ### Provider options
 
 The following optional provider options are available for Anthropic models:
+
+- `thread` _object_
+
+  Optional. Use `{ type: 'create' }` to create a short-lived server-side message
+  thread, or `{ type: 'continue', previousMessageId: string }` to continue one.
+  The required beta header is added automatically. See [Message Threads](#message-threads).
+
+- `includePings` _boolean_
+
+  Optional. Defaults to `false`. Emit typed `ping` parts during streaming without
+  enabling raw chunks. See [Streaming heartbeats](#streaming-heartbeats).
 
 - `disableParallelToolUse` _boolean_
 
@@ -273,6 +459,18 @@ The following optional provider options are available for Anthropic models:
 
   Optional. See [Fast Mode section](#fast-mode) for more details.
 
+- `serviceTier` _"auto" | "standard_only"_
+
+  Optional. Selects whether to use priority capacity when available (`"auto"`)
+  or standard capacity only (`"standard_only"`), sent as `service_tier`.
+  MiniMax uses its own `"standard"` and `"priority"` values. A tier belonging
+  to another known provider is omitted with an unsupported-setting warning.
+  See [Anthropic service tiers](https://platform.claude.com/docs/en/api/service-tiers).
+
+  The applied tier, when returned by the API, is available as
+  `providerMetadata.anthropic.serviceTier` for generation, streaming and batch
+  results. The original `usage.service_tier` remains in the raw usage metadata.
+
 - `inferenceGeo` _"us" | "global"_
 
   Optional. See [Data Residency section](#data-residency) for more details.
@@ -290,7 +488,7 @@ The following optional provider options are available for Anthropic models:
   Determines how structured outputs are generated. Optional.
   - `"outputFormat"`: Use the `output_format` parameter to specify the structured output format.
   - `"jsonTool"`: Use a special `"json"` tool to specify the structured output format.
-  - `"auto"`: Use `"outputFormat"` when supported, otherwise fall back to `"jsonTool"` (default).
+  - `"auto"`: Use `"outputFormat"` when the model and schema support it, otherwise fall back to `"jsonTool"` (default). Schemas with recursive references, open objects, or more than ten optional properties use the JSON-tool fallback to avoid rejected requests or lost data.
 
 - `metadata` _object_
 
@@ -350,8 +548,8 @@ const result = streamText({
 });
 ```
 
-For `claude-sonnet-5-5`, `claude-opus-5-5`, and `claude-fable-5-1`, the
-default `"auto"` mode uses native structured outputs through
+For `claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5-1`, and
+`claude-fable-5-2`, the default `"auto"` mode uses native structured outputs through
 `output_config.format`. These models reject forced tool use, so the
 `"jsonTool"` mode cannot be used with them. If you
 request `"jsonTool"` anyway, the provider falls back to `"outputFormat"` and
@@ -364,7 +562,21 @@ schemas with open objects such as maps (`additionalProperties` set to a schema
 or `true`), which native structured outputs would return as `{}`.
 Likewise, a `required` or named `toolChoice` is downgraded to
 `auto` with a warning; instruct the model to use the tool in your prompt and
-verify that a tool call was made.
+verify that a tool call was made. When a named choice falls back to `auto`,
+inline tool additions must use the selected tool's name. Conflicting additions,
+including definitions replayed from conversation history, cause an
+`InvalidArgumentError` before the request is sent.
+
+The JSON-tool fallback limits which application tools are available:
+`toolChoice: 'none'` sends only the internal JSON response tool, and a named tool
+choice sends only that application tool alongside the JSON response tool. The
+fallback can produce a JSON response without calling the named application tool;
+verify the selected call if your application requires it.
+These restrictions also apply to inline tool definitions: a named choice allows
+only additions with the selected tool's name, and `toolChoice: 'none'` rejects
+all inline additions. Conflicting definitions cause an `InvalidArgumentError`
+before the request is sent. Tool changes on the initial system message remain
+ignored with a warning.
 
 When the JSON tool cannot be forced (for example with manual thinking) and the
 model answers in text without calling it, the text of its final answer is
@@ -372,7 +584,7 @@ returned. Text before a tool call is still dropped.
 
 ### Effort
 
-Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, `claude-sonnet-5`, `claude-sonnet-5-5`, and `claude-haiku-5-5` additionally support `xhigh` for maximum reasoning effort.
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, `claude-fable-5-2`, `claude-sonnet-5`, `claude-sonnet-5-5`, and `claude-haiku-5-5` additionally support `xhigh` for maximum reasoning effort.
 
 On `claude-opus-5` and `claude-haiku-5-5`, thinking can only be disabled at effort levels up to and including `high`. When you combine `thinking: { type: 'disabled' }` with `effort: 'xhigh'` or `effort: 'max'`, the AI SDK lowers the effort to `high` and emits a warning instead of sending a request that the API would reject.
 
@@ -384,6 +596,13 @@ thinks. Unlike `claude-sonnet-5-5`, thinking can still be turned off with
 `thinking: { type: 'disabled' }`, but only at `low`, `medium`, and `high` effort.
 Start at `medium` effort and test other levels rather than carrying over the
 settings you used on `claude-haiku-4-5`.
+
+On `claude-fable-5-2`, thinking is always adaptive and cannot be disabled. It
+supports `low`, `medium`, `high` (the API default), `xhigh`, and `max` effort.
+The `medium` and `xhigh` levels behave differently than on `claude-fable-5-1`,
+so start at `high` and re-test `medium` and your current setting rather than
+carrying over the effort you tuned for `claude-fable-5-1`. Reserve `xhigh` for
+the hardest long-running work where you have measured a gain.
 
 On `claude-opus-5-5`, thinking is always adaptive and cannot be disabled, so
 `effort` is the main control for latency and cost. The API default effort for
@@ -679,8 +898,8 @@ const { text } = await generateText({
 
 ##### Adaptive-Only Models
 
-`claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5`, and
-`claude-fable-5-1` always run adaptive thinking. The API rejects
+`claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`,
+and `claude-fable-5-2` always run adaptive thinking. The API rejects
 `thinking: { type: 'disabled' }` and budget-based
 `thinking: { type: 'enabled' }` for these models. To keep existing code
 working, the provider:
@@ -781,8 +1000,8 @@ console.log(text);
 
 ##### Thinking Updates
 
-Use `display: 'updates'` with `claude-sonnet-5-5`, `claude-opus-5-5`, or
-`claude-fable-5-1` to stream thinking summaries between tool calls. These models
+Use `display: 'updates'` with `claude-sonnet-5-5`, `claude-opus-5-5`,
+`claude-fable-5-1`, or `claude-fable-5-2` to stream thinking summaries between tool calls. These models
 return progress notes between tool calls as thinking blocks rather than text, so
 without this setting a long tool-calling turn can look silent. The provider adds
 the required `thinking-display-updates-2026-08-18` beta header automatically:
@@ -810,7 +1029,28 @@ const result = streamText({
 
 ##### Thinking Binding Controls
 
-Fable 5.1, Opus 5.5, and Sonnet 5.5 can recover from a thinking-block prefix
+Fable 5.2, Fable 5.1, Opus 5.5, and Sonnet 5.5 use preserved thinking. Each
+thinking block from an earlier assistant turn is bound to the request content
+before it: the system prompt, the tools, and the earlier messages. If that
+content changes between requests, the thinking blocks after the change become
+invalid. By default, the API then rejects the request with a 400 error ("The
+block is bound to a different conversation"). Keep the message history
+append-only, and keep the system prompt and tools stable, where you can.
+
+This also applies inside a single multi-step `generateText` or `streamText`
+call. When `prepareStep` returns a different `system`, `activeTools`, or
+`messages` for a later step, the thinking from the earlier steps is sent with
+the changed content, and the next step fails. Editing or removing earlier
+messages between turns, or changing the system prompt or tools between turns,
+has the same effect.
+
+If your application changes this content, set
+`blockBinding.prefixMismatchBehavior` to `drop_block` (see below). The API then
+drops the invalid thinking blocks instead of rejecting the request. The model
+thinks again for the dropped context, which can increase output token usage, so
+measure token usage on your own workloads before you rely on it.
+
+Fable 5.2, Fable 5.1, Opus 5.5, and Sonnet 5.5 can recover from a thinking-block prefix
 mismatch by dropping the mismatched block. Set
 `blockBinding.prefixMismatchBehavior` to `drop_block`, or set it to `error` to
 reject the request. You can provide block binding by itself to preserve the
@@ -875,6 +1115,9 @@ the selected tool is sent. This also applies when the top-level `reasoning`
 option enables manual thinking, including when structured output uses the
 internal JSON response tool. Tool use is no longer guaranteed: instruct the
 model to use the tool in your prompt and verify that a tool call was made.
+Inline tool additions must use the selected tool's name when a named choice
+falls back to `auto`. Conflicting additions, including definitions replayed from
+conversation history, cause an `InvalidArgumentError` before the request is sent.
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
@@ -1446,10 +1689,10 @@ const computerTool = anthropic.tools.computer_20251124({
 
 <Note>
   Use `computerToolset_20260801` for Claude Sonnet 5.5 and Opus 5.5 (required),
-  Opus 5, Sonnet 5, Fable 5, Fable 5.1, and Opus 4.8. Use `computer_20251124`
-  for Claude Opus 4.5 through Opus 4.7, which support the zoom action. Use
-  `computer_20250124` for Claude Sonnet 4.5, Haiku 4.5, Opus 4.1, Sonnet 4, Opus
-  4, and Sonnet 3.7.
+  Opus 5, Sonnet 5, Fable 5, Fable 5.1, Fable 5.2, and Opus 4.8. Use
+  `computer_20251124` for Claude Opus 4.5 through Opus 4.7, which support the
+  zoom action. Use `computer_20250124` for Claude Sonnet 4.5, Haiku 4.5, Opus
+  4.1, Sonnet 4, Opus 4, and Sonnet 3.7.
 </Note>
 
 #### Computer Toolset
@@ -1464,7 +1707,13 @@ return several actions in one turn, each as its own tool call.
 The API returns each action as a separate `tool_use` block with
 `toolset_name: 'computer'`. The AI SDK maps every action to the toolset tool and
 passes the action name as `action`, so `execute` receives the same input shape
-as the older computer tools:
+as the older computer tools.
+
+The SDK preserves the returned member name as `action` and rejects disabled or
+unavailable members before emitting tool calls, including during streaming.
+Disabled members are also rejected by the tool's local input schema.
+
+For example:
 
 ```ts
 const computerTool = anthropic.tools.computerToolset_20260801({
@@ -1846,8 +2095,8 @@ This sends `tool_reference` blocks to Anthropic, which loads the corresponding d
 
 ### Mid-Conversation System Controls
 
-With `claude-sonnet-5-5`, `claude-opus-5-5`, and `claude-fable-5-1`, use an
-empty system message to change effort from the next user turn. A separate
+With `claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5-1`, and
+`claude-fable-5-2`, use an empty system message to change effort from the next user turn. A separate
 system message containing text can provide a turn-scoped reminder with
 `clearAt: 'next_user_message'`: its text applies until the next user message. Keep the reminder after a user turn and
 before an assistant turn, or at the end of the messages array.
@@ -1966,7 +2215,61 @@ const result = await generateText({
 });
 ```
 
-To change a tool's definition, remove the old definition at the end of one request, then carry the conversation forward with the updated definition in `tools` on the next request.
+#### Defining Tools by Value
+
+A `tool_addition` can also define the tool by value with `tool`, in the same shape as an entry of the `tools` option. The tool does not need to be declared in `tools` up front, which lets you introduce tools that did not exist when the conversation started, for example after an MCP server connects. Defining a tool under an existing name replaces the earlier definition from that point on, so this also changes a tool's schema mid-conversation. The required `inline-tools-2026-09-15` beta header is added automatically.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-opus-4-8'),
+  // required for system messages inside `messages`:
+  allowSystemInMessages: true,
+  messages: [
+    { role: 'user', content: 'What is the weather forecast for Paris?' },
+    {
+      role: 'system',
+      content: '',
+      providerOptions: {
+        anthropic: {
+          toolChanges: [
+            {
+              type: 'tool_addition',
+              tool: {
+                type: 'function',
+                name: 'get_forecast',
+                description: 'Get 5-day forecast',
+                inputSchema: {
+                  type: 'object',
+                  properties: { city: { type: 'string' } },
+                  required: ['city'],
+                },
+              },
+            },
+          ],
+        },
+      },
+    },
+  ],
+});
+```
+
+<Note>
+  A tool defined by value is only known to the model. It is not part of the
+  `tools` option, so functions like `generateText` cannot execute its calls. Use
+  it when you handle the tool calls yourself, or declare the tool in `tools` and
+  add it by reference with `toolName` to have the AI SDK execute it.
+  `inputSchema` is a plain JSON Schema object.
+</Note>
+
+<Note>
+  The computer use tools cannot be defined in a message. Declare them in `tools`
+  and add them by reference with `toolName`. The AI SDK ignores such an addition
+  and emits a warning. A `tool_removal` always references the tool by
+  `toolName`.
+</Note>
 
 <Note>
   Tool changes are not supported on the initial system message. The AI SDK
@@ -2161,6 +2464,45 @@ const result = await generateText({
 ```
 
 Supported file types include CSV, Excel, JSON, XML, images (JPEG, PNG, GIF, WebP), and text files.
+
+#### Managing Files
+
+`anthropic.files()` also supports metadata reads, generated-file downloads, and deletion directly through its optional FilesV4 methods:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { uploadFile } from 'ai';
+
+const files = anthropic.files();
+const { providerReference } = await uploadFile({
+  api: files,
+  data: { type: 'text', text: 'Notes for Claude.' },
+  filename: 'notes.txt',
+});
+
+try {
+  // These optional FilesV4 operations are supported by Anthropic.
+  const metadata = await files.getFileMetadata!({ file: providerReference });
+  console.log(metadata.filename, metadata.mediaType, metadata.byteSize);
+} finally {
+  await files.deleteFile!({ file: providerReference });
+}
+```
+
+For a file generated by code execution or a skill, pass its file ID as the Anthropic provider reference:
+
+```ts
+const generatedFile = { anthropic: 'file_generated_by_code_execution' };
+const metadata = await files.getFileMetadata!({ file: generatedFile });
+if (metadata.providerMetadata?.anthropic?.downloadable === true) {
+  const download = await files.downloadFile!({ file: generatedFile });
+  const bytes = await new Response(download.content).arrayBuffer();
+}
+```
+
+Downloads return a `ReadableStream<Uint8Array>` and the response media type when available. Anthropic only allows downloads when `downloadable` is `true`; downloading a file you uploaded returns an API error. Metadata and deletion work for both uploaded and generated files. Returned standard metadata includes `filename`, `mediaType`, `byteSize`, `createdAt`, and `expiresAt` when available; `providerMetadata.anthropic` uses the same camelCase fields for uploads and metadata reads, including `downloadable`.
+
+All operations accept `abortSignal` and per-call `headers`. The provider retains its existing Files beta header by default; per-call headers can override it. Anthropic's current Files API also supports requests without that beta, which may return additional metadata such as expiration.
 
 #### Error Handling
 
@@ -2430,6 +2772,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 | `claude-sonnet-5-5` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-sonnet-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-haiku-5-5`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-fable-5-2`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-fable-5-1`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-fable-5`    | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-opus-4-8`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |

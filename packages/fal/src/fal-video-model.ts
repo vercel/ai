@@ -1,3 +1,4 @@
+import { getFalVideoModelEntry } from './fal-model-catalog';
 import {
   AISDKError,
   APICallError,
@@ -44,7 +45,8 @@ export class FalVideoModel implements VideoModelV4 {
   }
 
   private get normalizedModelId(): string {
-    return this.modelId.replace(/^fal-ai\//, '').replace(/^fal\//, '');
+    return getFalVideoModelEntry(this.modelId).requestConfig.video
+      .normalizedModelId;
   }
 
   constructor(
@@ -175,7 +177,7 @@ export class FalVideoModel implements VideoModelV4 {
       body.duration = `${options.duration}s`;
     }
 
-    if (options.seed) {
+    if (options.seed != null) {
       body.seed = options.seed;
     }
 

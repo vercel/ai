@@ -40,6 +40,9 @@ const appServer = createCodexAppServerRuntime();
 await runBridge<StartMessage>({
   bridgeType: 'codex',
   bridgeStateDir,
+  ...(args.hostDisconnectTimeoutMs !== undefined
+    ? { hostDisconnectTimeoutMs: args.hostDisconnectTimeoutMs }
+    : {}),
   onStart: runTurn,
   onStop: async () => {
     const data = threadState.id ? { threadId: threadState.id } : {};
@@ -107,17 +110,6 @@ type CodexRuntime = {
 };
 
 function resolveCodexRuntime({ start }: { start: StartMessage }): CodexRuntime {
-  const codexConfig: Record<string, unknown> = {
-    ...start.codexConfig,
-    developer_instructions: [
-      start.instructions,
-      'Only respond with your `final` message once you have fully addressed the user request.',
-    ]
-      .filter((instruction): instruction is string => Boolean(instruction))
-      .join('\n\n'),
-    model_reasoning_summary: 'detailed',
-  };
-
   const gatewayBaseUrl = procEnv.AI_GATEWAY_BASE_URL;
   const hasGatewayAuth = Boolean(procEnv.AI_GATEWAY_API_KEY || gatewayBaseUrl);
   if (hasGatewayAuth && !gatewayBaseUrl) {
@@ -140,15 +132,16 @@ function resolveCodexRuntime({ start }: { start: StartMessage }): CodexRuntime {
     start.model && hasGatewayAuth && !start.model.includes('/')
       ? `openai/${start.model}`
       : start.model;
-  /*
-   * AI Gateway only returns populated reasoning summaries for its
-   * creator-qualified model IDs. Codex treats qualified IDs as custom model
-   * metadata, so its reasoning-summary capability must also be forced on for
-   * the OpenAI Gateway route.
-   */
-  if (hasGatewayAuth && codexModel?.startsWith('openai/')) {
-    codexConfig.model_supports_reasoning_summaries = true;
-  }
+  const codexConfig: Record<string, unknown> = {
+    model_reasoning_summary: 'detailed',
+    ...start.codexConfig,
+    developer_instructions: [
+      start.instructions,
+      'Only respond with your `final` message once you have fully addressed the user request.',
+    ]
+      .filter((instruction): instruction is string => Boolean(instruction))
+      .join('\n\n'),
+  };
   if (apiBaseUrl) {
     codexConfig.preferred_auth_method = 'apikey';
     codexConfig.model_provider = 'agent_bridge_openai';
@@ -187,16 +180,23 @@ function resolveCodexRuntime({ start }: { start: StartMessage }): CodexRuntime {
 function parseArgs(args: string[]): {
   workdir?: string;
   bridgeStateDir?: string;
+  hostDisconnectTimeoutMs?: number;
 } {
   const out: {
     workdir?: string;
     bridgeStateDir?: string;
+    hostDisconnectTimeoutMs?: number;
   } = {};
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--workdir' && i + 1 < args.length) {
       out.workdir = args[++i];
     } else if (args[i] === '--bridge-state-dir' && i + 1 < args.length) {
       out.bridgeStateDir = args[++i];
+    } else if (
+      args[i] === '--host-disconnect-timeout-ms' &&
+      i + 1 < args.length
+    ) {
+      out.hostDisconnectTimeoutMs = Number(args[++i]);
     }
   }
   return out;

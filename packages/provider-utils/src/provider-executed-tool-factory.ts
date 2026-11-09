@@ -1,6 +1,7 @@
 import type { FlexibleSchema } from './schema';
 import type { Context } from './types/context';
 import { tool, type ProviderExecutedTool, type Tool } from './types/tool';
+import { withTelemetryRedaction } from './telemetry-redaction';
 /**
  * A provider-executed tool is a tool for which the provider executes the tool.
  */
@@ -27,6 +28,7 @@ export function createProviderExecutedToolFactory<
   inputSchema,
   outputSchema,
   supportsDeferredResults,
+  redactArgs,
 }: {
   id: `${string}.${string}`;
   inputSchema: FlexibleSchema<INPUT>;
@@ -43,6 +45,8 @@ export function createProviderExecutedToolFactory<
    * @default false
    */
   supportsDeferredResults?: boolean;
+  /** Provider-owned telemetry view of the tool configuration. */
+  redactArgs?: (args: Record<string, unknown>) => Record<string, unknown>;
 }): ProviderExecutedToolFactory<INPUT, OUTPUT, ARGS, CONTEXT> {
   return ({
     onInputStart,
@@ -58,7 +62,8 @@ export function createProviderExecutedToolFactory<
       type: 'provider',
       isProviderExecuted: true,
       id,
-      args,
+      args:
+        redactArgs == null ? args : withTelemetryRedaction(args, redactArgs),
       inputSchema,
       outputSchema,
       onInputStart,

@@ -1,10 +1,17 @@
-import { resolve, type FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  fetchWithValidatedEndpoint,
+  isBrowserRuntime,
+  isSameOrigin,
+  resolve,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
 import {
   generateAuthToken,
   type GoogleCredentials,
 } from '../../edge/google-vertex-auth-edge';
 import {
   createGoogleVertexMaas as createVertexMaasOriginal,
+  loadGoogleVertexMaasBaseURL,
   type GoogleVertexMaasProvider,
   type GoogleVertexMaasProviderSettings as GoogleVertexMaasProviderSettingsOriginal,
 } from '../google-vertex-maas-provider';
@@ -31,6 +38,25 @@ export function createGoogleVertexMaas(
 ): GoogleVertexMaasProvider {
   // Create a custom fetch wrapper that adds auth headers
   const customFetch: FetchFunction = async (url, init) => {
+    // Credentials only go to the MaaS API. Other URLs, e.g. image URLs from a
+    // response and the hops of their redirects, are fetched without them:
+    const href =
+      typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
+    if (!isSameOrigin(href, loadGoogleVertexMaasBaseURL(options))) {
+      // Preserve the browser-only retry after an opaque manual redirect.
+      if (isBrowserRuntime() && init?.redirect === 'follow') {
+        return (options.fetch ?? fetch)(url, init);
+      }
+
+      // Preserve the default DNS-pinned transport behind this auth wrapper.
+      return fetchWithValidatedEndpoint({
+        url: href,
+        init,
+        fetch: options.fetch,
+        redirect: 'manual',
+      });
+    }
+
     const token = await generateAuthToken(options.googleCredentials);
     const resolvedHeaders = await resolve(options.headers);
     const authHeaders = {

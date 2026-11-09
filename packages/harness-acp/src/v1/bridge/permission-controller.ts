@@ -6,6 +6,7 @@ import type {
   ToolCallUpdate,
 } from '@agentclientprotocol/sdk';
 import type { HostToolCall } from './host-tool-call-resolver';
+import { areACPToolLocationsTrusted } from './permission-locations';
 
 type PendingPermission = {
   cancel(): void;
@@ -16,6 +17,7 @@ let permissionRequestCounter = 0;
 export function createACPPermissionController({
   turn,
   sessionId,
+  workDir,
   permissionMode,
   hasPermissionModeMapping,
   emitToolCall,
@@ -24,6 +26,7 @@ export function createACPPermissionController({
 }: {
   turn: BridgeTurn;
   sessionId: string;
+  workDir: string;
   permissionMode: HarnessV1PermissionMode;
   hasPermissionModeMapping: boolean;
   emitToolCall: (options: { toolCall: ToolCallUpdate }) => void;
@@ -88,13 +91,19 @@ export function createACPPermissionController({
           },
         };
       }
-      if (
+      const autoApprove =
         !hasPermissionModeMapping &&
         shouldAutoApprove({
           permissionMode,
           kind: request.toolCall.kind,
-        })
-      ) {
+        }) &&
+        (permissionMode === 'allow-all' ||
+          (await areACPToolLocationsTrusted({
+            toolCall: request.toolCall,
+            workDir,
+          })));
+      if (generation !== cancellationGeneration) return cancelled();
+      if (autoApprove) {
         return {
           outcome: {
             outcome: 'selected',
