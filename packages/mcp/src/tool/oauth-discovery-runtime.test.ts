@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMCPClient } from './mcp-client';
 import {
   type OAuthClientProvider,
+  exchangeAuthorization,
+  refreshAuthorization,
+  registerClient,
   discoverAuthorizationServerMetadata,
   discoverOAuthProtectedResourceMetadata,
 } from './oauth';
@@ -95,6 +98,65 @@ describe.each([
         ),
       ).toBe(true);
       expect(provider.redirectToAuthorization).not.toHaveBeenCalled();
+    },
+  );
+
+  describe.each(['registration', 'code exchange', 'refresh'] as const)(
+    '%s endpoints',
+    operation => {
+      const request = (trustedOrigin?: string) => {
+        const metadata = {
+          ...authorizationMetadata,
+          registration_endpoint: `${issuer}/register`,
+        };
+        const clientInformation = { client_id: 'example-client' };
+        if (operation === 'registration') {
+          return registerClient(issuer, {
+            metadata,
+            clientMetadata: {
+              redirect_uris: ['https://app.example.com/callback'],
+            },
+            trustedOrigin,
+          });
+        }
+        if (operation === 'code exchange') {
+          return exchangeAuthorization(issuer, {
+            metadata,
+            clientInformation,
+            authorizationCode: 'unused',
+            codeVerifier: 'unused',
+            redirectUri: 'https://app.example.com/callback',
+            trustedOrigin,
+          });
+        }
+        return refreshAuthorization(issuer, {
+          metadata,
+          clientInformation,
+          refreshToken: 'unused',
+          trustedOrigin,
+        });
+      };
+
+      it('blocks the untrusted endpoint before native fetch', async () => {
+        await expect(request()).rejects.toThrow(
+          /requires a custom fetch with connect-time DNS validation/,
+        );
+        expect(fetchMock).not.toHaveBeenCalled();
+      });
+
+      it('preserves an explicitly configured origin', async () => {
+        fetchMock.mockResolvedValueOnce(
+          Response.json({
+            client_id: 'example-client',
+            redirect_uris: ['https://app.example.com/callback'],
+            access_token: 'example-token',
+            token_type: 'Bearer',
+          }),
+        );
+
+        await expect(request(issuer)).resolves.toBeDefined();
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+      });
     },
   );
 

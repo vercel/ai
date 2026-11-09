@@ -292,7 +292,8 @@ it does not replace the credential binding required for confidential clients.
 
 On Node.js, OAuth discovery validates and pins DNS results for untrusted
 URLs. On Bun, Deno, and other server runtimes without this transport, discovery
-blocks untrusted authorization-server URLs and redirects unless you supply a
+blocks untrusted authorization-server URLs, redirects, token endpoints, and
+registration endpoints unless you supply a
 custom `fetch` with equivalent connect-time address validation and DNS pinning.
 Passing global `fetch` explicitly does not opt out of this requirement. The
 configured MCP server origin remains supported, including local endpoints;

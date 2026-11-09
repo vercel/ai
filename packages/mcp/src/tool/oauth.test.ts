@@ -6,9 +6,9 @@ import {
   buildDiscoveryUrls,
   discoverAuthorizationServerMetadata as discoverAuthorizationServerMetadataImpl,
   startAuthorization,
-  exchangeAuthorization,
-  refreshAuthorization,
-  registerClient,
+  exchangeAuthorization as exchangeAuthorizationImpl,
+  refreshAuthorization as refreshAuthorizationImpl,
+  registerClient as registerClientImpl,
   auth as authImpl,
   selectResourceURL,
   type OAuthClientProvider,
@@ -57,6 +57,21 @@ const auth = (
   provider: OAuthClientProvider,
   options: Parameters<typeof authImpl>[1],
 ) => authImpl(provider, { fetchFn: mockFetch, ...options });
+
+const exchangeAuthorization = (
+  serverUrl: Parameters<typeof exchangeAuthorizationImpl>[0],
+  options: Parameters<typeof exchangeAuthorizationImpl>[1],
+) => exchangeAuthorizationImpl(serverUrl, { fetchFn: mockFetch, ...options });
+
+const refreshAuthorization = (
+  serverUrl: Parameters<typeof refreshAuthorizationImpl>[0],
+  options: Parameters<typeof refreshAuthorizationImpl>[1],
+) => refreshAuthorizationImpl(serverUrl, { fetchFn: mockFetch, ...options });
+
+const registerClient = (
+  serverUrl: Parameters<typeof registerClientImpl>[0],
+  options: Parameters<typeof registerClientImpl>[1],
+) => registerClientImpl(serverUrl, { fetchFn: mockFetch, ...options });
 
 beforeEach(() => {
   mockFetch.mockReset();
