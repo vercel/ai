@@ -448,6 +448,13 @@ const vertexAnthropicModels = {
     streaming: true,
     computerUse: true,
   },
+  'claude-fable-5-2': {
+    image: true,
+    objectGeneration: true,
+    tools: true,
+    streaming: true,
+    computerUse: true,
+  },
   'claude-3-7-sonnet@20250219': {
     image: true,
     objectGeneration: true,
