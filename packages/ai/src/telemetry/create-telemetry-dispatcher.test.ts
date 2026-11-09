@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { VERSION } from '../version';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
+import { redactTelemetryCredentials } from './redact-telemetry-credentials';
 import type { Telemetry } from './telemetry';
 import { registerTelemetry } from './telemetry-registry';
 
@@ -518,6 +519,48 @@ describe('createTelemetryDispatcher', () => {
   });
 
   describe('executeLanguageModelCall', () => {
+    it('redacts provider error metadata for nested integrations and preserves the application error', async () => {
+      const error = Object.assign(new Error('provider failed'), {
+        requestBodyValues: {
+          tools: [{ type: 'mcp', authorization: 'test-token' }],
+        },
+      });
+      const observed: unknown[] = [];
+      const integration: Telemetry = {
+        executeLanguageModelCall: async ({ execute }) => {
+          try {
+            return await execute();
+          } catch (error) {
+            observed.push(error);
+            throw error;
+          }
+        },
+      };
+      const dispatcher = createTelemetryDispatcher({
+        telemetry: { integrations: [integration, integration] },
+      });
+
+      await expect(
+        dispatcher.executeLanguageModelCall!({
+          callId: 'call-1',
+          execute: async () => {
+            throw error;
+          },
+        }),
+      ).rejects.toBe(error);
+      expect(observed).toHaveLength(2);
+      for (const observedError of observed) {
+        expect(observedError).toBeInstanceOf(Error);
+        expect(observedError).toMatchObject({
+          message: 'provider failed',
+          requestBodyValues: {
+            tools: [{ type: 'mcp', authorization: '[redacted]' }],
+          },
+        });
+      }
+      expect(error.requestBodyValues.tools[0].authorization).toBe('test-token');
+    });
+
     it('passes through when no integrations implement executeLanguageModelCall', async () => {
       const telemetry = createTelemetryDispatcher({
         telemetry: { integrations: { onStart: vi.fn() } },
@@ -830,5 +873,77 @@ describe('recordInputs / recordOutputs filtering', () => {
     expect(
       (vi.mocked(textIntegration.onEnd!).mock.calls[0][0] as any).text,
     ).toBe('generated reply');
+  });
+});
+
+describe('credential redaction', () => {
+  it.each([
+    ['openai.code_interpreter', 'container'],
+    ['openai.shell', 'environment'],
+  ])('redacts %s definitions and raw metadata without mutation', (id, key) => {
+    const secrets = [
+      { domain: 'example.com', name: 'KEY', value: 'test-secret' },
+    ];
+    const definition = {
+      type: 'provider',
+      id,
+      args: { [key]: { networkPolicy: { domainSecrets: secrets } } },
+    };
+    const body = {
+      model: 'test-model',
+      tools: [
+        {
+          type: id.slice(7),
+          [key]: { network_policy: { domain_secrets: secrets } },
+        },
+      ],
+    };
+    const metadata = { body };
+    const step = { request: metadata, response: metadata };
+    const original = {
+      tools: { renamed: definition },
+      stepTools: [definition],
+      request: metadata,
+      response: [metadata],
+      steps: [step],
+      finalStep: step,
+      error: { requestBodyValues: body },
+    };
+    const before = structuredClone(original);
+    const redacted = redactTelemetryCredentials(original);
+
+    expect(JSON.stringify(redacted)).not.toContain('test-secret');
+    expect(
+      redacted.tools.renamed.args[key].networkPolicy.domainSecrets,
+    ).toEqual([{ domain: 'example.com', name: 'KEY', value: '[redacted]' }]);
+    expect(redacted.request.body.model).toBe('test-model');
+    expect(redacted.request.body.tools[0]).toMatchObject({
+      [key]: {
+        network_policy: {
+          domain_secrets: [
+            { domain: 'example.com', name: 'KEY', value: '[redacted]' },
+          ],
+        },
+      },
+    });
+    expect(original).toEqual(before);
+  });
+
+  it('redacts MCP authorization and header values in definitions and metadata', () => {
+    const args = {
+      authorization: 'test-token',
+      headers: { Authorization: 'test-token', 'X-Key': 'test-key' },
+    };
+    const result = redactTelemetryCredentials({
+      tools: [{ type: 'provider', id: 'openai.mcp', args }],
+      request: { body: { tools: [{ type: 'mcp', ...args }] } },
+    });
+    const expected = {
+      authorization: '[redacted]',
+      headers: { Authorization: '[redacted]', 'X-Key': '[redacted]' },
+    };
+    expect(result.tools[0].args).toEqual(expected);
+    expect(result.request.body.tools[0]).toEqual({ type: 'mcp', ...expected });
+    expect(args.authorization).toBe('test-token');
   });
 });
