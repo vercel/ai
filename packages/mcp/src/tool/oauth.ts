@@ -481,6 +481,7 @@ async function fetchWithCorsRetry(
           fetch: fetchFn,
           trustedOrigin,
           redirect: 'manual',
+          requireDnsValidation: true,
         }),
       headers,
       trustedOrigin,

@@ -114,6 +114,15 @@ validation and connection pinning. Other runtimes do not expose Node's
 DNS/socket hooks, so server deployments on those runtimes should restrict
 network egress to private, loopback, link-local, and cloud-metadata ranges.
 
+MCP OAuth discovery requires a DNS-pinned transport for untrusted URLs on
+server runtimes. On Bun, Deno, Workers, and framework edge runtimes, it blocks
+untrusted authorization-server hosts and redirects unless you explicitly supply
+a custom fetch with equivalent connect-time validation. The configured MCP
+server origin and browser discovery remain supported. Direct callers of
+`fetchWithValidatedEndpoint` can opt into this policy with
+`requireDnsValidation: true`; other download helpers retain their existing
+runtime behavior.
+
 ## Hardening your deployment
 
 If your server fetches provider-supplied URLs and you want to close the DNS

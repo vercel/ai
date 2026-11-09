@@ -8,6 +8,7 @@ import {
 const originalFetch = globalThis.fetch;
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   globalThis.fetch = originalFetch;
   delete (globalThis as { window?: unknown }).window;
 });
@@ -41,6 +42,31 @@ describe('fetchWithValidatedEndpoint', () => {
       }),
     ).rejects.toThrow(DownloadError);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('preserves the default native-fetch behavior without strict DNS validation', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+    vi.stubGlobal('EdgeRuntime', 'edge-runtime');
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithValidatedEndpoint({ url: 'https://example.com/metadata' });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves browser fetch with strict DNS validation enabled', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+    vi.stubGlobal('EdgeRuntime', 'edge-runtime');
+    vi.stubGlobal('window', {});
+    vi.stubGlobal('document', {});
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithValidatedEndpoint({
+      url: 'https://example.com/metadata',
+      requireDnsValidation: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('uses redirect: error for credential-bearing requests', async () => {

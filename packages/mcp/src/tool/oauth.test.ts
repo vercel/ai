@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import {
   extractWWWAuthenticateParams,
   extractResourceMetadataUrl,
-  discoverOAuthProtectedResourceMetadata,
+  discoverOAuthProtectedResourceMetadata as discoverOAuthProtectedResourceMetadataImpl,
   buildDiscoveryUrls,
-  discoverAuthorizationServerMetadata,
+  discoverAuthorizationServerMetadata as discoverAuthorizationServerMetadataImpl,
   startAuthorization,
   exchangeAuthorization,
   refreshAuthorization,
   registerClient,
-  auth,
+  auth as authImpl,
   selectResourceURL,
   type OAuthClientProvider,
   type OAuthAuthorizationServerInformation,
@@ -34,7 +34,29 @@ vi.mock('pkce-challenge', () => ({
 }));
 
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+global.fetch = (input, init) => mockFetch(input, init);
+
+// Successful discovery fixtures explicitly provide their inert transport. Edge
+// runtimes now reject untrusted discovery through the native/global default.
+const discoverOAuthProtectedResourceMetadata = (
+  ...[serverUrl, options, fetchFn = mockFetch]: Parameters<
+    typeof discoverOAuthProtectedResourceMetadataImpl
+  >
+) => discoverOAuthProtectedResourceMetadataImpl(serverUrl, options, fetchFn);
+
+const discoverAuthorizationServerMetadata = (
+  serverUrl: Parameters<typeof discoverAuthorizationServerMetadataImpl>[0],
+  options: Parameters<typeof discoverAuthorizationServerMetadataImpl>[1] = {},
+) =>
+  discoverAuthorizationServerMetadataImpl(serverUrl, {
+    fetchFn: mockFetch,
+    ...options,
+  });
+
+const auth = (
+  provider: OAuthClientProvider,
+  options: Parameters<typeof authImpl>[1],
+) => authImpl(provider, { fetchFn: mockFetch, ...options });
 
 beforeEach(() => {
   mockFetch.mockReset();
