@@ -78,6 +78,12 @@ const gatewayProviderOptions = lazySchema(() =>
        */
       disallowPromptTraining: z.boolean().optional(),
       /**
+       * Route only to providers headquartered in these countries (ISO 3166-1
+       * alpha-2 codes, e.g. `['US', 'DE']`), or prefix every code with `!` to
+       * exclude countries instead (e.g. `['!US']`). A list can't mix the two.
+       */
+      headquarters: z.array(z.string()).optional(),
+      /**
        * The unique identifier for the entity against which quota is tracked.
        *
        * Used for quota management and enforcement purposes.
