@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.46
+
+### Patch Changes
+
+- c31e0a2: Require a DNS-pinned fetch for untrusted MCP OAuth discovery and metadata-derived token/registration URLs on server runtimes without a protected default transport. Preserve developer-configured endpoints and allow explicitly supplied fetch implementations that provide equivalent connect-time validation. Browser workers without a DOM follow the same explicit custom-fetch requirement.
+
 ## 3.0.45
 
 ### Patch Changes
