@@ -1,0 +1,109 @@
+---
+title: Ace Data Cloud
+description: Use Ace Data Cloud Chat Completions with the AI SDK OpenAI Compatible provider.
+---
+
+# Ace Data Cloud Provider
+
+[Ace Data Cloud](https://platform.acedata.cloud?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=provider_overview) provides a Chat Completions API that can be configured with the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the AI SDK and OpenAI Compatible provider:
+
+<InstallPackages packages="ai @ai-sdk/openai-compatible" />
+
+Create an application API key in [Ace Data Cloud Applications](https://platform.acedata.cloud/console/applications?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=provider_api_key). Sign in or register, then find **General application**. If it does not exist, choose **Initialize General Application**. Copy its API key, or use **Keys / Manage Keys → Create** for a separately named key. Check expiration, allowed APIs, usage limits, service access, and balance.
+
+Store the raw key in a server-side environment variable. Do not include the `Bearer ` prefix. An account-management token cannot replace an application API key.
+
+```bash
+export ACEDATACLOUD_API_KEY=your-application-api-key
+```
+
+## Provider Instance
+
+Create an Ace Data Cloud provider instance using `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const ace = createOpenAICompatible({
+  name: 'acedatacloud',
+  apiKey: process.env.ACEDATACLOUD_API_KEY,
+  baseURL: 'https://api.acedata.cloud/v1',
+  includeUsage: true,
+});
+```
+
+The `apiKey` setting sends an `Authorization: Bearer …` header. `includeUsage: true` requests a final usage frame for streaming responses.
+
+## Language Models
+
+Use the `.chatModel()` factory with a public Ace Data Cloud model ID:
+
+```ts
+const model = ace.chatModel('gpt-4o-mini');
+```
+
+Consult the [current model catalog and pricing](https://platform.acedata.cloud/models?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=provider_models) for available model IDs, capabilities, limits, and account access. A model being listed does not grant a particular application's key access to it.
+
+### Text Generation
+
+```ts
+import { generateText } from 'ai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const ace = createOpenAICompatible({
+  name: 'acedatacloud',
+  apiKey: process.env.ACEDATACLOUD_API_KEY,
+  baseURL: 'https://api.acedata.cloud/v1',
+  includeUsage: true,
+});
+
+const result = await generateText({
+  model: ace.chatModel('gpt-4o-mini'),
+  prompt: 'Explain an API in one sentence.',
+  maxOutputTokens: 64,
+  maxRetries: 0,
+});
+
+console.log(result.text);
+console.log(result.usage);
+```
+
+### Streaming
+
+```ts
+import { streamText } from 'ai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const ace = createOpenAICompatible({
+  name: 'acedatacloud',
+  apiKey: process.env.ACEDATACLOUD_API_KEY,
+  baseURL: 'https://api.acedata.cloud/v1',
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: ace.chatModel('gpt-4o-mini'),
+  prompt: 'Explain an API in one sentence.',
+  maxOutputTokens: 64,
+  maxRetries: 0,
+});
+
+for await (const text of result.textStream) process.stdout.write(text);
+console.log(await result.totalUsage);
+```
+
+Streaming usage is available only if the selected model returns a usage frame. Token usage is not a monetary receipt: check [usage history](https://platform.acedata.cloud/console/usages) for actual consumption and the account's current package rate. If a request times out after submission, reconcile the original request before submitting it again.
+
+## Scope
+
+This configuration explicitly uses Chat Completions at `/v1/chat/completions`. Model-specific support for tools, structured outputs, and media inputs varies. Native asynchronous image, music, and video services have separate generation and task-query contracts; they are outside this chat integration. They can be exposed as [MCP tools](/docs/ai-sdk-core/mcp-tools) in the same application.
+
+## Resources
+
+- [Ace Data Cloud Chat Completions documentation](https://platform.acedata.cloud/documents/openai-chat-completions?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=provider_docs)
+- [Ace Data Cloud model catalog](https://platform.acedata.cloud/models?utm_source=vercel_ai_sdk&utm_medium=integration&utm_campaign=evergreen&utm_content=provider_catalog)
+- [OpenAI Compatible provider](/providers/openai-compatible-providers)
