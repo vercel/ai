@@ -20,6 +20,7 @@ import { isDeepStrictEqual } from 'node:util';
 import {
   assertTrustedApplyPatchHook,
   createTrustedApplyPatchHook,
+  toTomlInline,
 } from './codex-tool-filtering-hook';
 
 type Emit = (message: Record<string, unknown>) => void;
@@ -77,8 +78,10 @@ export function createCodexAppServerRuntime(): {
   };
 
   const runTurn = async (options: RunTurnOptions): Promise<void> => {
-    const { start, turn, emit, workdir, threadId, codexModel, codexConfig } =
-      options;
+    const { start, turn, emit, workdir, threadId, codexModel } = options;
+    const { codexConfig, providerCliOverrides } = splitModelProviderConfig(
+      options.codexConfig,
+    );
     if (activeTurn != null) throw new Error('A Codex turn is already active.');
     const toolPolicy = resolveCodexBuiltinToolPolicy({
       builtinToolFiltering: start.builtinToolFiltering,
@@ -100,9 +103,13 @@ export function createCodexAppServerRuntime(): {
           }
         : {}),
     };
+    const cliOverrides = [
+      ...providerCliOverrides,
+      ...(trustedHook?.cliOverrides ?? []),
+    ];
     const processConfig = {
       thread: nextConfig,
-      cliOverrides: trustedHook?.cliOverrides ?? [],
+      cliOverrides,
     };
     if (client != null && !isDeepStrictEqual(loadedConfig, processConfig)) {
       await close();
@@ -131,9 +138,7 @@ export function createCodexAppServerRuntime(): {
     if (client == null) {
       const created = new CodexAppServerClient({
         executable: process.execPath,
-        args: createCodexAppServerArgs({
-          cliOverrides: trustedHook?.cliOverrides,
-        }),
+        args: createCodexAppServerArgs({ cliOverrides }),
         cwd: workdir,
         env: process.env,
         onNotification: notification => {
@@ -425,6 +430,36 @@ export function createCodexAppServerArgs({
     'app-server',
     '--stdio',
   ];
+}
+
+/*
+ * Codex app-server admits turn input only when a thread's provider matches
+ * the provider resolved from process-level configuration, which ignores
+ * per-thread config overrides. Provider selection and definitions therefore
+ * go on the app-server command line so threads and process agree.
+ */
+export function splitModelProviderConfig(
+  codexConfig: Record<string, unknown>,
+): {
+  codexConfig: Record<string, unknown>;
+  providerCliOverrides: string[];
+} {
+  const {
+    model_provider: modelProvider,
+    model_providers: modelProviders,
+    ...threadConfig
+  } = codexConfig;
+  return {
+    codexConfig: threadConfig,
+    providerCliOverrides: [
+      ...(modelProvider === undefined
+        ? []
+        : [`model_provider=${toTomlInline(modelProvider)}`]),
+      ...(modelProviders === undefined
+        ? []
+        : [`model_providers=${toTomlInline(modelProviders)}`]),
+    ],
+  };
 }
 
 export function createThreadParams({

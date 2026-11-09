@@ -182,7 +182,9 @@ describe('Pi with a scripted model', () => {
         expect.objectContaining({
           type: 'tool-result',
           toolName: 'read',
-          result: expect.stringContaining('GOOG: 123.45 USD'),
+          result: expect.objectContaining({
+            structuredContent: expect.stringContaining('GOOG: 123.45 USD'),
+          }),
         }),
       );
 

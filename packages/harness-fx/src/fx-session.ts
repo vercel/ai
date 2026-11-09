@@ -37,7 +37,7 @@ import {
   type FxSessionUpdate,
 } from './fx-runtime';
 import { createFxSkillsRuntime } from './fx-skills';
-import { resolveFxAuthentication } from './fx-subscription';
+import { resolveFxAuthentication, resolveFxModel } from './fx-subscription';
 import {
   fxJsonValue,
   fxToolRequiresApproval,
@@ -96,9 +96,7 @@ export async function createFxSession(options: {
       ? fxResumeStateSchema.parse(resume.data).stateFileName
       : undefined,
   });
-  const state: FxStoredState = resume
-    ? await store.load()
-    : { version: 1, sdkVersion: '0.0.14' };
+  const state: FxStoredState = resume ? await store.load() : { version: 1 };
   const authentication =
     freshAuthentication ??
     (await resolveFxAuthentication({
@@ -106,7 +104,6 @@ export async function createFxSession(options: {
       requiredProvider: state.provider ?? 'gateway',
     }));
   state.provider = authentication.provider;
-  state.sdkVersion = '0.0.14';
   const remote = createFxRemoteOps({
     sandbox,
     workDir: startOpts.sessionWorkDir,
@@ -638,6 +635,10 @@ export async function createFxSession(options: {
           },
         });
         signal.throwIfAborted();
+        const model = await resolveFxModel({
+          provider: authentication.provider,
+          model: opts.model,
+        });
         runtime = await createFxRuntime({
           ...(authentication.provider === 'gateway'
             ? { apiKey: authentication.apiKey }
@@ -660,7 +661,7 @@ export async function createFxSession(options: {
                   }
                 },
               }),
-          ...(opts.model ? { model: opts.model } : {}),
+          ...(model ? { model } : {}),
           ...(settings.effort ? { effort: settings.effort } : {}),
           ...serviceTierOptions,
           instructions: [
