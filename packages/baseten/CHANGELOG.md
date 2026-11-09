@@ -1,5 +1,46 @@
 # @ai-sdk/baseten
 
+## 2.1.65
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/openai-compatible@3.0.87
+  - @ai-sdk/provider@4.0.37
+
+## 2.1.64
+
+### Patch Changes
+
+- fecbbb0: Refactor Baseten model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+- c4a8b80: Avoid empty structured-output answers from Baseten's DeepSeek V4 Pro 0813 when reasoning is enabled. Inject JSON instructions and the schema into the prompt instead of enabling the broken JSON mode, preserving reasoning and SDK output validation. Emit a compatibility warning that the server is not enforcing the schema.
+- Updated dependencies [b63c06a]
+- Updated dependencies [646a7e3]
+  - @ai-sdk/openai-compatible@3.0.86
+
+## 2.1.63
+
+### Patch Changes
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [add01ab]
+- Updated dependencies [5f19ea5]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/openai-compatible@3.0.85
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 2.1.62
 
 ### Patch Changes

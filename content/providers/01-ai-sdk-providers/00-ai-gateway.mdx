@@ -227,6 +227,40 @@ started, AI SDK Core exposes it as a
 Use its `type`, `code`, `statusCode`, and `isRetryable` metadata to classify
 the failure without inspecting the Gateway's serialized error payload.
 
+## Image Models
+
+AI Gateway supports image generation through `generateImage`. To reduce peak
+memory when receiving large images, opt in to streaming base64 decoding:
+
+```ts
+import { generateImage } from 'ai';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+
+const { image } = await generateImage({
+  model: 'bfl/flux-kontext-pro',
+  prompt: 'A mountain lake at sunrise',
+  providerOptions: {
+    gateway: {
+      experimental_streamingImageDecoding: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+
+console.log(image.uint8Array.byteLength);
+```
+
+The option defaults to `false`, preserving base64 strings in provider results.
+When enabled, canonical base64 images of at least 64 KiB are decoded while the
+response arrives. The model returns these images as `Uint8Array`; if a response
+mixes extracted bytes with smaller images, all images in that result become
+bytes. Images that cannot be extracted retain the regular decoding path.
+
+This experimental option changes what image-model middleware sees in
+`result.images`. `GeneratedFile` still provides both `uint8Array` and `base64`,
+but reading `base64` can require re-encoding. Validation errors contain short
+placeholders for extracted data. The option is handled by the client and is
+not sent to the Gateway service.
+
 ## Batch
 
 <Note type="warning">
@@ -534,6 +568,8 @@ const result = streamSpeech({
 
 ## Realtime Models
 
+For a trusted [server-owned connection](/docs/ai-sdk-core/realtime#server-owned-connections), `getServerWebSocketConfig()` reuses Gateway HTTP authentication, protocol, team and custom headers. Only the conversation intent is supported. The identity codec passes through normalized usage only when the Gateway route includes it in its events; credentials in connection settings remain on your server.
+
 <Note type="warning">
   Realtime support is experimental and the API may change in patch releases.
 </Note>
@@ -776,6 +812,9 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 
 - **id** _string_ - The generation ID
 - **totalCost** _number_ - Total cost in USD
+- **marketCost** _number (optional)_ - Market cost in USD, excluding surcharges
+- **surchargeCost** _number (optional)_ - Total surcharges applied in USD
+- **gatewayCost** _number (optional)_ - Total amount debited in USD
 - **upstreamInferenceCost** _number_ - Upstream inference cost in USD (relevant for BYOK)
 - **usage** _number_ - Usage cost in USD (same as totalCost)
 - **createdAt** _string_ - ISO 8601 timestamp when the generation was created
@@ -792,6 +831,11 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 - **cachedTokens** _number_ - Cached tokens used (if applicable)
 - **cacheCreationTokens** _number_ - Cache creation input tokens
 - **billableWebSearchCalls** _number_ - Number of billable web search calls
+
+The optional cost breakdown fields contain the values reported by AI Gateway.
+Fields that are missing or `null` in the API response are omitted from the result,
+so unavailable costs remain distinct from a reported cost of zero. The SDK does
+not calculate these fields from other costs.
 
 ## Examples
 
@@ -1710,6 +1754,10 @@ The following gateway provider options are available:
 - **disallowPromptTraining** _boolean_
 
   Restricts routing to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers that do not train on prompt data will be used. If there are no providers available for the model that disallow prompt training, the request will fail.
+
+- **headquarters** _string[]_
+
+  Restricts routing to providers whose parent company is headquartered in the listed countries, given as ISO 3166-1 alpha-2 codes (for example `['US', 'DE']`). To exclude countries instead, prefix every code with `!`, as in `['!US']`. A list can't mix allowed and excluded countries. The filter applies to both BYOK and system credentials, since it's about the provider rather than the credential. Providers without a recorded headquarters country are always excluded. If no provider for the model is headquartered in an allowed country, the request fails.
 
 - **quotaEntityId** _string_
 

@@ -2,6 +2,7 @@ import {
   LanguageModelV4ProviderTool,
   type JSONSchema7,
   type LanguageModelV4Prompt,
+  type LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -90,6 +91,386 @@ const provider = createGoogle({
   generateId: () => 'test-id',
 });
 const model = provider.chat('gemini-pro');
+
+describe('completed function call and text stream order', () => {
+  // These are synthetic protocol cases, not recorded provider responses.
+  const signature = 'c3ludGhldGljLXNpZ25hdHVyZS8rPQ==';
+  const input = { query: 'example', options: { limit: 0, enabled: false } };
+  const firstCall = {
+    functionCall: { id: 'call-1', name: 'lookup', args: input },
+    thoughtSignature: signature,
+  };
+  const secondCall = {
+    functionCall: { id: 'call-2', name: 'read_theme' },
+  };
+  const call1 = `call:call-1:lookup:${JSON.stringify(input)}`;
+  const call2 = 'call:call-2:read_theme:{}';
+  const a = { text: 'A' };
+  const b = { text: 'B' };
+  const c = { text: 'C' };
+
+  const cases = [
+    {
+      name: 'one event, call between text',
+      groups: [[a, firstCall, b]],
+      expected: ['text:A', call1, 'text:B'],
+    },
+    {
+      name: 'separate events, call between text',
+      groups: [[a], [firstCall], [b]],
+      expected: ['text:A', call1, 'text:B'],
+    },
+    {
+      name: 'call before text',
+      groups: [[firstCall, a]],
+      expected: [call1, 'text:A'],
+    },
+    {
+      name: 'call after text',
+      groups: [[a, firstCall]],
+      expected: ['text:A', call1],
+    },
+    {
+      name: 'multiple calls within one event',
+      groups: [[a, firstCall, b, secondCall, c]],
+      expected: ['text:A', call1, 'text:B', call2, 'text:C'],
+    },
+    {
+      name: 'multiple calls over events',
+      groups: [[firstCall], [a, secondCall], [b]],
+      expected: [call1, 'text:A', call2, 'text:B'],
+    },
+    {
+      name: 'adjacent calls including a no-args call',
+      groups: [[firstCall, secondCall]],
+      expected: [call1, call2],
+    },
+    {
+      name: 'no-args call between text',
+      groups: [[a, secondCall, b]],
+      expected: ['text:A', call2, 'text:B'],
+    },
+    {
+      name: 'adjacent text within and across events',
+      groups: [[a, b], [c]],
+      expected: ['text:ABC'],
+    },
+  ];
+
+  function projectContent(
+    parts: Array<{
+      type: string;
+      text?: string;
+      toolCallId?: string;
+      toolName?: string;
+      input?: unknown;
+      delta?: string;
+    }>,
+  ) {
+    const result: string[] = [];
+    for (const part of parts) {
+      if (part.type === 'text' || part.type === 'text-delta') {
+        const text = part.text ?? part.delta ?? '';
+        const previous = result.at(-1);
+        if (previous?.startsWith('text:')) {
+          result[result.length - 1] = previous + text;
+        } else {
+          result.push(`text:${text}`);
+        }
+      } else if (part.type === 'tool-call') {
+        result.push(
+          `call:${part.toolCallId}:${part.toolName}:${typeof part.input === 'string' ? part.input : JSON.stringify(part.input)}`,
+        );
+      }
+    }
+    return result;
+  }
+
+  function createOrderModel(
+    providerName: string,
+    groups: Record<string, unknown>[][],
+  ) {
+    const sse = groups
+      .map(
+        (parts, index) =>
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { role: 'model', parts },
+                index: 0,
+                ...(index === groups.length - 1
+                  ? { finishReason: 'STOP' }
+                  : {}),
+              },
+            ],
+          })}\n\n`,
+      )
+      .join('');
+
+    return new GoogleLanguageModel('gemini-2.5-flash', {
+      provider: providerName,
+      baseURL: 'https://synthetic.invalid/v1beta',
+      headers: { 'x-goog-api-key': 'dummy-key' },
+      generateId: () => 'generated-call-id',
+      fetch: async () =>
+        new Response(sse, { headers: { 'content-type': 'text/event-stream' } }),
+    });
+  }
+
+  for (const providerName of ['google.generative-ai', 'google.vertex.chat']) {
+    describe(providerName, () => {
+      it.each(cases)('$name', async ({ groups, expected }) => {
+        const { stream } = await createOrderModel(
+          providerName,
+          groups,
+        ).doStream({ prompt: TEST_PROMPT });
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(events.filter(event => event.type === 'error')).toEqual([]);
+        expect(projectContent(events)).toEqual(expected);
+
+        // A completed call is a content boundary, so the text part must close.
+        let openTextId: string | undefined;
+        const textIds: string[] = [];
+        for (const event of events) {
+          if (event.type === 'text-start') {
+            expect(openTextId).toBeUndefined();
+            openTextId = event.id;
+            textIds.push(event.id);
+          } else if (event.type === 'text-delta') {
+            expect(event.id).toBe(openTextId);
+          } else if (event.type === 'text-end') {
+            expect(event.id).toBe(openTextId);
+            openTextId = undefined;
+          } else if (event.type === 'tool-call') {
+            expect(openTextId).toBeUndefined();
+          }
+        }
+        expect(openTextId).toBeUndefined();
+        expect(new Set(textIds).size).toBe(textIds.length);
+
+        const completed = events.filter(event => event.type === 'tool-call');
+        const first = completed.find(event => event.toolCallId === 'call-1');
+        if (first != null) {
+          expect(first.input).toBe(JSON.stringify(input));
+          expect(
+            first.providerMetadata?.[
+              providerName.includes('vertex') ? 'vertex' : 'google'
+            ]?.thoughtSignature,
+          ).toBe(signature);
+        }
+      });
+
+      it('preserves a completed call without a provider ID', async () => {
+        const { stream } = await createOrderModel(providerName, [
+          [a, { functionCall: { name: 'read_theme' } }, b],
+        ]).doStream({ prompt: TEST_PROMPT });
+        const events = await convertReadableStreamToArray(stream);
+        expect(projectContent(events)).toEqual([
+          'text:A',
+          'call:generated-call-id:read_theme:{}',
+          'text:B',
+        ]);
+      });
+
+      it('does not discard an opaque signature on empty text after a completed call', async () => {
+        const { stream } = await createOrderModel(providerName, [
+          [a, secondCall, { text: '', thoughtSignature: signature }],
+        ]).doStream({ prompt: TEST_PROMPT });
+        const events = await convertReadableStreamToArray(stream);
+        const metadataKey = providerName.includes('vertex')
+          ? 'vertex'
+          : 'google';
+        expect(events.filter(event => event.type === 'error')).toEqual([]);
+        const callIndex = events.findIndex(event => event.type === 'tool-call');
+        const signatureBlock = events.slice(callIndex + 1, callIndex + 4);
+        expect(signatureBlock.map(event => event.type)).toEqual([
+          'text-start',
+          'text-delta',
+          'text-end',
+        ]);
+        expect(signatureBlock[0]).toMatchObject({
+          id: '1',
+          providerMetadata: { [metadataKey]: { thoughtSignature: signature } },
+        });
+        expect(signatureBlock[1]).toMatchObject({ id: '1', delta: '' });
+        expect(signatureBlock[2]).toMatchObject({ id: '1' });
+        expect(events[callIndex]).toMatchObject({
+          toolCallId: 'call-2',
+          input: '{}',
+        });
+        expect(
+          events.some(
+            event =>
+              'providerMetadata' in event &&
+              event.providerMetadata?.[metadataKey]?.thoughtSignature ===
+                signature,
+          ),
+        ).toBe(true);
+      });
+
+      it('keeps non-streaming text and call content order', async () => {
+        const orderModel = new GoogleLanguageModel('gemini-2.5-flash', {
+          provider: providerName,
+          baseURL: 'https://synthetic.invalid/v1beta',
+          headers: { 'x-goog-api-key': 'dummy-key' },
+          generateId: () => 'generated-call-id',
+          fetch: async () =>
+            Response.json({
+              candidates: [
+                {
+                  content: {
+                    role: 'model',
+                    parts: [a, firstCall, b, secondCall, c],
+                  },
+                  finishReason: 'STOP',
+                  index: 0,
+                },
+              ],
+            }),
+        });
+        const result = await orderModel.doGenerate({ prompt: TEST_PROMPT });
+        expect(projectContent(result.content)).toEqual([
+          'text:A',
+          call1,
+          'text:B',
+          call2,
+          'text:C',
+        ]);
+      });
+
+      if (providerName.includes('vertex')) {
+        it('preserves text order around a terminal partialArgs function call', async () => {
+          const { stream } = await createOrderModel(providerName, [
+            [
+              a,
+              {
+                functionCall: {
+                  id: 'partial-complete',
+                  name: 'lookup',
+                  partialArgs: [
+                    { jsonPath: '$.query', stringValue: 'example' },
+                  ],
+                  willContinue: false,
+                },
+                thoughtSignature: signature,
+              },
+              b,
+            ],
+          ]).doStream({ prompt: TEST_PROMPT });
+          const events = await convertReadableStreamToArray(stream);
+          expect(events.filter(event => event.type === 'error')).toEqual([]);
+          const callIndex = events.findIndex(
+            event => event.type === 'tool-call',
+          );
+          expect(
+            events.slice(0, callIndex).some(event => event.type === 'text-end'),
+          ).toBe(true);
+          expect(
+            events
+              .filter(event => event.type === 'text-start')
+              .map(event => event.id),
+          ).toEqual(['0', '1']);
+          expect(projectContent(events)).toEqual([
+            'text:A',
+            'call:partial-complete:lookup:{"query":"example"}',
+            'text:B',
+          ]);
+        });
+      }
+
+      it('preserves streamed content order and opaque signature in a follow-up request', async () => {
+        const { stream } = await createOrderModel(providerName, [
+          [a, firstCall, b],
+        ]).doStream({ prompt: TEST_PROMPT });
+        const events: LanguageModelV4StreamPart[] =
+          await convertReadableStreamToArray(stream);
+        const assistantContent: Extract<
+          LanguageModelV4Prompt[number],
+          { role: 'assistant' }
+        >['content'] = [];
+        for (const event of events) {
+          if (event.type === 'text-delta') {
+            assistantContent.push({ type: 'text', text: event.delta });
+          } else if (event.type === 'tool-call') {
+            assistantContent.push({
+              type: 'tool-call',
+              toolCallId: event.toolCallId,
+              toolName: event.toolName,
+              input: JSON.parse(event.input),
+              providerOptions: event.providerMetadata,
+            });
+          }
+        }
+
+        let requestBody:
+          | {
+              contents: Array<{
+                role: string;
+                parts: Record<string, unknown>[];
+              }>;
+            }
+          | undefined;
+        const followUpModel = new GoogleLanguageModel('gemini-2.5-flash', {
+          provider: providerName,
+          baseURL: 'https://synthetic.invalid/v1beta',
+          headers: { 'x-goog-api-key': 'dummy-key' },
+          generateId: () => 'generated-call-id',
+          fetch: async (_url, init) => {
+            requestBody = JSON.parse(init?.body as string);
+            return Response.json({
+              candidates: [
+                {
+                  content: { role: 'model', parts: [{ text: 'Done' }] },
+                  finishReason: 'STOP',
+                  index: 0,
+                },
+              ],
+            });
+          },
+        });
+        await followUpModel.doGenerate({
+          prompt: [
+            ...TEST_PROMPT,
+            { role: 'assistant', content: assistantContent },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'lookup',
+                  output: { type: 'json', value: { answer: 'example' } },
+                },
+              ],
+            },
+            { role: 'user', content: [{ type: 'text', text: 'Continue' }] },
+          ],
+        });
+
+        expect(requestBody?.contents[1]).toEqual({
+          role: 'model',
+          parts: [
+            a,
+            {
+              functionCall: {
+                ...(providerName.includes('vertex') ? {} : { id: 'call-1' }),
+                name: 'lookup',
+                args: input,
+              },
+              thoughtSignature: signature,
+            },
+            b,
+          ],
+        });
+        expect(requestBody?.contents.at(-1)).toEqual({
+          role: 'user',
+          parts: [{ text: 'Continue' }],
+        });
+      });
+    });
+  }
+});
 
 const groundingMetadataSchema = getGroundingMetadataSchema();
 const urlContextMetadataSchema = getUrlContextMetadataSchema();
@@ -6582,6 +6963,78 @@ describe('doStream', () => {
         '{"id":"x","emptyArr":[],"emptyObj":{},"nested":{"tags":[]},"zero":0}';
       expect(inputDeltas.map(e => e.delta).join('')).toBe(expectedInput);
       expect(toolCalls.map(c => c.input)).toEqual([expectedInput]);
+    });
+  });
+
+  describe('streaming-tool-call-sparse-array-arguments', () => {
+    it('should skip streamed array indexes that leave a gap', async () => {
+      const functionCallChunk = (functionCall: Record<string, unknown>) => ({
+        candidates: [{ content: { role: 'model', parts: [{ functionCall }] } }],
+      });
+
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          functionCallChunk({ name: 't', willContinue: true }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.items[0]', stringValue: 'a' }],
+            willContinue: true,
+          }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.items[20000000]', stringValue: 'b' }],
+            willContinue: true,
+          }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.items[1]', stringValue: 'c' }],
+          }),
+          {
+            candidates: [
+              {
+                content: { role: 'model', parts: [{ text: '' }] },
+                finishReason: 'STOP',
+              },
+            ],
+          },
+        ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+      };
+
+      const vertexModel = new GoogleLanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await vertexModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        tools: [
+          {
+            type: 'function',
+            name: 't',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        providerOptions: {
+          vertex: {
+            streamFunctionCallArguments: true,
+          },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const input = events
+        .filter(e => e.type === 'tool-input-delta')
+        .map(e => e.delta)
+        .join('');
+      const toolCalls = events.filter(e => e.type === 'tool-call');
+
+      const expectedInput = '{"items":["a","c"]}';
+      expect(toolCalls.map(c => c.input.length)).toEqual([
+        expectedInput.length,
+      ]);
+      expect(toolCalls.map(c => c.input)).toEqual([expectedInput]);
+      expect(input).toBe(expectedInput);
     });
   });
 

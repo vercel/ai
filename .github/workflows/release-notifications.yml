@@ -47,22 +47,18 @@ jobs:
           jq -se '
             length == 1 and (.[0] |
               type == "object" and
-              (if .type == "snapshot" then
-                keys == ["type"]
-              else
-                .type == "release" and
-                (.publishedPackages | type == "array") and
-                all(.publishedPackages[];
-                  type == "object" and
-                  (.name | type == "string") and
-                  (.name | test("^(@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*\\z")) and
-                  (.version | type == "string") and
-                  (.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?\\z"))
-                ) and
-                (.pullRequestNumber | type == "string") and
-                (.pullRequestNumber | test("^([1-9][0-9]*)?\\z")) and
-                ((.publishedPackages | length) == 0 or .pullRequestNumber != "")
-              end)
+              .type == "release" and
+              (.publishedPackages | type == "array") and
+              all(.publishedPackages[];
+                type == "object" and
+                (.name | type == "string") and
+                (.name | test("^(@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*\\z")) and
+                (.version | type == "string") and
+                (.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?\\z"))
+              ) and
+              (.pullRequestNumber | type == "string") and
+              (.pullRequestNumber | test("^([1-9][0-9]*)?\\z")) and
+              ((.publishedPackages | length) == 0 or .pullRequestNumber != "")
             )
           ' "$manifest" > /dev/null
           echo "type=$(jq -r '.type' "$manifest")" >> "$GITHUB_OUTPUT"
@@ -92,16 +88,3 @@ jobs:
         with:
           published-packages: ${{ steps.notification.outputs.published-packages }}
           pull-request-number: ${{ steps.notification.outputs.pull-request-number }}
-
-      - name: Notify snapshot release pull request
-        if: steps.notification.outputs.type == 'snapshot'
-        working-directory: .github/scripts/notify-released
-        run: |
-          npm install --no-save
-          node notify-snapshot.mjs
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_SHA: ${{ github.event.workflow_run.head_sha }}
-          GITHUB_REF_NAME: ${{ github.event.workflow_run.head_branch }}
-          GITHUB_RUN_ID: ${{ github.event.workflow_run.id }}
-          SNAPSHOT_PACKAGES_DIRECTORY: ${{ runner.temp }}/release-notification/packages

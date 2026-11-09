@@ -1,5 +1,52 @@
 # @ai-sdk/harness-codex
 
+## 1.0.179
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.178
+
+### Patch Changes
+
+- e4a6112: fix(harness): enforce workDir / project-level config isolation where possible and clearly document the gap otherwise
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/harness@1.0.176
+
+## 1.0.177
+
+### Patch Changes
+
+- a54f0fd: fix(harness): abort a running turn when its host disconnects for good
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+  - @ai-sdk/harness@1.0.175
+
+## 1.0.176
+
+### Patch Changes
+
+- 95c1307: fix(harness-codex): honor caller-provided `codexConfig.model_reasoning_summary` instead of overwriting it with the adapter default
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 1.0.175
 
 ### Patch Changes

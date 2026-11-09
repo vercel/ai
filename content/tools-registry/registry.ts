@@ -787,4 +787,187 @@ console.log(text);`,
     websiteUrl: 'https://agentsvc.io',
     npmUrl: 'https://www.npmjs.com/package/agentsvc',
   },
+  {
+    slug: 'specstream',
+    name: 'SpecStream',
+    description:
+      'SpecStream is the live web data engine for agents. Describe the data in plain words, such as "dental clinics in Lisbon with online booking" or "US startups that filed a $5M+ Form D this month", and get structured rows from the live web, every value linked to the page it came from. The price cap is set in your code before anything runs, the model cannot raise it, and you pay only for rows that match.',
+    packageName: '@specstream/ai-sdk',
+    tags: ['search', 'web-data', 'lists'],
+    apiKeyEnvName: 'SPECSTREAM_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @specstream/ai-sdk',
+      npm: 'npm install @specstream/ai-sdk',
+      yarn: 'yarn add @specstream/ai-sdk',
+      bun: 'bun add @specstream/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { specstreamTools } from '@specstream/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: specstreamTools({ maxPriceUsd: 5 }),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Find breweries in Portland, Oregon that host events, with their website.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://specstream.ai/docs/vercel-ai-sdk',
+    apiKeyUrl: 'https://specstream.ai/signup',
+    websiteUrl: 'https://specstream.ai',
+    npmUrl: 'https://www.npmjs.com/package/@specstream/ai-sdk',
+  },
+  {
+    slug: 'm91',
+    name: 'M91',
+    description:
+      "Human-in-the-loop approval for AI SDK agents. Gate any tool with toolApproval: before it runs, M91 rings a person's phone at full volume through silent mode and Do Not Disturb, escalating to a voice call, and the tool runs only if they approve. A rejection, timeout or M91 error denies it. Also provides m91_request_approval and m91_send_alert tools the model can call itself.",
+    packageName: '@msg91comm/m91',
+    tags: ['approval', 'human-in-the-loop', 'alerting', 'phone'],
+    apiKeyEnvName: 'M91_SEND_LINK',
+    installCommand: {
+      pnpm: 'pnpm add @msg91comm/m91 ai',
+      npm: 'npm install @msg91comm/m91 ai',
+      yarn: 'yarn add @msg91comm/m91 ai',
+      bun: 'bun add @msg91comm/m91 ai',
+    },
+    codeExample: `import { generateText, isStepCount, jsonSchema, tool } from 'ai';
+import { M91Client } from '@msg91comm/m91';
+import { createM91ToolApproval } from '@msg91comm/m91/integrations/vercel-ai';
+
+// The send link comes from a channel in the M91 app. Keep it secret.
+const client = new M91Client(process.env.M91_SEND_LINK!);
+
+const issueRefund = tool({
+  description: 'Simulate a refund approval; no payment is issued.',
+  inputSchema: jsonSchema<{ orderId: string; amount: number }>({
+    type: 'object',
+    properties: { orderId: { type: 'string' }, amount: { type: 'number' } },
+    required: ['orderId', 'amount'],
+  }),
+  // Replace this simulation with your payment API before issuing real refunds.
+  execute: async ({ orderId, amount }) => ({ simulated: true, orderId, amount }),
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: { issueRefund },
+  // issueRefund rings a phone first and runs only if a person taps Approve.
+  // A rejection, no answer within 10 minutes, or an M91 error denies it.
+  toolApproval: createM91ToolApproval(client, {
+    tools: ['issueRefund'],
+    timeoutSeconds: 600,
+  }),
+  stopWhen: isStepCount(5),
+  prompt: 'Order ORD-40122 never arrived. Refund the customer 48 USD.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/MSG91/m91-sdk#vercel-ai-sdk',
+    apiKeyUrl: 'https://m91-api.msg91.com/docs',
+    websiteUrl: 'https://m91.msg91.com',
+    npmUrl: 'https://www.npmjs.com/package/@msg91comm/m91',
+  },
+  {
+    slug: 'olostep',
+    name: 'Olostep',
+    description:
+      'Web search, scraping, crawling and cited answers for AI SDK agents. Returns structured data and page content for model use.',
+    packageName: '@olostep/ai-sdk',
+    tags: ['search', 'scraping', 'crawl', 'extraction'],
+    apiKeyEnvName: 'OLOSTEP_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @olostep/ai-sdk',
+      npm: 'npm install @olostep/ai-sdk',
+      yarn: 'yarn add @olostep/ai-sdk',
+      bun: 'bun add @olostep/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { olostepTools } from '@olostep/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Read the Next.js 15 release notes and list the breaking changes, with sources.',
+  tools: olostepTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.olostep.com/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://www.olostep.com/dashboard',
+    websiteUrl: 'https://www.olostep.com',
+    npmUrl: 'https://www.npmjs.com/package/@olostep/ai-sdk',
+  },
+  {
+    slug: 'cleave',
+    name: 'Cleave',
+    description:
+      "Swap tools for agents on Ethereum, Arbitrum, Base, BNB Chain, Polygon and Optimism. Cleave is a DEX aggregator with split routing and one-step cross-chain swaps; Cleave's fees are included in the quoted price. Plan a swap, track it, find a token or get gas. Returns unsigned calls and takes no private keys; submitting a wallet-signed gas order uses needsApproval by default. No API key needed.",
+    packageName: '@cleave-protocol/ai-sdk',
+    tags: ['defi', 'web3'],
+    installCommand: {
+      pnpm: 'pnpm add @cleave-protocol/ai-sdk',
+      npm: 'npm install @cleave-protocol/ai-sdk',
+      yarn: 'yarn add @cleave-protocol/ai-sdk',
+      bun: 'bun add @cleave-protocol/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { cleaveTools } from '@cleave-protocol/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Plan a swap of 25 USDC to WETH on Base for wallet 0x00000000000000000000000000000000000a11ce.',
+  tools: cleaveTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://cleave.fi/docs/agents/ai-sdk',
+    websiteUrl: 'https://cleave.fi',
+    npmUrl: 'https://www.npmjs.com/package/@cleave-protocol/ai-sdk',
+  },
+  {
+    slug: 'redis-agent-memory',
+    name: 'Redis Agent Memory',
+    description:
+      'Give agents persistent memory with Redis Agent Memory. Tools to search and save long-term memories, read and write session history, and recall user preferences across conversations, scoped to a user and session.',
+    packageName: '@redis/vercel-ai-sdk',
+    tags: ['memory', 'session-history', 'semantic-search', 'redis'],
+    apiKeyEnvName: 'AGENT_MEMORY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @redis/vercel-ai-sdk',
+      npm: 'npm install @redis/vercel-ai-sdk',
+      yarn: 'yarn add @redis/vercel-ai-sdk',
+      bun: 'bun add @redis/vercel-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createRedisAgentMemory, instructions } from '@redis/vercel-ai-sdk';
+
+const memory = createRedisAgentMemory({
+  serverUrl: process.env.AGENT_MEMORY_URL,
+  storeId: process.env.AGENT_MEMORY_STORE_ID,
+  apiKey: process.env.AGENT_MEMORY_API_KEY,
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  system: \`\${instructions}
+Current user and memory owner: user-123
+Current session: conversation-456
+Current assistant actor: assistant-1\`,
+  prompt: 'Remember that my favorite editor is Neovim.',
+  tools: memory.tools({
+    scope: { userId: 'user-123', sessionId: 'conversation-456' },
+  }),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/redis/vercel-ai-sdk/blob/main/TOOLS.md',
+    apiKeyUrl: 'https://cloud.redis.io/#/agent-memory',
+    websiteUrl: 'https://redis.io/agent-memory/',
+    npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
+  },
 ];

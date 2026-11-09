@@ -1,9 +1,17 @@
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import {
+  convertUint8ArrayToBase64,
+  type ToolSet,
+  type UserModelMessage,
+} from '@ai-sdk/provider-utils';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import { getToolCallInputSchemaInput } from '../generate-text/tool-call';
+import { convertDataContentToBase64String } from '../prompt/data-content';
+import { convertToLanguageModelV4FilePart } from '../prompt/file-part-data';
 import type {
+  FileUIPart,
   InferUIMessageData,
   InferUIMessageMetadata,
+  TextUIPart,
   UIMessage,
 } from '../ui/ui-messages';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
@@ -352,6 +360,14 @@ export function toUIMessageChunk<
       };
     }
 
+    case 'steering-message': {
+      return {
+        type: 'steering-message',
+        id: part.id,
+        parts: convertUserMessageToUIParts(part.message),
+      };
+    }
+
     case 'start-step': {
       return { type: 'start-step' };
     }
@@ -395,6 +411,7 @@ export function toUIMessageChunk<
     }
 
     case 'tool-input-end':
+    case 'ping':
     case 'raw': {
       return undefined;
     }
@@ -404,4 +421,58 @@ export function toUIMessageChunk<
       throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
     }
   }
+}
+
+function convertUserMessageToUIParts(
+  message: UserModelMessage,
+): Array<TextUIPart | FileUIPart> {
+  if (typeof message.content === 'string') {
+    return [{ type: 'text', text: message.content }];
+  }
+
+  return message.content.map((part): TextUIPart | FileUIPart => {
+    const providerMetadata =
+      part.providerOptions != null
+        ? { providerMetadata: part.providerOptions }
+        : {};
+
+    if (part.type === 'text') {
+      return { type: 'text', text: part.text, ...providerMetadata };
+    }
+
+    const { data, mediaType: dataUrlMediaType } =
+      convertToLanguageModelV4FilePart(
+        part.type === 'image' ? part.image : part.data,
+      );
+    const mediaType = dataUrlMediaType ?? part.mediaType ?? 'image';
+    const filename = part.type === 'file' ? part.filename : undefined;
+    const file = {
+      type: 'file' as const,
+      mediaType,
+      ...(filename != null ? { filename } : {}),
+      ...providerMetadata,
+    };
+
+    switch (data.type) {
+      case 'url': {
+        return { ...file, url: data.url.toString() };
+      }
+      case 'data': {
+        return {
+          ...file,
+          url: `data:${mediaType};base64,${convertDataContentToBase64String(data.data)}`,
+        };
+      }
+      case 'text': {
+        return {
+          ...file,
+          url: `data:${mediaType};base64,${convertUint8ArrayToBase64(new TextEncoder().encode(data.text))}`,
+        };
+      }
+      case 'reference': {
+        // the provider reference takes precedence over the url in model messages:
+        return { ...file, url: '', providerReference: data.reference };
+      }
+    }
+  });
 }

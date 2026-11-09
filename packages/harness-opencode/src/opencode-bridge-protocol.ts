@@ -33,6 +33,7 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema
   .omit({ builtinToolFiltering: true })
   .extend({
     prompt: harnessPromptContentSchema,
+    readableSkillRoots: z.array(z.string()).optional(),
     operation: z.enum(['prompt', 'compact']).optional(),
     provider: z.string().optional(),
     variant: z.string().optional(),

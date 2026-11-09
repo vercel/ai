@@ -33,7 +33,12 @@ export class CacheControlValidator {
   private breakpointCount = 0;
   private warnings: SharedV4Warning[] = [];
 
-  constructor(private readonly providerOptionsName = 'anthropic') {}
+  constructor(
+    private readonly providerOptionsName = 'anthropic',
+    initialBreakpointCount = 0,
+  ) {
+    this.breakpointCount = initialBreakpointCount;
+  }
 
   getCacheControl(
     providerMetadata: SharedV4ProviderMetadata | undefined,

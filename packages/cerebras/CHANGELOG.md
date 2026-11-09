@@ -1,5 +1,46 @@
 # @ai-sdk/cerebras
 
+## 3.0.87
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/openai-compatible@3.0.87
+  - @ai-sdk/provider@4.0.37
+
+## 3.0.86
+
+### Patch Changes
+
+- Updated dependencies [b63c06a]
+- Updated dependencies [646a7e3]
+  - @ai-sdk/openai-compatible@3.0.86
+
+## 3.0.85
+
+### Patch Changes
+
+- d9db70d: Centralize Cerebras model capabilities and provider options in a shared catalog, preserving request behavior and generating the model capability table from the catalog.
+- 4a4e854: Add the `queueThreshold` provider option as a `queue_threshold` request header and expose the API-reported `service_tier` as `providerMetadata.cerebras.serviceTier` for generated and streamed responses. Missing or null response tiers remain absent. Service tiers require a preview-enabled dedicated Cerebras endpoint.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [add01ab]
+- Updated dependencies [5f19ea5]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/openai-compatible@3.0.85
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 3.0.84
 
 ### Patch Changes

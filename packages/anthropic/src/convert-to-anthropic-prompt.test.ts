@@ -15,6 +15,87 @@ const defaultToolNameMapping = createToolNameMapping({
   providerToolNames: {},
 });
 
+describe('foreign provider history', () => {
+  it.each(['google', 'vertex', 'googleVertex'])(
+    'preserves message cache control and trims prefill before empty %s text',
+    async namespace => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            providerOptions: {
+              anthropic: { cacheControl: { type: 'ephemeral' } },
+            },
+            content: [
+              { type: 'text', text: 'Answer  ' },
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  [namespace]: { thoughtSignature: 'opaque' },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Answer',
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+        },
+      ]);
+      expect(warnings).toEqual([]);
+    },
+  );
+
+  it.each(['google', 'vertex', 'googleVertex'])(
+    'omits empty %s signature text from assistant content',
+    async namespace => {
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'A' },
+              {
+                type: 'text',
+                text: '',
+                providerOptions: {
+                  [namespace]: { thoughtSignature: 'opaque' },
+                },
+              },
+              { type: 'text', text: 'B' },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'A', cache_control: undefined },
+            { type: 'text', text: 'B', cache_control: undefined },
+          ],
+        },
+      ]);
+    },
+  );
+});
+
 describe('custom media conversion', () => {
   it.each(['part', 'message'] as const)(
     'converts the original file part and preserves %s cache control',
@@ -776,6 +857,100 @@ describe('system messages', () => {
         },
       ],
     });
+  });
+
+  it('should emit tool definitions for tools added by value and prefer the inline tools beta', async () => {
+    const definition = {
+      name: 'get_forecast',
+      description: 'Get forecast',
+      input_schema: { type: 'object' as const },
+      cache_control: undefined,
+    };
+
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        { role: 'system', content: 'initial' },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        { role: 'assistant', content: [{ type: 'text', text: 'hello' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              toolChanges: [
+                {
+                  type: 'tool_addition',
+                  tool: {
+                    type: 'function',
+                    name: 'get_forecast',
+                    description: 'Get forecast',
+                    inputSchema: { type: 'object' },
+                  },
+                },
+                { type: 'tool_removal', toolName: 'get_weather' },
+              ],
+            },
+          },
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+      convertInlineTool: async () => ({
+        definition,
+        warnings: [],
+        betas: new Set(),
+      }),
+    });
+
+    expect(result.prompt.messages).toContainEqual({
+      role: 'system',
+      content: [
+        {
+          type: 'tool_addition',
+          tool: { type: 'tool_definition', definition },
+        },
+        {
+          type: 'tool_removal',
+          tool: { type: 'tool_reference', name: 'get_weather' },
+        },
+      ],
+    });
+    expect(result.betas.has('inline-tools-2026-09-15')).toBe(true);
+    expect(result.betas.has('mid-conversation-tool-changes-2026-07-01')).toBe(
+      false,
+    );
+  });
+
+  it('should throw when a tool is added by value without an inline tool converter', async () => {
+    await expect(
+      convertToAnthropicPrompt({
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+          {
+            role: 'system',
+            content: '',
+            providerOptions: {
+              anthropic: {
+                toolChanges: [
+                  {
+                    type: 'tool_addition',
+                    tool: {
+                      type: 'function',
+                      name: 'get_forecast',
+                      inputSchema: { type: 'object' },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      }),
+    ).rejects.toThrow(/tool additions by value/);
   });
 
   it('should warn and drop tool changes on the initial system message', async () => {

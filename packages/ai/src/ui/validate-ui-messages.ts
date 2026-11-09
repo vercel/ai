@@ -142,6 +142,27 @@ const uiMessagesSchema = lazySchema(() => {
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({
+                  type: z.literal('steering-message'),
+                  id: z.string(),
+                  parts: z.array(
+                    z.union([
+                      z.object({
+                        type: z.literal('text'),
+                        text: z.string(),
+                        providerMetadata: providerMetadataSchema.optional(),
+                      }),
+                      z.object({
+                        type: z.literal('file'),
+                        mediaType: z.string(),
+                        filename: z.string().optional(),
+                        url: z.string(),
+                        providerReference: providerReferenceSchema.optional(),
+                        providerMetadata: providerMetadataSchema.optional(),
+                      }),
+                    ]),
+                  ),
+                }),
+                z.object({
                   type: z.literal('step-start'),
                 }),
                 z.object({

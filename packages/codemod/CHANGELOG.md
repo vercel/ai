@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 4.0.4
+
+### Patch Changes
+
+- 77a09fb: Preserve Google provider import bindings and application exports during the v7 migration, and map deprecated provider option types to their actual replacements.
+
 ## 4.0.3
 
 ### Patch Changes
