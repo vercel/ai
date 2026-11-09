@@ -77,20 +77,11 @@ export function wrapToolInputSchema(schema: JSONSchema7): JSONSchema7 {
 
 /**
  * Wraps tool input for the message history (tool calls are replayed as the
- * object the wrapped schema describes).
+ * object the wrapped schema describes). The input is the already parsed
+ * value, so strings are kept as they are instead of being parsed again.
  */
 export function wrapToolInput(input: unknown): JSONObject {
-  let value = input;
-
-  if (typeof input === 'string') {
-    try {
-      value = secureJsonParse(input);
-    } catch {
-      return { rawInvalidInput: input };
-    }
-  }
-
-  return { [WRAPPER_PROPERTY]: value as JSONValue };
+  return { [WRAPPER_PROPERTY]: input as JSONValue };
 }
 
 /**

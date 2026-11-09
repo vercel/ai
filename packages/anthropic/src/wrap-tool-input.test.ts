@@ -115,14 +115,15 @@ describe('wrapToolInputSchema', () => {
 });
 
 describe('wrapToolInput / unwrapToolInput', () => {
-  it('wraps parsed and serialized input', () => {
+  it('wraps the parsed input', () => {
     expect(wrapToolInput({ kind: 'a' })).toEqual({ input: { kind: 'a' } });
-    expect(wrapToolInput('{"kind":"a"}')).toEqual({ input: { kind: 'a' } });
-    expect(wrapToolInput('"text"')).toEqual({ input: 'text' });
+    expect(wrapToolInput([1, 2])).toEqual({ input: [1, 2] });
   });
 
-  it('keeps invalid serialized input visible', () => {
-    expect(wrapToolInput('{oops')).toEqual({ rawInvalidInput: '{oops' });
+  it('keeps string input as a string', () => {
+    expect(wrapToolInput('hello')).toEqual({ input: 'hello' });
+    expect(wrapToolInput('123')).toEqual({ input: '123' });
+    expect(wrapToolInput('{"kind":"a"}')).toEqual({ input: '{"kind":"a"}' });
   });
 
   it('unwraps the input property, including non-object values', () => {
@@ -352,6 +353,51 @@ describe('wrapped tool inputs in the language model', () => {
       },
       { type: 'tool_use', name: 'search', input: { q: 'x' } },
     ]);
+  });
+
+  it('replays string-valued input of wrapped tools as a string', async () => {
+    server.urls[URL].response = {
+      type: 'json-value',
+      body: message([{ type: 'text', text: 'ok' }]),
+    };
+
+    await model.doGenerate({
+      prompt: [
+        ...prompt,
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_1',
+              toolName: 'echo',
+              input: '123',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_1',
+              toolName: 'echo',
+              output: { type: 'text', value: 'r1' },
+            },
+          ],
+        },
+      ],
+      tools: [
+        {
+          type: 'function',
+          name: 'echo',
+          inputSchema: { anyOf: [{ type: 'string' }, { type: 'object' }] },
+        },
+      ],
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body.messages[1].content[0].input).toEqual({ input: '123' });
   });
 
   describe('JSON response tool', () => {
