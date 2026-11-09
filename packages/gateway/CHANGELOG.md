@@ -1,5 +1,16 @@
 # @ai-sdk/gateway
 
+## 3.0.233
+
+### Patch Changes
+
+- 69e9ea1: feat(anthropic): add Claude Fable 5.2 support
+
+  - add the `claude-fable-5-2` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-fable-5-2` and `us.anthropic.claude-fable-5-2` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-fable-5.2` to `@ai-sdk/gateway`
+  - recognize `claude-fable-5-2` as a known model with the same capabilities as `claude-fable-5-1`: 128k max output tokens, always-on adaptive thinking, all five effort levels, no sampling parameters, and no forced tool use
+
+- 94eba00: Add `meta/muse-ember` to the available language model IDs.
+
 ## 3.0.232
 
 ### Patch Changes
