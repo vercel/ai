@@ -1818,8 +1818,8 @@ You can still set `providerOptions.anthropic.structuredOutputMode` per request:
   the Anthropic provider's existing behavior of switching to native output when
   the model supports it and the schema can be represented, even without this
   opt-in. This fallback also applies in `'auto'` mode with the opt-in disabled.
-  Models such as `claude-opus-5-5`, `claude-sonnet-5-5`, and `claude-fable-5-1`
-  therefore require the `structured_outputs` policy regardless of this setting.
+  Models such as `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-fable-5-1`,
+  and `claude-fable-5-2` therefore require the `structured_outputs` policy regardless of this setting.
 - `'outputFormat'` explicitly requests native output, bypassing the opt-in and
   model detection. The API rejects unsupported or policy-denied requests.
 
@@ -2133,6 +2133,7 @@ See also [Anthropic Model Comparison](https://docs.anthropic.com/en/docs/about-c
 | Model                           | Image Input | Object Generation | Tool Usage | Tool Streaming | Computer Use |
 | ------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------ |
 | `claude-fable-5-1`              | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    |
+| `claude-fable-5-2`              | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    |
 | `claude-3-7-sonnet@20250219`    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    |
 | `claude-3-5-sonnet-v2@20241022` | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    |
 | `claude-3-5-sonnet@20240620`    | <Check />   | <Check />         | <Check />  | <Check />      | <Cross />    |

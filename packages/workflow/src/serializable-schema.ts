@@ -21,6 +21,8 @@ import {
   type Experimental_SandboxSession as SandboxSession,
   type InferToolSetContext,
   jsonSchema,
+  redactTelemetryValue,
+  withTelemetryRedaction,
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { dynamicTool, tool, type ToolSet } from 'ai';
@@ -57,6 +59,8 @@ export type SerializableToolDef = {
   id?: `${string}.${string}`;
   /** Provider tool configuration args (maxUses, allowedDomains, etc.). */
   args?: Record<string, unknown>;
+  /** Safe telemetry view retained when serialization drops redaction callbacks. */
+  telemetryArgs?: Record<string, unknown>;
 };
 
 /**
@@ -79,7 +83,7 @@ export function toLanguageModelToolDefinitions(
           type: 'provider' as const,
           name,
           id: tool.id!,
-          args: tool.args ?? {},
+          args: resolveProviderToolArgs(tool),
         }
       : {
           type: 'function' as const,
@@ -160,11 +164,26 @@ export function serializeToolSet<TOOLS extends ToolSet>(
         def.supportsDeferredResults = t.supportsDeferredResults;
         def.id = t.id;
         def.args = t.args;
+        const telemetryArgs = redactTelemetryValue(t.args);
+        if (telemetryArgs !== t.args) {
+          // An unsuccessful redactor must not fall back to the raw arguments.
+          def.telemetryArgs = telemetryArgs ?? {};
+        }
       }
 
       return [name, def];
     }),
   );
+}
+
+function resolveProviderToolArgs(
+  def: SerializableToolDef,
+): Record<string, unknown> {
+  const args = def.args ?? {};
+  const telemetryArgs = def.telemetryArgs;
+  return telemetryArgs == null
+    ? args
+    : withTelemetryRedaction(args, () => telemetryArgs);
 }
 
 function resolveToolDescription<TOOLS extends ToolSet>({
@@ -268,7 +287,7 @@ export function resolveSerializableTools(
           title: t.title,
           metadata: t.metadata,
           id: t.id!,
-          args: t.args ?? {},
+          args: resolveProviderToolArgs(t),
           inputSchema: jsonSchema(t.inputSchema),
           providerOptions: t.providerOptions,
         };
