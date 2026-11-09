@@ -458,6 +458,7 @@ async function fetchWithCorsRetry(
           fetch: fetchFn,
           trustedOrigin,
           redirect: 'manual',
+          requireDnsValidation: true,
         }),
       headers,
       trustedOrigin,
@@ -994,6 +995,7 @@ export async function exchangeAuthorization(
     resource,
     addClientAuthentication,
     fetchFn,
+    trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl),
   }: {
     metadata?: AuthorizationServerMetadata;
     clientInformation: OAuthClientInformation;
@@ -1003,6 +1005,8 @@ export async function exchangeAuthorization(
     resource?: URL;
     addClientAuthentication?: OAuthClientProvider['addClientAuthentication'];
     fetchFn?: FetchFunction;
+    /** Developer-configured origin, never derived from response metadata. */
+    trustedOrigin?: string;
   },
 ): Promise<OAuthTokens> {
   const grantType = 'authorization_code';
@@ -1010,7 +1014,6 @@ export async function exchangeAuthorization(
   const tokenUrl = metadata?.token_endpoint
     ? new URL(metadata.token_endpoint)
     : new URL('/token', authorizationServerUrl);
-  const trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl);
   assertSafeOAuthEndpoint(tokenUrl, {
     allowLoopback: tokenUrl.origin === trustedOrigin,
   });
@@ -1061,6 +1064,7 @@ export async function exchangeAuthorization(
     },
     fetch: fetchFn,
     trustedOrigin,
+    requireDnsValidation: true,
   });
 
   if (!response.ok) {
@@ -1091,6 +1095,7 @@ export async function refreshAuthorization(
     resource,
     addClientAuthentication,
     fetchFn,
+    trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl),
   }: {
     metadata?: AuthorizationServerMetadata;
     clientInformation: OAuthClientInformation;
@@ -1098,6 +1103,8 @@ export async function refreshAuthorization(
     resource?: URL;
     addClientAuthentication?: OAuthClientProvider['addClientAuthentication'];
     fetchFn?: FetchFunction;
+    /** Developer-configured origin, never derived from response metadata. */
+    trustedOrigin?: string;
   },
 ): Promise<OAuthTokens> {
   const grantType = 'refresh_token';
@@ -1117,7 +1124,6 @@ export async function refreshAuthorization(
   } else {
     tokenUrl = new URL('/token', authorizationServerUrl);
   }
-  const trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl);
   assertSafeOAuthEndpoint(tokenUrl, {
     allowLoopback: tokenUrl.origin === trustedOrigin,
   });
@@ -1156,6 +1162,7 @@ export async function refreshAuthorization(
     },
     fetch: fetchFn,
     trustedOrigin,
+    requireDnsValidation: true,
   });
   if (!response.ok) {
     throw await parseErrorResponse(response);
@@ -1176,10 +1183,13 @@ export async function registerClient(
     metadata,
     clientMetadata,
     fetchFn,
+    trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl),
   }: {
     metadata?: AuthorizationServerMetadata;
     clientMetadata: OAuthClientMetadata;
     fetchFn?: FetchFunction;
+    /** Developer-configured origin, never derived from response metadata. */
+    trustedOrigin?: string;
   },
 ): Promise<OAuthClientInformationFull> {
   let registrationUrl: URL;
@@ -1195,7 +1205,6 @@ export async function registerClient(
   } else {
     registrationUrl = new URL('/register', authorizationServerUrl);
   }
-  const trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl);
   assertSafeOAuthEndpoint(registrationUrl, {
     allowLoopback: registrationUrl.origin === trustedOrigin,
   });
@@ -1211,6 +1220,7 @@ export async function registerClient(
     },
     fetch: fetchFn,
     trustedOrigin,
+    requireDnsValidation: true,
   });
 
   if (!response.ok) {
@@ -1516,6 +1526,7 @@ async function authInternal(
       metadata,
       clientMetadata,
       fetchFn,
+      trustedOrigin: trustedAuthorizationServerOrigin,
     });
 
     clientInformation = addAuthorizationServerInformationToClientInformation(
@@ -1570,6 +1581,7 @@ async function authInternal(
       resource,
       addClientAuthentication: provider.addClientAuthentication,
       fetchFn: fetchFn,
+      trustedOrigin: trustedAuthorizationServerOrigin,
     });
 
     await provider.saveTokens(
@@ -1621,6 +1633,7 @@ async function authInternal(
           resource,
           addClientAuthentication: provider.addClientAuthentication,
           fetchFn,
+          trustedOrigin: trustedAuthorizationServerOrigin,
         });
 
         await provider.saveTokens(
