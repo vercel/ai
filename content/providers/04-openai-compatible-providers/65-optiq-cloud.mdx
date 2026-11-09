@@ -1,0 +1,116 @@
+---
+title: OptiQ Cloud
+description: Use the OptiQ Cloud OpenAI compatible API with the AI SDK.
+---
+
+# OptiQ Cloud Provider
+
+[OptiQ Cloud](https://cloud.mlx-optiq.com) is a high-performance inference API providing access to open-weight models including GLM 5.3, GLM 5.3 Flash, DeepSeek V4.1 Flash, and MiniMax M3.1 Flash with OpenAI-compatible Chat Completions endpoints.
+
+You can use OptiQ Cloud with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The OptiQ Cloud provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use OptiQ Cloud, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const optiq = createOpenAICompatible({
+  name: 'optiq-cloud',
+  baseURL: 'https://cloud.mlx-optiq.com/api/v1',
+  apiKey: process.env.OPTIQ_CLOUD_API_KEY,
+  supportsStructuredOutputs: true,
+});
+```
+
+<Note>
+  Follow the [OptiQ Cloud Dashboard](https://cloud.mlx-optiq.com/dashboard/keys) to create an API key. Make sure to set the `OPTIQ_CLOUD_API_KEY` environment variable with your API key.
+</Note>
+
+## Language Models
+
+You can create OptiQ Cloud models using the provider instance. The first argument is a model ID from the OptiQ catalog, for example `glm-5.3-flash`:
+
+```ts
+const model = optiq('glm-5.3-flash');
+```
+
+### Models
+
+Common models available on OptiQ Cloud include:
+
+| Model ID | Context Window | Max Output Tokens | Description |
+|---|---|---|---|
+| `glm-5.3-flash` | 1,048,576 | 128,000 | Fast, general-purpose reasoning model |
+| `deepseek-v4.1-flash` | 1,040,000 | 131,072 | High-speed model with configurable reasoning effort |
+| `minimax-m3.1-flash` | 1,000,000 | 524,288 | Extended output capacity with long-context support |
+| `glm-5.3` | 1,048,576 | 131,072 | Flagship multilingual reasoning model |
+
+### Example
+
+You can use OptiQ Cloud language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const optiq = createOpenAICompatible({
+  name: 'optiq-cloud',
+  baseURL: 'https://cloud.mlx-optiq.com/api/v1',
+  apiKey: process.env.OPTIQ_CLOUD_API_KEY,
+});
+
+const { text } = await generateText({
+  model: optiq('glm-5.3-flash'),
+  prompt: 'Explain quantum computing in one sentence.',
+});
+
+console.log(text);
+```
+
+### Streaming
+
+OptiQ Cloud language models also support streaming with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const optiq = createOpenAICompatible({
+  name: 'optiq-cloud',
+  baseURL: 'https://cloud.mlx-optiq.com/api/v1',
+  apiKey: process.env.OPTIQ_CLOUD_API_KEY,
+});
+
+const result = streamText({
+  model: optiq('glm-5.3-flash'),
+  prompt: 'Write a haiku about modern computing.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Reasoning Effort
+
+OptiQ models support reasoning by default. You can adjust the reasoning effort (`minimal`, `low`, `medium`, `high`, or `xhigh`) using provider options:
+
+```ts
+const { text } = await generateText({
+  model: optiq('glm-5.3-flash'),
+  prompt: 'Solve this step-by-step logic puzzle...',
+  providerOptions: {
+    'optiq-cloud': {
+      reasoningEffort: 'low',
+    },
+  },
+});
+```
