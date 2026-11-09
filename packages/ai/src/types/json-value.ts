@@ -1,5 +1,5 @@
 import type { JSONValue as OriginalJSONValue } from '@ai-sdk/provider';
-import { z, type ZodType } from '../util/zod';
+import { z, type ZodType } from '../util/classic-zod';
 
 export const jsonValueSchema: ZodType<JSONValue> = z.lazy(() =>
   z.union([
@@ -7,7 +7,7 @@ export const jsonValueSchema: ZodType<JSONValue> = z.lazy(() =>
     z.string(),
     z.number(),
     z.boolean(),
-    z.record(z.string(), z.optional(jsonValueSchema)),
+    z.record(z.string(), jsonValueSchema.optional()),
     z.array(jsonValueSchema),
   ]),
 );

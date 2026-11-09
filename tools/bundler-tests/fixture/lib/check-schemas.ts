@@ -1,10 +1,38 @@
 import { gateway } from '@ai-sdk/gateway';
 import { asSchema, zodSchema } from '@ai-sdk/provider-utils';
-import { safeValidateUIMessages, validateUIMessages } from 'ai';
+import {
+  assistantModelMessageSchema,
+  modelMessageSchema,
+  safeValidateUIMessages,
+  systemModelMessageSchema,
+  toolModelMessageSchema,
+  userModelMessageSchema,
+  validateUIMessages,
+} from 'ai';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
 
 export async function checkSchemas() {
+  for (const schema of [
+    modelMessageSchema,
+    systemModelMessageSchema,
+    userModelMessageSchema,
+    assistantModelMessageSchema,
+    toolModelMessageSchema,
+  ]) {
+    const invalid = schema.safeParse(undefined);
+    if (
+      !schema.optional().safeParse(undefined).success ||
+      !schema.array().safeParse([]).success ||
+      invalid.success ||
+      !(invalid.error instanceof z4.ZodError) ||
+      typeof invalid.error.flatten !== 'function' ||
+      typeof invalid.error.format !== 'function'
+    ) {
+      throw new Error('Public message schema lost its classic Zod API');
+    }
+  }
+
   for (const input of [
     z3.object({ text: z3.string() }),
     z4.object({ text: z4.string() }),

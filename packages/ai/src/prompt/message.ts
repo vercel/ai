@@ -6,7 +6,7 @@ import type {
   UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import { z, type ZodType } from '../util/zod';
+import { z, type ZodType } from '../util/classic-zod';
 import {
   customPartSchema,
   filePartSchema,
@@ -23,7 +23,7 @@ import {
 export const systemModelMessageSchema: ZodType<SystemModelMessage> = z.object({
   role: z.literal('system'),
   content: z.string(),
-  providerOptions: z.optional(providerMetadataSchema),
+  providerOptions: providerMetadataSchema.optional(),
 });
 
 export const userModelMessageSchema: ZodType<UserModelMessage> = z.object({
@@ -32,7 +32,7 @@ export const userModelMessageSchema: ZodType<UserModelMessage> = z.object({
     z.string(),
     z.array(z.union([textPartSchema, imagePartSchema, filePartSchema])),
   ]),
-  providerOptions: z.optional(providerMetadataSchema),
+  providerOptions: providerMetadataSchema.optional(),
 });
 
 export const assistantModelMessageSchema: ZodType<AssistantModelMessage> =
@@ -53,13 +53,13 @@ export const assistantModelMessageSchema: ZodType<AssistantModelMessage> =
         ]),
       ),
     ]),
-    providerOptions: z.optional(providerMetadataSchema),
+    providerOptions: providerMetadataSchema.optional(),
   });
 
 export const toolModelMessageSchema: ZodType<ToolModelMessage> = z.object({
   role: z.literal('tool'),
   content: z.array(z.union([toolResultPartSchema, toolApprovalResponseSchema])),
-  providerOptions: z.optional(providerMetadataSchema),
+  providerOptions: providerMetadataSchema.optional(),
 });
 
 export const modelMessageSchema: ZodType<ModelMessage> = z.union([

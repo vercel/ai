@@ -6,7 +6,9 @@ import { join } from 'path';
 // experimental_streamSpeech and the bundled gateway speech client add ~6 KiB.
 // Streaming image decoding also ships through the bundled Gateway image client.
 // Shared provider credential redaction adds ~1.6 KiB to telemetry-enabled exports.
-const LIMIT = 600 * 1024;
+// Patched Zod adds ~36 KiB; public message schemas retain the classic API.
+// Internal schemas use Mini, preserving the existing named-export budgets.
+const LIMIT = 640 * 1024;
 
 interface BundleResult {
   size: number;

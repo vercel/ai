@@ -17,7 +17,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { jsonValueSchema } from '../types/json-value';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import { z, type ZodType } from '../util/zod';
+import { z, type ZodType } from '../util/classic-zod';
 
 const fileInlineDataSchema: ZodType<DataContent> = z.union([
   z.string(),
@@ -34,7 +34,7 @@ const providerReferenceSchema = z.record(z.string(), z.string());
 export const textPartSchema: ZodType<TextPart> = z.object({
   type: z.literal('text'),
   text: z.string(),
-  providerOptions: z.optional(providerMetadataSchema),
+  providerOptions: providerMetadataSchema.optional(),
 });
 
 /**
@@ -49,8 +49,8 @@ export const imagePartSchema: ZodType<ImagePart> = z.object({
     z.instanceof(URL),
     providerReferenceSchema,
   ]),
-  mediaType: z.optional(z.string()),
-  providerOptions: z.optional(providerMetadataSchema),
+  mediaType: z.string().optional(),
+  providerOptions: providerMetadataSchema.optional(),
 });
 
 const taggedFileDataSchema = z.discriminatedUnion('type', [
@@ -79,9 +79,9 @@ export const filePartSchema: ZodType<FilePart> = z.object({
     z.instanceof(URL),
     providerReferenceSchema,
   ]),
-  filename: z.optional(z.string()),
+  filename: z.string().optional(),
   mediaType: z.string(),
-  providerOptions: z.optional(providerMetadataSchema),
+  providerOptions: providerMetadataSchema.optional(),
 });
 
 /**
@@ -90,7 +90,7 @@ export const filePartSchema: ZodType<FilePart> = z.object({
 export const reasoningPartSchema: ZodType<ReasoningPart> = z.object({
   type: z.literal('reasoning'),
   text: z.string(),
-  providerOptions: z.optional(providerMetadataSchema),
+  providerOptions: providerMetadataSchema.optional(),
 });
 
 /**
@@ -98,11 +98,8 @@ export const reasoningPartSchema: ZodType<ReasoningPart> = z.object({
  */
 export const customPartSchema: ZodType<CustomPart> = z.object({
   type: z.literal('custom'),
-  kind: z.pipe(
-    z.string(),
-    z.transform(value => value as `${string}.${string}`),
-  ),
-  providerOptions: z.optional(providerMetadataSchema),
+  kind: z.string().transform(value => value as `${string}.${string}`),
+  providerOptions: providerMetadataSchema.optional(),
 });
 
 /**
@@ -116,7 +113,7 @@ export const reasoningFilePartSchema: ZodType<ReasoningFilePart> = z.object({
     z.instanceof(URL),
   ]),
   mediaType: z.string(),
-  providerOptions: z.optional(providerMetadataSchema),
+  providerOptions: providerMetadataSchema.optional(),
 });
 
 /**
@@ -156,8 +153,8 @@ export const toolCallPartSchema: ZodType<ToolCallPart> = z.object({
   toolCallId: z.string(),
   toolName: z.string(),
   input: z.unknown(),
-  providerOptions: z.optional(providerMetadataSchema),
-  providerExecuted: z.optional(z.boolean()),
+  providerOptions: providerMetadataSchema.optional(),
+  providerExecuted: z.boolean().optional(),
 }) as ZodType<ToolCallPart>; // necessary bc input is optional on Zod type
 
 /**
@@ -169,27 +166,27 @@ export const outputSchema: ZodType<ToolResultOutput> = z.discriminatedUnion(
     z.object({
       type: z.literal('text'),
       value: z.string(),
-      providerOptions: z.optional(providerMetadataSchema),
+      providerOptions: providerMetadataSchema.optional(),
     }),
     z.object({
       type: z.literal('json'),
       value: jsonValueSchema,
-      providerOptions: z.optional(providerMetadataSchema),
+      providerOptions: providerMetadataSchema.optional(),
     }),
     z.object({
       type: z.literal('execution-denied'),
-      reason: z.optional(z.string()),
-      providerOptions: z.optional(providerMetadataSchema),
+      reason: z.string().optional(),
+      providerOptions: providerMetadataSchema.optional(),
     }),
     z.object({
       type: z.literal('error-text'),
       value: z.string(),
-      providerOptions: z.optional(providerMetadataSchema),
+      providerOptions: providerMetadataSchema.optional(),
     }),
     z.object({
       type: z.literal('error-json'),
       value: jsonValueSchema,
-      providerOptions: z.optional(providerMetadataSchema),
+      providerOptions: providerMetadataSchema.optional(),
     }),
     z.object({
       type: z.literal('content'),
@@ -198,70 +195,70 @@ export const outputSchema: ZodType<ToolResultOutput> = z.discriminatedUnion(
           z.object({
             type: z.literal('text'),
             text: z.string(),
-            providerOptions: z.optional(providerMetadataSchema),
+            providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
             type: z.literal('file'),
             data: taggedFileDataSchema,
             mediaType: z.string(),
-            filename: z.optional(z.string()),
-            providerOptions: z.optional(providerMetadataSchema),
+            filename: z.string().optional(),
+            providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
             // Deprecated.
             type: z.literal('file-data'),
             data: z.string(),
             mediaType: z.string(),
-            filename: z.optional(z.string()),
-            providerOptions: z.optional(providerMetadataSchema),
+            filename: z.string().optional(),
+            providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
             // Deprecated.
             type: z.literal('file-url'),
             url: z.string(),
-            mediaType: z.optional(z.string()),
-            providerOptions: z.optional(providerMetadataSchema),
+            mediaType: z.string().optional(),
+            providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
             // Deprecated.
             type: z.literal('file-id'),
             fileId: z.union([z.string(), z.record(z.string(), z.string())]),
-            providerOptions: z.optional(providerMetadataSchema),
+            providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
             // Deprecated.
             type: z.literal('file-reference'),
             providerReference: z.record(z.string(), z.string()),
-            providerOptions: z.optional(providerMetadataSchema),
+            providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
             // Deprecated.
             type: z.literal('image-data'),
             data: z.string(),
             mediaType: z.string(),
-            providerOptions: z.optional(providerMetadataSchema),
+            providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
             // Deprecated.
             type: z.literal('image-url'),
             url: z.string(),
-            providerOptions: z.optional(providerMetadataSchema),
+            providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
             // Deprecated.
             type: z.literal('image-file-id'),
             fileId: z.union([z.string(), z.record(z.string(), z.string())]),
-            providerOptions: z.optional(providerMetadataSchema),
+            providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
             // Deprecated.
             type: z.literal('image-file-reference'),
             providerReference: z.record(z.string(), z.string()),
-            providerOptions: z.optional(providerMetadataSchema),
+            providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
             type: z.literal('custom'),
-            providerOptions: z.optional(providerMetadataSchema),
+            providerOptions: providerMetadataSchema.optional(),
           }),
         ]),
       ),
@@ -277,7 +274,7 @@ export const toolResultPartSchema: ZodType<ToolResultPart> = z.object({
   toolCallId: z.string(),
   toolName: z.string(),
   output: outputSchema,
-  providerOptions: z.optional(providerMetadataSchema),
+  providerOptions: providerMetadataSchema.optional(),
 }) as ZodType<ToolResultPart>; // necessary bc result is optional on Zod type
 
 /**
@@ -288,10 +285,10 @@ export const toolApprovalRequestSchema: ZodType<ToolApprovalRequest> = z.object(
     type: z.literal('tool-approval-request'),
     approvalId: z.string(),
     toolCallId: z.string(),
-    reason: z.optional(z.string()),
-    isAutomatic: z.optional(z.boolean()),
-    signature: z.optional(z.string()),
-    inputSchemaInput: z.optional(z.unknown()),
+    reason: z.string().optional(),
+    isAutomatic: z.boolean().optional(),
+    signature: z.string().optional(),
+    inputSchemaInput: z.unknown().optional(),
   },
 );
 
@@ -303,5 +300,5 @@ export const toolApprovalResponseSchema: ZodType<ToolApprovalResponse> =
     type: z.literal('tool-approval-response'),
     approvalId: z.string(),
     approved: z.boolean(),
-    reason: z.optional(z.string()),
+    reason: z.string().optional(),
   });
