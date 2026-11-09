@@ -381,14 +381,20 @@ interface HarnessV2EffectContext {
 
 /**
  * Host-provided function that runs a keyed effect and records its output.
+ * Takes a single options object, e.g.
+ * `effect({ key, name, replay, input, fn: async context => ... })`.
  */
+type HarnessV2EffectOptions<
+  T extends HarnessV2SerializableValue = HarnessV2SerializableValue,
+> = Pick<HarnessV2Effect, 'key' | 'name' | 'replay' | 'input'> &
+  Partial<Pick<HarnessV2Effect, 'deliveredSubmissionIds'>> & {
+    fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>;
+  };
+
 type HarnessV2EffectFunction = <
   T extends HarnessV2SerializableValue = HarnessV2SerializableValue,
 >(
-  key: string,
-  options: Pick<HarnessV2Effect, 'name' | 'replay' | 'input'> &
-    Partial<Pick<HarnessV2Effect, 'deliveredSubmissionIds'>>,
-  fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>,
+  opts: HarnessV2EffectOptions<T>,
 ) => Promise<HarnessV2EffectOutput<T>>;
 
 /**

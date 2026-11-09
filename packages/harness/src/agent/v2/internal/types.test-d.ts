@@ -4,6 +4,7 @@ import type { ToolResultOutput } from '@ai-sdk/provider-utils';
 import type { HarnessV2EffectFunction } from '../../../index';
 import type {
   HarnessV2DriveContext,
+  HarnessV2EffectOptions,
   HarnessV2ToolResultOutput,
 } from '../../../v2/harness-v2-drive-context';
 import type {
@@ -17,6 +18,7 @@ import type {
 import type { HarnessV2StreamPart } from '../../../v2/harness-v2-stream-part';
 import type {
   HarnessAgentEffectFunction,
+  HarnessAgentEffectOptions,
   HarnessAgentExecuteHostToolFunction,
   HarnessAgentFinishStepFunction,
   HarnessAgentFinishTurnFunction,
@@ -53,6 +55,7 @@ test('redeclares the adapter effect signature without changing it', () => {
     HarnessV2DriveContext['effect']
   >();
   expectTypeOf<HarnessAgentEffectFunction>().toEqualTypeOf<HarnessV2EffectFunction>();
+  expectTypeOf<HarnessAgentEffectOptions>().toEqualTypeOf<HarnessV2EffectOptions>();
 });
 
 test('redeclares the adapter finish signatures without changing them', () => {

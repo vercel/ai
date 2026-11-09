@@ -15,6 +15,7 @@ import {
 } from './create-stream-writer';
 import type {
   HarnessAgentEffectFunction,
+  HarnessAgentEffectOptions,
   HarnessAgentLog,
   HarnessAgentLogEvent,
   HarnessAgentStreamRecord,
@@ -71,7 +72,7 @@ async function readStream(input: {
   });
 }
 
-const options: Parameters<HarnessAgentEffectFunction>[1] = {
+const options: Omit<HarnessAgentEffectOptions, 'key' | 'fn'> = {
   name: 'tool.test',
   replay: 'safe',
   input: { query: 'test' },
@@ -128,20 +129,24 @@ describe('createEffectFunction', () => {
     });
     const read = vi.spyOn(log, 'read');
     const replacement = vi.fn(async () => 'unexpected');
-    expect(await effect('key', options, replacement)).toEqual({
+    expect(await effect({ key: 'key', ...options, fn: replacement })).toEqual({
       type: 'result',
       value: 'existing',
     });
     for (let index = 0; index < 8; index++) {
       expect(
-        await effect(`key-${index}`, options, async function* () {
-          yield { index };
-          yield { index, done: true };
+        await effect({
+          key: `key-${index}`,
+          ...options,
+          fn: async function* () {
+            yield { index };
+            yield { index, done: true };
+          },
         }),
       ).toEqual({ type: 'result', value: { index, done: true } });
     }
     for (let index = 0; index < 8; index++) {
-      await effect(`key-${index}`, options, replacement);
+      await effect({ key: `key-${index}`, ...options, fn: replacement });
     }
     expect(read).toHaveBeenCalledExactlyOnceWith({
       types: ['effect-start', 'effect-progress', 'effect-end'],
@@ -154,7 +159,7 @@ describe('createEffectFunction', () => {
     const { effect, log, world, runId } = await setup();
     const read = vi.spyOn(log, 'read');
     const fn = vi.fn(async () => 'value');
-    await effect('key', options, fn);
+    await effect({ key: 'key', ...options, fn });
     await createLog({ world, runId }).append({
       type: 'harness:journal',
       id: 'unrelated',
@@ -165,8 +170,8 @@ describe('createEffectFunction', () => {
       correlationId: 'infrastructure',
       eventData: { stepName: 'other', input: [] },
     });
-    await effect('other', options, fn);
-    await effect('key', options, fn);
+    await effect({ key: 'other', ...options, fn });
+    await effect({ key: 'key', ...options, fn });
     expect(read).toHaveBeenCalledTimes(1);
     expect(fn).toHaveBeenCalledTimes(2);
   });
@@ -185,14 +190,22 @@ describe('createEffectFunction', () => {
       await releaseRead.promise;
       return result;
     });
-    const first = effect('first', options, () => {
-      firstEntered.resolve();
-      return releaseCallbacks.promise;
+    const first = effect({
+      key: 'first',
+      ...options,
+      fn: () => {
+        firstEntered.resolve();
+        return releaseCallbacks.promise;
+      },
     });
     await reading.promise;
-    const second = effect('second', options, () => {
-      secondEntered.resolve();
-      return releaseCallbacks.promise;
+    const second = effect({
+      key: 'second',
+      ...options,
+      fn: () => {
+        secondEntered.resolve();
+        return releaseCallbacks.promise;
+      },
     });
     const initialReads = reads.mock.calls.length;
     releaseRead.resolve();
@@ -222,7 +235,7 @@ describe('createEffectFunction', () => {
     });
     const fn = vi.fn(async () => 'unexpected');
     await writer.append(startEvent());
-    await expect(effect('key', options, fn)).rejects.toBeInstanceOf(
+    await expect(effect({ key: 'key', ...options, fn })).rejects.toBeInstanceOf(
       HarnessInvalidDriveStateError,
     );
     await writer.append(startEvent({ id: 'losing-start' }));
@@ -236,7 +249,7 @@ describe('createEffectFunction', () => {
       },
     });
     await vi.waitFor(() => expect(observed.has('losing-end')).toBe(true));
-    await expect(effect('key', options, fn)).rejects.toBeInstanceOf(
+    await expect(effect({ key: 'key', ...options, fn })).rejects.toBeInstanceOf(
       HarnessInvalidDriveStateError,
     );
     await writer.append({
@@ -249,7 +262,7 @@ describe('createEffectFunction', () => {
     });
     await writer.append(startEvent({ id: 'retry', attempt: 2 }));
     await vi.waitFor(() => expect(observed.has('retry')).toBe(true));
-    await expect(effect('key', options, fn)).rejects.toBeInstanceOf(
+    await expect(effect({ key: 'key', ...options, fn })).rejects.toBeInstanceOf(
       HarnessInvalidDriveStateError,
     );
     await writer.append({
@@ -268,7 +281,7 @@ describe('createEffectFunction', () => {
       data: { startId: 'retry', output: { type: 'result', value: 'winner' } },
     });
     await vi.waitFor(() => expect(observed.has('retry-end')).toBe(true));
-    expect(await effect('key', options, fn)).toEqual({
+    expect(await effect({ key: 'key', ...options, fn })).toEqual({
       type: 'result',
       value: 'winner',
     });
@@ -278,7 +291,7 @@ describe('createEffectFunction', () => {
       data: { startId: 'retry', output: { type: 'result', value: 'loser' } },
     });
     await vi.waitFor(() => expect(observed.has('losing-retry-end')).toBe(true));
-    expect(await effect('key', options, fn)).toEqual({
+    expect(await effect({ key: 'key', ...options, fn })).toEqual({
       type: 'result',
       value: 'winner',
     });
@@ -297,14 +310,18 @@ describe('createEffectFunction', () => {
           id: 'external-progress',
           data: { startId: event.data.startId, partial: 'external' },
         });
-        await effect('other', options, async () => 'other');
+        await effect({ key: 'other', ...options, fn: async () => 'other' });
       }
       return result;
     });
     expect(
-      await effect('key', options, async function* () {
-        yield 'local';
-        abortController.abort();
+      await effect({
+        key: 'key',
+        ...options,
+        fn: async function* () {
+          yield 'local';
+          abortController.abort();
+        },
       }),
     ).toEqual({ type: 'interrupted', retryable: true, partial: 'external' });
   });
@@ -321,11 +338,11 @@ describe('createEffectFunction', () => {
       return result;
     });
     const fn = vi.fn(async () => 'committed');
-    expect(await effect('key', options, fn)).toEqual({
+    expect(await effect({ key: 'key', ...options, fn })).toEqual({
       type: 'result',
       value: 'committed',
     });
-    expect(await effect('key', options, fn)).toEqual({
+    expect(await effect({ key: 'key', ...options, fn })).toEqual({
       type: 'result',
       value: 'committed',
     });
@@ -352,7 +369,12 @@ describe('createEffectFunction', () => {
         if (type === 'interrupted') abortController.abort();
       });
       for (let index = 0; index < 3; index++) {
-        const output = await effect('key', { ...options, replay: 'never' }, fn);
+        const output = await effect({
+          key: 'key',
+          ...options,
+          replay: 'never',
+          fn,
+        });
         expect(output).toEqual(expected);
         const returned =
           output.type === 'result'
@@ -393,7 +415,7 @@ describe('createEffectFunction', () => {
       ]);
       return { answer: 42 };
     });
-    const output = await effect('key', options, fn);
+    const output = await effect({ key: 'key', ...options, fn });
     expect(output).toEqual({ type: 'result', value: { answer: 42 } });
     if (output.type === 'result') output.value.answer = 0;
 
@@ -403,7 +425,12 @@ describe('createEffectFunction', () => {
     });
     const replacement = vi.fn(async () => 'changed');
     expect(
-      await replay('key', { ...options, input: 'changed' }, replacement),
+      await replay({
+        key: 'key',
+        ...options,
+        input: 'changed',
+        fn: replacement,
+      }),
     ).toEqual({ type: 'result', value: { answer: 42 } });
     expect(fn).toHaveBeenCalledTimes(1);
     expect(replacement).not.toHaveBeenCalled();
@@ -422,8 +449,12 @@ describe('createEffectFunction', () => {
     'records and replays callback errors: $message',
     async ({ error, message }) => {
       const { effect, log, world, runId } = await setup();
-      const output = await effect('key', options, () => {
-        throw error;
+      const output = await effect({
+        key: 'key',
+        ...options,
+        fn: () => {
+          throw error;
+        },
       });
       expect(output).toEqual({ type: 'error', error: { message } });
       const replacement = vi.fn(async () => 'unexpected');
@@ -431,7 +462,7 @@ describe('createEffectFunction', () => {
         await createTestEffectFunction({
           log: createLog({ world, runId }),
           abortSignal: createAbortController().signal,
-        })('key', options, replacement),
+        })({ key: 'key', ...options, fn: replacement }),
       ).toEqual(output);
       expect(replacement).not.toHaveBeenCalled();
       expect((await log.read()).events).toHaveLength(2);
@@ -441,14 +472,22 @@ describe('createEffectFunction', () => {
   test('records rejected promises and iterator failures as callback errors', async () => {
     const { effect, log } = await setup();
     expect(
-      await effect('promise', options, async () => {
-        throw new Error('promise failed');
+      await effect({
+        key: 'promise',
+        ...options,
+        fn: async () => {
+          throw new Error('promise failed');
+        },
       }),
     ).toEqual({ type: 'error', error: { message: 'Error: promise failed' } });
     expect(
-      await effect('iterator', options, async function* () {
-        yield 'partial';
-        throw new Error('iterator failed');
+      await effect({
+        key: 'iterator',
+        ...options,
+        fn: async function* () {
+          yield 'partial';
+          throw new Error('iterator failed');
+        },
       }),
     ).toEqual({ type: 'error', error: { message: 'Error: iterator failed' } });
     expect(
@@ -460,20 +499,30 @@ describe('createEffectFunction', () => {
 
   test('keeps undefined results, ignores generator returns, and allows zero yields', async () => {
     const { effect, log } = await setup();
-    expect(await effect('promise', options, async () => undefined)).toEqual({
+    expect(
+      await effect({ key: 'promise', ...options, fn: async () => undefined }),
+    ).toEqual({
       type: 'result',
       value: undefined,
     });
     expect(
-      await effect('empty', options, async function* () {
-        yield* [];
-        return 'ignored';
+      await effect({
+        key: 'empty',
+        ...options,
+        fn: async function* () {
+          yield* [];
+          return 'ignored';
+        },
       }),
     ).toEqual({ type: 'result', value: undefined });
     expect(
-      await effect('yield', options, async function* () {
-        yield undefined;
-        return 'ignored';
+      await effect({
+        key: 'yield',
+        ...options,
+        fn: async function* () {
+          yield undefined;
+          return 'ignored';
+        },
       }),
     ).toEqual({ type: 'result', value: undefined });
     expect(
@@ -485,12 +534,16 @@ describe('createEffectFunction', () => {
     const { effect, log } = await setup();
     const value = { count: 1 };
     expect(
-      await effect('key', options, async function* () {
-        yield value;
-        value.count = 2;
-        yield value;
-        value.count = 3;
-        return { count: 4 };
+      await effect({
+        key: 'key',
+        ...options,
+        fn: async function* () {
+          yield value;
+          value.count = 2;
+          yield value;
+          value.count = 3;
+          return { count: 4 };
+        },
       }),
     ).toEqual({ type: 'result', value: { count: 2 } });
     expect(
@@ -518,9 +571,13 @@ describe('createEffectFunction', () => {
         }
         return append(event);
       });
-      const running = effect('key', options, async function* () {
-        yield 'partial';
-        resumed();
+      const running = effect({
+        key: 'key',
+        ...options,
+        fn: async function* () {
+          yield 'partial';
+          resumed();
+        },
       });
       await writing.promise;
       expect(resumed).not.toHaveBeenCalled();
@@ -548,8 +605,13 @@ describe('createEffectFunction', () => {
       map: new Map([['set', new Set(['item'])]]),
     };
     expect(
-      await effect('key', { ...options, input: value }, async function* () {
-        yield value;
+      await effect({
+        key: 'key',
+        ...options,
+        input: value,
+        fn: async function* () {
+          yield value;
+        },
       }),
     ).toEqual({ type: 'result', value });
     const records = (await createLog({ world, runId }).read()).events;
@@ -563,7 +625,11 @@ describe('createEffectFunction', () => {
       id: expect.any(String),
       data: { startId: records[0].id, partial: value },
     });
-    const replay = await effect('key', options, async () => null);
+    const replay = await effect({
+      key: 'key',
+      ...options,
+      fn: async () => null,
+    });
     expect(replay).toEqual({ type: 'result', value });
     expect((await log.read()).events).toEqual(records);
   });
@@ -574,7 +640,7 @@ describe('createEffectFunction', () => {
       const { effect, log, abortController } = await setup();
       abortController.abort();
       const fn = vi.fn(async () => 'value');
-      expect(await effect('key', { ...options, replay }, fn)).toEqual({
+      expect(await effect({ key: 'key', ...options, replay, fn })).toEqual({
         type: 'interrupted',
         retryable: replay === 'safe',
       });
@@ -584,7 +650,7 @@ describe('createEffectFunction', () => {
         await createTestEffectFunction({
           log,
           abortSignal: createAbortController().signal,
-        })('key', { ...options, replay }, fn),
+        })({ key: 'key', ...options, replay, fn }),
       ).toEqual({ type: 'result', value: 'value' });
     },
   );
@@ -598,7 +664,7 @@ describe('createEffectFunction', () => {
       return result;
     });
     const fn = vi.fn(async () => 'unexpected');
-    expect(await effect('key', options, fn)).toEqual({
+    expect(await effect({ key: 'key', ...options, fn })).toEqual({
       type: 'interrupted',
       retryable: true,
     });
@@ -613,9 +679,13 @@ describe('createEffectFunction', () => {
     const { effect, log, abortController } = await setup();
     const entered = new DelayedPromise<void>();
     const pending = new DelayedPromise<string>();
-    const running = effect('key', options, () => {
-      entered.resolve();
-      return pending.promise;
+    const running = effect({
+      key: 'key',
+      ...options,
+      fn: () => {
+        entered.resolve();
+        return pending.promise;
+      },
     });
     let settled = false;
     void running.then(() => {
@@ -634,10 +704,11 @@ describe('createEffectFunction', () => {
     async replay => {
       const { effect, log, abortController } = await setup();
       const cleanup = vi.fn();
-      const output = await effect(
-        'key',
-        { ...options, replay },
-        async function* () {
+      const output = await effect({
+        key: 'key',
+        ...options,
+        replay,
+        fn: async function* () {
           try {
             yield 'committed';
             abortController.abort();
@@ -646,7 +717,7 @@ describe('createEffectFunction', () => {
             cleanup();
           }
         },
-      );
+      });
       expect(output).toEqual({
         type: 'interrupted',
         retryable: replay === 'safe',
@@ -661,7 +732,7 @@ describe('createEffectFunction', () => {
         await createTestEffectFunction({
           log,
           abortSignal: createAbortController().signal,
-        })('key', { ...options, replay }, retry),
+        })({ key: 'key', ...options, replay, fn: retry }),
       ).toEqual(
         replay === 'safe' ? { type: 'result', value: 'retry' } : output,
       );
@@ -674,9 +745,13 @@ describe('createEffectFunction', () => {
     async hasProgress => {
       const { effect, abortController } = await setup();
       expect(
-        await effect('key', options, async function* () {
-          if (hasProgress) yield undefined;
-          abortController.abort();
+        await effect({
+          key: 'key',
+          ...options,
+          fn: async function* () {
+            if (hasProgress) yield undefined;
+            abortController.abort();
+          },
         }),
       ).toStrictEqual({
         type: 'interrupted',
@@ -689,8 +764,12 @@ describe('createEffectFunction', () => {
   test('does not classify an AbortError as interruption without an aborted signal', async () => {
     const { effect } = await setup();
     expect(
-      await effect('key', options, async () => {
-        throw new DOMException('failed', 'AbortError');
+      await effect({
+        key: 'key',
+        ...options,
+        fn: async () => {
+          throw new DOMException('failed', 'AbortError');
+        },
       }),
     ).toEqual({ type: 'error', error: { message: 'AbortError: failed' } });
   });
@@ -701,9 +780,14 @@ describe('createEffectFunction', () => {
       const { effect, log } = await setup();
       const error = new HarnessInvalidDriveStateError({ message: 'rebuild' });
       await expect(
-        effect('key', { ...options, replay }, async function* () {
-          yield 'partial';
-          throw error;
+        effect({
+          key: 'key',
+          ...options,
+          replay,
+          fn: async function* () {
+            yield 'partial';
+            throw error;
+          },
         }),
       ).rejects.toBe(error);
       expect((await log.read({ types: ['effect-end'] })).events).toEqual([
@@ -724,7 +808,7 @@ describe('createEffectFunction', () => {
       const replayed = await createTestEffectFunction({
         log,
         abortSignal: createAbortController().signal,
-      })('key', { ...options, replay }, retry);
+      })({ key: 'key', ...options, replay, fn: retry });
       expect(replayed).toEqual(
         replay === 'safe'
           ? { type: 'result', value: 'retry' }
@@ -742,7 +826,7 @@ describe('createEffectFunction', () => {
       await log.append(start);
       const fn = vi.fn(async () => 'unexpected');
       await expect(
-        effect('key', { ...options, replay }, fn),
+        effect({ key: 'key', ...options, replay, fn }),
       ).rejects.toBeInstanceOf(HarnessInvalidDriveStateError);
       expect(fn).not.toHaveBeenCalled();
       expect((await log.read()).events).toEqual([start]);
@@ -760,7 +844,9 @@ describe('createEffectFunction', () => {
         output: { type: 'interrupted', retryable: true },
       },
     });
-    expect(await effect('key', options, async () => 'retried')).toEqual({
+    expect(
+      await effect({ key: 'key', ...options, fn: async () => 'retried' }),
+    ).toEqual({
       type: 'result',
       value: 'retried',
     });
@@ -781,16 +867,22 @@ describe('createEffectFunction', () => {
     const { effect } = await setup();
     const entered = new DelayedPromise<void>();
     const pending = new DelayedPromise<string>();
-    const first = effect('key', options, () => {
-      entered.resolve();
-      return pending.promise;
+    const first = effect({
+      key: 'key',
+      ...options,
+      fn: () => {
+        entered.resolve();
+        return pending.promise;
+      },
     });
     await entered.promise;
     const duplicate = vi.fn(async () => 'unexpected');
-    await expect(effect('key', options, duplicate)).rejects.toBeInstanceOf(
-      HarnessInvalidDriveStateError,
-    );
-    expect(await effect('other', options, async () => 'other')).toEqual({
+    await expect(
+      effect({ key: 'key', ...options, fn: duplicate }),
+    ).rejects.toBeInstanceOf(HarnessInvalidDriveStateError);
+    expect(
+      await effect({ key: 'other', ...options, fn: async () => 'other' }),
+    ).toEqual({
       type: 'result',
       value: 'other',
     });
@@ -825,7 +917,7 @@ describe('createEffectFunction', () => {
       createTestEffectFunction({
         log: current,
         abortSignal: createAbortController().signal,
-      })('key', options, fn).catch(error => {
+      })({ key: 'key', ...options, fn }).catch(error => {
         contended.resolve();
         throw error;
       }),
@@ -866,7 +958,9 @@ describe('createEffectFunction', () => {
         }
         return append(event);
       });
-      expect(await effect('key', options, async () => 'local')).toEqual(output);
+      expect(
+        await effect({ key: 'key', ...options, fn: async () => 'local' }),
+      ).toEqual(output);
       expect((await log.read({ types: ['effect-end'] })).events).toHaveLength(
         2,
       );
@@ -914,7 +1008,7 @@ describe('createEffectFunction', () => {
     ];
     for (const event of events) await log.append(event);
     const fn = vi.fn(async () => 'unexpected');
-    expect(await effect('key', options, fn)).toEqual({
+    expect(await effect({ key: 'key', ...options, fn })).toEqual({
       type: 'result',
       value: 'winner',
     });
@@ -940,7 +1034,7 @@ describe('createEffectFunction', () => {
       return result;
     });
     const fn = vi.fn(async () => 'unexpected');
-    expect(await effect('key', options, fn)).toEqual({
+    expect(await effect({ key: 'key', ...options, fn })).toEqual({
       type: 'result',
       value: 'recorded',
     });
@@ -951,7 +1045,12 @@ describe('createEffectFunction', () => {
   test('keeps a committed result ahead of a late recovery interruption', async () => {
     const { log, effect } = await setup();
     expect(
-      await effect('key', { ...options, replay: 'never' }, async () => 'first'),
+      await effect({
+        key: 'key',
+        ...options,
+        replay: 'never',
+        fn: async () => 'first',
+      }),
     ).toEqual({
       type: 'result',
       value: 'first',
@@ -966,7 +1065,7 @@ describe('createEffectFunction', () => {
       },
     });
     const fn = vi.fn(async () => 'unexpected');
-    expect(await effect('key', options, fn)).toEqual({
+    expect(await effect({ key: 'key', ...options, fn })).toEqual({
       type: 'result',
       value: 'first',
     });
@@ -986,14 +1085,18 @@ describe('createEffectFunction', () => {
       const resumed = vi.fn();
       const cleanup = vi.fn();
       await expect(
-        effect('key', options, async function* () {
-          entered();
-          try {
-            yield 'partial';
-            resumed();
-          } finally {
-            cleanup();
-          }
+        effect({
+          key: 'key',
+          ...options,
+          fn: async function* () {
+            entered();
+            try {
+              yield 'partial';
+              resumed();
+            } finally {
+              cleanup();
+            }
+          },
         }),
       ).rejects.toBe(failure);
       expect(entered).toHaveBeenCalledTimes(
@@ -1008,9 +1111,9 @@ describe('createEffectFunction', () => {
       expect((await log.read({ types: ['effect-end'] })).events).toEqual([]);
       if (failedType !== 'effect-start') {
         const fn = vi.fn(async () => 'unexpected');
-        await expect(effect('key', options, fn)).rejects.toBeInstanceOf(
-          HarnessInvalidDriveStateError,
-        );
+        await expect(
+          effect({ key: 'key', ...options, fn }),
+        ).rejects.toBeInstanceOf(HarnessInvalidDriveStateError);
         expect(fn).not.toHaveBeenCalled();
       }
     },
@@ -1021,7 +1124,7 @@ describe('createEffectFunction', () => {
     const failure = new Error('read failed');
     vi.spyOn(log, 'read').mockRejectedValueOnce(failure);
     const fn = vi.fn(async () => 'unexpected');
-    await expect(effect('key', options, fn)).rejects.toBe(failure);
+    await expect(effect({ key: 'key', ...options, fn })).rejects.toBe(failure);
     expect(fn).not.toHaveBeenCalled();
     expect((await log.read()).events).toEqual([]);
   });
@@ -1037,8 +1140,8 @@ describe('createEffectFunction', () => {
       return result;
     });
     const fn = vi.fn(async () => 'committed');
-    await expect(effect('key', options, fn)).rejects.toBe(failure);
-    expect(await effect('key', options, fn)).toEqual({
+    await expect(effect({ key: 'key', ...options, fn })).rejects.toBe(failure);
+    expect(await effect({ key: 'key', ...options, fn })).toEqual({
       type: 'result',
       value: 'committed',
     });
@@ -1047,7 +1150,7 @@ describe('createEffectFunction', () => {
       await createTestEffectFunction({
         log: createLog({ world, runId }),
         abortSignal: createAbortController().signal,
-      })('key', options, fn),
+      })({ key: 'key', ...options, fn }),
     ).toEqual({ type: 'result', value: 'committed' });
     expect(fn).toHaveBeenCalledTimes(1);
   });
@@ -1057,8 +1160,12 @@ describe('createEffectFunction', () => {
     const circular: { self?: unknown } = {};
     circular.self = circular;
     expect(
-      await effect('key', options, async () => {
-        throw circular;
+      await effect({
+        key: 'key',
+        ...options,
+        fn: async () => {
+          throw circular;
+        },
       }),
     ).toEqual({
       type: 'error',
@@ -1074,14 +1181,19 @@ describe('createEffectFunction', () => {
       const fn = vi.fn(async () => invalid);
       const running =
         location === 'progress'
-          ? effect('key', options, async function* () {
-              yield invalid;
+          ? effect({
+              key: 'key',
+              ...options,
+              fn: async function* () {
+                yield invalid;
+              },
             })
-          : effect(
-              'key',
-              { ...options, input: location === 'input' ? invalid : null },
+          : effect({
+              key: 'key',
+              ...options,
+              input: location === 'input' ? invalid : null,
               fn,
-            );
+            });
       await expect(running).rejects.toBeInstanceOf(TypeError);
       expect(fn).toHaveBeenCalledTimes(location === 'result' ? 1 : 0);
       expect((await log.read({ types: ['effect-end'] })).events).toEqual([]);
@@ -1096,8 +1208,12 @@ describe('createEffectFunction', () => {
       event.type === 'effect-end' ? Promise.reject(failure) : append(event),
     );
     await expect(
-      effect('key', options, async () => {
-        throw new HarnessInvalidDriveStateError({ message: 'rebuild' });
+      effect({
+        key: 'key',
+        ...options,
+        fn: async () => {
+          throw new HarnessInvalidDriveStateError({ message: 'rebuild' });
+        },
       }),
     ).rejects.toBe(failure);
   });
@@ -1105,14 +1221,18 @@ describe('createEffectFunction', () => {
   test('does not replace an interruption with an iterator cleanup failure', async () => {
     const { effect, abortController } = await setup();
     expect(
-      await effect('key', options, async function* () {
-        try {
-          yield 'partial';
-          abortController.abort();
-          yield 'late';
-        } finally {
-          throw new Error('cleanup failed');
-        }
+      await effect({
+        key: 'key',
+        ...options,
+        fn: async function* () {
+          try {
+            yield 'partial';
+            abortController.abort();
+            yield 'late';
+          } finally {
+            throw new Error('cleanup failed');
+          }
+        },
       }),
     ).toEqual({ type: 'interrupted', retryable: true, partial: 'partial' });
   });
@@ -1125,7 +1245,9 @@ describe('createEffectFunction', () => {
       if (event.type === 'effect-end') abortController.abort();
       return result;
     });
-    expect(await effect('key', options, async () => 'committed')).toEqual({
+    expect(
+      await effect({ key: 'key', ...options, fn: async () => 'committed' }),
+    ).toEqual({
       type: 'result',
       value: 'committed',
     });
@@ -1134,9 +1256,13 @@ describe('createEffectFunction', () => {
   test('observes cancellation when callback work completes before submitting the end', async () => {
     const { effect, abortController } = await setup();
     expect(
-      await effect('key', options, async () => {
-        abortController.abort();
-        return 'uncommitted';
+      await effect({
+        key: 'key',
+        ...options,
+        fn: async () => {
+          abortController.abort();
+          return 'uncommitted';
+        },
       }),
     ).toEqual({ type: 'interrupted', retryable: true });
   });
@@ -1159,7 +1285,7 @@ describe('createEffectFunction', () => {
       return result;
     });
     const fn = vi.fn(async () => 'unexpected');
-    const running = effect('key', options, fn);
+    const running = effect({ key: 'key', ...options, fn });
     await snapshotReady.promise;
     await log.append({
       type: 'effect-progress',
@@ -1185,7 +1311,7 @@ describe('createEffectFunction', () => {
       type: 'result',
       value: 'recorded',
     });
-    expect(await effect('key', options, fn)).toEqual({
+    expect(await effect({ key: 'key', ...options, fn })).toEqual({
       type: 'result',
       value: 'recorded',
     });
@@ -1211,12 +1337,12 @@ describe('createEffectFunction', () => {
       throw failure;
     });
     const fn = vi.fn(async () => 'unexpected');
-    await expect(effect('key', options, fn)).rejects.toBe(failure);
-    expect(await effect('key', options, fn)).toEqual({
+    await expect(effect({ key: 'key', ...options, fn })).rejects.toBe(failure);
+    expect(await effect({ key: 'key', ...options, fn })).toEqual({
       type: 'result',
       value: 'recorded',
     });
-    expect(await effect('key', options, fn)).toEqual({
+    expect(await effect({ key: 'key', ...options, fn })).toEqual({
       type: 'result',
       value: 'recorded',
     });
@@ -1254,11 +1380,11 @@ describe('createEffectFunction', () => {
       }
       expect(unsubscribe).toHaveBeenCalledTimes(1);
       const fn = vi.fn(async () => 'unexpected');
-      expect(await replay('key', options, fn)).toEqual({
+      expect(await replay({ key: 'key', ...options, fn })).toEqual({
         type: 'result',
         value: 'recorded',
       });
-      expect(await replay('missing', options, fn)).toEqual({
+      expect(await replay({ key: 'missing', ...options, fn })).toEqual({
         type: 'interrupted',
         retryable: true,
       });
@@ -1284,15 +1410,23 @@ describe('createEffectFunction', () => {
     const secondEntered = new DelayedPromise<void>();
     const releaseFirst = new DelayedPromise<void>();
     const releaseSecond = new DelayedPromise<void>();
-    const first = effect('first', options, async function* () {
-      yield 'first partial';
-      firstEntered.resolve();
-      await releaseFirst.promise;
+    const first = effect({
+      key: 'first',
+      ...options,
+      fn: async function* () {
+        yield 'first partial';
+        firstEntered.resolve();
+        await releaseFirst.promise;
+      },
     });
-    const second = effect('second', options, async function* () {
-      yield 'second partial';
-      secondEntered.resolve();
-      await releaseSecond.promise;
+    const second = effect({
+      key: 'second',
+      ...options,
+      fn: async function* () {
+        yield 'second partial';
+        secondEntered.resolve();
+        await releaseSecond.promise;
+      },
     });
     await Promise.all([firstEntered.promise, secondEntered.promise]);
     abortController.abort();
@@ -1336,7 +1470,7 @@ describe('createEffectFunction', () => {
       return result;
     });
     const fn = vi.fn(async () => 'unexpected');
-    const running = effect('key', options, fn);
+    const running = effect({ key: 'key', ...options, fn });
     await ready.promise;
     abortController.abort();
     expect(unsubscribe).not.toHaveBeenCalled();
@@ -1380,8 +1514,12 @@ describe('createEffectFunction', () => {
         abortSignal: createAbortController().signal,
       });
       const fn = vi.fn(async () => 'unexpected');
-      await expect(effect('key', options, fn)).rejects.toBe(failure);
-      await expect(effect('key', options, fn)).rejects.toBe(failure);
+      await expect(effect({ key: 'key', ...options, fn })).rejects.toBe(
+        failure,
+      );
+      await expect(effect({ key: 'key', ...options, fn })).rejects.toBe(
+        failure,
+      );
       expect(log.read).toHaveBeenCalledTimes(1);
       expect(log.append).not.toHaveBeenCalled();
       expect(fn).not.toHaveBeenCalled();
@@ -1421,15 +1559,19 @@ describe('createEffectFunction', () => {
       const resumed = vi.fn();
       const cleanup = vi.fn();
       await expect(
-        effect('key', options, async function* () {
-          entered();
-          try {
-            if (failureAt === 'callback') fail();
-            yield 'partial';
-            resumed();
-          } finally {
-            cleanup();
-          }
+        effect({
+          key: 'key',
+          ...options,
+          fn: async function* () {
+            entered();
+            try {
+              if (failureAt === 'callback') fail();
+              yield 'partial';
+              resumed();
+            } finally {
+              cleanup();
+            }
+          },
         }),
       ).rejects.toBe(failure);
       expect(entered).toHaveBeenCalledTimes(
@@ -1447,7 +1589,7 @@ describe('createEffectFunction', () => {
           : ['effect-start'],
       );
       await expect(
-        effect('other', options, async () => 'unexpected'),
+        effect({ key: 'other', ...options, fn: async () => 'unexpected' }),
       ).rejects.toBe(failure);
       expect(log.read).toHaveBeenCalledTimes(1);
     },
@@ -1465,7 +1607,7 @@ describe('createEffectFunction', () => {
         return result;
       });
       const fn = vi.fn(async () => 'value');
-      expect(await effect('key', options, fn)).toEqual({
+      expect(await effect({ key: 'key', ...options, fn })).toEqual({
         type: 'result',
         value: 'value',
       });
@@ -1482,10 +1624,14 @@ describe('createEffectFunction', () => {
 
     test('tags callback parts with the attempt start ID', async () => {
       const { effect, log, world, runId } = await setup();
-      await effect('key', options, async ({ emit }) => {
-        emit(part('a'));
-        emit(part('b'));
-        return 'done';
+      await effect({
+        key: 'key',
+        ...options,
+        fn: async ({ emit }) => {
+          emit(part('a'));
+          emit(part('b'));
+          return 'done';
+        },
       });
       const [start] = (await log.read({ types: ['effect-start'] })).events;
       expect(await readStream({ world, runId })).toEqual([
@@ -1497,9 +1643,13 @@ describe('createEffectFunction', () => {
     test('drops parts emitted after the callback settled', async () => {
       const { effect, world, runId } = await setup();
       let lateEmit: HarnessV2EffectContext['emit'] | undefined;
-      await effect('key', options, async ({ emit }) => {
-        lateEmit = emit;
-        return 'done';
+      await effect({
+        key: 'key',
+        ...options,
+        fn: async ({ emit }) => {
+          lateEmit = emit;
+          return 'done';
+        },
       });
       lateEmit?.(part('late'));
       expect(await readStream({ world, runId })).toEqual([]);
@@ -1516,9 +1666,13 @@ describe('createEffectFunction', () => {
           if (args[1] === streamName) await pending.promise;
           return write(...args);
         });
-      const running = effect('key', options, async ({ emit }) => {
-        emit(part('a'));
-        return 'done';
+      const running = effect({
+        key: 'key',
+        ...options,
+        fn: async ({ emit }) => {
+          emit(part('a'));
+          return 'done';
+        },
       });
       await vi.waitFor(() =>
         expect(writeSpy).toHaveBeenCalledWith(
@@ -1535,9 +1689,13 @@ describe('createEffectFunction', () => {
 
     test('does not emit when replaying a committed output', async () => {
       const { effect, world, runId } = await setup();
-      await effect('key', options, async ({ emit }) => {
-        emit(part('a'));
-        return 'done';
+      await effect({
+        key: 'key',
+        ...options,
+        fn: async ({ emit }) => {
+          emit(part('a'));
+          return 'done';
+        },
       });
       const replayed = vi.fn(async ({ emit }: HarnessV2EffectContext) => {
         emit(part('again'));
@@ -1549,7 +1707,7 @@ describe('createEffectFunction', () => {
           abortSignal: createAbortController().signal,
           world,
           runId,
-        })('key', options, replayed),
+        })({ key: 'key', ...options, fn: replayed }),
       ).toEqual({ type: 'result', value: 'done' });
       expect(replayed).not.toHaveBeenCalled();
       expect(await readStream({ world, runId })).toEqual([
@@ -1560,11 +1718,15 @@ describe('createEffectFunction', () => {
     test('tags a retried attempt with its own start ID', async () => {
       const { effect, log, world, runId, abortController } = await setup();
       expect(
-        await effect('key', options, async ({ emit }) => {
-          emit(part('cut off'));
-          await new Promise(resolve => setTimeout(resolve, 0));
-          abortController.abort();
-          return 'too late';
+        await effect({
+          key: 'key',
+          ...options,
+          fn: async ({ emit }) => {
+            emit(part('cut off'));
+            await new Promise(resolve => setTimeout(resolve, 0));
+            abortController.abort();
+            return 'too late';
+          },
         }),
       ).toEqual({ type: 'interrupted', retryable: true });
       expect(
@@ -1573,9 +1735,13 @@ describe('createEffectFunction', () => {
           abortSignal: createAbortController().signal,
           world,
           runId,
-        })('key', options, async ({ emit }) => {
-          emit(part('retried'));
-          return 'done';
+        })({
+          key: 'key',
+          ...options,
+          fn: async ({ emit }) => {
+            emit(part('retried'));
+            return 'done';
+          },
         }),
       ).toEqual({ type: 'result', value: 'done' });
       const starts = (await log.read({ types: ['effect-start'] })).events;

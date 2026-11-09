@@ -18,6 +18,22 @@ import type {
 } from './harness-v2-stream-part';
 
 /**
+ * Options of one `effect()` call: the effect's identity and replay policy,
+ * plus the work to run for a new attempt.
+ */
+export type HarnessV2EffectOptions<
+  T extends SerializableValue = SerializableValue,
+> = Pick<HarnessV2Effect, 'key' | 'name' | 'replay' | 'input'> &
+  Partial<Pick<HarnessV2Effect, 'deliveredSubmissionIds'>> & {
+    /**
+     * Work to run for a new attempt: an async function whose return value is
+     * the output, or an async generator whose yielded values are recorded as
+     * partial results and whose last yielded value is the output.
+     */
+    fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>;
+  };
+
+/**
  * Host-provided function that runs a keyed effect under its replay policy and
  * records its output. Terminal outputs are replayed; retryable interruptions
  * permit another attempt. Callback failures become error outputs, while
@@ -26,10 +42,7 @@ import type {
 export type HarnessV2EffectFunction = <
   T extends SerializableValue = SerializableValue,
 >(
-  key: string,
-  options: Pick<HarnessV2Effect, 'name' | 'replay' | 'input'> &
-    Partial<Pick<HarnessV2Effect, 'deliveredSubmissionIds'>>,
-  fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>,
+  opts: HarnessV2EffectOptions<T>,
 ) => Promise<HarnessV2EffectOutput<T>>;
 
 /**

@@ -381,16 +381,14 @@ export function createExecuteHostToolFunction(input: {
       );
     }
 
-    const output = await effect(
-      `tool:${toolCallId}`,
-      {
-        name: `tool.${toolName}`,
-        replay: tool?.replay ?? 'never',
-        input: toolInput,
-      },
-      context =>
+    const output = await effect({
+      key: `tool:${toolCallId}`,
+      name: `tool.${toolName}`,
+      replay: tool?.replay ?? 'never',
+      input: toolInput,
+      fn: context =>
         runHostTool({ toolCallId, toolName, toolInput, tool, context }),
-    );
+    });
 
     /*
      * Every partial and final value the effect records is yielded by

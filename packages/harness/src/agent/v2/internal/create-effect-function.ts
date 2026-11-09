@@ -13,6 +13,7 @@ import type {
 } from '../../../v2/harness-v2-effect';
 import type {
   HarnessAgentEffectFunction,
+  HarnessAgentEffectOptions,
   HarnessAgentLog,
   HarnessAgentLogEvent,
   HarnessAgentStreamWriter,
@@ -432,10 +433,9 @@ export function createEffectFunction(input: {
    * calls for the same key cannot run another callback in this drive.
    */
   return async function effect<T extends SerializableValue = SerializableValue>(
-    key: string,
-    options: Parameters<HarnessAgentEffectFunction>[1],
-    fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>,
+    opts: HarnessAgentEffectOptions<T>,
   ): Promise<HarnessV2EffectOutput<T>> {
+    const { key, fn, ...options } = opts;
     if (running.has(key)) {
       throw new HarnessInvalidDriveStateError({
         message: 'HarnessAgent.effect: the effect is already running.',

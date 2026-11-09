@@ -21,6 +21,22 @@ import type {
 import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 
 /**
+ * Options of one `effect()` call. Same as `HarnessV2EffectOptions`, redeclared
+ * so the engine does not depend on the adapter-facing type.
+ */
+export type HarnessAgentEffectOptions<
+  T extends SerializableValue = SerializableValue,
+> = Pick<HarnessV2Effect, 'key' | 'name' | 'replay' | 'input'> &
+  Partial<Pick<HarnessV2Effect, 'deliveredSubmissionIds'>> & {
+    /**
+     * Work to run for a new attempt: an async function whose return value is
+     * the output, or an async generator whose yielded values are recorded as
+     * partial results and whose last yielded value is the output.
+     */
+    fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>;
+  };
+
+/**
  * Runs a keyed effect and returns its committed output. Terminal outputs are
  * replayed; recorded retryable interruptions permit a new attempt. Callback
  * failures become error outputs, while persistence failures reject the call.
@@ -28,10 +44,7 @@ import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 export type HarnessAgentEffectFunction = <
   T extends SerializableValue = SerializableValue,
 >(
-  key: string,
-  options: Pick<HarnessV2Effect, 'name' | 'replay' | 'input'> &
-    Partial<Pick<HarnessV2Effect, 'deliveredSubmissionIds'>>,
-  fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>,
+  opts: HarnessAgentEffectOptions<T>,
 ) => Promise<HarnessV2EffectOutput<T>>;
 
 /**
