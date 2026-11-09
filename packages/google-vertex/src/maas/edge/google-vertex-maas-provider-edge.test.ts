@@ -24,6 +24,8 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => ({
   fetchWithValidatedEndpoint: (
     await importOriginal<typeof ProviderUtilsModule>()
   ).fetchWithValidatedEndpoint,
+  isBrowserRuntime: (await importOriginal<typeof ProviderUtilsModule>())
+    .isBrowserRuntime,
   isSameOrigin: (await importOriginal<typeof ProviderUtilsModule>())
     .isSameOrigin,
   resolve: vi.fn().mockImplementation(async value => {

@@ -14,6 +14,58 @@ afterEach(() => {
   vi.resetModules();
 });
 
+describe.each(['node', 'edge'])('MaaS %s browser redirects', entryPoint => {
+  it('preserves the native follow retry after an opaque redirect', async () => {
+    vi.stubGlobal('window', {});
+    const customFetch = vi.fn<typeof globalThis.fetch>(async (url, init) => {
+      if (url === 'https://api.example/v1/images/generations') {
+        return Response.json({
+          data: [{ url: 'https://images.example/image.png' }],
+        });
+      }
+      if (init?.redirect === 'manual') {
+        return { type: 'opaqueredirect' } as Response;
+      }
+      if (init?.redirect === 'follow') {
+        return new Response(new Uint8Array([1, 2, 3]));
+      }
+      throw new Error('Unexpected redirect mode');
+    });
+    const { createGoogleVertexMaas } =
+      entryPoint === 'node'
+        ? await import('./google-vertex-maas-provider-node')
+        : await import('./edge/google-vertex-maas-provider-edge');
+    const provider = createGoogleVertexMaas({
+      baseURL: 'https://api.example/v1',
+      fetch: customFetch,
+    });
+
+    const result = await provider.imageModel('test-model').doGenerate({
+      prompt: 'A small blue square',
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+      files: undefined,
+      mask: undefined,
+    });
+
+    expect(result.images).toEqual([new Uint8Array([1, 2, 3])]);
+    expect(customFetch).toHaveBeenCalledTimes(3);
+    expect(customFetch).toHaveBeenNthCalledWith(
+      2,
+      'https://images.example/image.png',
+      expect.objectContaining({ redirect: 'manual' }),
+    );
+    expect(customFetch).toHaveBeenNthCalledWith(
+      3,
+      'https://images.example/image.png',
+      expect.objectContaining({ redirect: 'follow' }),
+    );
+  });
+});
+
 describe.skipIf(
   typeof process.getBuiltinModule !== 'function' ||
     (globalThis as { EdgeRuntime?: unknown }).EdgeRuntime != null,

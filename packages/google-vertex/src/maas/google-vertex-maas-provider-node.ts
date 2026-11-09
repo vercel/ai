@@ -1,5 +1,6 @@
 import {
   fetchWithValidatedEndpoint,
+  isBrowserRuntime,
   isSameOrigin,
   resolve,
   type FetchFunction,
@@ -43,6 +44,11 @@ export function createGoogleVertexMaas(
     const href =
       typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
     if (!isSameOrigin(href, loadGoogleVertexMaasBaseURL(options))) {
+      // Preserve the browser-only retry after an opaque manual redirect.
+      if (isBrowserRuntime() && init?.redirect === 'follow') {
+        return (options.fetch ?? fetch)(url, init);
+      }
+
       // Preserve the default DNS-pinned transport behind this auth wrapper.
       return fetchWithValidatedEndpoint({
         url: href,
