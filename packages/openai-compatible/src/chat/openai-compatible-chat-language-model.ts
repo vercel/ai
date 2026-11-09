@@ -44,6 +44,7 @@ import {
   defaultOpenAICompatibleErrorStructure,
   type ProviderErrorStructure,
 } from '../openai-compatible-error';
+import { classifyOpenAICompatibleStreamError } from '../openai-compatible-stream-error';
 import { convertOpenAICompatibleChatUsage } from './convert-openai-compatible-chat-usage';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
@@ -642,7 +643,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
-                error: chunk.value.error,
+                error: classifyOpenAICompatibleStreamError(chunk.value.error),
               });
               return;
             }

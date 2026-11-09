@@ -3807,6 +3807,58 @@ describe('doStream', () => {
     `);
   });
 
+  it('should mark overloaded error stream parts as retryable', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"error": {"message": "Our servers are currently overloaded. Please try again later.", "type": "service_unavailable_error", "code": "server_is_overloaded", "param": null}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const errorPart = parts.find(part => part.type === 'error');
+
+    expect(errorPart).toMatchObject({
+      error: {
+        message:
+          'Our servers are currently overloaded. Please try again later.',
+        type: 'service_unavailable_error',
+        code: 'server_is_overloaded',
+        statusCode: 503,
+        isRetryable: true,
+      },
+    });
+  });
+
+  it('should not mark insufficient quota error stream parts as retryable', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"error": {"message": "You exceeded your quota", "type": "insufficient_quota", "code": "insufficient_quota", "param": null}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const errorPart = parts.find(part => part.type === 'error');
+
+    expect(errorPart).toMatchObject({
+      error: { type: 'insufficient_quota', code: 'insufficient_quota' },
+    });
+    expect(errorPart).not.toHaveProperty('error.isRetryable');
+  });
+
   it('should preserve structured error stream parts', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
