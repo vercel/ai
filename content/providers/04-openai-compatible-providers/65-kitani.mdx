@@ -1,0 +1,87 @@
+---
+title: Kitani
+description: Use the Kitani OpenAI compatible API with the AI SDK.
+---
+
+# Kitani Provider
+
+[Kitani](https://kitani.ai) is an inference API for open-weight models and community fine-tunes with an OpenAI-compatible API. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The Kitani provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use Kitani, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const kitani = createOpenAICompatible({
+  name: 'kitani',
+  baseURL: 'https://api.kitani.ai/v1',
+  apiKey: process.env.KITANI_API_KEY,
+});
+```
+
+<Note>
+  Create an API key in the [Kitani dashboard](https://kitani.ai/dashboard). Make
+  sure to set the `KITANI_API_KEY` environment variable with your API key.
+</Note>
+
+## Language Models
+
+You can create Kitani models using the provider instance. The first argument is a model ID from the [model catalog](https://kitani.ai/models), for example `z-ai/glm-5.3`.
+
+```ts
+const model = kitani('z-ai/glm-5.3');
+```
+
+### Example
+
+You can use Kitani language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const kitani = createOpenAICompatible({
+  name: 'kitani',
+  baseURL: 'https://api.kitani.ai/v1',
+  apiKey: process.env.KITANI_API_KEY,
+});
+
+const { text } = await generateText({
+  model: kitani('z-ai/glm-5.3'),
+  prompt: 'Tell me about yourself in one sentence.',
+});
+
+console.log(text);
+```
+
+Kitani language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const kitani = createOpenAICompatible({
+  name: 'kitani',
+  baseURL: 'https://api.kitani.ai/v1',
+  apiKey: process.env.KITANI_API_KEY,
+});
+
+const result = streamText({
+  model: kitani('z-ai/glm-5.3'),
+  prompt: 'Write a short haiku about open models.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+See the [Kitani documentation](https://kitani.ai/docs) for more examples and troubleshooting.
