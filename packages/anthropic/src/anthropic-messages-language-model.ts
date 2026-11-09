@@ -654,6 +654,32 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         },
       });
 
+    // Initial system tool changes are ignored by the prompt converter.
+    // Validate only definitions that remain in the outgoing messages.
+    const emittedInlineDefinitions = new Set(
+      messagesPrompt.messages.flatMap(message =>
+        message.role === 'system'
+          ? message.content.flatMap(part =>
+              part.type === 'tool_addition' &&
+              part.tool.type === 'tool_definition'
+                ? [part.tool.definition]
+                : [],
+            )
+          : [],
+      ),
+    );
+    if (
+      emittedInlineDefinitions.size > 0 &&
+      anthropicOptions?.allowInlineToolDefinitions !== true
+    ) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.anthropic.allowInlineToolDefinitions',
+        message:
+          'Inline tool definitions require providerOptions.anthropic.allowInlineToolDefinitions to be true. ' +
+          'Enable this option only for server-controlled messages, or declare tools in the tools option and add them by reference with toolName.',
+      });
+    }
+
     // Some models always run adaptive thinking and reject `disabled` thinking
     // with a 400. Drop the unsupported setting and keep the request adaptive
     // so it still succeeds.
@@ -1154,20 +1180,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         };
       }
 
-      // Initial system tool changes are ignored by the prompt converter.
-      // Validate only definitions that remain in the outgoing messages.
-      const emittedInlineDefinitions = new Set(
-        messagesPrompt.messages.flatMap(message =>
-          message.role === 'system'
-            ? message.content.flatMap(part =>
-                part.type === 'tool_addition' &&
-                part.tool.type === 'tool_definition'
-                  ? [part.tool.definition]
-                  : [],
-              )
-            : [],
-        ),
-      );
       const selectedSdkName =
         toolChoice.type === 'tool' ? toolChoice.toolName : undefined;
       const selectedTool = tools?.find(tool => tool.name === selectedSdkName);

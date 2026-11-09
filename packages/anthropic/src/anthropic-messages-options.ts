@@ -115,7 +115,8 @@ export const anthropicSystemMessageProviderOptions = lazySchema(() =>
        *   an entry of the `tools` option. The tool does not need to be declared
        *   in `tools`, and defining a tool under an existing name replaces it
        *   from that point on. The required `inline-tools-2026-09-15` beta is
-       *   added automatically.
+       *   added automatically. Requires the request-level
+       *   `allowInlineToolDefinitions` option to be true.
        *
        * A `tool_removal` always references the tool by `toolName`.
        */
@@ -170,6 +171,14 @@ export const anthropicLanguageModelOptions = lazySchema(() => {
        * This allows you to deactivate reasoning inputs for models that do not support them.
        */
       sendReasoning: z.boolean().optional(),
+
+      /**
+       * Allow tool definitions supplied by value in system-message tool changes.
+       * Defaults to false. Enable only for server-controlled messages: inline
+       * definitions can add tools or replace their configured restrictions.
+       * This request-level option cannot be enabled through message metadata.
+       */
+      allowInlineToolDefinitions: z.boolean().optional(),
 
       /**
        * Determines how structured outputs are generated.

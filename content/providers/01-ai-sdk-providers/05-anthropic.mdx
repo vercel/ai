@@ -115,6 +115,15 @@ The following optional provider options are available for Anthropic models:
 
   When set to `true`, the model will only call one tool at a time instead of potentially calling multiple tools in parallel.
 
+- `allowInlineToolDefinitions` _boolean_
+
+  Optional. Defaults to `false`. Set this request-level option to `true` only
+  when system messages containing by-value `toolChanges` are controlled by your
+  server. Inline definitions can introduce tools or replace their restrictions.
+  Message-level provider options and UI `providerMetadata` cannot enable it.
+  Without this opt-in, emitted by-value definitions are rejected before sending
+  the request, including with default or automatic tool choice.
+
 - `sendReasoning` _boolean_
 
   Optional. Include reasoning content in requests sent to the model. Defaults to `true`.
@@ -1659,7 +1668,7 @@ const result = await generateText({
 
 #### Defining Tools by Value
 
-A `tool_addition` can also define the tool by value with `tool`, in the same shape as an entry of the `tools` option. The tool does not need to be declared in `tools` up front, which lets you introduce tools that did not exist when the conversation started, for example after an MCP server connects. Defining a tool under an existing name replaces the earlier definition from that point on, so this also changes a tool's schema mid-conversation. The required `inline-tools-2026-09-15` beta header is added automatically.
+For server-controlled messages, a `tool_addition` can also define the tool by value with `tool`, in the same shape as an entry of the `tools` option. The tool does not need to be declared in `tools` up front, which lets you introduce tools that did not exist when the conversation started, for example after an MCP server connects. Defining a tool under an existing name replaces the earlier definition from that point on, so this also changes a tool's schema mid-conversation. The required `inline-tools-2026-09-15` beta header is added automatically.
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
@@ -1669,6 +1678,9 @@ const result = await generateText({
   model: anthropic('claude-opus-4-8'),
   // required for system messages inside `messages`:
   allowSystemInMessages: true,
+  providerOptions: {
+    anthropic: { allowInlineToolDefinitions: true },
+  },
   messages: [
     { role: 'user', content: 'What is the weather forecast for Paris?' },
     {
@@ -1697,6 +1709,16 @@ const result = await generateText({
   ],
 });
 ```
+
+<Note>
+  By-value definitions require the request-level
+  `providerOptions.anthropic.allowInlineToolDefinitions: true` opt-in. Enable it
+  only for server-controlled messages, since it permits new tools and
+  replacements independently of `tools` and `activeTools`. For client UI history,
+  keep the default and declare tools on the server, adding them by reference
+  with `toolName`. Setting this option on a message does not grant trust.
+  Existing tool-choice restrictions still apply after opting in.
+</Note>
 
 <Note>
   A tool defined by value is only known to the model. It is not part of the

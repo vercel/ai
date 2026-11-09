@@ -607,6 +607,74 @@ describe('AnthropicMessagesLanguageModel', () => {
   );
 
   describe.each(['generate', 'stream'] as const)(
+    'inline tool trust (%s)',
+    method => {
+      it.each([
+        { choice: undefined, trust: undefined, replacement: false },
+        { choice: 'auto', trust: undefined, replacement: false },
+        { choice: undefined, trust: false, replacement: false },
+        { choice: 'auto', trust: false, replacement: false },
+        { choice: undefined, trust: undefined, replacement: true },
+        { choice: 'auto', trust: undefined, replacement: true },
+      ] as const)(
+        'should reject an inline definition before sending with choice=$choice, trust=$trust, replacement=$replacement',
+        async ({ choice, trust, replacement }) => {
+          prepareJsonFixtureResponse('anthropic-text');
+          const options = {
+            prompt: [
+              ...TEST_PROMPT,
+              {
+                role: 'system',
+                content: '',
+                providerOptions: {
+                  anthropic: {
+                    // A message cannot grant trust to its own definitions.
+                    allowInlineToolDefinitions: true,
+                    toolChanges: [
+                      {
+                        type: 'tool_addition',
+                        tool: {
+                          type: 'function',
+                          name: replacement ? 'lookup' : 'forecast',
+                          inputSchema: { type: 'object', properties: {} },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              { role: 'assistant', content: [{ type: 'text', text: 'OK.' }] },
+              ...TEST_PROMPT,
+            ] satisfies LanguageModelV3Prompt,
+            tools: [
+              {
+                type: 'function' as const,
+                name: 'lookup',
+                inputSchema: { type: 'object' as const },
+              },
+            ],
+            ...(choice != null && { toolChoice: { type: choice } }),
+            ...(trust != null && {
+              providerOptions: {
+                anthropic: { allowInlineToolDefinitions: trust },
+              },
+            }),
+          };
+
+          await expect(
+            method === 'generate'
+              ? model.doGenerate(options)
+              : model.doStream(options),
+          ).rejects.toThrow(
+            'Inline tool definitions require providerOptions.anthropic.allowInlineToolDefinitions to be true',
+          );
+          expect(server.calls).toHaveLength(0);
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
     'named tool choice with inline tools (%s)',
     method => {
       const selectedTool = {
@@ -744,9 +812,12 @@ describe('AnthropicMessagesLanguageModel', () => {
               ] satisfies LanguageModelV3Prompt,
               ...(source !== 'inlineOnly' && { tools: [selectedTool] }),
               toolChoice: { type: 'tool' as const, toolName: 'selected' },
-              ...(source !== 'model' && {
-                providerOptions: { anthropic: { thinking } },
-              }),
+              providerOptions: {
+                anthropic: {
+                  allowInlineToolDefinitions: true,
+                  ...(source !== 'model' && { thinking }),
+                },
+              },
             };
 
             await expect(
@@ -815,7 +886,9 @@ describe('AnthropicMessagesLanguageModel', () => {
               choice === 'tool'
                 ? { type: 'tool' as const, toolName: 'selected' }
                 : { type: choice },
-            providerOptions: { anthropic: { thinking } },
+            providerOptions: {
+              anthropic: { allowInlineToolDefinitions: true, thinking },
+            },
           };
 
           if (method === 'generate') {
@@ -904,6 +977,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 responseFormat,
                 providerOptions: {
                   anthropic: {
+                    allowInlineToolDefinitions: true,
                     structuredOutputMode: 'jsonTool',
                     ...(useThinking && { thinking }),
                   },
@@ -965,6 +1039,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 responseFormat,
                 providerOptions: {
                   anthropic: {
+                    allowInlineToolDefinitions: true,
                     structuredOutputMode: 'jsonTool',
                     ...(useThinking && { thinking }),
                   },
@@ -11798,6 +11873,7 @@ describe('mid-conversation tool changes', () => {
     prepareJsonFixtureResponse('anthropic-text');
 
     const { warnings } = await provider('claude-opus-4-8').doGenerate({
+      providerOptions: { anthropic: { allowInlineToolDefinitions: true } },
       prompt: [
         { role: 'user', content: [{ type: 'text', text: 'Say OK.' }] },
         {
@@ -11928,7 +12004,10 @@ describe('mid-conversation tool changes', () => {
       },
     ];
 
-    await provider('claude-opus-4-8').doGenerate({ prompt });
+    await provider('claude-opus-4-8').doGenerate({
+      prompt,
+      providerOptions: { anthropic: { allowInlineToolDefinitions: true } },
+    });
     const generateBody = await server.calls[0].requestBodyJson;
 
     server.urls['https://api.anthropic.com/v1/messages'].response = {
@@ -11939,7 +12018,10 @@ describe('mid-conversation tool changes', () => {
         `data: {"type":"message_stop"}\n\n`,
       ],
     };
-    const { stream } = await provider('claude-opus-4-8').doStream({ prompt });
+    const { stream } = await provider('claude-opus-4-8').doStream({
+      prompt,
+      providerOptions: { anthropic: { allowInlineToolDefinitions: true } },
+    });
     await convertReadableStreamToArray(stream);
     const streamBody = await server.calls[1].requestBodyJson;
 
@@ -12070,6 +12152,7 @@ describe('mid-conversation tool changes', () => {
     };
 
     await provider('claude-opus-4-8').doGenerate({
+      providerOptions: { anthropic: { allowInlineToolDefinitions: true } },
       prompt: [
         { role: 'user', content: [{ type: 'text', text: 'Hi.' }] },
         {
@@ -12139,6 +12222,7 @@ describe('mid-conversation tool changes', () => {
     };
 
     const { content } = await provider('claude-opus-4-8').doGenerate({
+      providerOptions: { anthropic: { allowInlineToolDefinitions: true } },
       prompt: [
         { role: 'user', content: [{ type: 'text', text: 'Search.' }] },
         {
@@ -12204,14 +12288,21 @@ describe('mid-conversation tool changes', () => {
 
     await provider('claude-opus-4-8').doGenerate({
       prompt,
+      providerOptions: { anthropic: { allowInlineToolDefinitions: true } },
       toolChoice: { type: 'none' },
     });
     await provider('claude-opus-4-8').doGenerate({
       prompt,
-      providerOptions: { anthropic: { disableParallelToolUse: true } },
+      providerOptions: {
+        anthropic: {
+          allowInlineToolDefinitions: true,
+          disableParallelToolUse: true,
+        },
+      },
     });
     await provider('claude-opus-4-8').doGenerate({
       prompt,
+      providerOptions: { anthropic: { allowInlineToolDefinitions: true } },
       toolChoice: { type: 'tool', toolName: 'get_forecast' },
     });
 
