@@ -23,7 +23,7 @@ type LanguageModelV4ContentPart =
   | LanguageModelV4ToolResultPart
   | LanguageModelV4ToolApprovalResponsePart;
 
-type SemConvPart =
+export type SemConvPart =
   | { type: 'text'; content: string }
   | { type: 'reasoning'; content: string }
   | {
@@ -45,18 +45,18 @@ type SemConvPart =
     }
   | { type: string; [key: string]: unknown };
 
-interface SemConvInputMessage {
+export interface SemConvInputMessage {
   role: string;
   parts: SemConvPart[];
 }
 
-interface SemConvOutputMessage {
+export interface SemConvOutputMessage {
   role: string;
   parts: SemConvPart[];
   finish_reason: string;
 }
 
-interface SemConvSystemInstruction {
+export interface SemConvSystemInstruction {
   type: string;
   content?: string;
   [key: string]: unknown;

@@ -1,5 +1,25 @@
 # ai
 
+## 7.0.167
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+- 404ce3b: Redact OpenAI Code Interpreter and shell domain secrets and MCP credentials from telemetry events and tracing results, including raw request metadata, while preserving provider requests and application results.
+- Updated dependencies [8420810]
+- Updated dependencies [6d65092]
+- Updated dependencies [9f37b45]
+- Updated dependencies [0e869b4]
+  - @ai-sdk/gateway@4.0.140
+  - @ai-sdk/provider-utils@5.0.77
+
+## 7.0.166
+
+### Patch Changes
+
+- Updated dependencies [44db225]
+  - @ai-sdk/gateway@4.0.139
+
 ## 7.0.165
 
 ### Patch Changes

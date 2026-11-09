@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 4.0.112
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
 ## 4.0.111
 
 ### Patch Changes

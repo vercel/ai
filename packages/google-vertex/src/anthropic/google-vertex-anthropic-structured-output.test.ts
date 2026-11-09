@@ -385,20 +385,20 @@ async function generate(modelId: string) {
 }
 
 describe('structured outputs for Claude models that reject forced tool use', () => {
-  it.each(['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1'])(
-    'sends output_config.format for %s',
-    async modelId => {
-      const { body, result } = await generate(modelId);
+  it.each([
+    'claude-sonnet-5-5',
+    'claude-opus-5-5',
+    'claude-fable-5-1',
+    'claude-fable-5-2',
+  ])('sends output_config.format for %s', async modelId => {
+    const { body, result } = await generate(modelId);
 
-      expect(body.output_config).toEqual({
-        format: { type: 'json_schema', schema: SCHEMA },
-      });
-      expect(body.tools).toBeUndefined();
-      expect(result.content).toEqual([
-        { type: 'text', text: '{"answer":"42"}' },
-      ]);
-    },
-  );
+    expect(body.output_config).toEqual({
+      format: { type: 'json_schema', schema: SCHEMA },
+    });
+    expect(body.tools).toBeUndefined();
+    expect(result.content).toEqual([{ type: 'text', text: '{"answer":"42"}' }]);
+  });
 
   it('keeps the json tool for models that accept forced tool use', async () => {
     const { body } = await generate('claude-haiku-5-5');

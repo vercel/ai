@@ -2,6 +2,8 @@
  * Integration test workflows for WorkflowAgent telemetry.
  */
 import { getWritable } from 'workflow';
+import { jsonSchema, withTelemetryRedaction } from '@ai-sdk/provider-utils';
+import { tool } from 'ai';
 import { z } from 'zod/v4';
 import { mockSequenceModel, mockTextModel } from '../providers/mock.js';
 import { WorkflowAgent } from '../workflow-agent.js';
@@ -9,6 +11,32 @@ import { WorkflowAgent } from '../workflow-agent.js';
 async function addNumbers(input: { a: number; b: number }): Promise<number> {
   'use step';
   return input.a + input.b;
+}
+
+export async function agentWithRedactedProviderTools(
+  mode: 'generate' | 'stream',
+) {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockTextModel('done'),
+    tools: {
+      remote: tool({
+        type: 'provider',
+        id: 'test.remote',
+        isProviderExecuted: true,
+        args: withTelemetryRedaction(
+          { credential: 'workflow-test-secret', region: 'test' },
+          value => ({ ...value, credential: '[redacted]' }),
+        ),
+        inputSchema: jsonSchema({ type: 'object', properties: {} }),
+      }),
+    },
+  });
+  const result =
+    mode === 'generate'
+      ? await agent.generate({ prompt: 'hello' })
+      : await agent.stream({ prompt: 'hello', writable: getWritable() });
+  return result.steps.at(-1)?.text;
 }
 
 /**
