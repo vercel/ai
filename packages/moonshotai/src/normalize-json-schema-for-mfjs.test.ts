@@ -1,5 +1,5 @@
 import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
 
 describe('identity (no normalization needed)', () => {
@@ -403,5 +403,100 @@ describe('root guard', () => {
     expect(() => normalizeJsonSchemaForMFJS({ type: 'array' })).toThrow(
       'tool and response schemas must be a JSON Schema object with type "object" for moonshotai (MFJS)',
     );
+  });
+});
+
+describe('schema traversal', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([false, true])(
+    'normalizes nested array children once (tuple items: %s)',
+    tuple => {
+      const leaf = {
+        type: 'object',
+        properties: {
+          label: { type: 'string', anyOf: [{ minLength: 1 }, { const: '' }] },
+        },
+      };
+      const row = { type: 'array', items: leaf };
+      const schema = {
+        type: 'object',
+        properties: {
+          rows: { type: 'array', items: tuple ? [row] : row },
+        },
+      };
+      // Count visits to the leaf's property map, including normalized copies.
+      // Two array levels are enough to detect repeated child traversal.
+      const entries = vi.spyOn(Object, 'entries');
+
+      const result = normalizeJsonSchemaForMFJS(schema);
+      const leafVisits = entries.mock.calls.filter(([value]) =>
+        Object.hasOwn(value, 'label'),
+      ).length;
+      entries.mockRestore();
+
+      const normalizedRow = {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            label: {
+              anyOf: [
+                { type: 'string', minLength: 1 },
+                { type: 'string', const: '' },
+              ],
+            },
+          },
+        },
+      };
+      expect(result).toEqual({
+        type: 'object',
+        properties: {
+          rows: {
+            type: 'array',
+            ...(tuple
+              ? { prefixItems: [normalizedRow] }
+              : { items: normalizedRow }),
+          },
+        },
+      });
+      expect(leafVisits).toBe(1);
+      expect(leaf.properties.label.type).toBe('string');
+      expect(schema.properties.rows.items).toEqual(tuple ? [row] : row);
+    },
+  );
+
+  it('normalizes existing prefixItems and tuple children in positional order', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        row: {
+          type: 'array',
+          prefixItems: [{ type: 'string', anyOf: [{ minLength: 1 }] }, true],
+          items: [{ type: 'array', items: [{ type: 'number' }, false] }],
+        },
+        flags: { type: 'array', items: false },
+      },
+    };
+
+    expect(normalizeJsonSchemaForMFJS(schema)).toEqual({
+      type: 'object',
+      properties: {
+        row: {
+          type: 'array',
+          prefixItems: [
+            { anyOf: [{ type: 'string', minLength: 1 }] },
+            true,
+            { type: 'array', prefixItems: [{ type: 'number' }, false] },
+          ],
+        },
+        flags: { type: 'array', items: false },
+      },
+    });
+    expect(schema.properties.row.items).toEqual([
+      { type: 'array', items: [{ type: 'number' }, false] },
+    ]);
   });
 });

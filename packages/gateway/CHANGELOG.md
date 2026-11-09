@@ -1,5 +1,25 @@
 # @ai-sdk/gateway
 
+## 4.0.140
+
+### Patch Changes
+
+- 8420810: feat(anthropic): add Claude Fable 5.2 support
+
+  - add the `claude-fable-5-2` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-fable-5-2`, `us.anthropic.claude-fable-5-2`, and `global.anthropic.claude-fable-5-2` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-fable-5.2` to `@ai-sdk/gateway`
+  - recognize `claude-fable-5-2` as a known model with the same capabilities as `claude-fable-5-1`: 128k max output tokens, always-on adaptive thinking, all five effort levels, no sampling parameters, and no forced tool use
+
+- 6d65092: Add `meta/muse-ember` to the available language model IDs.
+- 0e869b4: feat(provider/gateway): add developer-only `variableCost`, `maxVariableCostUsd` and `extraBody` options to `takoSearch`, and type Tako placeholder cards, `relevance_score`, premium and variable-cost pricing fields, and `usage.variable_cost`. Remove the deprecated `export_pricing.free_rows` from the published types and schema; Tako always sends 0 and will drop it. Code that reads it must be updated, though the value still passes through at runtime while Tako sends it.
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 4.0.139
+
+### Patch Changes
+
+- 44db225: feat(provider/gateway): type the headquarters provider option
+
 ## 4.0.138
 
 ### Patch Changes

@@ -290,6 +290,19 @@ This hook is called before the SDK fetches authorization server metadata, so a
 rejected URL is not requested. The hook is an optional additional restriction;
 it does not replace the credential binding required for confidential clients.
 
+On Node.js, OAuth discovery validates and pins DNS results for untrusted
+URLs. On Bun, Deno, and other server runtimes without this transport, discovery
+blocks untrusted authorization-server URLs, redirects, token endpoints, and
+registration endpoints unless you supply a
+custom `fetch` with equivalent connect-time address validation and DNS pinning.
+Passing global `fetch` explicitly does not opt out of this requirement. The
+configured MCP server origin remains supported, including local endpoints;
+response-supplied authorization-server hosts are not automatically trusted.
+Browser window discovery remains supported. Browser Web Workers and Service
+Workers without a DOM follow the strict custom-fetch requirement as well;
+worker globals alone cannot establish that the runtime is a browser rather
+than a server worker.
+
 ### OAuth Callback Issuer Validation
 
 When completing an OAuth authorization callback, pass the callback's `iss`

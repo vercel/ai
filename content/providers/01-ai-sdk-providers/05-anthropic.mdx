@@ -548,8 +548,8 @@ const result = streamText({
 });
 ```
 
-For `claude-sonnet-5-5`, `claude-opus-5-5`, and `claude-fable-5-1`, the
-default `"auto"` mode uses native structured outputs through
+For `claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5-1`, and
+`claude-fable-5-2`, the default `"auto"` mode uses native structured outputs through
 `output_config.format`. These models reject forced tool use, so the
 `"jsonTool"` mode cannot be used with them. If you
 request `"jsonTool"` anyway, the provider falls back to `"outputFormat"` and
@@ -584,7 +584,7 @@ returned. Text before a tool call is still dropped.
 
 ### Effort
 
-Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, `claude-sonnet-5`, `claude-sonnet-5-5`, and `claude-haiku-5-5` additionally support `xhigh` for maximum reasoning effort.
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, `claude-fable-5-2`, `claude-sonnet-5`, `claude-sonnet-5-5`, and `claude-haiku-5-5` additionally support `xhigh` for maximum reasoning effort.
 
 On `claude-opus-5` and `claude-haiku-5-5`, thinking can only be disabled at effort levels up to and including `high`. When you combine `thinking: { type: 'disabled' }` with `effort: 'xhigh'` or `effort: 'max'`, the AI SDK lowers the effort to `high` and emits a warning instead of sending a request that the API would reject.
 
@@ -596,6 +596,13 @@ thinks. Unlike `claude-sonnet-5-5`, thinking can still be turned off with
 `thinking: { type: 'disabled' }`, but only at `low`, `medium`, and `high` effort.
 Start at `medium` effort and test other levels rather than carrying over the
 settings you used on `claude-haiku-4-5`.
+
+On `claude-fable-5-2`, thinking is always adaptive and cannot be disabled. It
+supports `low`, `medium`, `high` (the API default), `xhigh`, and `max` effort.
+The `medium` and `xhigh` levels behave differently than on `claude-fable-5-1`,
+so start at `high` and re-test `medium` and your current setting rather than
+carrying over the effort you tuned for `claude-fable-5-1`. Reserve `xhigh` for
+the hardest long-running work where you have measured a gain.
 
 On `claude-opus-5-5`, thinking is always adaptive and cannot be disabled, so
 `effort` is the main control for latency and cost. The API default effort for
@@ -891,8 +898,8 @@ const { text } = await generateText({
 
 ##### Adaptive-Only Models
 
-`claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5`, and
-`claude-fable-5-1` always run adaptive thinking. The API rejects
+`claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`,
+and `claude-fable-5-2` always run adaptive thinking. The API rejects
 `thinking: { type: 'disabled' }` and budget-based
 `thinking: { type: 'enabled' }` for these models. To keep existing code
 working, the provider:
@@ -993,8 +1000,8 @@ console.log(text);
 
 ##### Thinking Updates
 
-Use `display: 'updates'` with `claude-sonnet-5-5`, `claude-opus-5-5`, or
-`claude-fable-5-1` to stream thinking summaries between tool calls. These models
+Use `display: 'updates'` with `claude-sonnet-5-5`, `claude-opus-5-5`,
+`claude-fable-5-1`, or `claude-fable-5-2` to stream thinking summaries between tool calls. These models
 return progress notes between tool calls as thinking blocks rather than text, so
 without this setting a long tool-calling turn can look silent. The provider adds
 the required `thinking-display-updates-2026-08-18` beta header automatically:
@@ -1022,7 +1029,28 @@ const result = streamText({
 
 ##### Thinking Binding Controls
 
-Fable 5.1, Opus 5.5, and Sonnet 5.5 can recover from a thinking-block prefix
+Fable 5.2, Fable 5.1, Opus 5.5, and Sonnet 5.5 use preserved thinking. Each
+thinking block from an earlier assistant turn is bound to the request content
+before it: the system prompt, the tools, and the earlier messages. If that
+content changes between requests, the thinking blocks after the change become
+invalid. By default, the API then rejects the request with a 400 error ("The
+block is bound to a different conversation"). Keep the message history
+append-only, and keep the system prompt and tools stable, where you can.
+
+This also applies inside a single multi-step `generateText` or `streamText`
+call. When `prepareStep` returns a different `system`, `activeTools`, or
+`messages` for a later step, the thinking from the earlier steps is sent with
+the changed content, and the next step fails. Editing or removing earlier
+messages between turns, or changing the system prompt or tools between turns,
+has the same effect.
+
+If your application changes this content, set
+`blockBinding.prefixMismatchBehavior` to `drop_block` (see below). The API then
+drops the invalid thinking blocks instead of rejecting the request. The model
+thinks again for the dropped context, which can increase output token usage, so
+measure token usage on your own workloads before you rely on it.
+
+Fable 5.2, Fable 5.1, Opus 5.5, and Sonnet 5.5 can recover from a thinking-block prefix
 mismatch by dropping the mismatched block. Set
 `blockBinding.prefixMismatchBehavior` to `drop_block`, or set it to `error` to
 reject the request. You can provide block binding by itself to preserve the
@@ -1661,10 +1689,10 @@ const computerTool = anthropic.tools.computer_20251124({
 
 <Note>
   Use `computerToolset_20260801` for Claude Sonnet 5.5 and Opus 5.5 (required),
-  Opus 5, Sonnet 5, Fable 5, Fable 5.1, and Opus 4.8. Use `computer_20251124`
-  for Claude Opus 4.5 through Opus 4.7, which support the zoom action. Use
-  `computer_20250124` for Claude Sonnet 4.5, Haiku 4.5, Opus 4.1, Sonnet 4, Opus
-  4, and Sonnet 3.7.
+  Opus 5, Sonnet 5, Fable 5, Fable 5.1, Fable 5.2, and Opus 4.8. Use
+  `computer_20251124` for Claude Opus 4.5 through Opus 4.7, which support the
+  zoom action. Use `computer_20250124` for Claude Sonnet 4.5, Haiku 4.5, Opus
+  4.1, Sonnet 4, Opus 4, and Sonnet 3.7.
 </Note>
 
 #### Computer Toolset
@@ -2067,8 +2095,8 @@ This sends `tool_reference` blocks to Anthropic, which loads the corresponding d
 
 ### Mid-Conversation System Controls
 
-With `claude-sonnet-5-5`, `claude-opus-5-5`, and `claude-fable-5-1`, use an
-empty system message to change effort from the next user turn. A separate
+With `claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5-1`, and
+`claude-fable-5-2`, use an empty system message to change effort from the next user turn. A separate
 system message containing text can provide a turn-scoped reminder with
 `clearAt: 'next_user_message'`: its text applies until the next user message. Keep the reminder after a user turn and
 before an assistant turn, or at the end of the messages array.
@@ -2744,6 +2772,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 | `claude-sonnet-5-5` | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-sonnet-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-haiku-5-5`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
+| `claude-fable-5-2`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-fable-5-1`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-fable-5`    | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-opus-4-8`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |

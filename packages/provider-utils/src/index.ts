@@ -123,6 +123,10 @@ export {
 export { SerializationError } from './serialization-error';
 export { secureJsonParse } from './secure-json-parse';
 export {
+  withTelemetryRedaction,
+  redactTelemetryValue,
+} from './telemetry-redaction';
+export {
   SPEECH_STREAM_START_FRAME_TYPE as EXPERIMENTAL_SPEECH_STREAM_START_FRAME_TYPE,
   SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE as EXPERIMENTAL_SPEECH_STREAM_TEXT_DELTA_FRAME_TYPE,
   SPEECH_STREAM_TEXT_DONE_FRAME_TYPE as EXPERIMENTAL_SPEECH_STREAM_TEXT_DONE_FRAME_TYPE,
