@@ -3336,6 +3336,11 @@ class DefaultStreamTextResult<
                   // to ensure that the recorded steps are complete:
                   await stepFinish.promise;
 
+                  // a transform called stopStream while the step was finishing:
+                  if (!isRunning) {
+                    return;
+                  }
+
                   const clientToolCalls = stepToolCalls.filter(
                     toolCall => toolCall.providerExecuted !== true,
                   );
