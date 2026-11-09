@@ -2546,6 +2546,135 @@ describe('auth function', () => {
     },
   );
 
+  it('does not authenticate an unbound stored token using a new registration', async () => {
+    const originalTokens: OAuthTokens = {
+      access_token: 'test-access',
+      refresh_token: 'test-refresh',
+      token_type: 'Bearer',
+    };
+    let tokens: OAuthTokens | undefined = originalTokens;
+    setupClientErrorFlow({
+      errorCode: 'invalid_client',
+      onRegistration: () => {
+        expect(tokens).toBeUndefined();
+      },
+    });
+
+    // Stop before any token request; only test whether authentication is invoked.
+    const addClientAuthentication = vi.fn(() => {
+      throw new MCPClientOAuthError({
+        message: 'Unbound stored tokens must not reach client authentication',
+      });
+    });
+    const provider: OAuthClientProvider = {
+      ...mockProvider,
+      clientInformation: () => undefined,
+      saveClientInformation: vi.fn(() => {
+        expect(tokens).toBeUndefined();
+      }),
+      saveAuthorizationServerInformation: vi.fn(() => {
+        expect(tokens).toBeUndefined();
+      }),
+      tokens: vi.fn(() => tokens),
+      invalidateCredentials: vi.fn(async () => {
+        tokens = undefined;
+      }),
+      addClientAuthentication,
+    };
+
+    await expect(
+      auth(provider, { serverUrl: 'https://api.example.com/mcp-server' }),
+    ).resolves.toBe('REDIRECT');
+
+    expect(addClientAuthentication).not.toHaveBeenCalled();
+    expect(provider.invalidateCredentials).toHaveBeenCalledExactlyOnceWith(
+      'tokens',
+      { tokens: originalTokens },
+    );
+    expect(provider.tokens).toHaveBeenCalledTimes(2);
+    expect(provider.saveClientInformation).toHaveBeenCalledOnce();
+    expect(provider.saveAuthorizationServerInformation).toHaveBeenCalledOnce();
+    expect(provider.saveTokens).not.toHaveBeenCalled();
+    expect(provider.redirectToAuthorization).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { invalidation: 'missing', existingClient: false },
+    { invalidation: 'ineffective', existingClient: false },
+    { invalidation: 'missing', existingClient: true },
+    { invalidation: 'ineffective', existingClient: true },
+  ])(
+    'does not save a new binding when token invalidation is $invalidation (existing client: $existingClient)',
+    async ({ invalidation, existingClient }) => {
+      setupClientErrorFlow({ errorCode: 'invalid_client' });
+      const provider: OAuthClientProvider = {
+        ...mockProvider,
+        clientInformation: () =>
+          existingClient ? { client_id: 'test-client' } : undefined,
+        saveClientInformation: vi.fn(),
+        tokens: () => ({
+          access_token: 'test-access',
+          refresh_token: 'test-refresh',
+          token_type: 'Bearer',
+        }),
+        invalidateCredentials: invalidation === 'missing' ? undefined : vi.fn(),
+      };
+
+      await expect(
+        auth(provider, { serverUrl: 'https://api.example.com/mcp-server' }),
+      ).rejects.toThrow(/must be cleared before starting authorization/);
+
+      expect(provider.saveClientInformation).not.toHaveBeenCalled();
+      expect(
+        provider.saveAuthorizationServerInformation,
+      ).not.toHaveBeenCalled();
+      expect(provider.redirectToAuthorization).not.toHaveBeenCalled();
+      expect(
+        mockFetch.mock.calls.some(([, init]) => init?.method === 'POST'),
+      ).toBe(false);
+    },
+  );
+
+  it.each([
+    { authorization_server: 'https://other.example.com/' },
+    { token_endpoint: 'https://auth.example.com/other-token' },
+  ])(
+    'rejects a mismatched token binding before registering a client: %j',
+    async mismatch => {
+      setupClientErrorFlow({ errorCode: 'invalid_client' });
+      const provider: OAuthClientProvider = {
+        ...mockProvider,
+        clientInformation: () => undefined,
+        saveClientInformation: vi.fn(),
+        tokens: () => ({
+          access_token: 'test-access',
+          refresh_token: 'test-refresh',
+          token_type: 'Bearer',
+          authorization_server: 'https://auth.example.com/',
+          token_endpoint: 'https://auth.example.com/token',
+          ...mismatch,
+        }),
+        addClientAuthentication: vi.fn(),
+        invalidateCredentials: vi.fn(),
+      };
+
+      await expect(
+        auth(provider, { serverUrl: 'https://api.example.com/mcp-server' }),
+      ).rejects.toThrow(MCPClientOAuthError);
+
+      expect(provider.addClientAuthentication).not.toHaveBeenCalled();
+      expect(provider.invalidateCredentials).not.toHaveBeenCalled();
+      expect(provider.saveClientInformation).not.toHaveBeenCalled();
+      expect(
+        provider.saveAuthorizationServerInformation,
+      ).not.toHaveBeenCalled();
+      expect(provider.redirectToAuthorization).not.toHaveBeenCalled();
+      expect(
+        mockFetch.mock.calls.some(([, init]) => init?.method === 'POST'),
+      ).toBe(false);
+    },
+  );
+
   it('re-registers a dynamically registered client when token refresh returns invalid_client', async () => {
     let registrationAttempted = false;
     setupClientErrorFlow({
