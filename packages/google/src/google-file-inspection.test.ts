@@ -40,6 +40,7 @@ const cases: Array<{
     mediaType:
       'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     metadata: {
+      mediaResolution: { level: 'MEDIA_RESOLUTION_HIGH' },
       documentMetadata: {
         startPage: 4,
         contentLayers: ['PAGE_IMAGE'],
@@ -64,6 +65,7 @@ const cases: Array<{
     metadata: {
       spreadsheetMetadata: {
         sheetIndex: 1,
+        visibleCells: 'B5',
         contentLayers: ['VISUAL'],
       },
     },
@@ -194,6 +196,7 @@ it.each([false, true])(
             data: new URL(fileUri),
             providerOptions: {
               google: {
+                mediaResolution: { level: 'MEDIA_RESOLUTION_HIGH' },
                 documentMetadata: {
                   startPage: 3,
                   endPage: 4,
@@ -219,6 +222,7 @@ it.each([false, true])(
     );
     expect(requestBody.contents[0].parts[0]).toEqual({
       fileData: { mimeType: 'application/pdf', fileUri },
+      mediaResolution: { level: 'MEDIA_RESOLUTION_HIGH' },
       documentMetadata: {
         startPage: 3,
         endPage: 4,
