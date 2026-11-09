@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.139
+
+### Patch Changes
+
+- 44db225: feat(provider/gateway): type the headquarters provider option
+
 ## 4.0.138
 
 ### Patch Changes

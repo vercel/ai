@@ -1,5 +1,12 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.92
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+- @ai-sdk/harness-acp@1.0.117
+
 ## 1.0.91
 
 ### Patch Changes

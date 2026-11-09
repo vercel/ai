@@ -1,5 +1,12 @@
 # @ai-sdk/otel
 
+## 1.0.166
+
+### Patch Changes
+
+- 382d0b8: Export the GenAI message and system instruction formatting helpers and their output types for reuse outside the telemetry integration.
+  - ai@7.0.166
+
 ## 1.0.165
 
 ### Patch Changes
