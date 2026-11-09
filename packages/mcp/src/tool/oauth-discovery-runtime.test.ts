@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createMCPClient } from './mcp-client';
 import {
+  type OAuthClientProvider,
   discoverAuthorizationServerMetadata,
   discoverOAuthProtectedResourceMetadata,
 } from './oauth';
@@ -53,6 +55,46 @@ describe.each([
         /requires a custom fetch with connect-time DNS validation/,
       );
       expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['http', 'sse'] as const)(
+    'preserves the native default distinction through the %s transport',
+    async type => {
+      fetchMock.mockImplementation(input => {
+        const url = String(input);
+        if (url.includes('/.well-known/oauth-protected-resource')) {
+          return Promise.resolve(Response.json(resourceMetadata));
+        }
+        if (new URL(url).origin === issuer) {
+          return Promise.resolve(Response.json(authorizationMetadata));
+        }
+        return Promise.resolve(new Response(null, { status: 401 }));
+      });
+      const provider: OAuthClientProvider = {
+        redirectUrl: 'https://app.example.com/callback',
+        clientMetadata: { redirect_uris: ['https://app.example.com/callback'] },
+        clientInformation: () => ({ client_id: 'example-client' }),
+        tokens: () => undefined,
+        saveTokens: vi.fn(),
+        saveCodeVerifier: vi.fn(),
+        codeVerifier: () => 'unused',
+        redirectToAuthorization: vi.fn(),
+      };
+
+      await expect(
+        createMCPClient({
+          transport: { type, url: resource, authProvider: provider },
+        }),
+      ).rejects.toThrow(
+        /requires a custom fetch with connect-time DNS validation/,
+      );
+      expect(
+        fetchMock.mock.calls.every(
+          ([url]) => new URL(String(url)).origin === resource,
+        ),
+      ).toBe(true);
+      expect(provider.redirectToAuthorization).not.toHaveBeenCalled();
     },
   );
 
