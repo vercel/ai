@@ -71,6 +71,13 @@ export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
   disallowPromptTraining?: boolean;
 
   /**
+   * Route only to providers headquartered in these countries (ISO 3166-1
+   * alpha-2 codes, e.g. `['US', 'DE']`), or prefix every code with `!` to
+   * exclude countries instead (e.g. `['!US']`). A list can't mix the two.
+   */
+  headquarters?: string[];
+
+  /**
    * Restrict routing to provider models that satisfy every given entry.
    *
    * Entries are capability tags (`'implicit-caching'`, `'reasoning'`,
