@@ -30,6 +30,30 @@ export async function promptAndRefreshInitialHostToolCatalog({
   });
 }
 
+/*
+ * A session restored in a replacement bridge process has not been prompted by
+ * this bridge yet, so its agent may not have started its session MCP servers
+ * either. Until it is prompted, a turn refreshes the catalog the way the first
+ * turn of a new session does: after starting its prompt.
+ */
+export async function refreshHostToolCatalogBeforePrompt({
+  relay,
+  tools,
+  harnessId,
+  timeoutMs,
+  sessionPrompted,
+}: {
+  relay: Pick<HostToolRelay, 'updateCatalog' | 'waitForCatalogRefresh'>;
+  tools: ReadonlyArray<HarnessV1BridgeToolWire>;
+  harnessId: string;
+  timeoutMs: number;
+  sessionPrompted: boolean;
+}): Promise<{ refreshAfterPrompt: boolean }> {
+  if (!sessionPrompted) return { refreshAfterPrompt: true };
+  await refreshHostToolCatalog({ relay, tools, harnessId, timeoutMs });
+  return { refreshAfterPrompt: false };
+}
+
 export async function refreshHostToolCatalog({
   relay,
   tools,

@@ -43,7 +43,7 @@ import { createHostToolRelayAuthorization } from './host-tool-relay-authorizatio
 import { createHostToolMcpServerDefinition } from './host-tool-mcp-definition';
 import {
   promptAndRefreshInitialHostToolCatalog,
-  refreshHostToolCatalog,
+  refreshHostToolCatalogBeforePrompt,
 } from './refresh-host-tool-catalog';
 import { createACPPermissionController } from './permission-controller';
 import { configureACPPermissionMode } from './permission-mode';
@@ -89,6 +89,7 @@ let streamCapture: ACPStreamCapture | undefined;
 let initializationDiagnostic: Record<string, unknown> | undefined;
 let hostToolRelay: HostToolRelay | undefined;
 let catalogRefreshError: HarnessBridgeCapabilityUnsupportedError | undefined;
+let sessionPrompted = false;
 let sessionConfigurationFailure: { readonly error: unknown } | undefined;
 let historicalUpdatesSuppressed = false;
 let coldRestorationMethod: ACPSessionRestorationMethod | undefined;
@@ -333,13 +334,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   activeHostToolRelay.bindTurn({ turn: relayTurn });
   try {
     const promptMeta = createOutputSchemaPromptMeta({ start });
-    const startPrompt = () =>
-      promptActiveSession({
+    const startPrompt = () => {
+      sessionPrompted = true;
+      return promptActiveSession({
         session: activeSession,
         agent: connection!.agent,
         prompt: start.prompt,
         meta: promptMeta,
       });
+    };
     if (initialHostToolCatalogRefreshRequired) {
       try {
         await promptAndRefreshInitialHostToolCatalog({
@@ -485,19 +488,20 @@ async function ensureSession({
       throw new Error('The host tool MCP relay is unavailable.');
     }
     try {
-      await refreshHostToolCatalog({
+      const { refreshAfterPrompt } = await refreshHostToolCatalogBeforePrompt({
         relay,
         tools: start.tools ?? [],
         harnessId: bridgeType,
         timeoutMs: CATALOG_REFRESH_TIMEOUT_MS,
+        sessionPrompted,
       });
+      return { initialHostToolCatalogRefreshRequired: refreshAfterPrompt };
     } catch (error) {
       if (HarnessBridgeCapabilityUnsupportedError.isInstance(error)) {
         catalogRefreshError = error;
       }
       throw error;
     }
-    return { initialHostToolCatalogRefreshRequired: false };
   }
 
   const clientApp = resolveClientApp();
