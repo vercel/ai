@@ -53,6 +53,7 @@ import { codeExecution_20260120OutputSchema } from './tool/code-execution_202601
 import { toolSearchRegex_20251119OutputSchema as toolSearchOutputSchema } from './tool/tool-search-regex_20251119';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
+import { wrapToolInput } from './wrap-tool-input';
 
 function convertBytesDataToString(data: Uint8Array | string): string {
   if (typeof data === 'string') {
@@ -159,6 +160,7 @@ export async function convertToAnthropicPrompt({
   cacheControlValidator,
   toolNameMapping,
   toolsetNames = {},
+  wrappedToolInputNames = new Set(),
   convertMediaPart,
   convertInlineTool,
 }: {
@@ -175,6 +177,12 @@ export async function convertToAnthropicPrompt({
    * serialized as toolset member calls.
    */
   toolsetNames?: Record<string, string>;
+
+  /**
+   * Names of function tools whose input schema is sent wrapped in an `input`
+   * property. Their tool calls are replayed wrapped as well.
+   */
+  wrappedToolInputNames?: Set<string>;
 
   /**
    * Converts tools that are added by value in mid-conversation tool changes.
@@ -1197,7 +1205,9 @@ export async function convertToAnthropicPrompt({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
-                  input: toAnthropicToolInput(part.input),
+                  input: wrappedToolInputNames.has(part.toolName)
+                    ? wrapToolInput(part.input)
+                    : toAnthropicToolInput(part.input),
                   ...(caller && { caller }),
                   cache_control: cacheControl,
                 });

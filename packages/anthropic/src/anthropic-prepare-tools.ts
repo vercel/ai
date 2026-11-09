@@ -15,6 +15,11 @@ import { webFetch_20260318ArgsSchema } from './tool/web-fetch-20260318';
 import { webFetch_20260209ArgsSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
+import {
+  needsToolInputWrapping,
+  wrapToolInput,
+  wrapToolInputSchema,
+} from './wrap-tool-input';
 
 export interface AnthropicToolOptions {
   deferLoading?: boolean;
@@ -115,10 +120,16 @@ export async function prepareTools({
           });
         }
 
+        // Anthropic needs an object schema without top-level unions at the
+        // root, so other schemas are sent nested in an `input` property:
+        const wrapInput = needsToolInputWrapping(tool.inputSchema);
+
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
-          input_schema: tool.inputSchema,
+          input_schema: wrapInput
+            ? wrapToolInputSchema(tool.inputSchema)
+            : tool.inputSchema,
           cache_control: cacheControl,
           ...(eagerInputStreaming ? { eager_input_streaming: true } : {}),
           ...(supportsStrictTools === true && tool.strict != null
@@ -130,8 +141,8 @@ export async function prepareTools({
             : {}),
           ...(tool.inputExamples != null
             ? {
-                input_examples: tool.inputExamples.map(
-                  example => example.input,
+                input_examples: tool.inputExamples.map(example =>
+                  wrapInput ? wrapToolInput(example.input) : example.input,
                 ),
               }
             : {}),

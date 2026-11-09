@@ -1524,7 +1524,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'testFunction',
           description: 'Test',
-          inputSchema: {},
+          inputSchema: { type: 'object', properties: {} },
         },
       ],
       toolChoice: { type: 'none' },
@@ -1536,7 +1536,7 @@ describe('prepareTools', () => {
         cache_control: undefined,
         name: 'testFunction',
         description: 'Test',
-        input_schema: {},
+        input_schema: { type: 'object', properties: {} },
       },
     ]);
     expect(result.toolChoice).toEqual({ type: 'none' });
@@ -1566,7 +1566,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'testFunction',
           description: 'Test',
-          inputSchema: {},
+          inputSchema: { type: 'object', properties: {} },
           providerOptions: {
             anthropic: {
               cacheControl: { type: 'ephemeral' },
@@ -1586,7 +1586,10 @@ describe('prepareTools', () => {
             "type": "ephemeral",
           },
           "description": "Test",
-          "input_schema": {},
+          "input_schema": {
+            "properties": {},
+            "type": "object",
+          },
           "name": "testFunction",
         },
       ]
