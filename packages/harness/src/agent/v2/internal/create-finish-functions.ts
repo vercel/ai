@@ -40,7 +40,7 @@ const turnEventTypes: HarnessAgentLogEvent['type'][] = [
  * Once the drive's abort signal fired, calls record and emit nothing, and the
  * subscription is released after every running call settled.
  */
-export function createFinishFunctions(input: {
+export function createFinishFunctions(options: {
   /**
    * Authoritative session log.
    */
@@ -63,7 +63,7 @@ export function createFinishFunctions(input: {
    */
   finishTurn: HarnessAgentFinishTurnFunction;
 } {
-  const { log, writer, abortSignal } = input;
+  const { log, writer, abortSignal } = options;
 
   /**
    * IDs of all `prompt` submissions seen so far.
@@ -133,13 +133,13 @@ export function createFinishFunctions(input: {
   /**
    * Applies a committed event to the turn state, in log order.
    */
-  function applyTurnEvent(input: {
+  function applyTurnEvent(options: {
     /**
      * Committed event to apply in log order.
      */
     event: HarnessAgentLogEvent;
   }): void {
-    const { event } = input;
+    const { event } = options;
     if (event.type === 'submission') {
       if (event.data.type === 'prompt') prompts.add(event.id);
     } else if (event.type === 'effect-start') {

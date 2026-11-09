@@ -18,13 +18,13 @@ const STREAM_RECORD_VERSION = 1;
  * encoded immediately, so later mutations by the caller cannot change what
  * is written; encoding errors propagate to the caller.
  */
-function encodeRecord(input: {
+function encodeRecord(options: {
   /**
    * Record to encode.
    */
   record: HarnessAgentStreamRecord;
 }): string {
-  const { record } = input;
+  const { record } = options;
   if ('withdraw' in record) {
     return (
       JSON.stringify({
@@ -60,7 +60,7 @@ function encodeRecord(input: {
  * discarded and new records are dropped; a write already in flight cannot be
  * recalled.
  */
-export function createStreamWriter(input: {
+export function createStreamWriter(options: {
   /**
    * World that stores the session's stream.
    */
@@ -74,7 +74,7 @@ export function createStreamWriter(input: {
    */
   abortSignal: AbortSignal;
 }): HarnessAgentStreamWriter {
-  const { world, runId, abortSignal } = input;
+  const { world, runId, abortSignal } = options;
   const name = runId + '_harness_agent_stream';
   let buffer = '';
   let sending: Promise<void> | undefined;
@@ -164,14 +164,14 @@ export function createStreamWriter(input: {
  * malformed record or an unsupported version, since skipping a record would make
  * readers misattribute or lose output.
  */
-export async function decodeStreamRecords(input: {
+export async function decodeStreamRecords(options: {
   /**
    * Stream text, possibly spanning several chunks.
    */
   text: string;
 }): Promise<HarnessAgentStreamRecord[]> {
   const records: HarnessAgentStreamRecord[] = [];
-  for (const text of input.text.split('\n')) {
+  for (const text of options.text.split('\n')) {
     if (text === '') continue;
     const parsed = await parseJSON({ text });
     if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) {

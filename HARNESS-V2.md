@@ -96,7 +96,7 @@ export type HarnessV2 = {
    * Optional recipe of files and commands that prepare a sandbox for this
    * harness. The agent applies it idempotently and can snapshot the result.
    */
-  getBootstrap?(opts: {
+  getBootstrap?(options: {
     abortSignal?: AbortSignal;
   }): PromiseLike<HarnessV2Bootstrap>;
   /**
@@ -108,7 +108,7 @@ export type HarnessV2 = {
    * returned, the signals it aborted, or the error thrown. A drive that
    * returns with an unfinished turn and no such reason is driven again.
    */
-  drive(opts: {
+  drive(options: {
     sessionId: string;
     context: HarnessV2DriveContext;
   }): PromiseLike<void>;
@@ -394,7 +394,7 @@ type HarnessV2EffectOptions<
 type HarnessV2EffectFunction = <
   T extends HarnessV2SerializableValue = HarnessV2SerializableValue,
 >(
-  opts: HarnessV2EffectOptions<T>,
+  options: HarnessV2EffectOptions<T>,
 ) => Promise<HarnessV2EffectOutput<T>>;
 
 /**
@@ -435,7 +435,7 @@ interface HarnessV2DriveContext {
      * if there is one), and a resumed turn keeps them. A `steer` submission
      * joins the running turn and carries none.
      */
-    read(opts?: {
+    read(options?: {
       after?: number;
       types?: HarnessV2LogEvent['type'][];
     }): Promise<{ events: HarnessV2LogEvent[]; position: number }>;
@@ -543,7 +543,7 @@ interface HarnessV2DriveContext {
    * and `stopWhen` was evaluated (which may abort `yieldRequested`), so the
    * harness must await it before starting the next step.
    */
-  finishStep(opts: {
+  finishStep(options: {
     stepNumber: number;
     finishReason: LanguageModelV4FinishReason;
     usage: LanguageModelV4Usage;
@@ -556,7 +556,7 @@ interface HarnessV2DriveContext {
    * the finish in the log and emits `finish` only on the first call; a call
    * replayed after a crash records and emits nothing.
    */
-  finishTurn(opts: {
+  finishTurn(options: {
     finishReason: LanguageModelV4FinishReason;
     totalUsage: LanguageModelV4Usage;
     harnessMetadata?: HarnessV2Metadata;
@@ -799,7 +799,7 @@ type HarnessAgentStreamWriter = {
    * deduplicates a step or turn finish part on read.
    */
   emit(
-    opts: { part: HarnessAgentStreamPart } & (
+    options: { part: HarnessAgentStreamPart } & (
       | { startId: string; key?: string }
       | { startId?: string; key: string }
     ),
@@ -807,7 +807,7 @@ type HarnessAgentStreamWriter = {
   /** Untagged part (the drive context's `unsafeEmit()`); never withdrawable. */
   unsafeEmit(part: HarnessAgentStreamPart): void;
   /** Engine-only withdraw record withdrawing the output of these attempts. */
-  withdraw(opts: { startIds: readonly string[] }): void;
+  withdraw(options: { startIds: readonly string[] }): void;
   /** Resolves once every write issued so far has landed or failed. */
   flush(): Promise<void>;
   /** Ends the stream after flushing; only when the session ends. */

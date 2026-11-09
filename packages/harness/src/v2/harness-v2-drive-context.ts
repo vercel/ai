@@ -42,7 +42,7 @@ export type HarnessV2EffectOptions<
 export type HarnessV2EffectFunction = <
   T extends SerializableValue = SerializableValue,
 >(
-  opts: HarnessV2EffectOptions<T>,
+  options: HarnessV2EffectOptions<T>,
 ) => Promise<HarnessV2EffectOutput<T>>;
 
 /**
@@ -226,7 +226,7 @@ export interface HarnessV2DriveContext {
    * step is recorded and `stopWhen` was evaluated (which may abort
    * `yieldRequested`), so it must be awaited before starting the next step.
    */
-  finishStep(opts: {
+  finishStep(options: {
     /**
      * Zero-based number of the step within the current turn.
      */
@@ -259,7 +259,7 @@ export interface HarnessV2DriveContext {
    * delivered prompt, even once it finished. A call before any prompt was
    * delivered is rejected.
    */
-  finishTurn(opts: {
+  finishTurn(options: {
     /**
      * Reason reported for the turn's completion.
      */

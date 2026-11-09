@@ -97,7 +97,7 @@ function interruption(attempt: EffectRecord): HarnessV2EffectOutput {
  * before an interruption can be recorded. Persistence is deliberately outside
  * callback error handlers so infrastructure failures cannot become effect errors.
  */
-async function executeCallback(input: {
+async function executeCallback(options: {
   /**
    * Authoritative session log.
    */
@@ -125,7 +125,7 @@ async function executeCallback(input: {
     context: HarnessV2EffectContext,
   ) => PromiseLike<SerializableValue> | AsyncIterable<SerializableValue>;
 }): Promise<CallbackOutput> {
-  const { log, abortSignal, attempt, emit, checkState, fn } = input;
+  const { log, abortSignal, attempt, emit, checkState, fn } = options;
 
   /**
    * Separates drive-rebuild errors and cancellation from ordinary callback
@@ -229,7 +229,7 @@ async function executeCallback(input: {
  * Each executed attempt's callback emits through the stream writer, tagged with
  * its start ID; the writer is flushed before the attempt's end is committed.
  */
-export function createEffectFunction(input: {
+export function createEffectFunction(options: {
   /**
    * Authoritative log shared by the session's drive attempts.
    */
@@ -243,7 +243,7 @@ export function createEffectFunction(input: {
    */
   writer: HarnessAgentStreamWriter;
 }): HarnessAgentEffectFunction {
-  const { log, abortSignal, writer } = input;
+  const { log, abortSignal, writer } = options;
 
   /**
    * Effect keys with active invocations in this drive, including initialization
@@ -314,13 +314,13 @@ export function createEffectFunction(input: {
    * attempts are inert. Reading an unfinished attempt does not establish that
    * its process stopped. Only committed events may update retained records.
    */
-  function applyEffectEvent(input: {
+  function applyEffectEvent(options: {
     /**
      * Committed event to apply in log order.
      */
     event: HarnessAgentLogEvent;
   }): void {
-    const { event } = input;
+    const { event } = options;
     if (event.type === 'effect-start') {
       const previous = byKey.get(event.data.key);
       if (
@@ -389,7 +389,7 @@ export function createEffectFunction(input: {
    * The drive signal is checked against observed records before submitting an end.
    * Storage and serialization failures propagate without rerunning the callback.
    */
-  async function finishAttempt(input: {
+  async function finishAttempt(options: {
     /**
      * Identity of the attempt being completed.
      */
@@ -400,7 +400,7 @@ export function createEffectFunction(input: {
     output: HarnessV2EffectOutput;
   }): Promise<HarnessV2EffectOutput> {
     checkState();
-    const attempt = byStartId.get(input.startId);
+    const attempt = byStartId.get(options.startId);
     if (attempt == null) {
       throw new HarnessInvalidDriveStateError({
         message: 'HarnessAgent.effect: the effect start was not accepted.',
@@ -411,15 +411,15 @@ export function createEffectFunction(input: {
       type: 'effect-end',
       id: generateId(),
       data: {
-        startId: input.startId,
+        startId: options.startId,
         output:
-          input.output.type === 'interrupted' || abortSignal.aborted
+          options.output.type === 'interrupted' || abortSignal.aborted
             ? interruption(attempt)
-            : input.output,
+            : options.output,
       },
     });
     checkState();
-    const output = byStartId.get(input.startId)?.output;
+    const output = byStartId.get(options.startId)?.output;
     if (output == null) {
       throw new HarnessInvalidDriveStateError({
         message: 'HarnessAgent.effect: the effect end was not accepted.',
@@ -433,9 +433,9 @@ export function createEffectFunction(input: {
    * calls for the same key cannot run another callback in this drive.
    */
   return async function effect<T extends SerializableValue = SerializableValue>(
-    opts: HarnessAgentEffectOptions<T>,
+    options: HarnessAgentEffectOptions<T>,
   ): Promise<HarnessV2EffectOutput<T>> {
-    const { key, fn, ...options } = opts;
+    const { key, fn } = options;
     if (running.has(key)) {
       throw new HarnessInvalidDriveStateError({
         message: 'HarnessAgent.effect: the effect is already running.',

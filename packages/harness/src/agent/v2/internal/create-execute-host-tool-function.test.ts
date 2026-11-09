@@ -36,7 +36,7 @@ const sandboxSession = { id: 'sandbox' } as unknown as SandboxSession;
 /**
  * Creates `executeHostTool()` for a new drive on the given session log.
  */
-function createDrive(input: {
+function createDrive(options: {
   world: InMemoryWorld;
   log: HarnessAgentLog;
   tools: ToolSet;
@@ -48,41 +48,41 @@ function createDrive(input: {
   const abortController = new AbortController();
   abortControllers.add(abortController);
   const writer = createStreamWriter({
-    world: input.world,
+    world: options.world,
     runId,
     abortSignal: abortController.signal,
   });
   const effect = createEffectFunction({
-    log: input.log,
+    log: options.log,
     abortSignal: abortController.signal,
     writer,
   });
   const getSandboxSession = vi.fn(async () => sandboxSession);
   const executeHostTool = createExecuteHostToolFunction({
-    tools: input.tools,
+    tools: options.tools,
     effect,
     getSandboxSession,
   });
   return { executeHostTool, abortController, getSandboxSession };
 }
 
-async function setup(input: { tools: ToolSet }) {
+async function setup(options: { tools: ToolSet }) {
   const world = new InMemoryWorld();
   await world.events.create(runId, {
     eventType: 'run_created',
     eventData: { deploymentId: 'test', workflowName: 'harness', input: [] },
   });
   const log = createLog({ world, runId });
-  return { world, log, ...createDrive({ world, log, tools: input.tools }) };
+  return { world, log, ...createDrive({ world, log, tools: options.tools }) };
 }
 
 /**
  * Reads every record written to the session's stream so far.
  */
-async function readStream(input: {
+async function readStream(options: {
   world: InMemoryWorld;
 }): Promise<HarnessAgentStreamRecord[]> {
-  const { data } = await input.world.streams.getChunks(
+  const { data } = await options.world.streams.getChunks(
     runId,
     runId + '_harness_agent_stream',
     { limit: 1000 },
@@ -95,8 +95,8 @@ async function readStream(input: {
 /**
  * Returns the stream parts written so far, without their record tags.
  */
-async function readParts(input: { world: InMemoryWorld }) {
-  return (await readStream(input)).flatMap(record =>
+async function readParts(options: { world: InMemoryWorld }) {
+  return (await readStream(options)).flatMap(record =>
     'part' in record ? [record.part] : [],
   );
 }

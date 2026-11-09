@@ -14,7 +14,7 @@ afterEach(() => vi.useRealTimers());
  * Creates the existing run required by the event-backed log.
  */
 async function setup(
-  input: {
+  options: {
     /**
      * Existing run identity used by the tested log.
      */
@@ -22,7 +22,7 @@ async function setup(
   } = {},
 ) {
   const world = new InMemoryWorld();
-  const runId = input.runId ?? 'session-id';
+  const runId = options.runId ?? 'session-id';
   await world.events.create(runId, {
     eventType: 'run_created',
     eventData: { deploymentId: 'test', workflowName: 'harness', input: [] },

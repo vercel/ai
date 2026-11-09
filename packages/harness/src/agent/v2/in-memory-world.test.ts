@@ -483,8 +483,8 @@ describe('InMemoryWorld', () => {
   });
 });
 
-function getExportedRunData(input: { data: unknown }) {
-  return input.data as {
+function getExportedRunData(options: { data: unknown }) {
+  return options.data as {
     events: {
       eventType: string;
       correlationId?: string;

@@ -59,18 +59,18 @@ async function setup() {
 /**
  * Appends a submission without delivering it.
  */
-async function submit(input: {
+async function submit(options: {
   log: HarnessAgentLog;
   submissionId: string;
   type?: 'prompt' | 'steer';
 }): Promise<void> {
-  const { log, submissionId } = input;
+  const { log, submissionId } = options;
   const message = { role: 'user' as const, content: submissionId };
   await log.append({
     type: 'submission',
     id: submissionId,
     data:
-      input.type === 'steer'
+      options.type === 'steer'
         ? { type: 'steer', message }
         : { type: 'prompt', message, settings: { skills: [], tools: [] } },
   });
@@ -79,21 +79,21 @@ async function submit(input: {
 /**
  * Appends an effect start delivering the given submissions.
  */
-async function deliver(input: {
+async function deliver(options: {
   log: HarnessAgentLog;
   startId: string;
   submissionIds: string[];
 }): Promise<void> {
-  await input.log.append({
+  await options.log.append({
     type: 'effect-start',
-    id: input.startId,
+    id: options.startId,
     data: {
-      key: input.startId,
+      key: options.startId,
       attempt: 1,
       name: 'model',
       replay: 'safe',
       input: null,
-      deliveredSubmissionIds: input.submissionIds,
+      deliveredSubmissionIds: options.submissionIds,
     },
   });
 }
@@ -101,24 +101,24 @@ async function deliver(input: {
 /**
  * Appends a prompt submission and an effect start delivering it.
  */
-async function deliverPrompt(input: {
+async function deliverPrompt(options: {
   log: HarnessAgentLog;
   submissionId: string;
 }): Promise<void> {
-  await submit(input);
+  await submit(options);
   await deliver({
-    log: input.log,
-    startId: `start:${input.submissionId}`,
-    submissionIds: [input.submissionId],
+    log: options.log,
+    startId: `start:${options.submissionId}`,
+    submissionIds: [options.submissionId],
   });
 }
 
-async function readStream(input: {
+async function readStream(options: {
   world: InMemoryWorld;
   writer: HarnessAgentStreamWriter;
 }) {
-  await input.writer.flush();
-  const { data } = await input.world.streams.getChunks(
+  await options.writer.flush();
+  const { data } = await options.world.streams.getChunks(
     runId,
     runId + '_harness_agent_stream',
     { limit: 1000 },
@@ -128,20 +128,20 @@ async function readStream(input: {
   });
 }
 
-async function readStreamKeys(input: {
+async function readStreamKeys(options: {
   world: InMemoryWorld;
   writer: HarnessAgentStreamWriter;
 }) {
-  return (await readStream(input)).map(record =>
+  return (await readStream(options)).map(record =>
     'key' in record ? record.key : undefined,
   );
 }
 
-async function readEventIds(input: {
+async function readEventIds(options: {
   log: HarnessAgentLog;
   type: 'finish-step' | 'finish-turn';
 }) {
-  const { events } = await input.log.read({ types: [input.type] });
+  const { events } = await options.log.read({ types: [options.type] });
   return events.map(event => event.id);
 }
 

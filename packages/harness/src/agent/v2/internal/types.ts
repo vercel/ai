@@ -44,7 +44,7 @@ export type HarnessAgentEffectOptions<
 export type HarnessAgentEffectFunction = <
   T extends SerializableValue = SerializableValue,
 >(
-  opts: HarnessAgentEffectOptions<T>,
+  options: HarnessAgentEffectOptions<T>,
 ) => Promise<HarnessV2EffectOutput<T>>;
 
 /**
@@ -219,7 +219,7 @@ export type HarnessAgentLogEvent =
  * count is a replay and records and emits nothing; one equal to it records the
  * step and emits `finish-step`; anything else rejects.
  */
-export type HarnessAgentFinishStepFunction = (opts: {
+export type HarnessAgentFinishStepFunction = (options: {
   /**
    * Zero-based number of the step within the current turn.
    */
@@ -249,7 +249,7 @@ export type HarnessAgentFinishStepFunction = (opts: {
  * submission. If it is already finished, the call is a replay and records and
  * emits nothing; otherwise it records the finish and emits `finish`.
  */
-export type HarnessAgentFinishTurnFunction = (opts: {
+export type HarnessAgentFinishTurnFunction = (options: {
   /**
    * Reason reported for the turn's completion.
    */
@@ -291,7 +291,7 @@ export type HarnessAgentLog = {
    * position, optionally filtered by type. Infrastructure and duplicate records
    * advance the position without appearing in the returned events.
    */
-  read(opts?: {
+  read(options?: {
     /**
      * Position after which to return events, independent of type filters.
      */
@@ -671,7 +671,7 @@ export type HarnessAgentStreamWriter = {
    * Throws synchronously if the part is not serializable.
    */
   emit(
-    opts: {
+    options: {
       /**
        * Stream part to write.
        */
@@ -713,7 +713,7 @@ export type HarnessAgentStreamWriter = {
    * Writes the engine-only withdraw record withdrawing the output of the given
    * effect attempts.
    */
-  withdraw(opts: {
+  withdraw(options: {
     /**
      * Start IDs of the attempts whose output readers withdraw.
      */

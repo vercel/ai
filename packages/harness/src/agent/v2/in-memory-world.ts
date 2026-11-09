@@ -55,7 +55,7 @@ interface Storable {
    * Event history is retained so replay can rebuild run, step, hook, and wait
    * records; state that replay cannot rebuild is included separately.
    */
-  export(input: { runId: string }): Promise<SerializableValue>;
+  export(options: { runId: string }): Promise<SerializableValue>;
 
   /**
    * Restores a checkpoint for the same `runId` and replaces only that run's
@@ -64,7 +64,7 @@ interface Storable {
    * The checkpoint is validated and replayed into temporary state before the
    * existing run is cleared, so invalid data does not partially replace it.
    */
-  seed(input: { runId: string; data: SerializableValue }): Promise<void>;
+  seed(options: { runId: string; data: SerializableValue }): Promise<void>;
 
   /**
    * Exports a checkpoint encoded for storage as JSON.
@@ -72,7 +72,7 @@ interface Storable {
    * Binary data and other supported non-JSON values are transformed by the
    * provider-utils JSON codec; the returned value can be passed to `seedJson`.
    */
-  exportJson(input: { runId: string }): Promise<JSONValue>;
+  exportJson(options: { runId: string }): Promise<JSONValue>;
 
   /**
    * Decodes a JSON checkpoint and restores its run state.
@@ -80,7 +80,7 @@ interface Storable {
    * This reverses `exportJson`'s encoding before applying the same validation
    * and replacement behavior as `seed`.
    */
-  seedJson(input: { runId: string; data: JSONValue }): Promise<void>;
+  seedJson(options: { runId: string; data: JSONValue }): Promise<void>;
 }
 
 /**
@@ -271,7 +271,7 @@ export class InMemoryWorld implements World, Storable {
       getMany: (ids, params) => this.getManyRuns({ ids, params }),
       list: params => this.listRuns({ params }),
       experimentalSetAttributes: async (runId, changes, options) =>
-        this.setRunAttributes({ runId, changes, options }),
+        this.setRunAttributes({ runId, changes, attributeOptions: options }),
       cancelMany: request => this.cancelRuns({ request }),
     } as World['runs'];
 
@@ -328,12 +328,12 @@ export class InMemoryWorld implements World, Storable {
         this.getStream({ runId, name, startIndex }),
       list: runId => this.listStreams({ runId }),
       getChunks: (runId, name, options) =>
-        this.getStreamChunks({ runId, name, options }),
+        this.getStreamChunks({ runId, name, pagination: options }),
       getInfo: (runId, name) => this.getStreamInfo({ runId, name }),
     };
 
     this.queue = async (queueName, message, options) =>
-      this.enqueue({ queueName, message, options });
+      this.enqueue({ queueName, message, queueOptions: options });
 
     this.experimental_snapshots = {
       save: (runId, data, metadata) =>
@@ -457,7 +457,7 @@ export class InMemoryWorld implements World, Storable {
           const result = await this.enqueue({
             queueName,
             message,
-            options: opts,
+            queueOptions: opts,
           });
           return { messageId: result.messageId };
         } catch (error) {
@@ -531,8 +531,8 @@ export class InMemoryWorld implements World, Storable {
    * The returned value is cloned so callers can persist or mutate it without
    * sharing the world's in-memory objects.
    */
-  async export(input: { runId: string }): Promise<SerializableValue> {
-    const { runId } = input;
+  async export(options: { runId: string }): Promise<SerializableValue> {
+    const { runId } = options;
     const streams = Object.fromEntries(
       Array.from(this.streamRecords.get(runId) ?? [], ([name, stream]) => [
         name,
@@ -570,9 +570,12 @@ export class InMemoryWorld implements World, Storable {
    * code, and queued messages replaced. The run's transient snapshot is cleared,
    * and the queue idempotency index is rebuilt from the resulting messages.
    */
-  async seed(input: { runId: string; data: SerializableValue }): Promise<void> {
-    const { runId } = input;
-    const data = InMemoryWorldDataSchema.parse(input.data);
+  async seed(options: {
+    runId: string;
+    data: SerializableValue;
+  }): Promise<void> {
+    const { runId } = options;
+    const data = InMemoryWorldDataSchema.parse(options.data);
     if (data.version !== 1) {
       throw new Error(
         `InMemoryWorld: unsupported data version: ${data.version}.`,
@@ -698,8 +701,8 @@ export class InMemoryWorld implements World, Storable {
    * of binary and other supported non-JSON values to the shared provider-utils
    * codec. It does not persist the returned value.
    */
-  async exportJson(input: { runId: string }): Promise<JSONValue> {
-    const data = await this.export(input);
+  async exportJson(options: { runId: string }): Promise<JSONValue> {
+    const data = await this.export(options);
     return jsonEncodeSerializableValue({ value: data });
   }
 
@@ -709,10 +712,10 @@ export class InMemoryWorld implements World, Storable {
    * The shared codec reverses `exportJson`'s transformations before the normal
    * checkpoint schema, run-ID checks, replay, and run-scoped replacement apply.
    */
-  async seedJson(input: { runId: string; data: JSONValue }): Promise<void> {
+  async seedJson(options: { runId: string; data: JSONValue }): Promise<void> {
     await this.seed({
-      runId: input.runId,
-      data: jsonDecodeSerializableValue({ value: input.data }),
+      runId: options.runId,
+      data: jsonDecodeSerializableValue({ value: options.data }),
     });
   }
 
@@ -722,14 +725,14 @@ export class InMemoryWorld implements World, Storable {
    * Results are detached copies. `resolveData: 'none'` omits the run's input,
    * output, and dynamic workflow code while retaining its metadata.
    */
-  async getManyRuns(input: {
+  async getManyRuns(options: {
     ids: readonly string[];
     params?: { resolveData?: 'all' | 'none' };
   }): Promise<(WorkflowRun | WorkflowRunWithoutData | null)[]> {
-    return input.ids.map(id => {
+    return options.ids.map(id => {
       const run = this.runRecords.get(id);
       return run
-        ? this.resolveRunData({ run, resolveData: input.params?.resolveData })
+        ? this.resolveRunData({ run, resolveData: options.params?.resolveData })
         : null;
     });
   }
@@ -741,13 +744,16 @@ export class InMemoryWorld implements World, Storable {
    * Set `resolveData: 'none'` to omit input, output, and dynamic workflow code
    * while keeping the remaining run metadata.
    */
-  async getRun(input: {
+  async getRun(options: {
     id: string;
     params?: { resolveData?: 'all' | 'none' };
   }): Promise<WorkflowRun | WorkflowRunWithoutData> {
-    const run = this.runRecords.get(input.id);
-    if (!run) throw notFound({ entity: 'WorkflowRun', id: input.id });
-    return this.resolveRunData({ run, resolveData: input.params?.resolveData });
+    const run = this.runRecords.get(options.id);
+    if (!run) throw notFound({ entity: 'WorkflowRun', id: options.id });
+    return this.resolveRunData({
+      run,
+      resolveData: options.params?.resolveData,
+    });
   }
 
   /**
@@ -757,7 +763,7 @@ export class InMemoryWorld implements World, Storable {
    * first and accepts either a numeric offset or a run ID cursor. Returned runs
    * are detached copies, and `resolveData: 'none'` omits their payload fields.
    */
-  async listRuns(input: {
+  async listRuns(options: {
     params?: {
       workflowName?: string;
       status?: string | string[];
@@ -769,7 +775,7 @@ export class InMemoryWorld implements World, Storable {
       resolveData?: 'all' | 'none';
     };
   }) {
-    const { params } = input;
+    const { params } = options;
     const statuses =
       params?.status === undefined
         ? undefined
@@ -807,17 +813,20 @@ export class InMemoryWorld implements World, Storable {
    * `resolveData: 'none'` omits step input and output but leaves lifecycle
    * metadata available.
    */
-  async getStep(input: {
+  async getStep(options: {
     runId: string;
     stepId: string;
     params?: { resolveData?: 'all' | 'none' };
   }) {
-    const step = this.stepRecords.get(input.runId)?.get(input.stepId);
+    const step = this.stepRecords.get(options.runId)?.get(options.stepId);
     if (!step)
-      throw notFound({ entity: 'Step', id: `${input.runId}/${input.stepId}` });
+      throw notFound({
+        entity: 'Step',
+        id: `${options.runId}/${options.stepId}`,
+      });
     return this.resolveStepData({
       step,
-      resolveData: input.params?.resolveData,
+      resolveData: options.params?.resolveData,
     });
   }
 
@@ -827,7 +836,7 @@ export class InMemoryWorld implements World, Storable {
    * Pagination defaults to newest first and accepts a numeric offset or step
    * ID cursor. `resolveData: 'none'` omits input and output from each result.
    */
-  async listSteps(input: {
+  async listSteps(options: {
     params: {
       runId: string;
       pagination?: {
@@ -838,7 +847,7 @@ export class InMemoryWorld implements World, Storable {
       resolveData?: 'all' | 'none';
     };
   }) {
-    const { params } = input;
+    const { params } = options;
     const steps = Array.from(
       this.stepRecords.get(params.runId)?.values() ?? [],
     );
@@ -865,14 +874,14 @@ export class InMemoryWorld implements World, Storable {
    * Returns a detached copy of an event, or throws if it is not in the run's
    * event log.
    */
-  async getEvent(input: { runId: string; eventId: string }): Promise<Event> {
+  async getEvent(options: { runId: string; eventId: string }): Promise<Event> {
     const event = this.eventRecords
-      .get(input.runId)
-      ?.find(candidate => candidate.eventId === input.eventId);
+      .get(options.runId)
+      ?.find(candidate => candidate.eventId === options.eventId);
     if (!event)
       throw notFound({
         entity: 'Event',
-        id: `${input.runId}/${input.eventId}`,
+        id: `${options.runId}/${options.eventId}`,
       });
     return cloneValue(event);
   }
@@ -885,8 +894,8 @@ export class InMemoryWorld implements World, Storable {
    * The cursor names the last returned event even at the tail, allowing later
    * appends to be read without restarting pagination.
    */
-  async listEvents(input: { params: ListEventsParams }) {
-    const { params } = input;
+  async listEvents(options: { params: ListEventsParams }) {
+    const { params } = options;
     const events = this.eventRecords.get(params.runId) ?? [];
     const result = paginate({
       items:
@@ -912,10 +921,10 @@ export class InMemoryWorld implements World, Storable {
    * `listEvents`.
    * The tail cursor is retained and the requested sort order is honored.
    */
-  async listEventsByCorrelationId(input: {
+  async listEventsByCorrelationId(options: {
     params: ListEventsByCorrelationIdParams;
   }) {
-    const { params } = input;
+    const { params } = options;
     const events = (this.eventRecords.get(params.runId) ?? []).filter(
       event => event.correlationId === params.correlationId,
     );
@@ -946,18 +955,18 @@ export class InMemoryWorld implements World, Storable {
    * Duplicate live step creation is refused without changing the projection.
    * A stale `eventCount` receives the intervening records through this commit.
    */
-  async createEvent(input: {
+  async createEvent(options: {
     runId: string | null;
     data: CreateEventRequest | RunCreatedEventRequest;
     params?: CreateEventParams;
   }): Promise<EventResult> {
-    const request = CreateEventSchema.parse(input.data) as
+    const request = CreateEventSchema.parse(options.data) as
       | CreateEventRequest
       | RunCreatedEventRequest;
     const runId =
       request.eventType === 'run_created'
-        ? (input.runId ?? this.nextRunId())
-        : input.runId;
+        ? (options.runId ?? this.nextRunId())
+        : options.runId;
     if (runId == null)
       throw new Error('InMemoryWorld: `runId` is required for this event.');
 
@@ -982,13 +991,13 @@ export class InMemoryWorld implements World, Storable {
     }
 
     const events = this.eventRecords.get(runId) ?? [];
-    const createdAt = input.params?.occurredAt ?? new Date();
+    const createdAt = options.params?.occurredAt ?? new Date();
     const event = EventSchema.parse({
       ...request,
       runId,
       eventId: slotToEventId(events.length + 1),
       createdAt,
-      occurredAt: input.params?.occurredAt,
+      occurredAt: options.params?.occurredAt,
       specVersion: request.specVersion ?? this.specVersion,
     }) as Event;
 
@@ -998,15 +1007,15 @@ export class InMemoryWorld implements World, Storable {
     return {
       event: cloneValue(event),
       ...result,
-      ...(input.params?.eventCount !== undefined &&
-      input.params.eventCount < events.length - 1
+      ...(options.params?.eventCount !== undefined &&
+      options.params.eventCount < events.length - 1
         ? {
             events: events
-              .slice(input.params.eventCount)
+              .slice(options.params.eventCount)
               .map(item =>
                 stripEventDataRefs(
                   cloneValue(item),
-                  input.params?.resolveData ?? 'all',
+                  options.params?.resolveData ?? 'all',
                 ),
               ),
             cursor: event.eventId,
@@ -1022,20 +1031,20 @@ export class InMemoryWorld implements World, Storable {
    * A failed event is reported as a 409 conflict and does not stop later events;
    * earlier successful events are not rolled back, so the batch is not atomic.
    */
-  async createEventBatch(input: {
+  async createEventBatch(options: {
     runId: string;
     batch: BatchEventRequest[];
     params?: CreateEventBatchParams;
   }): Promise<EventBatchResult> {
     const results = [];
-    for (const item of input.batch) {
+    for (const item of options.batch) {
       try {
         const result = await this.createEvent({
-          runId: input.runId,
+          runId: options.runId,
           data: item.event,
           params: {
-            resolveData: input.params?.resolveData,
-            requestId: input.params?.requestId,
+            resolveData: options.params?.resolveData,
+            requestId: options.params?.requestId,
             occurredAt: item.occurredAt,
           },
         });
@@ -1063,9 +1072,9 @@ export class InMemoryWorld implements World, Storable {
    * Hook records are indexed across runs; a missing ID throws the
    * Workflow-compatible hook not-found error.
    */
-  async getHook(input: { hookId: string }): Promise<Hook> {
-    const hook = this.hookRecords.get(input.hookId);
-    if (!hook) throw notFound({ entity: 'Hook', id: input.hookId });
+  async getHook(options: { hookId: string }): Promise<Hook> {
+    const hook = this.hookRecords.get(options.hookId);
+    if (!hook) throw notFound({ entity: 'Hook', id: options.hookId });
     return cloneValue(hook);
   }
 
@@ -1076,9 +1085,9 @@ export class InMemoryWorld implements World, Storable {
    * restored; tokens replaced by a forced claim no longer resolve to the old
    * hook.
    */
-  async getHookByToken(input: { token: string }): Promise<Hook> {
-    const hookId = this.hookIdsByToken.get(input.token);
-    if (!hookId) throw notFound({ entity: 'Hook', id: input.token });
+  async getHookByToken(options: { token: string }): Promise<Hook> {
+    const hookId = this.hookIdsByToken.get(options.token);
+    if (!hookId) throw notFound({ entity: 'Hook', id: options.token });
     return this.getHook({ hookId });
   }
 
@@ -1088,7 +1097,7 @@ export class InMemoryWorld implements World, Storable {
    * Results are ordered by creation time, newest first by default, and use the
    * same numeric-offset or hook-ID cursor behavior as other paginated lists.
    */
-  async listHooks(input: {
+  async listHooks(options: {
     params: {
       runId?: string;
       pagination?: {
@@ -1100,17 +1109,18 @@ export class InMemoryWorld implements World, Storable {
   }) {
     const hooks = Array.from(this.hookRecords.values()).filter(
       hook =>
-        input.params.runId === undefined || hook.runId === input.params.runId,
+        options.params.runId === undefined ||
+        hook.runId === options.params.runId,
     );
     return paginate({
       items: hooks.sort((a, b) =>
         compareDates({
           a: a.createdAt,
           b: b.createdAt,
-          sortOrder: input.params.pagination?.sortOrder,
+          sortOrder: options.params.pagination?.sortOrder,
         }),
       ),
-      pagination: input.params.pagination,
+      pagination: options.params.pagination,
       getKey: hook => hook.hookId,
     });
   }
@@ -1122,18 +1132,18 @@ export class InMemoryWorld implements World, Storable {
    * stream is created on its first write, and writes after it has been closed
    * reject with an error.
    */
-  async writeStream(input: {
+  async writeStream(options: {
     runId: string;
     name: string;
     chunk: string | Uint8Array;
   }): Promise<void> {
     const stream = this.getOrCreateStream({
-      runId: input.runId,
-      name: input.name,
+      runId: options.runId,
+      name: options.name,
     });
     if (stream.done)
-      throw new Error(`InMemoryWorld: stream \`${input.name}\` is closed.`);
-    stream.chunks.push(toBytes(input.chunk));
+      throw new Error(`InMemoryWorld: stream \`${options.name}\` is closed.`);
+    stream.chunks.push(toBytes(options.chunk));
     this.notifyStream({ stream });
   }
 
@@ -1143,13 +1153,17 @@ export class InMemoryWorld implements World, Storable {
    * If a write fails, the method rejects immediately; chunks already appended
    * remain in the stream and later chunks are not attempted.
    */
-  async writeStreamMulti(input: {
+  async writeStreamMulti(options: {
     runId: string;
     name: string;
     chunks: (string | Uint8Array)[];
   }): Promise<void> {
-    for (const chunk of input.chunks) {
-      await this.writeStream({ runId: input.runId, name: input.name, chunk });
+    for (const chunk of options.chunks) {
+      await this.writeStream({
+        runId: options.runId,
+        name: options.name,
+        chunk,
+      });
     }
   }
 
@@ -1159,10 +1173,10 @@ export class InMemoryWorld implements World, Storable {
    * Closing a stream with no prior writes creates an empty, completed stream.
    * Subsequent reads drain buffered chunks and then close; later writes fail.
    */
-  async closeStream(input: { runId: string; name: string }): Promise<void> {
+  async closeStream(options: { runId: string; name: string }): Promise<void> {
     const stream = this.getOrCreateStream({
-      runId: input.runId,
-      name: input.name,
+      runId: options.runId,
+      name: options.name,
     });
     stream.done = true;
     this.notifyStream({ stream });
@@ -1176,16 +1190,16 @@ export class InMemoryWorld implements World, Storable {
    * zero. The reader then waits for future writes until the stream is closed;
    * each enqueued chunk is cloned before it is exposed.
    */
-  async getStream(input: {
+  async getStream(options: {
     runId: string;
     name: string;
     startIndex?: number;
   }): Promise<ReadableStream<Uint8Array>> {
     const stream = this.getOrCreateStream({
-      runId: input.runId,
-      name: input.name,
+      runId: options.runId,
+      name: options.name,
     });
-    const requestedIndex = input.startIndex ?? 0;
+    const requestedIndex = options.startIndex ?? 0;
     let index =
       requestedIndex < 0
         ? Math.max(0, stream.chunks.length + requestedIndex)
@@ -1225,8 +1239,8 @@ export class InMemoryWorld implements World, Storable {
    * Reading an unknown stream through a stream getter creates it, so it then
    * appears in this list.
    */
-  async listStreams(input: { runId: string }): Promise<string[]> {
-    return Array.from(this.streamRecords.get(input.runId)?.keys() ?? []);
+  async listStreams(options: { runId: string }): Promise<string[]> {
+    return Array.from(this.streamRecords.get(options.runId)?.keys() ?? []);
   }
 
   /**
@@ -1236,17 +1250,17 @@ export class InMemoryWorld implements World, Storable {
    * numeric index of the next chunk; returned byte arrays are cloned, and
    * `done` reports whether the writer has closed the stream.
    */
-  async getStreamChunks(input: {
+  async getStreamChunks(options: {
     runId: string;
     name: string;
-    options?: { limit?: number; cursor?: string };
+    pagination?: { limit?: number; cursor?: string };
   }): Promise<StreamChunksResponse> {
     const stream = this.getOrCreateStream({
-      runId: input.runId,
-      name: input.name,
+      runId: options.runId,
+      name: options.name,
     });
-    const limit = Math.min(1000, Math.max(0, input.options?.limit ?? 100));
-    const start = parseCursor({ cursor: input.options?.cursor });
+    const limit = Math.min(1000, Math.max(0, options.pagination?.limit ?? 100));
+    const start = parseCursor({ cursor: options.pagination?.cursor });
     const end = Math.min(stream.chunks.length, start + limit);
     const data = stream.chunks.slice(start, end).map((chunk, offset) => ({
       index: start + offset,
@@ -1267,13 +1281,13 @@ export class InMemoryWorld implements World, Storable {
    * An empty stream has `tailIndex: -1`; querying a missing stream creates an
    * open empty stream, consistent with the other stream readers.
    */
-  async getStreamInfo(input: {
+  async getStreamInfo(options: {
     runId: string;
     name: string;
   }): Promise<StreamInfoResponse> {
     const stream = this.getOrCreateStream({
-      runId: input.runId,
-      name: input.name,
+      runId: options.runId,
+      name: options.name,
     });
     return { tailIndex: stream.chunks.length - 1, done: stream.done };
   }
@@ -1284,10 +1298,10 @@ export class InMemoryWorld implements World, Storable {
    * Snapshots are process-local caches and are deliberately excluded from
    * checkpoints; a seeded run therefore has no snapshot until one is saved.
    */
-  async getSnapshot(input: {
+  async getSnapshot(options: {
     runId: string;
   }): Promise<{ data: Uint8Array; metadata: SnapshotMetadata } | null> {
-    const snapshot = this.snapshots.get(input.runId);
+    const snapshot = this.snapshots.get(options.runId);
     return snapshot ? cloneValue(snapshot) : null;
   }
 
@@ -1297,22 +1311,22 @@ export class InMemoryWorld implements World, Storable {
    * Both data and metadata are cloned on write and again on read. Snapshots are
    * caches rather than checkpoint state and are cleared when that run is seeded.
    */
-  async saveSnapshot(input: {
+  async saveSnapshot(options: {
     runId: string;
     data: Uint8Array;
     metadata: SnapshotMetadata;
   }): Promise<void> {
-    this.snapshots.set(input.runId, {
-      data: cloneValue(input.data),
-      metadata: cloneValue(input.metadata),
+    this.snapshots.set(options.runId, {
+      data: cloneValue(options.data),
+      metadata: cloneValue(options.metadata),
     });
   }
 
   /**
    * Removes a run's transient snapshot without changing its checkpoint state.
    */
-  async deleteSnapshot(input: { runId: string }): Promise<void> {
-    this.snapshots.delete(input.runId);
+  async deleteSnapshot(options: { runId: string }): Promise<void> {
+    this.snapshots.delete(options.runId);
   }
 
   /**
@@ -1323,26 +1337,26 @@ export class InMemoryWorld implements World, Storable {
    * the original payload. Messages are cloned and included in the checkpoint
    * only when their payload identifies the exported run.
    */
-  private async enqueue(input: {
+  private async enqueue(options: {
     queueName: string;
     message: QueuePayload;
-    options?: QueueOptions;
+    queueOptions?: QueueOptions;
   }): Promise<{ messageId: MessageIdType }> {
-    const message = QueuePayloadSchema.parse(input.message);
-    const idempotencyKey = input.options?.idempotencyKey;
+    const message = QueuePayloadSchema.parse(options.message);
+    const idempotencyKey = options.queueOptions?.idempotencyKey;
     const dedupeKey =
       idempotencyKey === undefined
         ? undefined
-        : `${input.queueName}:${idempotencyKey}`;
+        : `${options.queueName}:${idempotencyKey}`;
     const existingId = dedupeKey && this.queueIdempotencyKeys.get(dedupeKey);
     if (existingId) return { messageId: existingId };
 
     const messageId = this.createMessageId();
     this.queuedMessages.push({
-      queueName: input.queueName,
+      queueName: options.queueName,
       messageId,
       message: cloneValue(message),
-      options: input.options && cloneValue(input.options),
+      options: options.queueOptions && cloneValue(options.queueOptions),
     });
     if (dedupeKey) this.queueIdempotencyKeys.set(dedupeKey, messageId);
     return { messageId };
@@ -1386,13 +1400,13 @@ export class InMemoryWorld implements World, Storable {
    * projection; sealed no-op events return early. The caller owns appending the
    * event after this method succeeds.
    */
-  private applyEvent(input: { event: Event }): {
+  private applyEvent(options: { event: Event }): {
     run?: WorkflowRun;
     step?: Step;
     hook?: Hook;
     wait?: Wait;
   } {
-    const { event } = input;
+    const { event } = options;
     const now = event.createdAt;
     const runId = event.runId;
     const eventData = event.eventData as Record<string, unknown> | undefined;
@@ -1512,8 +1526,8 @@ export class InMemoryWorld implements World, Storable {
    * existing step; they update its status and timestamps while preserving the
    * other projected fields.
    */
-  private applyStepEvent(input: { event: Event }): Step {
-    const { event } = input;
+  private applyStepEvent(options: { event: Event }): Step {
+    const { event } = options;
     const runId = event.runId;
     const stepId = event.correlationId;
     if (!stepId)
@@ -1599,8 +1613,8 @@ export class InMemoryWorld implements World, Storable {
    * without `force`, that collision is an error. Disposal removes both the hook
    * record and its token mapping.
    */
-  private applyHookEvent(input: { event: Event }): Hook | undefined {
-    const { event } = input;
+  private applyHookEvent(options: { event: Event }): Hook | undefined {
+    const { event } = options;
     const hookId = event.correlationId;
     if (!hookId)
       throw new Error('InMemoryWorld: hook events require a correlation id.');
@@ -1655,8 +1669,8 @@ export class InMemoryWorld implements World, Storable {
    * Creation records the scheduled resume time and starts in `waiting`; any
    * subsequent wait event projects a completed wait using that event's time.
    */
-  private applyWaitEvent(input: { event: Event }): Wait {
-    const { event } = input;
+  private applyWaitEvent(options: { event: Event }): Wait {
+    const { event } = options;
     const waitId = event.correlationId;
     if (!waitId)
       throw new Error('InMemoryWorld: wait events require a correlation id.');
@@ -1695,9 +1709,9 @@ export class InMemoryWorld implements World, Storable {
    * Returns the internal run record or throws the Workflow-compatible
    * not-found error used by the public getters.
    */
-  private requireRun(input: { runId: string }): WorkflowRun {
-    const run = this.runRecords.get(input.runId);
-    if (!run) throw notFound({ entity: 'WorkflowRun', id: input.runId });
+  private requireRun(options: { runId: string }): WorkflowRun {
+    const run = this.runRecords.get(options.runId);
+    if (!run) throw notFound({ entity: 'WorkflowRun', id: options.runId });
     return run;
   }
 
@@ -1707,13 +1721,13 @@ export class InMemoryWorld implements World, Storable {
    * The default view is a deep clone. `resolveData: 'none'` preserves metadata
    * but sets input, output, and dynamic workflow code to `undefined`.
    */
-  private resolveRunData(input: {
+  private resolveRunData(options: {
     run: WorkflowRun;
     resolveData?: 'all' | 'none';
   }): WorkflowRun | WorkflowRunWithoutData {
-    if (input.resolveData !== 'none') return cloneValue(input.run);
+    if (options.resolveData !== 'none') return cloneValue(options.run);
     return {
-      ...input.run,
+      ...options.run,
       input: undefined,
       output: undefined,
       dynamicWorkflowCode: undefined,
@@ -1726,9 +1740,12 @@ export class InMemoryWorld implements World, Storable {
    * `resolveData: 'none'` sets input and output to `undefined`; otherwise the
    * returned step is a deep clone of the stored projection.
    */
-  private resolveStepData(input: { step: Step; resolveData?: 'all' | 'none' }) {
-    if (input.resolveData !== 'none') return cloneValue(input.step);
-    return { ...input.step, input: undefined, output: undefined };
+  private resolveStepData(options: {
+    step: Step;
+    resolveData?: 'all' | 'none';
+  }) {
+    if (options.resolveData !== 'none') return cloneValue(options.step);
+    return { ...options.step, input: undefined, output: undefined };
   }
 
   /**
@@ -1737,17 +1754,17 @@ export class InMemoryWorld implements World, Storable {
    * Read operations also use this helper, so observing a previously unseen
    * stream creates state that can later be listed or checkpointed.
    */
-  private getOrCreateStream(input: {
+  private getOrCreateStream(options: {
     runId: string;
     name: string;
   }): StreamData {
     const streams =
-      this.streamRecords.get(input.runId) ?? new Map<string, StreamData>();
-    let stream = streams.get(input.name);
+      this.streamRecords.get(options.runId) ?? new Map<string, StreamData>();
+    let stream = streams.get(options.name);
     if (!stream) {
       stream = { chunks: [], done: false, waiters: new Set() };
-      streams.set(input.name, stream);
-      this.streamRecords.set(input.runId, streams);
+      streams.set(options.name, stream);
+      this.streamRecords.set(options.runId, streams);
     }
     return stream;
   }
@@ -1759,8 +1776,8 @@ export class InMemoryWorld implements World, Storable {
    * not mark the stream complete; the write or close operation controls that
    * state before notifying readers.
    */
-  private notifyStream(input: { stream: StreamData }): void {
-    for (const wake of input.stream.waiters) wake();
+  private notifyStream(options: { stream: StreamData }): void {
+    for (const wake of options.stream.waiters) wake();
   }
 
   /**
@@ -1770,20 +1787,21 @@ export class InMemoryWorld implements World, Storable {
    * are removed as well; callers rebuilding a world-wide index must do so after
    * replacing the run's messages.
    */
-  private clearRun(input: { runId: string }): void {
-    for (const stream of this.streamRecords.get(input.runId)?.values() ?? []) {
+  private clearRun(options: { runId: string }): void {
+    for (const stream of this.streamRecords.get(options.runId)?.values() ??
+      []) {
       stream.done = true;
       this.notifyStream({ stream });
     }
-    this.runRecords.delete(input.runId);
-    this.eventRecords.delete(input.runId);
-    this.stepRecords.delete(input.runId);
-    this.waitRecords.delete(input.runId);
-    this.streamRecords.delete(input.runId);
-    this.snapshots.delete(input.runId);
-    this.dynamicWorkflowCode.delete(input.runId);
+    this.runRecords.delete(options.runId);
+    this.eventRecords.delete(options.runId);
+    this.stepRecords.delete(options.runId);
+    this.waitRecords.delete(options.runId);
+    this.streamRecords.delete(options.runId);
+    this.snapshots.delete(options.runId);
+    this.dynamicWorkflowCode.delete(options.runId);
     for (const [hookId, hook] of this.hookRecords) {
-      if (hook.runId === input.runId) {
+      if (hook.runId === options.runId) {
         this.hookRecords.delete(hookId);
         this.hookIdsByToken.delete(hook.token);
       }
@@ -1791,7 +1809,7 @@ export class InMemoryWorld implements World, Storable {
     for (let index = this.queuedMessages.length - 1; index >= 0; index--) {
       if (
         getRunId({ message: this.queuedMessages[index].message }) ===
-        input.runId
+        options.runId
       ) {
         this.queuedMessages.splice(index, 1);
       }
@@ -1825,25 +1843,26 @@ export class InMemoryWorld implements World, Storable {
    * projection is changed only by applying the resulting `attr_set` event, so
    * the event log remains the source used by checkpoint replay.
    */
-  private async setRunAttributes(input: {
+  private async setRunAttributes(options: {
     runId: string;
     changes: { key: string; value: string | null }[];
-    options?: { allowReservedAttributes?: boolean };
+    attributeOptions?: { allowReservedAttributes?: boolean };
   }) {
-    const run = this.requireRun({ runId: input.runId });
+    const run = this.requireRun({ runId: options.runId });
     const existingAttributes = run.attributes ?? {};
-    validateAttributeChanges(input.changes, {
+    validateAttributeChanges(options.changes, {
       existingKeys: Object.keys(existingAttributes),
-      allowReservedAttributes: input.options?.allowReservedAttributes,
+      allowReservedAttributes:
+        options.attributeOptions?.allowReservedAttributes,
     });
     await this.createEvent({
-      runId: input.runId,
+      runId: options.runId,
       data: {
         eventType: 'attr_set',
         eventData: {
-          changes: input.changes,
+          changes: options.changes,
           writer: { type: 'workflow' },
-          ...(input.options?.allowReservedAttributes && {
+          ...(options.attributeOptions?.allowReservedAttributes && {
             allowReservedAttributes: true,
           }),
         },
@@ -1851,7 +1870,7 @@ export class InMemoryWorld implements World, Storable {
     });
     return {
       attributes: cloneValue(
-        this.requireRun({ runId: input.runId }).attributes,
+        this.requireRun({ runId: options.runId }).attributes,
       ),
     };
   }
@@ -1863,11 +1882,11 @@ export class InMemoryWorld implements World, Storable {
    * or failed runs are not cancellable. Active runs are cancelled through the
    * normal event path, and the summary counts each outcome in the input list.
    */
-  private async cancelRuns(input: {
+  private async cancelRuns(options: {
     request: { runIds: string[]; cancelReason?: string };
   }) {
     const results = [];
-    for (const runId of input.request.runIds) {
+    for (const runId of options.request.runIds) {
       const run = this.runRecords.get(runId);
       if (!run) {
         results.push({ runId, outcome: 'not_found' as const });
@@ -1884,7 +1903,7 @@ export class InMemoryWorld implements World, Storable {
           runId,
           data: {
             eventType: 'run_cancelled',
-            eventData: { cancelReason: input.request.cancelReason },
+            eventData: { cancelReason: options.request.cancelReason },
           },
         });
         results.push({ runId, outcome: 'cancelled' as const });
@@ -1950,17 +1969,17 @@ function createUlid(): string {
  * `WorkflowRunNotFoundError`), while the supplied ID is included in the
  * message.
  */
-function notFound(input: { entity: string; id: string }): Error {
-  const error = new Error(`${input.entity} \`${input.id}\` was not found.`);
-  error.name = `${input.entity}NotFoundError`;
+function notFound(options: { entity: string; id: string }): Error {
+  const error = new Error(`${options.entity} \`${options.id}\` was not found.`);
+  error.name = `${options.entity}NotFoundError`;
   return error;
 }
 
 /**
  * Reads a run ID from queue payloads that are scoped to a workflow run.
  */
-function getRunId(input: { message: QueuePayload }): string | undefined {
-  const message = input.message as Record<string, unknown>;
+function getRunId(options: { message: QueuePayload }): string | undefined {
+  const message = options.message as Record<string, unknown>;
   return typeof message.runId === 'string' ? message.runId : undefined;
 }
 
@@ -1979,9 +1998,9 @@ function toBytes(value: string | Uint8Array): Uint8Array {
  * `paginate` separately supports key-based cursors, so this helper deliberately
  * treats non-numeric values as the first-page offset.
  */
-function parseCursor(input: { cursor?: string }): number {
-  if (input.cursor === undefined) return 0;
-  const cursor = Number(input.cursor);
+function parseCursor(options: { cursor?: string }): number {
+  if (options.cursor === undefined) return 0;
+  const cursor = Number(options.cursor);
   return Number.isInteger(cursor) && cursor >= 0 ? cursor : 0;
 }
 
@@ -1992,23 +2011,23 @@ function parseCursor(input: { cursor?: string }): number {
  * next numeric offset, not the key of the last item, and is `null` when the
  * requested page reaches the end.
  */
-function paginate<T>(input: {
+function paginate<T>(options: {
   items: T[];
   pagination?: { limit?: number; cursor?: string };
   getKey: (item: T) => string;
 }): { data: T[]; cursor: string | null; hasMore: boolean } {
-  let start = parseCursor({ cursor: input.pagination?.cursor });
-  if (input.pagination?.cursor !== undefined && start === 0) {
-    const cursorIndex = input.items.findIndex(
-      item => input.getKey(item) === input.pagination?.cursor,
+  let start = parseCursor({ cursor: options.pagination?.cursor });
+  if (options.pagination?.cursor !== undefined && start === 0) {
+    const cursorIndex = options.items.findIndex(
+      item => options.getKey(item) === options.pagination?.cursor,
     );
     if (cursorIndex !== -1) start = cursorIndex + 1;
   }
-  const limit = input.pagination?.limit;
+  const limit = options.pagination?.limit;
   const end =
-    limit === undefined ? input.items.length : start + Math.max(0, limit);
-  const data = input.items.slice(start, end);
-  const hasMore = end < input.items.length;
+    limit === undefined ? options.items.length : start + Math.max(0, limit);
+  const data = options.items.slice(start, end);
+  const hasMore = end < options.items.length;
   return {
     data,
     cursor: hasMore ? String(start + data.length) : null,
@@ -2019,11 +2038,11 @@ function paginate<T>(input: {
 /**
  * Compares dates in the requested sort order, defaulting to descending.
  */
-function compareDates(input: {
+function compareDates(options: {
   a: Date;
   b: Date;
   sortOrder?: 'asc' | 'desc';
 }): number {
-  const order = input.sortOrder === 'asc' ? 1 : -1;
-  return (input.a.getTime() - input.b.getTime()) * order;
+  const order = options.sortOrder === 'asc' ? 1 : -1;
+  return (options.a.getTime() - options.b.getTime()) * order;
 }

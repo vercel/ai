@@ -92,7 +92,7 @@ export type HarnessV2Log = {
   /**
    * Reads events after a numeric position, optionally filtering by event type.
    */
-  read(opts?: {
+  read(options?: {
     after?: number;
     types?: HarnessV2LogEvent['type'][];
   }): Promise<{ events: HarnessV2LogEvent[]; position: number }>;

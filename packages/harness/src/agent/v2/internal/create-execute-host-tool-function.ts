@@ -29,7 +29,7 @@ import type {
 /**
  * Returns the tool registered under the name as an own property, if any.
  */
-function getTool(input: {
+function getTool(options: {
   /**
    * The agent's own tools.
    */
@@ -40,8 +40,8 @@ function getTool(input: {
    */
   toolName: string;
 }): Tool | undefined {
-  return Object.hasOwn(input.tools, input.toolName)
-    ? input.tools[input.toolName]
+  return Object.hasOwn(options.tools, options.toolName)
+    ? options.tools[options.toolName]
     : undefined;
 }
 
@@ -58,7 +58,7 @@ function isProviderExecuted(tool: Tool): boolean {
  * JSON values or `undefined`. Unlike `isJSONValue`, class instances such as a
  * `Date` and cyclic structures are rejected.
  */
-function isPlainJSONValue(input: {
+function isPlainJSONValue(options: {
   /**
    * Value to check.
    */
@@ -69,7 +69,7 @@ function isPlainJSONValue(input: {
    */
   ancestors?: WeakSet<object>;
 }): boolean {
-  const { value } = input;
+  const { value } = options;
   if (
     value === null ||
     typeof value === 'string' ||
@@ -80,7 +80,7 @@ function isPlainJSONValue(input: {
   }
   if (typeof value !== 'object') return false;
 
-  const ancestors = input.ancestors ?? new WeakSet<object>();
+  const ancestors = options.ancestors ?? new WeakSet<object>();
   if (ancestors.has(value)) return false;
   ancestors.add(value);
   try {
@@ -114,17 +114,17 @@ function isPlainJSONValue(input: {
  * preserving these keys here is safe. Do not reuse this pattern for text that
  * comes from outside the process; use `parseJSON` / `safeParseJSON` instead.
  */
-function toJSONValue(input: {
+function toJSONValue(options: {
   /**
    * Tool output to convert.
    */
   value: unknown;
 }): JSONValue {
-  if (input.value === undefined) {
+  if (options.value === undefined) {
     return null;
   }
 
-  const serialized = JSON.stringify(input.value);
+  const serialized = JSON.stringify(options.value);
   return serialized === undefined ? null : JSON.parse(serialized);
 }
 
@@ -153,7 +153,7 @@ function toJSONValue(input: {
  * not a JSON value rejects, since it can only come from an adapter bug.
  * Concurrent calls with the same `toolCallId` reject through `effect()`.
  */
-export function createExecuteHostToolFunction(input: {
+export function createExecuteHostToolFunction(options: {
   /**
    * The agent's own tools, without the harness's built-in tools.
    */
@@ -172,7 +172,7 @@ export function createExecuteHostToolFunction(input: {
     SandboxSession | HarnessV2NetworkSandboxSession
   >;
 }): HarnessAgentExecuteHostToolFunction {
-  const { tools, effect, getSandboxSession } = input;
+  const { tools, effect, getSandboxSession } = options;
 
   /**
    * Runs one attempt of a host tool call, emitting its `tool-result` parts
@@ -182,7 +182,7 @@ export function createExecuteHostToolFunction(input: {
    * final value with its model output. The effect records them as partial
    * and final output, so they are exactly what `executeHostTool()` returns.
    */
-  async function* runHostTool(input: {
+  async function* runHostTool(options: {
     /**
      * ID of the tool call.
      */
@@ -208,14 +208,14 @@ export function createExecuteHostToolFunction(input: {
      */
     context: HarnessV2EffectContext;
   }): AsyncGenerator<SerializableValue> {
-    const { toolCallId, toolName, toolInput, tool, context } = input;
+    const { toolCallId, toolName, toolInput, tool, context } = options;
     const dynamic =
       tool == null || isProviderExecuted(tool) || tool.type === 'dynamic';
 
     /**
      * Emits a `tool-result` part attributed to this attempt.
      */
-    function emitResult(input: {
+    function emitResult(options: {
       /**
        * JSON result or error message.
        */
@@ -235,9 +235,9 @@ export function createExecuteHostToolFunction(input: {
         type: 'tool-result',
         toolCallId,
         toolName,
-        result: input.result,
-        ...(input.isError ? { isError: true } : {}),
-        ...(input.preliminary ? { preliminary: true } : {}),
+        result: options.result,
+        ...(options.isError ? { isError: true } : {}),
+        ...(options.preliminary ? { preliminary: true } : {}),
         ...(dynamic ? { dynamic: true } : {}),
       });
     }

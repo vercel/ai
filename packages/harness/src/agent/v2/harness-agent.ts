@@ -182,8 +182,8 @@ export class HarnessAgent<
   /**
    * Binds this agent's sandbox resolver before operating on a session.
    */
-  private bindSession(input: { session: HarnessAgentSession }): void {
-    input.session.setSandboxSessionResolver(this.getSandboxSession);
+  private bindSession(options: { session: HarnessAgentSession }): void {
+    options.session.setSandboxSessionResolver(this.getSandboxSession);
   }
 
   /**
@@ -204,7 +204,7 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
-    assertCallOptionsSerializable({ options });
+    assertCallOptionsSerializable({ callOptions: options });
     this.bindSession({ session: options.session });
     throw new Error('Not implemented yet');
   }
@@ -227,7 +227,7 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
-    assertCallOptionsSerializable({ options });
+    assertCallOptionsSerializable({ callOptions: options });
     this.bindSession({ session: options.session });
     throw new Error('Not implemented yet');
   }
@@ -236,12 +236,12 @@ export class HarnessAgent<
 /**
  * Returns a sandbox session's string ID when it exposes one.
  */
-function getSandboxId(input: {
+function getSandboxId(options: {
   sandboxSession: SandboxSession | HarnessV2NetworkSandboxSession;
 }): string | undefined {
-  if (!('id' in input.sandboxSession)) return undefined;
-  return typeof input.sandboxSession.id === 'string'
-    ? input.sandboxSession.id
+  if (!('id' in options.sandboxSession)) return undefined;
+  return typeof options.sandboxSession.id === 'string'
+    ? options.sandboxSession.id
     : undefined;
 }
 
@@ -252,14 +252,17 @@ function getSandboxId(input: {
  * must be a data property whose value passes `isHarnessSerializableValue`.
  * Accessors, custom prototypes, and unsupported nested values cause an error.
  */
-function assertCallOptionsSerializable(input: { options: object }): void {
-  const prototype = Object.getPrototypeOf(input.options);
+function assertCallOptionsSerializable(options: { callOptions: object }): void {
+  const prototype = Object.getPrototypeOf(options.callOptions);
   if (prototype !== Object.prototype && prototype !== null) {
     throw new Error('HarnessAgent: call options must be serializable.');
   }
 
-  for (const key of Reflect.ownKeys(input.options)) {
-    const descriptor = Object.getOwnPropertyDescriptor(input.options, key);
+  for (const key of Reflect.ownKeys(options.callOptions)) {
+    const descriptor = Object.getOwnPropertyDescriptor(
+      options.callOptions,
+      key,
+    );
     if (
       descriptor == null ||
       !('value' in descriptor) ||
@@ -286,11 +289,11 @@ function assertCallOptionsSerializable(input: { options: object }): void {
  * Container recursion stays local so Workflow hooks are honored at every depth;
  * non-container values are checked by the shared `isSerializableValue` guard.
  */
-function isHarnessSerializableValue(input: {
+function isHarnessSerializableValue(options: {
   value: unknown;
   ancestors: WeakSet<object>;
 }): boolean {
-  const { value, ancestors } = input;
+  const { value, ancestors } = options;
 
   if (value === null || typeof value !== 'object') {
     return isSerializableValue(value);

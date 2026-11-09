@@ -28,7 +28,7 @@ export type HarnessV2<TBuiltinTools extends ToolSet = ToolSet> = {
   /**
    * Returns files and commands required to prepare a sandbox for this adapter.
    */
-  getBootstrap?(opts: {
+  getBootstrap?(options: {
     abortSignal?: AbortSignal;
   }): PromiseLike<HarnessV2Bootstrap>;
 
@@ -36,7 +36,7 @@ export type HarnessV2<TBuiltinTools extends ToolSet = ToolSet> = {
    * Drives one session using the host-provided effects, tools, streams, and
    * cancellation signals.
    */
-  drive(opts: {
+  drive(options: {
     sessionId: string;
     context: HarnessV2DriveContext;
   }): PromiseLike<void>;

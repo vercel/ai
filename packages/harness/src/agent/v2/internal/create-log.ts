@@ -98,13 +98,13 @@ type LogWatcher = {
  * Decodes a namespaced World event. Unrelated events carry no agent state;
  * malformed records in the reserved namespace must not be skipped by replay.
  */
-async function deserializeEvent(input: {
+async function deserializeEvent(options: {
   /**
    * Committed World event.
    */
   event: Event;
 }): Promise<LogRecord | undefined> {
-  const { event } = input;
+  const { event } = options;
   if (
     event.eventType !== 'step_created' ||
     event.eventData.stepName !== LOG_STEP_NAME
@@ -138,7 +138,7 @@ async function deserializeEvent(input: {
 /**
  * Returns whether an event passes a listener's allowlist and denylist.
  */
-function isListenerInterested(input: {
+function isListenerInterested(options: {
   /**
    * Listener's optional event-type allowlist and denylist.
    */
@@ -149,9 +149,9 @@ function isListenerInterested(input: {
   event: HarnessAgentLogEvent;
 }): boolean {
   return (
-    (input.config?.types == null ||
-      input.config.types.includes(input.event.type)) &&
-    !input.config?.ignoreTypes?.includes(input.event.type)
+    (options.config?.types == null ||
+      options.config.types.includes(options.event.type)) &&
+    !options.config?.ignoreTypes?.includes(options.event.type)
   );
 }
 
@@ -159,7 +159,7 @@ function isListenerInterested(input: {
  * Waits before a retry or reconnect. Watcher delays resolve on cancellation
  * and do not keep a Node process alive after its other work has completed.
  */
-function delay(input: {
+function delay(options: {
   /**
    * Delay in milliseconds.
    */
@@ -169,17 +169,17 @@ function delay(input: {
    */
   abortSignal?: AbortSignal;
 }): Promise<void> {
-  if (input.abortSignal?.aborted) return Promise.resolve();
+  if (options.abortSignal?.aborted) return Promise.resolve();
   const pending = new DelayedPromise<void>();
   const finish = () => pending.resolve();
-  const timer = setTimeout(finish, input.ms);
-  if (input.abortSignal) {
+  const timer = setTimeout(finish, options.ms);
+  if (options.abortSignal) {
     (timer as { unref?: () => void }).unref?.();
-    input.abortSignal.addEventListener('abort', finish, { once: true });
+    options.abortSignal.addEventListener('abort', finish, { once: true });
   }
   return pending.promise.finally(() => {
     clearTimeout(timer);
-    input.abortSignal?.removeEventListener('abort', finish);
+    options.abortSignal?.removeEventListener('abort', finish);
   });
 }
 
@@ -224,13 +224,13 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
    * Delivers newly folded canonical events. Listener failures cannot turn a
    * durable append into a failure or prevent other registrations being called.
    */
-  function notify(input: {
+  function notify(options: {
     /**
      * Newly accepted canonical records.
      */
     fresh: LogRecord[];
   }): void {
-    for (const record of input.fresh) {
+    for (const record of options.fresh) {
       for (const listener of [...listeners]) {
         if (
           !listener.active ||
@@ -261,7 +261,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
    * Validates an entire page before committing its prefix or cursor. A failed
    * decode therefore leaves that page available to every subsequent refresh.
    */
-  async function foldPage(input: {
+  async function foldPage(options: {
     /**
      * Ordered World records, possibly overlapping the existing prefix.
      */
@@ -273,7 +273,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
   }): Promise<void> {
     let nextPosition = position;
     const decoded: LogRecord[] = [];
-    for (const event of input.events) {
+    for (const event of options.events) {
       const slot = requireEventSlot(event.eventId);
       if (event.runId !== runId)
         throw new Error('HarnessAgentLog: event belongs to another run.');
@@ -292,7 +292,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
       fresh.push(record);
     }
     position = nextPosition;
-    if (input.nextCursor != null) cursor = input.nextCursor;
+    if (options.nextCursor != null) cursor = options.nextCursor;
     notify({ fresh });
   }
 
@@ -328,13 +328,13 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
    * Reports the canonical outcome of an append. Identity binds encoded event
    * content; a losing conflicting physical record never replaces the winner.
    */
-  function isCommitted(input: {
+  function isCommitted(options: {
     /**
      * Immutable event whose committed content must match.
      */
     event: HarnessAgentLogEvent;
   }): boolean {
-    const canonical = byId.get(input.event.id);
+    const canonical = byId.get(options.event.id);
     if (!canonical) return false;
     if (
       JSON.stringify(
@@ -344,7 +344,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
       ) !==
       JSON.stringify(
         jsonEncodeSerializableValue({
-          value: input.event as SerializableValue,
+          value: options.event as SerializableValue,
         }),
       )
     )
@@ -375,7 +375,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
    * Recognizes a committed write while its response is stalled. Probes share
    * the append's exclusive access; late responses never mutate cached state.
    */
-  async function awaitWrite(input: {
+  async function awaitWrite(options: {
     /**
      * Pending transport request whose rejection remains observed.
      */
@@ -386,7 +386,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
     event: HarnessAgentLogEvent;
   }): Promise<EventResult | undefined> {
     let settled = false;
-    const pending = input.pending.finally(() => {
+    const pending = options.pending.finally(() => {
       settled = true;
     });
     void pending.catch(() => {});
@@ -404,7 +404,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
         await refreshUnlocked();
       } catch {}
       if (settled) return pending;
-      if (isCommitted({ event: input.event })) return;
+      if (isCommitted({ event: options.event })) return;
     }
   }
 
@@ -412,16 +412,16 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
    * Uses a write report only when it covers every missing slot through our
    * commit. Missing or partial reports fall back to authoritative listing.
    */
-  async function foldWrite(input: {
+  async function foldWrite(options: {
     /**
      * World write result.
      */
     result: EventResult;
   }): Promise<void> {
-    const own = input.result.event;
+    const own = options.result.event;
     if (!own) return refreshUnlocked();
     const ownSlot = requireEventSlot(own.eventId);
-    const events = [...(input.result.events ?? [])];
+    const events = [...(options.result.events ?? [])];
     if (!events.some(event => event.eventId === own.eventId)) events.push(own);
     const fresh = events.filter(
       event => requireEventSlot(event.eventId) > position,
@@ -440,7 +440,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
    * Reconciles rejected writes before resending. Repeated read failure never
    * authorizes another write; exhausting recovery latches a fail-stop state.
    */
-  async function appendUnlocked(input: {
+  async function appendUnlocked(options: {
     /**
      * Immutable append snapshot with a stable event ID.
      */
@@ -452,12 +452,12 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
   }): Promise<boolean> {
     if (writeFailure) throw writeFailure;
     await refreshUnlocked();
-    if (isCommitted({ event: input.event })) return false;
+    if (isCommitted({ event: options.event })) return false;
     let cause: unknown;
     for (let attempt = 0; attempt <= MAX_RESENDS; attempt++) {
       try {
         const result = await awaitWrite({
-          event: input.event,
+          event: options.event,
           pending: world.events.create(
             runId,
             {
@@ -465,7 +465,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
               correlationId: 'step_' + generateId(),
               eventData: {
                 stepName: LOG_STEP_NAME,
-                input: input.bytes.slice(),
+                input: options.bytes.slice(),
               },
             },
             { eventCount: position, resolveData: 'all' },
@@ -477,7 +477,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
       }
       let reconciled = false;
       for (let lookup = 0; lookup <= MAX_RESENDS; lookup++) {
-        if (isCommitted({ event: input.event })) {
+        if (isCommitted({ event: options.event })) {
           publishHint();
           return true;
         }
@@ -491,7 +491,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
             await delay({ ms: Math.min(50 * (lookup + 1), 500) });
         }
       }
-      if (isCommitted({ event: input.event })) {
+      if (isCommitted({ event: options.event })) {
         publishHint();
         return true;
       }
@@ -511,13 +511,13 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
    * Watches advisory bytes, reopening at the tail after disconnects. Every
    * connection also refreshes authoritative state; skipped hints are harmless.
    */
-  async function watchHints(input: {
+  async function watchHints(options: {
     /**
      * Watcher generation to own and clean up.
      */
     current: LogWatcher;
   }): Promise<void> {
-    const { current } = input;
+    const { current } = options;
     const abortSignal = current.abortController.signal;
     let backoff = 1000;
     while (!abortSignal.aborted) {
@@ -558,15 +558,16 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
   }
 
   return {
-    read(opts) {
+    read(options) {
       return exclusive(async () => {
         await refreshUnlocked();
         return {
           events: records
             .filter(
               record =>
-                record.position > Math.max(0, opts?.after ?? 0) &&
-                (opts?.types == null || opts.types.includes(record.event.type)),
+                record.position > Math.max(0, options?.after ?? 0) &&
+                (options?.types == null ||
+                  options.types.includes(record.event.type)),
             )
             .map(
               record =>
