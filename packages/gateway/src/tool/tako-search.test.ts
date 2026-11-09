@@ -66,9 +66,8 @@ describe('takoSearch', () => {
       type: 'provider',
       id: 'gateway.tako_search',
       args: config,
-      isProviderExecuted: true,
     });
-    expect(tool.args).toHaveProperty('maxVariableCostUsd', null);
+    expect(tool).toHaveProperty('args.maxVariableCostUsd', null);
   });
 
   it('keeps developer-only fields out of the input schema', async () => {

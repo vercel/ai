@@ -3,7 +3,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: 'openai/gpt-5.4-nano',
+    model: 'openai/gpt-5-nano',
     prompt: 'How much monthly web traffic does vercel.com get?',
     tools: {
       tako_search: gateway.tools.takoSearch({
