@@ -72,6 +72,8 @@ describe.skipIf(
         seed: undefined,
         providerOptions: {},
         abortSignal,
+        files: undefined,
+        mask: undefined,
       });
 
       expect(result.images).toEqual([new Uint8Array([1, 2, 3])]);
