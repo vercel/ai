@@ -97,6 +97,23 @@ export interface TakoSearchConfig {
   };
   /** Maximum related search suggestions to include (1-20). */
   includeRelated?: number;
+  /**
+   * Serve per-unit-priced data, such as web traffic and SEO. Each such card adds
+   * a charge, capped by maxVariableCostUsd. On by default; set false to opt out,
+   * and those cards come back as placeholders.
+   */
+  variableCost?: boolean;
+  /**
+   * Most one call can be charged in variable cost, in USD. Defaults to 0.25;
+   * null removes the cap. Cards that don't fit come back as placeholders with
+   * reason 'over_cap'. Can't be combined with variableCost: false.
+   */
+  maxVariableCostUsd?: number | null;
+  /**
+   * Extra Tako request fields in snake_case, deep-merged into the body last.
+   * Can't set fields this tool models; Tako rejects unknown keys (api_error).
+   */
+  extraBody?: Record<string, unknown>;
 }
 
 export interface TakoSearchInput {
@@ -168,11 +185,20 @@ export interface TakoResultContent {
   expires_at?: string | null;
   total_rows?: number | null;
   truncated?: boolean;
+  /** Distinct records per premium class (e.g. company_record) among delivered rows. */
+  premium_rows?: Record<string, number> | null;
+  /** Column header → 0-based delivered-row positions whose premium value was withheld. */
+  redacted_cells?: Record<string, number[]> | null;
+  /** Full set size when the card lists only a capped slice of it. */
+  total_matching?: number | null;
   export_pricing?: {
     baseline_usd: number;
-    free_rows: number;
     max_rows_ceiling: number;
     row_cpm_usd: number;
+    /** USD per 1,000 premium records by class, added to row_cpm_usd when premium. */
+    premium_row_cpm_usd?: Record<string, number> | null;
+    /** Upper bound on this card's variable-cost charge; set only for per-unit-priced sources. */
+    variable_cost_max_usd?: number | null;
   } | null;
   manifest?: Array<{
     dtype?: 'boolean' | 'date' | 'datetime' | 'number' | 'string' | null;
@@ -205,6 +231,8 @@ export interface TakoCard {
   source_indexes?: Array<'data' | 'web'> | null;
   card_type?: string | null;
   relevance?: 'High' | 'Low' | 'Medium' | null;
+  /** Relevance to the query, 1.0-5.0. Null unless the account is entitled. */
+  relevance_score?: number | null;
   content?: TakoResultContent | null;
   exportable?: boolean;
   nodes?: Array<{
@@ -221,6 +249,14 @@ export interface TakoCard {
     coverage_end?: string | null;
     data_as_of?: string | null;
     last_updated?: string | null;
+  } | null;
+  /**
+   * Set when Tako withholds the card's data: variable cost off or not served
+   * (`not_served`), or over maxVariableCostUsd (`over_cap`).
+   */
+  placeholder?: {
+    withheld_source: string;
+    reason?: 'not_served' | 'over_cap' | null;
   } | null;
 }
 
@@ -245,6 +281,10 @@ export interface TakoSearchResponse {
     data?: {
       cost_usd: number;
       datasets: number;
+      data_points?: number | null;
+    } | null;
+    variable_cost?: {
+      cost_usd: number;
     } | null;
   } | null;
   related?: Array<Record<string, unknown>> | null;
@@ -413,7 +453,7 @@ const takoSearchInputSchema = lazySchema(() =>
 const takoDatasetCellSchema = () =>
   z.union([z.boolean(), z.number(), z.string()]).nullable();
 
-const takoResultContentSchema = () =>
+export const takoResultContentSchema = () =>
   z
     .object({
       content_format: z
@@ -450,13 +490,18 @@ const takoResultContentSchema = () =>
       expires_at: z.string().nullish(),
       total_rows: z.number().nullish(),
       truncated: z.boolean().optional(),
+      premium_rows: z.record(z.string(), z.number()).nullish(),
+      redacted_cells: z.record(z.string(), z.array(z.number())).nullish(),
+      total_matching: z.number().nullish(),
       export_pricing: z
         .object({
           baseline_usd: z.number(),
-          free_rows: z.number(),
           max_rows_ceiling: z.number(),
           row_cpm_usd: z.number(),
+          premium_row_cpm_usd: z.record(z.string(), z.number()).nullish(),
+          variable_cost_max_usd: z.number().nullish(),
         })
+        .passthrough()
         .nullish(),
       manifest: z
         .array(
@@ -506,6 +551,7 @@ const takoCardSchema = () =>
       source_indexes: z.array(z.enum(['data', 'web'])).nullish(),
       card_type: z.string().nullish(),
       relevance: z.enum(['High', 'Low', 'Medium']).nullish(),
+      relevance_score: z.number().nullish(),
       content: takoResultContentSchema().nullish(),
       exportable: z.boolean().optional(),
       nodes: z
@@ -527,6 +573,13 @@ const takoCardSchema = () =>
           data_as_of: z.string().nullish(),
           last_updated: z.string().nullish(),
         })
+        .nullish(),
+      placeholder: z
+        .object({
+          withheld_source: z.string(),
+          reason: z.enum(['not_served', 'over_cap']).nullish(),
+        })
+        .passthrough()
         .nullish(),
     })
     .passthrough();
@@ -554,11 +607,24 @@ const takoSearchOutputSchema = lazySchema(() =>
           usage: z
             .object({
               total_cost_usd: z.number(),
-              compute: z.object({ cost_usd: z.number() }).nullish(),
+              compute: z
+                .object({ cost_usd: z.number() })
+                .passthrough()
+                .nullish(),
               data: z
-                .object({ cost_usd: z.number(), datasets: z.number() })
+                .object({
+                  cost_usd: z.number(),
+                  datasets: z.number(),
+                  data_points: z.number().nullish(),
+                })
+                .passthrough()
+                .nullish(),
+              variable_cost: z
+                .object({ cost_usd: z.number() })
+                .passthrough()
                 .nullish(),
             })
+            .passthrough()
             .nullish(),
           related: z.array(z.object({}).passthrough()).nullish(),
         })

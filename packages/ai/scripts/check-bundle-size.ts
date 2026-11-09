@@ -30,7 +30,21 @@ async function bundleForNode(): Promise<BundleResult> {
   writeFileSync(metafile, JSON.stringify(result.metafile, null, 2));
 
   const size = statSync(outfile).size;
+<<<<<<< HEAD
   return { size, path: outfile, condition: 'node' };
+=======
+  return {
+    size,
+    path: outfile,
+    condition: label,
+    limit:
+      entry === 'tool'
+        ? 8 * 1024
+        : entry === 'generateText'
+          ? 296 * 1024
+          : LIMIT,
+  };
+>>>>>>> 0e869b40fa (feat(provider/gateway): add variableCost, maxVariableCostUsd and extraBody to takoSearch (#24539))
 }
 
 async function bundleForBrowser(): Promise<BundleResult> {
