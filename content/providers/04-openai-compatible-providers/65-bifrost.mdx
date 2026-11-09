@@ -1,0 +1,125 @@
+---
+title: Bifrost
+description: Use the Bifrost OpenAI compatible API with the AI SDK.
+---
+
+# Bifrost Provider
+
+[Bifrost](https://github.com/maximhq/bifrost) is an open-source (Apache-2.0)
+AI gateway that you run yourself. It exposes an OpenAI-compatible API in front
+of the providers you configure, such as OpenAI, Anthropic, Google Gemini, AWS
+Bedrock, Azure and Ollama. The gateway adds provider fallbacks, load balancing,
+virtual keys with budgets and rate limits, and semantic caching. You can use it
+with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Start a Bifrost gateway, for example with `npx` or Docker:
+
+```bash
+npx -y @maximhq/bifrost
+```
+
+```bash
+docker run -p 8080:8080 maximhq/bifrost
+```
+
+The gateway listens on `http://localhost:8080`. Add your provider keys under
+**Model Providers** in the web UI at that address, through the API, or in a
+`config.json` file. See the
+[Bifrost gateway setup guide](https://docs.getbifrost.ai/quickstart/gateway/setting-up)
+for details.
+
+<Note>
+  The unversioned commands above are meant for local evaluation. For a shared
+  or production gateway, pin a Bifrost version and enable authentication.
+</Note>
+
+If you use [virtual keys](https://docs.getbifrost.ai/features/governance/virtual-keys)
+for budgets, rate limits and model access, create one in Bifrost and set it as
+a server-side environment variable:
+
+```bash
+export BIFROST_VIRTUAL_KEY=sk-bf-...
+```
+
+## Provider Instance
+
+Create a Bifrost provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const bifrost = createOpenAICompatible({
+  name: 'bifrost',
+  apiKey: process.env.BIFROST_VIRTUAL_KEY,
+  baseURL: 'http://localhost:8080/openai',
+});
+```
+
+Replace `http://localhost:8080` with the address of your Bifrost deployment.
+
+The `apiKey` setting sends the virtual key as a Bearer token in the
+`Authorization` header. If your gateway does not enforce virtual keys, you can
+omit `apiKey`. If authentication is enabled on inference requests, the
+`Authorization` header is used for those credentials, and the virtual key goes
+in the `x-bf-vk` header instead. You can set it with the `headers` option.
+
+## Language Models
+
+Bifrost routes each request by model ID. Use the `provider/model` format for
+any provider configured in your gateway:
+
+```ts
+const model = bifrost('openai/gpt-5');
+```
+
+To switch providers, change the model ID:
+
+```ts
+const openAIModel = bifrost('openai/gpt-5');
+const anthropicModel = bifrost('anthropic/claude-sonnet-4-6');
+const geminiModel = bifrost('gemini/gemini-2.5-pro');
+```
+
+The gateway's `GET /v1/models` endpoint lists the models it can serve.
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const bifrost = createOpenAICompatible({
+  name: 'bifrost',
+  apiKey: process.env.BIFROST_VIRTUAL_KEY,
+  baseURL: 'http://localhost:8080/openai',
+});
+
+const { text } = await generateText({
+  model: bifrost('anthropic/claude-sonnet-4-6'),
+  prompt: 'Explain what an AI gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+You can also use Bifrost language models with `streamText`.
+
+Supported capabilities, such as tool calling, structured output and image
+input, depend on the model and provider behind the gateway.
+
+## Resources
+
+- [Bifrost documentation](https://docs.getbifrost.ai)
+- [Bifrost gateway setup](https://docs.getbifrost.ai/quickstart/gateway/setting-up)
+- [Bifrost OpenAI SDK integration](https://docs.getbifrost.ai/integrations/openai-sdk/overview)
+- [Bifrost virtual keys](https://docs.getbifrost.ai/features/governance/virtual-keys)
+- [Bifrost on GitHub](https://github.com/maximhq/bifrost)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
