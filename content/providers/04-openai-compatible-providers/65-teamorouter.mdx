@@ -1,0 +1,103 @@
+---
+title: TeamoRouter
+description: Use the TeamoRouter OpenAI compatible API with the AI SDK.
+---
+
+# TeamoRouter Provider
+
+[TeamoRouter](https://teamorouter.com) is an AI gateway that routes requests to major model families (Claude, GPT, Gemini, DeepSeek, GLM, Kimi, and Qwen) through a single unified API key, billed per token from a prepaid balance.
+
+You can use its OpenAI-compatible Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The TeamoRouter provider is available via the `@ai-sdk/openai-compatible` module as it implements the OpenAI API standard. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use TeamoRouter, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const teamorouter = createOpenAICompatible({
+  name: 'teamorouter',
+  baseURL: 'https://api.teamorouter.com/v1',
+  apiKey: process.env.TEAMOROUTER_API_KEY,
+  includeUsage: true,
+});
+```
+
+<Note>
+  Follow the [TeamoRouter Dashboard](https://teamorouter.com/dashboard?tab=api-keys) to create an API key. Make sure to set the `TEAMOROUTER_API_KEY` environment variable with your API key.
+</Note>
+
+## Language Models
+
+You can create TeamoRouter models using the provider instance. The first argument is a model ID from the [TeamoRouter model catalog](https://teamorouter.com/models):
+
+```ts
+const model = teamorouter.chatModel('deepseek-flash');
+```
+
+Common model IDs include:
+- `deepseek-flash`
+- `deepseek-v4-pro`
+- `gpt-6.1-sol`
+- `gemini-3.8-flash`
+- `glm-5.3`
+- `kimi-k3.1-pro`
+
+### Example
+
+You can use TeamoRouter language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const teamorouter = createOpenAICompatible({
+  name: 'teamorouter',
+  baseURL: 'https://api.teamorouter.com/v1',
+  apiKey: process.env.TEAMOROUTER_API_KEY,
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: teamorouter.chatModel('deepseek-flash'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+### Streaming
+
+TeamoRouter language models also support streaming text responses with `streamText`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const teamorouter = createOpenAICompatible({
+  name: 'teamorouter',
+  baseURL: 'https://api.teamorouter.com/v1',
+  apiKey: process.env.TEAMOROUTER_API_KEY,
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: teamorouter.chatModel('deepseek-flash'),
+  prompt: 'Write a short poem about intelligent routing.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+<Note>
+  For Anthropic Claude models on TeamoRouter, you can also use `@ai-sdk/anthropic` with `baseURL: 'https://api.teamorouter.com/v1'` to leverage Anthropic-native capabilities like extended thinking and prompt caching.
+</Note>
