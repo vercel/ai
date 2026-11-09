@@ -108,5 +108,53 @@ describe.runIf(runningOnNode)(
         unsubscribe();
       }
     });
+
+    it.each([true, false])(
+      'redacts long-lived completion metadata with recordResult=%s',
+      async recordResult => {
+        vi.mocked(isNodeRuntime).mockReturnValue(true);
+        const result = {
+          request: {
+            body: { tools: [{ type: 'mcp', authorization: 'test-token' }] },
+          },
+        };
+        const asyncEnd = vi.fn();
+        const channel = diagnosticsChannel.tracingChannel(
+          AI_SDK_TELEMETRY_TRACING_CHANNEL,
+        );
+        const subscribers = {
+          start() {},
+          end() {},
+          asyncStart() {},
+          asyncEnd,
+          error() {},
+        };
+        channel.subscribe(subscribers);
+        try {
+          const completion = Promise.resolve(result);
+          openTelemetryChannelSpanContext({
+            message: { type: 'streamText', event: {} },
+            completion,
+            recordResult,
+          });
+          await completion;
+          expect(asyncEnd).toHaveBeenCalledOnce();
+          expect(asyncEnd.mock.calls[0][0].result).toEqual(
+            recordResult
+              ? {
+                  request: {
+                    body: {
+                      tools: [{ type: 'mcp', authorization: '[redacted]' }],
+                    },
+                  },
+                }
+              : undefined,
+          );
+          expect(result.request.body.tools[0].authorization).toBe('test-token');
+        } finally {
+          channel.unsubscribe(subscribers);
+        }
+      },
+    );
   },
 );

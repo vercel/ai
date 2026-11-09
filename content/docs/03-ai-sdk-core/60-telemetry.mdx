@@ -81,6 +81,12 @@ are also omitted in that case because they can contain both inputs and outputs.
 Tracing span errors use a generic failure message.
 Application lifecycle callbacks and returned results retain their full content.
 
+OpenAI Code Interpreter and shell domain secrets, and MCP authorization and
+header values, are redacted from tool definitions and object request/response
+bodies before they reach telemetry integrations or tracing-channel subscribers,
+including when recording is enabled. Redaction uses telemetry-only copies;
+provider requests and application results retain their original values.
+
 For `generateSpeech`, input telemetry contains the source text and output
 telemetry contains the generated audio byte length, media type, and format.
 For `transcribe` and `experimental_streamTranscribe`, telemetry contains the
