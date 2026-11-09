@@ -58,7 +58,7 @@ function parallelToolCallProviderMetadata(index: number) {
         itemId: 'fc_parallel',
         toolCallId: 'call_parallel',
         toolName: 'parallel',
-        input: PARALLEL_TOOL_CALL_INPUT,
+        ...(index === 0 && { input: PARALLEL_TOOL_CALL_INPUT }),
         index,
         count: 2,
       },
