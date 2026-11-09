@@ -130,6 +130,7 @@ export type GatewayModelId =
   | 'meta/llama-3.3-70b'
   | 'meta/llama-4-maverick'
   | 'meta/llama-4-scout'
+  | 'meta/muse-ember'
   | 'meta/muse-glimmer-30b'
   | 'meta/muse-spark-1.1'
   | 'meta/muse-spark-1.2'
