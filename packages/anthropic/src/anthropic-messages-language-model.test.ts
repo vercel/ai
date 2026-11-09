@@ -1,6 +1,7 @@
 import {
   APICallError,
   InvalidArgumentError,
+  InvalidResponseDataError,
   LanguageModelV3,
   type LanguageModelV3GenerateResult,
   type LanguageModelV3Prompt,
@@ -13173,6 +13174,164 @@ describe('computer toolset', () => {
     args: {},
   };
 
+  function prepareMemberResponse({
+    streaming,
+    memberName = 'screenshot',
+    toolsetName = 'computer',
+    input = {},
+    partialJson = JSON.stringify(input),
+  }: {
+    streaming: boolean;
+    memberName?: string;
+    toolsetName?: string;
+    input?: Record<string, unknown>;
+    partialJson?: string;
+  }) {
+    const member = {
+      type: 'tool_use',
+      id: 'toolu_member',
+      name: memberName,
+      toolset_name: toolsetName,
+      input: streaming ? {} : input,
+    };
+    const message = {
+      id: 'msg_toolset',
+      type: 'message',
+      role: 'assistant',
+      content: streaming ? [] : [member],
+      model: 'claude-opus-5-5',
+      stop_reason: streaming ? null : 'tool_use',
+      stop_sequence: null,
+      usage: { input_tokens: 4, output_tokens: 30 },
+    };
+
+    server.urls['https://api.anthropic.com/v1/messages'].response = streaming
+      ? {
+          type: 'stream-chunks',
+          chunks: [
+            { type: 'message_start', message },
+            { type: 'content_block_start', index: 0, content_block: member },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: { type: 'input_json_delta', partial_json: partialJson },
+            },
+            { type: 'content_block_stop', index: 0 },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'tool_use', stop_sequence: null },
+              usage: { output_tokens: 30 },
+            },
+            { type: 'message_stop' },
+          ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        }
+      : { type: 'json-value', body: message };
+  }
+
+  it.each([false, true])(
+    'should preserve the returned member action (streaming: %s)',
+    async streaming => {
+      prepareMemberResponse({
+        streaming,
+        input: { action: 'wait', duration: 0 },
+      });
+      const options = {
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            ...computerToolset,
+            args: { configs: { wait: { enabled: false } } },
+          },
+        ],
+      };
+      const parts = streaming
+        ? await convertReadableStreamToArray(
+            (await provider('claude-opus-5-5').doStream(options)).stream,
+          )
+        : (await provider('claude-opus-5-5').doGenerate(options)).content;
+      const calls = parts.filter(part => part.type === 'tool-call');
+
+      expect(calls).toHaveLength(1);
+      expect(JSON.parse(calls[0].input)).toEqual({
+        action: 'screenshot',
+        duration: 0,
+      });
+      if (streaming) {
+        expect(parts.filter(part => part.type === 'tool-input-delta')).toEqual([
+          expect.objectContaining({ delta: calls[0].input }),
+        ]);
+      }
+    },
+  );
+
+  it.each(
+    [false, true].flatMap(streaming =>
+      ['disabled', 'unknown member', 'unknown toolset', 'undeclared'].map(
+        scenario => ({ streaming, scenario }),
+      ),
+    ),
+  )(
+    'should reject $scenario members (streaming: $streaming)',
+    async ({ streaming, scenario }) => {
+      prepareMemberResponse({
+        streaming,
+        memberName: scenario === 'unknown member' ? 'unknown' : 'screenshot',
+        toolsetName: scenario === 'unknown toolset' ? 'other' : 'computer',
+      });
+      const options = {
+        prompt: TEST_PROMPT,
+        tools:
+          scenario === 'undeclared'
+            ? []
+            : [
+                {
+                  ...computerToolset,
+                  args: {
+                    configs: {
+                      screenshot: { enabled: scenario !== 'disabled' },
+                    },
+                  },
+                },
+              ],
+      };
+
+      if (streaming) {
+        const { stream } = await provider('claude-opus-5-5').doStream(options);
+        const parts: LanguageModelV3StreamPart[] = [];
+        const reader = stream.getReader();
+        const consume = async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) return;
+            parts.push(value);
+          }
+        };
+        await expect(consume()).rejects.toBeInstanceOf(
+          InvalidResponseDataError,
+        );
+        expect(parts.some(part => part.type.startsWith('tool-'))).toBe(false);
+      } else {
+        await expect(
+          provider('claude-opus-5-5').doGenerate(options),
+        ).rejects.toBeInstanceOf(InvalidResponseDataError);
+      }
+    },
+  );
+
+  it.each(['{', 'null', '[]', '"text"', '1'])(
+    'should reject invalid streamed member input (%s)',
+    async partialJson => {
+      prepareMemberResponse({ streaming: true, partialJson });
+      const { stream } = await provider('claude-opus-5-5').doStream({
+        prompt: TEST_PROMPT,
+        tools: [computerToolset],
+      });
+      await expect(convertReadableStreamToArray(stream)).rejects.toBeInstanceOf(
+        InvalidResponseDataError,
+      );
+    },
+  );
+
   it('should send the toolset definition without a name and map member calls to the computer tool', async () => {
     server.urls['https://api.anthropic.com/v1/messages'].response = {
       type: 'json-value',
@@ -13227,7 +13386,7 @@ describe('computer toolset', () => {
           "type": "text",
         },
         {
-          "input": "{"action":"left_click","coordinate":[640,60]}",
+          "input": "{"coordinate":[640,60],"action":"left_click"}",
           "providerMetadata": {
             "anthropic": {
               "toolsetName": "computer",
@@ -13238,7 +13397,7 @@ describe('computer toolset', () => {
           "type": "tool-call",
         },
         {
-          "input": "{"action":"type","text":"pictures of cats"}",
+          "input": "{"text":"pictures of cats","action":"type"}",
           "providerMetadata": {
             "anthropic": {
               "toolsetName": "computer",
@@ -13502,7 +13661,7 @@ describe('computer toolset', () => {
           "type": "tool-input-start",
         },
         {
-          "delta": "{"action":"left_click","coordinate":[640,60]}",
+          "delta": "{"coordinate":[640,60],"action":"left_click"}",
           "id": "toolu_click",
           "type": "tool-input-delta",
         },
@@ -13511,7 +13670,7 @@ describe('computer toolset', () => {
           "type": "tool-input-end",
         },
         {
-          "input": "{"action":"left_click","coordinate":[640,60]}",
+          "input": "{"coordinate":[640,60],"action":"left_click"}",
           "providerExecuted": undefined,
           "providerMetadata": {
             "anthropic": {
