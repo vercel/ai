@@ -114,6 +114,8 @@ describe('bedrock-anthropic-provider', () => {
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
+    'anthropic.claude-fable-5-2',
+    'us.anthropic.claude-fable-5-2',
   ])('should disable native structured output for %s', modelId => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
@@ -142,6 +144,8 @@ describe('bedrock-anthropic-provider', () => {
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
+    'anthropic.claude-fable-5-2',
+    'us.anthropic.claude-fable-5-2',
   ])(
     'should disable strict tools for %s (Bedrock rejects tools[].strict)',
     modelId => {

@@ -3354,7 +3354,10 @@ export function getModelCapabilities(modelId: string): {
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
-  } else if (modelId.includes('claude-fable-5-1')) {
+  } else if (
+    modelId.includes('claude-fable-5-2') ||
+    modelId.includes('claude-fable-5-1')
+  ) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
