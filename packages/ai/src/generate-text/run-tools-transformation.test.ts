@@ -590,4 +590,77 @@ describe('runToolsTransformation', () => {
 
     expect(toolExecuted).toBe(false);
   });
+
+  it('should include tool input on results of provider-executed dynamic tools', async () => {
+    const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'dynamicProviderTool',
+          input: `{ "value": "test" }`,
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'dynamicProviderTool',
+          providerExecuted: true,
+          result: { example: 'example' },
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'dynamicProviderTool',
+          input: `{ "value": "failing" }`,
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-2',
+          toolName: 'dynamicProviderTool',
+          providerExecuted: true,
+          isError: true,
+          result: 'ERROR',
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: testUsage,
+        },
+      ]);
+
+    // no tools: the provider-executed tool is not part of the tool set
+    const transformedStream = runToolsTransformation({
+      tools: undefined,
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+      experimental_context: undefined,
+    });
+
+    const parts = await convertReadableStreamToArray(transformedStream);
+
+    expect(parts.filter(part => part.type === 'error')).toEqual([]);
+
+    expect(parts.find(part => part.type === 'tool-result')).toMatchObject({
+      toolCallId: 'call-1',
+      toolName: 'dynamicProviderTool',
+      input: { value: 'test' },
+      output: { example: 'example' },
+      providerExecuted: true,
+    });
+
+    expect(parts.find(part => part.type === 'tool-error')).toMatchObject({
+      toolCallId: 'call-2',
+      toolName: 'dynamicProviderTool',
+      input: { value: 'failing' },
+      error: 'ERROR',
+      providerExecuted: true,
+    });
+  });
 });
