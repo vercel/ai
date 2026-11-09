@@ -1,4 +1,5 @@
 import type {
+  JSONValue,
   LanguageModelV4FinishReason,
   LanguageModelV4StreamPart,
   LanguageModelV4ToolApprovalRequest,
@@ -32,5 +33,11 @@ test('redeclares language model types without changing their shape', () => {
   >();
   expectTypeOf<HarnessV2ToolCall>().toEqualTypeOf<LanguageModelV4ToolCall>();
   expectTypeOf<HarnessV2ToolApprovalRequest>().toEqualTypeOf<LanguageModelV4ToolApprovalRequest>();
-  expectTypeOf<HarnessV2ToolResult>().toEqualTypeOf<LanguageModelV4ToolResult>();
+  expectTypeOf<Omit<HarnessV2ToolResult, 'result'>>().toEqualTypeOf<
+    Omit<LanguageModelV4ToolResult, 'result'>
+  >();
+});
+
+test('allows a null tool result', () => {
+  expectTypeOf<HarnessV2ToolResult['result']>().toEqualTypeOf<JSONValue>();
 });

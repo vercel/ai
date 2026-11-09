@@ -120,10 +120,7 @@ async function deserializeEvent(input: {
     throw new Error('HarnessAgentLog: invalid storage envelope.');
   }
   const envelope = parsed as Record<string, JSONValue>;
-  if (
-    envelope.version !== 1 ||
-    !Object.prototype.hasOwnProperty.call(envelope, 'event')
-  ) {
+  if (envelope.version !== 1 || !Object.hasOwn(envelope, 'event')) {
     throw new Error(
       'HarnessAgentLog: invalid or unsupported storage envelope.',
     );

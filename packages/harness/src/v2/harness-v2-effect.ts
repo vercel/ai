@@ -17,7 +17,15 @@ export type HarnessV2EffectError = {
  * Outcome returned by one invocation of a replay-aware effect.
  */
 export type HarnessV2EffectOutput<
-  T extends SerializableValue = SerializableValue,
+  /*
+   * Ideally `T extends SerializableValue`. The constraint is omitted because
+   * TypeScript never infers an implicit index signature for an `interface`,
+   * so values typed with interfaces (e.g. the `FileData` variants inside
+   * `ToolResultOutput`) cannot satisfy `SerializableValue` even when they are
+   * serializable at runtime. `HarnessV2EffectFunction` still requires
+   * `T extends SerializableValue` wherever an effect output is recorded.
+   */
+  T = SerializableValue,
 > =
   | {
       /**

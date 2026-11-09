@@ -137,9 +137,9 @@ type HarnessV2Submission =
       readonly message: UserModelMessage;
     };
 
-type HarnessV2EffectOutput<
-  T extends HarnessV2SerializableValue = HarnessV2SerializableValue,
-> =
+// Ideally `T extends HarnessV2SerializableValue`; omitted because interfaces
+// (e.g. inside `ToolResultOutput`) never satisfy an index signature type.
+type HarnessV2EffectOutput<T = HarnessV2SerializableValue> =
   | {
       readonly type: 'result';
       /**
@@ -259,16 +259,27 @@ type HarnessV2LogEvent =
  * input are not repeated, since the adapter passed them in.
  *
  * The agent records each execution as an effect, so `result`, `error` and
- * `interrupted` are that effect's output. For a tool call, `error` also
- * covers invalid calls (e.g. a tool that is filtered out), and `partial` is
- * the last preliminary result of a tool whose `execute` is an async
- * generator. An `interrupted` call that is not retryable may have acted, so
- * the model should be told its output is unknown.
+ * `interrupted` derive from that effect's output. For a tool call, `error`
+ * also covers invalid calls (e.g. an unknown tool or invalid input), and
+ * `partial` is the last preliminary result of a tool whose `execute` is an
+ * async generator. An `interrupted` call that is not retryable may have
+ * acted, so the model should be told its output is unknown.
+ *
+ * Tool values are always JSON, converted the way the AI SDK converts tool
+ * outputs for the model, and wrapped as `{ raw, modelOutput? }` in both the
+ * `result` value and the `interrupted` partial. `modelOutput` is present only
+ * on a final value and only when the tool transforms its output for the model
+ * (`toModelOutput`); otherwise the adapter sends `raw`.
  */
-type HarnessV2ToolExecutionOutput<
-  T extends HarnessV2SerializableValue = HarnessV2SerializableValue,
-> =
-  | HarnessV2EffectOutput<T>
+type HarnessV2ToolResultOutput = ToolResultOutput;
+
+type HarnessV2ToolExecutionValue<T extends JSONValue = JSONValue> = {
+  readonly raw: T;
+  readonly modelOutput?: HarnessV2ToolResultOutput;
+};
+
+type HarnessV2ToolExecutionOutput<T extends JSONValue = JSONValue> =
+  | HarnessV2EffectOutput<HarnessV2ToolExecutionValue<T>>
   | {
       /**
        * Something denied the call, so the tool never ran: an approval
@@ -482,26 +493,26 @@ interface HarnessV2DriveContext {
   effect: HarnessV2EffectFunction;
   /**
    * Executes one of the app's own tools. The agent handles filtering,
-   * approvals, client tool results, and recording the execution as an effect.
-   * Unlike a direct effect, a successful host tool result normalizes an
-   * `undefined` value to `null` before returning it to the adapter.
+   * approvals, client tool results, and recording the execution as an effect
+   * (`tool:${toolCallId}`, with the tool's `replay` policy). It also emits
+   * the call's `tool-result` parts; the adapter must not emit them. `input`
+   * must already be parsed from the model's JSON.
    */
-  executeHostTool<
-    T extends HarnessV2SerializableValue = HarnessV2SerializableValue,
-  >(call: {
+  executeHostTool<T extends JSONValue = JSONValue>(call: {
     toolCallId: string;
     toolName: string;
-    input: unknown;
+    input: JSONValue;
   }): Promise<HarnessV2ToolExecutionOutput<T>>;
   /**
    * Called from the runtime's permission point before a built-in tool runs.
    * Resolves with `approved` (start event written), `denied` (an output to
    * report instead of running it) or `suspended` (waiting for an approval).
+   * `input` must already be parsed from the model's JSON.
    */
   gateBuiltinTool(call: {
     toolCallId: string;
     toolName: string;
-    input: unknown;
+    input: JSONValue;
   }): Promise<HarnessV2ToolGateOutput>;
   /**
    * Lazily attaches the session's sandbox for this drive. In durable mode it
@@ -825,6 +836,22 @@ Everything the engine writes to a World (log events and stream parts) must be se
 ### Raw stream parts
 
 For the same reason, the `raw` stream part's payload is typed `SerializableValue` (from `@ai-sdk/provider`) instead of `unknown`: `{ type: 'raw'; rawValue: SerializableValue }`. Adapters pass the runtime's payload through as long as it is serializable, and convert it otherwise.
+
+### Host tool execution (`executeHostTool()`)
+
+An adapter runs every host tool call through `executeHostTool()` instead of wrapping it in `effect()` itself, so the engine owns recording, replay and the call's stream parts.
+
+- Each call is recorded as the effect `tool:${toolCallId}` named `tool.${toolName}`. `toolCallId` is unique across all tool calls, so the key never collides.
+- The replay policy comes from the AI SDK `Tool`'s optional `replay` field (`'never' | 'safe'`), defaulting to `'never'` (at most once per tool call).
+- `input` is typed `JSONValue`: it is passed already parsed from the model's JSON and validated against the tool's `inputSchema` inside the effect. At runtime, input that is not a plain JSON value (e.g. an `any`-typed payload holding a `Date`) still rejects, since only an adapter bug can produce it. `gateBuiltinTool()` types its `input` as `JSONValue` the same way.
+- Invalid calls (an unknown tool, a built-in or provider-executed tool, input that does not match the schema, a failed tool context validation) are recorded as effects with an `error` output, so a replay returns the same answer even if the tool set changed. Tool context validation errors never carry their details, since tool context can contain credentials.
+- Tool values are always JSON (`T extends JSONValue`). The engine converts the tool's raw output the way the AI SDK converts tool outputs for the model: `toJSON` applies (a `Date` becomes an ISO string), `undefined` properties are dropped, and a top-level `undefined` becomes `null`.
+- The outcome reuses `HarnessV2EffectOutput` with the value `{ raw: T; modelOutput?: HarnessV2ToolResultOutput }` (`HarnessV2ToolExecutionValue`), for both the `result` value and the `interrupted` partial. This is exactly what the effect records, so the engine returns it unchanged. `HarnessV2EffectOutput`'s generic has no `SerializableValue` constraint for this reason: `ToolResultOutput` contains interfaces, and TypeScript never infers an implicit index signature for an interface.
+- `toModelOutput()` only applies to successful results, as in the AI SDK, so only a final value carries `modelOutput` (`HarnessV2ToolResultOutput`, an alias of the AI SDK's `ToolResultOutput`). It is computed inside the effect from the raw output, and only present when the tool defines `toModelOutput`; otherwise the adapter sends `raw`. Errors, denials and interruptions are expressed from data the outcome already carries.
+- The tool receives the regular AI SDK `ToolExecutionOptions`: the call's `toolCallId`, the attempt's `abortSignal`, and the session's sandbox (resolved inside the effect). `messages` and the tool context are placeholders until the engine supports them.
+- The engine emits the call's `tool-result` parts (preliminary values of generator tools, the final value, and errors with `isError: true`) through the attempt's `emit()`, so a replayed call emits nothing again. The part's `result` is typed `JSONValue`, which allows `null`.
+- A tool without `execute` that the provider does not execute is a client tool: the call resolves `suspended` (`client-tool`) without being recorded.
+- Not supported yet: tool approvals and active tool filtering.
 
 ## Scratchpad
 

@@ -4,6 +4,7 @@ import type {
   HarnessV2EffectError,
   HarnessV2EffectOutput,
 } from '../../../v2/harness-v2-effect';
+import type { HarnessV2ToolExecutionOutput } from '../../../v2/harness-v2-drive-context';
 import type { HarnessV2LogEvent } from '../../../v2/harness-v2-log';
 import type {
   HarnessV2CallWarning,
@@ -17,7 +18,7 @@ import type {
   HarnessV2ToolResult,
   HarnessV2Usage,
 } from '../../../v2/harness-v2-stream-part';
-import type { SerializableValue } from '@ai-sdk/provider';
+import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 
 /**
  * Runs a keyed effect and returns its committed output. Terminal outputs are
@@ -32,6 +33,36 @@ export type HarnessAgentEffectFunction = <
     Partial<Pick<HarnessV2Effect, 'deliveredSubmissionIds'>>,
   fn: (context: HarnessV2EffectContext) => PromiseLike<T> | AsyncIterable<T>,
 ) => Promise<HarnessV2EffectOutput<T>>;
+
+/**
+ * Executes one of the app's own tools as a recorded effect. Same as
+ * `HarnessV2DriveContext['executeHostTool']`, redeclared so the engine does not
+ * depend on the adapter-facing type.
+ *
+ * Each call is recorded as the effect `tool:${toolCallId}` under the tool's
+ * replay policy, so a recorded call returns its recorded outcome without
+ * running the tool again. Tool values are converted to JSON, and the
+ * `tool-result` parts are emitted by the engine. A client tool (no `execute`)
+ * resolves `suspended` without being recorded.
+ */
+export type HarnessAgentExecuteHostToolFunction = <
+  T extends JSONValue = JSONValue,
+>(call: {
+  /**
+   * ID of the tool call, unique across all tool calls.
+   */
+  toolCallId: string;
+
+  /**
+   * Name of the tool to execute.
+   */
+  toolName: string;
+
+  /**
+   * Tool input, already parsed from the model's JSON.
+   */
+  input: JSONValue;
+}) => Promise<HarnessV2ToolExecutionOutput<T>>;
 
 /**
  * Event variants stored in the agent log, including events that are private to

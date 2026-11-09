@@ -273,9 +273,9 @@ export type HarnessV2ToolResult = {
   toolName: string;
 
   /**
-   * JSON-serializable result of the tool call.
+   * JSON result of the tool call, or the error message for an error result.
    */
-  result: NonNullable<JSONValue>;
+  result: JSONValue;
 
   /**
    * Whether the result is an error.

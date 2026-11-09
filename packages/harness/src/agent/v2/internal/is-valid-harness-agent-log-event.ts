@@ -34,7 +34,6 @@ export function isValidHarnessAgentLogEvent(value: SerializableValue): boolean {
     'data' in value &&
     'id' in value &&
     typeof value.id === 'string' &&
-    (Object.prototype.hasOwnProperty.call(eventTypes, value.type) ||
-      value.type.startsWith('harness:'))
+    (Object.hasOwn(eventTypes, value.type) || value.type.startsWith('harness:'))
   );
 }

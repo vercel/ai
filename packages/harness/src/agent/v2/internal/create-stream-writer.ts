@@ -181,7 +181,7 @@ export async function decodeStreamRecords(input: {
     if (envelope.version !== STREAM_RECORD_VERSION) {
       throw new Error('HarnessAgentStream: invalid or unsupported record.');
     }
-    if (Object.prototype.hasOwnProperty.call(envelope, 'withdraw')) {
+    if (Object.hasOwn(envelope, 'withdraw')) {
       const { withdraw } = envelope;
       if (
         !Array.isArray(withdraw) ||
@@ -194,7 +194,7 @@ export async function decodeStreamRecords(input: {
     }
     const { startId, key } = envelope;
     if (
-      !Object.prototype.hasOwnProperty.call(envelope, 'part') ||
+      !Object.hasOwn(envelope, 'part') ||
       (startId !== undefined && typeof startId !== 'string') ||
       (key !== undefined && typeof key !== 'string')
     ) {

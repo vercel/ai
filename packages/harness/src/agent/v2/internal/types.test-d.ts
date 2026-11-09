@@ -1,7 +1,11 @@
 import { expectTypeOf, test } from 'vitest';
 import type { SerializableValue } from '@ai-sdk/provider';
+import type { ToolResultOutput } from '@ai-sdk/provider-utils';
 import type { HarnessV2EffectFunction } from '../../../index';
-import type { HarnessV2DriveContext } from '../../../v2/harness-v2-drive-context';
+import type {
+  HarnessV2DriveContext,
+  HarnessV2ToolResultOutput,
+} from '../../../v2/harness-v2-drive-context';
 import type {
   HarnessV2EffectContext,
   HarnessV2EffectError,
@@ -13,6 +17,7 @@ import type {
 import type { HarnessV2StreamPart } from '../../../v2/harness-v2-stream-part';
 import type {
   HarnessAgentEffectFunction,
+  HarnessAgentExecuteHostToolFunction,
   HarnessAgentFinishStepFunction,
   HarnessAgentFinishTurnFunction,
   HarnessAgentLog,
@@ -57,6 +62,16 @@ test('redeclares the adapter finish signatures without changing them', () => {
   expectTypeOf<HarnessAgentFinishTurnFunction>().toEqualTypeOf<
     HarnessV2DriveContext['finishTurn']
   >();
+});
+
+test('redeclares the adapter host tool signature without changing it', () => {
+  expectTypeOf<HarnessAgentExecuteHostToolFunction>().toEqualTypeOf<
+    HarnessV2DriveContext['executeHostTool']
+  >();
+});
+
+test('uses the AI SDK tool result output as the model output', () => {
+  expectTypeOf<HarnessV2ToolResultOutput>().toEqualTypeOf<ToolResultOutput>();
 });
 
 test('keeps finish events internal to the agent', () => {

@@ -1,5 +1,8 @@
-import type { SerializableValue } from '@ai-sdk/provider';
-import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
+import type {
+  Experimental_SandboxSession as SandboxSession,
+  ToolResultOutput,
+} from '@ai-sdk/provider-utils';
 import type {
   HarnessV2Effect,
   HarnessV2EffectContext,
@@ -30,12 +33,40 @@ export type HarnessV2EffectFunction = <
 ) => Promise<HarnessV2EffectOutput<T>>;
 
 /**
- * Result of executing a tool through the host, including non-result outcomes.
+ * Model-facing output of a host tool result, as produced by a tool's
+ * `toModelOutput()`.
  */
-export type HarnessV2ToolExecutionOutput<
-  T extends SerializableValue = SerializableValue,
-> =
-  | HarnessV2EffectOutput<T>
+export type HarnessV2ToolResultOutput = ToolResultOutput;
+
+/**
+ * Value of a host tool execution: the `value` of a `result` outcome and the
+ * `partial` of an `interrupted` one.
+ */
+export type HarnessV2ToolExecutionValue<T extends JSONValue = JSONValue> = {
+  /**
+   * Tool output converted to JSON.
+   */
+  readonly raw: T;
+
+  /**
+   * Model-facing output, present only on a final value and only when the tool
+   * transforms its output for the model (`toModelOutput`). When absent, the
+   * adapter sends `raw` to its runtime.
+   */
+  readonly modelOutput?: HarnessV2ToolResultOutput;
+};
+
+/**
+ * Result of executing a tool through the host, including non-result outcomes.
+ * Tool values are always JSON: the host converts tool outputs the same way the
+ * AI SDK converts them for the model (e.g. a `Date` becomes an ISO string,
+ * `undefined` properties are dropped, and a top-level `undefined` becomes
+ * `null`). An `error` also covers invalid calls (e.g. an unknown tool or input
+ * that does not match the tool's input schema), and an `interrupted` call that
+ * is not retryable may have acted, so its output is unknown.
+ */
+export type HarnessV2ToolExecutionOutput<T extends JSONValue = JSONValue> =
+  | HarnessV2EffectOutput<HarnessV2ToolExecutionValue<T>>
   | {
       /**
        * The host denied execution before the tool completed.
@@ -117,12 +148,34 @@ export interface HarnessV2DriveContext {
   effect: HarnessV2EffectFunction;
 
   /**
-   * Executes a host-owned tool and returns its result or suspension outcome.
+   * Executes one of the app's own tools and returns its outcome.
+   *
+   * Each call is recorded as the effect `tool:${toolCallId}` named
+   * `tool.${toolName}`, with the tool's `replay` policy (`'never'` when
+   * omitted): a call already recorded returns its recorded outcome without
+   * running the tool again. `input` must already be parsed from the model's
+   * JSON. Invalid calls (an unknown tool or input that does not match the
+   * tool's input schema) are recorded as `error` outcomes too.
+   *
+   * The agent emits the `tool-result` parts (preliminary, final and error) of
+   * host tools itself, so the adapter must not emit them. A tool without
+   * `execute` (a client tool) resolves `suspended` without being recorded.
    */
-  executeHostTool<T extends SerializableValue = SerializableValue>(call: {
+  executeHostTool<T extends JSONValue = JSONValue>(call: {
+    /**
+     * ID of the tool call, unique across all tool calls.
+     */
     toolCallId: string;
+
+    /**
+     * Name of the tool to execute.
+     */
     toolName: string;
-    input: unknown;
+
+    /**
+     * Tool input, already parsed from the model's JSON.
+     */
+    input: JSONValue;
   }): Promise<HarnessV2ToolExecutionOutput<T>>;
 
   /**

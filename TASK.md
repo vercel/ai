@@ -58,13 +58,14 @@ The steps are below:
    - Add an engine-side `HarnessAgentStreamPart` type to `packages/harness/src/agent/v2/internal/types.ts` as a full copy of `HarnessV2StreamPart`, then remove `finish-step` and `finish` from `HarnessV2StreamPart` (they remain on `HarnessAgentStreamPart`).
    - Scaffold `createFinishFunctions(input): { finishStep: HarnessAgentFinishStepFunction; finishTurn: HarnessAgentFinishTurnFunction }` in `packages/harness/src/agent/v2/internal/create-finish-functions.ts`, with both function types in `types.ts` (redeclared, DO NOT import). Its input must include the `HarnessAgentLog`, the `HarnessAgentStreamWriter` and the drive's `abortSignal`; it reads the log once and keeps its turn state current via `onAppend`, like `createEffectFunction()`. Each function appends its internal log event and calls `writer.emit({ part, key })` only if that append returned `true`. Follow "Replay-safe stream emission" in HARNESS-V2.md for first-wins replays, turn identity (the latest delivered `prompt` submission ID), the step key (`${submissionId}:${stepNumber}`) and rejected calls.
    - Replace `finishStep()`'s `key` option with `stepNumber` (zero-based, counted by the adapter within the current turn).
-10. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-execute-host-tool-function.ts` with function `createExecuteHostToolFunction(input): HarnessAgentExecuteHostToolFunction`.
+10. [x] Scaffold `packages/harness/src/agent/v2/internal/create-execute-host-tool-function.ts` with function `createExecuteHostToolFunction(input): HarnessAgentExecuteHostToolFunction`.
 
 - Add a `HarnessAgentExecuteHostToolFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["executeHostTool"]` (redeclare it, DO NOT import).
 
 11. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-gate-builtin-tool-function.ts` with function `createGateBuiltinToolFunction(input): HarnessAgentGateBuiltinToolFunction`.
 
 - Add a `HarnessAgentGateBuiltinToolFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["gateBuiltinTool"]` (redeclare it, DO NOT import).
+- Change the `input` of `HarnessV2DriveContext["gateBuiltinTool"]` from `unknown` to `JSONValue`, like `executeHostTool()` (see "Host tool execution" in HARNESS-V2.md).
 
 12. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-harness-v2-drive-context.ts` with function `createDriveContext(): HarnessV2DriveContext`.
 
