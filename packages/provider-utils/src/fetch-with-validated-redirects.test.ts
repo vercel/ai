@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DownloadError } from './download-error';
-import { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
+import {
+  fetchWithValidatedEndpoint,
+  fetchWithValidatedRedirects,
+} from './fetch-with-validated-redirects';
 
 const originalFetch = globalThis.fetch;
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   globalThis.fetch = originalFetch;
   delete (globalThis as { window?: unknown }).window;
 });
@@ -26,6 +30,33 @@ function okResponse(): Response {
     body: null,
   } as unknown as Response;
 }
+
+describe('fetchWithValidatedEndpoint', () => {
+  it('preserves the default native-fetch behavior without strict DNS validation', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+    vi.stubGlobal('EdgeRuntime', 'edge-runtime');
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithValidatedEndpoint({ url: 'https://example.com/metadata' });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves browser fetch with strict DNS validation enabled', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+    vi.stubGlobal('EdgeRuntime', 'edge-runtime');
+    vi.stubGlobal('window', {});
+    vi.stubGlobal('document', {});
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchWithValidatedEndpoint({
+      url: 'https://example.com/metadata',
+      requireDnsValidation: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('fetchWithValidatedRedirects', () => {
   it('validates the initial URL before requesting it', async () => {
