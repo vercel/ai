@@ -36,19 +36,24 @@ export const openAITranscriptionModelOptionsShape = () => ({
   language: z.string().optional(),
 
   /**
-   * Expected languages for REST transcription, e.g. with gpt-transcribe.
+   * Expected languages, e.g. with gpt-transcribe or gpt-live-transcribe.
    * Use this instead of language. The API validates model support.
    */
   languages: z.array(z.string()).optional(),
 
   /**
-   * Vocabulary hints for REST transcription, e.g. names or technical terms.
-   * The API validates model support.
+   * Vocabulary hints, e.g. names, acronyms or technical terms. Hints, not
+   * required output. Each keyword must stay on one line and cannot contain
+   * `<`, `>`, a carriage return or a line feed. The API validates model
+   * support.
    */
   keywords: z.array(z.string()).optional(),
 
   /**
-   * An optional text to guide the model's style or continue a previous audio segment.
+   * Free-form context about the recording — its topic or setting — which also
+   * guides style and can continue a previous audio segment. Supported by both
+   * the REST and realtime transcription surfaces; the API rejects a prompt
+   * past the model's length limit.
    */
   prompt: z.string().optional(),
 
