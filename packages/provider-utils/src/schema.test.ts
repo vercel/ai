@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import * as z4 from 'zod/v4';
 import { safeParseJSON } from './parse-json';
 import { asSchema, zodSchema, type StandardSchema } from './schema';
@@ -292,6 +292,28 @@ describe('zodSchema', () => {
     });
 
     describe('output validation', () => {
+      it.each(['max', 'length'] as const)(
+        'should reject an array exceeding its %s bound before validating elements',
+        async bound => {
+          const validateElement = vi.fn();
+          const array = z4.array(z4.string().superRefine(validateElement));
+          const schema = zodSchema(z4.object({ items: array[bound](2) }));
+
+          const result = await schema.validate?.({ items: ['a', 'b', 'c'] });
+
+          expect(result?.success).toBe(false);
+          expect(validateElement).not.toHaveBeenCalled();
+
+          if (result?.success !== false) {
+            throw new Error('Expected validation to fail');
+          }
+
+          expect((result.error as z4.ZodError).issues).toEqual([
+            expect.objectContaining({ code: 'too_big', path: ['items'] }),
+          ]);
+        },
+      );
+
       it('should return a classic ZodError for invalid output', async () => {
         const schema = zodSchema(
           z4.object({
