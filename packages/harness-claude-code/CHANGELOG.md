@@ -1,5 +1,25 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.181
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.180
+
+### Patch Changes
+
+- e4a6112: fix(harness): enforce workDir / project-level config isolation where possible and clearly document the gap otherwise
+- 7a5a9c6: fix(harness-claude-code): run apiKeyHelper through the platform shell on Windows
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/harness@1.0.176
+
 ## 1.0.179
 
 ### Patch Changes

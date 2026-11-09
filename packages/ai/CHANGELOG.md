@@ -1,5 +1,26 @@
 # ai
 
+## 7.0.166
+
+### Patch Changes
+
+- Updated dependencies [44db225]
+  - @ai-sdk/gateway@4.0.139
+
+## 7.0.165
+
+### Patch Changes
+
+- 883fcde: remove transcription word timings from telemetry when recordOutputs is false
+- 6d21e8e: Sanitize provider request URLs before text generation results reach telemetry integrations and tracing subscribers, preventing endpoint credentials from being exposed.
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/gateway@4.0.138
+
 ## 7.0.164
 
 ### Patch Changes

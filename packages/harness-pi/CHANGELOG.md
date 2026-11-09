@@ -1,5 +1,22 @@
 # @ai-sdk/harness-pi
 
+## 1.0.180
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.179
+
+### Patch Changes
+
+- e4a6112: fix(harness): enforce workDir / project-level config isolation where possible and clearly document the gap otherwise
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/harness@1.0.176
+
 ## 1.0.178
 
 ### Patch Changes
