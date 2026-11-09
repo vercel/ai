@@ -1,0 +1,245 @@
+---
+title: Ampersand
+description: Use Human&'s Ampersand Responses API with the AI SDK OpenAI provider.
+---
+
+# Ampersand
+
+Use Human&'s Ampersand Responses API with the AI SDK's [OpenAI provider](/providers/ai-sdk-providers/openai) to generate text, stream responses, and call tools. Configure `@ai-sdk/openai` with Ampersand's API URL and API key.
+
+Ampersand is trained for collaboration between several people: helping reconcile different goals, asking clarifying questions, and deciding when to contribute or wait. You can use these behaviors in a group chat by supplying conversation context and tools for the actions your application supports.
+
+## Setup
+
+Install the AI SDK, the OpenAI provider, and Zod for the tool example:
+
+<InstallPackages packages="ai @ai-sdk/openai zod" />
+
+Set your Ampersand API key as a server-side environment variable:
+
+```bash
+export AMPERSAND_API_KEY=your_api_key_here
+```
+
+## Provider instance
+
+Create an Ampersand provider instance with `createOpenAI`:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+
+const ampersand = createOpenAI({
+  baseURL: 'https://ampersand.humansand.ai/v1',
+  apiKey: process.env.AMPERSAND_API_KEY,
+});
+```
+
+Use `.responses()` to select the Responses API and the `ampersand-v0.1` model:
+
+```ts
+const model = ampersand.responses('ampersand-v0.1');
+```
+
+## Generate text
+
+Use `generateText` to generate a complete response:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const ampersand = createOpenAI({
+  baseURL: 'https://ampersand.humansand.ai/v1',
+  apiKey: process.env.AMPERSAND_API_KEY,
+});
+
+const { text } = await generateText({
+  model: ampersand.responses('ampersand-v0.1'),
+  maxRetries: 0,
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+This prints the model's explanation to the console.
+
+## Stream text
+
+Use `streamText` to read text as it is generated:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const ampersand = createOpenAI({
+  baseURL: 'https://ampersand.humansand.ai/v1',
+  apiKey: process.env.AMPERSAND_API_KEY,
+});
+
+const result = streamText({
+  model: ampersand.responses('ampersand-v0.1'),
+  maxRetries: 0,
+  prompt: 'Write a short poem about the ocean.',
+});
+
+for await (const text of result.textStream) {
+  process.stdout.write(text);
+}
+```
+
+This writes the poem to the console as text arrives.
+
+## Tool calling
+
+Define tools with `tool` and a Zod input schema. Set `stopWhen` to allow a second step so the model can respond after the tool executes:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText, stepCountIs, tool } from 'ai';
+import { z } from 'zod';
+
+const ampersand = createOpenAI({
+  baseURL: 'https://ampersand.humansand.ai/v1',
+  apiKey: process.env.AMPERSAND_API_KEY,
+});
+
+const { text } = await generateText({
+  model: ampersand.responses('ampersand-v0.1'),
+  maxRetries: 0,
+  prompt:
+    'Use the multiply tool to calculate 17 times 23, then explain the result in one sentence.',
+  tools: {
+    multiply: tool({
+      description: 'Multiply two numbers.',
+      inputSchema: z.object({
+        a: z.number(),
+        b: z.number(),
+      }),
+      execute: async ({ a, b }) => ({ result: a * b }),
+    }),
+  },
+  stopWhen: stepCountIs(2),
+});
+
+console.log(text);
+```
+
+The tool returns `391`, which the model uses in its final response.
+
+## Collaborative conversations
+
+The Responses API runs one generation per request. Your application manages participants, conversation history, permissions, and message delivery.
+
+Define `send_message` and `pass` tools so Ampersand can choose whether to contribute. Only the `send_message` handler publishes to the conversation. A `pass` records the decision to stay quiet and waits for another human message. Keep ordinary assistant text separate from chat delivery.
+
+The following example keeps one conversation and delivery receipts in memory, and prints outgoing chat messages to the console. It processes incoming messages in order and validates the model's chosen action before delivery:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText, tool, type ModelMessage } from 'ai';
+import { z } from 'zod';
+
+const ampersand = createOpenAI({
+  baseURL: 'https://ampersand.humansand.ai/v1',
+  apiKey: process.env.AMPERSAND_API_KEY,
+});
+
+const history: ModelMessage[] = [];
+const deliveries = new Map<string, string>();
+
+async function deliverMessage(content: string, receipt: string) {
+  const existing = deliveries.get(receipt);
+  if (existing != null) return existing;
+
+  const messageId = `message-${deliveries.size + 1}`;
+  console.log(`Ampersand: ${content}`);
+  deliveries.set(receipt, messageId);
+  return messageId;
+}
+
+async function onMessage(sender: string, content: string) {
+  history.push({
+    role: 'user',
+    content: JSON.stringify({ sender, content }),
+  });
+
+  const result = await generateText({
+    model: ampersand.responses('ampersand-v0.1'),
+    maxRetries: 0,
+    system:
+      'You are Ampersand, a collaborator in this group chat. ' +
+      'Help people clarify and reconcile their goals. ' +
+      'Use send_message when you have something useful to contribute. ' +
+      'Use pass while people are waiting for each other to respond. ' +
+      'A proposal is not a group decision. Choose exactly one action. ' +
+      'Plain text outside these tools is not delivered to chat.',
+    messages: history,
+    tools: {
+      send_message: tool({
+        description: 'Send one message to this conversation.',
+        inputSchema: z.object({ content: z.string().min(1) }),
+      }),
+      pass: tool({
+        description: 'Stay quiet and wait for the next human message.',
+        inputSchema: z.object({}),
+      }),
+    },
+    providerOptions: {
+      openai: { store: false, parallelToolCalls: false },
+    },
+  });
+
+  const call = result.staticToolCalls[0];
+  if (
+    result.finishReason !== 'tool-calls' ||
+    result.toolCalls.length !== 1 ||
+    call == null
+  ) {
+    throw new Error('Expected one completed send_message or pass call.');
+  }
+
+  history.push(...result.responseMessages);
+  const receipt = `${result.finalStep.response.id}:${call.toolCallId}`;
+  const output =
+    call.toolName === 'send_message'
+      ? await deliverMessage(call.input.content, receipt)
+      : 'Passing.';
+
+  history.push({
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-result',
+        toolCallId: call.toolCallId,
+        toolName: call.toolName,
+        output: { type: 'text', value: output },
+      },
+    ],
+  });
+}
+
+await onMessage(
+  'Maya',
+  'Leo, I would like a green background for our dashboard. What do you think?',
+);
+await onMessage('Leo', 'I prefer blue. Ampersand, can you help us choose?');
+```
+
+When Ampersand chooses `pass`, nothing is published. When it chooses `send_message`, the console displays its contribution. The model chooses the action, so its response can vary. A missing or invalid action raises an error and publishes nothing.
+
+The tools have no `execute` callbacks, which lets the application validate the action before delivering it. After either action, append the tool result to history and wait for the next human message. Do not start another generation just to acknowledge the action. Preserve every response message, including reasoning metadata, when replaying history.
+
+For a deployed chat application, use durable storage for the input, completed response, history, and delivery receipts. Save the response before delivery, and retry an uncertain delivery with the saved action and the same receipt. Process messages sequentially within each conversation, keep separate histories for separate conversations, resolve senders from authenticated users, and check access before publishing. Sender labels in model input are context, not authorization.
+
+This example uses `store: false` to replay history from the application. That setting controls API retrieval; Ampersand's account policy determines content retention.
+
+## Retries
+
+The examples set `maxRetries: 0` to disable automatic retries. A retry can start a new generation because `@ai-sdk/openai` does not automatically send an idempotency key. Choose a retry policy that fits your application's requirements.
+
+## Resources
+
+- [AI SDK OpenAI provider](/providers/ai-sdk-providers/openai)
+- [Tool calling](/docs/ai-sdk-core/tools-and-tool-calling)
+- [Structured output](/docs/ai-sdk-core/generating-structured-data)
