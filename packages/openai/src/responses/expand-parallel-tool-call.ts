@@ -17,7 +17,8 @@ export type ParallelToolCallMetadata = {
   itemId: string;
   toolCallId: string;
   toolName: string;
-  input: string;
+  /** Retained only on the first child; older histories may repeat it. */
+  input?: string;
   index: number;
   count: number;
 };
@@ -36,7 +37,7 @@ export function getParallelToolCallMetadata({
     typeof metadata.itemId !== 'string' ||
     typeof metadata.toolCallId !== 'string' ||
     typeof metadata.toolName !== 'string' ||
-    typeof metadata.input !== 'string' ||
+    (metadata.input !== undefined && typeof metadata.input !== 'string') ||
     typeof metadata.index !== 'number' ||
     !Number.isInteger(metadata.index) ||
     typeof metadata.count !== 'number' ||
@@ -129,7 +130,7 @@ export async function expandParallelToolCall({
             itemId,
             toolCallId: toolCall.toolCallId,
             toolName: toolCall.toolName,
-            input: toolCall.input,
+            ...(index === 0 && { input: toolCall.input }),
             index,
             count: toolUses.length,
           } satisfies ParallelToolCallMetadata,

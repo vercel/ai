@@ -25,8 +25,10 @@ const parallelToolCallInput =
 
 function createExpandedParallelToolCallPrompt({
   withPromptCacheBreakpoints = false,
+  compactMetadata = false,
 }: {
   withPromptCacheBreakpoints?: boolean;
+  compactMetadata?: boolean;
 } = {}): LanguageModelV3Prompt {
   const promptCacheBreakpoint = { mode: 'explicit' } as const;
   const providerOptions = (index: number) => ({
@@ -35,7 +37,9 @@ function createExpandedParallelToolCallPrompt({
         itemId: 'fc_parallel',
         toolCallId: 'call_parallel',
         toolName: 'parallel',
-        input: parallelToolCallInput,
+        ...((!compactMetadata || index === 0) && {
+          input: parallelToolCallInput,
+        }),
         index,
         count: 2,
       },
@@ -103,6 +107,115 @@ function createExpandedParallelToolCallPrompt({
 const parallelToolCallOutput = '{"temperature":72}\nColosseum';
 
 describe('convertToOpenAIResponsesInput', () => {
+  describe('compact parallel tool metadata', () => {
+    it.each([
+      { hasConversation: true, reverseResults: false },
+      { hasConversation: false, reverseResults: false },
+      { hasConversation: true, reverseResults: true },
+      { hasConversation: false, reverseResults: true },
+    ])(
+      'round-trips serialized metadata with %j',
+      async ({ hasConversation, reverseResults }) => {
+        const prompt: LanguageModelV3Prompt = JSON.parse(
+          JSON.stringify(
+            createExpandedParallelToolCallPrompt({ compactMetadata: true }),
+          ),
+        );
+        if (reverseResults && prompt[1].role === 'tool') {
+          prompt[1].content.reverse();
+        }
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt,
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+          hasConversation,
+          hasPreviousResponseId: !hasConversation,
+        });
+
+        expect(result.input).toEqual([
+          ...(!hasConversation
+            ? [
+                {
+                  type: 'function_call',
+                  call_id: 'call_parallel',
+                  name: 'parallel',
+                  arguments: parallelToolCallInput,
+                },
+              ]
+            : []),
+          {
+            type: 'function_call_output',
+            call_id: 'call_parallel',
+            output: parallelToolCallOutput,
+          },
+        ]);
+        expect(result.warnings).toEqual([]);
+      },
+    );
+
+    it.each(['missing', 'conflicting'] as const)(
+      'keeps child calls separate when wrapper input is %s',
+      async kind => {
+        const prompt = createExpandedParallelToolCallPrompt({
+          compactMetadata: true,
+        });
+        for (const message of prompt) {
+          if (message.role !== 'assistant' && message.role !== 'tool') {
+            continue;
+          }
+          for (const part of message.content) {
+            const metadata = part.providerOptions?.openai?.parallelToolCall as
+              | { input?: string; index: number }
+              | undefined;
+            if (metadata == null) {
+              continue;
+            }
+            if (kind === 'missing') {
+              delete metadata.input;
+            } else if (metadata.index === 1) {
+              metadata.input = '{}';
+            }
+          }
+        }
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt,
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+          hasPreviousResponseId: true,
+        });
+
+        expect(result.input).toEqual([
+          {
+            type: 'function_call',
+            call_id: 'call_parallel_0',
+            name: 'weather',
+            arguments: '{"location":"San Francisco"}',
+          },
+          {
+            type: 'function_call',
+            call_id: 'call_parallel_1',
+            name: 'cityAttractions',
+            arguments: '{"city":"Rome"}',
+          },
+          {
+            type: 'function_call_output',
+            call_id: 'call_parallel_0',
+            output: '{"temperature":72}',
+          },
+          {
+            type: 'function_call_output',
+            call_id: 'call_parallel_1',
+            output: 'Colosseum',
+          },
+        ]);
+      },
+    );
+  });
+
   describe('explicit message item types', () => {
     it('should add the message type to system, user, and assistant messages', async () => {
       const result = await convertToOpenAIResponsesInput({
