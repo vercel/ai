@@ -13,10 +13,14 @@ Install the OpenAI Compatible provider:
 
 <InstallPackages packages="@ai-sdk/openai-compatible" />
 
-Create an API key in the [Wiro AI console](https://wiro.ai/panel/project/new) and set it as an environment variable:
+Create an API key in the [Wiro AI console](https://wiro.ai/panel/project/new) and set it as an environment variable. For standard projects, set `WIRO_API_KEY` to your API key. For signature-based projects, set `WIRO_API_KEY` to `<api-key>:<api-secret>`:
 
 ```bash
+# Standard API key project
 export WIRO_API_KEY=your-api-key
+
+# Signature-based project (key and secret combined)
+export WIRO_API_KEY=your-api-key:your-api-secret
 ```
 
 ## Provider Instance
