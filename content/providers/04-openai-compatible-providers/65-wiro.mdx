@@ -1,0 +1,123 @@
+---
+title: Wiro AI
+description: Use the Wiro AI OpenAI compatible API with the AI SDK.
+---
+
+# Wiro AI Provider
+
+[Wiro AI](https://wiro.ai) is an AI gateway that provides access to over 60 models from providers including OpenAI, Anthropic, Google, xAI, DeepSeek, ByteDance, Alibaba (Qwen), Z.ai (GLM), Meta, and Mistral through an OpenAI-compatible API. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create an API key in the [Wiro AI console](https://wiro.ai/panel/project/new) and set it as an environment variable:
+
+```bash
+export WIRO_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const wiro = createOpenAICompatible({
+  name: 'wiro',
+  baseURL: 'https://llm.wiro.ai/v1',
+  apiKey: process.env.WIRO_API_KEY,
+  includeUsage: true,
+});
+```
+
+## Language Models
+
+Create a language model by passing a model ID to the provider instance. Model IDs follow the lowercase `owner/model` format, such as `openai/gpt-5-4-nano`, `deepseek/v4-1-flash`, `claude/sonnet-5`, or `google/gemini-3-pro`:
+
+```ts
+const model = wiro('openai/gpt-5-4-nano');
+```
+
+### Example
+
+Generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const wiro = createOpenAICompatible({
+  name: 'wiro',
+  baseURL: 'https://llm.wiro.ai/v1',
+  apiKey: process.env.WIRO_API_KEY,
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: wiro('openai/gpt-5-4-nano'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+You can also use Wiro AI models in a streaming fashion with `streamText`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const wiro = createOpenAICompatible({
+  name: 'wiro',
+  baseURL: 'https://llm.wiro.ai/v1',
+  apiKey: process.env.WIRO_API_KEY,
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: wiro('openai/gpt-5-4-nano'),
+  prompt: 'Write a short haiku about gateways.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Capabilities
+
+Supported capabilities depend on the chosen model and include:
+
+- **Text Generation and Streaming**: Available with `generateText` and `streamText`.
+- **Reasoning**: Models such as `deepseek/v4-1-flash` return reasoning tokens and reasoning text. You can customize reasoning effort via provider options:
+  ```ts
+  const result = await generateText({
+    model: wiro('deepseek/v4-1-flash'),
+    prompt: 'Solve this step-by-step.',
+    providerOptions: {
+      wiro: { reasoningEffort: 'low' },
+    },
+  });
+  ```
+- **Structured Outputs**: Enable `supportsStructuredOutputs: true` on models supporting JSON Schema:
+  ```ts
+  const wiro = createOpenAICompatible({
+    name: 'wiro',
+    baseURL: 'https://llm.wiro.ai/v1',
+    apiKey: process.env.WIRO_API_KEY,
+    supportsStructuredOutputs: true,
+  });
+  ```
+- **Tool Calling**: Supports single-step and multi-step tool calls with `stopWhen`.
+
+## Resources
+
+- [Wiro AI Website](https://wiro.ai)
+- [Wiro AI SDK Integration Guide](https://wiro.ai/docs/completions-api#llm-setup-ai-sdk)
+- [Wiro AI Models and Pricing](https://wiro.ai/models)
+- [Wiro AI Project Console](https://wiro.ai/panel/project/new)
+- [AI SDK OpenAI Compatible Provider](/providers/openai-compatible-providers)
