@@ -27041,7 +27041,7 @@ describe('streamText', () => {
           `);
       });
 
-      it('should add tool call and result error parts to the ui message stream', async () => {
+      it('should add a tool input error part to the ui message stream', async () => {
         expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
             [
@@ -27069,11 +27069,6 @@ describe('streamText', () => {
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-input-error",
-              },
-              {
-                "errorText": "An error occurred.",
-                "toolCallId": "call-1",
-                "type": "tool-output-error",
               },
               {
                 "type": "finish-step",

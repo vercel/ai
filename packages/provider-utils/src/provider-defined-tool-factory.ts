@@ -2,6 +2,7 @@ import { tool, type ProviderDefinedTool, type Tool } from './types/tool';
 import type { FlexibleSchema } from './schema';
 import type { Context } from './types/context';
 import type { ToolExecuteFunction } from './types/tool-execute-function';
+import { withTelemetryRedaction } from './telemetry-redaction';
 /**
  * A provider-defined tool is a tool for which the provider defines the input
  * and output schemas, but does not execute the tool.
@@ -28,9 +29,12 @@ export function createProviderDefinedToolFactory<
 >({
   id,
   inputSchema,
+  redactArgs,
 }: {
   id: `${string}.${string}`;
   inputSchema: FlexibleSchema<INPUT>;
+  /** Provider-owned telemetry view of the tool configuration. */
+  redactArgs?: (args: Record<string, unknown>) => Record<string, unknown>;
 }): ProviderDefinedToolFactory<INPUT, ARGS, CONTEXT> {
   return <OUTPUT>({
     execute,
@@ -54,7 +58,8 @@ export function createProviderDefinedToolFactory<
       type: 'provider',
       isProviderExecuted: false,
       id,
-      args,
+      args:
+        redactArgs == null ? args : withTelemetryRedaction(args, redactArgs),
       inputSchema,
       outputSchema,
       execute,
@@ -91,10 +96,13 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
   id,
   inputSchema,
   outputSchema,
+  redactArgs,
 }: {
   id: `${string}.${string}`;
   inputSchema: FlexibleSchema<INPUT>;
   outputSchema: FlexibleSchema<OUTPUT>;
+  /** Provider-owned telemetry view of the tool configuration. */
+  redactArgs?: (args: Record<string, unknown>) => Record<string, unknown>;
 }): ProviderDefinedToolFactoryWithOutputSchema<INPUT, OUTPUT, ARGS, CONTEXT> {
   return ({
     execute,
@@ -116,7 +124,8 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
       type: 'provider',
       isProviderExecuted: false,
       id,
-      args,
+      args:
+        redactArgs == null ? args : withTelemetryRedaction(args, redactArgs),
       inputSchema,
       outputSchema,
       execute,
