@@ -37,7 +37,6 @@ function createSandbox() {
 
 const state: FxStoredState = {
   version: 1,
-  sdkVersion: '0.0.14',
   checkpoint: 'AQID',
 };
 
@@ -139,7 +138,7 @@ describe('createFxStateStore', () => {
     );
   });
 
-  it.each(['not json', '{"version":2,"sdkVersion":"0.0.14"}'])(
+  it.each(['not json', '{"version":2}'])(
     'rejects invalid or incompatible state %s',
     async content => {
       const { sandbox, files } = createSandbox();

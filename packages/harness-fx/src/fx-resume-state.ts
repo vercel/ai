@@ -56,7 +56,6 @@ export type FxTurnState = {
 
 export type FxStoredState = {
   version: 1;
-  sdkVersion: '0.0.13' | '0.0.14';
   provider?: FxProvider;
   checkpoint?: string;
   turn?: FxTurnState;
@@ -64,7 +63,6 @@ export type FxStoredState = {
 
 const storedStateSchema = z.object({
   version: z.literal(1),
-  sdkVersion: z.enum(['0.0.13', '0.0.14']),
   provider: z.enum(['gateway', 'codex', 'grok']).optional(),
   checkpoint: z.string().optional(),
   turn: z

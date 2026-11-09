@@ -3440,8 +3440,8 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
       libfx:
-        specifier: 0.0.14
-        version: 0.0.14
+        specifier: 0.0.16
+        version: 0.0.16
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -9153,6 +9153,32 @@ packages:
 
   '@leichtgewicht/ip-codec@2.0.5':
     resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
+
+  '@libfx/libfx-darwin-arm64@0.0.16':
+    resolution: {integrity: sha512-u4kmCFbVpOE9JdMDCi04c7LeOH6uKIJKpkDUxq1RyhW81Rx4MiI/5XtSXw702WIbxX57R5csOFvOp8uPDwzTEQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@libfx/libfx-darwin-x64@0.0.16':
+    resolution: {integrity: sha512-LsbtrtH+Qnk4hCOw03SvYxNlyBtU+aIGr2CHjsogbNI2lfN4QZLp5eP3l84EFouVAgJzwFrMzJGlUGmyIc/zkw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [darwin]
+
+  '@libfx/libfx-linux-arm64-gnu@0.0.16':
+    resolution: {integrity: sha512-8OeEF5y9mzGcG4eLmCYbaVO5jnVMF9GTdTLpu3ftSixhlt/nvxNjMJl6/+TGzHSQtUewNxR6aM820Hl4NW2PIw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@libfx/libfx-linux-x64-gnu@0.0.16':
+    resolution: {integrity: sha512-JAz5lUwGTTVqmVDT6p0a2o4m7lOFBPU+i3sYYYw3r+FQUPY+cV0r/AnXY40edA1ICf00EHlH9Okna5gWBr/Zyg==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
 
   '@listr2/prompt-adapter-inquirer@3.0.5':
     resolution: {integrity: sha512-WELs+hj6xcilkloBXYf9XXK8tYEnKsgLj01Xl5ONUJpKjmT5hGVUzNUS5tooUxs7pGMrw+jFD/41WpqW4V3LDA==}
@@ -19576,9 +19602,9 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
-  libfx@0.0.14:
-    resolution: {integrity: sha512-8wIEkRlKuQnbueyt6NBwi4xEiEnoRpwvAocKolzzmyz/r14s4gXiE3XivGk4QJpNnMMGHAJRKlH0WhW//q7B5Q==}
-    engines: {node: '>=20'}
+  libfx@0.0.16:
+    resolution: {integrity: sha512-qA/b37rsJ8DNJXkg1+iyQCmzBbiXO+2lCXtdZzP6GjVPcStJEb3QkmhXEpOURb+VCfNc7L9gB6TiTXeS3/CPXQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
 
   license-webpack-plugin@4.0.2:
     resolution: {integrity: sha512-771TFWFD70G1wLTC4oU2Cw4qvtmNrIw+wRvBtn+okgHl7slJVi7zfNcdmqDL72BojM30VNJ2UHylr1o77U37Jw==}
@@ -30474,6 +30500,18 @@ snapshots:
       - zod
 
   '@leichtgewicht/ip-codec@2.0.5': {}
+
+  '@libfx/libfx-darwin-arm64@0.0.16':
+    optional: true
+
+  '@libfx/libfx-darwin-x64@0.0.16':
+    optional: true
+
+  '@libfx/libfx-linux-arm64-gnu@0.0.16':
+    optional: true
+
+  '@libfx/libfx-linux-x64-gnu@0.0.16':
+    optional: true
 
   '@listr2/prompt-adapter-inquirer@3.0.5(@inquirer/prompts@7.10.1(@types/node@22.19.19))(@types/node@22.19.19)(listr2@9.0.5)':
     dependencies:
@@ -44341,7 +44379,12 @@ snapshots:
       type-check: 0.4.0
     optional: true
 
-  libfx@0.0.14: {}
+  libfx@0.0.16:
+    optionalDependencies:
+      '@libfx/libfx-darwin-arm64': 0.0.16
+      '@libfx/libfx-darwin-x64': 0.0.16
+      '@libfx/libfx-linux-arm64-gnu': 0.0.16
+      '@libfx/libfx-linux-x64-gnu': 0.0.16
 
   license-webpack-plugin@4.0.2(webpack@5.105.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(cssnano@7.1.9(postcss@8.5.23))(csso@5.0.5)(esbuild@0.28.1)(lightningcss@1.32.0)(postcss@8.5.23)(uglify-js@3.19.3)):
     dependencies:

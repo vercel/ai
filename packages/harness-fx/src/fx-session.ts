@@ -96,9 +96,7 @@ export async function createFxSession(options: {
       ? fxResumeStateSchema.parse(resume.data).stateFileName
       : undefined,
   });
-  const state: FxStoredState = resume
-    ? await store.load()
-    : { version: 1, sdkVersion: '0.0.14' };
+  const state: FxStoredState = resume ? await store.load() : { version: 1 };
   const authentication =
     freshAuthentication ??
     (await resolveFxAuthentication({
@@ -106,7 +104,6 @@ export async function createFxSession(options: {
       requiredProvider: state.provider ?? 'gateway',
     }));
   state.provider = authentication.provider;
-  state.sdkVersion = '0.0.14';
   const remote = createFxRemoteOps({
     sandbox,
     workDir: startOpts.sessionWorkDir,
