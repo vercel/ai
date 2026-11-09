@@ -67,6 +67,21 @@ type BaseTool<
   deferLoading?: boolean;
 
   /**
+   * Whether a durable executor may run the tool again after an execution was
+   * interrupted without recording its outcome (e.g. the process crashed).
+   *
+   * - `'never'`: the tool runs at most once per tool call. An interrupted
+   *   execution is reported as interrupted, since it may already have acted.
+   * - `'safe'`: the tool may run again for the same tool call, e.g. because
+   *   it is read-only or idempotent.
+   *
+   * Only relevant for durable executors such as a `HarnessAgent` with a World.
+   *
+   * @default 'never'
+   */
+  replay?: 'never' | 'safe';
+
+  /**
    * An optional title of the tool.
    *
    * @deprecated Use `providerMetadata` for source-specific tool display metadata.
@@ -309,6 +324,12 @@ export type ProviderExecutedTool<
    * Flag that indicates whether the tool is executed by the provider.
    */
   isProviderExecuted: true;
+
+  /**
+   * Provider-executed tools are never executed by the AI SDK, so they have no
+   * replay policy.
+   */
+  replay?: never;
 
   /**
    * Whether this provider-executed tool supports deferred results.

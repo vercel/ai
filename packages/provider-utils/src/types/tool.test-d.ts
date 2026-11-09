@@ -270,6 +270,23 @@ describe('ProviderExecutedTool', () => {
     >();
   });
 
+  it('should reject a replay policy', () => {
+    const _toolWithReplay: ProviderExecutedTool<
+      { location: string },
+      string,
+      Context
+    > = {
+      type: 'provider',
+      id: 'test.tool',
+      isProviderExecuted: true,
+      args: {},
+      inputSchema: z.object({ location: z.string() }),
+      outputSchema: z.string(),
+      // @ts-expect-error provider-executed tools have no replay policy
+      replay: 'safe',
+    };
+  });
+
   it('should reject function-only properties and invalid provider metadata', () => {
     const _toolWithDescription: ProviderExecutedTool<
       { location: string },
@@ -419,6 +436,34 @@ describe('FunctionTool', () => {
 });
 
 describe('Tool', () => {
+  describe('replay', () => {
+    it('should be an optional replay policy on host-executed tools', () => {
+      expectTypeOf<FunctionTool['replay']>().toEqualTypeOf<
+        'never' | 'safe' | undefined
+      >();
+      expectTypeOf<DynamicTool['replay']>().toEqualTypeOf<
+        'never' | 'safe' | undefined
+      >();
+      expectTypeOf<ProviderDefinedTool['replay']>().toEqualTypeOf<
+        'never' | 'safe' | undefined
+      >();
+      expectTypeOf<ProviderExecutedTool['replay']>().toEqualTypeOf<undefined>();
+    });
+
+    it('should reject unknown replay policies', () => {
+      const _toolWithInvalidReplay: FunctionTool<
+        { location: string },
+        string,
+        Context
+      > = {
+        inputSchema: z.object({ location: z.string() }),
+        execute: async () => 'sunny',
+        // @ts-expect-error replay must be 'never' or 'safe'
+        replay: 'always',
+      };
+    });
+  });
+
   describe('discriminated union', () => {
     it('should expose all tool variants and type discriminators', () => {
       expectTypeOf<Tool>().toEqualTypeOf<
