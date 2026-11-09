@@ -36,6 +36,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
+import { redactToolDefinition } from '../telemetry/redact-tool-definition';
 import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import type { TelemetrySettings } from '../telemetry/telemetry-settings';
 import type {
@@ -831,7 +832,10 @@ export async function generateText<
                     },
                     'ai.prompt.tools': {
                       // convert the language model level tools:
-                      input: () => stepTools?.map(tool => JSON.stringify(tool)),
+                      input: () =>
+                        stepTools?.map(tool =>
+                          JSON.stringify(redactToolDefinition(tool)),
+                        ),
                     },
                     'ai.prompt.toolChoice': {
                       input: () =>
