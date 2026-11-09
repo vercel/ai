@@ -13,6 +13,16 @@ export const googleVideoMetadataSchema = z.object({
 export type GoogleVideoMetadata = z.infer<typeof googleVideoMetadataSchema>;
 
 export const googleFilePartOptionsSchema = z.object({
+  /** Rendering resolution for this file, including tool-result files. */
+  mediaResolution: z
+    .object({
+      level: z.enum([
+        'MEDIA_RESOLUTION_LOW',
+        'MEDIA_RESOLUTION_MEDIUM',
+        'MEDIA_RESOLUTION_HIGH',
+      ]),
+    })
+    .optional(),
   documentMetadata: z
     .object({
       /** Page numbers are 1-based and inclusive. */
@@ -25,7 +35,7 @@ export const googleFilePartOptionsSchema = z.object({
     .object({
       /** Sheet numbers are 1-based, in workbook order. */
       sheetIndex: z.number().int().min(1).optional(),
-      /** An A1 range such as `A1:C5`. Does not limit the VISUAL layer. */
+      /** An A1 cell or range, such as `B5` or `A1:C5`, including VISUAL cropping. */
       visibleCells: z.string().optional(),
       contentLayers: z.array(z.enum(['DATA', 'FORMULAS', 'VISUAL'])).optional(),
     })

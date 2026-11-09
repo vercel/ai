@@ -16,6 +16,7 @@ import type {
   GoogleInteractionsContent,
   GoogleInteractionsContentBlock,
   GoogleInteractionsFunctionResultContent,
+  GoogleInteractionsFunctionResultPart,
   GoogleInteractionsInput,
   GoogleInteractionsStep,
   GoogleInteractionsTextContent,
@@ -46,9 +47,8 @@ export type ConvertToGoogleInteractionsInputResult = {
  *   - text / image content → `model_output` step with a single `content` array
  *   - reasoning → `thought` step (`signature` + `summary`)
  *   - tool-call → `function_call` step
- * User turns (and tool-result turns from the previous round) are sent as
- * `user_input` steps whose `content[]` holds the user's parts (text, files,
- * and — for tool-result turns — `function_result` blocks).
+ * User turns are sent as `user_input` steps whose `content[]` holds the
+ * user's text and files. Tool results are top-level `function_result` inputs.
  *
  * Handles text parts, file parts (image / audio / document / video, all four
  * `data.type` shapes), tool-call/tool-result round-tripping, per-step
@@ -232,13 +232,8 @@ export function convertToGoogleInteractionsInput({
         break;
       }
       case 'tool': {
-        /*
-         * Tool-result messages are emitted as a `user_input` step whose
-         * content holds one `function_result` block per tool-result part.
-         * `function_result` remains a content-block type (it sits inside
-         * a step), not a top-level step type.
-         */
-        const content: Array<GoogleInteractionsContentBlock> = [];
+        // The EAP accepts document/audio results in top-level function_result
+        // inputs, but rejects them when nested inside user_input.content.
         for (const part of message.content) {
           if (part.type !== 'tool-result') {
             warnings.push({
@@ -247,20 +242,18 @@ export function convertToGoogleInteractionsInput({
             });
             continue;
           }
-          const block = convertToolResultPart({
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            output: part.output,
-            signature: part.providerOptions?.google?.signature as
-              | string
-              | undefined,
-            warnings,
-            mediaResolution,
-          });
-          content.push(block);
-        }
-        if (content.length > 0) {
-          steps.push({ type: 'user_input', content });
+          steps.push(
+            convertToolResultPart({
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              output: part.output,
+              signature: part.providerOptions?.google?.signature as
+                | string
+                | undefined,
+              warnings,
+              mediaResolution,
+            }),
+          );
         }
         break;
       }
@@ -551,7 +544,7 @@ function convertToolResultPart({
         result: output.reason ?? 'Tool execution denied by user.',
       };
     case 'content': {
-      const blocks: Array<GoogleInteractionsContent> = [];
+      const blocks: Array<GoogleInteractionsFunctionResultPart> = [];
       for (const item of output.value) {
         if (item.type === 'text') {
           blocks.push({ type: 'text', text: item.text });

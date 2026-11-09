@@ -10,13 +10,13 @@ const pageOptionsSchema = z.object({
 const spreadsheetOptionsSchema = z.object({
   /** Sheet numbers are 1-based, in workbook order. */
   sheetIndex: z.number().int().min(1).optional(),
-  /** An A1 range such as `A1:C5`. Does not limit the visual layer. */
+  /** An A1 cell or range, such as `B5` or `A1:C5`, including visual cropping. */
   visibleCells: z.string().optional(),
   contentLayers: z.array(z.enum(['data', 'formulas', 'visual'])).optional(),
 });
 
 export const googleInteractionsFileOptionsSchema = z.object({
-  resolution: z.enum(['low', 'medium', 'high', 'ultra_high']).optional(),
+  resolution: z.enum(['low', 'medium', 'high']).optional(),
   processing: z
     .union([
       z.enum(['agentic', 'static']),

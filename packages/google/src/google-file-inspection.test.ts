@@ -15,12 +15,15 @@ const modelId = 'gemini-4-argon-file-processing-eap';
 const fileUri =
   'https://generativelanguage.googleapis.com/v1beta/files/inspection';
 
-// Expected request fields follow the EAP notebook, rather than recorded responses.
+// Expected fields follow the EAP documentation and live-validated request shapes.
 const cases = [
   {
     name: 'PDF pages',
     mediaType: 'application/pdf',
-    metadata: { documentMetadata: { startPage: 3, endPage: 4 } },
+    metadata: {
+      mediaResolution: { level: 'MEDIA_RESOLUTION_HIGH' },
+      documentMetadata: { startPage: 3, endPage: 4 },
+    },
     options: {
       processing: { type: 'static', pageOptions: { startPage: 3, endPage: 4 } },
     },
@@ -133,13 +136,21 @@ const cases = [
     name: 'OpenDocument sheet rendering',
     mediaType: 'application/vnd.oasis.opendocument.spreadsheet',
     metadata: {
-      spreadsheetMetadata: { sheetIndex: 1, contentLayers: ['VISUAL'] },
+      spreadsheetMetadata: {
+        sheetIndex: 1,
+        visibleCells: 'B5',
+        contentLayers: ['VISUAL'],
+      },
     },
     options: {
       resolution: 'medium',
       processing: {
         type: 'static',
-        spreadsheetOptions: { sheetIndex: 1, contentLayers: ['visual'] },
+        spreadsheetOptions: {
+          sheetIndex: 1,
+          visibleCells: 'B5',
+          contentLayers: ['visual'],
+        },
       },
     },
     expected: {
@@ -147,7 +158,11 @@ const cases = [
       resolution: 'medium',
       processing: {
         type: 'static',
-        spreadsheet_options: { sheet_index: 1, content_layers: ['visual'] },
+        spreadsheet_options: {
+          sheet_index: 1,
+          visible_cells: 'B5',
+          content_layers: ['visual'],
+        },
       },
     },
   },
@@ -306,19 +321,14 @@ describe.each([false, true])(
             ...(inline ? { data: 'AQID' } : { uri: fileUri }),
           };
           expect(result.input).toEqual([
-            {
-              type: 'user_input',
-              content: toolResult
-                ? [
-                    {
-                      type: 'function_result',
-                      call_id: 'call-1',
-                      name: 'view_file',
-                      result: [block],
-                    },
-                  ]
-                : [block],
-            },
+            toolResult
+              ? {
+                  type: 'function_result',
+                  call_id: 'call-1',
+                  name: 'view_file',
+                  result: [block],
+                }
+              : { type: 'user_input', content: [block] },
           ]);
           expect(result.warnings).toEqual([]);
         },
@@ -395,6 +405,7 @@ it('uses per-file resolution before the call-level default', () => {
 });
 
 it.each([
+  { resolution: 'ultra_high' },
   { processing: { pageOptions: { startPage: 3 } } },
   { processing: { type: 'static', spreadsheetOptions: [{ sheetIndex: 1 }] } },
   { processing: { type: 'static', pageOptions: { startPage: 0 } } },
@@ -431,6 +442,33 @@ describe.each(['generateContent', 'interactions'] as const)(
             requestUrl = String(url);
             requestBody = JSON.parse(String(init?.body));
             if (surface === 'interactions') {
+              // A user_input wrapper uses a different nested-result schema.
+              // Native top-level function_result inputs accept EAP files.
+              for (const step of requestBody.input) {
+                for (const content of step.content ?? []) {
+                  if (
+                    content.type === 'function_result' &&
+                    Array.isArray(content.result) &&
+                    content.result.some(
+                      (part: { type: string }) =>
+                        !['function', 'image', 'text', 'video'].includes(
+                          part.type,
+                        ),
+                    )
+                  ) {
+                    return Response.json(
+                      {
+                        error: {
+                          code: 'invalid_request',
+                          message:
+                            'Unsupported content type in function_result.result.',
+                        },
+                      },
+                      { status: 400 },
+                    );
+                  }
+                }
+              }
               return new Response(
                 readFileSync(
                   `src/interactions/__fixtures__/basic.${streaming ? 'chunks.txt' : 'json'}`,
@@ -498,11 +536,20 @@ describe.each(['generateContent', 'interactions'] as const)(
         expect(requestUrl).toContain('/v1beta/');
         if (surface === 'interactions') {
           expect(requestBody.model).toBe(modelId);
-          expect(requestBody.input[0].content[0].result[0]).toEqual({
-            ...document.expected,
-            uri: fileUri,
-            mime_type: 'application/pdf',
-          });
+          expect(requestBody.input).toEqual([
+            {
+              type: 'function_result',
+              call_id: 'call-1',
+              name: 'view_file',
+              result: [
+                {
+                  ...document.expected,
+                  uri: fileUri,
+                  mime_type: 'application/pdf',
+                },
+              ],
+            },
+          ]);
         } else {
           expect(requestUrl).toContain(
             `/models/${modelId}:${streaming ? 'streamGenerateContent' : 'generateContent'}`,
@@ -511,7 +558,7 @@ describe.each(['generateContent', 'interactions'] as const)(
             requestBody.contents[0].parts[0].functionResponse.parts[0],
           ).toEqual({
             fileData: { fileUri, mimeType: 'application/pdf' },
-            documentMetadata: { startPage: 3, endPage: 4 },
+            ...document.metadata,
           });
         }
         const supportedUrls = await model.supportedUrls;

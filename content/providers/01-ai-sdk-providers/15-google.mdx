@@ -1873,15 +1873,15 @@ const turn2 = await generateText({
 ### Extended multimodal file inspection
 
 The Extended Multimodal File Inspection EAP supports PDF, Word (`.docx`,
-`.doc`), PowerPoint (`.pptx`, `.ppt`), Excel (`.xlsx`, `.xls`), OpenDocument
+`.dotx`, `.doc`), PowerPoint (`.pptx`, `.ppt`), Excel (`.xlsx`, `.xls`), OpenDocument
 (`.odt`, `.odp`, `.ods`), audio, and video. You can select pages, spreadsheet
 cells, or time ranges and choose which content layers Gemini receives.
 
-Use `gemini-4-argon-file-processing-eap` with an allowlisted project. Model
-access and the `FILE_PROCESSING_EAP` project label are both required: access to
-the model alone does not enable inspection fields. The EAP is available on
-`v1beta` for evaluation and testing. The direct Google provider uses `v1beta`
-by default; a custom `v1` base URL cannot serve the EAP alias.
+Use `gemini-4-argon-file-processing-eap` or
+`gemini-3.8-flash-file-processing-eap` with an API key from an allowlisted
+project. The EAP is available on `v1beta` for evaluation and testing. The direct
+Google provider uses `v1beta` by default; a custom `v1` base URL cannot serve
+these EAP aliases.
 
 Pass `GoogleInteractionsFileOptions` under `providerOptions.google` on each
 file part. For example, to inspect pages 3 through 7:
@@ -1934,7 +1934,7 @@ for Word or
 
 The Interactions options are:
 
-- **resolution**: `'low' | 'medium' | 'high' | 'ultra_high'`. Overrides the
+- **resolution**: `'low' | 'medium' | 'high'`. Overrides the
   call-level `mediaResolution` for this file.
 - **processing**: `'agentic'`, `'static'`, or a static configuration object.
   Static selection objects require `type: 'static'`.
@@ -1945,11 +1945,11 @@ The Interactions options are:
   takes longer than extracting text. Start with text, then render selected
   pages when needed.
 - **processing.spreadsheetOptions**: `sheetIndex` (1-based workbook order),
-  `visibleCells` (an A1 range such as `'A1:C5'`), and `contentLayers`
+  `visibleCells` (an A1 cell or range such as `'B5'` or `'A1:C5'`), and `contentLayers`
   (`'data'`, `'formulas'`, `'visual'`). Supply one options object per file
   part. To read multiple sheets, repeat the file part with a different
-  `sheetIndex`. A single cell such as `'A1'` is not a range. The visual layer
-  renders the entire sheet even when `visibleCells` is set.
+  `sheetIndex`. The visual layer renders the selected `visibleCells` region,
+  including charts and formatting. Row-only ranges such as `'1:10'` are invalid.
 - **processing.startOffset / endOffset**: audio/video offsets in seconds.
   The provider converts numbers to API duration strings; for example,
   `startOffset: 60` becomes `start_offset: '60s'`.
@@ -1972,6 +1972,22 @@ const spreadsheetOptions = {
 } satisfies GoogleInteractionsFileOptions;
 ```
 
+#### Default file selection
+
+Without inspection options, PDFs include all pages as images and text;
+DOCX, DOTX, ODT, and PPTX use extracted text; DOC, PPT, and ODP use rendered
+page images. Specifying document processing options without content layers
+defaults to page images. Start with text for large Office documents and render
+selected pages when visual details matter.
+
+Spreadsheets without inspection options include every sheet's data and
+formulas. Specifying spreadsheet options defaults to the first sheet, all
+cells, and data plus formulas. `visibleCells` accepts a single cell or an A1
+range and also crops the visual layer. Page and sheet indices are 1-based;
+page bounds are inclusive. An end page beyond the document is clamped, while
+a start page beyond it produces an empty selection. Video defaults to frames
+and audio at one frame per second.
+
 #### GenerateContent inspection options
 
 For `google('gemini-4-argon-file-processing-eap')`, pass
@@ -1984,6 +2000,11 @@ metadata objects and uppercase content-layer names:
 | Spreadsheet cells | `spreadsheetMetadata`  | `sheetIndex`, `visibleCells`, `contentLayers: ['DATA', 'FORMULAS', 'VISUAL']`                             |
 | Audio clip        | `audioMetadata`        | `startOffset`, `endOffset` as duration strings                                                            |
 | Video clip        | `videoMetadata`        | `startOffset`, `endOffset` as duration strings, `fps`, `contentLayers: ['FRAMES', 'AUDIO', 'TRANSCRIPT']` |
+
+Set `mediaResolution: { level: 'MEDIA_RESOLUTION_HIGH' }` on the same file
+options object to control document, spreadsheet, or video rendering. The EAP
+accepts `MEDIA_RESOLUTION_LOW`, `MEDIA_RESOLUTION_MEDIUM`, and
+`MEDIA_RESOLUTION_HIGH`; it does not support ultra-high resolution.
 
 ```ts
 import { type GoogleFilePartOptions } from '@ai-sdk/google';
@@ -2002,10 +2023,15 @@ options also apply when using `streamText`.
 
 #### Return file selections from tools
 
-Both APIs accept inspection options on individual file parts in a tool's
-`toModelOutput` content. The provider sends GenerateContent selections inside
-`functionResponse.parts` and Interactions selections inside
-`function_result.result`.
+Use inspection options on individual file parts in a tool's `toModelOutput`
+content. The provider sends GenerateContent selections inside
+`functionResponse.parts`.
+
+For Interactions, the provider sends each tool result as a top-level
+`function_result` input block, with files inside `function_result.result`.
+This preserves each file's association with its tool call and its inspection
+options. Wrapping a document result inside `user_input.content` causes the
+EAP API to reject it.
 
 For Interactions, a tool can return:
 

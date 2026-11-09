@@ -75,11 +75,14 @@ export type GoogleInteractionsThoughtSummaryItem =
 export type GoogleInteractionsFunctionResultContent = {
   type: 'function_result';
   call_id: string;
-  result: string | Array<GoogleInteractionsContent> | unknown;
+  result: string | Array<GoogleInteractionsFunctionResultPart>;
   name?: string;
   is_error?: boolean;
   signature?: string;
 };
+
+// Files remain nested in top-level function_result inputs.
+export type GoogleInteractionsFunctionResultPart = GoogleInteractionsContent;
 
 /**
  * Annotation types attached to a `text` content block:
@@ -330,6 +333,7 @@ export type GoogleInteractionsBuiltinToolResultStep =
     } & GoogleInteractionsMCPServerToolResultStepPayload);
 
 export type GoogleInteractionsStep =
+  | GoogleInteractionsFunctionResultContent
   | GoogleInteractionsUserInputStep
   | GoogleInteractionsModelOutputStep
   | GoogleInteractionsFunctionCallStep
@@ -351,14 +355,17 @@ export type GoogleInteractionsContentBlock =
   | GoogleInteractionsAudioContent
   | GoogleInteractionsDocumentContent
   | GoogleInteractionsVideoContent
-  | GoogleInteractionsFunctionResultContent
   | { type: string; [k: string]: unknown };
 
 /**
- * Alias kept for the file-part converter surface; identical to
- * `GoogleInteractionsContentBlock`.
+ * Content emitted by the file-part converter.
  */
-export type GoogleInteractionsContent = GoogleInteractionsContentBlock;
+export type GoogleInteractionsContent =
+  | GoogleInteractionsTextContent
+  | GoogleInteractionsImageContent
+  | GoogleInteractionsAudioContent
+  | GoogleInteractionsDocumentContent
+  | GoogleInteractionsVideoContent;
 
 /*
  * `input` is an array of steps. A single-turn user prompt is sent as
