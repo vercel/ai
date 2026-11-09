@@ -1,4 +1,5 @@
 import {
+  fetchWithValidatedEndpoint,
   isSameOrigin,
   resolve,
   type FetchFunction,
@@ -41,7 +42,13 @@ export function createGoogleVertexMaas(
     const href =
       typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
     if (!isSameOrigin(href, loadGoogleVertexMaasBaseURL(options))) {
-      return (options.fetch ?? fetch)(url, init);
+      // Preserve the default DNS-pinned transport behind this auth wrapper.
+      return fetchWithValidatedEndpoint({
+        url: href,
+        init,
+        fetch: options.fetch,
+        redirect: 'manual',
+      });
     }
 
     const token = await generateAuthToken(options.googleCredentials);

@@ -4,6 +4,10 @@ vi.mock('../google-vertex-auth-google-auth-library', () => ({
   createAuthTokenGenerator: () => async () => 'test-token',
 }));
 
+vi.mock('../edge/google-vertex-auth-edge', () => ({
+  generateAuthToken: async () => 'test-token',
+}));
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -14,9 +18,14 @@ describe.skipIf(
   typeof process.getBuiltinModule !== 'function' ||
     (globalThis as { EdgeRuntime?: unknown }).EdgeRuntime != null,
 )('MaaS Node image download transport', () => {
-  it.each([false, true])(
-    'uses the DNS-pinned transport for downloads and redirect hops (forward global fetch: %s)',
-    async forwardGlobalFetch => {
+  it.each([
+    { entryPoint: 'node', forwardGlobalFetch: false },
+    { entryPoint: 'node', forwardGlobalFetch: true },
+    { entryPoint: 'edge', forwardGlobalFetch: false },
+    { entryPoint: 'edge', forwardGlobalFetch: true },
+  ])(
+    'uses the DNS-pinned transport for downloads and redirect hops ($entryPoint, forward global fetch: $forwardGlobalFetch)',
+    async ({ entryPoint, forwardGlobalFetch }) => {
       vi.resetModules();
       const apiFetch = vi.fn<typeof globalThis.fetch>(async url => {
         if (url !== 'https://api.example/v1/images/generations') {
@@ -56,7 +65,9 @@ describe.skipIf(
           : getBuiltinModule(id)) as typeof process.getBuiltinModule);
 
       const { createGoogleVertexMaas } =
-        await import('./google-vertex-maas-provider-node');
+        entryPoint === 'node'
+          ? await import('./google-vertex-maas-provider-node')
+          : await import('./edge/google-vertex-maas-provider-edge');
       const provider = createGoogleVertexMaas({
         baseURL: 'https://api.example/v1',
         headers: { 'x-provider-key': 'test-key' },
