@@ -5,7 +5,7 @@
   "dependencies": {
     "@ai-sdk/openai": "3.0.139",
     "@hono/node-server": "1.13.7",
-    "ai": "6.0.326",
+    "ai": "6.0.327",
     "dotenv": "16.4.5",
     "hono": "4.6.9"
   },

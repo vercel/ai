@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.103
+
+### Patch Changes
+
+- f194f1d: Prevent newly registered OAuth clients from supplying an authorization server binding for existing unbound refresh tokens. Clear unbound tokens before saving new registration information, and stop authorization if they remain in storage.
+
 ## 1.0.102
 
 ### Patch Changes
