@@ -13,6 +13,7 @@ describe('Claude 5 native structured output support', () => {
   );
   it.each([
     'anthropic.claude-fable-5',
+    'anthropic.claude-fable-5-2',
     'anthropic.claude-sonnet-4-6',
     'anthropic.claude-opus-5-9',
     'anthropic.claude-sonnet-5-60',

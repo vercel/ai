@@ -394,6 +394,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ??
       (this.modelId.includes('claude-fable-5-1') ||
+      this.modelId.includes('claude-fable-5-2') ||
       this.modelId.includes('claude-opus-5-5') ||
       this.modelId.includes('claude-sonnet-5-5')
         ? 'auto'
@@ -405,7 +406,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         supportsResponseSchema);
 
     // The JSON response tool relies on forced tool use, which some models
-    // reject (e.g. Opus 5.5, Fable 5.1). Fall back to native structured
+    // reject (e.g. Opus 5.5, Fable 5.1, Fable 5.2). Fall back to native structured
     // outputs when the model supports them.
     if (
       !useStructuredOutput &&
@@ -2547,7 +2548,10 @@ export function getModelCapabilities(modelId: string): {
       supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
-  } else if (modelId.includes('claude-fable-5-1')) {
+  } else if (
+    modelId.includes('claude-fable-5-1') ||
+    modelId.includes('claude-fable-5-2')
+  ) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,

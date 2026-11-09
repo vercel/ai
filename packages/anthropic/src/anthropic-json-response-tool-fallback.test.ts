@@ -193,49 +193,51 @@ describe('JSON response tool fallback', () => {
     };
   }
 
-  describe.each(['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1'])(
-    '%s open-schema fallback',
-    modelId => {
-      const options = () =>
-        jsonCall(
-          { type: 'object', additionalProperties: true },
-          { providerOptions: { anthropic: { structuredOutputMode: 'auto' } } },
-        );
+  describe.each([
+    'claude-sonnet-5-5',
+    'claude-opus-5-5',
+    'claude-fable-5-1',
+    'claude-fable-5-2',
+  ])('%s open-schema fallback', modelId => {
+    const options = () =>
+      jsonCall(
+        { type: 'object', additionalProperties: true },
+        { providerOptions: { anthropic: { structuredOutputMode: 'auto' } } },
+      );
 
-      it('returns text when the JSON tool is not called (generate)', async () => {
-        respondWithJson([{ type: 'text', text: '{"answer":"42"}' }]);
-        const result = await createModel(modelId).doGenerate(options());
-        expect(result.content).toEqual([
-          { type: 'text', text: '{"answer":"42"}' },
-        ]);
-        const body = await server.calls[0].requestBodyJson;
-        expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual([
-          'json',
-        ]);
-        expect(body.tool_choice.type).toBe('auto');
-        expect(body.output_config).toBeUndefined();
-        expect(result.warnings).not.toContainEqual(
-          expect.objectContaining({
-            type: 'unsupported-setting',
-            setting: 'toolChoice',
-          }),
-        );
-      });
+    it('returns text when the JSON tool is not called (generate)', async () => {
+      respondWithJson([{ type: 'text', text: '{"answer":"42"}' }]);
+      const result = await createModel(modelId).doGenerate(options());
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"answer":"42"}' },
+      ]);
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual([
+        'json',
+      ]);
+      expect(body.tool_choice.type).toBe('auto');
+      expect(body.output_config).toBeUndefined();
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported-setting',
+          setting: 'toolChoice',
+        }),
+      );
+    });
 
-      it('returns text when the JSON tool is not called (stream)', async () => {
-        respondWithStream(
-          messageEvents(textBlockEvents(0, ['{"answer"', ':"42"}'])),
-        );
-        const { stream } = await createModel(modelId).doStream(options());
-        const parts = await convertReadableStreamToArray(stream);
-        expect(
-          parts
-            .flatMap(part => (part.type === 'text-delta' ? [part.delta] : []))
-            .join(''),
-        ).toBe('{"answer":"42"}');
-      });
-    },
-  );
+    it('returns text when the JSON tool is not called (stream)', async () => {
+      respondWithStream(
+        messageEvents(textBlockEvents(0, ['{"answer"', ':"42"}'])),
+      );
+      const { stream } = await createModel(modelId).doStream(options());
+      const parts = await convertReadableStreamToArray(stream);
+      expect(
+        parts
+          .flatMap(part => (part.type === 'text-delta' ? [part.delta] : []))
+          .join(''),
+      ).toBe('{"answer":"42"}');
+    });
+  });
 
   it('recognizes the internal JSON tool when an application tool is named json', async () => {
     const call = jsonCall(CIRCULAR_SCHEMA, {

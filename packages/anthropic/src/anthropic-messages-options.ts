@@ -33,6 +33,7 @@ export type AnthropicMessagesModelId =
   | 'claude-opus-5-5'
   | 'claude-fable-5'
   | 'claude-fable-5-1'
+  | 'claude-fable-5-2'
   | 'claude-sonnet-5'
   | 'claude-sonnet-5-5'
   | (string & {});
@@ -172,7 +173,7 @@ export const anthropicProviderOptions = lazySchema(() => {
        * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
        *
        * Models that always use adaptive thinking (e.g. `claude-opus-5-5`,
-       * `claude-fable-5-1`) reject `enabled` and `disabled`. For those models the
+       * `claude-fable-5-1`, `claude-fable-5-2`) reject `enabled` and `disabled`. For those models the
        * provider drops the unsupported setting, emits a warning, and sends an
        * adaptive thinking request. Use `effort` to control how much they think.
        *
