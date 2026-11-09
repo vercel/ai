@@ -37,7 +37,7 @@ import {
   type FxSessionUpdate,
 } from './fx-runtime';
 import { createFxSkillsRuntime } from './fx-skills';
-import { resolveFxAuthentication } from './fx-subscription';
+import { resolveFxAuthentication, resolveFxModel } from './fx-subscription';
 import {
   fxJsonValue,
   fxToolRequiresApproval,
@@ -635,6 +635,10 @@ export async function createFxSession(options: {
           },
         });
         signal.throwIfAborted();
+        const model = await resolveFxModel({
+          provider: authentication.provider,
+          model: opts.model,
+        });
         runtime = await createFxRuntime({
           ...(authentication.provider === 'gateway'
             ? { apiKey: authentication.apiKey }
@@ -657,7 +661,7 @@ export async function createFxSession(options: {
                   }
                 },
               }),
-          ...(opts.model ? { model: opts.model } : {}),
+          ...(model ? { model } : {}),
           ...(settings.effort ? { effort: settings.effort } : {}),
           ...serviceTierOptions,
           instructions: [
