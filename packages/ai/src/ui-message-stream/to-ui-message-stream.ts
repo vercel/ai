@@ -115,6 +115,31 @@ export function toUIMessageStream<
     },
   });
 
+  // An invalid tool call is followed by a tool error for the same failure.
+  // The error text is reused so that onError is called once per failure.
+  const invalidToolCallErrorTexts = new Map<string, string>();
+
+  const getOnErrorForPart = (
+    part: TextStreamPart<TOOLS>,
+  ): ((error: unknown) => string) => {
+    if (part.type === 'tool-call' && part.invalid) {
+      return error => {
+        const errorText = onError(error);
+        invalidToolCallErrorTexts.set(part.toolCallId, errorText);
+        return errorText;
+      };
+    }
+
+    const invalidToolCallErrorText =
+      part.type === 'tool-error'
+        ? invalidToolCallErrorTexts.get(part.toolCallId)
+        : undefined;
+
+    return invalidToolCallErrorText != null
+      ? () => invalidToolCallErrorText
+      : onError;
+  };
+
   const uiMessageChunkStream = sourceStream.pipeThrough(
     new TransformStream({
       transform: async (part, controller) => {
@@ -127,7 +152,7 @@ export function toUIMessageStream<
             sendSources,
             sendStart,
             sendFinish,
-            onError,
+            onError: getOnErrorForPart(part),
             messageMetadata: messageMetadataValue,
             responseMessageId,
           });

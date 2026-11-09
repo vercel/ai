@@ -259,6 +259,58 @@ describe('toUIMessageStream', () => {
     expect(chunks).toEqual([{ type: 'error', errorText: 'handled: boom' }]);
   });
 
+  it('calls onError once with the original error for an invalid tool call', async () => {
+    const error = new Error('invalid input');
+    const parts: TextStreamPart<{}>[] = [
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'testTool',
+        input: '{"value":',
+        dynamic: true,
+        invalid: true,
+        error,
+      },
+      {
+        type: 'tool-error',
+        toolCallId: 'call-1',
+        toolName: 'testTool',
+        input: '{"value":',
+        error: 'invalid input',
+        dynamic: true,
+      },
+    ];
+    const onError = vi.fn(
+      (error: unknown) => `handled: ${(error as Error).message}`,
+    );
+
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        onError,
+      }),
+    );
+
+    expect(onError.mock.calls).toEqual([[error]]);
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-error',
+        toolCallId: 'call-1',
+        toolName: 'testTool',
+        input: '{"value":',
+        dynamic: true,
+        errorText: 'handled: invalid input',
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'call-1',
+        errorText: 'handled: invalid input',
+        dynamic: true,
+      },
+    ]);
+  });
+
   it('emits separate metadata chunks for non-lifecycle parts', async () => {
     type MetadataUIMessage = UIMessage<{ partType: string }>;
 
