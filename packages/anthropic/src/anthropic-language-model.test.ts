@@ -5206,6 +5206,45 @@ describe('AnthropicLanguageModel', () => {
         );
       });
 
+      it('should send use_cache and allowed_callers for anthropic.tools.webFetch_20260318', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [{ type: 'text', text: 'Fetched result.' }],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.web_fetch_20260318',
+              name: 'web_fetch',
+              args: {
+                maxUses: 1,
+                useCache: false,
+                allowedCallers: ['direct'],
+              },
+            },
+          ],
+        });
+
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'web_fetch_20260318',
+            name: 'web_fetch',
+            max_uses: 1,
+            use_cache: false,
+            allowed_callers: ['direct'],
+          },
+        ]);
+      });
+
       describe('20260209 text response', () => {
         let result: LanguageModelV4GenerateResult;
 

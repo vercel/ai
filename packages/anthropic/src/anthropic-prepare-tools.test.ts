@@ -773,6 +773,7 @@ describe('prepareTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "allowed_callers": undefined,
               "allowed_domains": [
                 "https://www.google.com",
               ],
@@ -803,6 +804,7 @@ describe('prepareTools', () => {
               allowedDomains: ['google.com'],
               userLocation: { type: 'approximate', city: 'New York' },
               responseInclusion: 'excluded',
+              allowedCallers: ['direct'],
             },
           },
         ],
@@ -817,6 +819,9 @@ describe('prepareTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "allowed_callers": [
+                "direct",
+              ],
               "allowed_domains": [
                 "google.com",
               ],
@@ -912,6 +917,7 @@ describe('prepareTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "allowed_callers": undefined,
               "allowed_domains": [
                 "https://www.google.com",
               ],
@@ -944,6 +950,7 @@ describe('prepareTools', () => {
               maxContentTokens: 1000,
               useCache: false,
               responseInclusion: 'excluded',
+              allowedCallers: ['direct'],
             },
           },
         ],
@@ -959,6 +966,9 @@ describe('prepareTools', () => {
           "toolWarnings": [],
           "tools": [
             {
+              "allowed_callers": [
+                "direct",
+              ],
               "allowed_domains": [
                 "google.com",
               ],
