@@ -1,0 +1,30 @@
+{
+  "name": "ai-sdk",
+  "description": "Vercel AI SDK end-user agent skills",
+  "author": {
+    "name": "Vercel",
+    "url": "https://github.com/vercel"
+  },
+  "homepage": "https://ai-sdk.dev",
+  "repository": "https://github.com/vercel/ai",
+  "license": "Apache-2.0",
+  "keywords": [
+    "ai-sdk",
+    "vercel",
+    "llm",
+    "agents",
+    "typescript"
+  ],
+  "skills": [
+    "./use-ai-sdk",
+    "./migrate-ai-sdk-v6-to-v7"
+  ],
+  "interface": {
+    "displayName": "AI SDK",
+    "shortDescription": "Vercel AI SDK end-user agent skills",
+    "longDescription": "End-user agent skills for the Vercel AI SDK (use-ai-sdk and migrate-ai-sdk-v6-to-v7), installed from the skills already in this repository. Contributor skills in skills/ are intentionally not listed.",
+    "developerName": "Vercel",
+    "category": "Developer Tools",
+    "websiteURL": "https://ai-sdk.dev"
+  }
+}

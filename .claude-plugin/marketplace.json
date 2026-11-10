@@ -1,0 +1,35 @@
+{
+  "name": "ai-sdk",
+  "owner": {
+    "name": "Vercel"
+  },
+  "description": "Vercel AI SDK end-user agent skills",
+  "plugins": [
+    {
+      "name": "ai-sdk",
+      "displayName": "AI SDK",
+      "description": "Vercel AI SDK end-user agent skills for Claude Code",
+      "source": "./skills",
+      "strict": false,
+      "author": {
+        "name": "Vercel",
+        "url": "https://github.com/vercel"
+      },
+      "homepage": "https://ai-sdk.dev",
+      "repository": "https://github.com/vercel/ai",
+      "license": "Apache-2.0",
+      "keywords": [
+        "ai-sdk",
+        "vercel",
+        "llm",
+        "agents",
+        "typescript"
+      ],
+      "category": "development",
+      "skills": [
+        "./use-ai-sdk",
+        "./migrate-ai-sdk-v6-to-v7"
+      ]
+    }
+  ]
+}
