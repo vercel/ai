@@ -11,6 +11,8 @@ export type {
   MiniMaxLanguageModelOptions as MiniMaxProviderOptions,
 } from './minimax-chat-language-model-options';
 export type { MiniMaxVideoModelId } from './minimax-video-settings';
+export type { MiniMaxImageModelId } from './minimax-image-settings';
+export type { MiniMaxImageModelOptions } from './minimax-image-model-options';
 export type { MiniMaxVideoModelOptions } from './minimax-video-model-options';
 export type {
   MiniMaxImagePartOptions,

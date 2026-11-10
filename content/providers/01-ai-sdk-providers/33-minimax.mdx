@@ -7,7 +7,7 @@ description: Learn how to use MiniMax with AI Gateway and the direct provider.
 
 The [MiniMax](https://www.minimax.io) provider offers access to the MiniMax-M
 series of language models through the MiniMax API, including models with
-reasoning capabilities, as well as video generation with the MiniMax-H series.
+reasoning capabilities, as well as video generation with the MiniMax-H series and image generation with MiniMax-H3-Image.
 You can use MiniMax models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/minimax`.
 
 ```ts provider="minimax" model="minimax/minimax-m3"
@@ -94,11 +94,18 @@ You can use the following optional settings to customize the MiniMax provider in
   the MiniMax V2 native endpoint (not the Anthropic-compatible endpoint).
   The default prefix is `https://api.minimax.io`.
 
+- **imageBaseURL** _string_
+
+  Use a different URL prefix for image generation API calls. The image API uses
+  the MiniMax native endpoint (not the Anthropic-compatible endpoint).
+  The default prefix is `https://api.minimax.io`. Use
+  `https://api.minimaxi.com` for the China endpoint.
+
 - **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
 
   API key for the MiniMax API. It defaults to the `MINIMAX_API_KEY` environment
   variable. Language models send it in the `x-api-key` header (the
-  Anthropic-compatible protocol); video models send it as
+  Anthropic-compatible protocol); video and image models send it as
   `Authorization: Bearer`.
 
   A function is called before each request and may return a promise. Use it to
@@ -605,6 +612,35 @@ MiniMax video results include `providerMetadata.minimax`:
   Billed seconds, when reported by the API: `totalSeconds`, `inputSeconds`,
   and `outputSeconds`.
 
+## Image Models
+
+You can generate and edit images with MiniMax-H3-Image using
+[`generateImage`](/docs/reference/ai-sdk-core/generate-image):
+
+```ts
+import { minimax, type MiniMaxImageModelOptions } from '@ai-sdk/minimax';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: minimax.image('MiniMax-H3-Image'),
+  prompt: 'A white kitten chasing a butterfly in a sunlit garden.',
+  aspectRatio: '1:1',
+  maxRetries: 0,
+  providerOptions: {
+    minimax: {
+      area: '1K',
+    } satisfies MiniMaxImageModelOptions,
+  },
+});
+```
+
+`providerOptions.minimax.area` (`1K`, `2K`, or `4K`) and `aspectRatio` cannot
+be combined with a pixel `size`. If both `size` and `area` are omitted, the API
+defaults to 4K.
+
+To edit an image, pass 1 to 16 reference images through `prompt.images` as public
+URLs, data URIs, or binary data. Masks are not supported.
+
 ## Model Capabilities
 
 {/* model-capabilities:minimax-language:start */}
@@ -640,6 +676,16 @@ MiniMax video results include `providerMetadata.minimax`:
 
 {/* model-capabilities:minimax-video:end */}
 
+## Image Model Capabilities
+
+{/* model-capabilities:minimax-image:start */}
+
+| Model              | Sizes                                                                           | Image Editing | Mask Input | Max Images Per Call |
+| ------------------ | ------------------------------------------------------------------------------- | ------------- | ---------- | ------------------- |
+| `MiniMax-H3-Image` | `auto`, `{width}x{height}`, or an `area` of `1K`/`2K`/`4K` with an aspect ratio | <Check />     | <Cross />  | 10                  |
+
+{/* model-capabilities:minimax-image:end */}
+
 ## Provider Option Reference
 
 The following option definitions are generated from the provider catalog.
@@ -651,6 +697,8 @@ The following option definitions are generated from the provider catalog.
 | language  | `effort`             | Reasoning effort for MiniMax M3.1 and later models. Higher levels can use more reasoning tokens and increase latency. Defaults to the server's setting.                 |
 | language  | `serviceTier`        | Request admission tier (`standard` or `priority`), sent as `service_tier`. Priority admission is billed at 1.5x the standard price. Omit to use the API's default tier. |
 | language  | `thinking`           | thinking                                                                                                                                                                |
+| image     | `aspectRatio`        | Aspect ratio of the generated image. Overrides the top-level `aspectRatio`. Cannot be combined with `size` as `{width}x{height}`.                                       |
+| image     | `area`               | Output area (`1K`, `2K`, or `4K`). The API defaults to `4K` when `size` is omitted. Cannot be combined with `size` as `{width}x{height}`.                               |
 | video     | `resolution`         | Output resolution.                                                                                                                                                      |
 | video     | `ratio`              | Aspect ratio of the generated video. Overrides the top-level `aspectRatio`.                                                                                             |
 | video     | `referenceAudioUrls` | Reference audio URLs for reference-to-video generation.                                                                                                                 |
