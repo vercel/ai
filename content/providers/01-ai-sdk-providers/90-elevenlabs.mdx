@@ -260,24 +260,28 @@ variant when enabled. This includes `eleven_multilingual_v2`, `eleven_v3`,
 
 ### Model Capabilities
 
-| Model                      | Speech    | Streaming Speech     |
-| -------------------------- | --------- | -------------------- |
-| `eleven_v4`                | <Check /> | <Check /> (dialogue) |
-| `eleven_v4_turbo`          | <Check /> | <Check /> (dialogue) |
-| `eleven_v3`                | <Check /> | <Check /> (dialogue) |
-| `eleven_v3_conversational` | <Check /> | <Check /> (dialogue) |
-| `eleven_multilingual_v2`   | <Check /> | <Check />            |
-| `eleven_flash_v2_5`        | <Check /> | <Check />            |
-| `eleven_flash_v2`          | <Check /> | <Check />            |
-| `eleven_turbo_v2_5`        | <Check /> | <Check />            |
-| `eleven_turbo_v2`          | <Check /> | <Check />            |
-| `eleven_monolingual_v1`    | <Check /> | <Cross />            |
-| `eleven_multilingual_v1`   | <Check /> | <Cross />            |
-| `music_v2_5`               | <Check /> | <Cross />            |
-| `music_v2`                 | <Check /> | <Cross />            |
-| `music_v1`                 | <Check /> | <Cross />            |
-| `eleven_text_to_sound_v2`  | <Check /> | <Cross />            |
-| `eleven_text_to_sound_v3`  | <Check /> | <Cross />            |
+{/* model-capabilities:elevenlabs-speech:start */}
+
+| Model                      | Speech    | Streaming Speech                                           | Instructions |
+| -------------------------- | --------- | ---------------------------------------------------------- | ------------ |
+| `eleven_v4`                | <Check /> | Conditional: Requires providerOptions.elevenlabs.dialogue. | <Cross />    |
+| `eleven_v4_turbo`          | <Check /> | Conditional: Requires providerOptions.elevenlabs.dialogue. | <Cross />    |
+| `eleven_v3`                | <Check /> | Conditional: Requires providerOptions.elevenlabs.dialogue. | <Cross />    |
+| `eleven_v3_conversational` | <Check /> | Conditional: Requires providerOptions.elevenlabs.dialogue. | <Cross />    |
+| `eleven_multilingual_v2`   | <Check /> | <Check />                                                  | <Cross />    |
+| `eleven_flash_v2_5`        | <Check /> | <Check />                                                  | <Cross />    |
+| `eleven_flash_v2`          | <Check /> | <Check />                                                  | <Cross />    |
+| `eleven_turbo_v2_5`        | <Check /> | <Check />                                                  | <Cross />    |
+| `eleven_turbo_v2`          | <Check /> | <Check />                                                  | <Cross />    |
+| `eleven_monolingual_v1`    | <Check /> | <Cross />                                                  | <Cross />    |
+| `eleven_multilingual_v1`   | <Check /> | <Cross />                                                  | <Cross />    |
+| `music_v2_5`               | <Check /> | <Cross />                                                  | <Cross />    |
+| `music_v2`                 | <Check /> | <Cross />                                                  | <Cross />    |
+| `music_v1`                 | <Check /> | <Cross />                                                  | <Cross />    |
+| `eleven_text_to_sound_v2`  | <Check /> | <Cross />                                                  | <Cross />    |
+| `eleven_text_to_sound_v3`  | <Check /> | <Cross />                                                  | <Cross />    |
+
+{/* model-capabilities:elevenlabs-speech:end */}
 
 ElevenLabs speech models do not support `instructions`; the option is ignored
 with a warning.
@@ -638,11 +642,16 @@ timestamped word segments from `await result.segments` after the stream finishes
 
 ### Model Capabilities
 
-| Model                    | Transcription | Duration  | Segments  | Language  |
-| ------------------------ | ------------- | --------- | --------- | --------- |
-| `scribe_v1`              | <Check />     | <Check /> | <Check /> | <Check /> |
-| `scribe_v1_experimental` | <Check />     | <Check /> | <Check /> | <Check /> |
-| `scribe_v2`              | <Check />     | <Check /> | <Check /> | <Check /> |
+{/* model-capabilities:elevenlabs-transcription:start */}
+
+| Model                    | Transcription | Streaming | Duration  | Segments  | Language  |
+| ------------------------ | ------------- | --------- | --------- | --------- | --------- |
+| `scribe_v1`              | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `scribe_v1_experimental` | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `scribe_v2`              | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `scribe_v2_realtime`     | <Cross />     | <Check /> | <Check /> | <Check /> | <Check /> |
+
+{/* model-capabilities:elevenlabs-transcription:end */}
 
 ## Streaming Transcription Models
 
@@ -710,6 +719,49 @@ streaming transcription.
 
 ### Model Capabilities
 
-| Model                | Streaming Transcription | Timestamps          | Language Detection  |
-| -------------------- | ----------------------- | ------------------- | ------------------- |
-| `scribe_v2_realtime` | <Check size={18} />     | <Check size={18} /> | <Check size={18} /> |
+{/* model-capabilities:elevenlabs-streaming-transcription:start */}
+
+| Model                | Streaming Transcription | Timestamps | Language Detection |
+| -------------------- | ----------------------- | ---------- | ------------------ |
+| `scribe_v2_realtime` | <Check />               | <Check />  | <Check />          |
+
+{/* model-capabilities:elevenlabs-streaming-transcription:end */}
+
+
+### Provider Option Catalog
+
+{/* model-capabilities:elevenlabs-provider-options:start */}
+
+| Operation     | Option                            | Description                                                               |
+| ------------- | --------------------------------- | ------------------------------------------------------------------------- |
+| speech        | `withTimestamps`                  | Return character alignment for speech or lyric word timestamps for music. |
+| speech        | `languageCode`                    | Language code.                                                            |
+| speech        | `voiceSettings`                   | Voice settings.                                                           |
+| speech        | `pronunciationDictionaryLocators` | Pronunciation dictionary locators.                                        |
+| speech        | `seed`                            | Seed.                                                                     |
+| speech        | `previousText`                    | Previous text.                                                            |
+| speech        | `nextText`                        | Next text.                                                                |
+| speech        | `previousRequestIds`              | Previous request ids.                                                     |
+| speech        | `nextRequestIds`                  | Next request ids.                                                         |
+| speech        | `applyTextNormalization`          | Apply text normalization.                                                 |
+| speech        | `applyLanguageTextNormalization`  | Apply language text normalization.                                        |
+| speech        | `enableLogging`                   | Enable logging.                                                           |
+| speech        | `streaming`                       | WebSocket speech settings; not used by non-streaming generation.          |
+| speech        | `dialogue`                        | Voice settings for streaming text-to-dialogue.                            |
+| speech        | `inputs`                          | Text and voice pairs for non-streaming text-to-dialogue.                  |
+| speech        | `musicLengthMs`                   | Music length ms.                                                          |
+| speech        | `forceInstrumental`               | Force instrumental.                                                       |
+| speech        | `compositionPlan`                 | Native music composition plan; replaces the text prompt.                  |
+| speech        | `durationSeconds`                 | Duration seconds.                                                         |
+| speech        | `promptInfluence`                 | Prompt influence.                                                         |
+| speech        | `loop`                            | Loop.                                                                     |
+| transcription | `languageCode`                    | Language hint for transcription.                                          |
+| transcription | `tagAudioEvents`                  | Include audio event tags in batch transcripts.                            |
+| transcription | `numSpeakers`                     | Expected speaker count for batch transcription.                           |
+| transcription | `timestampsGranularity`           | Timestamp precision for batch transcription.                              |
+| transcription | `diarize`                         | Identify speakers in batch transcripts.                                   |
+| transcription | `fileFormat`                      | Input audio format for batch transcription.                               |
+| transcription | `sourceUrl`                       | Transcribe a remote audio source in batch mode.                           |
+| transcription | `streaming`                       | Scribe realtime transcription settings.                                   |
+
+{/* model-capabilities:elevenlabs-provider-options:end */}

@@ -1,3 +1,4 @@
+import { elevenLabsDocs } from './providers/elevenlabs.mjs';
 import { deepgramDocs } from './providers/deepgram.mjs';
 import { cartesiaDocs } from './providers/cartesia.mjs';
 import { assemblyaiDocs } from './providers/assemblyai.mjs';
@@ -32,6 +33,7 @@ import { formatSupport } from './render-tables.mjs';
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
+  elevenLabsDocs,
   deepgramDocs,
   cartesiaDocs,
   assemblyaiDocs,
