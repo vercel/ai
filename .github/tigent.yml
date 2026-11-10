@@ -1,7 +1,6 @@
 blocklist:
   - major
   - minor
-  - backport
   - pull request welcome
   - good first issue
   - type:batch
