@@ -81,6 +81,41 @@ describe.each(['streamText', 'streamObject'] as const)(
       },
     );
 
+    it('hands published array state back to the existing parser without duplicate partials or text', async () => {
+      const schema = z4.number();
+      const createResult = () => {
+        const model = modelFor('{"elements":[1,2],"other":3}');
+        return api === 'streamText'
+          ? streamText({
+              model,
+              prompt: 'Return elements',
+              output: Output.array({ element: schema }),
+            })
+          : streamObject({
+              model,
+              prompt: 'Return elements',
+              output: 'array',
+              schema,
+            });
+      };
+      // Legacy streamObject exposes a single-consumer stream.
+      const partialResult = createResult();
+      const partialStream =
+        'partialOutputStream' in partialResult
+          ? partialResult.partialOutputStream
+          : partialResult.partialObjectStream;
+      const [partials, elements, text] = await Promise.all([
+        convertAsyncIterableToArray(partialStream),
+        convertAsyncIterableToArray(createResult().elementStream),
+        convertAsyncIterableToArray(createResult().textStream),
+      ]);
+      expect(partials).toEqual([[], [1], [1, 2]]);
+      expect(elements).toEqual([1, 2]);
+      expect(text.join('')).toBe(
+        api === 'streamText' ? '{"elements":[1,2],"other":3}' : '[1,2]',
+      );
+    });
+
     it('retains compatibility with nonstandard envelopes through the existing parser', async () => {
       const schema = z4.object({ value: z4.number() });
       const model = modelFor(
