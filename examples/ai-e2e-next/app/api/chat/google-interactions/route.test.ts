@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
+import { POST as agenticVideoPOST } from '../google-interactions-agentic-video/route';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -40,11 +41,14 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe('Google Interactions chat route', () => {
+describe.each([
+  ['Google Interactions', POST, false],
+  ['Google Interactions agentic video', agenticVideoPOST, true],
+] as const)('%s chat route', (_name, handler, agenticVideo) => {
   it.each([undefined, 'another-conversations-interaction'])(
     'sends full stateless history with client interaction ID %s',
     async interactionId => {
-      const response = await POST(
+      const response = await handler(
         new Request('http://localhost:3000/api/chat/google-interactions', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -53,7 +57,18 @@ describe('Google Interactions chat route', () => {
               {
                 id: 'first-user',
                 role: 'user',
-                parts: [{ type: 'text', text: 'My name is Ada.' }],
+                parts: [
+                  ...(agenticVideo
+                    ? [
+                        {
+                          type: 'file',
+                          mediaType: 'video/mp4',
+                          url: 'data:video/mp4;base64,AQID',
+                        },
+                      ]
+                    : []),
+                  { type: 'text', text: 'My name is Ada.' },
+                ],
               },
               {
                 id: 'assistant',
@@ -64,6 +79,24 @@ describe('Google Interactions chat route', () => {
                     text: 'Hello Ada.',
                     providerMetadata: { google: { interactionId } },
                   },
+                  ...(agenticVideo
+                    ? [
+                        {
+                          type: 'custom',
+                          kind: 'google.processing_call',
+                          providerMetadata: {
+                            google: { processingId: 'video-processing' },
+                          },
+                        },
+                        {
+                          type: 'custom',
+                          kind: 'google.processing_result',
+                          providerMetadata: {
+                            google: { processingCallId: 'video-processing' },
+                          },
+                        },
+                      ]
+                    : []),
                 ],
               },
               {
@@ -88,12 +121,30 @@ describe('Google Interactions chat route', () => {
       expect(body.input).toEqual([
         {
           type: 'user_input',
-          content: [{ type: 'text', text: 'My name is Ada.' }],
+          content: [
+            ...(agenticVideo
+              ? [
+                  {
+                    type: 'video',
+                    data: 'AQID',
+                    mime_type: 'video/mp4',
+                    processing: 'agentic',
+                  },
+                ]
+              : []),
+            { type: 'text', text: 'My name is Ada.' },
+          ],
         },
         {
           type: 'model_output',
           content: [{ type: 'text', text: 'Hello Ada.' }],
         },
+        ...(agenticVideo
+          ? [
+              { type: 'processing_call', id: 'video-processing' },
+              { type: 'processing_result', call_id: 'video-processing' },
+            ]
+          : []),
         {
           type: 'user_input',
           content: [{ type: 'text', text: 'What is my name?' }],
