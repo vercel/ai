@@ -2932,4 +2932,210 @@ describe('Claude Code bridge configuration', () => {
       expect.objectContaining({ type: 'finish' }),
     );
   });
+
+  describe('background tasks', () => {
+    /**
+     * Plays `frames` as the CLI would, with `$PROMPT` replaced by the uuid of
+     * the host prompt, and returns how many frames the bridge read.
+     */
+    function playFrames(frames: Record<string, unknown>[]) {
+      const played = { count: 0 };
+      state.createQuery = args =>
+        (async function* () {
+          const input = args.prompt[Symbol.asyncIterator]();
+          const initial = await input.next();
+          const promptUuid = Reflect.get(initial.value as object, 'uuid');
+          for (const frame of frames) {
+            played.count++;
+            yield JSON.parse(
+              JSON.stringify(frame).split('$PROMPT').join(String(promptUuid)),
+            );
+          }
+        })();
+      return played;
+    }
+
+    function text(value: string): Record<string, unknown>[] {
+      return [
+        {
+          type: 'stream_event',
+          parent_tool_use_id: null,
+          event: {
+            type: 'content_block_start',
+            index: 0,
+            content_block: { type: 'text', text: '' },
+          },
+        },
+        {
+          type: 'stream_event',
+          parent_tool_use_id: null,
+          event: {
+            type: 'content_block_delta',
+            index: 0,
+            delta: { type: 'text_delta', text: value },
+          },
+        },
+        {
+          type: 'stream_event',
+          parent_tool_use_id: null,
+          event: { type: 'content_block_stop', index: 0 },
+        },
+        {
+          type: 'assistant',
+          parent_tool_use_id: null,
+          message: { content: [{ type: 'text', text: value }] },
+        },
+      ];
+    }
+
+    const sessionState = (value: 'running' | 'idle') => ({
+      type: 'system',
+      subtype: 'session_state_changed',
+      state: value,
+    });
+
+    const promptQueued = {
+      type: 'command_lifecycle',
+      command_uuid: '$PROMPT',
+      state: 'queued',
+    };
+
+    const textDeltas = () =>
+      state.emitted
+        .filter(event => event.type === 'text-delta')
+        .map(event => event.delta);
+
+    test('keeps the turn open while a background task runs and answers its notification in the same turn', async () => {
+      const frames = [
+        promptQueued,
+        sessionState('running'),
+        {
+          type: 'system',
+          subtype: 'background_tasks_changed',
+          tasks: [
+            {
+              task_id: 'bash-1',
+              task_type: 'local_bash',
+              description: 'Run the test suite',
+            },
+          ],
+        },
+        ...text('The suite is running in the background.'),
+        {
+          type: 'result',
+          subtype: 'success',
+          is_error: false,
+          result: 'The suite is running in the background.',
+          usage: { input_tokens: 10, output_tokens: 12 },
+          user_message_uuid: '$PROMPT',
+        },
+        { type: 'system', subtype: 'background_tasks_changed', tasks: [] },
+        {
+          type: 'system',
+          subtype: 'task_notification',
+          task_id: 'bash-1',
+          status: 'completed',
+          output_file: '/tmp/bash-1.output',
+          summary: 'Background command "Run the test suite" completed',
+        },
+        ...text('BG_DONE'),
+        {
+          type: 'result',
+          subtype: 'success',
+          is_error: false,
+          result: 'BG_DONE',
+          usage: { input_tokens: 20, output_tokens: 9 },
+          origin: { kind: 'task-notification' },
+        },
+        sessionState('idle'),
+      ];
+      const played = playFrames(frames);
+
+      await import('./index');
+
+      expect(textDeltas()).toEqual([
+        'The suite is running in the background.',
+        'BG_DONE',
+      ]);
+      expect(played.count).toBe(frames.length);
+      const types = state.emitted.map(event => event.type);
+      expect(types.filter(type => type === 'finish-step')).toHaveLength(2);
+      expect(types.at(-1)).toBe('finish');
+      expect(state.emitted.at(-1)).toMatchObject({
+        totalUsage: { outputTokens: { total: 21 } },
+      });
+    });
+
+    test('a failed helper task does not end the turn with an error', async () => {
+      playFrames([
+        promptQueued,
+        {
+          type: 'assistant',
+          parent_tool_use_id: null,
+          message: {
+            content: [
+              {
+                type: 'tool_use',
+                id: 'toolu_helper',
+                name: 'Agent',
+                input: {
+                  description: 'Check the config',
+                  prompt: 'Read the config and report the port.',
+                  subagent_type: 'general-purpose',
+                  run_in_background: true,
+                },
+              },
+            ],
+          },
+        },
+        {
+          type: 'system',
+          subtype: 'background_tasks_changed',
+          tasks: [
+            {
+              task_id: 'agent-1',
+              task_type: 'local_agent',
+              description: 'Check the config',
+            },
+          ],
+        },
+        {
+          type: 'system',
+          subtype: 'task_updated',
+          task_id: 'agent-1',
+          patch: { status: 'failed', error: 'API Error: 529 overloaded' },
+        },
+        { type: 'system', subtype: 'background_tasks_changed', tasks: [] },
+        {
+          type: 'system',
+          subtype: 'task_notification',
+          task_id: 'agent-1',
+          tool_use_id: 'toolu_helper',
+          status: 'failed',
+          output_file: '/tmp/agent-1.output',
+          summary: 'Agent "Check the config" failed',
+        },
+        ...text('The helper failed, so I read the config myself: port 3000.'),
+        {
+          type: 'result',
+          subtype: 'success',
+          is_error: false,
+          result: 'The helper failed, so I read the config myself: port 3000.',
+          usage: { input_tokens: 10, output_tokens: 15 },
+          user_message_uuid: '$PROMPT',
+        },
+      ]);
+
+      await import('./index');
+
+      expect(state.emitted.filter(event => event.type === 'error')).toEqual([]);
+      expect(textDeltas()).toEqual([
+        'The helper failed, so I read the config myself: port 3000.',
+      ]);
+      expect(state.emitted.at(-1)).toMatchObject({
+        type: 'finish',
+        totalUsage: { outputTokens: { total: 15 } },
+      });
+    });
+  });
 });
