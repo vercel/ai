@@ -225,13 +225,17 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model          |
-| -------------- |
-| `sonic-3.5`    |
-| `sonic-3`      |
-| `sonic-2`      |
-| `sonic-turbo`  |
-| `sonic-latest` |
+{/* model-capabilities:cartesia-speech:start */}
+
+| Model          | Instructions |
+| -------------- | ------------ |
+| `sonic-3.5`    | <Cross />    |
+| `sonic-3`      | <Cross />    |
+| `sonic-2`      | <Cross />    |
+| `sonic-turbo`  | <Cross />    |
+| `sonic-latest` | <Cross />    |
+
+{/* model-capabilities:cartesia-speech:end */}
 
 ## Realtime Transcription Models
 
@@ -270,9 +274,13 @@ setup.
 
 ### Model Capabilities
 
-| Model   | Streaming Transcription | Turn Detection      |
-| ------- | ----------------------- | ------------------- |
-| `ink-2` | <Check size={18} />     | <Check size={18} /> |
+{/* model-capabilities:cartesia-realtime:start */}
+
+| Model   | Streaming Transcription | Turn Detection |
+| ------- | ----------------------- | -------------- |
+| `ink-2` | <Check />               | <Check />      |
+
+{/* model-capabilities:cartesia-realtime:end */}
 
 ## Streaming Transcription Models
 
@@ -365,9 +373,13 @@ streaming transcription.
 
 ### Model Capabilities
 
-| Model   | Streaming Transcription | Turn Detection      | Keyterms            |
-| ------- | ----------------------- | ------------------- | ------------------- |
-| `ink-2` | <Check size={18} />     | <Check size={18} /> | <Check size={18} /> |
+{/* model-capabilities:cartesia-streaming-transcription:start */}
+
+| Model   | Streaming Transcription | Turn Detection | Keyterms  |
+| ------- | ----------------------- | -------------- | --------- |
+| `ink-2` | <Check />               | <Check />      | <Check /> |
+
+{/* model-capabilities:cartesia-streaming-transcription:end */}
 
 ## Batch Transcription Models
 
@@ -428,6 +440,35 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model         | Transcription       | Duration            | Segments            | Language            |
-| ------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `ink-whisper` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+{/* model-capabilities:cartesia-transcription:start */}
+
+| Model         | Transcription | Streaming | Duration  | Segments  | Language  |
+| ------------- | ------------- | --------- | --------- | --------- | --------- |
+| `ink-whisper` | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `ink-2`       | <Cross />     | <Check /> | <Check /> | <Check /> | <Check /> |
+
+{/* model-capabilities:cartesia-transcription:end */}
+
+
+### Provider Option Catalog
+
+{/* model-capabilities:cartesia-provider-options:start */}
+
+| Operation     | Option                      | Description                                                                                                |
+| ------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| speech        | `container`                 | Container format for the output audio (raw, wav, mp3).                                                     |
+| speech        | `encoding`                  | Encoding type for the audio output (pcm_f32le, pcm_s16le, pcm_mulaw, pcm_alaw).                            |
+| speech        | `sampleRate`                | Sample rate for the output audio in Hz (e.g. 8000, 16000, 22050, 24000, 44100, 48000).                     |
+| speech        | `bitRate`                   | Bitrate for mp3 output in bits per second (e.g. 32000, 64000, 128000, 192000).                             |
+| speech        | `speed`                     | Controls the speed of the generated speech.                                                                |
+| speech        | `volume`                    | Volume of the generated speech, between 0.5 and 2. Sonic 3 and newer.                                      |
+| speech        | `emotion`                   | Emotion of the generated speech. Beta, works best with English. Sonic 3 and newer.                         |
+| speech        | `language`                  | The language to generate speech in (ISO 639-1 code).                                                       |
+| speech        | `locale`                    | The regional locale code to generate speech in (e.g. 'en-GB', 'es-MX'). Supported for Sonic 3.6 and later. |
+| speech        | `normalization`             | Controls text normalization ('auto', 'off', or a language or locale code).                                 |
+| speech        | `pronunciationDictionaryId` | ID of a pronunciation dictionary created with the Cartesia API. Sonic 3 and newer.                         |
+| transcription | `language`                  | The language of the audio (ISO 639-1 code). Defaults to English.                                           |
+| transcription | `timestampGranularities`    | The timestamp granularities to populate. Currently only `word` is supported.                               |
+| transcription | `streaming`                 | Options for realtime Ink 2 transcription over WebSocket.                                                   |
+
+{/* model-capabilities:cartesia-provider-options:end */}
