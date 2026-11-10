@@ -1,3 +1,4 @@
+import { TypeValidationError } from '@ai-sdk/provider';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { InferUITool, UIMessage } from './ui-messages';
@@ -26,6 +27,97 @@ describe('validateUIMessages', () => {
   });
 
   describe('parameter validation', () => {
+    it.each([
+      ['parts', [{ id: '1', role: 'user', parts: Array(100).fill({}) }]],
+      ['messages', Array(100).fill({ id: '1', role: 'user', parts: [{}] })],
+      [
+        'steering parts',
+        [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'steering-message', id: '2', parts: Array(100).fill({}) },
+            ],
+          },
+        ],
+      ],
+    ])(
+      'should stop accumulating structural errors across invalid %s',
+      async (_, messages) => {
+        const result = await safeValidateUIMessages({ messages });
+
+        expect(result.success).toBe(false);
+        if (result.success) throw new Error('Expected validation failure');
+        expect(TypeValidationError.isInstance(result.error)).toBe(true);
+        expect(result.error.message.length).toBeLessThan(40_000);
+        expect((result.error.cause as z.ZodError).issues).toHaveLength(1);
+        expect((result.error.cause as z.ZodError).issues[0].path).toEqual([
+          0,
+          'parts',
+          0,
+        ]);
+      },
+    );
+
+    it('should preserve the index of the first invalid part', async () => {
+      const result = await safeValidateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hello' }, {}],
+          },
+        ],
+      });
+
+      expect(result.success).toBe(false);
+      if (result.success) throw new Error('Expected validation failure');
+      expect((result.error.cause as z.ZodError).issues[0].path).toEqual([
+        0,
+        'parts',
+        1,
+      ]);
+    });
+
+    it('should not validate parts after the first invalid part', async () => {
+      const readType = vi.fn(() => 'text');
+      const messages = [
+        {
+          id: '1',
+          role: 'user',
+          parts: [
+            {},
+            {
+              get type() {
+                return readType();
+              },
+              text: 'hello',
+            },
+          ],
+        },
+      ];
+
+      const result = await safeValidateUIMessages({ messages });
+
+      expect(result.success).toBe(false);
+      // TypeValidationError serializes the input once, but validation must not
+      // read the later part for each alternative of the part union.
+      expect(readType).toHaveBeenCalledTimes(1);
+    });
+
+    it('should continue to accept large valid part arrays', async () => {
+      const messages = [
+        {
+          id: '1',
+          role: 'user',
+          parts: Array(2500).fill({ type: 'text', text: 'hello' }),
+        },
+      ];
+
+      expect(await validateUIMessages({ messages })).toEqual(messages);
+    });
+
     it('should throw InvalidArgumentError when messages parameter is null', async () => {
       await expect(
         validateUIMessages({
