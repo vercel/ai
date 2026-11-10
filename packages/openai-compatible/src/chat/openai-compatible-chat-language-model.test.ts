@@ -3375,6 +3375,76 @@ describe('doStream', () => {
     `);
   });
 
+  it.each([
+    { description: 'one chunk', argumentDeltas: ['{}'] },
+    { description: 'multiple chunks', argumentDeltas: ['', '{}'] },
+  ])(
+    'should preserve subsequent tool calls after a blank-name call sent in $description',
+    async ({ argumentDeltas }) => {
+      const toolCallDeltas = [
+        ...argumentDeltas.map((argumentsDelta, index) => ({
+          index: 0,
+          ...(index === 0 ? { id: '', type: 'function' } : {}),
+          function: {
+            ...(index === 0 ? { name: '' } : {}),
+            arguments: argumentsDelta,
+          },
+        })),
+        {
+          index: 1,
+          id: 'call_valid',
+          type: 'function',
+          function: { name: 'remember', arguments: '{"note":"x"}' },
+        },
+      ];
+
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...toolCallDeltas.map(
+            toolCall =>
+              `data: ${JSON.stringify({
+                id: 'chatcmpl-blank-name',
+                object: 'chat.completion.chunk',
+                created: 1711357598,
+                model: 'grok-3',
+                choices: [
+                  {
+                    index: 0,
+                    delta: { tool_calls: [toolCall] },
+                    finish_reason: null,
+                  },
+                ],
+              })}\n\n`,
+          ),
+          'data: {"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n',
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      // Leave how the malformed call is reported open; the valid call must survive.
+      expect(
+        parts.filter(
+          part => part.type === 'tool-call' && part.toolName === 'remember',
+        ),
+      ).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_valid',
+          toolName: 'remember',
+          input: '{"note":"x"}',
+        },
+      ]);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'tool-calls' },
+      });
+    },
+  );
+
   it('should stream tool deltas when function.name arrives in a later chunk', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
