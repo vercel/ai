@@ -65,6 +65,7 @@ export const MCP_APP_DEFAULT_INNER_SANDBOX = 'allow-scripts allow-forms';
  * const csp = getMCPAppCSP({
  *   connectDomains: ['https://api.example.com'],
  *   resourceDomains: ['https://cdn.example.com'],
+ *   baseUriDomains: ['https://docs.example.com'],
  * });
  * ```
  */
@@ -76,10 +77,13 @@ export function getMCPAppCSP(csp?: MCPAppResourceCSP): string | undefined {
   const connectSrc = sanitizeCSPSources(csp.connectDomains);
   const resourceSrc = sanitizeCSPSources(csp.resourceDomains);
   const frameSrc = sanitizeCSPSources(csp.frameDomains);
+  const baseUriSrc = csp.baseUriDomains?.length
+    ? sanitizeCSPSources(csp.baseUriDomains).join(' ')
+    : "'self'";
 
   return [
     "default-src 'none'",
-    "base-uri 'none'",
+    `base-uri ${baseUriSrc}`,
     "form-action 'none'",
     `script-src 'unsafe-inline' 'self' ${resourceSrc.join(' ')}`,
     `style-src 'unsafe-inline' 'self' ${resourceSrc.join(' ')}`,

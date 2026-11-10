@@ -11,6 +11,7 @@ describe('getMCPAppCSP', () => {
       connectDomains: ['https://api.example.com'],
       resourceDomains: ['https://cdn.example.com'],
       frameDomains: ['https://frame.example.com'],
+      baseUriDomains: ['https://base.example.com'],
     });
 
     expect(csp).toContain("connect-src 'self' https://api.example.com");
@@ -24,13 +25,23 @@ describe('getMCPAppCSP', () => {
     expect(csp).toContain("font-src 'self' data: https://cdn.example.com");
     expect(csp).toContain("media-src 'self' data: https://cdn.example.com");
     expect(csp).toContain("frame-src 'self' https://frame.example.com");
+    expect(csp).toContain('base-uri https://base.example.com');
   });
 
-  it("locks down base-uri and form-action to 'none'", () => {
+  it("defaults base-uri to 'self' and locks down form-action", () => {
     const csp = getMCPAppCSP({});
 
-    expect(csp).toContain("base-uri 'none'");
+    expect(csp).toContain("base-uri 'self'");
     expect(csp).toContain("form-action 'none'");
+  });
+
+  it("does not implicitly allow 'self' when base URI domains are declared", () => {
+    const csp = getMCPAppCSP({
+      baseUriDomains: ['https://base.example.com'],
+    });
+
+    expect(csp).toContain('base-uri https://base.example.com');
+    expect(csp).not.toContain("base-uri 'self'");
   });
 
   it('preserves wildcard subdomains and explicit ports', () => {
@@ -50,6 +61,10 @@ describe('getMCPAppCSP', () => {
       ],
       resourceDomains: ['https://ok.example.com'],
       frameDomains: ['https://frame.example, https://evil.example'],
+      baseUriDomains: [
+        'https://base.example.com',
+        'https://evil.example; script-src-elem https://attacker.example',
+      ],
     });
 
     expect(csp).not.toContain('attacker.example');
@@ -59,6 +74,7 @@ describe('getMCPAppCSP', () => {
     expect(csp!.split(';')).toHaveLength(10);
     // untainted values are unaffected
     expect(csp).toContain('https://ok.example.com');
+    expect(csp).toContain('base-uri https://base.example.com');
   });
 
   it('drops encoded separators that decode into a directive break', () => {
