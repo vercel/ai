@@ -28,6 +28,46 @@ describe('validateUIMessages', () => {
 
   describe('parameter validation', () => {
     it.each([
+      {},
+      { type: 'unknown' },
+      { type: 'text' },
+      {
+        type: 'dynamic-tool',
+        toolName: 'foo',
+        toolCallId: '1',
+        state: 'input-available',
+        input: {},
+      },
+      {
+        type: 'tool-foo',
+        toolCallId: '1',
+        state: 'input-available',
+        input: {},
+      },
+    ])(
+      'should avoid union fan-out for malformed metadata in %j',
+      async part => {
+        const callProviderMetadata = Object.fromEntries(
+          Array.from({ length: 100 }, (_, index) => [`key${index}`, 1]),
+        );
+        const result = await safeValidateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'user',
+              parts: [{ ...part, callProviderMetadata }],
+            },
+          ],
+        });
+
+        expect(result.success).toBe(false);
+        if (result.success) throw new Error('Expected validation failure');
+        expect(TypeValidationError.isInstance(result.error)).toBe(true);
+        expect(result.error.message.length).toBeLessThan(40_000);
+      },
+    );
+
+    it.each([
       ['parts', [{ id: '1', role: 'user', parts: Array(100).fill({}) }]],
       ['messages', Array(100).fill({ id: '1', role: 'user', parts: [{}] })],
       [

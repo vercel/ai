@@ -8,6 +8,7 @@ description: API Reference for validateUIMessages
 `validateUIMessages` is an async function that validates UI messages against schemas for metadata, data parts, and tools. It ensures type safety and data integrity for your message arrays before processing or rendering.
 
 Structural validation stops at the first invalid element in message and part arrays.
+Part types and tool states select the applicable schema before its fields are validated.
 The error retains the failing element's path without accumulating errors for every
 malformed element. Valid message and part arrays have no SDK-imposed count limit;
 apply request size and message history limits appropriate for your application.
