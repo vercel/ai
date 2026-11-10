@@ -1,5 +1,4 @@
 import {
-  APICallError,
   UnsupportedFunctionalityError,
   type ImageModelV3,
   type SharedV3Warning,
@@ -47,31 +46,7 @@ export class MiniMaxImageModel implements ImageModelV3 {
     private readonly config: MiniMaxImageModelConfig,
   ) {}
 
-  async doGenerate(
-    options: Parameters<ImageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
-    try {
-      return await this.generate(options);
-    } catch (error) {
-      if (APICallError.isInstance(error)) {
-        // A failed response or download does not prove generation was not charged.
-        throw new APICallError({
-          message: error.message,
-          url: error.url,
-          requestBodyValues: error.requestBodyValues,
-          statusCode: error.statusCode,
-          responseHeaders: error.responseHeaders,
-          responseBody: error.responseBody,
-          data: error.data,
-          cause: error,
-          isRetryable: false,
-        });
-      }
-      throw error;
-    }
-  }
-
-  private async generate({
+  async doGenerate({
     prompt,
     n,
     size,
@@ -163,7 +138,6 @@ export class MiniMaxImageModel implements ImageModelV3 {
     );
     return {
       images,
-      isRetryable: false,
       warnings,
       usage:
         response.usage == null
