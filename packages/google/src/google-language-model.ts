@@ -518,6 +518,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   static convertGenerateContentResponse({
     config,
     response,
+    responseHeaders,
     warnings,
     providerOptionsNames,
     toolNameMapping,
@@ -527,6 +528,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   }: {
     config: GoogleLanguageModelConfig;
     response: InferSchema<typeof responseSchema>;
+    responseHeaders?: Record<string, string>;
     warnings: SharedV4Warning[];
     providerOptionsNames: readonly string[];
     toolNameMapping?: ReturnType<typeof createToolNameMapping>;
@@ -730,7 +732,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         safetyRatings: candidate?.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
         finishMessage: candidate?.finishMessage ?? null,
-        serviceTier: usageMetadata?.serviceTier ?? null,
+        serviceTier:
+          usageMetadata?.serviceTier ??
+          responseHeaders?.['x-gemini-service-tier'] ??
+          null,
         ...(candidate?.continuationToken != null
           ? { continuationToken: candidate.continuationToken }
           : {}),
@@ -832,6 +837,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const lastResult = GoogleLanguageModel.convertGenerateContentResponse({
       config: this.config,
       response: { ...response, usageMetadata },
+      responseHeaders,
       warnings,
       providerOptionsNames,
       toolNameMapping,
@@ -1591,7 +1597,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 safetyRatings: lastSafetyRatings,
                 usageMetadata: usage ?? null,
                 finishMessage: lastFinishMessage,
-                serviceTier: usage?.serviceTier ?? null,
+                serviceTier:
+                  usage?.serviceTier ??
+                  responseHeaders?.['x-gemini-service-tier'] ??
+                  null,
                 // Only surface the token when the response stopped early
                 // (budget used up, or continuing failed), not for the
                 // checkpoint tokens of a stream that finished normally.
