@@ -228,7 +228,39 @@ describe.each(['generate', 'stream'] as const)(
             user,
           ],
         }),
-      ).rejects.toThrow('Adjacent reasoning effort configuration updates');
+      ).rejects.toMatchObject({
+        functionality: 'Adjacent configuration updates',
+      });
+    });
+
+    it.each([undefined, 'resp_previous'])(
+      'rejects request-level effort with a leading format update (previousResponseId: %s)',
+      async previousResponseId => {
+        await expect(
+          request({
+            prompt: [update({ textFormatUpdate: format }), user],
+            providerOptions: {
+              openai: { previousResponseId, reasoningEffortUpdate: 'high' },
+            },
+          }),
+        ).rejects.toMatchObject({
+          functionality: 'Adjacent configuration updates',
+          message:
+            'Configuration updates cannot be consecutive. Set reasoningEffortUpdate and textFormatUpdate in the same empty system message, and omit request-level reasoningEffortUpdate when using message-level updates.',
+        });
+        expect(server.calls).toHaveLength(0);
+      },
+    );
+
+    it('combines effort and format in the leading message without prepending a duplicate request update', async () => {
+      await request({
+        prompt: [
+          update({ textFormatUpdate: format, reasoningEffortUpdate: 'high' }),
+          user,
+        ],
+        providerOptions: { openai: { reasoningEffortUpdate: 'high' } },
+      });
+      expect((await server.calls[0].requestBodyJson).input).toHaveLength(2);
     });
 
     it('allows explicit compaction after configuration updates', async () => {

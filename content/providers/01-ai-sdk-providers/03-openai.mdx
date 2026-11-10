@@ -487,6 +487,11 @@ and `reasoningEffortUpdate` in one empty system message to change both settings;
 consecutive configuration updates are rejected. After explicit compaction,
 append a fresh update with the desired format and effort.
 
+Omit request-level `reasoningEffortUpdate` when using message-level format
+updates. It prepends an effort update and would create an invalid consecutive
+pair if the input starts with a format update. Combine the changes in one empty
+system message instead; earlier history is never merged or rewritten for you.
+
 #### Cache Diagnostics
 
 Set `providerOptions.openai.promptCacheOptions.comparisonResponseId` to compare

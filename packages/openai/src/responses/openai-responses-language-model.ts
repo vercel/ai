@@ -505,7 +505,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         input[i].type === 'configuration_update'
       ) {
         throw new UnsupportedFunctionalityError({
-          functionality: 'Adjacent reasoning effort configuration updates',
+          functionality: 'Adjacent configuration updates',
+          message:
+            'Configuration updates cannot be consecutive. Set reasoningEffortUpdate and textFormatUpdate in the same empty system message, and omit request-level reasoningEffortUpdate when using message-level updates.',
         });
       }
     }
