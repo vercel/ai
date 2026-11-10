@@ -315,8 +315,10 @@ describe('realtime transcription', () => {
     expect(chunks.length).toBe(5);
     expect(chunks.every(chunk => chunk.audio.length < 262144)).toBe(true);
     expect(
-      Buffer.concat(chunks.map(chunk => Buffer.from(chunk.audio, 'base64'))),
-    ).toEqual(Buffer.from(bytes));
+      Buffer.concat(
+        chunks.map(chunk => Buffer.from(chunk.audio, 'base64')),
+      ).equals(Buffer.from(bytes)),
+    ).toBe(true);
     expect(messages.at(-1)).toEqual({ type: 'input_audio.end' });
     await result.stream.cancel();
   });

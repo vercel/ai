@@ -4743,7 +4743,9 @@ describe('streamText', () => {
         onStepError,
       });
 
-      await result.consumeStream();
+      const consuming = result.consumeStream();
+      await vi.advanceTimersByTimeAsync(6000);
+      await consuming;
 
       expect(attempts).toBe(3);
       expect(onStepStart).toHaveBeenCalledTimes(1);
