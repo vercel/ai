@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { HarnessV1 } from '@ai-sdk/harness';
 import type { HarnessAgent, HarnessAgentSession } from '@ai-sdk/harness/agent';
 import {
   runAgentTUI,
@@ -9,7 +10,12 @@ import {
 } from '@ai-sdk/tui';
 import { config } from 'dotenv';
 
-type TUIHarnessAgent = HarnessAgent<any, any, any>;
+/*
+ * TODO: Support HarnessV2 adapters as well once any TUI example uses one.
+ * This is limited to HarnessV1 because `createSession()` on a HarnessV2
+ * agent returns a session without `destroy()`, which `runTUI` relies on.
+ */
+type TUIHarnessAgent = HarnessAgent<HarnessV1<any>, any, any>;
 
 export type RunTUIOptions = Omit<
   Extract<RunAgentTUIOptions, { agent: AgentTUIAgent }>,
