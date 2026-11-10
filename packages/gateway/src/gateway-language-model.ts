@@ -142,6 +142,10 @@ export class GatewayLanguageModel implements LanguageModelV4 {
         fetch: this.config.fetch,
       });
 
+      let hasOutput = false;
+      let hasFinish = false;
+      let hasStreamError = false;
+
       return {
         stream: response.pipeThrough(
           new TransformStream<
@@ -171,11 +175,49 @@ export class GatewayLanguageModel implements LanguageModelV4 {
                   streamPart.timestamp = new Date(streamPart.timestamp);
                 }
 
+                switch (streamPart.type) {
+                  case 'finish':
+                    hasFinish = true;
+                    break;
+                  case 'error':
+                    hasStreamError = true;
+                    break;
+                  case 'text-delta':
+                  case 'reasoning-delta':
+                  case 'tool-input-delta':
+                    hasOutput ||= Boolean(streamPart.delta);
+                    break;
+                  case 'tool-call':
+                    hasOutput = true;
+                    break;
+                }
+
                 controller.enqueue(streamPart);
               } else {
                 controller.error(
                   (chunk as { success: false; error: unknown }).error,
                 );
+              }
+            },
+            flush(controller) {
+              if (hasOutput && !hasFinish && !hasStreamError) {
+                controller.enqueue({
+                  type: 'finish',
+                  finishReason: { unified: 'interrupted', raw: undefined },
+                  usage: {
+                    inputTokens: {
+                      total: undefined,
+                      noCache: undefined,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: undefined,
+                      text: undefined,
+                      reasoning: undefined,
+                    },
+                  },
+                });
               }
             },
           }),
