@@ -15,20 +15,6 @@ export const minimaxDocs = {
       ],
     },
     {
-      id: 'minimax-image',
-      capability: 'image',
-      columns: [
-        [
-          'Sizes',
-          'sizes',
-          v => (Array.isArray(v) ? v.join(', ') : v.description),
-        ],
-        ['Image Editing', 'fileInput'],
-        ['Mask Input', 'maskInput'],
-        ['Max Images Per Call', 'maxImagesPerCall', v => v ?? 'Not declared'],
-      ],
-    },
-    {
       id: 'minimax-video',
       capability: 'video',
       columns: [

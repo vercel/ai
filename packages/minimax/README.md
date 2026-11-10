@@ -1,6 +1,6 @@
 # AI SDK - MiniMax Provider
 
-The **[MiniMax provider](https://ai-sdk.dev/providers/ai-sdk-providers/minimax)** for the [AI SDK](https://ai-sdk.dev/docs) contains language, video, and image model support for the [MiniMax](https://www.minimax.io/) platform, including the MiniMax-M and MiniMax-H3-Image models.
+The **[MiniMax provider](https://ai-sdk.dev/providers/ai-sdk-providers/minimax)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [MiniMax](https://www.minimax.io/) platform, including the MiniMax-M model series.
 
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access MiniMax (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 

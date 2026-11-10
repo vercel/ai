@@ -16,8 +16,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { MiniMaxChatLanguageModel } from './minimax-chat-language-model';
 import type { MiniMaxChatModelId } from './minimax-chat-language-model-options';
-import { MiniMaxImageModel } from './minimax-image-model';
-import type { MiniMaxImageModelId } from './minimax-image-settings';
+import {
+  MiniMaxImageModel,
+  type MiniMaxImageModelId,
+} from './minimax-image-model';
 import { MiniMaxVideoModel } from './minimax-video-model';
 import type { MiniMaxVideoModelId } from './minimax-video-settings';
 import { VERSION } from './version';
@@ -39,11 +41,6 @@ export interface MiniMaxProviderSettings {
    * The default prefix is `https://api.minimax.io`.
    */
   videoBaseURL?: string;
-  /**
-   * Use a different URL prefix for image generation API calls.
-   * The default prefix is `https://api.minimax.io`.
-   */
-  imageBaseURL?: string;
   /**
    * Custom headers to include in the requests.
    */
@@ -82,12 +79,12 @@ export interface MiniMaxProvider extends ProviderV4 {
   videoModel(modelId: MiniMaxVideoModelId): Experimental_VideoModelV4;
 
   /**
-   * Creates a MiniMax image model for image generation and editing.
+   * Creates a MiniMax image model.
    */
   image(modelId: MiniMaxImageModelId): ImageModelV4;
 
   /**
-   * Creates a MiniMax image model for image generation and editing.
+   * Creates a MiniMax image model.
    */
   imageModel(modelId: MiniMaxImageModelId): ImageModelV4;
 
@@ -99,7 +96,6 @@ export interface MiniMaxProvider extends ProviderV4 {
 
 const defaultBaseURL = 'https://api.minimax.io/anthropic/v1';
 const defaultVideoBaseURL = 'https://api.minimax.io';
-const defaultImageBaseURL = 'https://api.minimax.io';
 
 export function createMiniMax(
   options: MiniMaxProviderSettings = {},
@@ -110,10 +106,6 @@ export function createMiniMax(
   const videoBaseURL =
     withoutTrailingSlash(options.videoBaseURL ?? defaultVideoBaseURL) ??
     defaultVideoBaseURL;
-
-  const imageBaseURL =
-    withoutTrailingSlash(options.imageBaseURL ?? defaultImageBaseURL) ??
-    defaultImageBaseURL;
 
   const getHeaders = () =>
     resolveWith(options.apiKey, apiKey =>
@@ -167,7 +159,7 @@ export function createMiniMax(
   const createImageModel = (modelId: MiniMaxImageModelId) =>
     new MiniMaxImageModel(modelId, {
       provider: 'minimax.image',
-      baseURL: imageBaseURL,
+      baseURL: videoBaseURL,
       headers: getVideoHeaders,
       fetch: options.fetch,
     });

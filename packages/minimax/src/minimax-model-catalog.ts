@@ -8,7 +8,6 @@ import type {
   MiniMaxLanguageModelChatOptions,
   MiniMaxLanguageModelOptions,
 } from './minimax-chat-language-model-options';
-import type { MiniMaxImageModelOptions } from './minimax-image-model-options';
 import type { MiniMaxVideoModelOptions } from './minimax-video-model-options';
 import { minimaxVideoResolutions } from './minimax-model-catalog-config';
 /** Known options accepted under providerOptions; open-ended extension keys remain undeclared. */
@@ -27,16 +26,6 @@ export const miniMaxProviderOptions = {
     keyof MiniMaxLanguageModelChatOptions | keyof MiniMaxLanguageModelOptions,
     ProviderOptionDefinition
   >,
-  image: {
-    aspectRatio: {
-      description:
-        'Aspect ratio of the generated image. Overrides the top-level `aspectRatio`. Cannot be combined with `size` as `{width}x{height}`.',
-    },
-    area: {
-      description:
-        'Output area (`1K`, `2K`, or `4K`). The API defaults to `4K` when `size` is omitted. Cannot be combined with `size` as `{width}x{height}`.',
-    },
-  } satisfies Record<keyof MiniMaxImageModelOptions, ProviderOptionDefinition>,
   video: {
     resolution: { description: 'Output resolution.' },
     ratio: {
@@ -73,7 +62,6 @@ const languageModelIds = [
   'minimax-m2',
 ] as const;
 const videoModelIds = ['MiniMax-H3', 'MiniMax-H3-Max'] as const;
-const imageModelIds = ['MiniMax-H3-Image'] as const;
 const documentedLanguageCapabilities: Record<
   string,
   NonNullable<ModelCapabilities['language']>
@@ -237,32 +225,9 @@ export function getMiniMaxVideoModelEntry(modelId: string) {
     };
   }>;
 }
-
-export function getMiniMaxImageModelEntry(_modelId: string) {
-  const entry = {
-    capabilities: {
-      image: {
-        sizes: {
-          description:
-            '`auto`, `{width}x{height}`, or an `area` of `1K`/`2K`/`4K` with an aspect ratio',
-        },
-        fileInput: true,
-        maskInput: false,
-        maxImagesPerCall: 10,
-      },
-    },
-    providerOptions: {
-      image: Object.fromEntries(
-        Object.keys(miniMaxProviderOptions.image).map(key => [key, true]),
-      ),
-    },
-  } as const;
-  return entry satisfies ModelEntry;
-}
 export const minimaxModelCatalog = Object.fromEntries([
   ...languageModelIds.map(
     id => [id, getMiniMaxLanguageModelEntry(id)] as const,
   ),
   ...videoModelIds.map(id => [id, getMiniMaxVideoModelEntry(id)] as const),
-  ...imageModelIds.map(id => [id, getMiniMaxImageModelEntry(id)] as const),
 ]);

@@ -1,4 +1,4 @@
-import { type ImageModelV4, type SharedV4Warning } from '@ai-sdk/provider';
+import { type ImageModelV4 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
   type Resolvable,
@@ -13,24 +13,31 @@ import {
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import {
-  minimaxImageModelOptionsSchema,
-  type MiniMaxImageModelOptions,
-} from './minimax-image-model-options';
-import type { MiniMaxImageModelId } from './minimax-image-settings';
+
+export type MiniMaxImageModelId = 'MiniMax-H3-Image' | (string & {});
+
+export type MiniMaxImageModelOptions = {
+  /**
+   * Output area. The API defaults to `4K` when `size` is omitted.
+   * Cannot be combined with `size`.
+   */
+  area?: '1K' | '2K' | '4K';
+};
+
+const minimaxImageModelOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      area: z.enum(['1K', '2K', '4K']).optional(),
+    }),
+  ),
+);
 
 interface MiniMaxImageModelConfig {
   provider: string;
-  // API root without a version suffix, e.g. `https://api.minimax.io`.
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
-  _internal?: {
-    currentDate?: () => Date;
-  };
 }
-
-const PIXEL_SIZE = /^\d+x\d+$/;
 
 export class MiniMaxImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
@@ -52,41 +59,20 @@ export class MiniMaxImageModel implements ImageModelV4 {
     n,
     size,
     aspectRatio,
-    seed,
     providerOptions,
     headers,
     abortSignal,
     files,
-    mask,
   }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: SharedV4Warning[] = [];
-    const minimaxOptions = ((await parseProviderOptions({
-      provider: 'minimax',
-      providerOptions,
-      schema: minimaxImageModelOptionsSchema,
-    })) ?? {}) as MiniMaxImageModelOptions;
+    const minimaxOptions =
+      (await parseProviderOptions({
+        provider: 'minimax',
+        providerOptions,
+        schema: minimaxImageModelOptionsSchema,
+      })) ?? {};
 
-    if (seed != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'seed',
-        details: `${this.modelId} does not support a seed.`,
-      });
-    }
-
-    if (mask != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'mask',
-        details: `${this.modelId} does not support mask inputs.`,
-      });
-    }
-
-    const isEditing = files != null && files.length > 0;
-    const pixelSize = size != null && PIXEL_SIZE.test(size) ? size : undefined;
-    const aspectRatioValue = minimaxOptions.aspectRatio ?? aspectRatio;
     const body: Record<string, unknown> = {
       model: this.modelId,
       prompt,
@@ -94,43 +80,24 @@ export class MiniMaxImageModel implements ImageModelV4 {
       response_format: 'b64_json',
     };
 
-    if (pixelSize != null) {
-      body.size = pixelSize;
-      if (aspectRatioValue != null) {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'aspectRatio',
-          details:
-            '`size` cannot be combined with `aspectRatio`. The aspect ratio was ignored.',
-        });
-      }
-      if (minimaxOptions.area != null) {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'providerOptions.minimax.area',
-          details:
-            '`size` cannot be combined with `area`. The area was ignored.',
-        });
-      }
+    if (size != null) {
+      body.size = size;
     } else {
-      if (size != null) {
-        body.size = size;
-      }
-      if (aspectRatioValue != null) {
-        body.aspect_ratio = aspectRatioValue;
+      if (aspectRatio != null) {
+        body.aspect_ratio = aspectRatio;
       }
       if (minimaxOptions.area != null) {
         body.area = minimaxOptions.area;
       }
     }
 
+    const isEditing = files != null && files.length > 0;
     if (isEditing) {
       body.images = files.map(file => ({
         image_url: convertImageModelFileToDataUri(file),
       }));
     }
 
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/v1/images/${isEditing ? 'edits' : 'generations'}`,
       headers: combineHeaders(await resolve(this.config.headers), headers),
@@ -145,9 +112,9 @@ export class MiniMaxImageModel implements ImageModelV4 {
 
     return {
       images: response.data.map(item => item.b64_json),
-      warnings,
+      warnings: [],
       response: {
-        timestamp: currentDate,
+        timestamp: new Date(),
         modelId: this.modelId,
         headers: responseHeaders,
       },
@@ -156,23 +123,18 @@ export class MiniMaxImageModel implements ImageModelV4 {
 }
 
 const minimaxImageResponseSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      data: z.array(z.object({ b64_json: z.string() })),
-    }),
-  ),
-);
-
-const minimaxImageErrorSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      error: z.object({ message: z.string().nullish() }).nullish(),
-    }),
-  ),
+  zodSchema(z.object({ data: z.array(z.object({ b64_json: z.string() })) })),
 );
 
 const minimaxImageFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: minimaxImageErrorSchema,
+  errorSchema: lazySchema(() =>
+    zodSchema(
+      z.object({
+        error: z.object({ message: z.string().nullish() }).nullish(),
+      }),
+    ),
+  ),
   errorToMessage: data =>
-    data.error?.message ?? 'MiniMax image generation error',
+    (data as { error?: { message?: string | null } | null }).error?.message ??
+    'MiniMax image generation error',
 });
