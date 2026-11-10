@@ -225,6 +225,24 @@ describe('MiniMaxImageModel', () => {
     expect(server.calls).toHaveLength(0);
   });
 
+  it.each(['submission', 'download'])(
+    'marks a failed %s as non-retryable',
+    async phase => {
+      const url = phase === 'submission' ? generationURL : imageURL;
+      server.urls[url].response = {
+        type: 'error',
+        status: 500,
+        body: JSON.stringify({ error: { message: 'Temporary server error' } }),
+      };
+      await expect(
+        provider().image('MiniMax-H3-Image').doGenerate(params),
+      ).rejects.toMatchObject({ isRetryable: false, statusCode: 500 });
+      expect(
+        server.calls.filter(call => call.requestUrl === generationURL),
+      ).toHaveLength(1);
+    },
+  );
+
   it('preserves the provider error message', async () => {
     server.urls[generationURL].response = {
       type: 'error',
