@@ -3,6 +3,7 @@ import {
   type GoogleLanguageModelInteractionsOptions,
 } from '@ai-sdk/google';
 import { convertToModelMessages, streamText, type UIMessage } from 'ai';
+import { isLocalDevelopmentRequest } from '../../code-execution-files/is-local-development-request';
 
 export const maxDuration = 30;
 
@@ -25,6 +26,15 @@ function findLatestInteractionId(messages: UIMessage[]): string | undefined {
 }
 
 export async function POST(req: Request) {
+  // This stateful demo has no user or conversation ownership model. Public
+  // deployments should use the stateless example or authorize IDs server-side.
+  if (!isLocalDevelopmentRequest(req)) {
+    return new Response(
+      'Stateful Google Interactions is only available in local development.',
+      { status: 403, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const previousInteractionId = findLatestInteractionId(messages);
