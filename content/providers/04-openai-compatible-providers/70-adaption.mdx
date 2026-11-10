@@ -1,0 +1,98 @@
+---
+title: Adaption
+description: Use the Adaption OpenAI compatible API with the AI SDK.
+---
+
+# Adaption Provider
+
+[Adaption](https://adaptionlabs.ai) provides access to open-weight language models through an OpenAI-compatible Chat Completions API. You can use it with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The Adaption provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use Adaption, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const adaption = createOpenAICompatible({
+  name: 'adaption',
+  baseURL: 'https://api.prod.adaptionlabs.ai/api/v1',
+  apiKey: process.env.ADAPTION_API_KEY,
+});
+```
+
+<Note>
+  Create an API key in the Adaption dashboard. See the [Adaption
+  docs](https://docs.adaptionlabs.ai) for details. Make sure to set the
+  `ADAPTION_API_KEY` environment variable with your API key.
+</Note>
+
+## Language Models
+
+You can create Adaption models using the provider instance. The first argument is a model ID, for example `glm-5.2`.
+
+```ts
+const model = adaption('glm-5.2');
+```
+
+### Example
+
+You can use Adaption language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const adaption = createOpenAICompatible({
+  name: 'adaption',
+  baseURL: 'https://api.prod.adaptionlabs.ai/api/v1',
+  apiKey: process.env.ADAPTION_API_KEY,
+});
+
+const { text } = await generateText({
+  model: adaption('glm-5.2'),
+  prompt: 'Tell me about yourself in one sentence.',
+});
+
+console.log(text);
+```
+
+Adaption language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const adaption = createOpenAICompatible({
+  name: 'adaption',
+  baseURL: 'https://api.prod.adaptionlabs.ai/api/v1',
+  apiKey: process.env.ADAPTION_API_KEY,
+});
+
+const result = streamText({
+  model: adaption('glm-5.2'),
+  prompt: 'Write a short haiku about rivers.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Supported Models
+
+- `glm-5.2`
+- `glm-5.3-flash`
+- `qwen3.5-397b`
+- `qwen3.8-27b`
+- `deepseek-v4-flash`
+- `gemma-4-26b-a4b-it`
+- `gemma-4-31b-it`
+
+`GET /models` lists the models available to your key.
