@@ -91,3 +91,25 @@ to make decisions. Parallel refusal answers are preserved by the model adapter;
 
 The provider supports synchronous decision calls. It does not implement language
 generation or streaming.
+
+
+### Decision Model Capabilities
+
+{/* model-capabilities:parallel-decision:start */}
+
+| Model  | Boolean   | Choice    | Score     | Box       | Image Input | Reasoning | Max Output Tokens |
+| ------ | --------- | --------- | --------- | --------- | ----------- | --------- | ----------------- |
+| `fast` | <Check /> | <Check /> | <Check /> | <Cross /> | <Cross />   | <Cross /> | <Cross />         |
+
+{/* model-capabilities:parallel-decision:end */}
+
+
+### Provider Option Catalog
+
+{/* model-capabilities:parallel-provider-options:start */}
+
+| Operation | Option            | Description                                               |
+| --------- | ----------------- | --------------------------------------------------------- |
+| decision  | `includeExcerpts` | Include evidence excerpts in citations. Defaults to true. |
+
+{/* model-capabilities:parallel-provider-options:end */}
