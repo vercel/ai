@@ -1,5 +1,14 @@
 # @ai-sdk/otel
 
+## 1.0.168
+
+### Patch Changes
+
+- a41a6cf: Restore credential redaction for unannotated OpenAI MCP, Code Interpreter, and shell tool definitions in both OpenTelemetry integrations. This preserves protection for older providers and plain provider tool definitions without changing application or provider arguments.
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+  - ai@7.0.168
+
 ## 1.0.167
 
 ### Patch Changes
