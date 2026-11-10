@@ -6,6 +6,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   safeParseJSON,
+  type FlexibleSchema,
   type InferSchema,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
@@ -18,7 +19,6 @@ import {
   type LanguageModelCallOptions,
   type Prompt,
   type RequestOptions,
-  type Schema,
   type ToolChoice,
 } from 'ai';
 import {
@@ -31,8 +31,6 @@ import {
   standardizePrompt,
 } from 'ai/internal';
 import type { ReactNode } from 'react';
-import type * as z3 from 'zod/v3';
-import type * as z4 from 'zod/v4';
 import { createStreamableUI } from '../streamable-ui/create-streamable-ui';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { isAsyncGenerator } from '../util/is-async-generator';
@@ -47,9 +45,7 @@ type Renderer<T extends Array<any>> = (
   | Generator<Streamable, Streamable, void>
   | AsyncGenerator<Streamable, Streamable, void>;
 
-type RenderTool<
-  INPUT_SCHEMA extends z4.core.$ZodType | z3.Schema | Schema = any,
-> = {
+type RenderTool<INPUT_SCHEMA extends FlexibleSchema = any> = {
   description?: string;
   inputSchema: INPUT_SCHEMA;
   generate?: Renderer<
@@ -96,7 +92,7 @@ const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
  * `streamUI` is a helper function to create a streamable UI from LLMs.
  */
 export async function streamUI<
-  TOOLS extends { [name: string]: z4.core.$ZodType | z3.Schema | Schema } = {},
+  TOOLS extends { [name: string]: FlexibleSchema } = {},
 >({
   model,
   tools,

@@ -1,5 +1,23 @@
 # @ai-sdk/google
 
+## 4.0.117
+
+### Patch Changes
+
+- c160b74: Add support for the `gemini-4-carbon` model with the same capabilities as `gemini-4-argon`.
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 4.0.116
+
+### Patch Changes
+
+- 45337f0: Preserve the served service tier from the `x-gemini-service-tier` response header when usage metadata omits it, for generated and streamed responses.
+- 304dec5: Apply contiguous array-index validation to dotted numeric paths in streamed tool arguments, while preserving numeric object keys and valid contiguous array updates.
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 4.0.115
 
 ### Patch Changes

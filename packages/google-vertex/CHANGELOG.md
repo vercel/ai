@@ -1,5 +1,31 @@
 # @ai-sdk/google-vertex
 
+## 5.0.137
+
+### Patch Changes
+
+- c160b74: Add support for the `gemini-4-carbon` model with the same capabilities as `gemini-4-argon`.
+- Updated dependencies [4311fa1]
+- Updated dependencies [c160b74]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/google@4.0.117
+  - @ai-sdk/anthropic@4.0.102
+  - @ai-sdk/openai-compatible@3.0.90
+
+## 5.0.136
+
+### Patch Changes
+
+- acdccac: Route off-origin MaaS image downloads through the validated download transport so the built-in authentication wrappers in both entry points preserve Node.js DNS validation and manual redirect handling. Explicit custom fetch implementations and the browser redirect fallback remain supported.
+- Updated dependencies [45337f0]
+- Updated dependencies [304dec5]
+- Updated dependencies [88b9575]
+  - @ai-sdk/google@4.0.116
+  - @ai-sdk/provider-utils@5.0.78
+  - @ai-sdk/anthropic@4.0.101
+  - @ai-sdk/openai-compatible@3.0.89
+
 ## 5.0.135
 
 ### Patch Changes
