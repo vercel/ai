@@ -100,6 +100,7 @@ import type { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { filterActiveTools } from './filter-active-tools';
 import { text, type Output } from './output';
+import { createArrayStreamParser } from '../util/array-output-stream';
 import type {
   InferCompleteOutput,
   InferElementOutput,
@@ -667,10 +668,14 @@ function createOutputTransformStream<
   let text = '';
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
+  let arrayStreamParser = createArrayStreamParser(output);
+  let lastArrayPartial: InferPartialOutput<OUTPUT> | undefined;
   let lastPublishedValue: string | undefined = undefined;
   let hasPublishedValue = false;
 
   function resetOutputState() {
+    arrayStreamParser = createArrayStreamParser(output);
+    lastArrayPartial = undefined;
     firstTextChunkId = undefined;
     text = '';
     textChunk = '';
@@ -751,6 +756,24 @@ function createOutputTransformStream<
       if (chunk.text.length === 0 && chunk.providerMetadata != null) {
         controller.enqueue({ part: chunk, partialOutput: undefined });
         return;
+      }
+
+      // Built-in arrays publish only changed snapshots, so growing arrays do
+      // not need to be reparsed, revalidated, or stringified on every chunk.
+      if (arrayStreamParser != null) {
+        const result = await arrayStreamParser(chunk.text);
+        if (result !== 'fallback') {
+          if (result != null) {
+            lastArrayPartial = result.partial as InferPartialOutput<OUTPUT>;
+            publishTextChunk({ controller, partialOutput: lastArrayPartial });
+          }
+          return;
+        }
+        arrayStreamParser = undefined;
+        if (lastArrayPartial != null) {
+          lastPublishedValue = JSON.stringify(lastArrayPartial);
+          hasPublishedValue = true;
+        }
       }
 
       // only publish if partial json can be parsed:
