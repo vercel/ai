@@ -152,12 +152,41 @@ const { videos } = await generateVideo({
 });
 ```
 
-The top-level `resolution` maps to the `720p`, `1080p`, and `4k` tiers by its shorter side, and `generateAudio` maps to native audio on models that support it.
-`seed` and `fps` are not supported.
+Reference images and videos are numbered in the order you pass them and can be referenced in the prompt as `@image_1`, `@video_1`, and so on.
+
+Top-level options map as follows:
+
+- `resolution` maps to the `720p`, `1080p`, and `4k` tiers by its shorter side.
+- `aspectRatio` applies to text-to-video and omni generation. Image-to-video and motion control output follows the input media.
+- `duration` applies to all modes except motion control, whose output length follows the motion video.
+- `generateAudio` maps to native audio or no audio. Without it, `kling-video-v3` output is silent. For motion control, `false` removes the motion video's audio, and otherwise the original audio is kept. `kling-video-v3-turbo` and `kling-video-v4` do not accept an audio setting and always include audio.
+- `seed`, `fps`, and `n` greater than 1 are not supported.
+
+Unsupported options are ignored with a warning.
+
+For multi-shot output, set `multiShot: true` and describe each shot in the prompt as `shot <n>, <seconds>, <prompt>;`. The shot durations must add up to `duration`:
+
+```ts
+import { tencent, type TencentVideoModelOptions } from '@ai-sdk/tencent';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: tencent.video('kling-video-v3'),
+  prompt:
+    'shot 1, 3, a wide shot of a lighthouse at dawn; ' +
+    'shot 2, 3, a close-up of the lighthouse lamp turning;',
+  duration: 6,
+  providerOptions: {
+    tencent: { multiShot: true } satisfies TencentVideoModelOptions,
+  },
+});
+```
 
 ### VOD
 
-VOD models use the `CreateAigcVideoTask` API. Reference inputs are sent as URLs or Base64 data; Base64 inputs must stay under the VOD request size limit.
+VOD models use the `CreateAigcVideoTask` API. Seedance is available as `vod/VS/2.5`, `vod/VS/2.0`, `vod/VS/2.0-fast`, and `vod/VS/2.0-mini`.
+
+Inputs map to VOD file inputs: `image` or a first frame becomes the first frame, a last frame becomes the last frame, and `inputReferences` become references whose category (image, video, or audio) follows their media type. Inputs are sent as URLs or Base64 data; Base64 inputs must stay under the VOD request size limit.
 
 ```ts
 import { tencent } from '@ai-sdk/tencent';
@@ -172,8 +201,17 @@ const { videos } = await generateVideo({
 });
 ```
 
-The top-level `resolution` maps to the `480P`, `720P`, `1080P`, `2K`, and `4K` tiers by its shorter side.
+Top-level options map as follows:
+
+- `resolution` maps to the `480P`, `720P`, `1080P`, `2K`, and `4K` tiers by its shorter side.
+- `aspectRatio` also accepts `adaptive`, which follows the input image.
+- `duration` and `seed` are passed through.
+- `generateAudio` maps to `AudioGeneration`. Seedance includes audio when `generateAudio` is not set.
+- `fps` and `n` greater than 1 are not supported.
+
 Images that show real people may be rejected unless they are first registered as VOD assets in your Tencent Cloud account.
+
+VOD reports API errors inside a successful HTTP response. The provider raises them as an `APICallError` with a status code derived from the Tencent Cloud error code. For example, `AuthFailure` becomes 401, `InvalidParameterValue` becomes 400, and `RequestLimitExceeded` becomes 429.
 
 ### Video Provider Options
 
@@ -187,7 +225,7 @@ The following options are available via `providerOptions.tencent`. Options that 
 
 - **watermark** _boolean_
 
-  Whether to add a watermark.
+  Whether to add a visible label that marks the video as AI-generated.
 
 - **referenceVideoType** _'feature' | 'base'_
 
@@ -267,4 +305,4 @@ The following options are available via `providerOptions.tencent`. Options that 
 
 ### Provider Metadata
 
-Completed video results include `providerMetadata.tencent` with the `taskId`, the `videos` (URL and duration), and usage: `usage.totalTokens` for TokenHub Kling models, and for VOD models `usage.outputSeconds`, `usage.inputSeconds` (reference video length), `usage.totalSeconds`, and `usage.specificationUsages` (the billed specification, such as `SV2.0_720P`). VOD results also include the resolved output `resolution` (for example `720P`).
+Completed video results include `providerMetadata.tencent` with the `taskId`, the `videos` (URL, duration, and `fileId` when VOD stores the file), and usage: `usage.totalTokens` for TokenHub Kling models, and for VOD models `usage.outputSeconds`, `usage.inputSeconds` (reference video length), `usage.totalSeconds`, and `usage.specificationUsages` (the billed specification, such as `SV2.0_720P`). VOD results also include the resolved output `resolution` (for example `720P`).
