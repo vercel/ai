@@ -289,7 +289,8 @@ export function interpretVodTaskDetail({
         videos: files.map(file =>
           compactJson({
             url: file.FileUrl,
-            fileId: file.FileId,
+            // Temporary storage reports an empty FileId.
+            fileId: file.FileId || undefined,
             duration: file.MetaData?.Duration ?? usage?.OutputSeconds,
           }),
         ),

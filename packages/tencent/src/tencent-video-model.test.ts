@@ -746,6 +746,7 @@ describe('TencentVideoModel', () => {
                     {
                       FileUrl: 'https://vod.example.com/out.mp4',
                       FileType: 'mp4',
+                      FileId: '',
                       MetaData: { Duration: 8.04 },
                     },
                   ],
