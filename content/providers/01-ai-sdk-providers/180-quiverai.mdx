@@ -487,3 +487,56 @@ Source SVGs, text instructions, and remote source URLs are sent to QuiverAI. Ani
 Arrow 2 models return measured token counts in `result.usage`. Fixed-credit models may return compatibility token counts of zero; their credit charge is available in `result.providerMetadata?.quiverai?.credits` when supplied by the API.
 
 Model availability and supported operations depend on your organization and API key permissions. Consult QuiverAI's [model catalog](https://docs.quiver.ai/developers/models) for current capabilities and billing.
+
+
+### Language Model Capabilities
+
+{/* model-capabilities:quiverai-language:start */}
+
+| Model           | Object Generation | Tool Usage | Tool Streaming | Reasoning |
+| --------------- | ----------------- | ---------- | -------------- | --------- |
+| `arrow-2`       | <Cross />         | <Check />  | <Check />      | <Check /> |
+| `arrow-2-telos` | <Cross />         | <Check />  | <Check />      | <Check /> |
+
+{/* model-capabilities:quiverai-language:end */}
+
+
+### Image Model Capabilities
+
+{/* model-capabilities:quiverai-image:start */}
+
+| Model           | Image Input | Mask Input | Animation | SVG Editing                                                                            |
+| --------------- | ----------- | ---------- | --------- | -------------------------------------------------------------------------------------- |
+| `arrow-2`       | <Check />   | <Cross />  | <Check /> | Conditional: Requires the API key's model inventory to include the svg_edit operation. |
+| `arrow-2-telos` | <Check />   | <Cross />  | <Check /> | Conditional: Requires the API key's model inventory to include the svg_edit operation. |
+| `arrow-1`       | <Check />   | <Cross />  | <Cross /> | <Cross />                                                                              |
+| `arrow-1.1`     | <Check />   | <Cross />  | <Cross /> | <Cross />                                                                              |
+| `arrow-1.1-max` | <Check />   | <Cross />  | <Cross /> | <Cross />                                                                              |
+
+{/* model-capabilities:quiverai-image:end */}
+
+
+### Provider Option Catalog
+
+{/* model-capabilities:quiverai-provider-options:start */}
+
+| Operation | Option                        | Description                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| language  | `reasoningEffort`             | Controls the amount of reasoning used by the model.                                                                                                                                                                                                                                                                                                                                                                                              |
+| language  | `reasoningSummary`            | Requests the model's safe reasoning summary.                                                                                                                                                                                                                                                                                                                                                                                                     |
+| image     | `operation`                   | The operation to perform. Defaults to `generate`. - `generate`: Text-to-SVG generation. Requires `prompt`. - `vectorize`: Convert an input raster image into an SVG. Requires a single image in `prompt.images` / `files`. - `animate`: Animate an input SVG. Requires a single SVG in `prompt.images` / `files`; the text prompt is optional. - `edit`: Edit a single SVG from `prompt.images` using `prompt.text` as the required instruction. |
+| image     | `instructions`                | Extra style guidance for prompt-based generation.                                                                                                                                                                                                                                                                                                                                                                                                |
+| image     | `reasoningEffort`             | Reasoning effort applied to generation or vectorization.                                                                                                                                                                                                                                                                                                                                                                                         |
+| image     | `referenceImages`             | Optional reference images for SVG editing. Use `prepareQuiverAIImageReference` to convert binary inputs.                                                                                                                                                                                                                                                                                                                                         |
+| image     | `maxReviewSteps`              | Maximum number of edit review and redo steps (0-5).                                                                                                                                                                                                                                                                                                                                                                                              |
+| image     | `attributes`                  | SVG root attributes requested for generation or vectorization.                                                                                                                                                                                                                                                                                                                                                                                   |
+| image     | `temperature`                 | Sampling temperature (0-2).                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| image     | `topP`                        | Nucleus sampling top-p (0-1).                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| image     | `presencePenalty`             | Presence penalty (-2 to 2).                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| image     | `maxOutputTokens`             | Maximum number of output tokens (1 - 65536 for Arrow 2 models). The legacy upper bound of 131072 is retained for other model IDs.                                                                                                                                                                                                                                                                                                                |
+| image     | `orchestratorMaxOutputTokens` | Provider orchestrator token budget for SVG editing (1-65536).                                                                                                                                                                                                                                                                                                                                                                                    |
+| image     | `shallowMaxOutputTokens`      | Provider shallow edit token budget for SVG editing (1-65536).                                                                                                                                                                                                                                                                                                                                                                                    |
+| image     | `autoCrop`                    | Whether to auto-crop the input image before vectorization. Only used when `operation` is `vectorize`.                                                                                                                                                                                                                                                                                                                                            |
+| image     | `targetSize`                  | Target canvas size in pixels for vectorization (128 - 4096). Only used when `operation` is `vectorize`.                                                                                                                                                                                                                                                                                                                                          |
+
+{/* model-capabilities:quiverai-provider-options:end */}
