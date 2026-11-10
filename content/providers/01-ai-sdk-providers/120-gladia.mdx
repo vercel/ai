@@ -420,6 +420,58 @@ metadata `error_code` is always `null`.
 
 ### Model Capabilities
 
-| Model     | Transcription | Duration  | Segments  | Language  |
-| --------- | ------------- | --------- | --------- | --------- |
-| `Default` | <Check />     | <Check /> | <Check /> | <Check /> |
+{/* model-capabilities:gladia-transcription:start */}
+
+| Model       | Transcription | Streaming | Duration  | Segments  | Language  |
+| ----------- | ------------- | --------- | --------- | --------- | --------- |
+| `solaria-1` | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `solaria-3` | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+
+{/* model-capabilities:gladia-transcription:end */}
+
+
+### Provider Option Catalog
+
+{/* model-capabilities:gladia-provider-options:start */}
+
+| Operation     | Option                           | Description                                                                                        |
+| ------------- | -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| transcription | `contextPrompt`                  | Optional context prompt to guide the transcription.                                                |
+| transcription | `customVocabulary`               | Custom vocabulary to improve transcription accuracy. Can be a boolean or an array of custom terms. |
+| transcription | `customVocabularyConfig`         | Configuration for custom vocabulary.                                                               |
+| transcription | `detectLanguage`                 | Whether to automatically detect the language of the audio.                                         |
+| transcription | `enableCodeSwitching`            | Whether to enable code switching (multiple languages in the same audio).                           |
+| transcription | `codeSwitchingConfig`            | Configuration for code switching.                                                                  |
+| transcription | `language`                       | Specific language for transcription.                                                               |
+| transcription | `languageConfig`                 | Language configuration for transcription.                                                          |
+| transcription | `callback`                       | Whether to enable callback when transcription is complete.                                         |
+| transcription | `callbackConfig`                 | Configuration for callback.                                                                        |
+| transcription | `subtitles`                      | Whether to generate subtitles.                                                                     |
+| transcription | `subtitlesConfig`                | Configuration for subtitles generation.                                                            |
+| transcription | `diarization`                    | Whether to enable speaker diarization (speaker identification).                                    |
+| transcription | `diarizationConfig`              | Configuration for diarization.                                                                     |
+| transcription | `translation`                    | Whether to translate the transcription.                                                            |
+| transcription | `translationConfig`              | Configuration for translation.                                                                     |
+| transcription | `summarization`                  | Whether to generate a summary of the transcription.                                                |
+| transcription | `summarizationConfig`            | Configuration for summarization.                                                                   |
+| transcription | `moderation`                     | Whether to enable content moderation.                                                              |
+| transcription | `namedEntityRecognition`         | Whether to enable named entity recognition.                                                        |
+| transcription | `chapterization`                 | Whether to enable automatic chapter creation.                                                      |
+| transcription | `nameConsistency`                | Whether to ensure consistent naming of entities.                                                   |
+| transcription | `customSpelling`                 | Whether to enable custom spelling.                                                                 |
+| transcription | `customSpellingConfig`           | Configuration for custom spelling.                                                                 |
+| transcription | `structuredDataExtraction`       | Whether to extract structured data from the transcription.                                         |
+| transcription | `structuredDataExtractionConfig` | Configuration for structured data extraction.                                                      |
+| transcription | `sentimentAnalysis`              | Whether to perform sentiment analysis on the transcription.                                        |
+| transcription | `audioToLlm`                     | Whether to send audio to a language model for processing.                                          |
+| transcription | `audioToLlmConfig`               | Configuration for audio to language model processing.                                              |
+| transcription | `piiRedaction`                   | Whether to enable PII redaction.                                                                   |
+| transcription | `piiRedactionConfig`             | Configuration for PII redaction.                                                                   |
+| transcription | `customMetadata`                 | Custom metadata to include with the transcription.                                                 |
+| transcription | `sentences`                      | Whether to include sentence-level segmentation.                                                    |
+| transcription | `displayMode`                    | Deprecated and ignored with an unsupported warning.                                                |
+| transcription | `punctuationEnhanced`            | Whether to enhance punctuation in the transcription.                                               |
+| transcription | `pollIntervalMs`                 | Interval between job status checks, in milliseconds; overrides the provider setting.               |
+| transcription | `pollTimeoutMs`                  | Maximum polling time in milliseconds; overrides the provider setting.                              |
+
+{/* model-capabilities:gladia-provider-options:end */}
