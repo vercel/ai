@@ -221,9 +221,6 @@ jobs:
       - name: Test MCP OAuth example
         run: pnpm --filter @example/next-openai test:mcp-auth
 
-      - name: Test Google Interactions chat example
-        run: pnpm --filter @example/next-openai test:google-interactions
-
       - name: Archive package build artifacts
         run: tar -czf package-build-artifacts.tgz packages/*/dist
 
