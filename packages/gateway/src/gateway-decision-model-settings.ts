@@ -7,6 +7,7 @@ export type GatewayDecisionModelId =
   | 'liquid/d1-ultra'
   | 'microsoft/microsoft-decision-1'
   | 'openai/gpt-6-luna-decisions'
+  | 'parallel/parallel-decisions-fast'
   | 'perplexity/pplx-decider-flash-v1.2'
   | 'perplexity/pplx-decider-v1.2'
   | 'scaledown/scaledown-classify-1'

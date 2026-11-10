@@ -1,3 +1,4 @@
+import { restoreTelemetryBody } from './serializable-telemetry-body.js';
 import type { LanguageModelV4Content } from '@ai-sdk/provider';
 import {
   convertLanguageModelContent,
@@ -89,9 +90,28 @@ export async function buildModelStepResult(
       rawFinishReason: finish.rawFinishReason,
       usage: finish.usage,
       warnings: raw.warnings as StepResult<ToolSet>['warnings'],
-      request: { ...raw.generation.request, messages: opts.requestMessages },
+      request: {
+        ...raw.generation.request,
+        ...(raw.telemetryBodies?.request == null
+          ? {}
+          : {
+              body: restoreTelemetryBody(
+                raw.generation.request?.body,
+                raw.telemetryBodies.request,
+              ),
+            }),
+        messages: opts.requestMessages,
+      },
       response: {
         ...raw.responseMetadata,
+        ...(raw.telemetryBodies?.response == null
+          ? {}
+          : {
+              body: restoreTelemetryBody(
+                raw.responseMetadata?.body,
+                raw.telemetryBodies.response,
+              ),
+            }),
         messages: [],
       } as StepResult<ToolSet>['response'],
       providerMetadata:

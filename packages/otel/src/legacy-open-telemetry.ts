@@ -1,3 +1,4 @@
+import { redactToolDefinition } from './redact-tool-definition';
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import type { Context as AISDKContext } from '@ai-sdk/provider-utils';
 import {
@@ -50,7 +51,6 @@ import type {
 import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
 import { getProviderUsageAttributes } from './provider-usage-attributes';
-import { redactToolDefinition } from './redact-tool-definition';
 import { sanitizeAttributeValue } from './sanitize-attribute-value';
 import {
   stringifyForTelemetry,

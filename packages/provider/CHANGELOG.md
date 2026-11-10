@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.37
+
+### Patch Changes
+
+- c70adf6: Fix TypeSafe decision requests with primitive JSON state by serializing those values as text, reject empty criteria and null or undefined Score levels before sending a request, and expose structured Score legends in provider metadata. Allow omitted or null Box instructions and null Boolean criteria in experimental decision question types.
+
 ## 4.0.36
 
 ### Patch Changes

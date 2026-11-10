@@ -1,5 +1,39 @@
 # @ai-sdk/azure
 
+## 4.0.121
+
+### Patch Changes
+
+- Updated dependencies [f9d43bd]
+- Updated dependencies [22b8158]
+- Updated dependencies [88b9575]
+  - @ai-sdk/deepseek@3.0.83
+  - @ai-sdk/openai@4.0.113
+  - @ai-sdk/provider-utils@5.0.78
+
+## 4.0.120
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/openai@4.0.112
+  - @ai-sdk/deepseek@3.0.82
+
+## 4.0.119
+
+### Patch Changes
+
+- 6400cf8: Add `resolveProviderOptions` to parse provider options that a model accepts under several `providerOptions` keys, either as aliases (`first`) or merged in order (`merge`), and use it for the existing multi-key lookups in the OpenAI, OpenAI-compatible, Anthropic, Google, and Amazon Bedrock models. Resolution behavior for these models is unchanged.
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/openai@4.0.111
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/deepseek@3.0.81
+
 ## 4.0.118
 
 ### Patch Changes

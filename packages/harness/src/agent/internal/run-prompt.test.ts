@@ -2338,14 +2338,17 @@ describe('runPrompt host tool input validation', () => {
       expect.objectContaining({ type: 'tool-error', toolCallId: 'c1' }),
     );
     expect(await result.toolResults).toEqual([]);
-    expect(
-      uiChunks.filter(chunk => chunk.type === 'tool-output-error'),
-    ).toEqual([
-      expect.objectContaining({
-        toolCallId: 'c1',
-        errorText: 'Tool failed',
-      }),
-    ]);
+    expect(uiChunks.filter(chunk => chunk.type === 'tool-input-error')).toEqual(
+      [
+        expect.objectContaining({
+          toolCallId: 'c1',
+          errorText: 'Tool failed',
+        }),
+      ],
+    );
+    expect(uiChunks.some(chunk => chunk.type === 'tool-output-error')).toBe(
+      false,
+    );
     expect(uiChunks.some(chunk => chunk.type === 'tool-output-available')).toBe(
       false,
     );
@@ -2453,14 +2456,17 @@ describe('runPrompt host tool input validation', () => {
       ).toHaveLength(1);
       expect(parts.some(part => part.type === 'tool-result')).toBe(false);
       expect(
-        uiChunks.filter(chunk => chunk.type === 'tool-output-error'),
+        uiChunks.filter(chunk => chunk.type === 'tool-input-error'),
       ).toEqual([
         expect.objectContaining({
-          type: 'tool-output-error',
+          type: 'tool-input-error',
           toolCallId: 'c1',
           errorText: 'Tool failed',
         }),
       ]);
+      expect(uiChunks.some(chunk => chunk.type === 'tool-output-error')).toBe(
+        false,
+      );
       expect(
         uiChunks.some(chunk => chunk.type === 'tool-output-available'),
       ).toBe(false);

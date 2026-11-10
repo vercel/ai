@@ -78,6 +78,7 @@ describe('google-vertex-anthropic-provider', () => {
     ['claude-opus-5', true],
     ['claude-opus-5-5', true],
     ['claude-fable-5-1', true],
+    ['claude-fable-5-2', true],
     ['claude-sonnet-6', true],
     ['claude-sonnet-5', true],
     ['claude-sonnet-5-5', true],

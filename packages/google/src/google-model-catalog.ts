@@ -119,6 +119,7 @@ const documentedModels: Record<string, DocumentedCapabilities> = {
     urlContext: false,
   },
   'gemini-4-argon': standard,
+  'gemini-4-carbon': standard,
   'gemini-3.8-flash': standard,
   'gemini-3.7-flash': standard,
   'gemini-3.6-flash': standard,

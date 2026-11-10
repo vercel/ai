@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/angular",
-  "version": "3.0.164",
+  "version": "3.0.168",
   "type": "module",
   "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
@@ -46,7 +46,7 @@
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "vitest": "^4.1.11",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "@angular/core": ">=16.0.0"
