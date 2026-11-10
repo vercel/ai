@@ -1,5 +1,14 @@
 # @ai-sdk/mcp
 
+## 2.0.96
+
+### Patch Changes
+
+- 6141e6f: fix(mcp): reject with the network error when `server/discover` fails over Streamable HTTP instead of falling back to `initialize` against the same unreachable server
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
 ## 2.0.95
 
 ### Patch Changes

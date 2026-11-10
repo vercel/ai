@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 4.0.117
+
+### Patch Changes
+
+- c160b74: Add support for the `gemini-4-carbon` model with the same capabilities as `gemini-4-argon`.
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
 ## 4.0.116
 
 ### Patch Changes
