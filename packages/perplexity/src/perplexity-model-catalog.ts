@@ -230,16 +230,12 @@ function createDecisionModelEntry(
 }
 
 // Preserve the documented preset and embedding sets and all existing decision IDs.
-export const perplexityModelCatalog: Readonly<
-  Record<string, PerplexityModelEntry>
-> = {
-  fast: createLanguageModelEntry('fast', 'fast'),
-  low: createLanguageModelEntry('low', 'low'),
-  medium: createLanguageModelEntry('medium', 'medium'),
-  high: createLanguageModelEntry('high', 'high'),
-  xhigh: createLanguageModelEntry('xhigh', 'xhigh'),
+const perplexityEmbeddingModelEntries = {
   'pplx-embed-v1-0.6b': createEmbeddingModelEntry(1024),
   'pplx-embed-v1-4b': createEmbeddingModelEntry(2560),
+};
+
+const perplexityDecisionModelEntries = {
   'pplx-decider-v1.2': createDecisionModelEntry(true),
   'pplx-decider-flash-v1.2': createDecisionModelEntry(true),
   'pplx-decider-latest': createDecisionModelEntry(true),
@@ -248,6 +244,24 @@ export const perplexityModelCatalog: Readonly<
   'perplexity/pplx-decider-flash-latest': createDecisionModelEntry(true),
   'pplx-decider-v1.1-27b': createDecisionModelEntry(true),
   'pplx-decider-v1-27b': createDecisionModelEntry(true),
+};
+
+const languageModelIds = ['fast', 'low', 'medium', 'high', 'xhigh'] as const;
+
+const perplexityLanguageModelEntries = Object.fromEntries(
+  languageModelIds.map(preset => [
+    preset,
+    createLanguageModelEntry(preset, preset),
+  ]),
+);
+
+export const perplexityModelCatalog: Readonly<
+  Record<string, PerplexityModelEntry>
+> = {
+  ...perplexityLanguageModelEntries,
+  ...perplexityEmbeddingModelEntries,
+
+  ...perplexityDecisionModelEntries,
 };
 
 function findModelEntry(modelId: string) {
@@ -321,3 +335,10 @@ function declareProviderOptions<Option extends string>(
     ]),
   ) as Record<Option, ModelCapability>;
 }
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type PerplexityModelIds = {
+  embedding: keyof typeof perplexityEmbeddingModelEntries;
+  decision: keyof typeof perplexityDecisionModelEntries;
+  language: (typeof languageModelIds)[number];
+};

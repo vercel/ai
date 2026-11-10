@@ -231,3 +231,9 @@ export const minimaxModelCatalog = Object.fromEntries([
   ),
   ...videoModelIds.map(id => [id, getMiniMaxVideoModelEntry(id)] as const),
 ]);
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type MiniMaxModelIds = {
+  language: (typeof languageModelIds)[number];
+  video: (typeof videoModelIds)[number];
+};

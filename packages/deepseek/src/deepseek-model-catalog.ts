@@ -60,12 +60,12 @@ export type DeepSeekLanguageModelEntry = ModelEntry & {
 };
 
 // Preserve the provider page's model set and its image-input exception.
-const languageDefinitions: Record<string, boolean> = {
+const languageDefinitions = {
   'deepseek-flash': false,
   'deepseek-v4-flash': false,
   'deepseek-v4-pro': false,
   'deepseek-v4-flash-vision-exp': true,
-};
+} satisfies Record<string, boolean>;
 
 function createLanguageModelEntry(
   modelId: string,
@@ -167,3 +167,8 @@ export function getDeepSeekLanguageModelEntry(
     },
   };
 }
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type DeepSeekModelIds = {
+  language: keyof typeof languageDefinitions;
+};

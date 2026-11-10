@@ -135,7 +135,7 @@ type MistralModelEntry = ModelEntry & {
 };
 
 // Preserve the provider page's documented model set and image-input exceptions.
-const documentedLanguageModels: Record<string, boolean> = {
+const documentedLanguageModels = {
   'labs-leanstral-1-5': true,
   'magistral-medium-latest': true,
   'magistral-small-latest': true,
@@ -146,7 +146,7 @@ const documentedLanguageModels: Record<string, boolean> = {
   'mistral-small-latest': true,
   'voxtral-small-latest': false,
   'zai-glm-5-2': false,
-};
+} satisfies Record<string, boolean>;
 
 // Known non-reasoning models from https://api.mistral.ai/v1/models
 // (2026-10-06). Unknown IDs inherit current reasoning configuration support.
@@ -348,6 +348,32 @@ function createEmbeddingModelEntry(
   };
 }
 
+const mistralEmbeddingModelEntries = {
+  'mistral-embed': createEmbeddingModelEntry(1024, false),
+  // https://docs.mistral.ai/studio/knowledge-rag/embeddings/code_embeddings
+  'codestral-embed': createEmbeddingModelEntry(1536, true),
+};
+
+const mistralSpeechModelEntries = {
+  'voxtral-mini-tts-3-0': createSpeechModelEntry(true),
+  'voxtral-mini-tts-2603': createSpeechModelEntry(true),
+};
+
+const mistralTranscriptionModelEntries = {
+  'voxtral-mini-transcribe-3-0': createTranscriptionModelEntry(
+    'voxtral-mini-transcribe-3-0',
+    true,
+  ),
+  'voxtral-small-transcribe-3-0': createTranscriptionModelEntry(
+    'voxtral-small-transcribe-3-0',
+    true,
+  ),
+  'voxtral-mini-latest': createTranscriptionModelEntry(
+    'voxtral-mini-latest',
+    true,
+  ),
+};
+
 export const mistralModelCatalog: Readonly<Record<string, MistralModelEntry>> =
   {
     ...Object.fromEntries(
@@ -356,23 +382,10 @@ export const mistralModelCatalog: Readonly<Record<string, MistralModelEntry>> =
         createLanguageModelEntry(modelId, image),
       ]),
     ),
-    'voxtral-mini-transcribe-3-0': createTranscriptionModelEntry(
-      'voxtral-mini-transcribe-3-0',
-      true,
-    ),
-    'voxtral-small-transcribe-3-0': createTranscriptionModelEntry(
-      'voxtral-small-transcribe-3-0',
-      true,
-    ),
-    'voxtral-mini-latest': createTranscriptionModelEntry(
-      'voxtral-mini-latest',
-      true,
-    ),
-    'voxtral-mini-tts-3-0': createSpeechModelEntry(true),
-    'voxtral-mini-tts-2603': createSpeechModelEntry(true),
-    'mistral-embed': createEmbeddingModelEntry(1024, false),
-    // https://docs.mistral.ai/studio/knowledge-rag/embeddings/code_embeddings
-    'codestral-embed': createEmbeddingModelEntry(1536, true),
+    ...mistralTranscriptionModelEntries,
+    ...mistralSpeechModelEntries,
+
+    ...mistralEmbeddingModelEntries,
   };
 
 function findModelEntry(modelId: string) {
@@ -420,3 +433,11 @@ function declareProviderOptions<Option extends string>(
     ]),
   ) as Record<Option, ModelCapability>;
 }
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type MistralModelIds = {
+  language: keyof typeof documentedLanguageModels;
+  embedding: keyof typeof mistralEmbeddingModelEntries;
+  speech: keyof typeof mistralSpeechModelEntries;
+  transcription: keyof typeof mistralTranscriptionModelEntries;
+};

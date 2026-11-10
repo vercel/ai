@@ -109,7 +109,7 @@ const standard = {
   urlContext: true,
 } as const;
 
-const documentedModels: Record<string, DocumentedCapabilities> = {
+const documentedModels = {
   'gemini-nano-banana-2.1': {
     image: true,
     objectGeneration: false,
@@ -135,7 +135,7 @@ const documentedModels: Record<string, DocumentedCapabilities> = {
   'gemini-2.5-flash-lite': standard,
   'gemini-2.5-flash-lite-preview-06-17': standard,
   'gemini-2.0-flash': standard,
-};
+} satisfies Record<string, DocumentedCapabilities>;
 
 export const googleModelCatalog: Readonly<
   Record<string, GoogleLanguageModelEntry>
@@ -317,3 +317,8 @@ function getMinimumThinkingLevelForGemini3Model(
     ? 'low'
     : 'minimal';
 }
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type GoogleModelIds = {
+  language: keyof typeof documentedModels;
+};

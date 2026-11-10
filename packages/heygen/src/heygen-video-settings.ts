@@ -1,1 +1,3 @@
-export type HeyGenVideoModelId = 'heygen-video-1' | (string & {});
+import type { HeyGenModelIds } from './heygen-model-catalog';
+
+export type HeyGenVideoModelId = HeyGenModelIds['video'] | (string & {});

@@ -404,3 +404,11 @@ Object.assign(
     ]),
   ),
 );
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type TogetherAIModelIds = {
+  language: (typeof languageModelIds)[number];
+  embedding: (typeof embeddingModelIds)[number];
+  image: (typeof imageModelIds)[number];
+  reranking: (typeof rerankingModelIds)[number];
+};

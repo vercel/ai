@@ -248,7 +248,7 @@ const runtimeRules: readonly {
   },
 ];
 
-const documentedModels: Readonly<Record<string, DocumentedCapabilities>> = {
+const documentedModels = {
   'claude-opus-5-5': { toolSearch: true, compaction: true, effort: true },
   'claude-opus-5': { toolSearch: true, compaction: true, effort: true },
   'claude-sonnet-5-5': { toolSearch: true, compaction: true, effort: true },
@@ -267,7 +267,7 @@ const documentedModels: Readonly<Record<string, DocumentedCapabilities>> = {
   'claude-opus-4-1': { toolSearch: false, compaction: false, effort: false },
   'claude-opus-4-0': { toolSearch: false, compaction: false, effort: false },
   'claude-sonnet-4-0': { toolSearch: false, compaction: false, effort: false },
-};
+} satisfies Readonly<Record<string, DocumentedCapabilities>>;
 
 export const anthropicModelCatalog: Readonly<
   Record<string, AnthropicLanguageModelEntry>
@@ -413,3 +413,8 @@ export function getAnthropicModelCapabilities(modelId: string) {
 
 // Compatibility name also exported by the Anthropic runtime adapter.
 export { getAnthropicModelCapabilities as getModelCapabilities };
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type AnthropicModelIds = {
+  language: keyof typeof documentedModels;
+};

@@ -1,7 +1,6 @@
+import type { ProdiaModelIds } from './prodia-model-catalog';
+
 /**
  * Prodia job types for image generation.
  */
-export type ProdiaImageModelId =
-  | 'inference.flux-fast.schnell.txt2img.v2'
-  | 'inference.flux.schnell.txt2img.v2'
-  | (string & {});
+export type ProdiaImageModelId = ProdiaModelIds['image'] | (string & {});

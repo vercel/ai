@@ -495,3 +495,10 @@ export const fireworksStabilityModelCatalog = Object.fromEntries(
     'accounts/stability/models/sd3',
   ].map(id => [id, getFireworksImageModelEntry(id)]),
 );
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type FireworksModelIds = {
+  language: (typeof languageModelIds)[number];
+  embedding: (typeof embeddingModelIds)[number];
+  image: (typeof imageModelIds)[number];
+};

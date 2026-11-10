@@ -179,15 +179,8 @@ function languageEntry(modelId: string): VertexEntry {
   };
 }
 
-const imageModels = [
-  'gemini-2.5-flash-image',
-  'gemini-3-pro-image-preview',
-  'gemini-3.1-flash-image-preview',
-  'gemini-nano-banana-2.1',
-];
-
 export function getGoogleVertexImageModelEntry(modelId: string): VertexEntry {
-  const known = imageModels.includes(modelId);
+  const known = imageModelIds.some(id => id === modelId);
   return {
     capabilities: {
       image: {
@@ -338,91 +331,115 @@ function videoEntry(modelId: string): VertexEntry {
   };
 }
 
+const languageModelIds = [
+  'gemini-nano-banana-2.1',
+  'gemini-4-argon',
+  'gemini-3.8-flash',
+  'gemini-3.7-flash',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-2.5-pro',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-001',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-001',
+  'gemini-1.5-flash-002',
+  'gemini-1.5-pro',
+  'gemini-1.5-pro-001',
+  'gemini-1.5-pro-002',
+  'gemini-1.0-pro-001',
+  'gemini-1.0-pro-vision-001',
+  'gemini-1.0-pro',
+  'gemini-1.0-pro-002',
+  'gemini-2.0-flash-lite-preview-02-05',
+  'gemini-2.5-flash-preview-09-2025',
+  'gemini-3-pro-preview',
+  'gemini-3-pro-image-preview',
+  'gemini-3-flash-preview',
+  'gemini-3.1-pro-preview',
+  'gemini-3.1-flash-image-preview',
+  'gemini-3.1-flash-lite-preview',
+  'gemini-2.0-pro-exp-02-05',
+  'gemini-2.0-flash-exp',
+] as const;
+
+const imageModelIds = [
+  'gemini-2.5-flash-image',
+  'gemini-3-pro-image-preview',
+  'gemini-3.1-flash-image-preview',
+  'gemini-nano-banana-2.1',
+] as const;
+
+const embeddingModelIds = [
+  'textembedding-gecko',
+  'textembedding-gecko@001',
+  'textembedding-gecko@003',
+  'textembedding-gecko-multilingual',
+  'textembedding-gecko-multilingual@001',
+  'text-multilingual-embedding-002',
+  'text-embedding-004',
+  'text-embedding-005',
+  'gemini-embedding-001',
+  'gemini-embedding-2',
+  'gemini-embedding-2-preview',
+] as const;
+
+const videoModelIds = [
+  'veo-2.0-generate-preview',
+  'veo-2.0-generate-exp',
+  'veo-2.0-generate-001',
+  'veo-3.0-generate-001',
+  'veo-3.0-fast-generate-001',
+  'veo-3.0-generate-preview',
+  'veo-3.0-fast-generate-preview',
+  'veo-3.1-generate-001',
+  'veo-3.1-fast-generate-001',
+  'veo-3.1-generate-preview',
+  'veo-3.1-fast-generate-preview',
+] as const;
+
+const speechModelIds = [
+  'gemini-2.5-flash-tts',
+  'gemini-2.5-pro-tts',
+  'gemini-2.5-flash-lite-preview-tts',
+  'gemini-3.1-flash-tts-preview',
+  'chirp-3-hd',
+] as const;
+
+const transcriptionModelIds = ['chirp_2', 'chirp_3', 'telephony'] as const;
+
+const geminiTranscriptionModelIds = [
+  'gemini-3.5-transcribe',
+  'gemini-3.5-transcribe-live',
+] as const;
+
 const entries: [string, VertexEntry][] = [
-  ...[
-    'gemini-nano-banana-2.1',
-    'gemini-4-argon',
-    'gemini-3.8-flash',
-    'gemini-3.7-flash',
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-3.5-flash-lite',
-    'gemini-2.5-pro',
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-2.0-flash-lite',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-001',
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-001',
-    'gemini-1.5-flash-002',
-    'gemini-1.5-pro',
-    'gemini-1.5-pro-001',
-    'gemini-1.5-pro-002',
-    'gemini-1.0-pro-001',
-    'gemini-1.0-pro-vision-001',
-    'gemini-1.0-pro',
-    'gemini-1.0-pro-002',
-    'gemini-2.0-flash-lite-preview-02-05',
-    'gemini-2.5-flash-preview-09-2025',
-    'gemini-3-pro-preview',
-    'gemini-3-pro-image-preview',
-    'gemini-3-flash-preview',
-    'gemini-3.1-pro-preview',
-    'gemini-3.1-flash-image-preview',
-    'gemini-3.1-flash-lite-preview',
-    'gemini-2.0-pro-exp-02-05',
-    'gemini-2.0-flash-exp',
-  ].map((id): [string, VertexEntry] => [id, languageEntry(id)]),
-  ...[
-    'gemini-2.5-flash-image',
-    'gemini-3-pro-image-preview',
-    'gemini-3.1-flash-image-preview',
-    'gemini-nano-banana-2.1',
-  ].map((id): [string, VertexEntry] => [
+  ...languageModelIds.map((id): [string, VertexEntry] => [
+    id,
+    languageEntry(id),
+  ]),
+  ...imageModelIds.map((id): [string, VertexEntry] => [
     id,
     getGoogleVertexImageModelEntry(id),
   ]),
-  ...[
-    'textembedding-gecko',
-    'textembedding-gecko@001',
-    'textembedding-gecko@003',
-    'textembedding-gecko-multilingual',
-    'textembedding-gecko-multilingual@001',
-    'text-multilingual-embedding-002',
-    'text-embedding-004',
-    'text-embedding-005',
-    'gemini-embedding-001',
-    'gemini-embedding-2',
-    'gemini-embedding-2-preview',
-  ].map((id): [string, VertexEntry] => [id, embeddingEntry(id)]),
-  ...[
-    'veo-2.0-generate-preview',
-    'veo-2.0-generate-exp',
-    'veo-2.0-generate-001',
-    'veo-3.0-generate-001',
-    'veo-3.0-fast-generate-001',
-    'veo-3.0-generate-preview',
-    'veo-3.0-fast-generate-preview',
-    'veo-3.1-generate-001',
-    'veo-3.1-fast-generate-001',
-    'veo-3.1-generate-preview',
-    'veo-3.1-fast-generate-preview',
-  ].map((id): [string, VertexEntry] => [id, videoEntry(id)]),
-  ...[
-    'gemini-2.5-flash-tts',
-    'gemini-2.5-pro-tts',
-    'gemini-2.5-flash-lite-preview-tts',
-    'gemini-3.1-flash-tts-preview',
-    'chirp-3-hd',
-  ].map((id): [string, VertexEntry] => [id, speechEntry(id)]),
-  ...['chirp_2', 'chirp_3', 'telephony'].map((id): [string, VertexEntry] => [
+  ...embeddingModelIds.map((id): [string, VertexEntry] => [
+    id,
+    embeddingEntry(id),
+  ]),
+  ...videoModelIds.map((id): [string, VertexEntry] => [id, videoEntry(id)]),
+  ...speechModelIds.map((id): [string, VertexEntry] => [id, speechEntry(id)]),
+  ...transcriptionModelIds.map((id): [string, VertexEntry] => [
     id,
     transcriptionEntry(id),
   ]),
-  ...['gemini-3.5-transcribe', 'gemini-3.5-transcribe-live'].map(
-    (id): [string, VertexEntry] => [id, transcriptionEntry(id)],
-  ),
+  ...geminiTranscriptionModelIds.map((id): [string, VertexEntry] => [
+    id,
+    transcriptionEntry(id),
+  ]),
 ];
 
 /** A model may expose more than one operation (for example Gemini image models). */
@@ -591,3 +608,17 @@ export const googleVertexMaasModelCatalog = Object.fromEntries(
     return [id, entry satisfies ModelEntry<VertexRequestConfig>];
   }),
 );
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type GoogleVertexModelIds = {
+  language: (typeof languageModelIds)[number];
+  image: (typeof imageModelIds)[number];
+  embedding: (typeof embeddingModelIds)[number];
+  video: (typeof videoModelIds)[number];
+  speech: (typeof speechModelIds)[number];
+  transcription: (typeof transcriptionModelIds)[number];
+  geminiTranscription: (typeof geminiTranscriptionModelIds)[number];
+  anthropic: keyof typeof vertexAnthropicModels;
+  xai: keyof typeof vertexXaiModels;
+  maas: keyof typeof vertexMaasModels;
+};

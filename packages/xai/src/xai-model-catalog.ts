@@ -141,7 +141,7 @@ type LanguageDefinition = {
 
 // Preserve the model capabilities already declared in the provider page and
 // shared overview. This migration does not reinterpret retired model aliases.
-const languageDefinitions: Record<string, LanguageDefinition> = {
+const languageDefinitions = {
   'grok-4.7': {
     image: true,
     reasoning: true,
@@ -168,7 +168,7 @@ const languageDefinitions: Record<string, LanguageDefinition> = {
   'grok-4': { image: false, reasoning: true },
   'grok-3': { image: false, reasoning: false },
   'grok-3-mini': { image: false, reasoning: true },
-};
+} satisfies Record<string, LanguageDefinition>;
 
 // These variants reject reasoning effort, including `none`. Multi-agent
 // variants deliberately retain the existing configurable-effort fallback.
@@ -325,13 +325,7 @@ function createTranscriptionModelEntry(modelId: string, declared: boolean) {
 
 const defaultTranscriptionModelEntry = createTranscriptionModelEntry('', true);
 
-export const xaiModelCatalog: Readonly<Record<string, XaiModelEntry>> = {
-  ...Object.fromEntries(
-    Object.entries(languageDefinitions).map(([modelId, definition]) => [
-      modelId,
-      createLanguageModelEntry(modelId, definition),
-    ]),
-  ),
+const xaiImageModelEntries = {
   'grok-imagine-image-2.0': createImageModelEntry({
     resolutions: ['1k', '1.5k', '2k'],
     aspectRatios: [...commonAspectRatios, '21:9', '5:2', 'auto'],
@@ -347,6 +341,36 @@ export const xaiModelCatalog: Readonly<Record<string, XaiModelEntry>> = {
     aspectRatios: [...commonAspectRatios, 'auto'],
     quality: 'unknown',
   }),
+};
+
+const xaiTranscriptionModelEntries = {
+  'grok-voice-transcribe-2.0': createTranscriptionModelEntry(
+    'grok-voice-transcribe-2.0',
+    true,
+  ),
+};
+
+const xaiRealtimeModelEntries = {
+  'grok-voice-latest': {
+    capabilities: {
+      realtime: {
+        conversation: 'turn-based',
+        transports: ['websocket'],
+        connections: ['client-secret-websocket', 'server-websocket'],
+      },
+    },
+  },
+} satisfies Record<string, XaiModelEntry>;
+
+export const xaiModelCatalog: Readonly<Record<string, XaiModelEntry>> = {
+  ...Object.fromEntries(
+    Object.entries(languageDefinitions).map(([modelId, definition]) => [
+      modelId,
+      createLanguageModelEntry(modelId, definition),
+    ]),
+  ),
+  ...xaiImageModelEntries,
+
   // The factories use the empty model ID for both default speech and default
   // transcription. Keep one record containing both independent operations.
   '': {
@@ -363,19 +387,8 @@ export const xaiModelCatalog: Readonly<Record<string, XaiModelEntry>> = {
       ...defaultTranscriptionModelEntry.requestConfig,
     },
   },
-  'grok-voice-transcribe-2.0': createTranscriptionModelEntry(
-    'grok-voice-transcribe-2.0',
-    true,
-  ),
-  'grok-voice-latest': {
-    capabilities: {
-      realtime: {
-        conversation: 'turn-based',
-        transports: ['websocket'],
-        connections: ['client-secret-websocket', 'server-websocket'],
-      },
-    },
-  },
+  ...xaiTranscriptionModelEntries,
+  ...xaiRealtimeModelEntries,
 };
 
 function findModelEntry(modelId: string) {
@@ -435,3 +448,11 @@ function declareProviderOptions<Option extends string>(
     ]),
   ) as Record<Option, ModelCapability>;
 }
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type XaiModelIds = {
+  language: keyof typeof languageDefinitions;
+  image: keyof typeof xaiImageModelEntries;
+  transcription: keyof typeof xaiTranscriptionModelEntries;
+  realtime: keyof typeof xaiRealtimeModelEntries;
+};

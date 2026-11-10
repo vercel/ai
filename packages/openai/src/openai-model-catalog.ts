@@ -121,10 +121,7 @@ const configurableNonReasoning: OpenAILanguageModelDefinition = {
 };
 
 // Model-specific exceptions belong in the table; family rules provide defaults.
-const openaiLanguageModelDefinitions: Record<
-  string,
-  OpenAILanguageModelDefinition
-> = {
+const openaiLanguageModelDefinitions = {
   'gpt-6-astra': {},
   'gpt-6.1-sol': {},
   'gpt-6.1-terra': configurableNonReasoning,
@@ -165,7 +162,7 @@ const openaiLanguageModelDefinitions: Record<
   'gpt-4.1-nano': {},
   'gpt-4o': {},
   'gpt-4o-mini': {},
-};
+} satisfies Record<string, OpenAILanguageModelDefinition>;
 
 const openaiLanguageModelEntries: Readonly<
   Record<string, OpenAILanguageModelEntry>
@@ -418,9 +415,7 @@ export type OpenAITranscriptionModelEntry =
     };
   };
 
-const openaiEmbeddingModelEntries: Readonly<
-  Record<string, OperationModelEntry<'embedding'>>
-> = {
+const openaiEmbeddingModelEntries = {
   'text-embedding-3-large': {
     capabilities: {
       embedding: { defaultDimensions: 3072, customDimensions: true },
@@ -436,7 +431,7 @@ const openaiEmbeddingModelEntries: Readonly<
       embedding: { defaultDimensions: 1536, customDimensions: false },
     },
   },
-};
+} satisfies Readonly<Record<string, OperationModelEntry<'embedding'>>>;
 
 const gptImageSizes = ['1024x1024', '1536x1024', '1024x1536'];
 const customImageSizes = {
@@ -459,39 +454,38 @@ function createGptImageEntry(
   };
 }
 
-const openaiImageModelEntries: Readonly<Record<string, OpenAIImageModelEntry>> =
-  {
-    'gpt-image-2.6-flare': createGptImageEntry(customImageSizes),
-    'gpt-image-2.6-sunburst': createGptImageEntry(customImageSizes),
-    'gpt-image-2.5-flare': createGptImageEntry(customImageSizes),
-    'gpt-image-2.5-sunburst': createGptImageEntry(customImageSizes),
-    'gpt-image-2': createGptImageEntry(gptImageSizes),
-    'gpt-image-1.5': createGptImageEntry(gptImageSizes),
-    'gpt-image-1-mini': createGptImageEntry(gptImageSizes),
-    'gpt-image-1': createGptImageEntry(gptImageSizes),
-    'dall-e-3': {
-      capabilities: {
-        image: {
-          sizes: ['1024x1024', '1792x1024', '1024x1792'],
-          fileInput: false,
-          maskInput: false,
-          maxImagesPerCall: 1,
-        },
+const openaiImageModelEntries = {
+  'gpt-image-2.6-flare': createGptImageEntry(customImageSizes),
+  'gpt-image-2.6-sunburst': createGptImageEntry(customImageSizes),
+  'gpt-image-2.5-flare': createGptImageEntry(customImageSizes),
+  'gpt-image-2.5-sunburst': createGptImageEntry(customImageSizes),
+  'gpt-image-2': createGptImageEntry(gptImageSizes),
+  'gpt-image-1.5': createGptImageEntry(gptImageSizes),
+  'gpt-image-1-mini': createGptImageEntry(gptImageSizes),
+  'gpt-image-1': createGptImageEntry(gptImageSizes),
+  'dall-e-3': {
+    capabilities: {
+      image: {
+        sizes: ['1024x1024', '1792x1024', '1024x1792'],
+        fileInput: false,
+        maskInput: false,
+        maxImagesPerCall: 1,
       },
-      requestConfig: { image: { responseFormat: 'b64_json' } },
     },
-    'dall-e-2': {
-      capabilities: {
-        image: {
-          sizes: ['256x256', '512x512', '1024x1024'],
-          fileInput: true,
-          maskInput: true,
-          maxImagesPerCall: 10,
-        },
+    requestConfig: { image: { responseFormat: 'b64_json' } },
+  },
+  'dall-e-2': {
+    capabilities: {
+      image: {
+        sizes: ['256x256', '512x512', '1024x1024'],
+        fileInput: true,
+        maskInput: true,
+        maxImagesPerCall: 10,
       },
-      requestConfig: { image: { responseFormat: 'b64_json' } },
     },
-  };
+    requestConfig: { image: { responseFormat: 'b64_json' } },
+  },
+} satisfies Readonly<Record<string, OpenAIImageModelEntry>>;
 
 const imageModelAliases: Readonly<Record<string, OpenAIImageModelEntry>> = {
   'gpt-image-2.5-flare-2026-09-08':
@@ -503,7 +497,9 @@ const imageModelAliases: Readonly<Record<string, OpenAIImageModelEntry>> = {
 
 function resolveOpenAIImageModelEntry(modelId: string): OpenAIImageModelEntry {
   if (Object.prototype.hasOwnProperty.call(openaiImageModelEntries, modelId)) {
-    return openaiImageModelEntries[modelId];
+    return openaiImageModelEntries[
+      modelId as keyof typeof openaiImageModelEntries
+    ];
   }
   if (Object.prototype.hasOwnProperty.call(imageModelAliases, modelId)) {
     return imageModelAliases[modelId];
@@ -544,9 +540,7 @@ const defaultTranscriptionRequestConfig: OpenAITranscriptionModelEntry['requestC
     languageField: 'language',
   };
 
-const openaiTranscriptionModelEntries: Readonly<
-  Record<string, OpenAITranscriptionModelEntry>
-> = {
+const openaiTranscriptionModelEntries = {
   'whisper-1': {
     capabilities: {
       transcription: {
@@ -649,7 +643,7 @@ const openaiTranscriptionModelEntries: Readonly<
     },
     requestConfig: { transcription: defaultTranscriptionRequestConfig },
   },
-};
+} satisfies Readonly<Record<string, OpenAITranscriptionModelEntry>>;
 
 const transcriptionSnapshotModelIds = [
   'gpt-transcribe',
@@ -666,7 +660,9 @@ function resolveOpenAITranscriptionModelEntry(
       modelId,
     )
   ) {
-    return openaiTranscriptionModelEntries[modelId];
+    return openaiTranscriptionModelEntries[
+      modelId as keyof typeof openaiTranscriptionModelEntries
+    ];
   }
   for (const baseModelId of transcriptionSnapshotModelIds) {
     if (modelId.startsWith(`${baseModelId}-`)) {
@@ -688,9 +684,7 @@ function resolveOpenAITranscriptionModelEntry(
   };
 }
 
-const openaiSpeechTranslationModelEntries: Readonly<
-  Record<string, OperationModelEntry<'speechTranslation'>>
-> = {
+const openaiSpeechTranslationModelEntries = {
   'gpt-realtime-translate': {
     capabilities: {
       speechTranslation: {
@@ -700,15 +694,13 @@ const openaiSpeechTranslationModelEntries: Readonly<
       },
     },
   },
-};
+} satisfies Readonly<Record<string, OperationModelEntry<'speechTranslation'>>>;
 
-const openaiSpeechModelEntries: Readonly<
-  Record<string, OperationModelEntry<'speech'>>
-> = {
+const openaiSpeechModelEntries = {
   'tts-1': { capabilities: { speech: { instructions: false } } },
   'tts-1-hd': { capabilities: { speech: { instructions: false } } },
   'gpt-4o-mini-tts': { capabilities: { speech: { instructions: true } } },
-};
+} satisfies Readonly<Record<string, OperationModelEntry<'speech'>>>;
 
 type RealtimeRequestConfig = {
   api: 'live' | 'realtime';
@@ -935,3 +927,14 @@ export function getOpenAILanguageModelCapabilities(
       capabilities.reasoning.sampling === 'reasoning-effort-none',
   };
 }
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type OpenAIModelIds = {
+  language: keyof typeof openaiLanguageModelDefinitions;
+  embedding: keyof typeof openaiEmbeddingModelEntries;
+  image: keyof typeof openaiImageModelEntries;
+  transcription: keyof typeof openaiTranscriptionModelEntries;
+  speechTranslation: keyof typeof openaiSpeechTranslationModelEntries;
+  speech: keyof typeof openaiSpeechModelEntries;
+  realtime: keyof typeof realtimeModelEntries;
+};
