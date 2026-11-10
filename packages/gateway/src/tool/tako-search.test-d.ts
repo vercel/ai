@@ -56,7 +56,7 @@ expectTypeOf<TakoResultContent['total_matching']>().toEqualTypeOf<
 >();
 
 type ExportPricing = NonNullable<TakoResultContent['export_pricing']>;
-expectTypeOf<ExportPricing>().not.toHaveProperty('free_rows');
+expectTypeOf<ExportPricing['free_rows']>().toEqualTypeOf<number | undefined>();
 expectTypeOf<ExportPricing['variable_cost_max_usd']>().toEqualTypeOf<
   number | null | undefined
 >();

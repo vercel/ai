@@ -193,6 +193,8 @@ export interface TakoResultContent {
   total_matching?: number | null;
   export_pricing?: {
     baseline_usd: number;
+    /** @deprecated Always 0, and Tako will stop sending it. */
+    free_rows?: number;
     max_rows_ceiling: number;
     row_cpm_usd: number;
     /** USD per 1,000 premium records by class, added to row_cpm_usd when premium. */
@@ -486,6 +488,7 @@ export const takoResultContentSchema = () =>
         z.catchall(
           z.object({
             baseline_usd: z.number(),
+            free_rows: z.optional(z.number()),
             max_rows_ceiling: z.number(),
             row_cpm_usd: z.number(),
             premium_row_cpm_usd: z.nullish(z.record(z.string(), z.number())),
