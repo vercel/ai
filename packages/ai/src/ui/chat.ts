@@ -432,7 +432,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       ...this.experimental_queuedMessages.filter(queued => queued.id !== id),
     ]);
 
+    const stopGeneration = this.stopGeneration + 1;
     await this.stop();
+
+    if (stopGeneration !== this.stopGeneration) {
+      return;
+    }
+
     await this.resumeQueue({
       skipWaitForUser: true,
       options: this.queuedMessageOptions.get(id),

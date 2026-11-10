@@ -4188,6 +4188,84 @@ describe('use-chat', () => {
   describe('experimental_queue', () => {
     afterEach(cleanup);
 
+    it('should cancel pending send-now work when switching chats during a tool callback', async () => {
+      let releaseTool: () => void = () => {};
+      const toolGate = new Promise<void>(resolve => {
+        releaseTool = resolve;
+      });
+      let toolStarted: () => void = () => {};
+      const toolEntered = new Promise<void>(resolve => {
+        toolStarted = resolve;
+      });
+      const oldSendMessages = vi.fn(
+        async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({ type: 'start' });
+              controller.enqueue({ type: 'start-step' });
+              controller.enqueue({
+                type: 'tool-input-available',
+                toolCallId: 'call-1',
+                toolName: 'hold',
+                input: {},
+              });
+              controller.close();
+            },
+          }),
+      );
+      const newSendMessages = vi.fn(
+        async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.close();
+            },
+          }),
+      );
+      let helpers: ReturnType<typeof useChat>;
+      function Test({ tenant }: { tenant: 'old' | 'new' }) {
+        helpers = useChat({
+          id: tenant,
+          transport: {
+            sendMessages: tenant === 'old' ? oldSendMessages : newSendMessages,
+            reconnectToStream: async () => null,
+          },
+          experimental_queue: true,
+          onToolCall: async () => {
+            toolStarted();
+            await toolGate;
+          },
+        });
+        return null;
+      }
+
+      const view = render(<Test tenant="old" />);
+      let sent: Promise<void>;
+      await act(async () => {
+        sent = helpers.sendMessage({ text: 'old tenant private history' });
+        await toolEntered;
+      });
+      await act(async () => {
+        await helpers.sendMessage({ text: 'queued private message' });
+      });
+      let sendingNow: Promise<void>;
+      await act(async () => {
+        sendingNow = helpers.experimental_sendQueuedMessageNow(
+          helpers.experimental_queuedMessages[0].id,
+        );
+      });
+
+      view.rerender(<Test tenant="new" />);
+      await act(async () => {
+        releaseTool();
+        await Promise.all([sent, sendingNow]);
+      });
+
+      expect(oldSendMessages).toHaveBeenCalledOnce();
+      expect(newSendMessages).not.toHaveBeenCalled();
+      expect(helpers!.id).toBe('new');
+      expect(helpers!.messages).toEqual([]);
+    });
+
     it('should not send the old queue through a new transport after switching chats', async () => {
       const oldControllers: ReadableStreamDefaultController<UIMessageChunk>[] =
         [];
