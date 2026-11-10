@@ -320,6 +320,28 @@ describe('HttpMCPTransport', () => {
     expect(methods).toEqual(['server/discover']);
   });
 
+  it('should reject with a network error from protocol discovery without falling back to initialize', async () => {
+    const methods: string[] = [];
+    const networkError = new TypeError('fetch failed');
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method !== 'POST') {
+          return new Response(null, { status: 405 });
+        }
+
+        methods.push(JSON.parse(String(init.body)).method);
+        throw networkError;
+      },
+    );
+
+    await expect(
+      createMCPClient({
+        transport: { type: 'http', url: 'http://localhost:4000/mcp', fetch },
+      }),
+    ).rejects.toBe(networkError);
+    expect(methods).toEqual(['server/discover']);
+  });
+
   it('should bound session cleanup after failed initialization', async () => {
     let resolveDeleteStarted: () => void;
     const deleteStarted = new Promise<void>(resolve => {
