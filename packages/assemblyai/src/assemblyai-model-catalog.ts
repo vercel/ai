@@ -210,3 +210,8 @@ export const assemblyaiModelCatalog = Object.fromEntries(
     getAssemblyAITranscriptionModelEntry(id),
   ]),
 );
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type AssemblyAIModelIds = {
+  transcription: (typeof assemblyaiTranscriptionModelIds)[number];
+};

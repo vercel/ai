@@ -1,4 +1,4 @@
-import type { assemblyaiTranscriptionModelIds } from './assemblyai-model-catalog';
+import type { AssemblyAIModelIds } from './assemblyai-model-catalog';
 /**
  * Legacy AssemblyAI speech model, sent via the deprecated singular
  * `speech_model` request parameter.
@@ -9,5 +9,5 @@ import type { assemblyaiTranscriptionModelIds } from './assemblyai-model-catalog
 export type AssemblyAIDeprecatedTranscriptionModelId = 'best';
 
 export type AssemblyAITranscriptionModelId =
-  | (typeof assemblyaiTranscriptionModelIds)[number]
+  | AssemblyAIModelIds['transcription']
   | (string & {});
