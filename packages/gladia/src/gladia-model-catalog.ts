@@ -8,7 +8,7 @@ import type { GladiaTranscriptionModelOptions } from './gladia-transcription-mod
 export const gladiaProviderOptions = {
   transcription: {
     contextPrompt: {
-      description: 'Optional context prompt to guide the transcription.',
+      description: 'Deprecated and ignored with an unsupported warning.',
     },
     customVocabulary: {
       description:
@@ -46,23 +46,25 @@ export const gladiaProviderOptions = {
       description: 'Whether to generate a summary of the transcription.',
     },
     summarizationConfig: { description: 'Configuration for summarization.' },
-    moderation: { description: 'Whether to enable content moderation.' },
+    moderation: {
+      description: 'Deprecated and ignored with an unsupported warning.',
+    },
     namedEntityRecognition: {
       description: 'Whether to enable named entity recognition.',
     },
     chapterization: {
-      description: 'Whether to enable automatic chapter creation.',
+      description: 'Deprecated and ignored with an unsupported warning.',
     },
     nameConsistency: {
-      description: 'Whether to ensure consistent naming of entities.',
+      description: 'Deprecated and ignored with an unsupported warning.',
     },
     customSpelling: { description: 'Whether to enable custom spelling.' },
     customSpellingConfig: { description: 'Configuration for custom spelling.' },
     structuredDataExtraction: {
-      description: 'Whether to extract structured data from the transcription.',
+      description: 'Deprecated and ignored with an unsupported warning.',
     },
     structuredDataExtractionConfig: {
-      description: 'Configuration for structured data extraction.',
+      description: 'Deprecated and ignored with an unsupported warning.',
     },
     sentimentAnalysis: {
       description:
@@ -132,6 +134,12 @@ export function getGladiaTranscriptionModelEntry(modelId: string) {
             key => [key, policy != null ? true : 'unknown'] as const,
           ),
         ),
+        contextPrompt: false,
+        moderation: false,
+        chapterization: false,
+        nameConsistency: false,
+        structuredDataExtraction: false,
+        structuredDataExtractionConfig: false,
         displayMode: false,
         detectLanguage: singleLanguage
           ? false
