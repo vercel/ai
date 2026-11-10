@@ -31,6 +31,13 @@ with `server/discover` and automatically falls back to the legacy
 `initialize` handshake for older servers. Custom transports can opt into this
 negotiation with `supportsProtocolVersionDiscovery: true`.
 
+Recognized modern protocol errors, including `-32022` (unsupported protocol
+version), do not trigger automatic fallback to `initialize`. If you know an
+endpoint requires legacy initialization, set `protocolVersionDiscovery: false`
+on `createMCPClient` to skip discovery and start with the legacy handshake.
+The server can then negotiate an older supported version in its `initialize`
+response.
+
 ### HTTP Transport (Recommended)
 
 For production deployments, we recommend using the HTTP transport. You can configure it directly on the client:
@@ -153,7 +160,7 @@ The Stdio transport can be imported from either the MCP SDK or the AI SDK:
 import { createMCPClient } from '@ai-sdk/mcp';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 // Or use the AI SDK's stdio transport:
-// import { Experimental_StdioMCPTransport as StdioClientTransport } from '@ai-sdk/mcp/mcp-stdio';
+// import { StdioMCPTransport as StdioClientTransport } from '@ai-sdk/mcp/mcp-stdio';
 
 const mcpClient = await createMCPClient({
   transport: new StdioClientTransport({
@@ -178,6 +185,18 @@ transports by providing an `authProvider`.
 
 </Note>
 
+### OAuth Resource Binding
+
+The MCP client includes the OAuth `resource` parameter in authorization,
+authorization-code exchange, and token refresh requests. It uses the validated
+resource from protected resource metadata when available. If metadata is
+unavailable, it uses the configured MCP server URL with its fragment removed.
+
+To customize resource validation and selection, implement
+`OAuthClientProvider.validateResourceURL`. Return a `URL` to select a resource,
+or throw to reject it. Returning `undefined` uses the canonical MCP server URL;
+it does not omit the `resource` parameter.
+
 ### Shared OAuth Credential Storage
 
 When multiple MCP clients or replicas share OAuth credentials, a rotating refresh
@@ -201,7 +220,11 @@ If they no longer match, leave the newer tokens in storage. The SDK retries
 authorization and reads the stored tokens again.
 
 The SDK also provides this context when invalidating stored tokens that lack an
-authorization server pin. Other invalidations can omit the context.
+authorization server pin. These tokens must be cleared before the SDK saves a new
+client registration or authorization server pin. If the invalidation hook is
+missing or refresh tokens remain in storage, authorization stops with an error;
+clear the stored tokens and start authorization again. Other invalidations can
+omit the context.
 
 If an authorization-code exchange returns `invalid_grant`, the SDK propagates
 the error without invalidating stored credentials or retrying the rejected code.
@@ -266,6 +289,19 @@ const myOAuthClientProvider = {
 This hook is called before the SDK fetches authorization server metadata, so a
 rejected URL is not requested. The hook is an optional additional restriction;
 it does not replace the credential binding required for confidential clients.
+
+On Node.js, OAuth discovery validates and pins DNS results for untrusted
+URLs. On Bun, Deno, and other server runtimes without this transport, discovery
+blocks untrusted authorization-server URLs, redirects, token endpoints, and
+registration endpoints unless you supply a
+custom `fetch` with equivalent connect-time address validation and DNS pinning.
+Passing global `fetch` explicitly does not opt out of this requirement. The
+configured MCP server origin remains supported, including local endpoints;
+response-supplied authorization-server hosts are not automatically trusted.
+Browser window discovery remains supported. Browser Web Workers and Service
+Workers without a DOM follow the strict custom-fetch requirement as well;
+worker globals alone cannot establish that the runtime is a browser rather
+than a server worker.
 
 ### OAuth Callback Issuer Validation
 
@@ -659,16 +695,12 @@ client throws an `MCPClientError`.
 
 ## Using MCP Prompts
 
-<Note type="warning">
-  MCP Prompts is an experimental feature and may change in the future.
-</Note>
-
 According to the MCP specification, prompts are user-controlled templates that servers expose for clients to list and retrieve with optional arguments.
 
 ### Listing Prompts
 
 ```typescript
-const prompts = await mcpClient.experimental_listPrompts();
+const prompts = await mcpClient.listPrompts();
 ```
 
 ### Getting a Prompt
@@ -676,7 +708,7 @@ const prompts = await mcpClient.experimental_listPrompts();
 Retrieve prompt messages, optionally passing arguments defined by the server:
 
 ```typescript
-const prompt = await mcpClient.experimental_getPrompt({
+const prompt = await mcpClient.getPrompt({
   name: 'code_review',
   arguments: { code: 'function add(a, b) { return a + b; }' },
 });
@@ -734,6 +766,16 @@ mcpClient.onElicitationRequest(ElicitationRequestSchema, async request => {
 ```
 
 ### Elicitation Response Actions
+
+On MCP `2026-07-28` connections, the same handler processes form elicitation
+requests embedded in `input_required` results from tools, prompts, and resource
+reads. The client retries the original request with the handler's answers and
+the server's unchanged `requestState` until it receives a final result, with a
+limit of 10 retries. State-only retries are delayed by 250 ms. Each round respects
+`timeout`, including time spent awaiting the handler, while `maxTotalTimeout`
+bounds the entire exchange. Missing handlers and unsupported input requests
+reject the operation. Older connections continue to use `elicitation/create`
+server requests.
 
 Your handler must return an object with an `action` field that can be one of:
 

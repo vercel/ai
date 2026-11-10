@@ -4184,4 +4184,207 @@ describe('use-chat', () => {
       });
     });
   });
+
+  describe('experimental_queue', () => {
+    afterEach(cleanup);
+
+    it('should not send the old queue through a new transport after switching chats', async () => {
+      const oldControllers: ReadableStreamDefaultController<UIMessageChunk>[] =
+        [];
+      const newTransportRequests: string[] = [];
+      const oldTransport: ChatTransport<UIMessage> = {
+        sendMessages: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              oldControllers.push(controller);
+            },
+          }),
+        reconnectToStream: async () => null,
+      };
+      const newTransport: ChatTransport<UIMessage> = {
+        sendMessages: async ({ messages }) => {
+          newTransportRequests.push(
+            messages
+              .map(message =>
+                message.parts
+                  .map(part => (part.type === 'text' ? part.text : ''))
+                  .join(''),
+              )
+              .join('|'),
+          );
+          return new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.close();
+            },
+          });
+        },
+        reconnectToStream: async () => null,
+      };
+
+      let resolveDecision: (value: boolean) => void = () => {};
+      const decision = new Promise<boolean>(resolve => {
+        resolveDecision = resolve;
+      });
+      let decisionRequested = false;
+
+      const Test = () => {
+        const [tenant, setTenant] = useState<'old' | 'new'>('old');
+        const { sendMessage } = useChat({
+          id: tenant,
+          transport: tenant === 'old' ? oldTransport : newTransport,
+          experimental_queue: true,
+          sendAutomaticallyWhen: () => {
+            decisionRequested = true;
+            return decision;
+          },
+        });
+
+        return (
+          <div>
+            <button
+              data-testid="send-private"
+              onClick={() => sendMessage({ text: 'private' })}
+            />
+            <button
+              data-testid="send-queued"
+              onClick={() => sendMessage({ text: 'queued private' })}
+            />
+            <button data-testid="switch" onClick={() => setTenant('new')} />
+          </div>
+        );
+      };
+
+      render(<Test />);
+
+      await userEvent.click(screen.getByTestId('send-private'));
+      await vi.waitFor(() => expect(oldControllers).toHaveLength(1));
+      await userEvent.click(screen.getByTestId('send-queued'));
+
+      await act(async () => {
+        oldControllers[0].enqueue({ type: 'start' });
+        oldControllers[0].enqueue({ type: 'finish' });
+        oldControllers[0].close();
+      });
+      await vi.waitFor(() => expect(decisionRequested).toBe(true));
+
+      await userEvent.click(screen.getByTestId('switch'));
+      await act(async () => {
+        resolveDecision(false);
+        await new Promise(resolve => setTimeout(resolve, 50));
+      });
+
+      expect(newTransportRequests).toEqual([]);
+      expect(oldControllers).toHaveLength(1);
+    });
+
+    it('should render queued messages and send them after the response finishes', async () => {
+      const controllers: ReadableStreamDefaultController<UIMessageChunk>[] = [];
+      const transport: ChatTransport<UIMessage> = {
+        sendMessages: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controllers.push(controller);
+            },
+          }),
+        reconnectToStream: async () => null,
+      };
+
+      const Test = () => {
+        const {
+          messages,
+          experimental_queuedMessages,
+          sendMessage,
+          experimental_removeQueuedMessage,
+        } = useChat({ transport, experimental_queue: true });
+
+        return (
+          <div>
+            <div data-testid="messages">
+              {messages
+                .map(message =>
+                  message.parts
+                    .map(part => (part.type === 'text' ? part.text : ''))
+                    .join(''),
+                )
+                .join('|')}
+            </div>
+            <div data-testid="queued">
+              {experimental_queuedMessages
+                .map(message =>
+                  message.parts
+                    .map(part => (part.type === 'text' ? part.text : ''))
+                    .join(''),
+                )
+                .join('|')}
+            </div>
+            <button
+              data-testid="send-first"
+              onClick={() => sendMessage({ text: 'first' })}
+            />
+            <button
+              data-testid="send-second"
+              onClick={() => sendMessage({ text: 'second' })}
+            />
+            <button
+              data-testid="send-third"
+              onClick={() => sendMessage({ text: 'third' })}
+            />
+            <button
+              data-testid="remove-third"
+              onClick={() =>
+                experimental_removeQueuedMessage(
+                  experimental_queuedMessages[1].id,
+                )
+              }
+            />
+          </div>
+        );
+      };
+
+      render(<Test />);
+
+      const answer = (index: number, text: string) => {
+        const controller = controllers[index];
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'text-start', id: `t-${index}` });
+        controller.enqueue({
+          type: 'text-delta',
+          id: `t-${index}`,
+          delta: text,
+        });
+        controller.enqueue({ type: 'text-end', id: `t-${index}` });
+        controller.enqueue({ type: 'finish' });
+        controller.close();
+      };
+
+      await userEvent.click(screen.getByTestId('send-first'));
+      await vi.waitFor(() => expect(controllers).toHaveLength(1));
+
+      await userEvent.click(screen.getByTestId('send-second'));
+      await userEvent.click(screen.getByTestId('send-third'));
+
+      await vi.waitFor(() =>
+        expect(screen.getByTestId('queued')).toHaveTextContent('second|third'),
+      );
+
+      await userEvent.click(screen.getByTestId('remove-third'));
+      await vi.waitFor(() =>
+        expect(screen.getByTestId('queued')).toHaveTextContent(/^second$/),
+      );
+
+      await act(async () => answer(0, 'one'));
+      await vi.waitFor(() => expect(controllers).toHaveLength(2));
+      await vi.waitFor(() =>
+        expect(screen.getByTestId('queued')).toBeEmptyDOMElement(),
+      );
+
+      await act(async () => answer(1, 'two'));
+      await vi.waitFor(() =>
+        expect(screen.getByTestId('messages')).toHaveTextContent(
+          'first|one|second|two',
+        ),
+      );
+      expect(controllers).toHaveLength(2);
+    });
+  });
 });

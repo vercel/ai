@@ -22,6 +22,17 @@ describe('OpenAIRealtimeModelLive', () => {
     'gpt-live-1',
   );
 
+  it('rejects a transcription intent across connection and serialization helpers', () => {
+    const intent = { intent: 'transcription' } as const;
+    expect(() => model.getServerWebSocketConfig(intent)).toThrow(
+      /not supported/,
+    );
+    expect(() =>
+      model.serializeClientEvent({ type: 'response-create' }, intent),
+    ).toThrow(/not supported/);
+    expect(() => model.buildSessionConfig({}, intent)).toThrow(/not supported/);
+  });
+
   it('implements the existing v4 spec and declares continuous transports', () => {
     const realtime: RealtimeModelV4 = model;
     expect(realtime.specificationVersion).toBe('v4');
@@ -72,11 +83,16 @@ describe('OpenAIRealtimeModelLive', () => {
     });
   });
 
-  it('maps an HTTP development base URL to ws', () => {
+  it('maps an HTTP development base URL to ws', async () => {
     expect(
-      createOpenAI({ apiKey: 'test-key', baseURL: 'http://localhost:3000/v1' })
-        .experimental_realtime('gpt-live-1')
-        .getServerWebSocketConfig().url,
+      (
+        await createOpenAI({
+          apiKey: 'test-key',
+          baseURL: 'http://localhost:3000/v1',
+        })
+          .experimental_realtime('gpt-live-1')
+          .getServerWebSocketConfig()
+      ).url,
     ).toBe('ws://localhost:3000/v1/live/sessions');
   });
 

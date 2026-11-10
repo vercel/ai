@@ -10,6 +10,8 @@ export const cerebrasLanguageModelChatOptions = z.object({
   topLogprobs: z.number().int().min(0).max(20).optional(),
   logitBias: z.record(z.string(), z.number().min(-100).max(100)).optional(),
   serviceTier: z.enum(['auto', 'default', 'flex', 'priority']).optional(),
+  /** Maximum queue time in milliseconds for flex/auto requests. */
+  queueThreshold: z.number().int().min(50).max(20000).optional(),
   reasoningEffort: z.enum(['none', 'low', 'medium', 'high']).optional(),
   reasoningFormat: z
     .enum(['none', 'parsed', 'text_parsed', 'raw', 'hidden'])

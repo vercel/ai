@@ -4,10 +4,6 @@
     "declaration": true,
     "sourceMap": true,
     "target": "es2022",
-    "lib": [
-      "es2022",
-      "dom"
-    ],
     "module": "esnext",
     "types": [
       "node"
@@ -181,6 +177,9 @@
       "path": "../../packages/otel"
     },
     {
+      "path": "../../packages/parallel"
+    },
+    {
       "path": "../../packages/perplexity"
     },
     {
@@ -206,6 +205,9 @@
     },
     {
       "path": "../../packages/sandbox-vercel"
+    },
+    {
+      "path": "../../packages/tencent"
     },
     {
       "path": "../../packages/togetherai"

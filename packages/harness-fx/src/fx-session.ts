@@ -2,12 +2,14 @@ import { createHash, randomUUID } from 'node:crypto';
 import { setImmediate } from 'node:timers/promises';
 import {
   HarnessCapabilityUnsupportedError,
+  HarnessError,
   isHarnessV1BuiltinToolIncluded,
   type HarnessV1BuiltinTool,
   type HarnessV1ContinueTurnOptions,
   type HarnessV1ContinueTurnState,
   type HarnessV1PromptControl,
   type HarnessV1PromptTurnOptions,
+  type HarnessV1ResumeSessionState,
   type HarnessV1Session,
   type HarnessV1StartOptions,
   type HarnessV1StreamPart,
@@ -21,12 +23,16 @@ import type { FxHarnessSettings } from './fx-harness';
 import { createFxMcpRuntime } from './fx-mcp';
 import { createFxRemoteOps } from './fx-remote-ops';
 import {
-  createFxStateStore,
-  fxResumeStateSchema,
-  type FxStoredState,
+  parseFxResumeStateData,
+  type FxResumeStateData,
+  type FxSessionState,
   type FxModelRecord,
   type FxToolRecord,
 } from './fx-resume-state';
+import {
+  createFxSessionStorageWriter,
+  readFxSessionState,
+} from './fx-session-storage';
 import {
   createFxRuntime,
   type FxEngine,
@@ -37,7 +43,7 @@ import {
   type FxSessionUpdate,
 } from './fx-runtime';
 import { createFxSkillsRuntime } from './fx-skills';
-import { resolveFxAuthentication } from './fx-subscription';
+import { resolveFxAuthentication, resolveFxModel } from './fx-subscription';
 import {
   fxJsonValue,
   fxToolRequiresApproval,
@@ -87,32 +93,54 @@ export async function createFxSession(options: {
   const freshAuthentication = resume
     ? undefined
     : await resolveFxAuthentication({ auth: settings.auth });
-  const sandbox = getRestrictedSandboxSession(startOpts.sandboxSession);
-  const store = await createFxStateStore({
-    sandbox,
-    sessionId: startOpts.sessionId,
-    workDir: startOpts.sessionWorkDir,
-    stateFileName: resume
-      ? fxResumeStateSchema.parse(resume.data).stateFileName
-      : undefined,
-  });
-  const state: FxStoredState = resume
-    ? await store.load()
-    : { version: 1, sdkVersion: '0.0.14' };
+  const storage = settings.sessionStorage;
+  const resumeData = resume ? parseFxResumeStateData(resume.data) : undefined;
+  let restored: FxSessionState | undefined;
+  if (resumeData && 'leafId' in resumeData) {
+    if (storage == null) {
+      throw new HarnessError({
+        message:
+          'The fx lifecycle state was saved through a session storage, but createFx has no sessionStorage to load it from.',
+      });
+    }
+    restored = await readFxSessionState({
+      storage,
+      sessionId: startOpts.sessionId,
+      leafId: resumeData.leafId,
+      abortSignal: startOpts.abortSignal,
+    });
+  } else if (resumeData) {
+    if (storage != null) {
+      throw new HarnessError({
+        message:
+          'createFx has a sessionStorage, so its lifecycle state must hold a leafId.',
+      });
+    }
+    restored = resumeData.session;
+  }
   const authentication =
     freshAuthentication ??
     (await resolveFxAuthentication({
       auth: settings.auth,
-      requiredProvider: state.provider ?? 'gateway',
+      requiredProvider: restored!.provider,
     }));
-  state.provider = authentication.provider;
-  state.sdkVersion = '0.0.14';
+  const state: FxSessionState = restored ?? {
+    provider: authentication.provider,
+  };
+  const writer =
+    storage &&
+    createFxSessionStorageWriter({
+      storage,
+      sessionId: startOpts.sessionId,
+      ...(resumeData && 'leafId' in resumeData
+        ? { leafId: resumeData.leafId, savedState: restored }
+        : {}),
+    });
+  const sandbox = getRestrictedSandboxSession(startOpts.sandboxSession);
   const remote = createFxRemoteOps({
     sandbox,
     workDir: startOpts.sessionWorkDir,
   });
-  const save = () => store.save(state);
-  await save();
   let stopped = false;
   let active:
     | {
@@ -380,7 +408,6 @@ export async function createFxSession(options: {
         toolRequests.set(record.id, input.requestIndex);
         batch.push({ record, tool });
       }
-      await save();
       signal.throwIfAborted();
       for (const { record, tool } of batch) {
         emitToolCall({ record, providerExecuted: tool.providerExecuted });
@@ -418,7 +445,6 @@ export async function createFxSession(options: {
         providerExecuted: input.providerExecuted,
       });
       if (current.status !== 'completed') {
-        await save();
         if (current.status === 'executing') {
           current.result = {
             type: 'libfx.tool-result',
@@ -442,7 +468,6 @@ export async function createFxSession(options: {
             emitToolApproval(current);
             current.approval ??= approvals.get(current.approvalId!);
             if (!current.approval) earlyStep(current);
-            await save();
             current.approval ??= await waitFor(() =>
               approvals.get(current.approvalId!),
             );
@@ -459,8 +484,6 @@ export async function createFxSession(options: {
           if (!current.result) {
             signal.throwIfAborted();
             current.status = 'executing';
-            await save();
-            signal.throwIfAborted();
             try {
               const output = await input.tool.execute(input.value, { signal });
               current.output = fxJsonValue(output);
@@ -494,10 +517,8 @@ export async function createFxSession(options: {
         }
         current.status = 'completed';
       }
-      await save();
       signal.throwIfAborted();
       emitToolResult(current);
-      await save();
       if (!current.result)
         throw new Error('Recorded fx tool result is missing.');
       if (current.result.isError)
@@ -509,7 +530,6 @@ export async function createFxSession(options: {
 
     const done = (async () => {
       try {
-        await save();
         const skills = await createFxSkillsRuntime({ skills: opts.skills });
         mcp = await createFxMcpRuntime({
           mcpServers: settings.mcpServers,
@@ -621,7 +641,6 @@ export async function createFxSession(options: {
           },
           turn: turnState,
           responseFormat: turnState.responseFormat,
-          save,
           onRequest: ({ requestIndex, modelId }) => {
             if (requestIndex > 0)
               pendingOutput.push(() => flushStep(requestIndex - 1));
@@ -638,6 +657,10 @@ export async function createFxSession(options: {
           },
         });
         signal.throwIfAborted();
+        const model = await resolveFxModel({
+          provider: authentication.provider,
+          model: opts.model,
+        });
         runtime = await createFxRuntime({
           ...(authentication.provider === 'gateway'
             ? { apiKey: authentication.apiKey }
@@ -660,7 +683,7 @@ export async function createFxSession(options: {
                   }
                 },
               }),
-          ...(opts.model ? { model: opts.model } : {}),
+          ...(model ? { model } : {}),
           ...(settings.effort ? { effort: settings.effort } : {}),
           ...serviceTierOptions,
           instructions: [
@@ -737,7 +760,6 @@ export async function createFxSession(options: {
           state.checkpoint = Buffer.from(await runtime.checkpoint()).toString(
             'base64',
           );
-          await save();
         }
         runtimeTurn = runtime.prompt(turnState.prompt, { signal });
         notify();
@@ -787,7 +809,6 @@ export async function createFxSession(options: {
           'base64',
         );
         state.turn = undefined;
-        await save();
         emit({
           type: 'finish',
           finishReason,
@@ -805,7 +826,6 @@ export async function createFxSession(options: {
           await runtime?.close();
           await transport?.stop();
           await mcp?.close();
-          await save();
         } finally {
           active = undefined;
         }
@@ -829,9 +849,7 @@ export async function createFxSession(options: {
           record.result = toFxToolResult(submission);
           record.output = fxJsonValue(submission.output);
           record.status = 'completed';
-          await save();
           emitToolResult(record);
-          await save();
         }
         notify();
       },
@@ -845,7 +863,6 @@ export async function createFxSession(options: {
             approved: approval.approved,
             reason: approval.reason,
           };
-          await save();
         }
         notify();
       },
@@ -860,7 +877,6 @@ export async function createFxSession(options: {
         pendingSteers.push(text);
         await runtimeTurn!.steer(text);
         recordSteer(text);
-        await save();
       },
     };
     active = {
@@ -880,25 +896,42 @@ export async function createFxSession(options: {
     return control;
   }
 
-  const continuation = (): HarnessV1ContinueTurnState => ({
+  /*
+   * The session state only ever lives in this process and in the lifecycle
+   * state (or the caller's session storage). It is never written to the
+   * sandbox, so sandbox code can neither read host tool results from it nor
+   * alter the approvals, model responses or tool calls a resumed turn replays.
+   */
+  async function createLifecycleData(): Promise<
+    HarnessV1ContinueTurnState['data']
+  > {
+    const data: FxResumeStateData = writer
+      ? { leafId: await writer.write(state) }
+      : { session: structuredClone(state) };
+    return data as HarnessV1ContinueTurnState['data'];
+  }
+  const continuation = (
+    data: HarnessV1ContinueTurnState['data'],
+  ): HarnessV1ContinueTurnState => ({
     type: 'continue-turn',
     harnessId: 'fx',
     specificationVersion: 'harness-v1',
-    data: { version: 1, stateFileName: store.fileName },
+    data,
   });
-  async function stop() {
-    if (!stopped) {
-      await active?.suspend();
-      stopped = true;
-      await save();
-      await store.flush();
-    }
+  async function shutdown() {
+    if (stopped) return;
+    await active?.suspend();
+    stopped = true;
+  }
+  async function stop(): Promise<HarnessV1ResumeSessionState> {
+    await shutdown();
+    const data = await createLifecycleData();
     return {
-      type: 'resume-session' as const,
+      type: 'resume-session',
       harnessId: 'fx',
-      specificationVersion: 'harness-v1' as const,
-      data: { version: 1, stateFileName: store.fileName },
-      ...(state.turn ? { continueFrom: continuation() } : {}),
+      specificationVersion: 'harness-v1',
+      data,
+      ...(state.turn ? { continueFrom: continuation(data) } : {}),
     };
   }
   return {
@@ -915,13 +948,12 @@ export async function createFxSession(options: {
     doSuspendTurn: async () => {
       if (stopped) throw new Error('fx session has been stopped.');
       await active?.suspend();
-      await save();
-      return continuation();
+      return continuation(await createLifecycleData());
     },
     doDetach: stop,
     doStop: stop,
     doDestroy: async () => {
-      await stop();
+      await shutdown();
     },
   };
 }

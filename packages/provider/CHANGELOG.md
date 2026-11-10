@@ -1,5 +1,53 @@
 # @ai-sdk/provider
 
+## 4.0.37
+
+### Patch Changes
+
+- c70adf6: Fix TypeSafe decision requests with primitive JSON state by serializing those values as text, reject empty criteria and null or undefined Score levels before sending a request, and expose structured Score legends in provider metadata. Allow omitted or null Box instructions and null Boolean criteria in experimental decision question types.
+
+## 4.0.36
+
+### Patch Changes
+
+- 36802d4: Support native URL transcription with an optional provider capability, keeping existing file-generation contracts unchanged. Groq sends HTTP(S) audio URLs through its `url` parameter without downloading and re-uploading them, avoiding the attachment upload limit. Supplying a custom `download` function retains local download behavior.
+
+  For telemetry integrations, `TranscriptionEndEvent.audio.byteLength` and `audio.mediaType` can now be `undefined` when a provider fetches the audio URL natively. Check for missing values before using them as a number or string. Downloaded and inline audio continue to report their metadata; streaming transcription metadata is unchanged.
+
+  Strip media fragments before sending URLs to Groq. If Groq rejects a redirect, fall back to the existing secure local downloader and file upload rather than failing previously working URL inputs. Other provider errors are preserved.
+
+- e0143b0: feat(ai): support provider-owned realtime transports
+
+  Add an optional `createTransport` interface and `provider` connection capability.
+
+- 934100c: Report the actual OpenAI Chat HTTP endpoint (also used by Azure Chat and Bedrock Mantle Chat) through optional request metadata and model-call end events. Record its host and port on OpenTelemetry chat spans without exposing URL credentials, paths, queries, or fragments. Expose only the sanitized HTTP origin in text and object generation results and step/finish callbacks. Providers that do not report an endpoint leave these attributes unset.
+- 892af4d: feat (provider): add server-side realtime extensions to the experimental RealtimeModelV4 spec
+
+  Extends the existing optional `getServerWebSocketConfig()` method and a normalized `usage` field so a trusted server/proxy can drive realtime providers the way it drives HTTP language models:
+
+  - `getServerWebSocketConfig({ intent? })` returns the upstream WebSocket `{ url, headers, protocols? }` for a server-initiated connection (header auth with the long-lived credential). Providers fail fast for unsupported endpoint intents instead of silently falling back. It is the server-side sibling of the browser-only `getWebSocketConfig`.
+  - `serializeClientEvent` and `buildSessionConfig` now accept the same optional `intent` so server-side callers can keep endpoint selection and session serialization aligned.
+  - New `RealtimeModelV4Usage` type and optional `usage` on `response-done`, `input-transcription-completed`, and provider `custom` snapshot events. Gross totals and known modality buckets remain separate, and duration is reported as `seconds`. Counts are gross (cache-inclusive) with cached portions reported separately so consumers can apply their own billing split without re-parsing `raw`.
+  - New `RealtimeModelV4ServerConnection` and `RealtimeModelV4SessionIntent` types, exported with the `Experimental_` prefix.
+
+- 41465fd: Expose optional transcription word timings separately from segments and accept shared timestampGranularities. Explicit provider timing settings take precedence. OpenAI now sends timestamp_granularities only with verbose_json and warns when a requested timing is unavailable or excluded.
+- 9754014: Add typed streaming heartbeat parts. Anthropic emits them only with `includePings: true` (disabled by default), without requiring raw chunks. Core forwards pings through stream retries without storing them as generated content or sending them to UI message streams. Consumers with exhaustive stream-part switches must handle the new `ping` union variant when upgrading, even when the opt-in is disabled. Typed pings do not flush partial words during stream smoothing.
+- 4bb73b0: Add optional video, reranking and decision sections to model capability catalogs, including support for declaring provider options for these operations.
+- 2e44144: Represent videos delivered directly to caller-managed storage with an explicit uploaded outcome. Video generation reports `uploadedVideos` without downloading or synthesizing video bytes; access `video` only when `videos` is nonempty.
+
+## 4.0.35
+
+### Patch Changes
+
+- dcd2f8d: Introduce a model entry contract with named capability sections and request configuration. Consolidate the OpenAI and Anthropic model catalogs so existing request behavior and generated capability documentation use the same source of truth. Catalogs also declare the provider options each provider accepts and which models support them.
+
+## 4.0.34
+
+### Patch Changes
+
+- 5475347: Fix non-streaming Responses API structured output failing when multiple assistant messages contain JSON. Providers can supply separate structured-output text for parsing, allowing OpenAI and Azure Responses models to select the last `final_answer` while preserving all generated content, annotations, conversation history, and token usage.
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+
 ## 4.0.33
 
 ### Patch Changes

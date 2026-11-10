@@ -1,4 +1,8 @@
 import {
+  getRequestOrigin,
+  sanitizeRequestMetadata,
+} from '../telemetry/get-request-origin';
+import {
   getErrorMessage,
   type LanguageModelV4Content,
   type LanguageModelV4Prompt,
@@ -94,6 +98,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
           | 'tool-output-denied'
           | 'start-step'
           | 'finish-step'
+          | 'steering-message'
           | 'start'
           | 'abort';
       }
@@ -280,6 +285,8 @@ export async function streamLanguageModelCall<
   LanguageModelCallOptions): Promise<{
   stream: AsyncIterableStream<LanguageModelStreamPart<TOOLS>>;
   request?: {
+    /** Sanitized HTTP origin, when the provider reports an endpoint. */
+    url?: string;
     /**
      * Request HTTP body that was sent to the provider API.
      */
@@ -356,8 +363,8 @@ export async function streamLanguageModelCall<
     request,
   } = await executeLanguageModelCallInTelemetryContext({
     ...languageModelCallStartEvent,
-    execute: async () =>
-      await resolvedModel.doStream({
+    execute: async () => {
+      const result = await resolvedModel.doStream({
         ...callSettings,
         tools: stepTools,
         toolChoice: stepToolChoice,
@@ -367,7 +374,14 @@ export async function streamLanguageModelCall<
         abortSignal,
         headers,
         includeRawChunks,
-      }),
+      });
+      return {
+        ...result,
+        ...(result.request && {
+          request: sanitizeRequestMetadata(result.request),
+        }),
+      };
+    },
   });
 
   const standardizedStream = languageModelStream.pipeThrough(
@@ -385,6 +399,7 @@ export async function streamLanguageModelCall<
       generateId,
       now,
       callStartTimestampMs,
+      request,
       onLanguageModelCallEnd,
       collectContent,
     }),
@@ -414,6 +429,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   generateId,
   now,
   callStartTimestampMs,
+  request,
   onLanguageModelCallEnd,
   collectContent,
 }: {
@@ -430,6 +446,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   generateId: IdGenerator;
   now: () => number;
   callStartTimestampMs: number;
+  request?: { url?: string };
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
   collectContent: boolean;
 }) {
@@ -661,6 +678,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               usage,
               content: modelCallContent,
               responseId,
+              ...(request?.url != null
+                ? { request: { url: getRequestOrigin(request.url) } }
+                : {}),
               ...(chunk.providerMetadata != null
                 ? { providerMetadata: chunk.providerMetadata }
                 : {}),

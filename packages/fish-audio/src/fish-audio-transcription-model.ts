@@ -1,5 +1,6 @@
 import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -102,7 +103,10 @@ export class FishAudioTranscriptionModel implements TranscriptionModelV4 {
       rawValue: rawResponse,
     } = await postFormDataToApi({
       url: this.config.url({ path: '/v1/asr', modelId: this.modelId }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: fishAudioFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

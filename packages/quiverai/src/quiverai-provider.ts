@@ -9,6 +9,8 @@ import {
   type OpenResponsesProviderSettings,
 } from '@ai-sdk/open-responses';
 import {
+  resolveWith,
+  type Resolvable,
   loadApiKey,
   loadOptionalSetting,
   withoutTrailingSlash,
@@ -30,7 +32,7 @@ export interface QuiverAIProviderSettings {
    * QuiverAI API key. Default value is taken from the `QUIVERAI_API_KEY`
    * environment variable.
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Base URL for the API calls. Defaults to `https://api.quiver.ai/v1` and
@@ -95,17 +97,20 @@ export function createQuiverAI(
       }),
     ) ?? defaultBaseURL;
 
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'QUIVERAI_API_KEY',
-      description: 'QuiverAI',
-    })}`,
-    ...options.headers,
-  });
+  const getHeaders = () =>
+    resolveWith(options.apiKey, apiKey => ({
+      Authorization: `Bearer ${loadApiKey({
+        apiKey,
+        environmentVariableName: 'QUIVERAI_API_KEY',
+        description: 'QuiverAI',
+      })}`,
+      ...options.headers,
+    }));
 
   const getImageHeaders = () =>
-    withUserAgentSuffix(getHeaders(), `ai-sdk-quiverai/${VERSION}`);
+    resolveWith(getHeaders, headers =>
+      withUserAgentSuffix(headers, `ai-sdk-quiverai/${VERSION}`),
+    );
 
   const responsesConfig: OpenResponsesProviderSettings = {
     name: 'quiverai',

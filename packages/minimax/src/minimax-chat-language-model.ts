@@ -1,3 +1,4 @@
+import { getMiniMaxLanguageModelEntry } from './minimax-model-catalog';
 import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
 import type {
   LanguageModelV4,
@@ -27,16 +28,8 @@ export class MiniMaxChatLanguageModel
   private readonly supportsM31Features: boolean;
 
   constructor(modelId: string, config: MiniMaxChatConfig) {
-    // Compare version components as integers: M3.123 is newer than M3.1.
-    // Assume later M-series models retain the M3.1 capabilities.
-    const version = /^minimax-m(\d+)(?:\.(\d+))?(?:\.\d+)*(?:-|$)/i.exec(
-      modelId,
-    );
     const supportsM31Features =
-      version != null &&
-      (Number(version[1]) > 3 ||
-        (Number(version[1]) === 3 && Number(version[2] ?? 0) >= 1));
-
+      getMiniMaxLanguageModelEntry(modelId).capabilities.language.m31Features;
     super(modelId, {
       ...config,
       ...(supportsM31Features && {
@@ -82,31 +75,17 @@ export class MiniMaxChatLanguageModel
       return { options, warnings };
     }
 
-    if (reasoning === 'none') {
-      warnings.push({
-        type: 'compatibility',
-        feature: 'reasoning',
-        details:
-          `reasoning 'none' is not supported by ${this.modelId}; it always reasons. ` +
-          `Using effort 'low' to minimize thinking instead.`,
-      });
-    }
-
-    const effort =
-      reasoning === 'none'
-        ? 'low'
-        : mapReasoningToProviderEffort({
-            reasoning,
-            effortMap: {
-              minimal: 'low',
-              low: 'low',
-              medium: 'medium',
-              high: 'high',
-              xhigh: 'xhigh',
-              max: 'max',
-            },
-            warnings,
-          });
+    const effort = mapReasoningToProviderEffort({
+      reasoning,
+      effortMap: {
+        low: 'low',
+        medium: 'medium',
+        high: 'high',
+        xhigh: 'xhigh',
+        max: 'max',
+      },
+      warnings,
+    });
 
     return {
       options: {

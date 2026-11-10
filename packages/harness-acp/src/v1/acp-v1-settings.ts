@@ -6,8 +6,11 @@ import type {
   HarnessV1RequestTransformation,
   HarnessV1StreamPart,
 } from '@ai-sdk/harness';
-import type { ToolResultPart } from '@ai-sdk/provider-utils';
-import type { ACPToolCall } from '../acp-tool-call';
+import type {
+  Experimental_SandboxSession,
+  ToolResultPart,
+} from '@ai-sdk/provider-utils';
+import type { ACPResolveHostToolCall, ACPToolCall } from '../acp-tool-call';
 
 export type ACPSerializablePrimitive = string | number | boolean | null;
 
@@ -173,7 +176,16 @@ export type ACPV1Settings = {
   readonly version?: 'v1';
   readonly harnessId: string;
   readonly mcpServers?: Record<string, unknown>;
-  readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
+  /**
+   * Classifies an ACP tool call that did not resolve to a host tool as a
+   * dynamic MCP tool call.
+   */
+  readonly isMcpToolCall: (toolCall: ACPToolCall) => boolean;
+  /**
+   * Resolves an ACP tool call to the host tool it invokes. Host tools are
+   * exposed to the ACP agent through the harness-owned MCP server.
+   */
+  readonly resolveHostToolCall: ACPResolveHostToolCall;
   readonly auth?: ACPAuthenticationMode;
   /**
    * Resolves adapter-owned authentication on the host before any environment
@@ -194,6 +206,17 @@ export type ACPV1Settings = {
    * home directory before the agent starts.
    */
   readonly authenticationFiles?: ACPAuthenticationFiles;
+  /**
+   * Prepares runtime-specific sandbox configuration before a bridge process
+   * starts, after authentication files have been written. Receives only the
+   * restricted sandbox session. Not invoked when reattaching to a live bridge.
+   * Errors reject startup without launching the bridge.
+   */
+  readonly prepareSandbox?: (options: {
+    readonly sandbox: Experimental_SandboxSession;
+    readonly workDir: string;
+    readonly abortSignal?: AbortSignal;
+  }) => void | PromiseLike<void>;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -248,9 +271,10 @@ export type ACPV1Settings = {
   readonly session?: {
     readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
   };
+  // TODO: Remove in the next major version.
   /**
-   * Creates the authentication token used by the sandbox bridge. Defaults to
-   * a random 32-byte hexadecimal token.
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
    */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
@@ -287,6 +311,12 @@ export function validateACPV1Settings({
     throw new Error(
       `ACP harnessId must be a stable kebab-case identifier; received ${JSON.stringify(settings.harnessId)}.`,
     );
+  }
+  if (typeof settings.isMcpToolCall !== 'function') {
+    throw new Error('ACP isMcpToolCall must be a function.');
+  }
+  if (typeof settings.resolveHostToolCall !== 'function') {
+    throw new Error('ACP resolveHostToolCall must be a function.');
   }
 
   const { source } = settings;

@@ -25,6 +25,7 @@ export const typesafeDecisionResponseSchema = lazySchema(() =>
             score: z.number(),
             probabilities: z.record(z.string(), z.number()),
             confidence: z.number().nullish(),
+            legend: z.record(z.string(), z.json()).nullish(),
           }),
           // https://docs.typesafe.ai/primitives/box
           z.object({

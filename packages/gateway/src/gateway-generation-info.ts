@@ -21,6 +21,12 @@ export interface GatewayGenerationInfo {
   id: string;
   /** Total cost in USD */
   totalCost: number;
+  /** Market cost in USD, excluding surcharges. Omitted when unavailable. */
+  marketCost?: number;
+  /** Total surcharges applied in USD. Omitted when unavailable. */
+  surchargeCost?: number;
+  /** Total amount debited in USD. Omitted when unavailable. */
+  gatewayCost?: number;
   /** Upstream inference cost in USD (BYOK only) */
   upstreamInferenceCost: number;
   /** Usage cost in USD (same as totalCost) */
@@ -89,12 +95,15 @@ export class GatewayGenerationInfoFetcher {
 
 const gatewayGenerationInfoResponseSchema = lazySchema(() =>
   zodSchema(
-    z
-      .object({
-        data: z
-          .object({
+    z.pipe(
+      z.object({
+        data: z.pipe(
+          z.object({
             id: z.string(),
             total_cost: z.number(),
+            market_cost: z.nullish(z.number()),
+            surcharge_cost: z.nullish(z.number()),
+            gateway_cost: z.nullish(z.number()),
             upstream_inference_cost: z.number(),
             usage: z.number(),
             created_at: z.string(),
@@ -111,10 +120,13 @@ const gatewayGenerationInfoResponseSchema = lazySchema(() =>
             native_tokens_cached: z.number(),
             native_tokens_cache_creation: z.number(),
             billable_web_search_calls: z.number(),
-          })
-          .transform(
+          }),
+          z.transform(
             ({
               total_cost,
+              market_cost,
+              surcharge_cost,
+              gateway_cost,
               upstream_inference_cost,
               created_at,
               is_byok,
@@ -131,6 +143,11 @@ const gatewayGenerationInfoResponseSchema = lazySchema(() =>
             }) => ({
               ...rest,
               totalCost: total_cost,
+              ...(market_cost != null ? { marketCost: market_cost } : {}),
+              ...(surcharge_cost != null
+                ? { surchargeCost: surcharge_cost }
+                : {}),
+              ...(gateway_cost != null ? { gatewayCost: gateway_cost } : {}),
               upstreamInferenceCost: upstream_inference_cost,
               createdAt: created_at,
               isByok: is_byok,
@@ -145,7 +162,9 @@ const gatewayGenerationInfoResponseSchema = lazySchema(() =>
               billableWebSearchCalls: billable_web_search_calls,
             }),
           ),
-      })
-      .transform(({ data }) => data),
+        ),
+      }),
+      z.transform(({ data }) => data),
+    ),
   ),
 );

@@ -398,7 +398,11 @@
             ],
             "importValues": [
               {
-                "name": "createBridgeToken",
+                "name": "createBridgeAuthKeyPair",
+                "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "createBridgeWebSocketConnect",
                 "from": "@ai-sdk/harness/utils"
               },
               {
@@ -410,7 +414,11 @@
                 "from": "@ai-sdk/harness/utils"
               }
             ],
-            "callFunction": ["resolveBridgeEndpoint"],
+            "callFunction": [
+              "createBridgeAuthKeyPair",
+              "createBridgeWebSocketConnect",
+              "resolveBridgeEndpoint"
+            ],
             "importTypes": [
               {
                 "name": "SandboxChannelReconnectOptions",
@@ -424,6 +432,7 @@
                   "type": "object",
                   "properties": {
                     "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "hostDisconnectTimeoutMs": { "type": "number" },
                     "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
@@ -459,6 +468,7 @@
                   "type": "object",
                   "properties": {
                     "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "hostDisconnectTimeoutMs": { "type": "number" },
                     "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
@@ -489,6 +499,7 @@
                   "type": "object",
                   "properties": {
                     "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "hostDisconnectTimeoutMs": { "type": "number" },
                     "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
@@ -997,6 +1008,96 @@
           "!@ai-sdk/harness/bridge"
         ]
       }
+    },
+    {
+      "name": "tool-package-must-follow-shared-conventions",
+      "description": "Every tool package must include its main file and expose its factory through the package index.",
+      "paths": ["packages/tool-{toolId}"],
+      "must": [
+        {
+          "name": "tool-package-must-have-main-file",
+          "description": "Every tool package must have a main tool implementation file named after the tool.",
+          "must": {
+            "haveType": "directory",
+            "haveFiles": ["src/${toolId}-tool.ts"]
+          }
+        },
+        {
+          "name": "tool-main-file-must-follow-shared-conventions",
+          "description": "Every tool main file must declare its schemas and inferred types before exporting its factory.",
+          "for": { "files": "src/${toolId}-tool.ts" },
+          "must": {
+            "importValues": [
+              { "name": "tool", "from": "ai" },
+              { "name": "z", "from": "zod/v4" }
+            ],
+            "importTypes": [
+              { "name": "Tool", "from": "ai" },
+              { "name": "ToolExecuteFunction", "from": "ai" }
+            ],
+            "declareTypes": [
+              {
+                "name": "${toolId.toPascalCase()}Input",
+                "type": "z.infer<typeof inputSchema>"
+              },
+              {
+                "name": "${toolId.toPascalCase()}Output",
+                "type": "z.infer<typeof outputSchema>"
+              }
+            ],
+            "declareConstants": ["inputSchema", "outputSchema"],
+            "exportFunctions": ["create${toolId.toPascalCase()}Tool"],
+            "useDeclarationOrder": [
+              "inputSchema",
+              "outputSchema",
+              "${toolId.toPascalCase()}Input",
+              "${toolId.toPascalCase()}Output",
+              "create${toolId.toPascalCase()}Tool"
+            ]
+          }
+        },
+        {
+          "name": "tool-package-index-must-export-experimental-factory",
+          "description": "Every tool package index must re-export its factory under the experimental name.",
+          "for": { "files": "src/index.ts" },
+          "must": {
+            "exportValues": [
+              {
+                "name": "create${toolId.toPascalCase()}Tool",
+                "alias": "experimental_create${toolId.toPascalCase()}Tool",
+                "from": "./${toolId}-tool"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "verifier-must-follow-required-conventions",
+      "description": "Each verifier script must follow the required conventions.",
+      "paths": [".agents/verifiers/{verifier}.ts"],
+      "must": [
+        {
+          "name": "verifier-script-must-have-matching-guideline",
+          "description": "The verifier script must have a matching guideline",
+          "must": {
+            "haveFiles": ["../guidelines/${verifier}.md"]
+          }
+        },
+        {
+          "name": "verifier-script-must-use-verifier-runner",
+          "description": "The verifier script must use runVerifier().",
+          "must": {
+            "importValues": [
+              { "name": "runVerifier", "from": "../../tools/verifiers/api.ts" }
+            ],
+            "callFunction": ["runVerifier"]
+          },
+          "mustNot": {
+            "importValuesFrom": ["../../tools/verifiers/internal/*"]
+          }
+        }
+      ]
     }
   ],
   "kebabToPascalMap": {

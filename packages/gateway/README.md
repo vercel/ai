@@ -22,6 +22,8 @@ npx skills add vercel/ai
 import { gateway } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
+// Auth: a non-empty `AI_GATEWAY_API_KEY`, otherwise the Vercel OIDC token
+// (automatic on Vercel deployments; `vercel env pull` for local development).
 const { text } = await generateText({
   model: gateway('spacexai/grok-4.7'),
   prompt:
@@ -29,4 +31,4 @@ const { text } = await generateText({
 });
 ```
 
-See the [Gateway Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway) for more information.
+See the [Gateway Provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway) for more information, including [authentication](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway#authentication).

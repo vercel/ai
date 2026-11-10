@@ -1,3 +1,4 @@
+import { redactToolDefinition } from './redact-tool-definition';
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import type { Context as AISDKContext } from '@ai-sdk/provider-utils';
 import {
@@ -23,6 +24,7 @@ import type {
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateTextStepStartEvent,
   GenerateSpeechEndEvent,
   GenerateSpeechStartEvent,
@@ -663,7 +665,10 @@ export class LegacyOpenTelemetry implements Telemetry {
             : undefined,
       },
       'ai.prompt.tools': {
-        input: () => event.stepTools?.map(tool => JSON.stringify(tool)),
+        input: () =>
+          event.stepTools?.map(tool =>
+            JSON.stringify(redactToolDefinition(tool)),
+          ),
       },
       'ai.prompt.toolChoice': {
         input: () =>
@@ -883,6 +888,16 @@ export class LegacyOpenTelemetry implements Telemetry {
   /** @deprecated Use `onStepEnd` instead. */
   onStepFinish(event: GenerateTextStepEndEvent<ToolSet>): void {
     this.onStepEnd(event);
+  }
+
+  onStepError(event: GenerateTextStepErrorEvent<ToolSet>): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.stepSpan) return;
+
+    recordSpanError(state.stepSpan, event.error);
+    state.stepSpan.end();
+    state.stepSpan = undefined;
+    state.stepContext = undefined;
   }
 
   onEnd(

@@ -20,22 +20,6 @@ import {
 import { isUrlInUserMessages } from './is-url-in-user-messages';
 import { VERSION } from './version';
 
-type WebFetchInput = z.infer<typeof inputSchema>;
-
-type WebFetchOutput = z.infer<typeof outputSchema>;
-
-type WebFetchDocument = Extract<WebFetchOutput, { type: 'document' }>;
-
-type ConvertedDocument = Omit<
-  WebFetchDocument,
-  'offset' | 'totalLength' | 'nextOffset'
->;
-
-type WebFetchErrorCode = Extract<
-  WebFetchOutput,
-  { type: 'error' }
->['errorCode'];
-
 const inputSchema = z.object({
   url: z.string().describe('The absolute http or https URL to fetch.'),
   offset: z
@@ -79,6 +63,22 @@ const outputSchema = z.discriminatedUnion('type', [
     statusCode: z.number().optional(),
   }),
 ]);
+
+type WebFetchInput = z.infer<typeof inputSchema>;
+
+type WebFetchOutput = z.infer<typeof outputSchema>;
+
+type WebFetchDocument = Extract<WebFetchOutput, { type: 'document' }>;
+
+type ConvertedDocument = Omit<
+  WebFetchDocument,
+  'offset' | 'totalLength' | 'nextOffset'
+>;
+
+type WebFetchErrorCode = Extract<
+  WebFetchOutput,
+  { type: 'error' }
+>['errorCode'];
 
 const MAX_URL_LENGTH = 2048;
 

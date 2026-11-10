@@ -61,6 +61,7 @@ export async function prepareResponsesTools({
   customProviderToolNames,
   outputSchemaToolNames,
   supportsAsyncToolCalling = true,
+  providerOptionsName = 'openai',
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
@@ -72,6 +73,7 @@ export async function prepareResponsesTools({
   customProviderToolNames?: Set<string>;
   outputSchemaToolNames?: Set<string>;
   supportsAsyncToolCalling?: boolean;
+  providerOptionsName?: string;
 }): Promise<{
   tools?: Array<OpenAIResponsesTool>;
   toolChoice?:
@@ -145,9 +147,8 @@ export async function prepareResponsesTools({
   for (const tool of tools) {
     switch (tool.type) {
       case 'function': {
-        const openaiOptions = tool.providerOptions?.openai as
-          | OpenAIToolOptions
-          | undefined;
+        const openaiOptions = (tool.providerOptions?.[providerOptionsName] ??
+          tool.providerOptions?.openai) as OpenAIToolOptions | undefined;
         if (openaiOptions?.outputSchema != null) {
           outputSchemaToolNames?.add(tool.name);
         }
@@ -332,7 +333,23 @@ export async function prepareResponsesTools({
                   ? { type: 'auto', file_ids: undefined }
                   : typeof args.container === 'string'
                     ? args.container
-                    : { type: 'auto', file_ids: args.container.fileIds },
+                    : {
+                        type: 'auto',
+                        file_ids: args.container.fileIds,
+                        memory_limit: args.container.memoryLimit,
+                        network_policy:
+                          args.container.networkPolicy == null
+                            ? undefined
+                            : args.container.networkPolicy.type === 'disabled'
+                              ? { type: 'disabled' }
+                              : {
+                                  type: 'allowlist',
+                                  allowed_domains:
+                                    args.container.networkPolicy.allowedDomains,
+                                  domain_secrets:
+                                    args.container.networkPolicy.domainSecrets,
+                                },
+                      },
             });
             break;
           }
@@ -406,6 +423,7 @@ export async function prepareResponsesTools({
               require_approval: requireApprovalParam ?? 'never',
               server_description: args.serverDescription,
               server_url: args.serverUrl,
+              tunnel_id: args.tunnelId,
             });
 
             break;

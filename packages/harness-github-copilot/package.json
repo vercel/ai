@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-github-copilot",
-  "version": "1.0.59",
+  "version": "1.0.77",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -45,13 +45,13 @@
     "zod": "^3.25.76 || ^4.1.8"
   },
   "devDependencies": {
-    "@github/copilot": "1.0.92",
+    "@github/copilot": "1.0.106",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "engines": {
     "node": ">=22"

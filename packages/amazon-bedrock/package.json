@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/amazon-bedrock",
-  "version": "5.0.123",
+  "version": "5.0.138",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -69,7 +69,7 @@
     "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"
