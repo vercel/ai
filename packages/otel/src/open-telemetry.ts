@@ -1,3 +1,4 @@
+import { redactToolDefinition } from './redact-tool-definition';
 import {
   context,
   metrics,
@@ -1085,7 +1086,7 @@ export class OpenTelemetry implements Telemetry {
 
     const { telemetry } = state;
     const providerName = mapProviderName(event.provider);
-    const toolDefinitions = event.tools;
+    const toolDefinitions = event.tools?.map(redactToolDefinition);
     state.inferenceToolDefinitions = toolDefinitions;
     state.inferenceMetrics = {
       startTime: performance.now(),

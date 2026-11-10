@@ -107,7 +107,6 @@ const codexConfigSchema = z.object({
 export type CodexACPHarnessSettings = {
   auth?: ACPAuthenticationMode;
   mcpServers?: Record<string, unknown>;
-  mintBridgeToken?: (sandboxId: string) => string;
   port?: number;
   portEndpoint?: HarnessV1PortEndpoint;
   reasoningEffort?: 'low' | 'medium' | 'high';
@@ -118,7 +117,6 @@ export type CodexACPHarnessSettings = {
 export function createCodexACP({
   auth = 'auto',
   mcpServers,
-  mintBridgeToken,
   port,
   portEndpoint,
   reasoningEffort,
@@ -142,7 +140,6 @@ export function createCodexACP({
     clientCapabilities: {
       elicitation: { form: {} },
     },
-    mintBridgeToken,
     port,
     portEndpoint,
     source,

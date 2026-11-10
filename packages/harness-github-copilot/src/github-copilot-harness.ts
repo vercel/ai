@@ -74,6 +74,11 @@ export type GitHubCopilotHarnessSettings = {
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
+  // TODO: Remove in the next major version.
+  /**
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
+   */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 

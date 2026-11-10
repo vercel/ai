@@ -1,6 +1,6 @@
+// TODO: Remove in the next major version.
 /**
- * Creates the authentication token a bridge-backed harness adapter uses to
- * secure its sandbox bridge channel for one session. Defaults to a random
- * 32-byte hexadecimal token when omitted.
+ * @deprecated Sandbox bridge authentication now uses adapter-generated
+ * Ed25519 keys. Passing this callback has no effect and emits a warning.
  */
 export type HarnessV1MintBridgeTokenCallback = (sandboxId: string) => string;

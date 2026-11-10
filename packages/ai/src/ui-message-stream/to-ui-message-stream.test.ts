@@ -259,6 +259,99 @@ describe('toUIMessageStream', () => {
     expect(chunks).toEqual([{ type: 'error', errorText: 'handled: boom' }]);
   });
 
+  it('routes an invalid tool call through onError once', async () => {
+    const invalidToolCallError = new Error('invalid tool input');
+    const onError = vi.fn(() => 'formatted tool error');
+
+    const parts: TextStreamPart<{}>[] = [
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'invalid' },
+        invalid: true,
+        dynamic: true,
+        error: invalidToolCallError,
+      },
+      {
+        type: 'tool-error',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'invalid' },
+        error: 'Error: invalid tool input',
+        dynamic: true,
+      },
+    ];
+
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        onError,
+      }),
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-error',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'invalid' },
+        dynamic: true,
+        errorText: 'formatted tool error',
+      },
+    ]);
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledWith(invalidToolCallError);
+  });
+
+  it('forwards tool errors for valid tool calls', async () => {
+    const onError = vi.fn(() => 'formatted tool error');
+
+    const parts: TextStreamPart<{}>[] = [
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'valid' },
+        dynamic: true,
+      },
+      {
+        type: 'tool-error',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'valid' },
+        error: new Error('execution failed'),
+        dynamic: true,
+      },
+    ];
+
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        onError,
+      }),
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'valid' },
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'call-1',
+        dynamic: true,
+        errorText: 'formatted tool error',
+      },
+    ]);
+    expect(onError).toHaveBeenCalledOnce();
+  });
+
   it('emits separate metadata chunks for non-lifecycle parts', async () => {
     type MetadataUIMessage = UIMessage<{ partType: string }>;
 

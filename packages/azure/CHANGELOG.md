@@ -1,5 +1,14 @@
 # @ai-sdk/azure
 
+## 4.0.120
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/openai@4.0.112
+  - @ai-sdk/deepseek@3.0.82
+
 ## 4.0.119
 
 ### Patch Changes
