@@ -422,6 +422,17 @@ request-level `textFormat`. Keep the original request-level `textFormat` on
 every call, and use `Output.object` with the current schema to parse and validate
 the response:
 
+<Note>
+  If the first turn already uses `Output.object`, set `textFormat` to that
+  initial JSON schema format from the first call and keep it unchanged on later
+  calls. For an existing conversation that began without `textFormat`, match
+  the originally emitted `text.format` exactly, including the schema, its
+  normalization, the name (default `'response'`), strictness (default `true`),
+  and any description. Switching such a conversation to `{ type: 'text' }`
+  changes its prefix. The example below starts with plain text, so its original
+  format is `{ type: 'text' }`.
+</Note>
+
 ```ts
 import {
   openai,
