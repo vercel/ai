@@ -151,6 +151,18 @@
       "path": "../../packages/revai"
     },
     {
+<<<<<<< HEAD
+=======
+      "path": "../../packages/sandbox-just-bash"
+    },
+    {
+      "path": "../../packages/sandbox-vercel"
+    },
+    {
+      "path": "../../packages/tencent"
+    },
+    {
+>>>>>>> 1c7a311d53 (feat(tencent): add Tencent Cloud provider (#24737))
       "path": "../../packages/togetherai"
     },
     {
