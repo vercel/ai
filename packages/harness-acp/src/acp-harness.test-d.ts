@@ -57,6 +57,7 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'hostDisconnectTimeoutMs'
         | 'reconnect'
         | 'clientApp'
       >
@@ -68,6 +69,7 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'hostDisconnectTimeoutMs'
         | 'reconnect'
         | 'clientApp'
       >

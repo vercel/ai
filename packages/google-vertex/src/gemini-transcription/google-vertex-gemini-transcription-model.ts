@@ -1,3 +1,4 @@
+import { getGoogleVertexRequestConfig } from '../google-vertex-model-catalog-config';
 import {
   InvalidArgumentError,
   type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
@@ -47,7 +48,7 @@ const defaultFinishGraceMs = 3000;
 
 /** Live transcription is only supported by `*-live` model variants. */
 function isLiveTranscriptionModelId(modelId: string): boolean {
-  return modelId.includes('-live');
+  return getGoogleVertexRequestConfig(modelId).transcription?.live === true;
 }
 
 /** Regional Vertex hostname (mirrors the provider's base-URL host rules). */

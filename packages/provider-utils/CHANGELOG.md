@@ -1,5 +1,21 @@
 # @ai-sdk/provider-utils
 
+## 5.0.77
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+
+## 5.0.76
+
+### Patch Changes
+
+- 6400cf8: Add `resolveProviderOptions` to parse provider options that a model accepts under several `providerOptions` keys, either as aliases (`first`) or merged in order (`merge`), and use it for the existing multi-key lookups in the OpenAI, OpenAI-compatible, Anthropic, Google, and Amazon Bedrock models. Resolution behavior for these models is unchanged.
+- f608c05: Reject HTTPS-to-HTTP redirects in validated downloads before requesting the insecure target, including when it matches a configured trusted origin.
+- cab9c1f: Return undefined instead of throwing when detectMediaType receives an unsupported topLevelType that matches an inherited object property.
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider@4.0.37
+
 ## 5.0.75
 
 ### Patch Changes

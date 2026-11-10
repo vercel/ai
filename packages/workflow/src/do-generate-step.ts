@@ -1,3 +1,4 @@
+import { serializeTelemetryBody } from './serializable-telemetry-body.js';
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { generateId, convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
@@ -283,6 +284,14 @@ async function generateModelCall(
     raw: {
       content,
       reasoning: [],
+      telemetryBodies: {
+        request: options.include?.requestBody
+          ? serializeTelemetryBody(response.request?.body)
+          : undefined,
+        response: options.include?.responseBody
+          ? serializeTelemetryBody(response.response?.body)
+          : undefined,
+      },
       warnings: response.warnings,
       responseMetadata: {
         id: response.response?.id ?? generateId(),

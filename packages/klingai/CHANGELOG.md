@@ -1,5 +1,29 @@
 # @ai-sdk/klingai
 
+## 4.0.80
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 4.0.79
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 4.0.78
+
+### Patch Changes
+
+- 0bfe024: Refactor Kling AI model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+
 ## 4.0.77
 
 ### Patch Changes

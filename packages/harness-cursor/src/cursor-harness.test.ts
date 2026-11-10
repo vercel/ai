@@ -38,6 +38,7 @@ describe('createCursor', () => {
       {
         "args": [
           "--disable-auto-update",
+          "--disable-project-configs",
           "acp",
         ],
         "authentication": undefined,
@@ -157,6 +158,7 @@ describe('createCursor', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      hostDisconnectTimeoutMs: 60_000,
       reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
@@ -168,6 +170,7 @@ describe('createCursor', () => {
       port: settings.port,
       portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
+      hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
       reconnect: settings.reconnect,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
@@ -176,6 +179,7 @@ describe('createCursor', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      hostDisconnectTimeoutMs: 60_000,
       reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,

@@ -1,3 +1,4 @@
+import { getLumaImageModelEntry } from './luma-model-catalog';
 import {
   InvalidResponseDataError,
   type ImageModelV4,
@@ -44,18 +45,23 @@ interface LumaImageModelConfig {
 
 export class LumaImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 1;
+  get maxImagesPerCall(): number {
+    return getLumaImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
+  }
   readonly pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS;
   readonly maxPollAttempts = DEFAULT_MAX_POLL_ATTEMPTS;
 
   get supportsFileInputs(): boolean | undefined {
-    return this.modelId === 'photon-1' || this.modelId === 'photon-flash-1'
-      ? true
-      : undefined;
+    const support = getLumaImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get supportsMaskInputs(): boolean | undefined {
-    return this.supportsFileInputs === true ? false : undefined;
+    const support = getLumaImageModelEntry(this.modelId).capabilities.image
+      .maskInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get provider(): string {

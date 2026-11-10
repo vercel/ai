@@ -4,6 +4,7 @@ import {
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { redactOpenAIToolArgs } from '../redact-openai-tool-credentials';
 
 export const codeInterpreterInputSchema = lazySchema(() =>
   zodSchema(
@@ -128,6 +129,7 @@ export const codeInterpreterToolFactory = createProviderExecutedToolFactory<
   CodeInterpreterArgs
 >({
   id: 'openai.code_interpreter',
+  redactArgs: args => redactOpenAIToolArgs('code_interpreter', args),
   inputSchema: codeInterpreterInputSchema,
   outputSchema: codeInterpreterOutputSchema,
 });

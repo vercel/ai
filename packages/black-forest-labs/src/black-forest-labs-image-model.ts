@@ -1,3 +1,4 @@
+import { getBlackForestLabsImageModelEntry } from './black-forest-labs-model-catalog';
 import {
   APICallError,
   UnsupportedFunctionalityError,
@@ -67,50 +68,26 @@ interface BlackForestLabsImageModelConfig {
 
 export class BlackForestLabsImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 1;
+  get maxImagesPerCall(): number {
+    return getBlackForestLabsImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
+  }
 
   private get modelApi(): 'legacy' | 'flux-3-image' | 'latest' {
-    if (
-      this.modelId === 'flux-pro' ||
-      this.modelId === 'flux-dev' ||
-      this.modelId.startsWith('flux-pro-') ||
-      this.modelId.startsWith('flux-kontext-') ||
-      /^flux-[12](?:[.-]|$)/.test(this.modelId)
-    ) {
-      return 'legacy';
-    }
-
-    if (this.modelId === 'flux-3-image') {
-      return 'flux-3-image';
-    }
-
-    // Unknown model IDs inherit the latest supported image API.
-    return 'latest';
+    return getBlackForestLabsImageModelEntry(this.modelId).requestConfig.image
+      .modelApi;
   }
 
   get supportsFileInputs(): boolean | undefined {
-    if (
-      this.modelApi !== 'legacy' ||
-      ['flux-kontext-pro', 'flux-kontext-max', 'flux-pro-1.0-fill'].includes(
-        this.modelId,
-      )
-    ) {
-      return true;
-    }
-
-    if (['flux-pro-1.1-ultra', 'flux-pro-1.1'].includes(this.modelId)) {
-      return false;
-    }
-
-    return undefined;
+    const support = getBlackForestLabsImageModelEntry(this.modelId).capabilities
+      .image.fileInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get supportsMaskInputs(): boolean | undefined {
-    if (this.modelId === 'flux-pro-1.0-fill') {
-      return true;
-    }
-
-    return this.supportsFileInputs == null ? undefined : false;
+    const support = getBlackForestLabsImageModelEntry(this.modelId).capabilities
+      .image.maskInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get provider(): string {
@@ -310,8 +287,8 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       };
     }
 
-    const inputImageField =
-      this.modelId === 'flux-pro-1.0-fill' ? 'image' : 'input_image';
+    const inputImageField = getBlackForestLabsImageModelEntry(this.modelId)
+      .requestConfig.image.inputImageKey;
     const inputImagesObj: Record<string, string> = inputImages.reduce<
       Record<string, string>
     >((acc, img, index) => {

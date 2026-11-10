@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-fx",
-  "version": "1.0.90",
+  "version": "1.0.94",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -39,7 +39,7 @@
     "@ai-sdk/mcp": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "libfx": "0.0.14"
+    "libfx": "0.0.16"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"

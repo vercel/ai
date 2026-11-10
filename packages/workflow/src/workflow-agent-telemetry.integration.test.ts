@@ -28,6 +28,7 @@ import {
   agentGenerateWithGlobalTelemetry,
   agentStreamWithGlobalTelemetry,
   agentToolLoopWithGlobalTelemetry,
+  agentWithRedactedProviderTools,
 } from './test/telemetry-workflows.js';
 
 const exporter = new InMemorySpanExporter();
@@ -135,6 +136,27 @@ const expectedSpans = [
 ];
 
 describe('WorkflowAgent telemetry with global integrations', () => {
+  it.each(['generate', 'stream'] as const)(
+    '%s: redacts provider tools after the durable model-step boundary',
+    async mode => {
+      const run = await start(agentWithRedactedProviderTools, [mode]);
+      expect(await run.returnValue).toBe('done');
+      const definitions = exporter
+        .getFinishedSpans()
+        .filter(span => span.name === 'chat workflow-test-model')
+        .map(span => span.attributes['gen_ai.tool.definitions']);
+      expect(definitions).toHaveLength(1);
+      expect(JSON.parse(definitions[0] as string)).toEqual([
+        {
+          type: 'provider',
+          id: 'test.remote',
+          name: 'remote',
+          args: { credential: '[redacted]', region: 'test' },
+        },
+      ]);
+    },
+  );
+
   it('stream: dispatches model call telemetry from the model step', async () => {
     const run = await start(agentStreamWithGlobalTelemetry, ['hello']);
 

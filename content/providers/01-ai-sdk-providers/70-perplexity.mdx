@@ -189,6 +189,11 @@ Supported native tools are `web_search`, `fetch_url`, `people_search`,
 preconfigured tools that remain enabled; the `tools` option can add explicit
 tools or supply tools when using a direct model ID.
 
+Set the top-level `toolChoice` option to `'none'` to disable all tools. This
+omits AI SDK function tools and native tools from the request, including MCP
+and connector configurations, and sets `max_tool_calls: 0` to disable preset
+tools. This overrides `providerOptions.perplexity.max_tool_calls`.
+
 Search and fetch results are exposed as AI SDK sources. Other native tool traces,
 including finance, sandbox, and MCP results, are available in `response.body`
 and raw stream chunks (`include: { rawChunks: true }`). They are not exposed as
