@@ -14,7 +14,7 @@
     "@opentelemetry/api-logs": "0.55.0",
     "@opentelemetry/instrumentation": "0.52.1",
     "@opentelemetry/sdk-logs": "0.55.0",
-    "@sentry/nextjs": "^10.53.1",
+    "@sentry/nextjs": "^10.75.2",
     "@sentry/opentelemetry": "8.22.0",
     "@vercel/otel": "1.10.0",
     "ai": "workspace:*",
