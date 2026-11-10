@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.77
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+
 ## 5.0.76
 
 ### Patch Changes

@@ -34,7 +34,6 @@ const resolveCursorACPHostToolCall: ACPResolveHostToolCall = ({
 
 export type CursorACPHarnessSettings = {
   mcpServers?: Record<string, unknown>;
-  mintBridgeToken?: (sandboxId: string) => string;
   port?: number;
   portEndpoint?: HarnessV1PortEndpoint;
   source?: ACPSource;
@@ -42,7 +41,6 @@ export type CursorACPHarnessSettings = {
 
 export function createCursorACP({
   mcpServers,
-  mintBridgeToken,
   port,
   portEndpoint,
   source = CURSOR_ACP_SOURCE,
@@ -61,7 +59,6 @@ export function createCursorACP({
         isRecord(rawInput.args)
       );
     },
-    mintBridgeToken,
     port,
     portEndpoint,
     source,

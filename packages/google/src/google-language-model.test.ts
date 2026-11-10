@@ -2027,6 +2027,7 @@ describe('doGenerate', () => {
   it('should read serviceTier from usageMetadata.serviceTier', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
+      headers: { 'x-gemini-service-tier': 'standard' },
       body: {
         candidates: [
           {
@@ -2052,6 +2053,22 @@ describe('doGenerate', () => {
 
     expect(providerMetadata?.google.serviceTier).toBe('priority');
   });
+
+  it.each(['flex', 'priority'])(
+    'should read serviceTier %s from the response header when absent from usageMetadata',
+    async serviceTier => {
+      prepareJsonResponse({
+        content: 'test response',
+        headers: { 'x-gemini-service-tier': serviceTier },
+      });
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(providerMetadata?.google.serviceTier).toBe(serviceTier);
+    },
+  );
 
   it('should expose null serviceTier in provider metadata when not present', async () => {
     prepareJsonResponse({ content: 'test response' });
@@ -7781,10 +7798,9 @@ describe('doStream', () => {
   });
 
   it('should read serviceTier from chunk usageMetadata', async () => {
-    // Gemini streaming does not set the x-gemini-service-tier response header
-    // but does include serviceTier in each chunk's usageMetadata.
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
+      headers: { 'x-gemini-service-tier': 'standard' },
       chunks: [
         `data: ${JSON.stringify({
           candidates: [
@@ -7816,6 +7832,25 @@ describe('doStream', () => {
         finishEvent.providerMetadata?.google.serviceTier,
     ).toBe('priority');
   });
+
+  it.each(['flex', 'priority'])(
+    'should read serviceTier %s from the stream response header when absent from usageMetadata',
+    async serviceTier => {
+      prepareStreamResponse({
+        content: ['test'],
+        headers: { 'x-gemini-service-tier': serviceTier },
+      });
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const events = await convertReadableStreamToArray(stream);
+      const finishEvent = events.find(event => event.type === 'finish');
+
+      expect(
+        finishEvent?.type === 'finish' &&
+          finishEvent.providerMetadata?.google.serviceTier,
+      ).toBe(serviceTier);
+    },
+  );
 
   it('should expose the continuationToken from the final chunk on finish', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {

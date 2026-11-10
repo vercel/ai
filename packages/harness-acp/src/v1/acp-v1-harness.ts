@@ -16,7 +16,8 @@ import {
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import {
   applyCredentialForwarding,
-  createBridgeToken,
+  BRIDGE_AUTH_PUBLIC_KEY_ENV,
+  createBridgeAuthKeyPair,
   createBridgeWebSocketConnect,
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -33,6 +34,7 @@ import {
   shellQuote,
   validateBridgeSandboxSettings,
   warnCredentialBrokeringUnavailable,
+  warnMintBridgeTokenIgnored,
   waitForBridgeReady,
   writeInstructions,
   writeSkills,
@@ -150,6 +152,10 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   >;
 }): HarnessV1<TBuiltinTools> {
   validateACPV1Settings({ settings });
+  warnMintBridgeTokenIgnored({
+    harnessId: settings.harnessId,
+    mintBridgeToken: settings.mintBridgeToken,
+  });
   const bootstrap = createACPBootstrap({
     harnessId: settings.harnessId,
     source: settings.source,
@@ -219,10 +225,8 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
       validateBridgeSandboxSettings({
         sandboxSession,
-        sandboxId,
         portOverride,
         portEndpointOverride,
-        mintBridgeToken: settings.mintBridgeToken,
       });
       const continueFrom =
         startOptions.continueFrom ?? startOptions.resumeFrom?.continueFrom;
@@ -405,11 +409,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               sandboxSession,
               port: coords.port,
               portEndpointOverride,
-              token: coords.token,
             });
             const attachChannel: ACPChannel = new SandboxChannel({
               connect: createBridgeWebSocketConnect({
                 endpoint: attachEndpoint,
+                privateKey: coords.privateKey,
                 webSocketConstructor: WebSocket,
               }),
               outboundSchema: outboundMessageSchema,
@@ -449,7 +453,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               skillsDirectory,
               acpSessionId: lifecycleData.acpSessionId,
               bridgePort: coords.port,
-              bridgeToken: coords.token,
+              bridgePrivateKey: coords.privateKey,
               sandboxId,
               isResume: true,
               turnInFlight: isContinue,
@@ -591,10 +595,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         sandboxSession,
         portOverride,
       });
-      const token =
-        settings.mintBridgeToken == null
-          ? createBridgeToken()
-          : settings.mintBridgeToken(sandboxId!);
+      const bridgeAuth = createBridgeAuthKeyPair();
       await toolSafeSandboxSession.run({
         command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
         abortSignal: startOptions.abortSignal,
@@ -632,7 +633,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
             nonTextContentTypes: settings.nonTextContentTypes,
           }),
           ...sandboxProviderAuthenticationEnvironment,
-          BRIDGE_CHANNEL_TOKEN: token,
+          [BRIDGE_AUTH_PUBLIC_KEY_ENV]: bridgeAuth.publicKey,
           BRIDGE_WS_PORT: String(port),
           ...(respawnStrategy?.mode === 'disk-replay'
             ? {
@@ -680,11 +681,11 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         sandboxSession,
         port: boundPort,
         portEndpointOverride,
-        token,
       });
       const channel: ACPChannel = new SandboxChannel({
         connect: createBridgeWebSocketConnect({
           endpoint: bridgeEndpoint,
+          privateKey: bridgeAuth.privateKey,
           webSocketConstructor: WebSocket,
           openRetryTimeoutMs: timeoutMs,
           startAbortSignal: startOptions.abortSignal,
@@ -772,7 +773,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         skillsDirectory,
         acpSessionId: lifecycleData?.acpSessionId,
         bridgePort: boundPort,
-        bridgeToken: token,
+        bridgePrivateKey: bridgeAuth.privateKey,
         sandboxId,
         isResume,
         turnInFlight:
@@ -1039,7 +1040,7 @@ function createSession({
   skillsDirectory,
   acpSessionId: acpSessionIdAtStart,
   bridgePort,
-  bridgeToken,
+  bridgePrivateKey,
   sandboxId,
   isResume,
   turnInFlight: turnInFlightAtStart,
@@ -1077,7 +1078,7 @@ function createSession({
   skillsDirectory: string;
   acpSessionId: string | undefined;
   bridgePort: number;
-  bridgeToken: string;
+  bridgePrivateKey: string;
   sandboxId: string | undefined;
   isResume: boolean;
   turnInFlight: boolean;
@@ -1840,7 +1841,7 @@ function createSession({
         data: createLifecycleData({
           bridge: {
             port: bridgePort,
-            token: bridgeToken,
+            privateKey: bridgePrivateKey,
             lastSeenEventId,
             ...(sandboxId == null ? {} : { sandboxId }),
             stateDir: bridgeStateDir,
@@ -1868,7 +1869,7 @@ function createSession({
         data: createLifecycleData({
           bridge: {
             port: bridgePort,
-            token: bridgeToken,
+            privateKey: bridgePrivateKey,
             lastSeenEventId,
             ...(sandboxId == null ? {} : { sandboxId }),
             stateDir: bridgeStateDir,

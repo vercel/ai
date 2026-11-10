@@ -1,3 +1,4 @@
+import type { SerializableTelemetryBody } from './serializable-telemetry-body.js';
 import type {
   JSONObject,
   LanguageModelV4CallOptions,
@@ -198,6 +199,11 @@ export interface ModelCallRawResult {
     text: string;
     providerMetadata?: SharedV4ProviderMetadata;
   }>;
+  /** Provider-owned views of included bodies, retained across the step return. */
+  telemetryBodies?: {
+    request?: SerializableTelemetryBody;
+    response?: SerializableTelemetryBody;
+  };
   responseMetadata?: {
     id?: string;
     timestamp?: Date;

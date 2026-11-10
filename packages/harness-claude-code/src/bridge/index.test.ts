@@ -2627,7 +2627,8 @@ describe('Claude Code bridge configuration', () => {
         return originalReturn(value as never);
       }) as typeof generator.return;
       state.createQuery = args => {
-        queryAbortSignal = args.options.abortSignal as AbortSignal;
+        queryAbortSignal = (args.options.abortController as AbortController)
+          .signal;
         return Object.assign(generator, { interrupt });
       };
 
@@ -2758,8 +2759,8 @@ describe('Claude Code bridge configuration', () => {
     });
     const disposed = vi.fn();
     state.createQuery = args => {
-      const abortSignal = (args.options as { abortSignal: AbortSignal })
-        .abortSignal;
+      const abortSignal = (args.options as { abortController: AbortController })
+        .abortController.signal;
       const generator = (async function* () {
         await new Promise<void>(resolve => {
           if (abortSignal.aborted) return resolve();

@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WebSocket } from 'ws';
+import { Buffer } from 'node:buffer';
+import { verify } from 'node:crypto';
 import { HarnessError } from '../errors/harness-error';
+import { createBridgeAuthKeyPair } from './bridge-auth';
+import {
+  createBridgeAuthMessage,
+  parseBridgeAuthProofFrame,
+  serializeBridgeAuthChallengeFrame,
+} from './bridge-auth-protocol';
 import {
   createBridgeWebSocketConnect,
   type CreateBridgeWebSocketConnectOptions,
@@ -8,13 +16,17 @@ import {
 
 type Listener = (...args: unknown[]) => void;
 
+const BRIDGE_AUTH = createBridgeAuthKeyPair();
+const CHALLENGE = 'c'.repeat(64);
 const sockets: FakeWebSocket[] = [];
 const scripts: Array<(socket: FakeWebSocket) => void> = [];
 
 class FakeWebSocket {
   readonly listeners = new Map<string, Set<Listener>>();
+  readonly sent: string[] = [];
   terminated = false;
   closed = false;
+  challengeSent = false;
   emitErrorOnTerminate = false;
 
   constructor(
@@ -46,7 +58,20 @@ class FakeWebSocket {
     for (const listener of listeners) listener(...args);
   }
 
+  send(frame: string): void {
+    this.sent.push(frame);
+  }
+
+  sendChallenge(): void {
+    this.challengeSent = true;
+    this.emit(
+      'message',
+      Buffer.from(serializeBridgeAuthChallengeFrame({ challenge: CHALLENGE })),
+    );
+  }
+
   sendHello(capabilities?: Record<string, unknown>): void {
+    if (!this.challengeSent) this.sendChallenge();
     this.emit(
       'message',
       Buffer.from(
@@ -75,9 +100,10 @@ function createConnect(
 ) {
   return createBridgeWebSocketConnect({
     endpoint: {
-      url: 'wss://bridge.example/?agent_bridge_token=token',
+      url: 'wss://bridge.example/',
       headers: { 'x-access-token': 'traffic-token' },
     },
+    privateKey: BRIDGE_AUTH.privateKey,
     webSocketConstructor: FakeWebSocket as unknown as typeof WebSocket,
     ...options,
   });
@@ -109,9 +135,7 @@ describe('createBridgeWebSocketConnect', () => {
     });
 
     expect(ws).toBe(sockets[0]);
-    expect(sockets[0].url).toBe(
-      'wss://bridge.example/?agent_bridge_token=token',
-    );
+    expect(sockets[0].url).toBe('wss://bridge.example/');
     expect(sockets[0].options).toEqual({
       headers: { 'x-access-token': 'traffic-token' },
     });
@@ -129,6 +153,7 @@ describe('createBridgeWebSocketConnect', () => {
     let resolved = false;
     scripts.push(socket => {
       socket.emit('open');
+      socket.sendChallenge();
       socket.emit('message', 'not json');
       socket.emit('message', JSON.stringify({ type: 'text-delta' }));
     });
@@ -267,7 +292,7 @@ describe('createBridgeWebSocketConnect', () => {
     expect(error.cause).toBe(socketError);
   });
 
-  it('does not retry when the bridge rejects the token', async () => {
+  it('does not retry when the bridge rejects the proof', async () => {
     scripts.push(socket => {
       socket.emit('open');
       socket.emit('close', 1008);
@@ -343,5 +368,56 @@ describe('createBridgeWebSocketConnect', () => {
       ],
       [{ type: 'bridge-hello' }],
     ]);
+  });
+
+  it('answers the challenge with a proof before accepting bridge-hello', async () => {
+    scripts.push(openWithHello);
+
+    await createConnect()({
+      abortSignal: new AbortController().signal,
+      reason: 'reconnect',
+    });
+
+    expect(sockets[0].sent).toHaveLength(1);
+    const signature = parseBridgeAuthProofFrame({ text: sockets[0].sent[0] });
+    expect(signature).toBeDefined();
+    expect(
+      verify(
+        null,
+        createBridgeAuthMessage({ challenge: CHALLENGE }),
+        {
+          key: { kty: 'OKP', crv: 'Ed25519', x: BRIDGE_AUTH.publicKey },
+          format: 'jwk',
+        },
+        Buffer.from(signature!, 'base64url'),
+      ),
+    ).toBe(true);
+  });
+
+  it('does not retry when the bridge sends no valid challenge', async () => {
+    scripts.push(socket => {
+      socket.emit('open');
+      socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+    });
+
+    const error = await createConnect({ openRetryTimeoutMs: 20_000 })({
+      abortSignal: new AbortController().signal,
+      reason: 'open',
+    }).catch(error => error);
+
+    expect(error.message).toBe(
+      'The harness bridge did not send a valid authentication challenge.',
+    );
+    expect(error.message).not.toContain(BRIDGE_AUTH.privateKey);
+    expect(sockets).toHaveLength(1);
+    expect(sockets[0].sent).toEqual([]);
+    expect(sockets[0].terminated).toBe(true);
+  });
+
+  it('rejects an invalid private key before connecting', () => {
+    expect(() => createConnect({ privateKey: 'invalid' })).toThrow(
+      'Invalid bridge authentication private key.',
+    );
+    expect(sockets).toHaveLength(0);
   });
 });

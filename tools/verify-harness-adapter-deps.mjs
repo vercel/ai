@@ -2,11 +2,13 @@
 
 import { existsSync, globSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, join, relative, resolve } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import semver from 'semver';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+const updateSkillPath = 'skills/update-harness-dependencies/SKILL.md';
 
 const sdkPackagesToSync = [
   '@agentclientprotocol/sdk',
@@ -78,6 +80,8 @@ const adapterConfigs = [
   {
     name: 'fx',
     packageDir: 'packages/harness-fx',
+    primarySdk: 'libfx',
+    sdkPackages: ['libfx'],
   },
   {
     name: 'GitHub Copilot',
@@ -288,6 +292,55 @@ export function validateACPBridgeDependencies({
   return errors;
 }
 
+export function parseSkillUpdateCommands({ skillContent }) {
+  const packagesByTarget = new Map();
+
+  for (const line of skillContent.split(/\r?\n/)) {
+    const match = /^pnpm (--filter|--dir) (\S+) update (.+?) --latest\b/.exec(
+      line.trim(),
+    );
+    if (match == null) continue;
+
+    const [, flag, target, packageList] = match;
+    const key = `${flag} ${target}`;
+    const packages = packagesByTarget.get(key) ?? new Set();
+    for (const packageName of packageList.split(/\s+/)) {
+      packages.add(packageName);
+    }
+    packagesByTarget.set(key, packages);
+  }
+
+  return packagesByTarget;
+}
+
+/*
+ * The update-harness-dependencies skill lists the exact update commands to
+ * run. Every configured SDK package that a harness or bridge manifest declares
+ * must be covered by one of those commands, otherwise that dependency silently
+ * stops being updated.
+ */
+export function validateSkillUpdateCommands({ manifests, skillContent }) {
+  const errors = [];
+  const packagesByTarget = parseSkillUpdateCommands({ skillContent });
+
+  for (const { adapterName, command, manifest, manifestPath, sdkPackages } of
+    manifests) {
+    const coveredPackages = packagesByTarget.get(command) ?? new Set();
+    for (const packageName of sdkPackages) {
+      if (getDependencySpec({ manifest, packageName }) == null) continue;
+      if (coveredPackages.has(packageName)) continue;
+
+      errors.push(
+        `${adapterName} (${manifestPath}) declares ${packageName}, but no ` +
+          `\`pnpm ${command} update ... ${packageName} --latest\` command ` +
+          `exists in ${updateSkillPath}.`,
+      );
+    }
+  }
+
+  return errors;
+}
+
 function discoverAdapterPackageDirs() {
   return globSync('packages/harness-*/package.json', {
     cwd: repoRoot,
@@ -343,6 +396,7 @@ function main() {
 
   const adapterData = [];
   const synchronizedSdkManifests = [];
+  const skillUpdateManifests = [];
   const peerCompatibilityErrors = [];
   let verifiedManifestCount = 0;
 
@@ -386,6 +440,23 @@ function main() {
 
     if (adapter.primarySdk == null) {
       continue;
+    }
+
+    skillUpdateManifests.push({
+      adapterName: adapter.name,
+      command: `--filter ${basename(adapter.packageDir)}`,
+      manifest: rootManifest,
+      manifestPath: relative(repoRoot, rootPackageJsonPath),
+      sdkPackages: adapter.sdkPackages,
+    });
+    if (bridgeManifest != null) {
+      skillUpdateManifests.push({
+        adapterName: `${adapter.name} bridge`,
+        command: `--dir ${relative(repoRoot, dirname(bridgePackageJsonPath))}`,
+        manifest: bridgeManifest,
+        manifestPath: relative(repoRoot, bridgePackageJsonPath),
+        sdkPackages: adapter.sdkPackages,
+      });
     }
 
     const primarySpec = getDependencySpec({
@@ -500,6 +571,19 @@ function main() {
     return;
   }
 
+  const skillUpdateCommandErrors = validateSkillUpdateCommands({
+    manifests: skillUpdateManifests,
+    skillContent: readFileSync(resolve(repoRoot, updateSkillPath), 'utf8'),
+  });
+  if (skillUpdateCommandErrors.length > 0) {
+    reportErrors({
+      heading: 'Harness adapter dependency update commands are incomplete',
+      errors: skillUpdateCommandErrors,
+    });
+    process.exitCode = 1;
+    return;
+  }
+
   console.log(
     `✓ Verified SDK peer compatibility for ${verifiedManifestCount} harness ` +
       `adapter manifest${verifiedManifestCount === 1 ? '' : 's'}.`,
@@ -509,6 +593,9 @@ function main() {
   console.log(
     '✓ Verified npm-locked ACP bridge manifests include the harness-acp ' +
       'bridge dependencies.',
+  );
+  console.log(
+    `✓ Verified ${updateSkillPath} updates every configured harness SDK.`,
   );
 }
 
