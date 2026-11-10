@@ -4397,6 +4397,60 @@ describe('createPiSession', () => {
     );
     expect(SettingsManager.create).not.toHaveBeenCalled();
   });
+
+  describe('host root', () => {
+    const piBaseDir = path.join(tmpdir(), 'ai-sdk-harness', 'pi');
+    const startSession = (sessionId: string) =>
+      createPiSession({
+        sessionId,
+        sandboxSession: createSandboxSession(),
+        sessionWorkDir: '/sandbox/work',
+        settings: {},
+        clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+        isResume: false,
+      });
+
+    it.each([
+      ['..', '%2E%2E'],
+      ['.', '%2E'],
+    ])(
+      'keeps the host root of session %j inside the Pi directory',
+      async (sessionId, segment) => {
+        const sentinelRoot = path.join(
+          piBaseDir,
+          `pi-host-root-sentinel-${segment}`,
+        );
+        const sentinel = await startSession(`pi-host-root-sentinel-${segment}`);
+        expect(existsSync(sentinelRoot)).toBe(true);
+
+        const session = await startSession(sessionId);
+        const sessionRoot = path.join(piBaseDir, segment);
+        expect(existsSync(sessionRoot)).toBe(true);
+
+        await session.doDestroy();
+
+        expect(existsSync(sessionRoot)).toBe(false);
+        expect(existsSync(sentinelRoot)).toBe(true);
+        expect(existsSync(piBaseDir)).toBe(true);
+        await sentinel.doDestroy();
+      },
+    );
+
+    it('keeps distinct host roots for session IDs that differ only by separators', async () => {
+      const first = await startSession('pi-host-root/collision');
+      const second = await startSession('pi-host-root-collision');
+      const firstRoot = path.join(piBaseDir, 'pi-host-root%2Fcollision');
+      const secondRoot = path.join(piBaseDir, 'pi-host-root-collision');
+      expect(existsSync(firstRoot)).toBe(true);
+      expect(existsSync(secondRoot)).toBe(true);
+
+      await first.doDestroy();
+
+      expect(existsSync(firstRoot)).toBe(false);
+      expect(existsSync(secondRoot)).toBe(true);
+      await second.doDestroy();
+    });
+  });
 });
 
 function createDeferred<T>() {

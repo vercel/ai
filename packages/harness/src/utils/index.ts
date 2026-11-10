@@ -92,3 +92,4 @@ export {
   convertHarnessToolModelOutput,
   type HarnessToolModelOutputContent,
 } from './convert-harness-tool-model-output';
+export { encodeHarnessPathSegment } from '../v1/harness-session-data-directory-path';
