@@ -6,7 +6,7 @@ import type {
   UserModelMessage,
 } from '@ai-sdk/provider-utils';
 import { providerMetadataSchema } from '../types/provider-metadata';
-import { z, type ZodType } from '../util/zod';
+import { z, type ZodType } from '../util/classic-zod';
 import {
   customPartSchema,
   filePartSchema,

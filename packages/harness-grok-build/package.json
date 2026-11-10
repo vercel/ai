@@ -51,7 +51,7 @@
     "@xai-official/grok": "1.0.77",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "engines": {
     "node": ">=22"
