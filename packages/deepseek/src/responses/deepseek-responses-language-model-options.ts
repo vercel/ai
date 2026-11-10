@@ -4,7 +4,7 @@ import type { DeepSeekModelIds } from '../deepseek-model-catalog';
 
 // https://api-docs.deepseek.com/api/create-response
 export type DeepSeekResponsesModelId =
-  | DeepSeekModelIds['language']
+  | DeepSeekModelIds['responses']
   | (string & {});
 
 export const deepseekLanguageModelResponsesOptions = lazySchema(() =>

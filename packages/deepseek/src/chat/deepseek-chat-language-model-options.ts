@@ -7,7 +7,7 @@ import { z } from 'zod/v4';
 import type { DeepSeekModelIds } from '../deepseek-model-catalog';
 
 // https://api-docs.deepseek.com/quick_start/pricing
-export type DeepSeekChatModelId = DeepSeekModelIds['language'] | (string & {});
+export type DeepSeekChatModelId = DeepSeekModelIds['chat'] | (string & {});
 
 function createDeepseekChatOptionsSchema() {
   return z.object({

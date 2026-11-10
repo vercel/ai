@@ -3,9 +3,7 @@ import type { FireworksModelIds } from './fireworks-model-catalog';
 
 // https://docs.fireworks.ai/docs/serverless-models#chat-models
 // Below is just a subset of the available models.
-export type FireworksChatModelId =
-  | FireworksModelIds['language']
-  | (string & {});
+export type FireworksChatModelId = FireworksModelIds['chat'] | (string & {});
 
 export const fireworksLanguageModelOptions = z.object({
   /**

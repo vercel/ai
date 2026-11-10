@@ -521,9 +521,26 @@ const vertexAnthropicModels = {
     streaming: true,
     computerUse: false,
   },
+  // Known IDs without declared capabilities retain the custom-model fallback.
+  'claude-fable-5': undefined,
+  'claude-haiku-5-5': undefined,
+  'claude-opus-4-1@20250805': undefined,
+  'claude-opus-4-5@20251101': undefined,
+  'claude-opus-4-6': undefined,
+  'claude-opus-4-7': undefined,
+  'claude-opus-4-8': undefined,
+  'claude-opus-4@20250514': undefined,
+  'claude-opus-5': undefined,
+  'claude-opus-5-5': undefined,
+  'claude-sonnet-4-5@20250929': undefined,
+  'claude-sonnet-4-6': undefined,
+  'claude-sonnet-4@20250514': undefined,
+  'claude-sonnet-5': undefined,
+  'claude-sonnet-5-5': undefined,
 };
 export const googleVertexAnthropicModelCatalog = Object.fromEntries(
-  Object.entries(vertexAnthropicModels).map(([id, support]) => {
+  Object.entries(vertexAnthropicModels).flatMap(([id, support]) => {
+    if (support == null) return [];
     const entry = {
       capabilities: {
         language: {
@@ -543,7 +560,7 @@ export const googleVertexAnthropicModelCatalog = Object.fromEntries(
         },
       },
     } as const;
-    return [id, entry satisfies ModelEntry];
+    return [[id, entry satisfies ModelEntry]];
   }),
 );
 const vertexXaiModels = {

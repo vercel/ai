@@ -7,7 +7,7 @@ import { z } from 'zod/v4';
 import type { OpenAIModelIds } from '../openai-model-catalog';
 
 // https://platform.openai.com/docs/models
-export type OpenAIChatModelId = OpenAIModelIds['language'] | (string & {});
+export type OpenAIChatModelId = OpenAIModelIds['chat'] | (string & {});
 
 export const openaiLanguageModelChatOptions = lazySchema(() =>
   zodSchema(

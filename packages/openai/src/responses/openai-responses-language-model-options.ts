@@ -15,7 +15,9 @@ import type { OpenAIModelIds } from '../openai-model-catalog';
  */
 export const TOP_LOGPROBS_MAX = 20;
 
-export type OpenAIResponsesModelId = OpenAIModelIds['language'] | (string & {});
+export type OpenAIResponsesModelId =
+  | OpenAIModelIds['responses']
+  | (string & {});
 
 // TODO AI SDK 6: use optional here instead of nullish
 export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>

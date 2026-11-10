@@ -135,7 +135,7 @@ type MistralModelEntry = ModelEntry & {
 };
 
 // Preserve the provider page's documented model set and image-input exceptions.
-const documentedLanguageModels = {
+const languageModelDefinitions = {
   'labs-leanstral-1-5': true,
   'magistral-medium-latest': true,
   'magistral-small-latest': true,
@@ -146,7 +146,35 @@ const documentedLanguageModels = {
   'mistral-small-latest': true,
   'voxtral-small-latest': false,
   'zai-glm-5-2': false,
-} satisfies Record<string, boolean>;
+  // Known IDs without declared capabilities retain the custom-model fallback.
+  'codestral-2508': undefined,
+  'codestral-latest': undefined,
+  'glm-5-2': undefined,
+  'labs-leanstral-1-5-1': undefined,
+  'ministral-14b-2512': undefined,
+  'ministral-3b-2512': undefined,
+  'ministral-3b-latest': undefined,
+  'ministral-8b-2512': undefined,
+  'mistral-code-fim-latest': undefined,
+  'mistral-code-latest': undefined,
+  'mistral-large-2512': undefined,
+  'mistral-large-4': undefined,
+  'mistral-large-4-0': undefined,
+  'mistral-medium': undefined,
+  'mistral-medium-2604': undefined,
+  'mistral-medium-3': undefined,
+  'mistral-medium-3-5': undefined,
+  'mistral-medium-3.5': undefined,
+  'mistral-small-2603': undefined,
+  'mistral-vibe-cli-fast': undefined,
+  'mistral-vibe-cli-latest': undefined,
+  'mistral-vibe-cli-with-tools': undefined,
+  'voxtral-small-2507': undefined,
+  'zai-glm-5': undefined,
+  'zai-glm-5-3': undefined,
+  'zai-glm-5-3-flash': undefined,
+  'zai-glm-latest': undefined,
+} satisfies Record<string, boolean | undefined>;
 
 // Known non-reasoning models from https://api.mistral.ai/v1/models
 // (2026-10-06). Unknown IDs inherit current reasoning configuration support.
@@ -352,11 +380,17 @@ const mistralEmbeddingModelEntries = {
   'mistral-embed': createEmbeddingModelEntry(1024, false),
   // https://docs.mistral.ai/studio/knowledge-rag/embeddings/code_embeddings
   'codestral-embed': createEmbeddingModelEntry(1536, true),
+  // Known IDs without declared capabilities retain the custom-model fallback.
+  'codestral-embed-2505': undefined,
+  'mistral-embed-2312': undefined,
 };
 
 const mistralSpeechModelEntries = {
   'voxtral-mini-tts-3-0': createSpeechModelEntry(true),
   'voxtral-mini-tts-2603': createSpeechModelEntry(true),
+  // Known IDs without declared capabilities retain the custom-model fallback.
+  'voxtral-mini-tts-3': undefined,
+  'voxtral-mini-tts-latest': undefined,
 };
 
 const mistralTranscriptionModelEntries = {
@@ -372,21 +406,35 @@ const mistralTranscriptionModelEntries = {
     'voxtral-mini-latest',
     true,
   ),
+  // Known IDs without declared capabilities retain the custom-model fallback.
+  'voxtral-mini-2602': undefined,
+  'voxtral-mini-transcribe-3': undefined,
+  'voxtral-mini-transcribe-latest': undefined,
+  'voxtral-mini-transcribe-realtime-3': undefined,
+  'voxtral-mini-transcribe-realtime-3-0': undefined,
+  'voxtral-small-transcribe-3': undefined,
+  'voxtral-small-transcribe-latest': undefined,
 };
 
 export const mistralModelCatalog: Readonly<Record<string, MistralModelEntry>> =
-  {
-    ...Object.fromEntries(
-      Object.entries(documentedLanguageModels).map(([modelId, image]) => [
-        modelId,
-        createLanguageModelEntry(modelId, image),
-      ]),
-    ),
-    ...mistralTranscriptionModelEntries,
-    ...mistralSpeechModelEntries,
+  Object.fromEntries(
+    Object.entries({
+      ...Object.fromEntries(
+        Object.entries(languageModelDefinitions)
+          .filter(([, definition]) => definition != null)
+          .map(([modelId, image]) => [
+            modelId,
+            createLanguageModelEntry(modelId, image),
+          ]),
+      ),
+      ...mistralTranscriptionModelEntries,
+      ...mistralSpeechModelEntries,
 
-    ...mistralEmbeddingModelEntries,
-  };
+      ...mistralEmbeddingModelEntries,
+    }).flatMap(([modelId, entry]) =>
+      entry != null ? [[modelId, entry] as const] : [],
+    ),
+  );
 
 function findModelEntry(modelId: string) {
   return Object.prototype.hasOwnProperty.call(mistralModelCatalog, modelId)
@@ -436,7 +484,7 @@ function declareProviderOptions<Option extends string>(
 
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type MistralModelIds = {
-  language: keyof typeof documentedLanguageModels;
+  language: keyof typeof languageModelDefinitions;
   embedding: keyof typeof mistralEmbeddingModelEntries;
   speech: keyof typeof mistralSpeechModelEntries;
   transcription: keyof typeof mistralTranscriptionModelEntries;

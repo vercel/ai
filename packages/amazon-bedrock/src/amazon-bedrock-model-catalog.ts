@@ -902,9 +902,47 @@ const nativeAnthropicModels = {
     computerUse: false,
     reasoning: false,
   },
+  // Known IDs without declared capabilities retain the custom-model fallback.
+  'anthropic.claude-3-5-haiku-20241022-v1:0': undefined,
+  'anthropic.claude-3-5-sonnet-20240620-v1:0': undefined,
+  'anthropic.claude-3-5-sonnet-20241022-v2:0': undefined,
+  'anthropic.claude-3-7-sonnet-20250219-v1:0': undefined,
+  'anthropic.claude-3-haiku-20240307-v1:0': undefined,
+  'anthropic.claude-3-opus-20240229-v1:0': undefined,
+  'anthropic.claude-3-sonnet-20240229-v1:0': undefined,
+  'anthropic.claude-fable-5': undefined,
+  'anthropic.claude-fable-5-1': undefined,
+  'anthropic.claude-fable-5-2': undefined,
+  'anthropic.claude-haiku-4-5-20251001-v1:0': undefined,
+  'anthropic.claude-haiku-5-5': undefined,
+  'anthropic.claude-opus-4-1-20250805-v1:0': undefined,
+  'anthropic.claude-opus-4-20250514-v1:0': undefined,
+  'anthropic.claude-opus-4-5-20251101-v1:0': undefined,
+  'anthropic.claude-opus-4-6-v1': undefined,
+  'anthropic.claude-opus-4-7': undefined,
+  'anthropic.claude-opus-4-8': undefined,
+  'anthropic.claude-opus-5': undefined,
+  'anthropic.claude-opus-5-5': undefined,
+  'anthropic.claude-sonnet-4-20250514-v1:0': undefined,
+  'anthropic.claude-sonnet-4-5-20250929-v1:0': undefined,
+  'anthropic.claude-sonnet-4-6-v1': undefined,
+  'anthropic.claude-sonnet-5': undefined,
+  'anthropic.claude-sonnet-5-5': undefined,
+  'global.anthropic.claude-fable-5-1': undefined,
+  'global.anthropic.claude-fable-5-2': undefined,
+  'us.anthropic.claude-3-5-haiku-20241022-v1:0': undefined,
+  'us.anthropic.claude-3-5-sonnet-20240620-v1:0': undefined,
+  'us.anthropic.claude-3-7-sonnet-20250219-v1:0': undefined,
+  'us.anthropic.claude-3-haiku-20240307-v1:0': undefined,
+  'us.anthropic.claude-3-opus-20240229-v1:0': undefined,
+  'us.anthropic.claude-3-sonnet-20240229-v1:0': undefined,
+  'us.anthropic.claude-opus-5': undefined,
+  'us.anthropic.claude-opus-5-5': undefined,
+  'us.anthropic.claude-sonnet-4-6-v1': undefined,
 };
 export const amazonBedrockAnthropicModelCatalog = Object.fromEntries(
-  Object.entries(nativeAnthropicModels).map(([id, support]) => {
+  Object.entries(nativeAnthropicModels).flatMap(([id, support]) => {
+    if (support == null) return [];
     const base = getAmazonBedrockLanguageModelEntry(id).capabilities.language;
     const entry = {
       capabilities: {
@@ -922,7 +960,7 @@ export const amazonBedrockAnthropicModelCatalog = Object.fromEntries(
         },
       },
     } as const;
-    return [id, entry satisfies ModelEntry];
+    return [[id, entry satisfies ModelEntry]];
   }),
 );
 

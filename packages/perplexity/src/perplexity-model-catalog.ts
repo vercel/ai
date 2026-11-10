@@ -246,13 +246,23 @@ const perplexityDecisionModelEntries = {
   'pplx-decider-v1-27b': createDecisionModelEntry(true),
 };
 
-const languageModelIds = ['fast', 'low', 'medium', 'high', 'xhigh'] as const;
+const languageModelDefinitions = {
+  fast: 'fast',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'xhigh',
+  // Direct model selection is not an Agent API preset.
+  'perplexity/sonar': undefined,
+} as const;
 
 const perplexityLanguageModelEntries = Object.fromEntries(
-  languageModelIds.map(preset => [
-    preset,
-    createLanguageModelEntry(preset, preset),
-  ]),
+  Object.entries(languageModelDefinitions)
+    .filter(([, preset]) => preset != null)
+    .map(([modelId, preset]) => [
+      modelId,
+      createLanguageModelEntry(modelId, preset),
+    ]),
 );
 
 export const perplexityModelCatalog: Readonly<
@@ -340,5 +350,9 @@ function declareProviderOptions<Option extends string>(
 export type PerplexityModelIds = {
   embedding: keyof typeof perplexityEmbeddingModelEntries;
   decision: keyof typeof perplexityDecisionModelEntries;
-  language: (typeof languageModelIds)[number];
+  language: keyof typeof languageModelDefinitions;
+  preset: Exclude<
+    (typeof languageModelDefinitions)[keyof typeof languageModelDefinitions],
+    undefined
+  >;
 };

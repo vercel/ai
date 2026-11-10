@@ -168,7 +168,10 @@ const languageDefinitions = {
   'grok-4': { image: false, reasoning: true },
   'grok-3': { image: false, reasoning: false },
   'grok-3-mini': { image: false, reasoning: true },
-} satisfies Record<string, LanguageDefinition>;
+  // Known IDs without declared capabilities retain the custom-model fallback.
+  'grok-4.3': undefined,
+  'grok-latest': undefined,
+} satisfies Record<string, LanguageDefinition | undefined>;
 
 // These variants reject reasoning effort, including `none`. Multi-agent
 // variants deliberately retain the existing configurable-effort fallback.
@@ -364,10 +367,12 @@ const xaiRealtimeModelEntries = {
 
 export const xaiModelCatalog: Readonly<Record<string, XaiModelEntry>> = {
   ...Object.fromEntries(
-    Object.entries(languageDefinitions).map(([modelId, definition]) => [
-      modelId,
-      createLanguageModelEntry(modelId, definition),
-    ]),
+    Object.entries(languageDefinitions)
+      .filter(([, definition]) => definition != null)
+      .map(([modelId, definition]) => [
+        modelId,
+        createLanguageModelEntry(modelId, definition),
+      ]),
   ),
   ...xaiImageModelEntries,
 

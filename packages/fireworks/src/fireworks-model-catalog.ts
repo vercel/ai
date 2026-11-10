@@ -119,29 +119,35 @@ export const fireworksProviderOptions = {
   >,
 } as const satisfies ProviderOptionDefinitions;
 
-const languageModelIds = [
-  'accounts/fireworks/models/deepseek-v3',
-  'accounts/fireworks/models/llama-v3p3-70b-instruct',
-  'accounts/fireworks/models/llama-v3p2-3b-instruct',
-  'accounts/fireworks/models/llama-v3p1-405b-instruct',
-  'accounts/fireworks/models/llama-v3p1-8b-instruct',
-  'accounts/fireworks/models/mixtral-8x7b-instruct',
-  'accounts/fireworks/models/mixtral-8x22b-instruct',
-  'accounts/fireworks/models/mixtral-8x7b-instruct-hf',
-  'accounts/fireworks/models/qwen2p5-coder-32b-instruct',
-  'accounts/fireworks/models/qwen2p5-72b-instruct',
-  'accounts/fireworks/models/qwen-qwq-32b-preview',
-  'accounts/fireworks/models/qwen2-vl-72b-instruct',
-  'accounts/fireworks/models/llama-v3p2-11b-vision-instruct',
-  'accounts/fireworks/models/qwq-32b',
-  'accounts/fireworks/models/yi-large',
-  'accounts/fireworks/models/kimi-k2-instruct',
-  'accounts/fireworks/models/kimi-k2-thinking',
-  'accounts/fireworks/models/kimi-k2p6',
-  'accounts/fireworks/models/minimax-m2',
-  'accounts/fireworks/models/llama-v3-8b-instruct',
-  'accounts/fireworks/models/llama-v2-34b-code',
-] as const;
+const languageDefinitions = {
+  'accounts/fireworks/models/deepseek-v3': { endpoints: ['chat'] },
+  'accounts/fireworks/models/llama-v3p3-70b-instruct': { endpoints: ['chat'] },
+  'accounts/fireworks/models/llama-v3p2-3b-instruct': { endpoints: ['chat'] },
+  'accounts/fireworks/models/llama-v3p1-405b-instruct': { endpoints: ['chat'] },
+  'accounts/fireworks/models/llama-v3p1-8b-instruct': { endpoints: ['chat'] },
+  'accounts/fireworks/models/mixtral-8x7b-instruct': { endpoints: ['chat'] },
+  'accounts/fireworks/models/mixtral-8x22b-instruct': { endpoints: ['chat'] },
+  'accounts/fireworks/models/mixtral-8x7b-instruct-hf': { endpoints: ['chat'] },
+  'accounts/fireworks/models/qwen2p5-coder-32b-instruct': {
+    endpoints: ['chat'],
+  },
+  'accounts/fireworks/models/qwen2p5-72b-instruct': { endpoints: ['chat'] },
+  'accounts/fireworks/models/qwen-qwq-32b-preview': { endpoints: ['chat'] },
+  'accounts/fireworks/models/qwen2-vl-72b-instruct': { endpoints: ['chat'] },
+  'accounts/fireworks/models/llama-v3p2-11b-vision-instruct': {
+    endpoints: ['chat'],
+  },
+  'accounts/fireworks/models/qwq-32b': { endpoints: ['chat'] },
+  'accounts/fireworks/models/yi-large': { endpoints: ['chat'] },
+  'accounts/fireworks/models/kimi-k2-instruct': { endpoints: ['chat'] },
+  'accounts/fireworks/models/kimi-k2-thinking': { endpoints: ['chat'] },
+  'accounts/fireworks/models/kimi-k2p6': { endpoints: ['chat'] },
+  'accounts/fireworks/models/minimax-m2': { endpoints: ['chat'] },
+  'accounts/fireworks/models/llama-v3-8b-instruct': {
+    endpoints: ['completion'],
+  },
+  'accounts/fireworks/models/llama-v2-34b-code': { endpoints: ['completion'] },
+} as const;
 const embeddingModelIds = ['nomic-ai/nomic-embed-text-v1.5'] as const;
 const imageModelIds = [
   'accounts/fireworks/models/flux-1-dev-fp8',
@@ -469,7 +475,7 @@ export function getFireworksEmbeddingModelEntry(modelId: string) {
   } satisfies ModelEntry;
 }
 export const fireworksModelCatalog = Object.fromEntries([
-  ...languageModelIds.map(
+  ...Object.keys(languageDefinitions).map(
     id => [id, getFireworksLanguageModelEntry(id)] as const,
   ),
   ...imageModelIds.map(id => [id, getFireworksImageModelEntry(id)] as const),
@@ -496,9 +502,16 @@ export const fireworksStabilityModelCatalog = Object.fromEntries(
   ].map(id => [id, getFireworksImageModelEntry(id)]),
 );
 
+type FireworksEndpointModelId<Endpoint extends 'chat' | 'completion'> = {
+  [ModelId in keyof typeof languageDefinitions]: Endpoint extends (typeof languageDefinitions)[ModelId]['endpoints'][number]
+    ? ModelId
+    : never;
+}[keyof typeof languageDefinitions];
+
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type FireworksModelIds = {
-  language: (typeof languageModelIds)[number];
+  chat: FireworksEndpointModelId<'chat'>;
+  completion: FireworksEndpointModelId<'completion'>;
   embedding: (typeof embeddingModelIds)[number];
   image: (typeof imageModelIds)[number];
 };

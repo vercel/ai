@@ -61,11 +61,11 @@ export type DeepSeekLanguageModelEntry = ModelEntry & {
 
 // Preserve the provider page's model set and its image-input exception.
 const languageDefinitions = {
-  'deepseek-flash': false,
-  'deepseek-v4-flash': false,
-  'deepseek-v4-pro': false,
-  'deepseek-v4-flash-vision-exp': true,
-} satisfies Record<string, boolean>;
+  'deepseek-flash': { endpoints: ['chat', 'responses'], image: false },
+  'deepseek-v4-flash': { endpoints: ['chat'], image: false },
+  'deepseek-v4-pro': { endpoints: ['chat', 'responses'], image: false },
+  'deepseek-v4-flash-vision-exp': { endpoints: ['chat'], image: true },
+} as const;
 
 function createLanguageModelEntry(
   modelId: string,
@@ -122,7 +122,7 @@ function createLanguageModelEntry(
 export const deepseekModelCatalog: Readonly<
   Record<string, DeepSeekLanguageModelEntry>
 > = Object.fromEntries(
-  Object.entries(languageDefinitions).map(([modelId, image]) => [
+  Object.entries(languageDefinitions).map(([modelId, { image }]) => [
     modelId,
     createLanguageModelEntry(modelId, image),
   ]),
@@ -168,7 +168,14 @@ export function getDeepSeekLanguageModelEntry(
   };
 }
 
+type DeepSeekEndpointModelId<Endpoint extends 'chat' | 'responses'> = {
+  [ModelId in keyof typeof languageDefinitions]: Endpoint extends (typeof languageDefinitions)[ModelId]['endpoints'][number]
+    ? ModelId
+    : never;
+}[keyof typeof languageDefinitions];
+
 /** Known model IDs, derived from the declarations used to build the catalog. */
 export type DeepSeekModelIds = {
-  language: keyof typeof languageDefinitions;
+  chat: DeepSeekEndpointModelId<'chat'>;
+  responses: DeepSeekEndpointModelId<'responses'>;
 };
