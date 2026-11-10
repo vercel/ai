@@ -309,3 +309,76 @@ The completed status's `providerMetadata.topaz` contains:
 - **expiresAt** _number_: when the download URL expires, in milliseconds since the Unix epoch.
 
 A failed request reports Topaz's `errorCode` (for example `CREDIT_DIFFERENCE` when Topaz's estimate after reading the video diverged from the first one, in which case it refunds the credits) in both the error message and `providerMetadata.topaz.errorCode`.
+
+
+### Image Model Capabilities
+
+{/* model-capabilities:topaz-image:start */}
+
+| Model        | Image Input | Mask Input |
+| ------------ | ----------- | ---------- |
+| `wonder-3.5` | <Check />   | <Cross />  |
+
+{/* model-capabilities:topaz-image:end */}
+
+
+### Video Model Capabilities
+
+{/* model-capabilities:topaz-video:start */}
+
+| Model                   | Video Input | Text Input | Audio Generation | Resolution | FPS       |
+| ----------------------- | ----------- | ---------- | ---------------- | ---------- | --------- |
+| `proteus`               | <Check />   | <Cross />  | <Cross />        | <Check />  | <Check /> |
+| `starlight-precise-2.6` | <Check />   | <Cross />  | <Cross />        | <Check />  | <Check /> |
+
+{/* model-capabilities:topaz-video:end */}
+
+
+### Provider Option Catalog
+
+{/* model-capabilities:topaz-provider-options:start */}
+
+| Operation | Option                       | Description                                                                                                                                             |
+| --------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| image     | `enhancementStrength`        | How aggressively the model enhances the image. Defaults to `high`.                                                                                      |
+| image     | `grain`                      | Whether to add grain to the output. Defaults to `false`.                                                                                                |
+| image     | `grainDensity`               | Grain intensity, 0.0 to 1.0. Defaults to 0.5.                                                                                                           |
+| image     | `grainModel`                 | Grain model. Defaults to `silver`.                                                                                                                      |
+| image     | `grainSize`                  | Grain particle size, 1 to 5. Defaults to 1.                                                                                                             |
+| image     | `grainStrength`              | Grain effect strength, 0.0 to 1.0. Defaults to 0.5.                                                                                                     |
+| image     | `inputWidth`                 | Width of the input image in pixels. Topaz infers this from the upload when omitted.                                                                     |
+| image     | `inputHeight`                | Height of the input image in pixels. Topaz infers this from the upload when omitted.                                                                    |
+| image     | `outputWidth`                | Width of the output image in pixels, 1 to 32000. Takes precedence over the width derived from the `size` call option.                                   |
+| image     | `outputHeight`               | Height of the output image in pixels, 1 to 32000. Takes precedence over the height derived from the `size` call option.                                 |
+| image     | `outputFormat`               | Output image format. Defaults to the Topaz API default.                                                                                                 |
+| image     | `cropToFill`                 | Whether to crop the output to fill the requested dimensions. Defaults to `false`.                                                                       |
+| image     | `webhookUrl`                 | URL to receive job-status webhooks.                                                                                                                     |
+| image     | `pollIntervalMillis`         | How often to poll the Topaz status endpoint, in milliseconds. Defaults to 2000.                                                                         |
+| image     | `pollTimeoutMillis`          | How long to wait for the job to finish before failing, in milliseconds. Defaults to 600000 (10 minutes).                                                |
+| video     | `source`                     | Input video metadata and container settings.                                                                                                            |
+| video     | `output`                     | Output dimensions, encoding, container, frame rate, and audio transfer settings.                                                                        |
+| video     | `additionalFilters`          | Extra `filters[]` entries to send alongside the model's own filter, e.g. a frame-interpolation filter. Each entry must include a `model` key.           |
+| video     | `filter`                     | Escape hatch for filter settings this package does not model yet. Merged into the model's filter entry, taking precedence over the typed options below. |
+| video     | `videoType`                  | Proteus: how the input frames are encoded.                                                                                                              |
+| video     | `auto`                       | Proteus: parameter estimation mode.                                                                                                                     |
+| video     | `fieldOrder`                 | Proteus: field order for interlaced input.                                                                                                              |
+| video     | `focusFixLevel`              | Proteus: focus-fix strength.                                                                                                                            |
+| video     | `compression`                | Proteus: compression artifact removal, -1 to 1.                                                                                                         |
+| video     | `details`                    | Proteus: detail recovery, -1 to 1.                                                                                                                      |
+| video     | `prenoise`                   | Proteus: pre-processing noise reduction, 0 to 0.1.                                                                                                      |
+| video     | `noise`                      | Proteus: noise reduction, -1 to 1.                                                                                                                      |
+| video     | `halo`                       | Proteus: halo suppression, -1 to 1.                                                                                                                     |
+| video     | `preblur`                    | Proteus: pre-processing blur, -1 to 1.                                                                                                                  |
+| video     | `blur`                       | Proteus: sharpening, -1 to 1.                                                                                                                           |
+| video     | `grain`                      | Proteus: grain amount, 0 to 0.1.                                                                                                                        |
+| video     | `grainSigma`                 | Proteus: grain sigma, 0 to 1.                                                                                                                           |
+| video     | `grainSize`                  | Proteus: grain size, 0 to 5.                                                                                                                            |
+| video     | `grainType`                  | Proteus: grain model.                                                                                                                                   |
+| video     | `recoverOriginalDetailValue` | Proteus: original detail recovery, 0 to 1.                                                                                                              |
+| video     | `sharpness`                  | Starlight: sharpening applied to the output, 1.0 to 5.0. Defaults to 5.0.                                                                               |
+| video     | `videoBitDepth`              | Starlight: output bit depth.                                                                                                                            |
+| video     | `videoCodec`                 | Starlight: output video codec.                                                                                                                          |
+| video     | `videoProfile`               | Starlight: output chroma subsampling profile.                                                                                                           |
+| video     | `watermark`                  | Starlight: whether to watermark the output. Defaults to `false`.                                                                                        |
+
+{/* model-capabilities:topaz-provider-options:end */}

@@ -1,3 +1,7 @@
+import {
+  getTopazImageModelEntry,
+  type TopazModelIds,
+} from './topaz-model-catalog';
 /**
  * Topaz image model ids.
  *
@@ -6,17 +10,15 @@
  * raw Topaz name such as `Wonder 3.5` also works - unknown ids are forwarded
  * to the API unchanged.
  */
-export type TopazImageModelId = 'wonder-3.5' | (string & {});
+export type TopazImageModelId = TopazModelIds['image'] | (string & {});
 
 /**
  * Maps AI SDK image model ids onto Topaz API model names.
  *
  * @see https://developer.topazlabs.com/image-models/wonder/wonder-3.5-new
  */
-export const topazImageApiModelIds: Record<string, string> = {
-  'wonder-3.5': 'Wonder 3.5',
-};
+export { topazImageApiModelIds } from './topaz-model-catalog';
 
 export function resolveTopazImageApiModelId(modelId: string): string {
-  return topazImageApiModelIds[modelId] ?? modelId;
+  return getTopazImageModelEntry(modelId).requestConfig.image.apiModelId;
 }
