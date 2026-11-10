@@ -597,6 +597,7 @@ class DefaultStreamObjectResult<
         let terminalError: { error: unknown } | undefined;
 
         // pipe chunks through a transformation stream that extracts metadata:
+        let arrayStreamParser = outputStrategy.createArrayStreamParser?.();
         let accumulatedText = '';
         let textDelta = '';
         let fullResponse: {
@@ -651,6 +652,27 @@ class DefaultStreamObjectResult<
                 if (typeof chunk === 'string') {
                   accumulatedText += chunk;
                   textDelta += chunk;
+
+                  if (arrayStreamParser != null) {
+                    const result = await arrayStreamParser(chunk);
+                    if (result !== 'fallback') {
+                      if (result != null) {
+                        latestObject = result.partial as PARTIAL;
+                        controller.enqueue({
+                          type: 'object',
+                          object: latestObject,
+                        });
+                        controller.enqueue({
+                          type: 'text-delta',
+                          textDelta: result.textDelta,
+                        });
+                        textDelta = '';
+                        isFirstDelta = false;
+                      }
+                      return;
+                    }
+                    arrayStreamParser = undefined;
+                  }
 
                   const { value: currentObjectJson, state: parseState } =
                     await parsePartialJson(accumulatedText);

@@ -24,12 +24,18 @@ import {
   type AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import {
+  createArrayOutputStreamParser,
+  type ArrayOutputStreamParser,
+} from '../util/array-output-stream';
 import type { DeepPartial } from '../util/deep-partial';
 import type { ObjectStreamPart } from './stream-object-result';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   readonly type: 'object' | 'array' | 'enum' | 'no-schema';
   readonly jsonSchema: JSONSchema7 | undefined;
+
+  createArrayStreamParser?(): ArrayOutputStreamParser<any>;
 
   validatePartialResult({
     value,
@@ -137,6 +143,8 @@ const arrayOutputStrategy = <ELEMENT>(
 
   return {
     type: 'array',
+
+    createArrayStreamParser: () => createArrayOutputStreamParser(schema, false),
 
     // wrap in object that contains array of elements, since most LLMs will not
     // be able to generate an array directly:
