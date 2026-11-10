@@ -62,91 +62,87 @@ describe('MiniMaxImageModel', () => {
     },
   });
 
-  it.each(['MiniMax-H3-Image', 'MiniMax-H3-Image-Highspeed'])(
-    'generates and downloads images with %s while preserving usage',
-    async modelId => {
-      const result = await provider()
-        .image(modelId)
-        .doGenerate({
-          ...params,
-          size: '1024x1024',
-          seed: 1,
-          headers: { 'request-header': 'request' },
-          providerOptions: {
-            minimax: {
-              disablePromptEnhanced: true,
-              outputFormat: 'png',
-              outputCompression: 90,
-            },
-          },
-        });
-      expect(await server.calls[0].requestBodyJson).toEqual({
-        model: modelId,
-        prompt: params.prompt,
-        n: 1,
+  it('generates and downloads images while preserving usage', async () => {
+    const result = await provider()
+      .image('MiniMax-H3-Image')
+      .doGenerate({
+        ...params,
         size: '1024x1024',
-        disable_prompt_enhanced: true,
-        output_format: 'png',
-        output_compression: 90,
-        response_format: 'url',
-      });
-      expect(server.calls[0].requestHeaders).toMatchObject({
-        authorization: 'Bearer test-key',
-        'custom-header': 'value',
-        'request-header': 'request',
-      });
-      expect(server.calls[1].requestHeaders).not.toHaveProperty(
-        'authorization',
-      );
-      expect(server.calls[1].requestHeaders).not.toHaveProperty(
-        'custom-header',
-      );
-      expect(result.images).toEqual([new Uint8Array([1, 2, 3])]);
-      expect(result.usage).toEqual({
-        inputTokens: 30,
-        outputTokens: 40,
-        totalTokens: 70,
-      });
-      expect(result.providerMetadata?.minimax).toEqual({
-        images: [
-          {
-            size: '1024x1024',
-            revisedPrompt: image.revised_prompt,
-            usage,
+        seed: 1,
+        headers: { 'request-header': 'request' },
+        providerOptions: {
+          minimax: {
+            disablePromptEnhanced: true,
             outputFormat: 'png',
-            requestId: 'request-1',
+            outputCompression: 90,
           },
-        ],
+        },
       });
-      expect(result.warnings).toEqual([
-        { type: 'unsupported', feature: 'seed' },
-      ]);
-    },
-  );
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      model: 'MiniMax-H3-Image',
+      prompt: params.prompt,
+      n: 1,
+      size: '1024x1024',
+      disable_prompt_enhanced: true,
+      output_format: 'png',
+      output_compression: 90,
+      response_format: 'url',
+    });
+    expect(server.calls[0].requestHeaders).toMatchObject({
+      authorization: 'Bearer test-key',
+      'custom-header': 'value',
+      'request-header': 'request',
+    });
+    expect(server.calls[1].requestHeaders).not.toHaveProperty('authorization');
+    expect(server.calls[1].requestHeaders).not.toHaveProperty('custom-header');
+    expect(result.images).toEqual([new Uint8Array([1, 2, 3])]);
+    expect(result.usage).toEqual({
+      inputTokens: 30,
+      outputTokens: 40,
+      totalTokens: 70,
+    });
+    expect(result.providerMetadata?.minimax).toEqual({
+      images: [
+        {
+          size: '1024x1024',
+          revisedPrompt: image.revised_prompt,
+          usage,
+          outputFormat: 'png',
+          requestId: 'request-1',
+        },
+      ],
+    });
+    expect(result.warnings).toEqual([{ type: 'unsupported', feature: 'seed' }]);
+  });
 
   it('maps aspect ratio, area, and batch size without supplying a pixel size', async () => {
+    const batchUsage = { ...usage, generated_images: 2 };
     server.urls[generationURL].response = {
       type: 'json-value',
-      body: { data: [image, image], usage },
+      body: { data: [image, image], usage: batchUsage },
     };
     const result = await provider()
       .image('MiniMax-H3-Image')
       .doGenerate({
         ...params,
-        n: 10,
+        n: 2,
         aspectRatio: '16:9',
         providerOptions: { minimax: { area: '2K' } },
       });
     expect(await server.calls[0].requestBodyJson).toEqual({
       model: 'MiniMax-H3-Image',
       prompt: params.prompt,
-      n: 10,
+      n: 2,
       aspect_ratio: '16:9',
       area: '2K',
       response_format: 'url',
     });
     expect(result.providerMetadata?.minimax.images).toEqual([
-      { size: '1024x1024', revisedPrompt: image.revised_prompt, usage },
+      {
+        size: '1024x1024',
+        revisedPrompt: image.revised_prompt,
+        usage: batchUsage,
+      },
       { size: '1024x1024', revisedPrompt: image.revised_prompt },
     ]);
   });

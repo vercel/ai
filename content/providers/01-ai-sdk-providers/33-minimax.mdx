@@ -410,9 +410,9 @@ const { image, usage, providerMetadata } = await generateImage({
 
 `MiniMax-H3-Image-Highspeed` supports the same options. Both models accept up to
 10 images per request. Output sizes range from 655,360 to 20,000,000 pixels,
-with aspect ratios from 1:3 to 3:1. Use either `size: '1024x1024'` or
-`aspectRatio` with the `area` provider option; do not combine a pixel size
-with `aspectRatio` or `area`.
+with aspect ratios from 1:3 to 3:1. Set exact dimensions with
+`size: '1024x1024'`, or select an `area` tier, optionally combined with
+`aspectRatio`. Do not combine a pixel size with `aspectRatio` or `area`.
 
 MiniMax requests can take up to 600 seconds and are not idempotent. Set
 `maxRetries: 0` to avoid duplicate generation after a timeout or server error.
@@ -444,8 +444,8 @@ const { image } = await generateImage({
 - **area**: `'1K' | '2K' | '4K'` — target output area when `size` is omitted;
   defaults to `'4K'`.
 - **disablePromptEnhanced**: `boolean` — disable prompt enhancement for
-  text-to-image. Requires an explicit pixel size or aspect ratio. Edits always
-  apply prompt enhancement.
+  text-to-image. When `true`, requires an explicit pixel size or aspect ratio.
+  Edits always apply prompt enhancement.
 - **outputFormat**: `'jpeg' | 'jpg' | 'png' | 'webp'` — defaults to `'jpeg'`.
 - **outputCompression**: `number` — JPEG/WebP quality from 0 to 100.
 
