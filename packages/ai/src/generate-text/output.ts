@@ -244,6 +244,51 @@ type ArrayOptions<SCHEMA> = {
   description?: string;
 };
 
+function areJsonValuesEqual(a: unknown, b: unknown): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (
+    a == null ||
+    b == null ||
+    typeof a !== typeof b ||
+    typeof a !== 'object'
+  ) {
+    return false;
+  }
+  if (Array.isArray(a)) {
+    if (!Array.isArray(b) || a.length !== b.length) {
+      return false;
+    }
+    for (let i = 0; i < a.length; i++) {
+      if (!areJsonValuesEqual(a[i], b[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (Array.isArray(b)) {
+    return false;
+  }
+  const aObj = a as Record<string, unknown>;
+  const bObj = b as Record<string, unknown>;
+  const aKeys = Object.keys(aObj);
+  const bKeys = Object.keys(bObj);
+  if (aKeys.length !== bKeys.length) {
+    return false;
+  }
+  for (let i = 0; i < aKeys.length; i++) {
+    const key = aKeys[i];
+    if (
+      !Object.prototype.hasOwnProperty.call(bObj, key) ||
+      !areJsonValuesEqual(aObj[key], bObj[key])
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * Output specification for array generation.
  * When the model generates a text response, it will return an array of elements.
@@ -289,6 +334,11 @@ export function array<ELEMENT>({
   }
 
   const elementSchema = asSchema(inputElementSchema);
+
+  // Cached incremental state for parsePartialOutput:
+  let cachedText = '';
+  let cachedRawElements: unknown[] = [];
+  let cachedParsedElements: Array<ELEMENT> = [];
 
   return {
     name: 'array',
@@ -434,23 +484,62 @@ export function array<ELEMENT>({
             return undefined;
           }
 
+          // Reset cache if input does not extend previously seen text
+          if (
+            typeof text !== 'string' ||
+            !text.startsWith(cachedText) ||
+            text.length < cachedText.length
+          ) {
+            cachedRawElements = [];
+            cachedParsedElements = [];
+          }
+          cachedText = typeof text === 'string' ? text : '';
+
           const rawElements =
             result.state === 'repaired-parse' && outerValue.elements.length > 0
               ? outerValue.elements.slice(0, -1)
               : outerValue.elements;
 
           const parsedElements: Array<ELEMENT> = [];
-          for (const rawElement of rawElements) {
-            const validationResult = await safeValidateTypes({
-              value: rawElement,
-              schema: elementSchema,
-            });
+          const nextRawElements: unknown[] = [];
+          let hasNewOrChangedElement =
+            rawElements.length !== cachedParsedElements.length;
 
-            if (validationResult.success) {
-              parsedElements.push(validationResult.value);
+          for (let i = 0; i < rawElements.length; i++) {
+            const rawElement = rawElements[i];
+            if (
+              i < cachedRawElements.length &&
+              i < cachedParsedElements.length &&
+              areJsonValuesEqual(rawElement, cachedRawElements[i])
+            ) {
+              parsedElements.push(cachedParsedElements[i]);
+              nextRawElements.push(cachedRawElements[i]);
+            } else {
+              hasNewOrChangedElement = true;
+              const validationResult = await safeValidateTypes({
+                value: rawElement,
+                schema: elementSchema,
+              });
+
+              if (validationResult.success) {
+                parsedElements.push(validationResult.value);
+                nextRawElements.push(rawElement);
+              }
             }
           }
 
+          cachedRawElements = nextRawElements;
+
+          // If no element changed or was added, preserve the exact array reference
+          // to allow downstream stream consumers to skip stringification and publication:
+          if (
+            !hasNewOrChangedElement &&
+            parsedElements.length === cachedParsedElements.length
+          ) {
+            return { partial: cachedParsedElements };
+          }
+
+          cachedParsedElements = parsedElements;
           return { partial: parsedElements };
         }
       }

@@ -602,6 +602,76 @@ describe('Output.array', () => {
       });
       expect(partial).toEqual({ partial: [] });
     });
+
+    it('should validate completed elements only once across streaming chunks', async () => {
+      let validations = 0;
+      const elementSchema = z
+        .object({
+          id: z.number(),
+        })
+        .superRefine(() => {
+          validations++;
+        });
+
+      const streamingArray = array({ element: elementSchema });
+
+      // Chunk 1: first element complete, second element streaming (incomplete)
+      const chunk1 = await streamingArray.parsePartialOutput({
+        text: `{"elements": [{"id": 1}, {"id": 2`,
+      });
+      expect(chunk1).toEqual({ partial: [{ id: 1 }] });
+      expect(validations).toBe(1);
+
+      // Chunk 2: second element continues streaming (still incomplete)
+      const chunk2 = await streamingArray.parsePartialOutput({
+        text: `{"elements": [{"id": 1}, {"id": 2, "ext`,
+      });
+      expect(chunk2).toEqual({ partial: [{ id: 1 }] });
+      expect(validations).toBe(1); // element 0 was NOT re-validated
+      expect(chunk2?.partial).toBe(chunk1?.partial); // Same array reference preserved
+
+      // Chunk 3: second element complete
+      const chunk3 = await streamingArray.parsePartialOutput({
+        text: `{"elements": [{"id": 1}, {"id": 2, "ext": 3}]}`,
+      });
+      expect(chunk3).toEqual({
+        partial: [{ id: 1 }, { id: 2 }],
+      });
+      expect(validations).toBe(2); // Only element 1 was newly validated
+
+      // Chunk 4: trailing spaces after completion
+      const chunk4 = await streamingArray.parsePartialOutput({
+        text: `{"elements": [{"id": 1}, {"id": 2, "ext": 3}]}   `,
+      });
+      expect(chunk4).toEqual({
+        partial: [{ id: 1 }, { id: 2 }],
+      });
+      expect(validations).toBe(2); // No extra validations
+    });
+
+    it('should reset incremental cache when text does not extend previous text', async () => {
+      let validations = 0;
+      const elementSchema = z
+        .object({
+          id: z.number(),
+        })
+        .superRefine(() => {
+          validations++;
+        });
+
+      const streamingArray = array({ element: elementSchema });
+
+      await streamingArray.parsePartialOutput({
+        text: `{"elements": [{"id": 1}]}`,
+      });
+      expect(validations).toBe(1);
+
+      // Fresh stream with different content
+      await streamingArray.parsePartialOutput({
+        text: `{"elements": [{"id": 99}]}`,
+      });
+      expect(validations).toBe(2);
+    });
   });
 });
 
