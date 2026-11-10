@@ -162,10 +162,9 @@ Settings:
   means the connection is closed for good, so a host that caches idle sessions
   can detach and reattach before sending the next prompt. The `cause` of a
   failed reconnect can contain connection details, so avoid logging it as is.
-- `mintBridgeToken`: synchronous function that receives the sandbox id and
-  returns the bridge authentication token. By default, the adapter generates a
-  random 32-byte token. Custom implementations must return a suitably secret
-  token.
+- `mintBridgeToken`: deprecated and ignored. Passing it logs a warning. The
+  adapter generates a key pair for each bridge, passes only the public key into
+  the sandbox, and keeps the private key in host-side resume state.
 
 ### Skill Overrides
 

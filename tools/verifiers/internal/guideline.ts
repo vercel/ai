@@ -5,6 +5,18 @@ type GuidelineFrontmatter = {
   fileMatcher: string[];
 };
 
+/*
+ * Guidelines and verifiers target production code and other source files.
+ * Test files are always excluded from matching, regardless of a guideline's
+ * `fileMatcher` frontmatter, so they never trigger a guideline or get passed
+ * to a verifier.
+ */
+const testFileExclusions = [
+  '**/*.test.{ts,tsx,mts,cts,js,jsx,mjs,cjs}',
+  '**/*.test-d.{ts,tsx,mts,cts}',
+  '**/*.spec.{ts,tsx,mts,cts,js,jsx,mjs,cjs}',
+];
+
 export function parseFrontmatter(source: string): GuidelineFrontmatter {
   const frontmatter = source.match(
     /^\uFEFF?---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/,
@@ -37,6 +49,7 @@ export function matchesFileMatcher({
   fileMatcher: string[];
 }): boolean {
   return (
+    !testFileExclusions.some(pattern => matchesGlob(file, pattern)) &&
     fileMatcher.some(
       pattern => !pattern.startsWith('!') && matchesGlob(file, pattern),
     ) &&

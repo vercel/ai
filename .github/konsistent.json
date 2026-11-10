@@ -434,7 +434,11 @@
             ],
             "importValues": [
               {
-                "name": "createBridgeToken",
+                "name": "createBridgeAuthKeyPair",
+                "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "createBridgeWebSocketConnect",
                 "from": "@ai-sdk/harness/utils"
               },
               {
@@ -446,7 +450,11 @@
                 "from": "@ai-sdk/harness/utils"
               }
             ],
-            "callFunction": ["resolveBridgeEndpoint"],
+            "callFunction": [
+              "createBridgeAuthKeyPair",
+              "createBridgeWebSocketConnect",
+              "resolveBridgeEndpoint"
+            ],
             "importTypes": [
               {
                 "name": "SandboxChannelReconnectOptions",
