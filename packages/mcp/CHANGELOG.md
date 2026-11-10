@@ -1,5 +1,13 @@
 # @ai-sdk/mcp
 
+## 1.0.104
+
+### Patch Changes
+
+- 88bb257: Require a DNS-pinned fetch for untrusted MCP OAuth discovery and metadata-derived token/registration URLs on server runtimes without a protected default transport. Preserve developer-configured endpoints and allow explicitly supplied fetch implementations that provide equivalent connect-time validation. Browser workers without a DOM follow the same explicit custom-fetch requirement.
+- Updated dependencies [88bb257]
+  - @ai-sdk/provider-utils@4.0.66
+
 ## 1.0.103
 
 ### Patch Changes
