@@ -4411,16 +4411,13 @@ describe('createPiSession', () => {
       });
 
     it.each([
-      ['..', '%2E%2E'],
-      ['.', '%2E'],
+      ['..', '%2E%2E', 'pi-host-root-sentinel-dot-dot'],
+      ['.', '%2E', 'pi-host-root-sentinel-dot'],
     ])(
       'keeps the host root of session %j inside the Pi directory',
-      async (sessionId, segment) => {
-        const sentinelRoot = path.join(
-          piBaseDir,
-          `pi-host-root-sentinel-${segment}`,
-        );
-        const sentinel = await startSession(`pi-host-root-sentinel-${segment}`);
+      async (sessionId, segment, sentinelId) => {
+        const sentinelRoot = path.join(piBaseDir, sentinelId);
+        const sentinel = await startSession(sentinelId);
         expect(existsSync(sentinelRoot)).toBe(true);
 
         const session = await startSession(sessionId);
