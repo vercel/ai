@@ -1,5 +1,16 @@
 # ai
 
+## 7.0.168
+
+### Patch Changes
+
+- 65aa669: add experimental_queue to useChat to queue messages sent while a response is in progress
+- 8585d7e: fix(ai): call `toUIMessageStream` `onError` once per invalid tool call
+- Updated dependencies [5497ff7]
+- Updated dependencies [88b9575]
+  - @ai-sdk/gateway@4.0.141
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 7.0.167
 
 ### Patch Changes
