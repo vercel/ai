@@ -1,3 +1,4 @@
+import { voyageEmbeddingLimits } from './voyage-model-catalog';
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
@@ -34,8 +35,8 @@ export class VoyageEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: VoyageEmbeddingModelId;
 
-  readonly maxEmbeddingsPerCall = 128;
-  readonly supportsParallelCalls = true;
+  readonly maxEmbeddingsPerCall = voyageEmbeddingLimits.maxEmbeddingsPerCall;
+  readonly supportsParallelCalls = voyageEmbeddingLimits.supportsParallelCalls;
 
   private readonly config: VoyageEmbeddingConfig;
 

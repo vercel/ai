@@ -26,6 +26,23 @@ describe('smoothStream', () => {
   }
 
   describe('word chunking', () => {
+    it('forwards pings without flushing a partial word', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { type: 'text-delta', id: '1', text: 'Hel' },
+        { type: 'ping' },
+        { type: 'text-delta', id: '1', text: 'lo ' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(smoothStream({ delayInMs: null })({ tools: {} }));
+      await consumeStream(stream);
+      expect(events).toEqual([
+        { type: 'text-start', id: '1' },
+        { type: 'ping' },
+        { type: 'text-delta', id: '1', text: 'Hello ' },
+        { type: 'text-end', id: '1' },
+      ]);
+    });
+
     it('should combine partial words', async () => {
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
         { type: 'text-start', id: '1' },
@@ -813,7 +830,7 @@ describe('smoothStream', () => {
         await expect(
           consumeStream(stream),
         ).rejects.toThrowErrorMatchingInlineSnapshot(
-          `[Error: Chunking function must return a match that is a prefix of the buffer. Received: "world" expected to start with "Hello, world!"]`,
+          `[Error: Chunking function must return a match that is a prefix of the buffer. Received: "world" which is not a prefix of buffer "Hello, world!"]`,
         );
       });
     });

@@ -1,3 +1,4 @@
+import { getAlibabaEmbeddingModelEntry } from './alibaba-model-catalog';
 import {
   TooManyEmbeddingValuesForCallError,
   UnsupportedFunctionalityError,
@@ -36,8 +37,14 @@ const alibabaEmbeddingFailedResponseHandler = createJsonErrorResponseHandler({
 export class AlibabaEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: AlibabaEmbeddingModelId;
-  readonly maxEmbeddingsPerCall = 10;
-  readonly supportsParallelCalls = false;
+  get maxEmbeddingsPerCall() {
+    return getAlibabaEmbeddingModelEntry(this.modelId).requestConfig.embedding
+      .maxEmbeddingsPerCall;
+  }
+  get supportsParallelCalls() {
+    return getAlibabaEmbeddingModelEntry(this.modelId).requestConfig.embedding
+      .supportsParallelCalls;
+  }
 
   private readonly config: AlibabaConfig;
 

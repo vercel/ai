@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { posix } from 'node:path';
 import {
   HARNESS_V1_BUILTIN_TOOLS,
   commonTool,
@@ -9,14 +11,18 @@ import {
 } from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
+  resolveSandboxHomeDir,
+  shellQuote,
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
   createACP,
   type ACPAuthenticationMode,
+  type ACPHarnessSettings,
   type ACPResolveHostToolCall,
 } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
+import { parse, stringify } from '@iarna/toml';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
 import { resolveGrokBuildSubscriptionEnvironment } from './grok-build-subscription';
@@ -67,6 +73,12 @@ export type GrokBuildHarnessSettings = {
    * Maximum milliseconds to wait for the ACP bridge to start.
    */
   readonly startupTimeoutMs?: number;
+  /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
@@ -304,11 +316,13 @@ export function createGrokBuild(
     nonTextContentTypes: ['image'],
     auth: settings.auth,
     resolveAuthenticationEnvironment: resolveGrokBuildSubscriptionEnvironment,
+    prepareSandbox: prepareGrokBuildSandbox,
     authentication: { methodId: 'xai.api_key' },
     credentialForwarding: settings.credentialForwarding,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
     reconnect: settings.reconnect,
     mcpServers: settings.mcpServers,
     modelMapping: {
@@ -343,6 +357,12 @@ export function createGrokBuild(
         : ['--reasoning-effort', settings.reasoningEffort]),
       'stdio',
     ],
+    env: {
+      GROK_CLAUDE_HOOKS_ENABLED: 'false',
+      GROK_CURSOR_HOOKS_ENABLED: 'false',
+      GROK_CLAUDE_MCPS_ENABLED: 'false',
+      GROK_CURSOR_MCPS_ENABLED: 'false',
+    },
     forwardEnv: [
       'GROK_XAI_API_BASE_URL',
       'GROK_MODELS_BASE_URL',
@@ -394,6 +414,91 @@ export function createGrokBuild(
     },
   });
 }
+
+/*
+ * Grok Build executes reads without requesting ACP permission by default.
+ * A native Read ask rule routes them through ACP so its permission controller
+ * can approve reads inside the session workspace and ask about outside reads.
+ */
+const prepareGrokBuildSandbox: NonNullable<
+  ACPHarnessSettings['prepareSandbox']
+> = async ({ sandbox, workDir, abortSignal }) => {
+  abortSignal?.throwIfAborted();
+  const home = await sandbox.run({
+    command: 'printf "%s" "${GROK_HOME:-}"',
+    workingDirectory: workDir,
+    abortSignal,
+  });
+  if (home.exitCode !== 0) {
+    throw new Error(
+      'Unable to resolve the Grok Build configuration directory.',
+    );
+  }
+  const configDir = posix.resolve(
+    workDir,
+    home.stdout ||
+      posix.join(
+        await resolveSandboxHomeDir({ sandbox, abortSignal }),
+        '.grok',
+      ),
+  );
+  const configPath = posix.join(configDir, 'config.toml');
+  const content = await sandbox.readTextFile({ path: configPath, abortSignal });
+  let config: ReturnType<typeof parse>;
+  try {
+    config = parse(content ?? '');
+  } catch {
+    throw new Error('Grok Build configuration must contain valid TOML.');
+  }
+  config.permission ??= {};
+  const permission = config.permission;
+  if (
+    typeof permission !== 'object' ||
+    Array.isArray(permission) ||
+    permission instanceof Date
+  ) {
+    throw new Error('Grok Build configuration permission must be a table.');
+  }
+  const ask = permission.ask ?? [];
+  if (!Array.isArray(ask) || ask.some(rule => typeof rule !== 'string')) {
+    throw new Error(
+      'Grok Build configuration permission.ask must be a string array.',
+    );
+  }
+  if (ask.some(rule => rule === 'Read')) return;
+  permission.ask = [...ask, 'Read'];
+  const updatedContent = stringify(config);
+  const temporaryPath = `${configPath}.${randomUUID()}.tmp`;
+  const created = await sandbox.run({
+    command:
+      `mkdir -p ${shellQuote(configDir)} && ` +
+      `(umask 077; set -C; : > ${shellQuote(temporaryPath)})`,
+    abortSignal,
+  });
+  if (created.exitCode !== 0) {
+    throw new Error('Unable to create the temporary Grok Build configuration.');
+  }
+  try {
+    await sandbox.writeTextFile({
+      path: temporaryPath,
+      content: updatedContent,
+      abortSignal,
+    });
+    const replaced = await sandbox.run({
+      command:
+        `chmod 600 ${shellQuote(temporaryPath)} && ` +
+        `mv -f ${shellQuote(temporaryPath)} ${shellQuote(configPath)}`,
+      abortSignal,
+    });
+    if (replaced.exitCode !== 0) {
+      throw new Error('Unable to replace the Grok Build configuration.');
+    }
+  } finally {
+    await Promise.resolve(sandbox.deleteFile({ path: temporaryPath })).catch(
+      () => {},
+    );
+  }
+};
 
 /**
  * Grok Build calls MCP tools through its `use_tool` meta-tool, with a

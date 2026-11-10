@@ -132,6 +132,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   port: portOverride,
   portEndpoint: portEndpointOverride,
   startupTimeoutMs,
+  hostDisconnectTimeoutMs,
   reconnect,
   clientApp,
   lifecycleStateSchema,
@@ -141,6 +142,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   port?: number;
   portEndpoint?: HarnessV1PortEndpoint;
   startupTimeoutMs?: number;
+  hostDisconnectTimeoutMs?: number;
   reconnect?: SandboxChannelReconnectOptions;
   clientApp: ACPClientApp;
   lifecycleStateSchema: NonNullable<
@@ -576,6 +578,15 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           }) ?? [],
         abortSignal: startOptions.abortSignal,
       });
+      if (settings.prepareSandbox != null) {
+        startOptions.abortSignal?.throwIfAborted();
+        await settings.prepareSandbox({
+          sandbox: toolSafeSandboxSession,
+          workDir,
+          abortSignal: startOptions.abortSignal,
+        });
+        startOptions.abortSignal?.throwIfAborted();
+      }
       const port = resolveBridgePort({
         sandboxSession,
         portOverride,
@@ -600,7 +611,10 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           `node ${shellQuote(`${resolvedBridgeDir}/bridge.mjs`)}` +
           ` --workdir ${shellQuote(workDir)}` +
           ` --bridge-state-dir ${shellQuote(bridgeStateDir)}` +
-          ` --bridge-type ${shellQuote(settings.harnessId)}`,
+          ` --bridge-type ${shellQuote(settings.harnessId)}` +
+          (hostDisconnectTimeoutMs !== undefined
+            ? ` --host-disconnect-timeout-ms ${shellQuote(String(hostDisconnectTimeoutMs))}`
+            : ''),
         env: {
           ...forwardedAgentEnvironment,
           ...createACPBridgeEnvironment({

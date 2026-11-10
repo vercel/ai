@@ -23,6 +23,8 @@ export type GatewayImageModelId =
   | 'openai/gpt-image-2'
   | 'openai/gpt-image-2.5-flare'
   | 'openai/gpt-image-2.5-sunburst'
+  | 'openai/gpt-image-2.6-flare'
+  | 'openai/gpt-image-2.6-sunburst'
   | 'prodia/flux-fast-schnell'
   | 'recraft/recraft-v2'
   | 'recraft/recraft-v3'

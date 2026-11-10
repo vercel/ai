@@ -2,6 +2,60 @@ import type { AmazonBedrockReasoningMetadata } from './amazon-bedrock-chat-langu
 import { convertToAmazonBedrockChatMessages } from './convert-to-amazon-bedrock-chat-messages';
 import { describe, it, expect } from 'vitest';
 
+describe('foreign provider history', () => {
+  it.each(['google', 'vertex', 'googleVertex'])(
+    'trims prefill before empty %s signature text',
+    async namespace => {
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'Answer  ' },
+            {
+              type: 'text',
+              text: '',
+              providerOptions: { [namespace]: { thoughtSignature: 'opaque' } },
+            },
+          ],
+        },
+      ]);
+      expect(messages).toEqual([
+        { role: 'assistant', content: [{ text: 'Answer' }] },
+      ]);
+    },
+  );
+
+  it.each(['google', 'vertex', 'googleVertex'])(
+    'omits empty %s signature text when reasoning is present',
+    async namespace => {
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Foreign reasoning',
+              providerOptions: {
+                [namespace]: { thoughtSignature: 'reasoning' },
+              },
+            },
+            { type: 'text', text: 'A' },
+            {
+              type: 'text',
+              text: '',
+              providerOptions: { [namespace]: { thoughtSignature: 'opaque' } },
+            },
+            { type: 'text', text: 'B' },
+          ],
+        },
+      ]);
+      expect(messages).toEqual([
+        { role: 'assistant', content: [{ text: 'A' }, { text: 'B' }] },
+      ]);
+    },
+  );
+});
+
 describe('system messages', () => {
   it('should combine multiple leading system messages into a single system message', async () => {
     const { system } = await convertToAmazonBedrockChatMessages([
@@ -3297,5 +3351,117 @@ describe('top-level-only mediaType resolution', () => {
         },
       ]),
     ).rejects.toThrowError(/media type "image".*could not be auto-detected/);
+  });
+
+  describe('tool input and output serialization resilience', () => {
+    it('parses valid JSON string tool input into structured object', async () => {
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'search',
+              input: '{"query":"bedrock converse","limit":5}',
+            },
+          ],
+        },
+      ]);
+
+      expect(messages[0]).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            toolUse: {
+              toolUseId: 'call-1',
+              name: 'search',
+              input: { query: 'bedrock converse', limit: 5 },
+            },
+          },
+        ],
+      });
+    });
+
+    it('falls back to rawInvalidInput for malformed JSON string tool input', async () => {
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-2',
+              toolName: 'search',
+              input: 'not-valid-json',
+            },
+          ],
+        },
+      ]);
+
+      expect(messages[0]).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            toolUse: {
+              toolUseId: 'call-2',
+              name: 'search',
+              input: { rawInvalidInput: 'not-valid-json' },
+            },
+          },
+        ],
+      });
+    });
+
+    it('safely serializes BigInt and circular structures in tool responses', async () => {
+      const cyclicOutput: any = { count: 999999999999999999n };
+      cyclicOutput.self = cyclicOutput;
+
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-3',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: cyclicOutput,
+              },
+            },
+          ],
+        },
+      ]);
+
+      const text = (messages[0].content[0] as any).toolResult.content[0].text;
+      expect(text).toContain('"count":"999999999999999999"');
+      expect(text).toContain('"self":"[Circular]"');
+    });
+
+    it('preserves reused non-circular objects in tool responses', async () => {
+      const shared = { city: 'Paris' };
+
+      const { messages } = await convertToAmazonBedrockChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-4',
+              toolName: 'getData',
+              output: {
+                type: 'json',
+                value: { first: shared, second: shared },
+              },
+            },
+          ],
+        },
+      ]);
+
+      const text = (messages[0].content[0] as any).toolResult.content[0].text;
+      expect(text).toContain('"first":{"city":"Paris"}');
+      expect(text).toContain('"second":{"city":"Paris"}');
+      expect(text).not.toContain('[Circular]');
+    });
   });
 });

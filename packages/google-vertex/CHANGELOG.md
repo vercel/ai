@@ -1,5 +1,128 @@
 # @ai-sdk/google-vertex
 
+## 5.0.135
+
+### Patch Changes
+
+- 8420810: feat(anthropic): add Claude Fable 5.2 support
+
+  - add the `claude-fable-5-2` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-fable-5-2`, `us.anthropic.claude-fable-5-2`, and `global.anthropic.claude-fable-5-2` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-fable-5.2` to `@ai-sdk/gateway`
+  - recognize `claude-fable-5-2` as a known model with the same capabilities as `claude-fable-5-1`: 128k max output tokens, always-on adaptive thinking, all five effort levels, no sampling parameters, and no forced tool use
+
+- Updated dependencies [8420810]
+- Updated dependencies [9f37b45]
+- Updated dependencies [c9c6402]
+  - @ai-sdk/anthropic@4.0.100
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/openai-compatible@3.0.88
+  - @ai-sdk/google@4.0.115
+
+## 5.0.134
+
+### Patch Changes
+
+- a210a29: Pass `providerOptions.google.labels` through to Google and Vertex AI Interactions requests, including streaming, so callers can attach request metadata such as `safety_identifier`.
+- 977231e: only send google cloud credentials from the maas provider to its own api, not to image urls from a response or their redirects
+- 32dc1d2: Omit Google provider-defined tools, including File Search and Vertex RAG Store, when `toolChoice` is `none` so disabled tools cannot retrieve data or execute server-side. Preserve function declarations needed by conversation history while disabling function calling. This also applies when structured output uses a synthetic JSON response tool.
+- Updated dependencies [a161c0a]
+- Updated dependencies [6400cf8]
+- Updated dependencies [ba302a1]
+- Updated dependencies [a210a29]
+- Updated dependencies [f608c05]
+- Updated dependencies [32dc1d2]
+- Updated dependencies [26fc2a9]
+- Updated dependencies [5ab7ff1]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [b3088a7]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/anthropic@4.0.99
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/openai-compatible@3.0.87
+  - @ai-sdk/google@4.0.114
+  - @ai-sdk/provider@4.0.37
+
+## 5.0.133
+
+### Patch Changes
+
+- 27a8a77: Refactor Google Vertex model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export Google catalog metadata internally for Vertex to reuse. Request behavior is unchanged.
+- Updated dependencies [067dd77]
+- Updated dependencies [25240d9]
+- Updated dependencies [457dc40]
+- Updated dependencies [6b101ac]
+- Updated dependencies [27a8a77]
+- Updated dependencies [b63c06a]
+- Updated dependencies [646a7e3]
+  - @ai-sdk/anthropic@4.0.98
+  - @ai-sdk/google@4.0.113
+  - @ai-sdk/openai-compatible@3.0.86
+
+## 5.0.132
+
+### Patch Changes
+
+- fd7e8a7: Preserve the order of text and complete function calls in streamed Google responses, including standalone thought signatures on empty text or reasoning parts.
+
+  Keep provider metadata on empty text parts when converting results to response messages so it can be passed back in subsequent requests.
+
+  Omit foreign-provider empty signature text when replaying history through Anthropic or Bedrock, preserving Bedrock’s existing native reasoning-history handling.
+
+- ef2dfb5: fix: pass through `seed: 0` instead of dropping it in image and video models. KlingAI now reports `seed: 0` as an unsupported setting like any other seed.
+- 41465fd: Expose optional transcription word timings separately from segments and accept shared timestampGranularities. Explicit provider timing settings take precedence. OpenAI now sends timestamp_granularities only with verbose_json and warns when a requested timing is unavailable or excluded.
+- 4b8f00e: Add a `supportsNativeStructuredOutput` opt-in to the Vertex Anthropic provider so `auto` can use native structured output for Claude 4.5 and newer when enabled by Google Cloud policy. Keep tool emulation as the default and avoid adding the structured-output beta header for providers without strict tool support.
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [8291ccf]
+- Updated dependencies [ef2dfb5]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [add01ab]
+- Updated dependencies [5f19ea5]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [3c6fb43]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4b8f00e]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+- Updated dependencies [8b11ff6]
+  - @ai-sdk/google@4.0.112
+  - @ai-sdk/anthropic@4.0.97
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/openai-compatible@3.0.85
+  - @ai-sdk/provider-utils@5.0.75
+
+## 5.0.131
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+- Updated dependencies [a32df11]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/google@4.0.111
+  - @ai-sdk/anthropic@4.0.96
+  - @ai-sdk/openai-compatible@3.0.84
+
+## 5.0.130
+
+### Patch Changes
+
+- Updated dependencies [2cd0a97]
+- Updated dependencies [4ae6986]
+- Updated dependencies [4ae6986]
+- Updated dependencies [4ae6986]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [5006d83]
+- Updated dependencies [4ae6986]
+- Updated dependencies [8ad7873]
+  - @ai-sdk/anthropic@4.0.95
+  - @ai-sdk/google@4.0.110
+  - @ai-sdk/openai-compatible@3.0.83
+  - @ai-sdk/provider-utils@5.0.73
+
 ## 5.0.129
 
 ### Patch Changes

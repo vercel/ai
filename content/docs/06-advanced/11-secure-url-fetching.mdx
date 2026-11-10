@@ -32,6 +32,10 @@ When the SDK fetches a URL taken from a provider response, it:
   `.internal` hostnames. Non-`http(s)` schemes are rejected too.
 - **Re-validates every redirect hop** — a URL that passes but then redirects to
   an internal address is blocked; the redirect is never followed blindly.
+- **Rejects HTTPS downgrades on server-side downloads** — a redirect from HTTPS
+  to HTTP is blocked before requesting the insecure target, even when that target
+  matches `trustedOrigin`. Initial HTTP URLs and HTTP-to-HTTPS upgrades remain
+  supported.
 - **Validates DNS at connection time on Node.js** — every resolved address is
   checked, and the socket is pinned to the validated DNS result so DNS
   rebinding cannot introduce a different address between validation and
@@ -109,6 +113,18 @@ If you explicitly inject a custom `fetch`, it is responsible for equivalent DNS
 validation and connection pinning. Other runtimes do not expose Node's
 DNS/socket hooks, so server deployments on those runtimes should restrict
 network egress to private, loopback, link-local, and cloud-metadata ranges.
+
+MCP OAuth discovery requires a DNS-pinned transport for untrusted URLs on
+server runtimes. On Bun, Deno, Workers, and framework edge runtimes, it blocks
+untrusted authorization-server hosts and redirects unless you explicitly supply
+a custom fetch with equivalent connect-time validation. The configured MCP
+server origin and browser window discovery remain supported. Browser Web
+Workers and Service Workers without a DOM also require an explicit custom
+fetch under this strict policy: worker globals alone are not sufficient to
+distinguish them from server workers. Direct callers of
+`fetchWithValidatedEndpoint` can opt into this policy with
+`requireDnsValidation: true`; other download helpers retain their existing
+runtime behavior.
 
 ## Hardening your deployment
 
