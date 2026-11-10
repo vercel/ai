@@ -189,6 +189,60 @@ describe('Chat', () => {
     expect(close).toHaveBeenCalledOnce();
   });
 
+  it('uses a custom tool input parser and executes only the final input', async () => {
+    const push = vi.fn(() => ({ partial: true }));
+    const dispose = vi.fn();
+    const onToolCall = vi.fn();
+    const chat = new TestChat({
+      experimental_createToolInputParser: () => ({ push, dispose }),
+      onToolCall,
+      transport: {
+        sendMessages: async () =>
+          convertArrayToReadableStream<UIMessageChunk>([
+            { type: 'start', messageId: 'assistant' },
+            {
+              type: 'tool-input-start',
+              toolCallId: 'call',
+              toolName: 'search',
+            },
+            {
+              type: 'tool-input-delta',
+              toolCallId: 'call',
+              inputTextDelta: '{',
+            },
+            {
+              type: 'tool-input-delta',
+              toolCallId: 'call',
+              inputTextDelta: '"query":"hello"}',
+            },
+            {
+              type: 'tool-input-available',
+              toolCallId: 'call',
+              toolName: 'search',
+              input: { query: 'hello' },
+            },
+          ]),
+        reconnectToStream: async () => null,
+      },
+    });
+    await chat.sendMessage({ text: 'search' });
+    expect(push.mock.calls).toEqual([['{'], ['"query":"hello"}']]);
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(onToolCall).toHaveBeenCalledExactlyOnceWith({
+      toolCall: expect.objectContaining({ input: { query: 'hello' } }),
+    });
+    expect(
+      chat.history.some(messages =>
+        messages
+          .at(-1)
+          ?.parts.some(
+            part =>
+              'input' in part && (part.input as { partial?: boolean })?.partial,
+          ),
+      ),
+    ).toBe(true);
+  });
+
   describe('send a simple message', () => {
     let chat: TestChat;
     let letOnFinishArgs: any[] = [];
