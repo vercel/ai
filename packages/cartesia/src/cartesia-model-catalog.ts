@@ -135,7 +135,7 @@ export function getCartesiaTranscriptionModelEntry(modelId: string) {
         transcription: !streaming,
         streaming,
         duration: true,
-        segments: true,
+        segments: !streaming,
         language: true,
       },
     },
