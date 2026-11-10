@@ -218,7 +218,7 @@ export const openaiResponsesSupportedUrls: Record<string, RegExp[]> = {
 };
 
 /**
- * Enforces OpenAI's configuration update restrictions for reasoningEffortUpdate,
+ * Enforces OpenAI's configuration update restrictions,
  * returning a string describing the unsupported reason if any.
  *
  * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
@@ -231,7 +231,7 @@ function getConfigurationUpdateUnsupportedReason({
   options: OpenAILanguageModelResponsesOptions | undefined;
 }): string | undefined {
   if (!modelCapabilities.configurationUpdates) {
-    return 'reasoningEffortUpdate is only supported by GPT-6 and later models';
+    return 'Configuration updates are only supported by GPT-6 and later models';
   }
 
   if (
@@ -239,7 +239,7 @@ function getConfigurationUpdateUnsupportedReason({
     options?.contextManagement != null ||
     options?.truncation === 'auto'
   ) {
-    return 'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation';
+    return 'Configuration updates require standard reasoning mode without automatic compaction or automatic truncation';
   }
 
   return undefined;

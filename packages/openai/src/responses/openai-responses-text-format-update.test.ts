@@ -192,6 +192,8 @@ describe.each(['generate', 'stream'] as const)(
       ).rejects.toMatchObject({
         name: 'AI_UnsupportedFunctionalityError',
         functionality: 'Message-level textFormatUpdate',
+        message:
+          'Configuration updates require standard reasoning mode without automatic compaction or automatic truncation',
       });
       expect(server.calls).toHaveLength(0);
     });
@@ -205,6 +207,8 @@ describe.each(['generate', 'stream'] as const)(
       ).rejects.toMatchObject({
         name: 'AI_UnsupportedFunctionalityError',
         functionality: 'Message-level textFormatUpdate',
+        message:
+          'Configuration updates are only supported by GPT-6 and later models',
       });
       expect(server.calls).toHaveLength(0);
     });
