@@ -1,3 +1,4 @@
+import { posix } from 'node:path';
 import { isSerializableValue } from '@ai-sdk/provider';
 import {
   generateId,
@@ -18,7 +19,10 @@ import {
   type HarnessAgentSession,
 } from './harness-agent-session';
 import { InMemoryWorld } from './in-memory-world';
-import type { HarnessAgentSettings } from '../harness-agent-settings';
+import type {
+  HarnessAgentSandboxConfig,
+  HarnessAgentSettings,
+} from '../harness-agent-settings';
 import type { HarnessV2 } from '../../v2/harness-v2';
 import type { HarnessV2NetworkSandboxSession } from '../../v2/harness-v2-network-sandbox-session';
 import type { World } from '@workflow/world';
@@ -89,6 +93,13 @@ export class HarnessAgent<
   >;
 
   /**
+   * Supported sandbox settings. `workDir` is normalized and relative to the
+   * sandbox's default working directory; when omitted, each session uses its
+   * own `<harnessId>-<sessionId>` directory.
+   */
+  private readonly sandboxConfig: Pick<HarnessAgentSandboxConfig, 'workDir'>;
+
+  /**
    * Creates the agent from its settings.
    */
   constructor(
@@ -119,13 +130,28 @@ export class HarnessAgent<
         key !== 'harness' &&
         key !== 'tools' &&
         key !== 'world' &&
-        key !== 'getSandboxSession',
+        key !== 'getSandboxSession' &&
+        key !== 'sandboxConfig',
     );
     if (unsupportedSetting !== undefined) {
       throw new Error(
         `HarnessAgent: setting \`${String(unsupportedSetting)}\` is not supported.`,
       );
     }
+
+    const sandboxConfig = settings.sandboxConfig ?? {};
+    const unsupportedSandboxSetting = Reflect.ownKeys(sandboxConfig).find(
+      key => key !== 'workDir',
+    );
+    if (unsupportedSandboxSetting !== undefined) {
+      throw new Error(
+        `HarnessAgent: setting \`sandboxConfig.${String(unsupportedSandboxSetting)}\` is not supported.`,
+      );
+    }
+    this.sandboxConfig =
+      sandboxConfig.workDir == null
+        ? {}
+        : { workDir: normalizeWorkDir({ workDir: sandboxConfig.workDir }) };
 
     this.world = settings.world ?? new InMemoryWorld();
     this.getSandboxSession = settings.getSandboxSession;
@@ -243,6 +269,53 @@ function getSandboxId(options: {
   return typeof options.sandboxSession.id === 'string'
     ? options.sandboxSession.id
     : undefined;
+}
+
+/**
+ * Validates the `sandboxConfig.workDir` setting and returns it normalized.
+ *
+ * The value must be a non-empty POSIX path relative to the sandbox's default
+ * working directory that stays inside it. `'.'` selects the default working
+ * directory itself; any other spelling that normalizes to it (e.g. `'./'`) is
+ * rejected, as are absolute paths, backslashes, NUL bytes and paths that leave
+ * the default working directory.
+ */
+function normalizeWorkDir(options: {
+  /**
+   * Configured work directory, relative to the sandbox's default working
+   * directory.
+   */
+  workDir: string;
+}): string {
+  const { workDir } = options;
+  if (workDir.length === 0) {
+    throw new Error('HarnessAgent: `sandboxConfig.workDir` must not be empty.');
+  }
+  if (workDir.includes('\0')) {
+    throw new Error(
+      'HarnessAgent: `sandboxConfig.workDir` must not contain NUL.',
+    );
+  }
+  if (workDir.includes('\\')) {
+    throw new Error(
+      'HarnessAgent: `sandboxConfig.workDir` must use POSIX path separators.',
+    );
+  }
+  if (posix.isAbsolute(workDir)) {
+    throw new Error('HarnessAgent: `sandboxConfig.workDir` must be relative.');
+  }
+
+  const normalized = posix.normalize(workDir);
+  if (
+    ((normalized === '.' || normalized === './') && workDir !== '.') ||
+    normalized === '..' ||
+    normalized.startsWith('../')
+  ) {
+    throw new Error(
+      'HarnessAgent: `sandboxConfig.workDir` must stay inside the sandbox default working directory.',
+    );
+  }
+  return normalized;
 }
 
 /**

@@ -121,6 +121,95 @@ describe('HarnessAgent', () => {
     expect((agent as unknown as { world: World }).world).toBe(world);
   });
 
+  test.each([
+    ['.', '.'],
+    ['project', 'project'],
+    ['project/app/', 'project/app/'],
+    ['project//./app', 'project/app'],
+    ['a/../b', 'b'],
+  ])(
+    'stores the sandbox work directory %j normalized as %j',
+    (workDir, expected) => {
+      const agent = new HarnessAgent({
+        harness,
+        getSandboxSession,
+        sandboxConfig: { workDir },
+      });
+
+      expect(
+        (agent as unknown as { sandboxConfig: object }).sandboxConfig,
+      ).toEqual({ workDir: expected });
+    },
+  );
+
+  test('accepts a sandbox work directory through the public HarnessAgent', () => {
+    expect(
+      () =>
+        new PublicHarnessAgent({
+          harness,
+          getSandboxSession,
+          sandboxConfig: { workDir: 'project' },
+        }),
+    ).not.toThrow();
+  });
+
+  test('leaves the work directory unset without one configured', () => {
+    const agent = new HarnessAgent({
+      harness,
+      getSandboxSession,
+      sandboxConfig: {},
+    });
+
+    expect(
+      (agent as unknown as { sandboxConfig: object }).sandboxConfig,
+    ).toEqual({});
+  });
+
+  test.each(['bootstrapHash', 'onBootstrap', 'onSession'])(
+    'rejects the unsupported sandbox setting %s',
+    key => {
+      expect(
+        () =>
+          new HarnessAgent({
+            harness,
+            getSandboxSession,
+            sandboxConfig: { workDir: 'project', [key]: undefined },
+          }),
+      ).toThrow(`setting \`sandboxConfig.${key}\` is not supported`);
+    },
+  );
+
+  test.each([
+    ['', 'must not be empty'],
+    ['a\0b', 'must not contain NUL'],
+    ['a\\b', 'must use POSIX path separators'],
+    ['/abs', 'must be relative'],
+    ['./', 'must stay inside the sandbox default working directory'],
+    ['a/..', 'must stay inside the sandbox default working directory'],
+    ['..', 'must stay inside the sandbox default working directory'],
+    ['../outside', 'must stay inside the sandbox default working directory'],
+  ])('rejects the sandbox work directory %j', (workDir, message) => {
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          getSandboxSession,
+          sandboxConfig: { workDir },
+        }),
+    ).toThrow(`\`sandboxConfig.workDir\` ${message}`);
+  });
+
+  test('still rejects the deprecated onSandboxSession setting', () => {
+    expect(
+      () =>
+        new HarnessAgent({
+          harness,
+          getSandboxSession,
+          onSandboxSession: async () => {},
+        }),
+    ).toThrow('setting `onSandboxSession` is not supported');
+  });
+
   test('creates a session that retains its sandbox session', async () => {
     const sandboxSession = {} as SandboxSession;
     const agent = new HarnessAgent({ harness, getSandboxSession });

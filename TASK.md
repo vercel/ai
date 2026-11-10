@@ -67,7 +67,7 @@ The steps are below:
 - Add a `HarnessAgentGateBuiltinToolFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["gateBuiltinTool"]` (redeclare it, DO NOT import).
 - Change the `input` of `HarnessV2DriveContext["gateBuiltinTool"]` from `unknown` to `JSONValue`, like `executeHostTool()` (see "Host tool execution" in HARNESS-V2.md).
 
-12. [ ] Scaffold `packages/harness/src/agent/v2/internal/create-harness-v2-drive-context.ts` with function `createDriveContext(): HarnessV2DriveContext`.
+12. [x] Scaffold `packages/harness/src/agent/v2/internal/create-drive-context.ts` with function `createDriveContext(): HarnessV2DriveContext`.
 
 - The function receives inputs of types `HarnessAgentSession`, `HarnessAgentLog`, `HarnessAgentEffectFunction`, `HarnessAgentStreamWriter`, `HarnessAgentFinishStepFunction`, `HarnessAgentFinishTurnFunction`, `HarnessAgentExecuteHostToolFunction`, `HarnessAgentGateBuiltinToolFunction`, etc and arranges them into the necessary aggregated shape.
 - It builds the drive context's `unsafeEmit` from `writer.unsafeEmit`.
@@ -108,6 +108,13 @@ The steps are below:
 
 - Ignore existing harnesses' code structure and architectural conventions. We'll want to build this as ideal as it is for the new architecture.
 - As part of this, ensure the new `HarnessAgent` class properly supports a harness's bootstrap recipe.
+
+22. [ ] Add support for fencing to the sandbox abstraction and the new `HarnessAgent`, so that a drive that lost ownership of a session can no longer change anything in the session's sandbox.
+
+- Add an optional fencing capability to the sandbox abstraction (e.g. a `fenced({ token })` method returning a fenced sandbox session view). A sandbox that supports it must persist the highest token it has seen, refuse operations with a lower token in the same step as the operation itself, and stop all processes started under lower tokens once a higher token arrives.
+- In the new `HarnessAgent` engine, derive a per-drive token that only increases across owners of a session (e.g. the committed log position of a drive claim event, or the World's in-band writer fence where available), and have the drive context's `sandbox()` return the fenced view when the sandbox supports it, including fenced versions of derived sessions such as `restricted()`.
+- Fencing stays internal to the engine and the sandbox: never expose the token through `HarnessV2`; adapters only receive the already fenced session.
+- Sandboxes without the capability keep working without fencing.
 
 ## Constraints & mindset
 

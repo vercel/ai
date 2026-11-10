@@ -255,12 +255,14 @@ export interface HarnessV2DriveContext {
   }): Promise<HarnessV2ToolGateOutput>;
 
   /**
-   * Resolves the sandbox session and working directory for this drive attempt.
+   * Resolves the session's sandbox session and its working directory for this
+   * drive. Resolution happens lazily on the first call and once per drive:
+   * every call returns the same result. The working directory exists once
+   * this resolves.
    */
   sandbox(): Promise<{
     session: SandboxSession | HarnessV2NetworkSandboxSession;
     workDir: string;
-    fence?: number;
   }>;
 
   /**

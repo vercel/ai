@@ -537,13 +537,11 @@ interface HarnessV2DriveContext {
     input: JSONValue;
   }): Promise<HarnessV2ToolGateOutput>;
   /**
-   * Lazily attaches the session's sandbox for this drive. In durable mode it
-   * also returns the drive's fencing token for the sandbox side to check.
+   * Lazily attaches the session's sandbox for this drive.
    */
   sandbox(): Promise<{
     session: SandboxSession | HarnessV2NetworkSandboxSession;
     workDir: string;
-    fence?: number;
   }>;
   /**
    * Finishes the current AI SDK step: one model call plus the tool calls
