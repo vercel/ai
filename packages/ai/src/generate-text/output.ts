@@ -17,6 +17,10 @@ import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import type { FinishReason } from '../types/language-model';
 import type { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import type { LanguageModelUsage } from '../types/usage';
+import {
+  createArrayOutputStreamParser,
+  arrayStreamParserFactories,
+} from '../util/array-output-stream';
 import type { DeepPartial } from '../util/deep-partial';
 import { parsePartialJson } from '../util/parse-partial-json';
 import type { EnrichedStreamPart } from './stream-text';
@@ -290,7 +294,7 @@ export function array<ELEMENT>({
 
   const elementSchema = asSchema(inputElementSchema);
 
-  return {
+  const output: Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT> = {
     name: 'array',
 
     // JSON schema that describes an array of elements:
@@ -488,6 +492,16 @@ export function array<ELEMENT>({
       });
     },
   };
+
+  arrayStreamParserFactories.set(output, {
+    parsePartialOutput: output.parsePartialOutput,
+    create: () =>
+      createArrayOutputStreamParser({
+        schema: elementSchema,
+        skipInvalidElements: true,
+      }),
+  });
+  return output;
 }
 
 function validateArrayBound({
