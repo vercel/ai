@@ -1,5 +1,15 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.184
+
+### Patch Changes
+
+- 5c3842f: feat(harness-claude-code): add opt-in auto permission mode with host approval for classifier escalations and raw effective permission-mode reporting.
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/harness@1.0.180
+
 ## 1.0.183
 
 ### Patch Changes

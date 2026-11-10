@@ -1,5 +1,18 @@
 # ai
 
+## 7.0.169
+
+### Patch Changes
+
+- 4311fa1: Use Zod Mini for internal validation schemas to reduce bundle size while preserving the public message schemas' classic Zod methods, error messages, and compatibility with supported Zod 3 and Zod 4 versions.
+- d9dd2b7: keep the request options when the useChat queue sends a tool approval first, and hold the queue while an async sendAutomaticallyWhen decides
+- Updated dependencies [4311fa1]
+- Updated dependencies [c160b74]
+- Updated dependencies [4311fa1]
+- Updated dependencies [838dd53]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/gateway@4.0.142
+
 ## 7.0.168
 
 ### Patch Changes
