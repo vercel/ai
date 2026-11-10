@@ -295,6 +295,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   // a stop or an error pauses the queue. a paused response is not waiting for
   // the user, so resuming the queue skips that check:
   private isQueuePaused = false;
+  private pendingAutomaticDecisions: number[] = [];
+  // a user send that has to wait to send an answered approval first, with the
+  // request options of that send:
+  private deferredApprovalSend: { options?: ChatRequestOptions } | undefined;
 
   private pendingMessagePreparations = new Set<AbortController>();
   private pendingApprovalMessageId: string | undefined;
@@ -429,7 +433,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     ]);
 
     await this.stop();
-    await this.resumeQueue({ skipWaitForUser: true });
+    await this.resumeQueue({
+      skipWaitForUser: true,
+      options: this.queuedMessageOptions.get(id),
+    });
   };
 
   // the user sending a message resumes a paused queue (after a stop, an error
@@ -437,14 +444,22 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   // first, the queue continues when its response finishes:
   private async resumeQueue({
     skipWaitForUser,
+    options,
   }: {
     skipWaitForUser: boolean;
+    options?: ChatRequestOptions;
   }): Promise<void> {
     this.isQueuePaused = false;
 
-    if (!this.isRequestInProgress() && this.hasUnsentApprovalResponse()) {
-      await this.sendMessage();
-      return;
+    if (this.hasUnsentApprovalResponse()) {
+      if (!this.isRequestInProgress()) {
+        await this.sendMessage(undefined, options);
+        return;
+      }
+
+      // a pending sendAutomaticallyWhen decision can still send the approval.
+      // if it does not, the queue sends it first when it settles:
+      this.deferredApprovalSend = { options };
     }
 
     await this.settleQueue({ skipWaitForUser });
@@ -460,14 +475,19 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
     this.queuedMessageOptions.clear();
     this.setQueuedMessages([]);
+    this.deferredApprovalSend = undefined;
 
     if (this.isRequestInProgress()) {
       await this.stop();
     }
   }
 
+  // a pending sendAutomaticallyWhen decision can still start a request, so the
+  // queue waits for it like for a response in progress. a stop invalidates the
+  // decisions that were pending, so they no longer hold the queue:
   private isRequestInProgress(): boolean {
     return (
+      this.pendingAutomaticDecisions.includes(this.stopGeneration) ||
       this.activeResponse != null ||
       this.status === 'submitted' ||
       this.status === 'streaming'
@@ -525,16 +545,25 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     stopGeneration?: number;
     skipWaitForUser?: boolean;
   } = {}): Promise<void> {
-    const [message, ...rest] = this.experimental_queuedMessages;
-
     if (
-      message == null ||
       this.isQueuePaused ||
       this.isRequestInProgress() ||
       this.activeStopCount > 0 ||
-      stopGeneration !== this.stopGeneration ||
-      (!skipWaitForUser && this.isWaitingForUser())
+      stopGeneration !== this.stopGeneration
     ) {
+      return;
+    }
+
+    const deferredApprovalSend = this.deferredApprovalSend;
+    this.deferredApprovalSend = undefined;
+    if (deferredApprovalSend != null && this.hasUnsentApprovalResponse()) {
+      await this.sendMessage(undefined, deferredApprovalSend.options);
+      return;
+    }
+
+    const [message, ...rest] = this.experimental_queuedMessages;
+
+    if (message == null || (!skipWaitForUser && this.isWaitingForUser())) {
       return;
     }
 
@@ -671,7 +700,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       // a stopped response is not waiting for the user anymore, so resuming a
       // paused queue skips that check:
-      await this.resumeQueue({ skipWaitForUser: this.isQueuePaused });
+      await this.resumeQueue({
+        skipWaitForUser: this.isQueuePaused,
+        options,
+      });
       return;
     }
 
@@ -1006,6 +1038,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   stop = async () => {
     this.activeStopCount++;
     this.stopGeneration++;
+    this.deferredApprovalSend = undefined;
 
     try {
       const activeResumeRequest = this.activeResumeRequest;
@@ -1056,9 +1089,19 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       return false;
     }
 
-    const result = await this.sendAutomaticallyWhen({
-      messages: this.state.messages,
-    });
+    const stopGeneration = this.stopGeneration;
+    this.pendingAutomaticDecisions.push(stopGeneration);
+    let result: boolean;
+    try {
+      result = await this.sendAutomaticallyWhen({
+        messages: this.state.messages,
+      });
+    } finally {
+      this.pendingAutomaticDecisions.splice(
+        this.pendingAutomaticDecisions.indexOf(stopGeneration),
+        1,
+      );
+    }
 
     return (
       result &&
@@ -1100,6 +1143,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     messageId?: string;
     messageIndex: number;
   } & ChatRequestOptions) {
+    this.deferredApprovalSend = undefined;
+
     const consumesPendingApproval =
       messageId != null && messageId === this.pendingApprovalMessageId;
     if (consumesPendingApproval) {
