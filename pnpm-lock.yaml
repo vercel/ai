@@ -677,6 +677,9 @@ importers:
       '@ai-sdk/sandbox-vercel':
         specifier: workspace:*
         version: link:../../packages/sandbox-vercel
+      '@ai-sdk/tencent':
+        specifier: workspace:*
+        version: link:../../packages/tencent
       '@ai-sdk/togetherai':
         specifier: workspace:*
         version: link:../../packages/togetherai
@@ -4673,6 +4676,40 @@ importers:
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0(supports-color@10.2.2))(msw@2.14.6(@types/node@22.19.19)(typescript@6.0.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.9.0(supports-color@10.2.2))(lightningcss@1.32.0)(sass@1.97.3)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/tencent:
+    dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: workspace:*
+        version: link:../openai-compatible
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
+      tsdown:
+        specifier: ^0.23.0
+        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.3.21)(tsx@4.23.12)(typescript@6.0.3)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
       zod:
         specifier: 3.25.76
         version: 3.25.76
