@@ -6690,6 +6690,93 @@ describe('Chat', () => {
       expect(requests).toHaveLength(2);
     });
 
+    it.each([false, true])(
+      'should send an answered tool approval and the queued message after a pending sendAutomaticallyWhen decides %s',
+      async sendAutomatically => {
+        const { transport, requests, answer, waitForRequest } =
+          createQueueTransport();
+        const decision = createResolvablePromise<boolean>();
+        let decisions = 0;
+        const chat = createQueueChat(transport, {
+          sendAutomaticallyWhen: () =>
+            decisions++ === 1 ? decision.promise : false,
+        });
+
+        const sent = chat.sendMessage({ text: 'delete it' });
+        await waitForRequest(1);
+        streamApprovalRequest(requests[0].controller);
+        await sent;
+
+        void chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved: true,
+        });
+        await vi.waitFor(() => expect(decisions).toBe(2));
+        void chat.sendMessage(
+          { text: 'second' },
+          { headers: { 'x-tenant': 't1' }, body: { tenant: 't1' } },
+        );
+        await vi.waitFor(() =>
+          expect(chat.experimental_queuedMessages).toHaveLength(1),
+        );
+
+        decision.resolve(sendAutomatically);
+        await waitForRequest(2);
+        expect(requests[1].messages).toEqual([
+          'user: delete it',
+          'assistant: ',
+        ]);
+        if (!sendAutomatically) {
+          expect(requests[1].body).toMatchObject({ tenant: 't1' });
+        }
+
+        requests[1].controller.enqueue({ type: 'start' });
+        requests[1].controller.enqueue({
+          type: 'tool-output-available',
+          toolCallId: 'call-1',
+          output: 'deleted',
+        });
+        requests[1].controller.enqueue({ type: 'finish' });
+        requests[1].controller.close();
+        await waitForRequest(3);
+        expect(requests[2].messages.at(-1)).toBe('user: second');
+        answer(2, 'answer two');
+        await vi.waitFor(() => expect(chat.status).toBe('ready'));
+        expect(requests).toHaveLength(3);
+      },
+    );
+
+    it('should not send an answered tool approval after a stop while sendAutomaticallyWhen decides', async () => {
+      const { transport, requests, waitForRequest } = createQueueTransport();
+      const decision = createResolvablePromise<boolean>();
+      let decisions = 0;
+      const chat = createQueueChat(transport, {
+        sendAutomaticallyWhen: () =>
+          decisions++ === 1 ? decision.promise : false,
+      });
+
+      const sent = chat.sendMessage({ text: 'delete it' });
+      await waitForRequest(1);
+      streamApprovalRequest(requests[0].controller);
+      await sent;
+
+      void chat.addToolApprovalResponse({ id: 'approval-1', approved: true });
+      await vi.waitFor(() => expect(decisions).toBe(2));
+      void chat.sendMessage({ text: 'second' });
+      await vi.waitFor(() =>
+        expect(chat.experimental_queuedMessages).toHaveLength(1),
+      );
+      const stopped = chat.stop();
+      decision.resolve(false);
+      await stopped;
+      await vi.advanceTimersByTimeAsync(10);
+
+      expect(requests).toHaveLength(1);
+      expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+        'second',
+      ]);
+    });
+
     it('should send a responded tool approval before the queued messages when the user sends again', async () => {
       const { transport, requests, answer, waitForRequest } =
         createQueueTransport();
