@@ -17,3 +17,8 @@ export type {
   MiniMaxVideoPartOptions,
 } from './minimax-media-options';
 export { VERSION } from './version';
+
+export type {
+  MiniMaxImageModelId,
+  MiniMaxImageModelOptions,
+} from './minimax-image-model-options';
