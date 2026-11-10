@@ -197,7 +197,7 @@ export function createDriveContext(options: {
    * Normalized `sandboxConfig.workDir`, relative to the sandbox's default
    * working directory, if configured.
    */
-  workDir: string | undefined;
+  workDir?: string;
 
   /**
    * Aborts when the drive must stop at once.
@@ -207,7 +207,7 @@ export function createDriveContext(options: {
   /**
    * Aborts when the drive should stop at the next safe point.
    */
-  yieldRequested: AbortSignal;
+  yieldAbortSignal: AbortSignal;
 
   /**
    * End of the drive's time budget (epoch ms), if known.
@@ -226,7 +226,7 @@ export function createDriveContext(options: {
     harnessId,
     workDir,
     abortSignal,
-    yieldRequested,
+    yieldAbortSignal,
     deadline,
   } = options;
 
@@ -249,7 +249,7 @@ export function createDriveContext(options: {
     return { session: sandboxSession, workDir: sessionWorkDir };
   }
 
-  return {
+  const context: HarnessV2DriveContext = {
     log: adaptHarnessV2Log({ log, abortSignal }),
     effect,
     executeHostTool,
@@ -268,9 +268,10 @@ export function createDriveContext(options: {
     finishTurn,
     unsafeEmit: part => writer.unsafeEmit(part),
     abortSignal,
-    yieldRequested,
-    ...(deadline != null ? { deadline } : {}),
+    yieldAbortSignal,
   };
+  if (deadline != null) context.deadline = deadline;
+  return context;
 }
 
 /**
@@ -305,7 +306,7 @@ async function resolveSessionWorkDir(options: {
    * Normalized work directory relative to the sandbox's default working
    * directory, if configured.
    */
-  workDir: string | undefined;
+  workDir?: string;
 
   /**
    * Aborts the sandbox commands.

@@ -19,6 +19,7 @@ import {
   type ListEventsByCorrelationIdParams,
   type ListEventsParams,
   type MessageId as MessageIdType,
+  type PaginatedResponse,
   type QueueBatchResult,
   type QueueOptions,
   type QueuePayload,
@@ -34,8 +35,12 @@ import {
   type World,
   type WorldCapabilities,
 } from '@workflow/world';
-import { z } from 'zod';
-import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
+import { z } from 'zod/v4';
+import {
+  isSerializableValue,
+  type JSONValue,
+  type SerializableValue,
+} from '@ai-sdk/provider';
 import {
   cloneSerializableValue,
   jsonDecodeSerializableValue,
@@ -121,7 +126,7 @@ const QueueOptionsSchema = z
   .object({
     deploymentId: z.string().optional(),
     idempotencyKey: z.string().optional(),
-    headers: z.record(z.string()).optional(),
+    headers: z.record(z.string(), z.string()).optional(),
     delaySeconds: z.number().optional(),
     specVersion: z.number().optional(),
     region: z.string().optional(),
@@ -167,6 +172,7 @@ const InMemoryWorldDataSchema = z
         events.map(event => EventSchema.parse(event) as Event),
       ),
     streams: z.record(
+      z.string(),
       z
         .object({
           chunks: z.array(z.instanceof(Uint8Array)),
@@ -290,7 +296,7 @@ export class InMemoryWorld implements World, Storable {
           runId,
           data,
           params,
-        })) as unknown as World['events']['create'],
+        })) as World['events']['create'],
       createBatch: (runId, batch, params) =>
         this.createEventBatch({ runId, batch, params }),
       get: (runId, eventId) => this.getEvent({ runId, eventId }),
@@ -400,6 +406,7 @@ export class InMemoryWorld implements World, Storable {
    * returns `undefined` regardless of the run or execution context.
    */
   async getEncryptionKeyForRun(
+    // oxlint-disable-next-line ai-sdk/require-object-parameter -- `World` interface signature.
     _runOrId: WorkflowRun | string,
     _context?: Record<string, unknown>,
   ): Promise<undefined> {
@@ -413,6 +420,7 @@ export class InMemoryWorld implements World, Storable {
    * is not already present in the run's replayable events.
    */
   async uploadDynamicWorkflowCode(
+    // oxlint-disable-next-line ai-sdk/require-object-parameter -- `World` interface signature.
     runId: string,
     input: { workflowName: string; code: Uint8Array },
   ): Promise<string> {
@@ -448,6 +456,7 @@ export class InMemoryWorld implements World, Storable {
    * it does not reject the batch or prevent later messages from being attempted.
    */
   async queueBatch(
+    // oxlint-disable-next-line ai-sdk/require-object-parameter -- `World` interface signature.
     queueName: ValidQueueName,
     messages: readonly { message: QueuePayload; opts?: QueueOptions }[],
   ): Promise<QueueBatchResult[]> {
@@ -480,6 +489,7 @@ export class InMemoryWorld implements World, Storable {
    * are returned as 500 responses.
    */
   createQueueHandler(
+    // oxlint-disable-next-line ai-sdk/require-object-parameter -- `World` interface signature.
     queueNamePrefix: string,
     handler: (
       message: unknown,
@@ -533,12 +543,13 @@ export class InMemoryWorld implements World, Storable {
    */
   async export(options: { runId: string }): Promise<SerializableValue> {
     const { runId } = options;
-    const streams = Object.fromEntries(
-      Array.from(this.streamRecords.get(runId) ?? [], ([name, stream]) => [
-        name,
-        { chunks: cloneValue(stream.chunks), done: stream.done },
-      ]),
-    );
+    const streams: Record<
+      string,
+      Pick<StreamData, 'chunks' | 'done'>
+    > = Object.create(null);
+    for (const [name, stream] of this.streamRecords.get(runId) ?? []) {
+      streams[name] = { chunks: cloneValue(stream.chunks), done: stream.done };
+    }
     const events = this.eventRecords.get(runId) ?? [];
     const eventHasDynamicWorkflowCode = events.some(event => {
       const eventData = event.eventData as Record<string, unknown> | undefined;
@@ -558,7 +569,12 @@ export class InMemoryWorld implements World, Storable {
         queuedMessage => getRunId({ message: queuedMessage.message }) === runId,
       ),
     });
-    return cloneValue(data) as unknown as SerializableValue;
+    if (!isSerializableValue(data)) {
+      throw new Error(
+        `InMemoryWorld: checkpoint of run \`${runId}\` is not serializable.`,
+      );
+    }
+    return cloneSerializableValue({ value: data });
   }
 
   /**
@@ -956,6 +972,7 @@ export class InMemoryWorld implements World, Storable {
    * A stale `eventCount` receives the intervening records through this commit.
    */
   async createEvent(options: {
+    // oxlint-disable-next-line ai-sdk/require-optional-properties -- `null` is the World's run ID for `run_created`.
     runId: string | null;
     data: CreateEventRequest | RunCreatedEventRequest;
     params?: CreateEventParams;
@@ -1004,25 +1021,26 @@ export class InMemoryWorld implements World, Storable {
     const result = this.applyEvent({ event });
     events.push(event);
     this.eventRecords.set(runId, events);
-    return {
-      event: cloneValue(event),
-      ...result,
-      ...(options.params?.eventCount !== undefined &&
+    const created = { event: cloneValue(event), ...result };
+    if (
+      options.params?.eventCount !== undefined &&
       options.params.eventCount < events.length - 1
-        ? {
-            events: events
-              .slice(options.params.eventCount)
-              .map(item =>
-                stripEventDataRefs(
-                  cloneValue(item),
-                  options.params?.resolveData ?? 'all',
-                ),
-              ),
-            cursor: event.eventId,
-            hasMore: false,
-          }
-        : {}),
-    } as EventResult;
+    ) {
+      return {
+        ...created,
+        events: events
+          .slice(options.params.eventCount)
+          .map(item =>
+            stripEventDataRefs(
+              cloneValue(item),
+              options.params?.resolveData ?? 'all',
+            ),
+          ),
+        cursor: event.eventId,
+        hasMore: false,
+      } as EventResult;
+    }
+    return created as EventResult;
   }
 
   /**
@@ -1845,6 +1863,7 @@ export class InMemoryWorld implements World, Storable {
    */
   private async setRunAttributes(options: {
     runId: string;
+    // oxlint-disable-next-line ai-sdk/require-optional-properties -- `null` deletes the attribute in World attribute changes.
     changes: { key: string; value: string | null }[];
     attributeOptions?: { allowReservedAttributes?: boolean };
   }) {
@@ -2015,7 +2034,7 @@ function paginate<T>(options: {
   items: T[];
   pagination?: { limit?: number; cursor?: string };
   getKey: (item: T) => string;
-}): { data: T[]; cursor: string | null; hasMore: boolean } {
+}): PaginatedResponse<T> {
   let start = parseCursor({ cursor: options.pagination?.cursor });
   if (options.pagination?.cursor !== undefined && start === 0) {
     const cursorIndex = options.items.findIndex(

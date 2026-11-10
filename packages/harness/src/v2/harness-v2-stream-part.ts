@@ -38,6 +38,7 @@ export type HarnessV2FinishReason = {
   /**
    * Raw finish reason as reported by the runtime or provider.
    */
+  // oxlint-disable-next-line ai-sdk/require-optional-properties -- must match `LanguageModelV4FinishReason`.
   raw: string | undefined;
 };
 
@@ -52,21 +53,25 @@ export type HarnessV2Usage = {
     /**
      * Total number of input tokens.
      */
+    // oxlint-disable-next-line ai-sdk/require-optional-properties -- must match `LanguageModelV4Usage`.
     total: number | undefined;
 
     /**
      * Number of non-cached input tokens.
      */
+    // oxlint-disable-next-line ai-sdk/require-optional-properties -- must match `LanguageModelV4Usage`.
     noCache: number | undefined;
 
     /**
      * Number of cached input tokens read.
      */
+    // oxlint-disable-next-line ai-sdk/require-optional-properties -- must match `LanguageModelV4Usage`.
     cacheRead: number | undefined;
 
     /**
      * Number of cached input tokens written.
      */
+    // oxlint-disable-next-line ai-sdk/require-optional-properties -- must match `LanguageModelV4Usage`.
     cacheWrite: number | undefined;
   };
 
@@ -77,16 +82,19 @@ export type HarnessV2Usage = {
     /**
      * Total number of output tokens.
      */
+    // oxlint-disable-next-line ai-sdk/require-optional-properties -- must match `LanguageModelV4Usage`.
     total: number | undefined;
 
     /**
      * Number of text tokens.
      */
+    // oxlint-disable-next-line ai-sdk/require-optional-properties -- must match `LanguageModelV4Usage`.
     text: number | undefined;
 
     /**
      * Number of reasoning tokens.
      */
+    // oxlint-disable-next-line ai-sdk/require-optional-properties -- must match `LanguageModelV4Usage`.
     reasoning: number | undefined;
   };
 

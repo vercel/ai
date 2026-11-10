@@ -781,11 +781,11 @@ describe('createEffectFunction', () => {
             abortController.abort();
           },
         }),
-      ).toStrictEqual({
-        type: 'interrupted',
-        retryable: true,
-        ...(hasProgress ? { partial: undefined } : {}),
-      });
+      ).toStrictEqual(
+        hasProgress
+          ? { type: 'interrupted', retryable: true, partial: undefined }
+          : { type: 'interrupted', retryable: true },
+      );
     },
   );
 
@@ -1209,6 +1209,7 @@ describe('createEffectFunction', () => {
     'rejects nonserializable %s without manufacturing an error output',
     async location => {
       const { effect, log } = await setup();
+      // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- intentionally invalid value for a runtime validation test.
       const invalid = (() => {}) as unknown as SerializableValue;
       const fn = vi.fn(async () => invalid);
       const running =

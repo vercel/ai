@@ -280,7 +280,7 @@ export interface HarnessV2DriveContext {
    * next unrecorded step, a new step for a finished turn, or a call before any
    * prompt was delivered is rejected. Resolves after the
    * step is recorded and `stopWhen` was evaluated (which may abort
-   * `yieldRequested`), so it must be awaited before starting the next step.
+   * `yieldAbortSignal`), so it must be awaited before starting the next step.
    */
   finishStep(options: {
     /**
@@ -353,7 +353,7 @@ export interface HarnessV2DriveContext {
   /**
    * Signals that the host requests the harness to yield control.
    */
-  yieldRequested: AbortSignal;
+  yieldAbortSignal: AbortSignal;
 
   /**
    * Optional deadline imposed on the current drive attempt.

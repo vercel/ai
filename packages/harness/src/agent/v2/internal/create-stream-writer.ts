@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { World } from '@workflow/world';
 import type {
+  HarnessAgentStreamPartRecord,
   HarnessAgentStreamRecord,
   HarnessAgentStreamPart,
   HarnessAgentStreamWriter,
@@ -25,7 +26,7 @@ function encodeRecord(options: {
   record: HarnessAgentStreamRecord;
 }): string {
   const { record } = options;
-  if ('withdraw' in record) {
+  if (Object.hasOwn(record, 'withdraw')) {
     return (
       JSON.stringify({
         version: STREAM_RECORD_VERSION,
@@ -33,16 +34,20 @@ function encodeRecord(options: {
       }) + '\n'
     );
   }
-  return (
-    JSON.stringify({
-      version: STREAM_RECORD_VERSION,
-      part: jsonEncodeSerializableValue({
-        value: record.part as unknown as SerializableValue,
-      }),
-      ...(record.startId != null ? { startId: record.startId } : {}),
-      ...(record.key != null ? { key: record.key } : {}),
-    }) + '\n'
-  );
+  const encoded: {
+    version: number;
+    part: JSONValue;
+    startId?: string;
+    key?: string;
+  } = {
+    version: STREAM_RECORD_VERSION,
+    part: jsonEncodeSerializableValue({
+      value: record.part as SerializableValue,
+    }),
+  };
+  if (record.startId != null) encoded.startId = record.startId;
+  if (record.key != null) encoded.key = record.key;
+  return JSON.stringify(encoded) + '\n';
 }
 
 /**
@@ -125,11 +130,10 @@ export function createStreamWriter(options: {
 
   return {
     emit({ part, startId, key }) {
-      push({
-        part,
-        ...(startId != null ? { startId } : {}),
-        ...(key != null ? { key } : {}),
-      });
+      const record: HarnessAgentStreamPartRecord = { part };
+      if (startId != null) record.startId = startId;
+      if (key != null) record.key = key;
+      push(record);
     },
 
     unsafeEmit(part) {
@@ -208,11 +212,12 @@ export async function decodeStreamRecords(options: {
     ) {
       throw new Error('HarnessAgentStream: invalid stream part.');
     }
-    records.push({
-      part: part as unknown as HarnessAgentStreamPart,
-      ...(startId !== undefined ? { startId: startId as string } : {}),
-      ...(key !== undefined ? { key: key as string } : {}),
-    });
+    const record: HarnessAgentStreamPartRecord = {
+      part: part as HarnessAgentStreamPart,
+    };
+    if (startId !== undefined) record.startId = startId as string;
+    if (key !== undefined) record.key = key as string;
+    records.push(record);
   }
   return records;
 }

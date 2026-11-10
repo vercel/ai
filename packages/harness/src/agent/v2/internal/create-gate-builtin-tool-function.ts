@@ -19,6 +19,7 @@ import type {
   HarnessV2EffectError,
   HarnessV2EffectOutput,
 } from '../../../v2/harness-v2-effect';
+import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
 import type {
   HarnessAgentEffectFunction,
   HarnessAgentGateBuiltinToolFunction,
@@ -106,7 +107,7 @@ function formatRecordedValue(options: {
 }): string {
   const { value } = options;
   const raw =
-    value != null && typeof value === 'object' && 'raw' in value
+    value != null && typeof value === 'object' && Object.hasOwn(value, 'raw')
       ? value.raw
       : value;
   try {
@@ -131,7 +132,7 @@ function getRecordedReason(options: {
   if (output.type === 'interrupted') {
     const reason =
       'This call was interrupted in an earlier attempt and may or may not have taken effect.';
-    return 'partial' in output
+    return Object.hasOwn(output, 'partial')
       ? `${reason}\nPartial output before the interruption: ${formatRecordedValue({ value: output.partial })}`
       : reason;
   }
@@ -203,14 +204,15 @@ function emitToolResult(options: {
 }): void {
   const { context, toolCallId, toolName, result, isError, preliminary } =
     options;
-  context.emit({
+  const part: HarnessV2ToolResult = {
     type: 'tool-result',
     toolCallId,
     toolName,
     result,
-    ...(isError ? { isError: true } : {}),
-    ...(preliminary ? { preliminary: true } : {}),
-  });
+  };
+  if (isError) part.isError = true;
+  if (preliminary) part.preliminary = true;
+  context.emit(part);
 }
 
 /**
@@ -424,7 +426,7 @@ export function createGateBuiltinToolFunction(options: {
           toolCallId,
           toolName,
           result: report.value.raw,
-          ...(report.type === 'partial' ? { preliminary: true } : {}),
+          preliminary: report.type === 'partial',
         });
         /*
          * The cast is needed because `ToolResultOutput` contains interfaces,

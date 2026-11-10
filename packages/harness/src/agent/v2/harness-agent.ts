@@ -338,7 +338,7 @@ function assertCallOptionsSerializable(options: { callOptions: object }): void {
     );
     if (
       descriptor == null ||
-      !('value' in descriptor) ||
+      !Object.hasOwn(descriptor, 'value') ||
       !isHarnessSerializableValue({
         value: descriptor.value,
         ancestors: new WeakSet(),
@@ -417,7 +417,7 @@ function isHarnessSerializableValue(options: {
         const descriptor = Object.getOwnPropertyDescriptor(value, key);
         return (
           descriptor != null &&
-          'value' in descriptor &&
+          Object.hasOwn(descriptor, 'value') &&
           isHarnessSerializableValue({ value: descriptor.value, ancestors })
         );
       });

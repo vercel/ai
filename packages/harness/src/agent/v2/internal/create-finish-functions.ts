@@ -1,9 +1,15 @@
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type {
+  HarnessV2FinishReason,
+  HarnessV2Metadata,
+  HarnessV2Usage,
+} from '../../../v2/harness-v2-stream-part';
+import type {
   HarnessAgentFinishStepFunction,
   HarnessAgentFinishTurnFunction,
   HarnessAgentLog,
   HarnessAgentLogEvent,
+  HarnessAgentStreamPart,
   HarnessAgentStreamWriter,
 } from './types';
 
@@ -239,28 +245,26 @@ export function createFinishFunctions(options: {
         }
 
         const id = `finish-step:${submissionId}:${stepNumber}`;
-        const appended = await log.append({
+        const data: {
+          submissionId: string;
+          stepNumber: number;
+          finishReason: HarnessV2FinishReason;
+          usage: HarnessV2Usage;
+          harnessMetadata?: HarnessV2Metadata;
+        } = { submissionId, stepNumber, finishReason, usage };
+        const part: Extract<HarnessAgentStreamPart, { type: 'finish-step' }> = {
           type: 'finish-step',
-          id,
-          data: {
-            submissionId,
-            stepNumber,
-            finishReason,
-            usage,
-            ...(harnessMetadata != null ? { harnessMetadata } : {}),
-          },
-        });
+          finishReason,
+          usage,
+        };
+        if (harnessMetadata != null) {
+          data.harnessMetadata = harnessMetadata;
+          part.harnessMetadata = harnessMetadata;
+        }
+        const appended = await log.append({ type: 'finish-step', id, data });
         checkState();
         if (appended) {
-          writer.emit({
-            part: {
-              type: 'finish-step',
-              finishReason,
-              usage,
-              ...(harnessMetadata != null ? { harnessMetadata } : {}),
-            },
-            key: id,
-          });
+          writer.emit({ part, key: id });
         }
       });
     },
@@ -275,27 +279,25 @@ export function createFinishFunctions(options: {
         if (finishedTurns.has(submissionId)) return;
 
         const id = `finish-turn:${submissionId}`;
-        const appended = await log.append({
-          type: 'finish-turn',
-          id,
-          data: {
-            submissionId,
-            finishReason,
-            totalUsage,
-            ...(harnessMetadata != null ? { harnessMetadata } : {}),
-          },
-        });
+        const data: {
+          submissionId: string;
+          finishReason: HarnessV2FinishReason;
+          totalUsage: HarnessV2Usage;
+          harnessMetadata?: HarnessV2Metadata;
+        } = { submissionId, finishReason, totalUsage };
+        const part: Extract<HarnessAgentStreamPart, { type: 'finish' }> = {
+          type: 'finish',
+          finishReason,
+          totalUsage,
+        };
+        if (harnessMetadata != null) {
+          data.harnessMetadata = harnessMetadata;
+          part.harnessMetadata = harnessMetadata;
+        }
+        const appended = await log.append({ type: 'finish-turn', id, data });
         checkState();
         if (appended) {
-          writer.emit({
-            part: {
-              type: 'finish',
-              finishReason,
-              totalUsage,
-              ...(harnessMetadata != null ? { harnessMetadata } : {}),
-            },
-            key: id,
-          });
+          writer.emit({ part, key: id });
         }
       });
     },

@@ -101,24 +101,20 @@ describe('HarnessAgent', () => {
     const world = {} as World;
     const agent = new HarnessAgent({ harness, world, getSandboxSession });
 
-    expect((agent as unknown as { world: World | undefined }).world).toBe(
-      world,
-    );
+    expect(agent['world']).toBe(world);
   });
 
   test('uses an in-memory world when no world is provided', () => {
     const agent = new HarnessAgent({ harness, getSandboxSession });
 
-    expect((agent as unknown as { world: World }).world).toBeInstanceOf(
-      InMemoryWorld,
-    );
+    expect(agent['world']).toBeInstanceOf(InMemoryWorld);
   });
 
   test('stores an explicitly provided in-memory world', () => {
     const world = new InMemoryWorld();
     const agent = new HarnessAgent({ harness, world, getSandboxSession });
 
-    expect((agent as unknown as { world: World }).world).toBe(world);
+    expect(agent['world']).toBe(world);
   });
 
   test.each([
@@ -136,9 +132,7 @@ describe('HarnessAgent', () => {
         sandboxConfig: { workDir },
       });
 
-      expect(
-        (agent as unknown as { sandboxConfig: object }).sandboxConfig,
-      ).toEqual({ workDir: expected });
+      expect(agent['sandboxConfig']).toEqual({ workDir: expected });
     },
   );
 
@@ -160,9 +154,7 @@ describe('HarnessAgent', () => {
       sandboxConfig: {},
     });
 
-    expect(
-      (agent as unknown as { sandboxConfig: object }).sandboxConfig,
-    ).toEqual({});
+    expect(agent['sandboxConfig']).toEqual({});
   });
 
   test.each(['bootstrapHash', 'onBootstrap', 'onSession'])(

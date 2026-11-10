@@ -86,7 +86,9 @@ async function readParts(options: { world: InMemoryWorld }) {
   const records: HarnessAgentStreamRecord[] = await decodeStreamRecords({
     text: data.map(chunk => new TextDecoder().decode(chunk.data)).join(''),
   });
-  return records.flatMap(record => ('part' in record ? [record.part] : []));
+  return records.flatMap(record =>
+    Object.hasOwn(record, 'part') ? [record.part] : [],
+  );
 }
 
 /**
@@ -470,6 +472,7 @@ describe('createGateBuiltinToolFunction', () => {
     await expect(
       gateBuiltinTool({
         ...call,
+        // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- intentionally invalid value for a runtime validation test.
         input: { when: new Date() } as unknown as JSONValue,
       }),
     ).rejects.toThrow(
@@ -483,6 +486,7 @@ describe('createGateBuiltinToolFunction', () => {
     const approved = getApproved(await gateBuiltinTool(call));
 
     await expect(
+      // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- intentionally invalid value for a runtime validation test.
       approved.partial({ raw: new Date() as unknown as JSONValue }),
     ).rejects.toThrow(
       'HarnessAgent.gateBuiltinTool: `raw` must be a JSON value.',
@@ -492,6 +496,7 @@ describe('createGateBuiltinToolFunction', () => {
         raw: 'value',
         modelOutput: {
           type: 'json',
+          // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- intentionally invalid value for a runtime validation test.
           value: (() => {}) as unknown as JSONValue,
         },
       }),

@@ -65,7 +65,7 @@ type LogListener = {
   /**
    * Event-type allowlist and denylist applied before callback invocation.
    */
-  config: HarnessAgentLogListenerConfig | undefined;
+  config?: HarnessAgentLogListenerConfig;
   /**
    * Whether this registration still accepts events.
    */
@@ -142,7 +142,7 @@ function isListenerInterested(options: {
   /**
    * Listener's optional event-type allowlist and denylist.
    */
-  config: HarnessAgentLogListenerConfig | undefined;
+  config?: HarnessAgentLogListenerConfig;
   /**
    * Event to compare against the listener's configured filters.
    */
@@ -269,7 +269,7 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
     /**
      * Opaque continuation cursor supplied by the World.
      */
-    nextCursor?: string | null;
+    nextCursor?: string;
   }): Promise<void> {
     let nextPosition = position;
     const decoded: LogRecord[] = [];
@@ -307,7 +307,10 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
         resolveData: 'all',
       });
       const previousCursor = cursor;
-      await foldPage({ events: page.data, nextCursor: page.cursor });
+      await foldPage({
+        events: page.data,
+        nextCursor: page.cursor ?? undefined,
+      });
       if (!page.hasMore) return;
       if (cursor === previousCursor || page.cursor == null)
         throw new Error('HarnessAgentLog: World pagination did not advance.');

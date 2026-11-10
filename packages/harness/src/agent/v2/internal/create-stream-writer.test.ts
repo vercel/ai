@@ -185,6 +185,7 @@ describe('createStreamWriter', () => {
     expect(() =>
       writer.unsafeEmit({
         type: 'raw',
+        // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- intentionally invalid value for a runtime validation test.
         rawValue: (() => {}) as unknown as SerializableValue,
       }),
     ).toThrow(TypeError);

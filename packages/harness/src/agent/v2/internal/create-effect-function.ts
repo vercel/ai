@@ -85,11 +85,15 @@ function canRetry(attempt: EffectRecord): boolean {
  * progress. Progress presence is independent of whether its value is undefined.
  */
 function interruption(attempt: EffectRecord): HarnessV2EffectOutput {
-  return {
-    type: 'interrupted',
-    retryable: attempt.start.data.replay === 'safe',
-    ...(attempt.progress ? { partial: attempt.progress.data.partial } : {}),
-  };
+  const retryable = attempt.start.data.replay === 'safe';
+  if (attempt.progress) {
+    return {
+      type: 'interrupted',
+      retryable,
+      partial: attempt.progress.data.partial,
+    };
+  }
+  return { type: 'interrupted', retryable };
 }
 
 /**

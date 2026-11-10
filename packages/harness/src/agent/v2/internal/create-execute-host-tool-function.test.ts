@@ -31,7 +31,7 @@ afterEach(() => {
 
 const runId = 'host-tool-session';
 
-const sandboxSession = { id: 'sandbox' } as unknown as SandboxSession;
+const sandboxSession = { description: 'sandbox' } as SandboxSession;
 
 /**
  * Creates `executeHostTool()` for a new drive on the given session log.
@@ -97,7 +97,7 @@ async function readStream(options: {
  */
 async function readParts(options: { world: InMemoryWorld }) {
   return (await readStream(options)).flatMap(record =>
-    'part' in record ? [record.part] : [],
+    Object.hasOwn(record, 'part') ? [record.part] : [],
   );
 }
 
@@ -530,6 +530,7 @@ describe('createExecuteHostToolFunction', () => {
     await expect(
       executeHostTool({
         ...call,
+        // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- intentionally invalid value for a runtime validation test.
         input: { city: new Date() } as unknown as JSONValue,
       }),
     ).rejects.toThrow(

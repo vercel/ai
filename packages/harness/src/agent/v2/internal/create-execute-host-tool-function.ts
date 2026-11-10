@@ -21,6 +21,7 @@ import type {
 } from '../../../v2/harness-v2-drive-context';
 import type { HarnessV2EffectContext } from '../../../v2/harness-v2-effect';
 import type { HarnessV2NetworkSandboxSession } from '../../../v2/harness-v2-network-sandbox-session';
+import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
 import type {
   HarnessAgentEffectFunction,
   HarnessAgentExecuteHostToolFunction,
@@ -156,7 +157,7 @@ export function createExecuteHostToolFunction(options: {
     /**
      * The called tool, if it is one of the agent's own tools.
      */
-    tool: Tool | undefined;
+    tool?: Tool;
 
     /**
      * Context of the current effect attempt.
@@ -186,15 +187,16 @@ export function createExecuteHostToolFunction(options: {
        */
       preliminary?: boolean;
     }): void {
-      context.emit({
+      const part: HarnessV2ToolResult = {
         type: 'tool-result',
         toolCallId,
         toolName,
         result: options.result,
-        ...(options.isError ? { isError: true } : {}),
-        ...(options.preliminary ? { preliminary: true } : {}),
-        ...(dynamic ? { dynamic: true } : {}),
-      });
+      };
+      if (options.isError) part.isError = true;
+      if (options.preliminary) part.preliminary = true;
+      if (dynamic) part.dynamic = true;
+      context.emit(part);
     }
 
     try {

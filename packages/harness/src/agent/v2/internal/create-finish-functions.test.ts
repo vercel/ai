@@ -133,7 +133,7 @@ async function readStreamKeys(options: {
   writer: HarnessAgentStreamWriter;
 }) {
   return (await readStream(options)).map(record =>
-    'key' in record ? record.key : undefined,
+    Object.hasOwn(record, 'key') ? record.key : undefined,
   );
 }
 

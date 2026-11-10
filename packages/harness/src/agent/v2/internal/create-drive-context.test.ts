@@ -106,7 +106,21 @@ function createSandboxSession(options?: {
     const exitCode = options?.mkdirExitCode ?? 0;
     return { exitCode, stdout: '', stderr: exitCode === 0 ? '' : 'denied' };
   });
-  return { sandboxSession: { run } as unknown as SandboxSession, run };
+  const sandboxSession: SandboxSession = {
+    description: 'mock sandbox',
+    readFile: vi.fn(),
+    readBinaryFile: vi.fn(),
+    readTextFile: vi.fn(),
+    writeFile: vi.fn(),
+    writeBinaryFile: vi.fn(),
+    writeTextFile: vi.fn(),
+    stat: vi.fn(),
+    listDirectory: vi.fn(),
+    deleteFile: vi.fn(),
+    spawn: vi.fn(),
+    run,
+  };
+  return { sandboxSession, run };
 }
 
 async function setup(options?: {
@@ -141,13 +155,11 @@ async function setup(options?: {
     flush: vi.fn(async () => {}),
     close: vi.fn(async () => {}),
   } satisfies HarnessAgentStreamWriter;
-  const effect = vi.fn() as unknown as HarnessAgentEffectFunction;
-  const executeHostTool =
-    vi.fn() as unknown as HarnessAgentExecuteHostToolFunction;
-  const gateBuiltinTool =
-    vi.fn() as unknown as HarnessAgentGateBuiltinToolFunction;
-  const finishStep = vi.fn() as unknown as HarnessAgentFinishStepFunction;
-  const finishTurn = vi.fn() as unknown as HarnessAgentFinishTurnFunction;
+  const effect: HarnessAgentEffectFunction = vi.fn();
+  const executeHostTool: HarnessAgentExecuteHostToolFunction = vi.fn();
+  const gateBuiltinTool: HarnessAgentGateBuiltinToolFunction = vi.fn();
+  const finishStep: HarnessAgentFinishStepFunction = vi.fn();
+  const finishTurn: HarnessAgentFinishTurnFunction = vi.fn();
   const context = createDriveContext({
     session,
     log,
@@ -160,8 +172,8 @@ async function setup(options?: {
     harnessId: 'mock-harness',
     workDir: options?.workDir,
     abortSignal: abortController.signal,
-    yieldRequested: yieldController.signal,
-    ...(options?.deadline != null ? { deadline: options.deadline } : {}),
+    yieldAbortSignal: yieldController.signal,
+    deadline: options?.deadline,
   });
   return {
     log,
@@ -201,14 +213,14 @@ describe('createDriveContext', () => {
     expect(context.finishStep).toBe(finishStep);
     expect(context.finishTurn).toBe(finishTurn);
     expect(context.abortSignal).toBe(abortController.signal);
-    expect(context.yieldRequested).toBe(yieldController.signal);
+    expect(context.yieldAbortSignal).toBe(yieldController.signal);
   });
 
   test('includes the deadline only when provided', async () => {
     const withoutDeadline = await setup();
     const withDeadline = await setup({ deadline: 1234 });
 
-    expect('deadline' in withoutDeadline.context).toBe(false);
+    expect(Object.hasOwn(withoutDeadline.context, 'deadline')).toBe(false);
     expect(withDeadline.context.deadline).toBe(1234);
   });
 
@@ -245,6 +257,7 @@ describe('createDriveContext', () => {
       expect(
         (
           await context.log.read({
+            // oxlint-disable-next-line ai-sdk/no-as-unknown-as -- intentionally invalid value for a runtime validation test.
             types: [
               'effect-progress',
             ] as unknown as HarnessV2LogEvent['type'][],
@@ -379,7 +392,7 @@ describe('createDriveContext', () => {
       const { sandboxSession, run } = createSandboxSession();
       const networkSession = Object.assign(sandboxSession, {
         defaultWorkingDirectory: '/vercel/sandbox',
-      }) as unknown as HarnessV2NetworkSandboxSession;
+      }) as HarnessV2NetworkSandboxSession;
       const { context } = await setup({ sandboxSession: networkSession });
 
       const result = await context.sandbox();

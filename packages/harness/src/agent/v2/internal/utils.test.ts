@@ -25,7 +25,7 @@ describe('isPlainJSONValue', () => {
     expect(isPlainJSONValue({ value: new Date() })).toBe(false);
     expect(isPlainJSONValue({ value: new (class Value {})() })).toBe(false);
     expect(isPlainJSONValue({ value: [1n] })).toBe(false);
-    const cyclic: Record<string, unknown> = {};
+    const cyclic: Record<string, unknown> = Object.create(null);
     cyclic.self = cyclic;
     expect(isPlainJSONValue({ value: cyclic })).toBe(false);
   });
