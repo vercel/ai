@@ -207,6 +207,9 @@
       "path": "../../packages/sandbox-vercel"
     },
     {
+      "path": "../../packages/siliconflow"
+    },
+    {
       "path": "../../packages/togetherai"
     },
     {
