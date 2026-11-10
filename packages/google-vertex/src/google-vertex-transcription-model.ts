@@ -1,4 +1,8 @@
-import type { SharedV3Warning, TranscriptionModelV3 } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  type SharedV3Warning,
+  type TranscriptionModelV3,
+} from '@ai-sdk/provider';
 import {
   lazySchema,
   zodSchema,
@@ -91,6 +95,16 @@ export class GoogleVertexTranscriptionModel implements TranscriptionModelV3 {
     }
 
     const region = googleOptions?.region ?? this.config.location;
+    // Compare the full match because `$` also matches before a final newline.
+    if (
+      /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.exec(region)?.[0] !== region
+    ) {
+      throw new InvalidArgumentError({
+        argument: googleOptions?.region != null ? 'region' : 'location',
+        message:
+          'Invalid Google Cloud Speech-to-Text region. Expected a single DNS label (letters, digits, and hyphens).',
+      });
+    }
     const languageCodes = googleOptions?.languageCodes ?? ['auto'];
 
     // The recognize API takes base64-encoded audio in the `content` field. A
@@ -124,6 +138,13 @@ export class GoogleVertexTranscriptionModel implements TranscriptionModelV3 {
     const url =
       `https://${host}/v2/projects/` +
       `${this.config.project}/locations/${region}/recognizers/_:recognize`;
+
+    if (new URL(url).origin !== `https://${host.toLowerCase()}`) {
+      throw new InvalidArgumentError({
+        argument: googleOptions?.region != null ? 'region' : 'location',
+        message: 'Invalid Google Cloud Speech-to-Text endpoint origin.',
+      });
+    }
 
     const {
       value: response,
