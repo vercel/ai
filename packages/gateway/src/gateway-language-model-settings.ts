@@ -106,6 +106,7 @@ export type GatewayModelId =
   | 'google/gemini-3.7-flash'
   | 'google/gemini-3.8-flash'
   | 'google/gemini-4-argon'
+  | 'google/gemini-4-carbon'
   | 'google/gemini-nano-banana-2.1'
   | 'google/gemini-omni-1.2-flash'
   | 'google/gemini-omni-flash-preview'
