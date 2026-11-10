@@ -105,7 +105,28 @@ Settings:
   credentials the harness adapter can discover, read, or otherwise access in
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
+- `strictMcpConfig`: only use the servers from `mcpServers` and ignore other
+  MCP configuration, such as a project `.mcp.json` or user settings.
+- `autoMode`: requests Claude Code's classifier-based `auto` permission mode
+  for `allow-reads` and `allow-edits`. Defaults to `false`. `allow-all` still
+  uses `bypassPermissions`. See [Auto Permission Mode](#auto-permission-mode).
+- `toolHints`: Claude Code hints for host tools, keyed by tool name.
+  `readOnly: true` marks a tool without side effects, so Claude Code can run
+  its calls in parallel and allows it in plan mode; calls to other host tools
+  run one at a time. `alwaysLoad: true` sends the tool's definition from the
+  first request when Claude Code's tool search is on, instead of deferring it
+  until the model looks it up.
 - `maxTurns`: maximum internal turns before yielding.
+- `skillOverrides`: per-skill visibility overrides. Values can be `on`,
+  `name-only`, `user-invocable-only`, or `off`.
+- `maxBudgetUsd`: maximum estimated spend in USD for each Claude query. When it
+  is exceeded, the query stops and the turn ends with an error.
+- `questionTimeoutMs`: maximum time in milliseconds Claude waits for an answer
+  to an `AskUserQuestion` question before the question fails. Defaults to the
+  Claude Code default.
+- `excludeDynamicSections`: moves per-session sections (working directory,
+  memory, git status) out of the Claude Code system prompt into the first user
+  message, so the system prompt can be cached across sessions.
 - `agentProgressSummaries`: enables periodic AI-generated summaries for running
   sub-agents. Summaries are available on raw `task_progress` stream parts.
 - `forwardSubagentText`: forwards sub-agent text and thinking messages as raw
@@ -118,6 +139,14 @@ Settings:
   `{ type: 'adaptive', display: 'summarized' }`.
 - `port`: bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the bridge to start.
+- `turnStartTimeoutMs`: maximum time from submitting a turn's start to its first
+  bridge event, defaulting to 120 seconds. If no event arrives, the turn fails
+  and the connection closes. This is not a timeout on the complete turn.
+- `hostDisconnectTimeoutMs`: aborts a running turn when the host disconnects
+  and no host reconnects within this many milliseconds. A suspended turn is
+  not aborted. When unset, a turn keeps running in the sandbox after its host
+  disconnects, including when the host process is gone for good, until the
+  turn finishes or the sandbox stops.
 - `reconnect`: reconnect timing after an established bridge WebSocket
   connection drops. `maxElapsedMs` controls the total retry window, including
   connection establishment and backoff delays, and defaults to 30 seconds.
@@ -125,10 +154,106 @@ Settings:
   2 seconds. These retries use exponential backoff and are separate from
   `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
   bridge endpoint is permanently unavailable.
-- `mintBridgeToken`: synchronous function that receives the sandbox id and
-  returns the bridge authentication token. By default, the adapter generates a
-  random 32-byte token. Custom implementations must return a suitably secret
-  token.
+  Pending turn starts are retried with the same identifier when the bridge
+  supports idempotent starts, so a dropped frame does not leave the turn
+  waiting forever or launch the agent twice. An older bridge that is still
+  waiting for a lost start causes the turn to fail instead of retrying unsafely.
+  A turn submitted while disconnected queues its start for first delivery on
+  reconnection; this first delivery also works with older bridges.
+- `onDebug`: callback for bridge connection lifecycle events:
+  `reconnect-attempt`, `reconnected`, and `reconnect-failed`. `reconnect-failed`
+  means the connection is closed for good, so a host that caches idle sessions
+  can detach and reattach before sending the next prompt. The `cause` of a
+  failed reconnect can contain connection details, so avoid logging it as is.
+- `mintBridgeToken`: deprecated and ignored. Passing it logs a warning. The
+  adapter generates a key pair for each bridge, passes only the public key into
+  the sandbox, and keeps the private key in host-side resume state.
+
+### Skill Overrides
+
+Use `skillOverrides` to control how named skills are exposed to Claude Code
+without changing shared user-level configuration. Values can be `'on'`,
+`'name-only'`, `'user-invocable-only'`, or `'off'`:
+
+```ts
+const harness = createClaudeCode({
+  skillOverrides: {
+    'update-config': 'off',
+    'fewer-permission-prompts': 'off',
+    'keybindings-help': 'off',
+    init: 'off',
+  },
+});
+```
+
+Skills without an override keep their Claude Code defaults, so other bundled
+skills such as `code-review`, `simplify`, and `claude-api` remain available
+when provided by the installed Claude Code runtime.
+
+## Auto Permission Mode
+
+Opt in to Claude Code's own permission classifier with an adapter setting:
+
+```ts
+const agent = new HarnessAgent({
+  harness: createClaudeCode({ autoMode: true }),
+  permissionMode: 'allow-reads', // or 'allow-edits'
+});
+```
+
+With `autoMode: true`, both `allow-reads` and `allow-edits` request Claude Code's
+`auto` mode instead of their usual deterministic edit, shell, and path approval
+rules. The adapter removes its blanket edit/shell ask rules and does not defer
+calls before classification. Claude Code approves or denies calls itself;
+every non-host tool call it escalates through `canUseTool` becomes a
+`tool-approval-request`, including reads that would normally be auto-approved.
+Answer these requests using the normal approval-response messages on the same
+session. Inactive built-in tool restrictions remain in place. Explicit Claude
+Code permission rules can still affect permission handling.
+
+Host-executed tools bypass the classifier through the adapter's
+`mcp__harness-tools__*` allowance. Their authorization is still controlled by
+`HarnessAgent`'s `toolApproval`. Other MCP servers do not receive this allowance.
+The built-in question tool retains its usual host question/answer handling.
+
+The setting defaults to `false` and has no effect with `allow-all` (including
+when `permissionMode` is omitted). Auto mode depends on Claude Code's
+provider/model eligibility; requesting it does not guarantee that it is active
+or that an unavailable mode falls back in a particular way. Observe the actual
+mode on raw stream parts:
+
+```ts
+for await (const part of result.stream) {
+  if (part.type === 'raw') {
+    const raw = part.rawValue as {
+      type?: string;
+      subtype?: string;
+      permissionMode?: string;
+    };
+    if (
+      raw.type === 'system' &&
+      (raw.subtype === 'init' || raw.subtype === 'status')
+    ) {
+      console.log('Effective Claude Code permission mode:', raw.permissionMode);
+    }
+  }
+}
+```
+
+The adapter forwards only `{ type, subtype, permissionMode }` from `init` and
+`status` messages, not the full session metadata. `permissionMode` is omitted
+when Claude Code does not report it on a message. These raw parts are
+available even when `autoMode` is disabled.
+
+<Note>
+  Auto-mode escalations wait in the running bridge process, unlike the default
+  deferred built-in approvals stored in Claude Code's transcript. Reconnecting
+  to that same running bridge can answer a pending escalation, but a bridge
+  restart, sandbox replacement, or turn cancellation does not preserve it as a
+  deferred call. Keep the bridge running while waiting for a decision.
+  Classifier decisions are not a security or filesystem sandbox boundary; opt in
+  only if they fit your application's permission policy.
+</Note>
 
 ## Structured Output
 
@@ -212,7 +337,27 @@ Additional Claude Code built-ins may also appear in `agent.tools` when they do
 not fit a common tool shape.
 
 Claude Code supports built-in tool approval requests when `permissionMode` is
-`allow-reads` or `allow-edits`.
+`allow-reads` or `allow-edits`. With the default `autoMode: false`, a call
+waiting for approval is kept in the Claude Code session, so an approval answered
+after a resume runs that same call, even in a new sandbox. Claude Code waits
+for one approval at a time, so parallel calls that need approval run one after
+another.
+
+With `autoMode: false`, file reads in these modes are automatically approved
+only within the session workdir or an active skill's directory. `allow-edits`
+automatically approves file changes only within the workdir. Paths outside
+those directories, including symlink targets, and paths that cannot be
+resolved require host approval.
+`allow-all` remains unrestricted. These approval rules are not a filesystem
+sandbox, and approved shell commands can access paths outside the workdir.
+
+## Known Limitations
+
+Claude Code does not allow toggling whether to discover project-level skills
+and `AGENTS.md` files individually from project-level configuration and hooks.
+Since the adapter disables reading project-level configuration and hooks for
+security reasons, it means Claude Code will not discover project-level skills
+and `AGENTS.md` instructions natively.
 
 ## Related
 

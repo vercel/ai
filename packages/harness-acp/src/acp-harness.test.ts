@@ -10,7 +10,7 @@ import { safeParseJSON, safeValidateTypes, tool } from '@ai-sdk/provider-utils';
 import * as fsPromises from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { createACP } from './acp-harness';
+import { createACP, type ACPHarnessSettings } from './acp-harness';
 import { serializeBuiltinTools } from './v1/acp-v1-harness';
 import { ACP_BRIDGE_CONFIGURATION_ENV } from './v1/bridge/acp-v1-bridge-environment';
 import type { ACPPermissionModeMapping } from './v1/acp-v1-settings';
@@ -23,6 +23,8 @@ const webSocketMocks = vi.hoisted(() => {
   }> = [];
   class FakeWebSocket {
     private readonly listeners = new Map<string, Set<Listener>>();
+    readonly sent: string[] = [];
+    private challengeSent = false;
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       calls.push({ url, headers: options?.headers });
@@ -55,7 +57,25 @@ const webSocketMocks = vi.hoisted(() => {
       return this;
     }
 
+    send(frame: string): void {
+      this.sent.push(frame);
+    }
+
     private emit(type: string, ...args: unknown[]): void {
+      if (
+        type === 'message' &&
+        !this.challengeSent &&
+        String(args[0]).includes('"bridge-hello"')
+      ) {
+        this.challengeSent = true;
+        this.emit(
+          'message',
+          JSON.stringify({
+            type: 'bridge-auth-challenge',
+            challenge: 'a'.repeat(64),
+          }),
+        );
+      }
       for (const listener of [...(this.listeners.get(type) ?? [])]) {
         listener(...args);
       }
@@ -223,7 +243,7 @@ vi.mock('node:fs/promises', async importOriginal => {
         return '// mock host tool MCP\n';
       if (path.endsWith('/bridge/package.json'))
         return '{"name":"@ai-sdk-harness-acp-bridge"}\n';
-      if (path.endsWith('/bridge/pnpm-lock.yaml'))
+      if (path.endsWith('/bridge/pnpm-lockfile.yaml'))
         return 'lockfileVersion: "9.0"\n';
       const readFile = actual.readFile as unknown as (
         ...args: unknown[]
@@ -263,6 +283,8 @@ const agentSettings = {
     type: 'session-config-option' as const,
     path: 'model',
   },
+  resolveHostToolCall: () => undefined,
+  isMcpToolCall: () => false,
 } as const;
 
 const permissionModeMapping = {
@@ -457,6 +479,194 @@ describe('createACP', () => {
     harnessUtilsMocks.connectOnOpen = false;
     webSocketMocks.calls.length = 0;
   });
+
+  it('awaits sandbox preparation after authentication files and before bridge startup', async () => {
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const writes: Array<{ path: string; content: string }> = [];
+    const sandboxSession = fakeSandbox({
+      runs: [],
+      spawns,
+      writes,
+      stop: async () => {},
+    });
+    const controller = new AbortController();
+    let release!: () => void;
+    const preparation = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    const prepareSandbox = vi.fn<
+      NonNullable<ACPHarnessSettings['prepareSandbox']>
+    >(() => preparation);
+    const harness = createACP({
+      harnessId: 'prepared-acp',
+      ...agentSettings,
+      authenticationFiles: () => [
+        { path: '.agent/auth.json', content: 'private-auth' },
+      ],
+      prepareSandbox,
+    });
+
+    const startup = harness.doStart({
+      sessionId: 'session-prepared',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+      abortSignal: controller.signal,
+    });
+    await vi.waitFor(() => expect(prepareSandbox).toHaveBeenCalledOnce());
+
+    expect(prepareSandbox).toHaveBeenCalledWith({
+      sandbox: sandboxSession.restricted(),
+      workDir: '/workspace/user-project',
+      abortSignal: controller.signal,
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.agent/auth.json',
+      content: 'private-auth',
+    });
+    expect(spawns).toEqual([]);
+    expect(harnessUtilsMocks.markBridgeStarting).not.toHaveBeenCalled();
+
+    release();
+    const session = await startup;
+    expect(spawns).toHaveLength(1);
+    expect(harnessUtilsMocks.markBridgeStarting).toHaveBeenCalledOnce();
+    await session.doDestroy();
+  });
+
+  it('supports synchronous preparation and skips it when reattaching to a live bridge', async () => {
+    const prepareSandbox = vi.fn(() => {});
+    const sandboxSession = fakeSandbox({
+      runs: [],
+      spawns: [],
+      stop: async () => {},
+    });
+    const harness = createACP({
+      harnessId: 'prepared-acp',
+      ...agentSettings,
+      prepareSandbox,
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-prepared',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const resumeFrom = await session.doDetach();
+    const resumed = await harness.doStart({
+      sessionId: 'session-prepared',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+      resumeFrom,
+    });
+
+    expect(prepareSandbox).toHaveBeenCalledOnce();
+    await resumed.doDestroy();
+  });
+
+  it.each([
+    [60_000, '60000'],
+    [undefined, undefined],
+  ])(
+    'passes hostDisconnectTimeoutMs %s to the bridge',
+    async (hostDisconnectTimeoutMs, expected) => {
+      const spawns: Array<{
+        command: string;
+        env: Record<string, string | undefined>;
+      }> = [];
+      const session = await createACP({
+        harnessId: 'timeout-acp',
+        ...agentSettings,
+        hostDisconnectTimeoutMs,
+      }).doStart({
+        sessionId: 'session-timeout',
+        sandboxSession: fakeSandbox({
+          runs: [],
+          spawns,
+          stop: async () => {},
+        }),
+        sessionWorkDir: '/workspace/user-project',
+      });
+
+      expect(
+        spawns
+          .at(0)
+          ?.command.match(/--host-disconnect-timeout-ms '?(\d+)'?/)?.[1],
+      ).toBe(expected);
+      await session.doDestroy();
+    },
+  );
+
+  it.each(['throw', 'reject'] as const)(
+    'does not start a bridge when sandbox preparation fails through %s',
+    async failureMode => {
+      const spawns: Array<{
+        command: string;
+        env: Record<string, string | undefined>;
+      }> = [];
+      const failure = new Error('Preparation failed.');
+      const harness = createACP({
+        harnessId: 'prepared-acp',
+        ...agentSettings,
+        prepareSandbox: () => {
+          if (failureMode === 'throw') throw failure;
+          return Promise.reject(failure);
+        },
+      });
+
+      await expect(
+        harness.doStart({
+          sessionId: 'session-prepared',
+          sandboxSession: fakeSandbox({
+            runs: [],
+            spawns,
+            stop: async () => {},
+          }),
+          sessionWorkDir: '/workspace/user-project',
+        }),
+      ).rejects.toBe(failure);
+      expect(spawns).toEqual([]);
+      expect(harnessUtilsMocks.markBridgeStarting).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['before', 'during'] as const)(
+    'does not start a bridge when startup is cancelled %s preparation',
+    async timing => {
+      const spawns: Array<{
+        command: string;
+        env: Record<string, string | undefined>;
+      }> = [];
+      const controller = new AbortController();
+      const failure = new Error('Cancelled startup.');
+      const prepareSandbox = vi.fn(() => {
+        controller.abort(failure);
+      });
+      if (timing === 'before') controller.abort(failure);
+      const harness = createACP({
+        harnessId: 'prepared-acp',
+        ...agentSettings,
+        prepareSandbox,
+      });
+
+      await expect(
+        harness.doStart({
+          sessionId: 'session-prepared',
+          sandboxSession: fakeSandbox({
+            runs: [],
+            spawns,
+            stop: async () => {},
+          }),
+          sessionWorkDir: '/workspace/user-project',
+          abortSignal: controller.signal,
+        }),
+      ).rejects.toBe(failure);
+      expect(prepareSandbox).toHaveBeenCalledTimes(timing === 'before' ? 0 : 1);
+      expect(spawns).toEqual([]);
+      expect(harnessUtilsMocks.markBridgeStarting).not.toHaveBeenCalled();
+    },
+  );
 
   it('translates ACP question requests and client results', async () => {
     const fromNativeRequest = vi.fn(
@@ -1661,6 +1871,201 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
+  it('resolves host tool calls through the adapter resolver', async () => {
+    const resolveHostToolCall = vi.fn(
+      ({
+        toolCall,
+        serverName,
+        toolNames,
+      }: {
+        toolCall: { rawInput?: unknown };
+        serverName: string;
+        toolNames: ReadonlyArray<string>;
+      }) => {
+        const rawInput = toolCall.rawInput as Record<string, unknown>;
+        return rawInput.server === serverName &&
+          toolNames.includes(rawInput.tool as string)
+          ? {
+              toolName: rawInput.tool as string,
+              input: rawInput.arguments as Record<string, unknown>,
+            }
+          : undefined;
+      },
+    );
+    const harness = createACP({
+      harnessId: 'codex-acp',
+      ...agentSettings,
+      resolveHostToolCall,
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Use the weather tool.',
+      emit: () => {},
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+
+    channel.emit({
+      type: 'acp-host-tool-call-resolution-request',
+      requestId: 'resolution-1',
+      toolCall: {
+        toolCallId: 'call-1',
+        title: 'mcp.ai-sdk-harness-tools.weather',
+        rawInput: {
+          server: 'ai-sdk-harness-tools',
+          tool: 'weather',
+          arguments: { city: 'Lima' },
+        },
+      },
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['weather'],
+    });
+    channel.emit({
+      type: 'acp-host-tool-call-resolution-request',
+      requestId: 'resolution-2',
+      toolCall: {
+        toolCallId: 'call-2',
+        title: 'Read README.md',
+        rawInput: { path: 'README.md' },
+      },
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['weather'],
+    });
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await control.done;
+
+    expect(resolveHostToolCall).toHaveBeenCalledWith({
+      toolCall: {
+        toolCallId: 'call-1',
+        title: 'mcp.ai-sdk-harness-tools.weather',
+        rawInput: {
+          server: 'ai-sdk-harness-tools',
+          tool: 'weather',
+          arguments: { city: 'Lima' },
+        },
+      },
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['weather'],
+    });
+    expect(
+      channel.sent.filter(
+        (message: unknown) =>
+          (message as { type?: string }).type === 'tool-result',
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "output": {
+            "hostToolCall": {
+              "input": {
+                "city": "Lima",
+              },
+              "toolName": "weather",
+            },
+          },
+          "toolCallId": "resolution-1",
+          "type": "tool-result",
+        },
+        {
+          "output": {
+            "hostToolCall": null,
+          },
+          "toolCallId": "resolution-2",
+          "type": "tool-result",
+        },
+      ]
+    `);
+    await session.doDestroy();
+  });
+
+  it.each([
+    {
+      name: 'unknown tool name',
+      resolveHostToolCall: () => ({ toolName: 'unknown', input: {} }),
+    },
+    {
+      name: 'non-object input',
+      resolveHostToolCall: () => ({
+        toolName: 'weather',
+        input: null as unknown as Record<string, unknown>,
+      }),
+    },
+    {
+      name: 'thrown error',
+      resolveHostToolCall: () => {
+        throw new Error('resolver failed');
+      },
+    },
+  ])(
+    'fails the turn when the host tool resolver has a $name',
+    async ({ resolveHostToolCall }) => {
+      const harness = createACP({
+        harnessId: 'codex-acp',
+        ...agentSettings,
+        resolveHostToolCall,
+      });
+      const session = await harness.doStart({
+        sessionId: 'session-1',
+        sandboxSession: fakeSandbox({
+          runs: [],
+          spawns: [],
+          stop: async () => {},
+        }),
+        sessionWorkDir: '/workspace/user-project',
+      });
+      const events: Array<{ type: string }> = [];
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Use the weather tool.',
+        emit: event => events.push(event),
+      });
+      const channel = harnessUtilsMocks.channels[0]!;
+      const done = Promise.resolve(control.done).catch(
+        (error: unknown) => error,
+      );
+
+      channel.emit({
+        type: 'acp-host-tool-call-resolution-request',
+        requestId: 'resolution-1',
+        toolCall: { toolCallId: 'call-1', title: 'Weather', rawInput: {} },
+        serverName: 'ai-sdk-harness-tools',
+        toolNames: ['weather'],
+      });
+
+      expect(await done).toBeInstanceOf(Error);
+      expect(events.map(event => event.type)).toContain('error');
+      expect(
+        channel.sent.filter(
+          (message: unknown) =>
+            (message as { type?: string }).type === 'tool-result' ||
+            (message as { type?: string }).type === 'abort',
+        ),
+      ).toEqual([
+        {
+          type: 'tool-result',
+          toolCallId: 'resolution-1',
+          output: { hostToolCall: null },
+        },
+        { type: 'abort' },
+      ]);
+      await session.doDestroy();
+    },
+  );
+
   it('reserves the host-tool MCP server name', () => {
     expect(() =>
       createACP({
@@ -1938,8 +2343,8 @@ describe('createACP', () => {
       },
     });
     expect(spawns[0].env.CODEX_API_KEY).toBe('test-key');
-    expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
-    expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).not.toBe('test-key');
+    expect(spawns[0].env.BRIDGE_AUTH_PUBLIC_KEY).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(spawns[0].env).not.toHaveProperty('BRIDGE_CHANNEL_TOKEN');
     expect(spawns[0].env.AI_SDK_ACP_GATEWAY_API_KEY).toBeUndefined();
     expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBe('ai-sdk-harness-acp');
     expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('0.0.0-test');
@@ -2005,7 +2410,7 @@ describe('createACP', () => {
     expect(resumeFrom.data).toMatchObject({
       bridge: {
         port: 4319,
-        token: expect.any(String),
+        privateKey: expect.any(String),
         lastSeenEventId: 0,
       },
     });
@@ -2014,37 +2419,51 @@ describe('createACP', () => {
     });
   });
 
-  it('requires a sandbox id for custom bridge token minting', async () => {
+  it('ignores a mintBridgeToken callback and warns once at creation', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mintBridgeToken = vi.fn((sandboxId: string) => sandboxId);
     const networkSession = fakeSandbox({
       runs: [],
       spawns: [],
       stop: async () => {},
     });
 
-    await expect(
-      createACP({
+    try {
+      const harness = createACP({
         harnessId: 'codex-acp',
         ...agentSettings,
         port: 4319,
         portEndpoint: { url: 'ws://127.0.0.1:4319' },
-        mintBridgeToken: sandboxId => sandboxId,
-      }).doStart({
+        mintBridgeToken,
+      });
+      const session = await harness.doStart({
         sessionId: 'session-1',
         sandboxSession: networkSession.restricted(),
         sessionWorkDir: '/workspace/user-project',
-      }),
-    ).rejects.toThrow(/does not expose an id/);
+      });
+      await session.doDetach();
+
+      expect(mintBridgeToken).not.toHaveBeenCalled();
+      expect(
+        warn.mock.calls.filter(([message]) =>
+          String(message).includes('mintBridgeToken'),
+        ),
+      ).toEqual([
+        [
+          'The codex-acp harness ignores the deprecated `mintBridgeToken` setting. Sandbox bridge authentication now uses an adapter-generated key pair.',
+        ],
+      ]);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
-  it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {
+  it('keeps the bridge private key on the host and passes endpoint headers when attaching', async () => {
     harnessUtilsMocks.connectOnOpen = true;
     const spawns: Array<{
       command: string;
       env: Record<string, string | undefined>;
     }> = [];
-    const mintBridgeToken = vi.fn(
-      (sandboxId: string) => `token-for-${sandboxId}`,
-    );
     const portEndpoint = {
       url: 'wss://sandbox.example/bridge?existing=value',
       headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
@@ -2057,7 +2476,6 @@ describe('createACP', () => {
     const harness = createACP({
       harnessId: 'codex-acp',
       ...agentSettings,
-      mintBridgeToken,
       portEndpoint,
       reconnect,
     });
@@ -2073,13 +2491,14 @@ describe('createACP', () => {
       sessionWorkDir: '/workspace/user-project',
     });
 
-    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('sandbox-1');
-    expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toBe('token-for-sandbox-1');
+    expect(spawns[0].env.BRIDGE_AUTH_PUBLIC_KEY).toMatch(/^[A-Za-z0-9_-]{43}$/);
 
     const resumeFrom = await session.doDetach();
-    expect(resumeFrom.data).toMatchObject({
-      bridge: { token: 'token-for-sandbox-1' },
-    });
+    const { privateKey } = (
+      resumeFrom.data as { bridge: { privateKey: string } }
+    ).bridge;
+    expect(privateKey).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(JSON.stringify(spawns)).not.toContain(privateKey);
 
     const attachedSession = await harness.doStart({
       sessionId: 'session-1',
@@ -2087,17 +2506,16 @@ describe('createACP', () => {
       sessionWorkDir: '/workspace/user-project',
       resumeFrom,
     });
-    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
     expect(
       harnessUtilsMocks.channels.map(channel => channel.options.reconnect),
     ).toEqual([reconnect, reconnect]);
     expect(webSocketMocks.calls).toEqual([
       {
-        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
+        url: 'wss://sandbox.example/bridge?existing=value',
         headers: portEndpoint.headers,
       },
       {
-        url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
+        url: 'wss://sandbox.example/bridge?existing=value',
         headers: portEndpoint.headers,
       },
     ]);
@@ -2368,6 +2786,8 @@ describe('createACP', () => {
       executable: 'agent',
       args: ['--disable-auto-update', 'acp'],
       modelMapping: agentSettings.modelMapping,
+      resolveHostToolCall: agentSettings.resolveHostToolCall,
+      isMcpToolCall: agentSettings.isMcpToolCall,
     });
     const session = await harness.doStart({
       sessionId: 'session-1',
@@ -2724,7 +3144,7 @@ describe('createACP', () => {
       acpSessionId: 'acp-session-1',
       bridge: {
         port: 4319,
-        token: expect.stringMatching(/^[a-f0-9]{64}$/),
+        privateKey: expect.stringMatching(/^[A-Za-z0-9_-]+$/),
         lastSeenEventId: 17,
         sandboxId: 'sandbox-1',
       },
@@ -2794,8 +3214,10 @@ describe('createACP', () => {
       writes,
       stop,
     });
+    const prepareSandbox = vi.fn(async () => {});
     const harness = createACP({
       harnessId: 'cold-gateway-acp',
+      prepareSandbox,
       auth: 'ai-gateway',
       ...agentSettings,
       forwardEnv: [],
@@ -2895,6 +3317,7 @@ describe('createACP', () => {
     });
     const resumedChannel = harnessUtilsMocks.channels[1]!;
     const restoreFrame = resumedChannel.sent[0];
+    expect(prepareSandbox).toHaveBeenCalledTimes(2);
     expect(restoreFrame).toMatchObject({
       type: 'start',
       prompt: [],
@@ -3436,9 +3859,11 @@ describe('createACP', () => {
       files,
       stop: async () => {},
     });
+    const prepareSandbox = vi.fn(async () => {});
     const harness = createACP({
       harnessId: 'codex-acp',
       ...agentSettings,
+      prepareSandbox,
     });
     const initialSession = await harness.doStart({
       sessionId: 'session-replay',
@@ -3486,6 +3911,7 @@ describe('createACP', () => {
     });
     const replayChannel = harnessUtilsMocks.channels[2]!;
     expect(spawns).toHaveLength(2);
+    expect(prepareSandbox).toHaveBeenCalledTimes(2);
     expect(spawns[1]!.env.BRIDGE_REPLAY_FROM_DISK).toBe('1');
     expect(replayChannel.options.initialLastSeenEventId).toBe(10);
     expect(replayChannel.openOptions).toEqual({ resume: true });
@@ -4664,7 +5090,7 @@ describe('createACP', () => {
     );
     expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBe('custom-client');
     expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('1.2.3');
-    expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).not.toBe('gateway-key');
+    expect(spawns[0].env.BRIDGE_AUTH_PUBLIC_KEY).not.toBe('gateway-key');
     expect(spawns[0].env.CODEX_API_KEY).toBeUndefined();
 
     await session.doDestroy();
@@ -4870,5 +5296,19 @@ describe('createACP', () => {
     ).rejects.toThrow(
       'ACP lifecycle state is incompatible with the configured agent.',
     );
+  });
+
+  it('rejects lifecycle state with a legacy bridge token', async () => {
+    const harness = createACP({ harnessId: 'codex-acp', ...agentSettings });
+
+    const result = await safeValidateTypes({
+      value: {
+        agentIdentity: 'agent',
+        bridge: { port: 4319, token: 'legacy-token', lastSeenEventId: 0 },
+      },
+      schema: harness.lifecycleStateSchema!,
+    });
+
+    expect(result.success).toBe(false);
   });
 });

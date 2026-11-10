@@ -2,8 +2,76 @@
  * Integration test workflows for WorkflowAgent telemetry.
  */
 import { getWritable } from 'workflow';
-import { mockTextModel } from '../providers/mock.js';
+import { jsonSchema, withTelemetryRedaction } from '@ai-sdk/provider-utils';
+import { tool } from 'ai';
+import { z } from 'zod/v4';
+import { mockSequenceModel, mockTextModel } from '../providers/mock.js';
 import { WorkflowAgent } from '../workflow-agent.js';
+
+async function addNumbers(input: { a: number; b: number }): Promise<number> {
+  'use step';
+  return input.a + input.b;
+}
+
+export async function agentWithRedactedProviderTools(
+  mode: 'generate' | 'stream',
+) {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockTextModel('done'),
+    tools: {
+      remote: tool({
+        type: 'provider',
+        id: 'test.remote',
+        isProviderExecuted: true,
+        args: withTelemetryRedaction(
+          { credential: 'workflow-test-secret', region: 'test' },
+          value => ({ ...value, credential: '[redacted]' }),
+        ),
+        inputSchema: jsonSchema({ type: 'object', properties: {} }),
+      }),
+    },
+  });
+  const result =
+    mode === 'generate'
+      ? await agent.generate({ prompt: 'hello' })
+      : await agent.stream({ prompt: 'hello', writable: getWritable() });
+  return result.steps.at(-1)?.text;
+}
+
+/**
+ * Two model calls (a tool call, then text) for
+ * https://github.com/vercel/ai/issues/23618.
+ */
+export async function agentToolLoopWithGlobalTelemetry(a: number, b: number) {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'addNumbers',
+        input: JSON.stringify({ a, b }),
+      },
+      { type: 'text', text: `The sum is ${a + b}` },
+    ]),
+    tools: {
+      addNumbers: {
+        description: 'Add two numbers',
+        inputSchema: z.object({ a: z.number(), b: z.number() }),
+        execute: addNumbers,
+      },
+    },
+    telemetry: { functionId: 'issue-23618' },
+  });
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: `Add ${a} and ${b}` }],
+    writable: getWritable(),
+  });
+  return {
+    stepCount: result.steps.length,
+    text: result.steps.at(-1)?.text,
+  };
+}
 
 async function getGlobalTelemetryIntegrationCount(): Promise<number | null> {
   'use step';

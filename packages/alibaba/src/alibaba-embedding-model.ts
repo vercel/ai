@@ -1,9 +1,11 @@
+import { getAlibabaEmbeddingModelEntry } from './alibaba-model-catalog';
 import {
   TooManyEmbeddingValuesForCallError,
   UnsupportedFunctionalityError,
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -35,8 +37,14 @@ const alibabaEmbeddingFailedResponseHandler = createJsonErrorResponseHandler({
 export class AlibabaEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: AlibabaEmbeddingModelId;
-  readonly maxEmbeddingsPerCall = 10;
-  readonly supportsParallelCalls = false;
+  get maxEmbeddingsPerCall() {
+    return getAlibabaEmbeddingModelEntry(this.modelId).requestConfig.embedding
+      .maxEmbeddingsPerCall;
+  }
+  get supportsParallelCalls() {
+    return getAlibabaEmbeddingModelEntry(this.modelId).requestConfig.embedding
+      .supportsParallelCalls;
+  }
 
   private readonly config: AlibabaConfig;
 
@@ -102,7 +110,7 @@ export class AlibabaEmbeddingModel implements EmbeddingModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/services/embeddings/text-embedding/text-embedding`,
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         input: {

@@ -24,9 +24,9 @@ import {
   lazySchema,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
-  parseProviderOptions,
   postJsonToApi,
   resolve,
+  resolveProviderOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -51,6 +51,7 @@ import { getModelPath } from './get-model-path';
 import {
   getGoogleErrorSchema,
   googleFailedResponseHandler,
+  mapGoogleErrorStatusToHttpStatusCode,
 } from './google-error';
 import { sanitizeResponseJsonSchema } from './sanitize-response-json-schema';
 import {
@@ -58,7 +59,7 @@ import {
   type GoogleLanguageModelOptions,
   type GoogleModelId,
 } from './google-language-model-options';
-import { getGoogleModelCapabilities } from './google-model-capabilities';
+import { getGoogleLanguageModelEntry } from './google-model-catalog';
 import type { GoogleProviderMetadata } from './google-prompt';
 import { prepareTools } from './google-prepare-tools';
 import {
@@ -73,8 +74,6 @@ const configurableSafetySettingCategories = [
   'HARM_CATEGORY_HARASSMENT',
   'HARM_CATEGORY_SEXUALLY_EXPLICIT',
 ] as const;
-
-const gemini25ModelPattern = /(^|[/.])gemini-2\.5(?:[.-]|$)/i;
 
 const googleCloudStorageFunctionResponseUrls = {
   'image/png': [/^gs:\/\/.*$/],
@@ -180,25 +179,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       ? (['googleVertex', 'vertex'] as const)
       : (['google'] as const);
 
-    let googleOptions: GoogleLanguageModelOptions | undefined;
-    for (const name of providerOptionsNames) {
-      googleOptions = await parseProviderOptions({
-        provider: name,
+    // The first present namespace wins as a whole. A Vertex provider also
+    // falls back to the `google` key (e.g. via the AI Gateway).
+    const { options: googleOptions } =
+      await resolveProviderOptions<GoogleLanguageModelOptions>({
         providerOptions,
+        namespaces: [...providerOptionsNames, 'google'],
+        resolution: 'first',
         schema: googleLanguageModelOptions,
       });
-      if (googleOptions != null) break;
-    }
-
-    // Cross-namespace fallback: a Vertex provider may receive options under
-    // the `google` key (e.g. via the AI Gateway).
-    if (googleOptions == null && !providerOptionsNames.includes('google')) {
-      googleOptions = await parseProviderOptions({
-        provider: 'google',
-        providerOptions,
-        schema: googleLanguageModelOptions,
-      });
-    }
 
     // Add warning if Vertex rag tools are used with a non-Vertex Google provider
     const isVertexProvider = config.provider.startsWith('google.vertex.');
@@ -296,9 +285,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const isGemmaModel = modelId.toLowerCase().startsWith('gemma-');
+    const entry = getGoogleLanguageModelEntry(modelId);
+    const isGemmaModel =
+      entry.requestConfig.language.systemInstruction === 'user';
     const isGemini25DeveloperApiModel =
-      !isVertexProvider && gemini25ModelPattern.test(modelId);
+      !isVertexProvider &&
+      entry.capabilities.language.sampling.penalties !== true;
 
     if (isGemini25DeveloperApiModel && frequencyPenalty != null) {
       warnings.push({
@@ -313,7 +305,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const { usesGemini3Features } = getGoogleModelCapabilities(modelId);
+    const usesGemini3Features =
+      entry.capabilities.language.tools.functionResponseParts;
     const supportedFunctionResponseUrls =
       usesGemini3Features &&
       config.downloadToolResultFiles?.supportsGoogleCloudStorageUrls
@@ -465,7 +458,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     options: LanguageModelV4CallOptions,
     { isStreaming = false }: { isStreaming?: boolean } = {},
   ) {
-    const { responseFormat, tools, toolChoice } = options;
+    const { responseFormat, toolChoice } = options;
+    // Enforce the caller's tool choice before the JSON response fallback can
+    // replace it with a forced call to the synthetic response tool.
+    const tools =
+      toolChoice?.type === 'none'
+        ? options.tools?.filter(tool => tool.type === 'function')
+        : options.tools;
+    const entry = getGoogleLanguageModelEntry(this.modelId);
+    const { structuredOutput } = entry.capabilities.language;
     let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
     // Gemini models before Gemini 3 reject JSON response formatting together
     // with function tools. Gemini 3 supports the combination only with automatic
@@ -474,8 +475,8 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       tools?.some(tool => tool.type === 'function') &&
-      /(^|\/)gemini-/i.test(this.modelId) &&
-      (!getGoogleModelCapabilities(this.modelId).usesGemini3Features ||
+      entry.requestConfig.language.jsonResponseTool &&
+      (!structuredOutput.withFunctionTools ||
         toolChoice?.type === 'required' ||
         toolChoice?.type === 'tool')
     ) {
@@ -517,6 +518,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   static convertGenerateContentResponse({
     config,
     response,
+    responseHeaders,
     warnings,
     providerOptionsNames,
     toolNameMapping,
@@ -526,6 +528,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   }: {
     config: GoogleLanguageModelConfig;
     response: InferSchema<typeof responseSchema>;
+    responseHeaders?: Record<string, string>;
     warnings: SharedV4Warning[];
     providerOptionsNames: readonly string[];
     toolNameMapping?: ReturnType<typeof createToolNameMapping>;
@@ -729,7 +732,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         safetyRatings: candidate?.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
         finishMessage: candidate?.finishMessage ?? null,
-        serviceTier: usageMetadata?.serviceTier ?? null,
+        serviceTier:
+          usageMetadata?.serviceTier ??
+          responseHeaders?.['x-gemini-service-tier'] ??
+          null,
         ...(candidate?.continuationToken != null
           ? { continuationToken: candidate.continuationToken }
           : {}),
@@ -754,18 +760,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       jsonResponseToolName,
     } = await this.getArgs(options);
 
-    const mergedHeaders = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
-
-    const generateContent = (body: typeof args) =>
+    const generateContent = async (body: typeof args) =>
       postJsonToApi({
         url: `${this.config.baseURL}/${getModelPath(
           this.modelId,
         )}:generateContent`,
-        headers: mergedHeaders,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+          extraHeaders,
+        ),
         body,
         failedResponseHandler: googleFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(responseSchema),
@@ -833,6 +837,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const lastResult = GoogleLanguageModel.convertGenerateContentResponse({
       config: this.config,
       response: { ...response, usageMetadata },
+      responseHeaders,
       warnings,
       providerOptionsNames,
       toolNameMapping,
@@ -875,18 +880,16 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         providerOptionsNames.map(name => [name, payload]),
       ) as SharedV4ProviderMetadata;
 
-    const headers = combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
-      options.headers,
-      extraHeaders,
-    );
-
-    const streamGenerateContent = (body: typeof args) =>
+    const streamGenerateContent = async (body: typeof args) =>
       postJsonToApi({
         url: `${this.config.baseURL}/${getModelPath(
           this.modelId,
         )}:streamGenerateContent?alt=sse`,
-        headers,
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+          extraHeaders,
+        ),
         body,
         failedResponseHandler: googleFailedResponseHandler,
         successfulResponseHandler:
@@ -977,6 +980,19 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         return;
       }
 
+      // Finalized partial-argument calls also separate surrounding blocks.
+      if (currentTextBlockId !== null) {
+        controller.enqueue({ type: 'text-end', id: currentTextBlockId });
+        currentTextBlockId = null;
+      }
+      if (currentReasoningBlockId !== null) {
+        controller.enqueue({
+          type: 'reasoning-end',
+          id: currentReasoningBlockId,
+        });
+        currentReasoningBlockId = null;
+      }
+
       const { finalJSON, closingDelta } = active.accumulator.finalize();
 
       if (closingDelta.length > 0) {
@@ -1040,19 +1056,22 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             if (value.error != null) {
               finishReason = { unified: 'error', raw: undefined };
               const error = value.error;
+              const statusCode =
+                error.code ??
+                mapGoogleErrorStatusToHttpStatusCode(error.status);
               controller.enqueue({
                 type: 'error',
                 error: createProviderStreamError({
                   message: error.message,
                   type: error.status,
                   code: error.code ?? undefined,
-                  statusCode: error.code ?? undefined,
+                  statusCode,
                   isRetryable:
-                    error.code != null &&
-                    (error.code === 408 ||
-                      error.code === 409 ||
-                      error.code === 429 ||
-                      error.code >= 500),
+                    statusCode != null &&
+                    (statusCode === 408 ||
+                      statusCode === 409 ||
+                      statusCode === 429 ||
+                      statusCode >= 500),
                   data: error,
                 }),
               });
@@ -1178,16 +1197,40 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     : undefined;
 
                   if (part.text.length === 0) {
-                    if (
-                      thoughtSignatureMetadata != null &&
-                      currentTextBlockId !== null
-                    ) {
-                      controller.enqueue({
-                        type: 'text-delta',
-                        id: currentTextBlockId,
-                        delta: '',
-                        providerMetadata: thoughtSignatureMetadata,
-                      });
+                    if (thoughtSignatureMetadata != null) {
+                      if (currentTextBlockId !== null) {
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id: currentTextBlockId,
+                          delta: '',
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                      } else {
+                        if (currentReasoningBlockId !== null) {
+                          controller.enqueue({
+                            type: 'reasoning-end',
+                            id: currentReasoningBlockId,
+                          });
+                          currentReasoningBlockId = null;
+                        }
+
+                        // Keep the signature in position without merging later content.
+                        const id = String(blockCounter++);
+                        const type =
+                          part.thought === true ? 'reasoning' : 'text';
+                        controller.enqueue({
+                          type: `${type}-start`,
+                          id,
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                        controller.enqueue({
+                          type: `${type}-delta`,
+                          id,
+                          delta: '',
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                        controller.enqueue({ type: `${type}-end`, id });
+                      }
                     }
                   } else if (part.thought === true) {
                     // End any active text block before starting reasoning
@@ -1312,67 +1355,108 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     providerMetadata: serverMeta,
                   });
                   lastServerToolCallId = undefined;
-                }
-              }
+                } else if ('functionCall' in part) {
+                  const providerMeta = part.thoughtSignature
+                    ? wrapProviderMetadata({
+                        thoughtSignature: part.thoughtSignature,
+                      })
+                    : undefined;
 
-              // Handle streaming and complete function calls
-              for (const part of parts) {
-                if (!('functionCall' in part)) continue;
+                  const isStreamingChunk =
+                    part.functionCall.partialArgs != null ||
+                    (part.functionCall.name != null &&
+                      part.functionCall.willContinue === true);
+                  const isTerminalChunk =
+                    part.functionCall.name == null &&
+                    part.functionCall.args == null &&
+                    part.functionCall.partialArgs == null &&
+                    part.functionCall.willContinue == null;
+                  const isCompleteCall =
+                    part.functionCall.name != null &&
+                    part.functionCall.args != null &&
+                    part.functionCall.partialArgs == null;
+                  // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
+                  // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
+                  const isNoArgsCompleteCall =
+                    part.functionCall.name != null &&
+                    part.functionCall.args == null &&
+                    part.functionCall.partialArgs == null &&
+                    part.functionCall.willContinue !== true;
 
-                const providerMeta = part.thoughtSignature
-                  ? wrapProviderMetadata({
-                      thoughtSignature: part.thoughtSignature,
-                    })
-                  : undefined;
+                  if (
+                    !isStreamingChunk &&
+                    (isCompleteCall || isNoArgsCompleteCall)
+                  ) {
+                    if (currentTextBlockId !== null) {
+                      controller.enqueue({
+                        type: 'text-end',
+                        id: currentTextBlockId,
+                      });
+                      currentTextBlockId = null;
+                    }
+                    if (currentReasoningBlockId !== null) {
+                      controller.enqueue({
+                        type: 'reasoning-end',
+                        id: currentReasoningBlockId,
+                      });
+                      currentReasoningBlockId = null;
+                    }
+                  }
 
-                const isStreamingChunk =
-                  part.functionCall.partialArgs != null ||
-                  (part.functionCall.name != null &&
-                    part.functionCall.willContinue === true);
-                const isTerminalChunk =
-                  part.functionCall.name == null &&
-                  part.functionCall.args == null &&
-                  part.functionCall.partialArgs == null &&
-                  part.functionCall.willContinue == null;
-                const isCompleteCall =
-                  part.functionCall.name != null &&
-                  part.functionCall.args != null &&
-                  part.functionCall.partialArgs == null;
-                // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
-                // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
-                const isNoArgsCompleteCall =
-                  part.functionCall.name != null &&
-                  part.functionCall.args == null &&
-                  part.functionCall.partialArgs == null &&
-                  part.functionCall.willContinue !== true;
+                  if (isStreamingChunk) {
+                    if (part.functionCall.name != null) {
+                      const toolCallId = part.functionCall.id || generateId();
+                      const accumulator = new GoogleJSONAccumulator();
+                      activeStreamingToolCalls.push({
+                        toolCallId,
+                        toolName: part.functionCall.name,
+                        accumulator,
+                        providerMetadata: providerMeta,
+                      });
 
-                if (isStreamingChunk) {
-                  if (part.functionCall.name != null) {
-                    const toolCallId = part.functionCall.id || generateId();
-                    const accumulator = new GoogleJSONAccumulator();
-                    activeStreamingToolCalls.push({
-                      toolCallId,
-                      toolName: part.functionCall.name,
-                      accumulator,
-                      providerMetadata: providerMeta,
-                    });
+                      controller.enqueue({
+                        type: 'tool-input-start',
+                        id: toolCallId,
+                        toolName: part.functionCall.name,
+                        providerMetadata: providerMeta,
+                      });
 
-                    controller.enqueue({
-                      type: 'tool-input-start',
-                      id: toolCallId,
-                      toolName: part.functionCall.name,
-                      providerMetadata: providerMeta,
-                    });
-
-                    if (part.functionCall.partialArgs != null) {
+                      if (part.functionCall.partialArgs != null) {
+                        const partialArgs = part.functionCall
+                          .partialArgs as PartialArg[];
+                        const { textDelta } =
+                          accumulator.processPartialArgs(partialArgs);
+                        if (textDelta.length > 0) {
+                          controller.enqueue({
+                            type: 'tool-input-delta',
+                            id: toolCallId,
+                            delta: textDelta,
+                            providerMetadata: providerMeta,
+                          });
+                        }
+                        if (
+                          part.functionCall.willContinue !== true &&
+                          partialArgs.every(arg => arg.willContinue !== true)
+                        ) {
+                          finishActiveStreamingToolCall(controller);
+                        }
+                      }
+                    } else if (
+                      part.functionCall.partialArgs != null &&
+                      activeStreamingToolCalls.length > 0
+                    ) {
+                      const active =
+                        activeStreamingToolCalls[
+                          activeStreamingToolCalls.length - 1
+                        ];
                       const partialArgs = part.functionCall
                         .partialArgs as PartialArg[];
                       const { textDelta } =
-                        accumulator.processPartialArgs(partialArgs);
+                        active.accumulator.processPartialArgs(partialArgs);
                       if (textDelta.length > 0) {
                         controller.enqueue({
                           type: 'tool-input-delta',
-                          id: toolCallId,
+                          id: active.toolCallId,
                           delta: textDelta,
                           providerMetadata: providerMeta,
                         });
@@ -1385,100 +1469,74 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                       }
                     }
                   } else if (
-                    part.functionCall.partialArgs != null &&
+                    isTerminalChunk &&
                     activeStreamingToolCalls.length > 0
                   ) {
-                    const active =
-                      activeStreamingToolCalls[
-                        activeStreamingToolCalls.length - 1
-                      ];
-                    const partialArgs = part.functionCall
-                      .partialArgs as PartialArg[];
-                    const { textDelta } =
-                      active.accumulator.processPartialArgs(partialArgs);
-                    if (textDelta.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: active.toolCallId,
-                        delta: textDelta,
-                        providerMetadata: providerMeta,
-                      });
-                    }
-                    if (
-                      part.functionCall.willContinue !== true &&
-                      partialArgs.every(arg => arg.willContinue !== true)
-                    ) {
-                      finishActiveStreamingToolCall(controller);
-                    }
+                    finishActiveStreamingToolCall(controller);
+                  } else if (isCompleteCall) {
+                    const toolCallId = part.functionCall.id || generateId();
+                    const toolName = part.functionCall.name!;
+                    const args =
+                      typeof part.functionCall.args === 'string'
+                        ? part.functionCall.args
+                        : JSON.stringify(part.functionCall.args ?? {});
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallId,
+                      toolName,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: toolCallId,
+                      delta: args,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCallId,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId,
+                      toolName,
+                      input: args,
+                      providerMetadata: providerMeta,
+                    });
+
+                    hasToolCalls = true;
+                  } else if (isNoArgsCompleteCall) {
+                    const toolCallId = part.functionCall.id || generateId();
+                    const toolName = part.functionCall.name!;
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallId,
+                      toolName,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCallId,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId,
+                      toolName,
+                      input: '{}',
+                      providerMetadata: providerMeta,
+                    });
+
+                    hasToolCalls = true;
                   }
-                } else if (
-                  isTerminalChunk &&
-                  activeStreamingToolCalls.length > 0
-                ) {
-                  finishActiveStreamingToolCall(controller);
-                } else if (isCompleteCall) {
-                  const toolCallId = part.functionCall.id || generateId();
-                  const toolName = part.functionCall.name!;
-                  const args =
-                    typeof part.functionCall.args === 'string'
-                      ? part.functionCall.args
-                      : JSON.stringify(part.functionCall.args ?? {});
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallId,
-                    toolName,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: toolCallId,
-                    delta: args,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCallId,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId,
-                    toolName,
-                    input: args,
-                    providerMetadata: providerMeta,
-                  });
-
-                  hasToolCalls = true;
-                } else if (isNoArgsCompleteCall) {
-                  const toolCallId = part.functionCall.id || generateId();
-                  const toolName = part.functionCall.name!;
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallId,
-                    toolName,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCallId,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId,
-                    toolName,
-                    input: '{}',
-                    providerMetadata: providerMeta,
-                  });
-
-                  hasToolCalls = true;
                 }
               }
             }
@@ -1539,7 +1597,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 safetyRatings: lastSafetyRatings,
                 usageMetadata: usage ?? null,
                 finishMessage: lastFinishMessage,
-                serviceTier: usage?.serviceTier ?? null,
+                serviceTier:
+                  usage?.serviceTier ??
+                  responseHeaders?.['x-gemini-service-tier'] ??
+                  null,
                 // Only surface the token when the response stopped early
                 // (budget used up, or continuing failed), not for the
                 // checkpoint tokens of a stream that finished normally.
@@ -1571,18 +1632,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   }
 }
 
-function getMaxOutputTokensForGemini25Model(): number {
-  return 65536;
-}
-
-function getMaxThinkingTokensForGemini25Model(modelId: string): number {
-  const id = modelId.toLowerCase();
-  if (id.includes('2.5-pro') || id.includes('gemini-3-pro-image')) {
-    return 32768;
-  }
-  return 24576;
-}
-
 type GoogleThinkingConfig = NonNullable<
   InferSchema<typeof googleLanguageModelOptions>['thinkingConfig']
 >;
@@ -1601,8 +1650,8 @@ function resolveThinkingConfig({
   }
 
   if (
-    getGoogleModelCapabilities(modelId).usesGemini3Features &&
-    !modelId.includes('gemini-3-pro-image')
+    getGoogleLanguageModelEntry(modelId).requestConfig.language
+      .thinkingFormat === 'level'
   ) {
     return resolveGemini3ThinkingConfig({ reasoning, modelId, warnings });
   }
@@ -1622,22 +1671,21 @@ function resolveGemini3ThinkingConfig({
   modelId: string;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
-  const minimumThinkingLevel = getMinimumThinkingLevelForGemini3Model(modelId);
+  const minimumThinkingLevel =
+    getGoogleLanguageModelEntry(modelId).capabilities.language.reasoning
+      .efforts?.[0];
 
-  if (reasoning === 'none') {
-    // It's not possible to fully disable thinking with Gemini 3.
-    return { thinkingLevel: minimumThinkingLevel };
-  }
-
+  // It's not possible to fully disable thinking with Gemini 3, so reasoning
+  // 'none' maps to the lowest supported thinking level.
   const thinkingLevel = mapReasoningToProviderEffort({
     reasoning,
     effortMap: {
-      minimal: minimumThinkingLevel,
+      ...(minimumThinkingLevel === 'minimal' && {
+        minimal: 'minimal' as const,
+      }),
       low: 'low',
       medium: 'medium',
       high: 'high',
-      xhigh: 'high',
-      max: 'high',
     },
     warnings,
   });
@@ -1647,41 +1695,6 @@ function resolveGemini3ThinkingConfig({
   }
 
   return { thinkingLevel };
-}
-
-function getMinimumThinkingLevelForGemini3Model(
-  modelId: string,
-): 'minimal' | 'low' {
-  const modelName = /(?:^|[/.])(gemini-[^/]*)$/i
-    .exec(modelId)?.[1]
-    .toLowerCase();
-
-  if (modelName === 'gemini-flash-latest') {
-    return 'low';
-  }
-
-  const proVersionMatch = /^gemini-(\d+)(?:\.\d+)?-pro(?:$|-)/.exec(
-    modelName ?? '',
-  );
-
-  if (Number(proVersionMatch?.[1]) >= 3) {
-    return 'low';
-  }
-
-  const versionMatch = /^gemini-(\d+)\.(\d+)-flash(?:$|-(?!lite(?:-|$)))/.exec(
-    modelName ?? '',
-  );
-
-  if (versionMatch == null) {
-    return 'minimal';
-  }
-
-  const majorVersion = Number(versionMatch[1]);
-  const minorVersion = Number(versionMatch[2]);
-
-  return majorVersion > 3 || (majorVersion === 3 && minorVersion >= 7)
-    ? 'low'
-    : 'minimal';
 }
 
 function resolveGemini25ThinkingConfig({
@@ -1695,21 +1708,21 @@ function resolveGemini25ThinkingConfig({
   >;
   modelId: string;
   warnings: SharedV4Warning[];
-}): Pick<GoogleThinkingConfig, 'thinkingBudget'> | undefined {
-  if (reasoning === 'none') {
+}): Pick<GoogleThinkingConfig, 'thinkingBudget'> {
+  const entry = getGoogleLanguageModelEntry(modelId);
+  const minThinkingBudget = entry.capabilities.language.reasoning.minBudget;
+
+  if (reasoning === 'none' && minThinkingBudget === 0) {
     return { thinkingBudget: 0 };
   }
 
   const thinkingBudget = mapReasoningToProviderBudget({
     reasoning,
-    maxOutputTokens: getMaxOutputTokensForGemini25Model(),
-    maxReasoningBudget: getMaxThinkingTokensForGemini25Model(modelId),
-    minReasoningBudget: 0,
+    maxOutputTokens: entry.requestConfig.language.reasoningMaxOutputTokens,
+    maxReasoningBudget: entry.capabilities.language.reasoning.maxBudget,
+    minReasoningBudget: minThinkingBudget,
     warnings,
   });
-  if (thinkingBudget == null) {
-    return undefined;
-  }
   return { thinkingBudget };
 }
 

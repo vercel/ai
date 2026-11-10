@@ -1,0 +1,12 @@
+{
+  "name": "ai-sdk-verifiers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test *.test.ts internal/*.test.ts"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
+  }
+}

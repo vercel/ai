@@ -1,3 +1,4 @@
+import { getMiniMaxVideoModelEntry } from './minimax-model-catalog';
 import {
   AISDKError,
   type Experimental_VideoModelV4 as VideoModelV4,
@@ -64,7 +65,6 @@ type MiniMaxVideoStatusResult =
       response: VideoModelV4OperationStatusResult['response'];
     };
 
-const DEFAULT_RESOLUTION = '2K';
 const DEFAULT_ASPECT_RATIO = '16:9';
 const DEFAULT_POLL_INTERVAL_MS = 10_000;
 const DEFAULT_POLL_TIMEOUT_MS = 600_000;
@@ -76,14 +76,6 @@ const MAX_REFERENCE_AUDIOS = 3;
 
 const allowedRatios = new Set<string>(minimaxVideoRatios);
 const allowedResolutions = new Set<string>(minimaxVideoResolutions);
-const modelResolutionSettings: Record<
-  string,
-  { supported: readonly string[]; default: string }
-> = {
-  'MiniMax-H3': { supported: ['768P', '2K'], default: DEFAULT_RESOLUTION },
-  'MiniMax-H3-Max': { supported: ['480P', '768P'], default: '768P' },
-};
-
 // The top-level `resolution` is `{width}x{height}`, but the API takes a named
 // tier, so map canonical frame sizes onto the tiers. One frame size per ratio
 // per tier, so a caller who pairs a resolution with any supported ratio
@@ -190,9 +182,9 @@ export class MiniMaxVideoModel implements VideoModelV4 {
       });
     }
 
-    const resolutionSettings = modelResolutionSettings[this.modelId];
+    const videoEntry = getMiniMaxVideoModelEntry(this.modelId);
     const supportedResolutions =
-      resolutionSettings?.supported ?? minimaxVideoResolutions;
+      videoEntry.requestConfig.video.supportedResolutions;
     const supportedResolutionSet = new Set<string>(supportedResolutions);
     const supportedResolutionNames = supportedResolutions
       .map(resolution => `"${resolution}"`)
@@ -246,7 +238,7 @@ export class MiniMaxVideoModel implements VideoModelV4 {
         });
       }
     }
-    resolution ??= resolutionSettings?.default ?? DEFAULT_RESOLUTION;
+    resolution ??= videoEntry.requestConfig.video.defaultResolution;
 
     // `convertImageModelFileToDataUri` passes `url` files through unchanged and
     // encodes inline data as a data URI. MiniMax `mm_file://…` handles survive
@@ -322,7 +314,8 @@ export class MiniMaxVideoModel implements VideoModelV4 {
 
     const referenceFiles = options.inputReferences ?? [];
     const referenceAudioUrls = minimaxOptions?.referenceAudioUrls ?? [];
-    const supportsReferences = this.modelId !== 'MiniMax-H3-Max';
+    const supportsReferences =
+      videoEntry.capabilities.video.inputs.referenceImage;
 
     if (!supportsReferences && referenceFiles.length > 0) {
       warnings.push({
@@ -525,7 +518,8 @@ export class MiniMaxVideoModel implements VideoModelV4 {
     // Both H3 models take an integer duration, but H3 starts at 4 seconds while
     // H3-Max starts at 5. Round before clamping because the API rejects both
     // fractional and out-of-range values.
-    const minDurationSeconds = this.modelId === 'MiniMax-H3' ? 4 : 5;
+    const minDurationSeconds =
+      videoEntry.requestConfig.video.minDurationSeconds;
     let duration = options.duration ?? DEFAULT_DURATION_SECONDS;
     if (options.duration != null) {
       if (!Number.isInteger(duration)) {

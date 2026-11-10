@@ -1,4 +1,4 @@
-# AI SDK Code Mode
+# AI SDK - Code Mode
 
 `@ai-sdk/code-mode` lets models write JavaScript or TypeScript that calls your
 AI SDK tools. The code runs in an isolated QuickJS sandbox and returns a

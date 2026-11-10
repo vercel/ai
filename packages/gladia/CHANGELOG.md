@@ -1,5 +1,123 @@
 # @ai-sdk/gladia
 
+## 3.0.80
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 3.0.79
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 3.0.77
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 3.0.76
+
+### Patch Changes
+
+- 9207c2b: Preserve Gladia audio intelligence results (translation, summarization, named entity recognition, sentiment analysis, audio-to-LLM, sentences, and subtitles) in `providerMetadata.gladia` instead of stripping them during response parsing, and include Gladia's `error_code` in the error message when a transcription job fails.
+- 3ab5e75: fix(gladia): make transcription job polling timeout configurable
+
+  `transcribe()` with `gladia.transcription()` threw `TranscriptionJobPollingTimedOut`
+  after a hard-coded 60 second polling budget, so long audio files or jobs with audio
+  intelligence add-ons failed even though the job completed later. The polling timeout
+  now defaults to 10 minutes and can be configured with the new `pollTimeoutMs`
+  provider setting, `pollIntervalMs` controls the interval between status checks, and
+  both can be overridden per call with `providerOptions.gladia`. An `abortSignal` now
+  also cancels the wait between polls and preserves its abort reason.
+
+## 3.0.75
+
+### Patch Changes
+
+- c8875b7: Add Gladia v2 `languageConfig`, PII redaction, translation options (including the `batch` model), audio-to-LLM model selection, and transcription model IDs. Keep legacy options compatible: translate language and vocabulary aliases with deprecation warnings and warn when obsolete options are ignored. Preserve selected model IDs in responses and workflow serialization, and validate options before audio upload. The registry-facing `transcriptionModel(id)` alias now forwards non-default IDs; `default` still lets Gladia choose its model.
+- c8875b7: Add the `x-gladia-version` header to identify AI SDK requests while preserving custom headers and the existing user-agent suffix.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 3.0.74
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 3.0.73
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 3.0.72
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 3.0.71
+
+### Patch Changes
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
+## 3.0.70
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 3.0.69
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
 ## 3.0.68
 
 ### Patch Changes

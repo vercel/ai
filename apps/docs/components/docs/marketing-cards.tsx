@@ -6,6 +6,7 @@ import {
 } from '@vercel/geistdocs/assets/icons';
 import { IconArrowUpRight } from '@vercel/geistdocs/assets/icons/icon-arrow-up-right';
 import { LogoNextjs, LogoSvelteKit } from '@vercel/geistdocs/assets/logos';
+import { LogoIconAngularSvg } from '@vercel/geistdocs/assets/logos/logo-icon-angular-svg';
 import Link from 'next/link';
 import { type ReactNode, useId } from 'react';
 import {
@@ -36,12 +37,6 @@ const quickstarts: {
     color: '000000',
   },
   {
-    title: 'Next.js Pages Router',
-    href: '/docs/getting-started/nextjs-pages-router',
-    logo: <LogoNextjs className="text-gray-1000" height={LOGO_SIZE} />,
-    color: '000000',
-  },
-  {
     title: 'SvelteKit',
     href: '/docs/getting-started/svelte',
     logo: <LogoSvelteKit className="text-[#FF3E00]" height={LOGO_SIZE} />,
@@ -68,6 +63,16 @@ const quickstarts: {
       </span>
     ),
     color: '72B954',
+  },
+  {
+    title: 'Angular',
+    href: '/docs/getting-started/angular',
+    logo: (
+      <span className="text-[#DD0031]">
+        <LogoIconAngularSvg size={LOGO_SIZE} />
+      </span>
+    ),
+    color: 'DD0031',
   },
 ];
 

@@ -3,12 +3,17 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start",
     "lint": "ultracite check",
     "dev:websocket": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/websocket-chat-server.ts",
-    "test:websocket": "playwright test --config playwright.websocket.config.ts"
+    "test:websocket": "playwright test --config playwright.websocket.config.ts",
+    "test:downloads": "vitest run --config vitest.downloads.config.ts",
+    "test:local-shell": "vitest run --config vitest.local-shell.config.ts",
+    "test:mcp-auth": "vitest run --config vitest.mcp-auth.config.ts",
+    "test:mcp-elicitation": "vitest run --config vitest.mcp-elicitation.config.ts",
+    "dev:transcribe": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx scripts/mistral-transcription-server.ts"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "workspace:*",
@@ -30,6 +35,7 @@
     "@ai-sdk/provider-utils": "workspace:*",
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/rsc": "workspace:*",
+    "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/valibot": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
     "@langfuse/otel": "^4.6.1",
@@ -40,7 +46,7 @@
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@valibot/to-json-schema": "^1.7.0",
     "@vercel/blob": "^0.26.0",
-    "@vercel/sandbox": "^3.0.0",
+    "@vercel/sandbox": "^3.9.0",
     "ai": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

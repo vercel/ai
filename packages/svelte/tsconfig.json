@@ -14,14 +14,10 @@
     "target": "ES2022",
     "declaration": true,
     "declarationMap": true,
+    "emitDeclarationOnly": true,
     "stripInternal": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "lib": [
-      "esnext",
-      "dom",
-      "dom.iterable"
-    ],
     "types": [],
     "rootDir": "src",
     "outDir": "dist"

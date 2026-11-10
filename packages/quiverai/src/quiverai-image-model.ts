@@ -6,6 +6,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   lazySchema,
   zodSchema,
   combineHeaders,
@@ -37,7 +39,7 @@ import type {
 interface QuiverAIImageModelConfig {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string>;
+  headers?: Resolvable<Record<string, string>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -121,7 +123,10 @@ export class QuiverAIImageModel implements ImageModelV4 {
     });
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const combinedHeaders = combineHeaders(this.config.headers?.(), headers);
+    const combinedHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      headers,
+    );
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}${getOperationPath(operation)}`,

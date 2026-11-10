@@ -429,10 +429,12 @@ test.each([
 
   await import('./index');
 
-  expect(state.emitError).toHaveBeenCalledWith({
-    error: 'Request rejected',
-    message: 'claude-code terminal error',
-  });
+  expect(state.emitted.filter(event => event.type === 'error')).toEqual([
+    {
+      type: 'error',
+      error: 'Request rejected',
+    },
+  ]);
   expect(finish()).toBeUndefined();
   expect(state.disposeQuery).toHaveBeenCalledOnce();
 });

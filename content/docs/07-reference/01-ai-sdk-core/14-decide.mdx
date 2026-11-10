@@ -43,15 +43,15 @@ described below.
 Instructions and criterion descriptions accept strings, JSON objects, or JSON
 arrays.
 
-| Type      | Instructions            | Criteria                                                                                                            |
-| --------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `choice`  | Optional; may be `null` | Required nonempty map of option names to descriptions                                                               |
-| `score`   | Optional; may be `null` | Required nonempty array of levels, indexed from zero                                                                |
-| `boolean` | Optional; may be `null` | Optional object with `true` and/or `false` descriptions; at least one must be non-null when instructions are absent |
-| `box`     | Required and non-null   | None                                                                                                                |
+| Type      | Instructions            | Criteria                                                                                                                       |
+| --------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `choice`  | Optional; may be `null` | Required nonempty map of option names to descriptions                                                                          |
+| `score`   | Optional; may be `null` | Required nonempty array of levels, indexed from zero                                                                           |
+| `boolean` | Optional; may be `null` | Optional object or `null`, with `true` and/or `false` descriptions; at least one must be non-null when instructions are absent |
+| `box`     | Optional; may be `null` | None                                                                                                                           |
 
 Criterion descriptions may be `null` in the shared type, but providers can impose
-stricter limits. Perplexity requires non-null Score levels and accepts 1–10 levels;
+stricter limits. TypeSafe and Perplexity require non-null Score levels and accept 1–10 levels;
 a single level yields score `0` and probability `1`. Other providers may require
 at least two levels. Optional instructions also remain subject to the provider's
 API contract.
