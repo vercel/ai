@@ -151,6 +151,9 @@
       "path": "../../packages/revai"
     },
     {
+      "path": "../../packages/tencent"
+    },
+    {
       "path": "../../packages/togetherai"
     },
     {

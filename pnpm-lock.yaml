@@ -339,6 +339,9 @@ importers:
       '@ai-sdk/revai':
         specifier: workspace:*
         version: link:../../packages/revai
+      '@ai-sdk/tencent':
+        specifier: workspace:*
+        version: link:../../packages/tencent
       '@ai-sdk/togetherai':
         specifier: workspace:*
         version: link:../../packages/togetherai
@@ -3122,6 +3125,37 @@ importers:
       vitest:
         specifier: ^4.1.0
         version: 4.1.0(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@20.17.24)(jsdom@26.1.0)(msw@2.12.10(@types/node@20.17.24)(typescript@5.9.3))(vite@6.4.1(@types/node@20.17.24)(jiti@2.6.1)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)(tsx@4.21.0)(yaml@2.7.0))
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/tencent:
+    dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: workspace:*
+        version: link:../openai-compatible
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
       zod:
         specifier: 3.25.76
         version: 3.25.76

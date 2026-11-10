@@ -46,6 +46,7 @@
     "@ai-sdk/quiverai": "workspace:*",
     "@ai-sdk/replicate": "workspace:*",
     "@ai-sdk/revai": "workspace:*",
+    "@ai-sdk/tencent": "workspace:*",
     "@ai-sdk/togetherai": "workspace:*",
     "@ai-sdk/topaz": "workspace:*",
     "@ai-sdk/valibot": "workspace:*",

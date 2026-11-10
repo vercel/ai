@@ -1,0 +1,320 @@
+---
+title: Tencent Cloud
+description: Learn how to use Tencent Cloud TokenHub and VOD models with the AI SDK.
+---
+
+# Tencent Cloud Provider
+
+The Tencent Cloud provider supports two Tencent Cloud services:
+
+- [TokenHub](https://www.tencentcloud.com/products/tokenhub), Tencent's model platform, for language models (such as Hunyuan) over an OpenAI-compatible API and for Kling video models.
+- [Video on Demand (VOD)](https://www.tencentcloud.com/products/vod) AIGC, for video models such as Seedance (`VS`), Kling, Hailuo, and Vidu.
+
+The two services use different credentials. TokenHub uses an API key; VOD uses a Tencent Cloud API key pair (SecretId and SecretKey) and a VOD application ID.
+
+## Setup
+
+The Tencent Cloud provider is available in the `@ai-sdk/tencent` module. You can install it with
+
+<InstallPackages packages="ai @ai-sdk/tencent" />
+
+## Provider Instance
+
+You can import the default provider instance `tencent` from `@ai-sdk/tencent`:
+
+```ts
+import { tencent } from '@ai-sdk/tencent';
+```
+
+If you need a customized setup, you can import `createTencent` from `@ai-sdk/tencent` and create a provider instance with your settings:
+
+```ts
+import { createTencent } from '@ai-sdk/tencent';
+
+const tencent = createTencent({
+  apiKey: process.env.TENCENT_TOKENHUB_API_KEY ?? '',
+});
+```
+
+You can use the following optional settings to customize the Tencent Cloud provider instance:
+
+- **apiKey** _string_
+
+  TokenHub API key (`sk-...`), used by language models and TokenHub Kling video models.
+  It defaults to the `TENCENT_TOKENHUB_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  TokenHub base URL. Defaults to `https://tokenhub-intl.tencentcloudmaas.com/v1`.
+
+- **secretId** _string_
+
+  Tencent Cloud API SecretId, used by VOD video models.
+  It defaults to the `TENCENTCLOUD_SECRET_ID` environment variable.
+
+- **secretKey** _string_
+
+  Tencent Cloud API SecretKey, used by VOD video models.
+  It defaults to the `TENCENTCLOUD_SECRET_KEY` environment variable.
+
+- **sessionToken** _string_
+
+  Session token for temporary Tencent Cloud credentials. Not needed with a long-term key pair.
+  It defaults to the `TENCENTCLOUD_SESSION_TOKEN` environment variable.
+
+- **subAppId** _number | string_
+
+  VOD application ID (`SubAppId`), used by VOD video models.
+  It defaults to the `TENCENTCLOUD_VOD_SUB_APP_ID` environment variable.
+
+- **region** _string_
+
+  Tencent Cloud region sent with VOD requests. VOD AIGC requests do not require a region.
+
+- **vodBaseURL** _string_
+
+  VOD API base URL. Defaults to `https://vod.intl.tencentcloudapi.com`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+You can create TokenHub language models using a provider instance. The first argument is the model ID, for example `hy4`:
+
+```ts
+import { tencent } from '@ai-sdk/tencent';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: tencent('hy4'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+TokenHub language models use the OpenAI-compatible chat completions API. Options under `providerOptions.tencent` that the OpenAI-compatible provider does not handle, such as `thinking`, are sent in the request body unchanged.
+See the [TokenHub model list](https://www.tencentcloud.com/document/product/1300/78934) for available models.
+
+## Video Models
+
+You can create video models using the `.video()` factory method:
+
+- TokenHub Kling models use their TokenHub model ID, for example `kling-video-v3`.
+- VOD AIGC models use `vod/<ModelName>/<ModelVersion>`, for example `vod/VS/2.0` or `vod/Kling/3.0`.
+
+```ts
+import { tencent } from '@ai-sdk/tencent';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: tencent.video('kling-video-v3'),
+  prompt: 'A chicken flying into the sunset in the style of 90s anime.',
+  aspectRatio: '16:9',
+  duration: 5,
+});
+```
+
+Video generation is asynchronous: the provider submits a task and polls until it finishes, which can take several minutes.
+Use the `pollIntervalMs` and `pollTimeoutMs` provider options to change how often it checks and how long it waits.
+
+### TokenHub Kling
+
+TokenHub Kling models pick the endpoint from the inputs:
+
+- No image: text-to-video.
+- A first frame (`image` or `frameImages`), optionally with a last frame: image-to-video.
+- Reference images or videos (`inputReferences`) or voices: omni video generation. `kling-video-v3-omni` always uses omni generation; `kling-video-v4` uses it when references are present.
+- `kling-video-motion-control-*` models: motion control, with the character image from `image` (or the first image reference) and the motion from the first video reference.
+
+```ts
+import { tencent, type TencentVideoModelOptions } from '@ai-sdk/tencent';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: tencent.video('kling-video-motion-control-v3.0'),
+  prompt: {
+    image: 'https://example.com/character.png',
+    text: 'The character waves hello',
+  },
+  inputReferences: [
+    { data: 'https://example.com/motion.mp4', mediaType: 'video/mp4' },
+  ],
+  providerOptions: {
+    tencent: {
+      characterOrientation: 'video',
+    } satisfies TencentVideoModelOptions,
+  },
+});
+```
+
+Reference images and videos are numbered in the order you pass them and can be referenced in the prompt as `@image_1`, `@video_1`, and so on.
+
+Top-level options map as follows:
+
+- `resolution` maps to the `720p`, `1080p`, and `4k` tiers by its shorter side.
+- `aspectRatio` applies to text-to-video and omni generation. Image-to-video and motion control output follows the input media.
+- `duration` applies to all modes except motion control, whose output length follows the motion video.
+- `generateAudio` maps to native audio or no audio. Without it, `kling-video-v3` output is silent. For motion control, `false` removes the motion video's audio, and otherwise the original audio is kept. `kling-video-v3-turbo` and `kling-video-v4` do not accept an audio setting and always include audio.
+- `seed`, `fps`, and `n` greater than 1 are not supported.
+
+Unsupported options are ignored with a warning.
+
+For multi-shot output, set `multiShot: true` and describe each shot in the prompt as `shot <n>, <seconds>, <prompt>;`. The shot durations must add up to `duration`:
+
+```ts
+import { tencent, type TencentVideoModelOptions } from '@ai-sdk/tencent';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: tencent.video('kling-video-v3'),
+  prompt:
+    'shot 1, 3, a wide shot of a lighthouse at dawn; ' +
+    'shot 2, 3, a close-up of the lighthouse lamp turning;',
+  duration: 6,
+  providerOptions: {
+    tencent: { multiShot: true } satisfies TencentVideoModelOptions,
+  },
+});
+```
+
+### VOD
+
+VOD models use the `CreateAigcVideoTask` API. Seedance is available as `vod/VS/2.5`, `vod/VS/2.0`, `vod/VS/2.0-fast`, and `vod/VS/2.0-mini`.
+
+Inputs map to VOD file inputs: `image` or a first frame becomes the first frame, a last frame becomes the last frame, and `inputReferences` become references whose category (image, video, or audio) follows their media type. Inputs are sent as URLs or Base64 data; Base64 inputs must stay under the VOD request size limit.
+
+```ts
+import { tencent } from '@ai-sdk/tencent';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: tencent.video('vod/VS/2.0'),
+  prompt: 'A drone shot over a misty mountain lake at sunrise.',
+  aspectRatio: '16:9',
+  resolution: '1280x720',
+  duration: 5,
+});
+```
+
+Top-level options map as follows:
+
+- `resolution` maps to the `480P`, `720P`, `1080P`, `2K`, and `4K` tiers by its shorter side.
+- `aspectRatio` also accepts `adaptive`, which follows the input image.
+- `duration` and `seed` are passed through. Seedance does not guarantee identical output for the same seed.
+- `generateAudio` maps to `AudioGeneration`. Seedance includes audio when `generateAudio` is not set.
+- `fps` and `n` greater than 1 are not supported.
+
+Images that show real people may be rejected unless they are first registered as VOD assets (`CreateAigcMaterial`) in your Tencent Cloud account. Pass registered assets by their `asset://` URL with the `assets` provider option; `inputReferences` only accepts `http(s)` URLs and file data.
+
+VOD reports API errors inside a successful HTTP response. The provider raises them as an `APICallError` with a status code derived from the Tencent Cloud error code. For example, `AuthFailure` becomes 401, `InvalidParameterValue` becomes 400, and `RequestLimitExceeded` becomes 429.
+
+### Video Provider Options
+
+The following options are available via `providerOptions.tencent`. Options that do not apply to the selected model are ignored with a warning.
+
+#### Options for Both Services
+
+- **pollIntervalMs** _number_
+
+  Polling interval in milliseconds for checking task status. Defaults to 5000.
+
+- **pollTimeoutMs** _number_
+
+  Maximum wait time in milliseconds for the task to finish. Defaults to 600000 (10 minutes).
+
+- **resolution** _string_
+
+  Output resolution tier, sent as-is. Takes precedence over the top-level `resolution`.
+
+- **watermark** _boolean_
+
+  Whether to add a visible label that marks the video as AI-generated.
+
+- **referenceVideoType** _'feature' | 'base'_
+
+  How reference videos are used: as a feature reference (default) or as a video to edit.
+
+#### TokenHub Kling Options
+
+- **audio** _'native' | 'original' | 'off'_
+
+  Audio mode. `original` keeps the audio of a reference video. Takes precedence over `generateAudio`.
+
+- **multiShot** _boolean_
+
+  Whether a multi-shot prompt produces multi-shot output (`kling-video-v3` and `kling-video-v3-omni`).
+
+- **characterOrientation** _'image' | 'video'_
+
+  Motion control: whether the character orientation follows the image or the motion video. Required by motion control models.
+
+- **elements** _Array&lt;\{ elementId: string; id?: string \}&gt;_
+
+  Custom elements created through the TokenHub element API. Motion control requires `id`.
+
+- **voices** _Array&lt;\{ voiceId: string; id: string \}&gt;_
+
+  Omni voices, referenced in the prompt as `@id`.
+
+- **externalTaskId** _string_
+
+  Custom task ID, unique within the account.
+
+#### VOD Options
+
+- **negativePrompt** _string_
+
+  What the model should avoid.
+
+- **enhancePrompt** _boolean_
+
+  Whether to optimize the prompt automatically.
+
+- **inputRegion** _'Oversea' | 'OverseaUSWest' | 'Mainland'_
+
+  Where input files are stored. Tencent defaults to `Mainland`.
+
+- **sceneType** _string_
+
+  Scenario type, for example `motion_control` for Kling.
+
+- **personGeneration** _'AllowAdult' | 'Disallowed'_
+
+  Whether people and faces may be generated.
+
+- **inputComplianceCheck** _boolean_ / **outputComplianceCheck** _boolean_
+
+  Whether to run compliance checks on the input or output.
+
+- **enhanceSwitch** _boolean_
+
+  Whether to upscale output with video enhancement.
+
+- **offPeak** _boolean_
+
+  Whether to run the task in off-peak mode.
+
+- **sessionId** _string_ / **sessionContext** _string_
+
+  Deduplication identifier and pass-through context.
+
+- **tasksPriority** _number_
+
+  Task priority from -10 to 10.
+
+- **extInfo** _string_
+
+  Reserved field for model-specific parameters, sent as-is. For example, `JSON.stringify({ AdditionalParameters: JSON.stringify({ return_last_frame: true }) })` asks Seedance to also return the last frame as an image, reported in `providerMetadata.tencent.lastFrameUrl`.
+
+- **assets** _Array&lt;\{ url: string; usage?: 'FirstFrame' | 'LastFrame' | 'Reference'; category?: 'Image' | 'Video' | 'Audio' \}&gt;_
+
+  Registered VOD assets, referenced by their `asset://` URL. `usage` defaults to `Reference` and `category` to `Image`. Assets are sent after the other file inputs. VOD accepts one first frame and one last frame, so a `FirstFrame` or `LastFrame` asset is ignored with a warning when that frame is already set.
+
+### Provider Metadata
+
+Completed video results include `providerMetadata.tencent` with the `taskId`, the `videos` (URL, duration, and `fileId` when VOD stores the file), and usage: `usage.totalTokens` for TokenHub Kling models, and for VOD models `usage.outputSeconds`, `usage.inputSeconds` (reference video length), `usage.totalSeconds`, and `usage.specificationUsages` (the billed specification, such as `SV2.0_720P`). VOD results also include the resolved output `resolution` (for example `720P`) and, when requested, the `lastFrameUrl`.

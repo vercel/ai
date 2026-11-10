@@ -157,6 +157,9 @@
       "path": "packages/svelte"
     },
     {
+      "path": "packages/tencent"
+    },
+    {
       "path": "packages/test-server"
     },
     {
