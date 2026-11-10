@@ -95,8 +95,8 @@ const harness = createOpenCode({
 
 Settings:
 
-- `auth`: authentication mode (`auto`, `anthropic`, `openai`, or `ai-gateway`)
-  or an isolated authentication environment.
+- `auth`: authentication mode (`auto`, `direct`, `anthropic`, `openai`, or
+  `ai-gateway`) or an isolated authentication environment.
 - `credentialForwarding`: optional synchronous or asynchronous callback that
   customizes each credential immediately before the harness adapter forwards it
   into a sandbox process. It receives the credential value that would otherwise
@@ -127,10 +127,9 @@ Settings:
   2 seconds. These retries use exponential backoff and are separate from
   `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
   bridge endpoint is permanently unavailable.
-- `mintBridgeToken`: synchronous function that receives the sandbox id and
-  returns the bridge authentication token. By default, the adapter generates a
-  random 32-byte token. Custom implementations must return a suitably secret
-  token.
+- `mintBridgeToken`: deprecated and ignored. Passing it logs a warning. The
+  adapter generates a key pair for each bridge, passes only the public key into
+  the sandbox, and keeps the private key in host-side resume state.
 
 ## Structured Output
 
@@ -145,6 +144,7 @@ environment:
 
 - `auto` (default): use AI Gateway credentials when available, then use the
   credentials for the selected model provider.
+- `direct`: use the credentials for the selected model provider.
 - `anthropic`: use Anthropic credentials.
 - `openai`: use OpenAI credentials.
 - `ai-gateway`: use AI Gateway credentials.
@@ -174,6 +174,7 @@ authentication is selected.
 Select a specific authentication mode when you do not want automatic detection:
 
 ```ts
+const directHarness = createOpenCode({ auth: 'direct' });
 const anthropicHarness = createOpenCode({ auth: 'anthropic' });
 const openAIHarness = createOpenCode({ auth: 'openai' });
 const gatewayHarness = createOpenCode({ auth: 'ai-gateway' });

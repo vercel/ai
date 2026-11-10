@@ -1,5 +1,75 @@
 # @ai-sdk/google-vertex
 
+## 5.0.136
+
+### Patch Changes
+
+- acdccac: Route off-origin MaaS image downloads through the validated download transport so the built-in authentication wrappers in both entry points preserve Node.js DNS validation and manual redirect handling. Explicit custom fetch implementations and the browser redirect fallback remain supported.
+- Updated dependencies [45337f0]
+- Updated dependencies [304dec5]
+- Updated dependencies [88b9575]
+  - @ai-sdk/google@4.0.116
+  - @ai-sdk/provider-utils@5.0.78
+  - @ai-sdk/anthropic@4.0.101
+  - @ai-sdk/openai-compatible@3.0.89
+
+## 5.0.135
+
+### Patch Changes
+
+- 8420810: feat(anthropic): add Claude Fable 5.2 support
+
+  - add the `claude-fable-5-2` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-fable-5-2`, `us.anthropic.claude-fable-5-2`, and `global.anthropic.claude-fable-5-2` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-fable-5.2` to `@ai-sdk/gateway`
+  - recognize `claude-fable-5-2` as a known model with the same capabilities as `claude-fable-5-1`: 128k max output tokens, always-on adaptive thinking, all five effort levels, no sampling parameters, and no forced tool use
+
+- Updated dependencies [8420810]
+- Updated dependencies [9f37b45]
+- Updated dependencies [c9c6402]
+  - @ai-sdk/anthropic@4.0.100
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/openai-compatible@3.0.88
+  - @ai-sdk/google@4.0.115
+
+## 5.0.134
+
+### Patch Changes
+
+- a210a29: Pass `providerOptions.google.labels` through to Google and Vertex AI Interactions requests, including streaming, so callers can attach request metadata such as `safety_identifier`.
+- 977231e: only send google cloud credentials from the maas provider to its own api, not to image urls from a response or their redirects
+- 32dc1d2: Omit Google provider-defined tools, including File Search and Vertex RAG Store, when `toolChoice` is `none` so disabled tools cannot retrieve data or execute server-side. Preserve function declarations needed by conversation history while disabling function calling. This also applies when structured output uses a synthetic JSON response tool.
+- Updated dependencies [a161c0a]
+- Updated dependencies [6400cf8]
+- Updated dependencies [ba302a1]
+- Updated dependencies [a210a29]
+- Updated dependencies [f608c05]
+- Updated dependencies [32dc1d2]
+- Updated dependencies [26fc2a9]
+- Updated dependencies [5ab7ff1]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [b3088a7]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/anthropic@4.0.99
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/openai-compatible@3.0.87
+  - @ai-sdk/google@4.0.114
+  - @ai-sdk/provider@4.0.37
+
+## 5.0.133
+
+### Patch Changes
+
+- 27a8a77: Refactor Google Vertex model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export Google catalog metadata internally for Vertex to reuse. Request behavior is unchanged.
+- Updated dependencies [067dd77]
+- Updated dependencies [25240d9]
+- Updated dependencies [457dc40]
+- Updated dependencies [6b101ac]
+- Updated dependencies [27a8a77]
+- Updated dependencies [b63c06a]
+- Updated dependencies [646a7e3]
+  - @ai-sdk/anthropic@4.0.98
+  - @ai-sdk/google@4.0.113
+  - @ai-sdk/openai-compatible@3.0.86
+
 ## 5.0.132
 
 ### Patch Changes

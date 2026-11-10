@@ -162,10 +162,9 @@ Settings:
   means the connection is closed for good, so a host that caches idle sessions
   can detach and reattach before sending the next prompt. The `cause` of a
   failed reconnect can contain connection details, so avoid logging it as is.
-- `mintBridgeToken`: synchronous function that receives the sandbox id and
-  returns the bridge authentication token. By default, the adapter generates a
-  random 32-byte token. Custom implementations must return a suitably secret
-  token.
+- `mintBridgeToken`: deprecated and ignored. Passing it logs a warning. The
+  adapter generates a key pair for each bridge, passes only the public key into
+  the sandbox, and keeps the private key in host-side resume state.
 
 ### Skill Overrides
 
@@ -281,6 +280,14 @@ file changes only within the workdir. Paths outside those directories, including
 symlink targets, and paths that cannot be resolved require host approval.
 `allow-all` remains unrestricted. These approval rules are not a filesystem
 sandbox, and approved shell commands can access paths outside the workdir.
+
+## Known Limitations
+
+Claude Code does not allow toggling whether to discover project-level skills
+and `AGENTS.md` files individually from project-level configuration and hooks.
+Since the adapter disables reading project-level configuration and hooks for
+security reasons, it means Claude Code will not discover project-level skills
+and `AGENTS.md` instructions natively.
 
 ## Related
 

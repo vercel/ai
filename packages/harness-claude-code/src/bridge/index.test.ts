@@ -507,6 +507,31 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).not.toHaveProperty('env');
   });
 
+  test.each(['allow-all', 'allow-reads'])(
+    'loads only user settings on initial and subsequent queries under %s',
+    async permissionMode => {
+      state.start = { ...state.start, permissionMode };
+      state.additionalTurns = [{ start: state.start, firstTurn: false }];
+
+      await import('./index');
+
+      expect(state.queryArgs).toHaveLength(2);
+      for (const { options } of state.queryArgs) {
+        expect({
+          settingSources: options.settingSources,
+          cwd: options.cwd,
+        }).toMatchInlineSnapshot(`
+          {
+            "cwd": "/tmp/harness-claude-code-test/work",
+            "settingSources": [
+              "user",
+            ],
+          }
+        `);
+      }
+    },
+  );
+
   test('passes the configured effort to the Agent SDK', async () => {
     state.start = { ...state.start, effort: 'max' };
 
@@ -2602,7 +2627,8 @@ describe('Claude Code bridge configuration', () => {
         return originalReturn(value as never);
       }) as typeof generator.return;
       state.createQuery = args => {
-        queryAbortSignal = args.options.abortSignal as AbortSignal;
+        queryAbortSignal = (args.options.abortController as AbortController)
+          .signal;
         return Object.assign(generator, { interrupt });
       };
 
@@ -2733,8 +2759,8 @@ describe('Claude Code bridge configuration', () => {
     });
     const disposed = vi.fn();
     state.createQuery = args => {
-      const abortSignal = (args.options as { abortSignal: AbortSignal })
-        .abortSignal;
+      const abortSignal = (args.options as { abortController: AbortController })
+        .abortController.signal;
       const generator = (async function* () {
         await new Promise<void>(resolve => {
           if (abortSignal.aborted) return resolve();

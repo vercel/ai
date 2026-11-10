@@ -67,6 +67,7 @@ class VueChatState<
   private readonly dirtyMessageIndices = new Set<number>();
   private statusValue: ChatStatus = 'ready';
   private errorValue: Error | undefined;
+  private queuedMessagesValue: UI_MESSAGE[] = [];
   private readonly throttleWaitMs: number | undefined;
   private timeout: ReturnType<typeof setTimeout> | undefined;
   private hasPendingPublication = false;
@@ -79,18 +80,21 @@ class VueChatState<
     messagesRef,
     statusRef,
     errorRef,
+    queuedMessagesRef,
     throttleWaitMs,
   }: {
     initialMessages: UI_MESSAGE[];
     messagesRef: ShallowRef<UI_MESSAGE[]>;
     statusRef: ShallowRef<ChatStatus>;
     errorRef: ShallowRef<Error | undefined>;
+    queuedMessagesRef: ShallowRef<UI_MESSAGE[]>;
     throttleWaitMs?: number;
   }) {
     this.messagesValue = initialMessages;
     this.messagesRef = messagesRef;
     this.statusRef = statusRef;
     this.errorRef = errorRef;
+    this.queuedMessagesRef = queuedMessagesRef;
     this.throttleWaitMs =
       throttleWaitMs != null &&
       Number.isFinite(throttleWaitMs) &&
@@ -102,6 +106,7 @@ class VueChatState<
   private readonly messagesRef: ShallowRef<UI_MESSAGE[]>;
   private readonly statusRef: ShallowRef<ChatStatus>;
   private readonly errorRef: ShallowRef<Error | undefined>;
+  private readonly queuedMessagesRef: ShallowRef<UI_MESSAGE[]>;
 
   get messages(): UI_MESSAGE[] {
     return this.messagesValue;
@@ -151,6 +156,18 @@ class VueChatState<
     }
   }
 
+  get experimental_queuedMessages(): UI_MESSAGE[] {
+    return this.queuedMessagesValue;
+  }
+
+  set experimental_queuedMessages(experimental_queuedMessages: UI_MESSAGE[]) {
+    this.queuedMessagesValue = experimental_queuedMessages;
+
+    if (this.isActive) {
+      this.queuedMessagesRef.value = experimental_queuedMessages;
+    }
+  }
+
   pushMessage = (message: UI_MESSAGE) => {
     this.messagesValue.push(message);
     this.dirtyMessageIndices.add(this.messagesValue.length - 1);
@@ -174,6 +191,7 @@ class VueChatState<
     this.publishMessages();
     this.statusRef.value = this.statusValue;
     this.errorRef.value = this.errorValue;
+    this.queuedMessagesRef.value = this.queuedMessagesValue;
   }
 
   setMessagesFromConsumer(messages: UI_MESSAGE[]) {
@@ -295,6 +313,8 @@ export interface UseChatHelpers<UI_MESSAGE extends UIMessage> extends Pick<
   | 'addToolOutput'
   | 'addToolApprovalResponse'
   | 'clearError'
+  | 'experimental_removeQueuedMessage'
+  | 'experimental_sendQueuedMessageNow'
 > {
   /**
    * The id of the chat.
@@ -315,6 +335,12 @@ export interface UseChatHelpers<UI_MESSAGE extends UIMessage> extends Pick<
    * The list of messages in the chat, which can be updated by the chat instance methods or directly by setting this property.
    */
   messages: ShallowRef<UI_MESSAGE[]>;
+
+  /**
+   * Experimental. Messages that wait to be sent when `experimental_queue` is
+   * enabled, in the order they will be sent.
+   */
+  experimental_queuedMessages: ShallowRef<UI_MESSAGE[]>;
 }
 
 export type UseChatOptions<UI_MESSAGE extends UIMessage> =
@@ -349,6 +375,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
   const messages = shallowRef<UI_MESSAGE[]>([]);
   const status = shallowRef<ChatStatus>('ready');
   const error = shallowRef<Error | undefined>();
+  const experimental_queuedMessages = shallowRef<UI_MESSAGE[]>([]);
 
   // the instance is created right away thanks to immediate: true. We do it this
   // way instead of a computed to ensure all changes to reactive state happen
@@ -379,6 +406,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
         messagesRef: messages,
         statusRef: status,
         errorRef: error,
+        queuedMessagesRef: experimental_queuedMessages,
         throttleWaitMs: throttle,
       });
 
@@ -412,5 +440,10 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>(
     sendMessage: (...args) => chatInstance.value.sendMessage(...args),
     stop: () => chatInstance.value.stop(),
     resumeStream: opts => chatInstance.value.resumeStream(opts),
+    experimental_queuedMessages,
+    experimental_removeQueuedMessage: id =>
+      chatInstance.value.experimental_removeQueuedMessage(id),
+    experimental_sendQueuedMessageNow: id =>
+      chatInstance.value.experimental_sendQueuedMessageNow(id),
   };
 }

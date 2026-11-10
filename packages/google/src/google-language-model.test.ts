@@ -2027,6 +2027,7 @@ describe('doGenerate', () => {
   it('should read serviceTier from usageMetadata.serviceTier', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
+      headers: { 'x-gemini-service-tier': 'standard' },
       body: {
         candidates: [
           {
@@ -2052,6 +2053,22 @@ describe('doGenerate', () => {
 
     expect(providerMetadata?.google.serviceTier).toBe('priority');
   });
+
+  it.each(['flex', 'priority'])(
+    'should read serviceTier %s from the response header when absent from usageMetadata',
+    async serviceTier => {
+      prepareJsonResponse({
+        content: 'test response',
+        headers: { 'x-gemini-service-tier': serviceTier },
+      });
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(providerMetadata?.google.serviceTier).toBe(serviceTier);
+    },
+  );
 
   it('should expose null serviceTier in provider metadata when not present', async () => {
     prepareJsonResponse({ content: 'test response' });
@@ -6966,6 +6983,78 @@ describe('doStream', () => {
     });
   });
 
+  describe('streaming-tool-call-sparse-array-arguments', () => {
+    it('should skip streamed array indexes that leave a gap', async () => {
+      const functionCallChunk = (functionCall: Record<string, unknown>) => ({
+        candidates: [{ content: { role: 'model', parts: [{ functionCall }] } }],
+      });
+
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          functionCallChunk({ name: 't', willContinue: true }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.items[0]', stringValue: 'a' }],
+            willContinue: true,
+          }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.items[20000000]', stringValue: 'b' }],
+            willContinue: true,
+          }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.items[1]', stringValue: 'c' }],
+          }),
+          {
+            candidates: [
+              {
+                content: { role: 'model', parts: [{ text: '' }] },
+                finishReason: 'STOP',
+              },
+            ],
+          },
+        ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+      };
+
+      const vertexModel = new GoogleLanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await vertexModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        tools: [
+          {
+            type: 'function',
+            name: 't',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        providerOptions: {
+          vertex: {
+            streamFunctionCallArguments: true,
+          },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const input = events
+        .filter(e => e.type === 'tool-input-delta')
+        .map(e => e.delta)
+        .join('');
+      const toolCalls = events.filter(e => e.type === 'tool-call');
+
+      const expectedInput = '{"items":["a","c"]}';
+      expect(toolCalls.map(c => c.input.length)).toEqual([
+        expectedInput.length,
+      ]);
+      expect(toolCalls.map(c => c.input)).toEqual([expectedInput]);
+      expect(input).toBe(expectedInput);
+    });
+  });
+
   describe('streaming-no-args-tool-call', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('google-stream-no-args-tool-call');
@@ -7709,10 +7798,9 @@ describe('doStream', () => {
   });
 
   it('should read serviceTier from chunk usageMetadata', async () => {
-    // Gemini streaming does not set the x-gemini-service-tier response header
-    // but does include serviceTier in each chunk's usageMetadata.
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
+      headers: { 'x-gemini-service-tier': 'standard' },
       chunks: [
         `data: ${JSON.stringify({
           candidates: [
@@ -7744,6 +7832,25 @@ describe('doStream', () => {
         finishEvent.providerMetadata?.google.serviceTier,
     ).toBe('priority');
   });
+
+  it.each(['flex', 'priority'])(
+    'should read serviceTier %s from the stream response header when absent from usageMetadata',
+    async serviceTier => {
+      prepareStreamResponse({
+        content: ['test'],
+        headers: { 'x-gemini-service-tier': serviceTier },
+      });
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const events = await convertReadableStreamToArray(stream);
+      const finishEvent = events.find(event => event.type === 'finish');
+
+      expect(
+        finishEvent?.type === 'finish' &&
+          finishEvent.providerMetadata?.google.serviceTier,
+      ).toBe(serviceTier);
+    },
+  );
 
   it('should expose the continuationToken from the final chunk on finish', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {

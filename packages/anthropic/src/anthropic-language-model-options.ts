@@ -29,6 +29,7 @@ export type AnthropicModelId =
   | 'claude-opus-5-5'
   | 'claude-fable-5'
   | 'claude-fable-5-1'
+  | 'claude-fable-5-2'
   | 'claude-sonnet-5'
   | 'claude-sonnet-5-5'
   | (string & {});
@@ -111,17 +112,43 @@ export const anthropicSystemMessageProviderOptions = lazySchema(() =>
        * initial system prompt). A system message carrying tool changes must come
        * right before an assistant message or at the end of the messages.
        *
-       * Tools referenced by a `tool_addition` must be declared in the `tools`
-       * option (typically with `deferLoading: true` so they are not loaded until
-       * the addition surfaces them). The required
-       * `mid-conversation-tool-changes-2026-07-01` beta is added automatically.
+       * A `tool_addition` either references a tool by `toolName` or defines it
+       * by value with `tool`:
+       * - By reference: the tool must be declared in the `tools` option
+       *   (typically with `deferLoading: true` so it is not loaded until the
+       *   addition surfaces it). The required
+       *   `mid-conversation-tool-changes-2026-07-01` beta is added
+       *   automatically.
+       * - By value: `tool` is a function or provider tool, in the same shape as
+       *   an entry of the `tools` option. The tool does not need to be declared
+       *   in `tools`, and defining a tool under an existing name replaces it
+       *   from that point on. The required `inline-tools-2026-09-15` beta is
+       *   added automatically.
+       *
+       * A `tool_removal` always references the tool by `toolName`.
        */
       toolChanges: z
         .array(
-          z.discriminatedUnion('type', [
+          z.union([
             z.object({
               type: z.literal('tool_addition'),
               toolName: z.string(),
+            }),
+            z.object({
+              type: z.literal('tool_addition'),
+              tool: z.union([
+                z.looseObject({
+                  type: z.literal('function'),
+                  name: z.string(),
+                  inputSchema: z.record(z.string(), z.unknown()),
+                }),
+                z.looseObject({
+                  type: z.literal('provider'),
+                  id: z.string(),
+                  name: z.string(),
+                  args: z.record(z.string(), z.unknown()),
+                }),
+              ]),
             }),
             z.object({
               type: z.literal('tool_removal'),

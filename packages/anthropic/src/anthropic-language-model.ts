@@ -32,6 +32,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  resolveProviderOptions,
   resolveProviderReference,
   secureJsonParse,
   serializeModelOptions,
@@ -73,12 +74,40 @@ import {
 } from './convert-anthropic-usage';
 import {
   convertToAnthropicPrompt,
+  getInlineToolsFromPrompt,
   type AnthropicMediaPartConverter,
 } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
 import { supportsNativeStructuredOutputSchema } from './supports-native-structured-output-schema';
+import { computerToolset_20260801Members } from './tool/computer-toolset_20260801';
+
+function validateToolsetMember({
+  toolsetName,
+  memberName,
+  tools,
+}: {
+  toolsetName: string;
+  memberName: string;
+  tools: AnthropicTool[] | undefined;
+}): void {
+  const toolset = tools?.find(
+    tool => 'type' in tool && tool.type === 'computer_toolset_20260801',
+  );
+
+  if (
+    toolsetName !== 'computer' ||
+    toolset == null ||
+    !computerToolset_20260801Members.some(member => member === memberName) ||
+    toolset.configs?.[memberName]?.enabled === false
+  ) {
+    throw new InvalidResponseDataError({
+      data: { toolsetName, memberName },
+      message: `Received an unavailable toolset member: ${toolsetName}.${memberName}.`,
+    });
+  }
+}
 
 function createAnthropicStreamError(error: {
   message: string;
@@ -238,11 +267,16 @@ function toToolsetMemberInput({
   memberName: string;
   input: unknown;
 }): JSONObject {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    throw new InvalidResponseDataError({
+      data: input,
+      message: 'Invalid toolset member input: expected an object.',
+    });
+  }
+
   return {
+    ...(input as JSONObject),
     action: memberName,
-    ...(typeof input === 'object' && input !== null && !Array.isArray(input)
-      ? (input as JSONObject)
-      : {}),
   };
 }
 
@@ -281,6 +315,16 @@ export type AnthropicLanguageModelConfig = {
   supportsTemperatureAndTopPWithThinking?: boolean;
   /** Cache option namespace for compatible providers. Defaults to anthropic. */
   cacheControlProviderOptionsName?: string;
+};
+
+/**
+ * Legacy names of custom providerOptions keys, read when the current key is
+ * absent.
+ */
+const LEGACY_PROVIDER_OPTIONS_NAMES: Record<string, readonly string[]> = {
+  // The Google Vertex Anthropic provider was renamed from `vertex` to
+  // `googleVertex`, which silently changed its custom providerOptions key.
+  googleVertex: ['vertex'],
 };
 
 const TEXT_OR_THINKING_BLOCK_TYPES = new Set<string>([
@@ -450,17 +494,32 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       schema: anthropicLanguageModelOptions,
     });
 
-    const customProviderOptions =
-      providerOptionsName !== 'anthropic'
-        ? await parseProviderOptions({
-            provider: providerOptionsName,
-            providerOptions,
-            schema: anthropicLanguageModelOptions,
-          })
-        : null;
+    // The custom key and its legacy aliases are alternatives: the first
+    // present one is used.
+    const {
+      options: customProviderOptions,
+      namespaces: [customProviderOptionsName],
+    } = await resolveProviderOptions({
+      providerOptions,
+      namespaces:
+        providerOptionsName !== 'anthropic'
+          ? [
+              providerOptionsName,
+              ...(Object.hasOwn(
+                LEGACY_PROVIDER_OPTIONS_NAMES,
+                providerOptionsName,
+              )
+                ? LEGACY_PROVIDER_OPTIONS_NAMES[providerOptionsName]
+                : []),
+            ]
+          : [],
+      resolution: 'first',
+      schema: anthropicLanguageModelOptions,
+    });
 
     // Track if custom key was explicitly used
-    const usedCustomProviderKey = customProviderOptions != null;
+    const usedCustomProviderKey =
+      customProviderOptionsName === providerOptionsName;
 
     // Merge options
     const anthropicOptions = Object.assign(
@@ -649,8 +708,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       thread != null && anthropicOptions?.cacheControl != null ? 1 : 0,
     );
 
+    const defaultEagerInputStreaming =
+      stream && (anthropicOptions?.toolStreaming ?? true);
+
+    // Tools that tool changes add by value are only known from the prompt.
+    const inlineTools = await getInlineToolsFromPrompt(prompt);
+
     const toolNameMapping = createToolNameMapping({
-      tools,
+      // later entries win when provider tool names collide, so the declared
+      // tools go last and an inline tool cannot take over their mapping:
+      tools: [...inlineTools, ...(tools ?? [])],
       providerToolNames: {
         'anthropic.code_execution_20250522': 'code_execution',
         'anthropic.code_execution_20250825': 'code_execution',
@@ -679,6 +746,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     });
 
     const toolsetNames = getAnthropicToolsetNames(tools);
+    const inlineToolDefinitions: Array<{
+      sdkName: string;
+      definition: AnthropicTool;
+    }> = [];
 
     const { prompt: messagesPrompt, betas } = await convertToAnthropicPrompt({
       prompt,
@@ -688,6 +759,35 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       toolsetNames,
       convertMediaPart: config.convertMediaPart,
+      convertInlineTool: async tool => {
+        const {
+          tools: definitions,
+          toolWarnings,
+          betas,
+        } = await prepareTools({
+          tools: [tool],
+          toolChoice: undefined,
+          cacheControlValidator,
+          supportsStructuredOutput,
+          supportsStrictTools,
+          // no stream-dependent defaults (eager input streaming): the
+          // definition is replayed on every request and has to stay identical
+          // between streaming and non-streaming calls to keep the cache.
+        });
+
+        if (definitions?.[0] != null) {
+          inlineToolDefinitions.push({
+            sdkName: tool.name,
+            definition: definitions[0],
+          });
+        }
+
+        return {
+          definition: definitions?.[0],
+          warnings: toolWarnings,
+          betas,
+        };
+      },
     });
 
     if (thread != null) {
@@ -1214,9 +1314,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       betas.add('server-side-fallback-2026-06-01');
     }
 
-    const defaultEagerInputStreaming =
-      stream && (anthropicOptions?.toolStreaming ?? true);
-
     const {
       tools: anthropicTools,
       toolChoice: anthropicToolChoice,
@@ -1246,6 +1343,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         : {
             tools: tools ?? [],
             toolChoice,
+            // tool changes can add tools when `tools` is empty, so the tool
+            // choice and parallel tool use settings still apply:
+            hasInlineTools: inlineTools.length > 0,
             disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
             cacheControlValidator,
             supportsStructuredOutput,
@@ -1255,6 +1355,72 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               rejectsForcedToolUse || thinkingType === 'enabled',
           },
     );
+
+    // Forced-choice and JSON-tool fallbacks restrict the declared tools.
+    // MCP connectors and inline definitions, including those replayed from
+    // history, must not restore other tools before the provider executes the request.
+    if (
+      (toolChoice?.type === 'tool' &&
+        (anthropicToolChoice?.type === 'auto' || jsonResponseTool != null)) ||
+      (toolChoice?.type === 'none' && jsonResponseTool != null)
+    ) {
+      for (const server of baseArgs.mcp_servers ?? []) {
+        server.tool_configuration = {
+          allowed_tools: server.tool_configuration?.allowed_tools,
+          enabled: false,
+        };
+      }
+
+      // Initial system tool changes are ignored by the prompt converter.
+      // Validate only definitions that remain in the outgoing messages.
+      const emittedInlineDefinitions = new Set(
+        messagesPrompt.messages.flatMap(message =>
+          message.role === 'system'
+            ? message.content.flatMap(part =>
+                part.type === 'tool_addition' &&
+                part.tool.type === 'tool_definition'
+                  ? [part.tool.definition]
+                  : [],
+              )
+            : [],
+        ),
+      );
+      const selectedSdkName =
+        toolChoice.type === 'tool' ? toolChoice.toolName : undefined;
+      const selectedTool = tools?.find(tool => tool.name === selectedSdkName);
+      const selectedProviderName =
+        jsonResponseTool != null &&
+        selectedSdkName != null &&
+        selectedTool?.type !== 'function'
+          ? toolNameMapping.toProviderToolName(selectedSdkName)
+          : selectedSdkName;
+      const conflictingTool = inlineToolDefinitions.find(
+        ({ sdkName, definition }) =>
+          emittedInlineDefinitions.has(definition) &&
+          (toolChoice.type === 'none' ||
+            // The JSON-tool path filters application tools by SDK name before
+            // conversion; the forced-choice fallback filters by provider name.
+            (jsonResponseTool != null && sdkName !== selectedSdkName) ||
+            !('name' in definition) ||
+            definition.name !== selectedProviderName),
+      );
+      if (conflictingTool != null) {
+        const toolName =
+          'name' in conflictingTool.definition
+            ? conflictingTool.definition.name
+            : conflictingTool.definition.type;
+        const choice =
+          toolChoice.type === 'tool'
+            ? `named tool choice '${toolChoice.toolName}'`
+            : `tool choice 'none'`;
+        throw new InvalidArgumentError({
+          argument: 'toolChoice',
+          message:
+            `Inline tool '${toolName}' conflicts with ${choice}. ` +
+            'Inline definitions must respect the tool choice when forced tool use falls back or the JSON response tool is used.',
+        });
+      }
+    }
 
     // Extract cache control warnings once at the end
     const cacheWarnings = cacheControlValidator.getWarnings();
@@ -1279,6 +1445,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       usesJsonResponseTool: jsonResponseTool != null,
       includePings: stream === true && anthropicOptions?.includePings === true,
       toolNameMapping,
+      preparedTools: anthropicTools,
       providerOptionsName,
       usedCustomProviderKey,
     };
@@ -1407,6 +1574,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       usesJsonResponseTool,
       markCodeExecutionDynamic,
       toolNameMapping,
+      preparedTools,
       providerOptionsName,
       usedCustomProviderKey,
     } = await this.getArgs({
@@ -1575,6 +1743,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               text: JSON.stringify(part.input),
             });
           } else if (part.toolset_name != null) {
+            validateToolsetMember({
+              toolsetName: part.toolset_name,
+              memberName: part.name,
+              tools: preparedTools,
+            });
             // toolset member calls (e.g. the computer toolset) are mapped to
             // the toolset tool with the member name as the `action`:
             content.push({
@@ -2073,6 +2246,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       markCodeExecutionDynamic,
       includePings,
       toolNameMapping,
+      preparedTools,
       providerOptionsName,
       usedCustomProviderKey,
     } = await this.getArgs({
@@ -2364,6 +2538,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       id: String(value.index),
                     });
                   } else if (part.toolset_name != null) {
+                    validateToolsetMember({
+                      toolsetName: part.toolset_name,
+                      memberName: part.name,
+                      tools: preparedTools,
+                    });
                     const callerInfo = getAnthropicCallerInfo(part.caller);
                     const customToolName = toolNameMapping.toCustomToolName(
                       part.toolset_name,
@@ -2887,19 +3066,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                               ? {}
                               : secureJsonParse(contentBlock.input);
                         } catch {
-                          // ignore parse errors, fall back to the raw input
-                          memberInput = undefined;
+                          throw new InvalidResponseDataError({
+                            data: contentBlock.input,
+                            message: 'Invalid toolset member input JSON.',
+                          });
                         }
 
-                        contentBlock.input =
-                          memberInput === undefined
-                            ? contentBlock.input
-                            : JSON.stringify(
-                                toToolsetMemberInput({
-                                  memberName: contentBlock.toolset.memberName,
-                                  input: memberInput,
-                                }),
-                              );
+                        contentBlock.input = JSON.stringify(
+                          toToolsetMemberInput({
+                            memberName: contentBlock.toolset.memberName,
+                            input: memberInput,
+                          }),
+                        );
 
                         controller.enqueue({
                           type: 'tool-input-delta',

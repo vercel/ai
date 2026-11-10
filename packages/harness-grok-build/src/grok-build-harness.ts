@@ -91,9 +91,10 @@ export type GrokBuildHarnessSettings = {
    * underlying runtime's native MCP server configuration format.
    */
   readonly mcpServers?: Record<string, unknown>;
+  // TODO: Remove in the next major version.
   /**
-   * Creates the authentication token used by the sandbox bridge. Defaults to
-   * a random 32-byte hexadecimal token.
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
    */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
@@ -357,6 +358,12 @@ export function createGrokBuild(
         : ['--reasoning-effort', settings.reasoningEffort]),
       'stdio',
     ],
+    env: {
+      GROK_CLAUDE_HOOKS_ENABLED: 'false',
+      GROK_CURSOR_HOOKS_ENABLED: 'false',
+      GROK_CLAUDE_MCPS_ENABLED: 'false',
+      GROK_CURSOR_MCPS_ENABLED: 'false',
+    },
     forwardEnv: [
       'GROK_XAI_API_BASE_URL',
       'GROK_MODELS_BASE_URL',

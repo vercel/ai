@@ -220,7 +220,11 @@ If they no longer match, leave the newer tokens in storage. The SDK retries
 authorization and reads the stored tokens again.
 
 The SDK also provides this context when invalidating stored tokens that lack an
-authorization server pin. Other invalidations can omit the context.
+authorization server pin. These tokens must be cleared before the SDK saves a new
+client registration or authorization server pin. If the invalidation hook is
+missing or refresh tokens remain in storage, authorization stops with an error;
+clear the stored tokens and start authorization again. Other invalidations can
+omit the context.
 
 If an authorization-code exchange returns `invalid_grant`, the SDK propagates
 the error without invalidating stored credentials or retrying the rejected code.
@@ -285,6 +289,19 @@ const myOAuthClientProvider = {
 This hook is called before the SDK fetches authorization server metadata, so a
 rejected URL is not requested. The hook is an optional additional restriction;
 it does not replace the credential binding required for confidential clients.
+
+On Node.js, OAuth discovery validates and pins DNS results for untrusted
+URLs. On Bun, Deno, and other server runtimes without this transport, discovery
+blocks untrusted authorization-server URLs, redirects, token endpoints, and
+registration endpoints unless you supply a
+custom `fetch` with equivalent connect-time address validation and DNS pinning.
+Passing global `fetch` explicitly does not opt out of this requirement. The
+configured MCP server origin remains supported, including local endpoints;
+response-supplied authorization-server hosts are not automatically trusted.
+Browser window discovery remains supported. Browser Web Workers and Service
+Workers without a DOM follow the strict custom-fetch requirement as well;
+worker globals alone cannot establish that the runtime is a browser rather
+than a server worker.
 
 ### OAuth Callback Issuer Validation
 

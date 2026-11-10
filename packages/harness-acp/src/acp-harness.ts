@@ -114,6 +114,11 @@ export type ACPHarnessSettings<
   readonly askUserQuestions?: TAskUserQuestions;
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
   readonly session?: ACPV1Settings['session'];
+  // TODO: Remove in the next major version.
+  /**
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
+   */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
@@ -121,7 +126,7 @@ const ACP_BUILTIN_TOOLS = {} as const satisfies ToolSet;
 
 const acpBridgeCoordsSchema = z.object({
   port: z.number(),
-  token: z.string(),
+  privateKey: z.string(),
   lastSeenEventId: z.number(),
   sandboxId: z.string().optional(),
   stateDir: z.string().optional(),

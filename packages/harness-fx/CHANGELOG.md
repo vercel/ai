@@ -1,5 +1,57 @@
 # @ai-sdk/harness-fx
 
+## 1.0.95
+
+### Patch Changes
+
+- 0fc1f13: chore(harness): update harness adapter underlying SDKs to their latest releases
+- 3647c6a: feat(harness-fx): add configurable `sessionStorage?: FxSessionStorage` and as fallback keep session data exclusively in memory and resume state
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/mcp@2.0.95
+  - @ai-sdk/provider-utils@5.0.78
+
+## 1.0.94
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/harness@1.0.178
+  - @ai-sdk/mcp@2.0.94
+
+## 1.0.93
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.92
+
+### Patch Changes
+
+- Updated dependencies [dc0f7f2]
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/mcp@2.0.93
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/harness@1.0.176
+
+## 1.0.91
+
+### Patch Changes
+
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+- Updated dependencies [ae13fce]
+  - @ai-sdk/harness@1.0.175
+  - @ai-sdk/mcp@2.0.92
+
 ## 1.0.90
 
 ### Patch Changes

@@ -65,9 +65,10 @@ export type CursorHarnessSettings = {
    * underlying runtime's native MCP server configuration format.
    */
   readonly mcpServers?: Record<string, unknown>;
+  // TODO: Remove in the next major version.
   /**
-   * Creates the authentication token used by the sandbox bridge. Defaults to
-   * a random 32-byte hexadecimal token.
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
    */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
@@ -409,7 +410,7 @@ export function createCursor(
       command: 'curl https://cursor.com/install -fsS | bash',
     },
     executable: 'agent',
-    args: ['--disable-auto-update', 'acp'],
+    args: ['--disable-auto-update', '--disable-project-configs', 'acp'],
     modelMapping: {
       type: 'session-config-option',
       path: 'model',

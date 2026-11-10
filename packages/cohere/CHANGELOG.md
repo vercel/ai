@@ -1,5 +1,70 @@
 # @ai-sdk/cohere
 
+## 4.0.80
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 4.0.79
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 4.0.78
+
+### Patch Changes
+
+- 84e83a0: fix(cohere): stop requiring `meta` in reranking responses, which failed validation on Zod >= 4.4 when a response omitted it
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 4.0.77
+
+### Patch Changes
+
+- 3aad18a: fix(cohere): tolerate partial citations and usage in non-streaming responses
+
+  Cohere citations and usage fields are optional in the API specification, but the
+  response schema required `start`, `end`, `text`, every source `document` with
+  `text` and `title`, and usage token counts. Responses with untitled documents
+  (documents passed without a filename), with tool-sourced citations, or without
+  token counts failed with an `AI_TypeValidationError` and discarded the whole
+  response.
+
+  These fields are now validated loosely: citation fields and source `type`/`id`
+  are nullish, `document` is a loose object with optional `id`/`text`/`title`, tool
+  sources are accepted, and `usage` plus its token counts are nullish. Document
+  citations without a title fall back to `"Document"`. Tool-only citations are
+  skipped because they have no document to point at; their data stays in the
+  response body.
+
+  `convertCohereUsage` no longer falls back to `billed_units`, which are a
+  different measure than `tokens` (e.g. 12 billed vs 507 input tokens in a single
+  response) and would go negative when cached tokens are subtracted. A response
+  without `tokens` now reports undefined token counts instead of unrelated
+  numbers. This usage conversion is shared with streaming.
+
+- 73400b2: fix(cohere): read the response id from v2 chat responses
+
+  The non-streaming response schema read `generation_id`, which Cohere's v2 chat
+  response does not return. As a result, `generateText().response.id` was a locally
+  generated fallback instead of the provider's id, while `streamText` returned the
+  id from the `message-start` event. `doGenerate` now reads `id` and keeps
+  `generation_id` (the v1 field) only for compatibility with proxies and mocks that
+  still return it.
+
+- 033a980: fix(cohere): emit `source` stream parts for citations
+
+  `streamText` did not produce sources for Cohere RAG responses because `citation-start` stream events were ignored, while `generateText` mapped `message.citations` to document sources. Streaming now maps each cited document to the same `source` part as the non-streaming path. Citations that only reference tool output are not emitted as sources, and `citation-start` events without citations are ignored.
+
 ## 4.0.76
 
 ### Patch Changes

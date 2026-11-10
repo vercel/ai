@@ -43,6 +43,12 @@ export function toUIMessageStream<
   let outcome: UIMessageStreamOutcome = { status: 'unknown' };
   let hasFatalFailure = false;
 
+  // streamText follows each invalid tool call with a tool-error part so the
+  // model receives a tool result. The tool-input-error chunk already reports
+  // the failure, so the tool-error is skipped to avoid a second onError call.
+  // TODO AI SDK 8: remove once invalid tool calls no longer inject tool-error parts
+  const invalidToolCallIds = new Set<string>();
+
   const setSourceOutcome = (newOutcome: UIMessageStreamOutcome) => {
     if (
       !hasFatalFailure &&
@@ -119,18 +125,29 @@ export function toUIMessageStream<
     new TransformStream({
       transform: async (part, controller) => {
         try {
+          if (part.type === 'tool-call' && part.invalid) {
+            invalidToolCallIds.add(part.toolCallId);
+          }
+
+          const isInvalidToolCallError =
+            part.type === 'tool-error' &&
+            !part.providerExecuted &&
+            invalidToolCallIds.delete(part.toolCallId);
+
           const messageMetadataValue = messageMetadata?.({ part });
 
-          const uiMessageChunk = toUIMessageChunk(part, {
-            tools,
-            sendReasoning,
-            sendSources,
-            sendStart,
-            sendFinish,
-            onError,
-            messageMetadata: messageMetadataValue,
-            responseMessageId,
-          });
+          const uiMessageChunk = isInvalidToolCallError
+            ? undefined
+            : toUIMessageChunk(part, {
+                tools,
+                sendReasoning,
+                sendSources,
+                sendStart,
+                sendFinish,
+                onError,
+                messageMetadata: messageMetadataValue,
+                responseMessageId,
+              });
 
           if (uiMessageChunk != null && part.type !== 'finish-step') {
             controller.enqueue(uiMessageChunk);

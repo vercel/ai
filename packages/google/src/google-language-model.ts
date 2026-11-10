@@ -24,9 +24,9 @@ import {
   lazySchema,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
-  parseProviderOptions,
   postJsonToApi,
   resolve,
+  resolveProviderOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -179,25 +179,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       ? (['googleVertex', 'vertex'] as const)
       : (['google'] as const);
 
-    let googleOptions: GoogleLanguageModelOptions | undefined;
-    for (const name of providerOptionsNames) {
-      googleOptions = await parseProviderOptions({
-        provider: name,
+    // The first present namespace wins as a whole. A Vertex provider also
+    // falls back to the `google` key (e.g. via the AI Gateway).
+    const { options: googleOptions } =
+      await resolveProviderOptions<GoogleLanguageModelOptions>({
         providerOptions,
+        namespaces: [...providerOptionsNames, 'google'],
+        resolution: 'first',
         schema: googleLanguageModelOptions,
       });
-      if (googleOptions != null) break;
-    }
-
-    // Cross-namespace fallback: a Vertex provider may receive options under
-    // the `google` key (e.g. via the AI Gateway).
-    if (googleOptions == null && !providerOptionsNames.includes('google')) {
-      googleOptions = await parseProviderOptions({
-        provider: 'google',
-        providerOptions,
-        schema: googleLanguageModelOptions,
-      });
-    }
 
     // Add warning if Vertex rag tools are used with a non-Vertex Google provider
     const isVertexProvider = config.provider.startsWith('google.vertex.');
@@ -468,7 +458,13 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     options: LanguageModelV4CallOptions,
     { isStreaming = false }: { isStreaming?: boolean } = {},
   ) {
-    const { responseFormat, tools, toolChoice } = options;
+    const { responseFormat, toolChoice } = options;
+    // Enforce the caller's tool choice before the JSON response fallback can
+    // replace it with a forced call to the synthetic response tool.
+    const tools =
+      toolChoice?.type === 'none'
+        ? options.tools?.filter(tool => tool.type === 'function')
+        : options.tools;
     const entry = getGoogleLanguageModelEntry(this.modelId);
     const { structuredOutput } = entry.capabilities.language;
     let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
@@ -522,6 +518,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   static convertGenerateContentResponse({
     config,
     response,
+    responseHeaders,
     warnings,
     providerOptionsNames,
     toolNameMapping,
@@ -531,6 +528,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   }: {
     config: GoogleLanguageModelConfig;
     response: InferSchema<typeof responseSchema>;
+    responseHeaders?: Record<string, string>;
     warnings: SharedV4Warning[];
     providerOptionsNames: readonly string[];
     toolNameMapping?: ReturnType<typeof createToolNameMapping>;
@@ -734,7 +732,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         safetyRatings: candidate?.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
         finishMessage: candidate?.finishMessage ?? null,
-        serviceTier: usageMetadata?.serviceTier ?? null,
+        serviceTier:
+          usageMetadata?.serviceTier ??
+          responseHeaders?.['x-gemini-service-tier'] ??
+          null,
         ...(candidate?.continuationToken != null
           ? { continuationToken: candidate.continuationToken }
           : {}),
@@ -836,6 +837,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const lastResult = GoogleLanguageModel.convertGenerateContentResponse({
       config: this.config,
       response: { ...response, usageMetadata },
+      responseHeaders,
       warnings,
       providerOptionsNames,
       toolNameMapping,
@@ -1595,7 +1597,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 safetyRatings: lastSafetyRatings,
                 usageMetadata: usage ?? null,
                 finishMessage: lastFinishMessage,
-                serviceTier: usage?.serviceTier ?? null,
+                serviceTier:
+                  usage?.serviceTier ??
+                  responseHeaders?.['x-gemini-service-tier'] ??
+                  null,
                 // Only surface the token when the response stopped early
                 // (budget used up, or continuing failed), not for the
                 // checkpoint tokens of a stream that finished normally.

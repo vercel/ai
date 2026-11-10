@@ -4,10 +4,16 @@ import type {
   ProviderOptionDefinitions,
 } from '@ai-sdk/provider';
 import type { AzureImageModelOptions } from './azure-image-model-options';
+import type { AzureTranscriptionModelMaiOptions } from './azure-mai-transcription-model-options';
 import type { AzureSpeechModelOptions } from './azure-speech-model-options';
+import type { AzureSpeechModelSpeechOptions } from './azure-speech-speech-model-options';
+import type { AzureTranscriptionModelSpeechOptions } from './azure-speech-transcription-model-options';
 import type { AzureTranscriptionModelOptions } from './azure-transcription-model-options';
 
-/** Azure-specific options; OpenAI-backed operations retain OpenAI's options. */
+/**
+ * Azure-specific options; OpenAI-backed operations retain OpenAI's options,
+ * which they also accept under `azure`.
+ */
 export const azureProviderOptions = {
   image: {
     api: { description: 'Select the OpenAI or MAI image API.' },
@@ -18,7 +24,11 @@ export const azureProviderOptions = {
     api: { description: 'Select the OpenAI or Azure Speech API.' },
     style: { description: 'Speaking style supported by the selected voice.' },
     styleDegree: { description: 'Intensity of the speaking style.' },
-  } satisfies Record<keyof AzureSpeechModelOptions, ProviderOptionDefinition>,
+  } satisfies Record<
+    | ('api' & keyof AzureSpeechModelOptions)
+    | keyof AzureSpeechModelSpeechOptions,
+    ProviderOptionDefinition
+  >,
   transcription: {
     api: { description: 'Select the OpenAI, Azure Speech, or MAI API.' },
     language: { description: 'Language hint for MAI streaming transcription.' },
@@ -28,7 +38,9 @@ export const azureProviderOptions = {
     diarization: { description: 'Enable speaker diarization.' },
     phraseList: { description: 'Phrases to bias transcription toward.' },
   } satisfies Record<
-    keyof AzureTranscriptionModelOptions,
+    | ('api' & keyof AzureTranscriptionModelOptions)
+    | keyof AzureTranscriptionModelSpeechOptions
+    | keyof AzureTranscriptionModelMaiOptions,
     ProviderOptionDefinition
   >,
 } as const satisfies ProviderOptionDefinitions;

@@ -40,7 +40,9 @@ const wsMock = vi.hoisted(() => {
     readonly url: string;
     readonly headers: Record<string, string> | undefined;
     readonly handlers = new Map<string, Set<Handler>>();
+    readonly sent: string[] = [];
     terminated = false;
+    challengeSent = false;
 
     constructor(url: string, options?: { headers?: Record<string, string> }) {
       this.url = url;
@@ -62,11 +64,29 @@ const wsMock = vi.hoisted(() => {
     }
 
     emit(event: string, ...args: unknown[]): void {
+      if (
+        event === 'message' &&
+        !this.challengeSent &&
+        String(args[0]).includes('"bridge-hello"')
+      ) {
+        this.challengeSent = true;
+        this.emit(
+          'message',
+          JSON.stringify({
+            type: 'bridge-auth-challenge',
+            challenge: 'a'.repeat(64),
+          }),
+        );
+      }
       const handlers = this.handlers.get(event) ?? new Set<Handler>();
       if (event === 'error' && handlers.size === 0) throw args[0];
       for (const handler of handlers) {
         handler(...args);
       }
+    }
+
+    send(frame: string): void {
+      this.sent.push(frame);
     }
 
     terminate(): void {
@@ -613,7 +633,10 @@ describe('createClaudeCode adapter', () => {
         CLAUDE_AGENT_SDK_CLIENT_APP: 'ai-sdk-harness-claude-code/0.0.0-test',
       },
     });
-    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
+    expect(spawnEnvs.at(0)?.BRIDGE_AUTH_PUBLIC_KEY).toMatch(
+      /^[A-Za-z0-9_-]{43}$/,
+    );
+    expect(spawnEnvs.at(0)).not.toHaveProperty('BRIDGE_CHANNEL_TOKEN');
     await session.doDestroy();
   });
 
@@ -985,22 +1008,21 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('uses a caller-minted bridge token and reuses it when attaching', async () => {
+  it('keeps the bridge private key on the host and reuses it when attaching', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
-    const mintBridgeToken = vi.fn(
-      (sandboxId: string) => `token-for-${sandboxId}`,
-    );
+    const writes: Array<{ path: string; content: string }> = [];
+    const runs: string[] = [];
     const reconnect = {
       maxElapsedMs: 120_000,
       initialDelayMs: 100,
       maxDelayMs: 5_000,
     };
-    const harness = createClaudeCode({ mintBridgeToken, reconnect });
+    const harness = createClaudeCode({ reconnect });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       spawnEnvs,
-      writes: [],
-      runs: [],
+      writes,
+      runs,
     });
     const session = await harness.doStart({
       sessionId: 's1',
@@ -1008,15 +1030,15 @@ describe('createClaudeCode adapter', () => {
       sessionWorkDir: '/vercel/sandbox/claude-code-s1',
     });
 
-    expect(mintBridgeToken).toHaveBeenCalledExactlyOnceWith('test-sandbox');
-    expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toBe(
-      'token-for-test-sandbox',
-    );
-
     const resumeFrom = await session.doDetach();
-    expect(resumeFrom.data).toMatchObject({
-      bridge: { token: 'token-for-test-sandbox' },
-    });
+    const { privateKey } = (
+      resumeFrom.data as { bridge: { privateKey: string } }
+    ).bridge;
+    expect(privateKey).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(resumeFrom.data).not.toHaveProperty('bridge.token');
+    expect(JSON.stringify({ spawnEnvs, writes, runs })).not.toContain(
+      privateKey,
+    );
 
     const attachedSession = await harness.doStart({
       sessionId: 's1',
@@ -1024,9 +1046,40 @@ describe('createClaudeCode adapter', () => {
       sessionWorkDir: '/vercel/sandbox/claude-code-s1',
       resumeFrom,
     });
-    expect(mintBridgeToken).toHaveBeenCalledTimes(1);
     expect(reconnects).toEqual([reconnect, reconnect]);
-    await attachedSession.doDetach();
+    const attachedResumeFrom = await attachedSession.doDetach();
+    expect(attachedResumeFrom.data).toMatchObject({ bridge: { privateKey } });
+  });
+
+  it('ignores a mintBridgeToken callback and warns once at creation', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const mintBridgeToken = vi.fn((sandboxId: string) => sandboxId);
+    try {
+      const harness = createClaudeCode({ mintBridgeToken });
+      const session = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          writes: [],
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      });
+      await session.doDestroy();
+
+      expect(mintBridgeToken).not.toHaveBeenCalled();
+      expect(
+        warn.mock.calls.filter(([message]) =>
+          String(message).includes('mintBridgeToken'),
+        ),
+      ).toEqual([
+        [
+          'The claude-code harness ignores the deprecated `mintBridgeToken` setting. Sandbox bridge authentication now uses an adapter-generated key pair.',
+        ],
+      ]);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it('forwards channel debug events for fresh and attached sessions', async () => {
@@ -1124,7 +1177,6 @@ describe('createClaudeCode adapter', () => {
       headers,
     };
     const harness = createClaudeCode({
-      mintBridgeToken: () => 'bridge-token',
       portEndpoint,
     });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
@@ -1150,7 +1202,13 @@ describe('createClaudeCode adapter', () => {
     for (const socket of wsMock.sockets) {
       expect(socket.headers).toEqual(headers);
       expect(socket.url).toContain('existing=value');
-      expect(socket.url).toContain('agent_bridge_token=bridge-token');
+      expect(socket.url).not.toContain('agent_bridge_token');
+    }
+    for (const socket of [wsMock.sockets[1], wsMock.sockets[2]]) {
+      expect(socket.sent).toHaveLength(1);
+      expect(JSON.parse(socket.sent[0])).toMatchObject({
+        type: 'bridge-auth-proof',
+      });
     }
     await attachedSession.doDetach();
   });
@@ -1174,7 +1232,7 @@ describe('createClaudeCode adapter', () => {
       },
       openWithHello,
     );
-    const harness = createClaudeCode({ mintBridgeToken: () => 'bridge-token' });
+    const harness = createClaudeCode();
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       writes: [],
