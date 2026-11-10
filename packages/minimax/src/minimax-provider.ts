@@ -1,6 +1,7 @@
 import {
   NoSuchModelError,
   type Experimental_VideoModelV3,
+  type ImageModelV3,
   type LanguageModelV3,
   type ProviderV3,
 } from '@ai-sdk/provider';
@@ -15,6 +16,8 @@ import { MiniMaxChatLanguageModel } from './minimax-chat-language-model';
 import type { MiniMaxChatModelId } from './minimax-chat-language-model-options';
 import { MiniMaxVideoModel } from './minimax-video-model';
 import type { MiniMaxVideoModelId } from './minimax-video-settings';
+import { MiniMaxImageModel } from './minimax-image-model';
+import type { MiniMaxImageModelId } from './minimax-image-model-options';
 import { VERSION } from './version';
 
 export interface MiniMaxProviderSettings {
@@ -33,6 +36,8 @@ export interface MiniMaxProviderSettings {
    * The default prefix is `https://api.minimax.io`.
    */
   videoBaseURL?: string;
+  /** Image generation endpoint. Defaults to `https://api.minimax.io/v1`. */
+  imageBaseURL?: string;
   /**
    * Custom headers to include in the requests.
    */
@@ -45,6 +50,10 @@ export interface MiniMaxProviderSettings {
 }
 
 export interface MiniMaxProvider extends ProviderV3 {
+  /** Creates a MiniMax image generation or editing model. */
+  image(modelId: MiniMaxImageModelId): ImageModelV3;
+  /** Creates a MiniMax image generation or editing model. */
+  imageModel(modelId: MiniMaxImageModelId): ImageModelV3;
   /**
    * Creates a MiniMax model for text generation.
    */
@@ -113,7 +122,7 @@ export function createMiniMax(
       supportedUrls: () => ({}),
     });
 
-  const getVideoHeaders = () =>
+  const getMediaHeaders = () =>
     withUserAgentSuffix(
       {
         Authorization: `Bearer ${loadApiKey({
@@ -130,7 +139,17 @@ export function createMiniMax(
     new MiniMaxVideoModel(modelId, {
       provider: 'minimax.video',
       baseURL: videoBaseURL,
-      headers: getVideoHeaders,
+      headers: getMediaHeaders,
+      fetch: options.fetch,
+    });
+
+  const createImageModel = (modelId: MiniMaxImageModelId) =>
+    new MiniMaxImageModel(modelId, {
+      provider: 'minimax.image',
+      baseURL:
+        withoutTrailingSlash(options.imageBaseURL) ??
+        'https://api.minimax.io/v1',
+      headers: getMediaHeaders,
       fetch: options.fetch,
     });
 
@@ -146,9 +165,8 @@ export function createMiniMax(
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
   provider.textEmbeddingModel = provider.embeddingModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
 
   return provider;
 }

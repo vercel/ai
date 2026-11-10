@@ -239,6 +239,19 @@ describe('MiniMaxProvider', () => {
     });
   });
 
+  describe('image', () => {
+    it('should construct an image model through both factory methods', () => {
+      const provider = createMiniMax();
+      for (const model of [
+        provider.image('MiniMax-H3-Image'),
+        provider.imageModel('MiniMax-H3-Image-Highspeed'),
+      ]) {
+        expect(model.provider).toBe('minimax.image');
+        expect(model.specificationVersion).toBe('v3');
+      }
+    });
+  });
+
   describe('unsupported model types', () => {
     it('should throw NoSuchModelError for embeddingModel', () => {
       const provider = createMiniMax();
@@ -250,11 +263,6 @@ describe('MiniMaxProvider', () => {
       expect(() => provider.textEmbeddingModel('foo')).toThrow(
         NoSuchModelError,
       );
-    });
-
-    it('should throw NoSuchModelError for imageModel', () => {
-      const provider = createMiniMax();
-      expect(() => provider.imageModel('foo')).toThrow(NoSuchModelError);
     });
   });
 });
