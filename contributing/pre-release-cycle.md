@@ -90,10 +90,6 @@ Open a PR with all the changes from steps 2-5. Once merged, the first beta relea
 - Every PR still needs a changeset (use `patch` by default).
 - Beta versions are published automatically when the **Version Packages** PR is merged.
 
-### Backporting fixes to stable
-
-To backport a fix from `main` to the maintenance branch, add the `backport` label to the merged PR. This creates a new PR targeting the maintenance branch automatically.
-
 ### Publishing stable patches
 
 Patches merged into the maintenance branch trigger the release workflow and publish stable patch releases.
