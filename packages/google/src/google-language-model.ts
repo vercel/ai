@@ -1134,18 +1134,11 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             const sources = extractSources({
               groundingMetadata: candidate.groundingMetadata,
               generateId,
+              emittedSourceKeys,
             });
             if (sources != null) {
               for (const source of sources) {
-                const sourceKey =
-                  source.sourceType === 'url'
-                    ? `url:${source.url}`
-                    : `document:${source.title}:${source.filename ?? ''}`;
-
-                if (!emittedSourceKeys.has(sourceKey)) {
-                  emittedSourceKeys.add(sourceKey);
-                  controller.enqueue(source);
-                }
+                controller.enqueue(source);
               }
             }
 
@@ -1722,9 +1715,11 @@ function resolveGemini25ThinkingConfig({
 function extractSources({
   groundingMetadata,
   generateId,
+  emittedSourceKeys,
 }: {
   groundingMetadata: GroundingMetadataSchema | undefined | null;
   generateId: () => string;
+  emittedSourceKeys?: Set<string>;
 }): undefined | LanguageModelV4Source[] {
   if (!groundingMetadata?.groundingChunks) {
     return undefined;
@@ -1732,27 +1727,42 @@ function extractSources({
 
   const sources: LanguageModelV4Source[] = [];
 
+  const addSource = (source: LanguageModelV4Source, key: string) => {
+    if (emittedSourceKeys?.has(key)) {
+      return;
+    }
+
+    emittedSourceKeys?.add(key);
+    sources.push(source);
+  };
+
   for (const chunk of groundingMetadata.groundingChunks) {
     if (chunk.web != null) {
       // Handle web chunks as URL sources
-      sources.push({
-        type: 'source',
-        sourceType: 'url',
-        id: generateId(),
-        url: chunk.web.uri,
-        title: chunk.web.title ?? undefined,
-      });
+      addSource(
+        {
+          type: 'source',
+          sourceType: 'url',
+          id: generateId(),
+          url: chunk.web.uri,
+          title: chunk.web.title ?? undefined,
+        },
+        JSON.stringify(['url', chunk.web.uri]),
+      );
     } else if (chunk.image != null) {
       // Handle image chunks as image sources
-      sources.push({
-        type: 'source',
-        sourceType: 'url',
-        id: generateId(),
-        // Google requires attribution to the source URI, not the actual image URI.
-        // TODO: add another type in v7 to allow both the image and source URL to be included separately
-        url: chunk.image.sourceUri,
-        title: chunk.image.title ?? undefined,
-      });
+      addSource(
+        {
+          type: 'source',
+          sourceType: 'url',
+          id: generateId(),
+          // Google requires attribution to the source URI, not the actual image URI.
+          // TODO: add another type in v7 to allow both the image and source URL to be included separately
+          url: chunk.image.sourceUri,
+          title: chunk.image.title ?? undefined,
+        },
+        JSON.stringify(['url', chunk.image.sourceUri]),
+      );
     } else if (chunk.retrievedContext != null) {
       // Handle retrievedContext chunks from RAG operations
       const uri = chunk.retrievedContext.uri;
@@ -1760,13 +1770,16 @@ function extractSources({
 
       if (uri && (uri.startsWith('http://') || uri.startsWith('https://'))) {
         // Old format: Google Search with HTTP/HTTPS URL
-        sources.push({
-          type: 'source',
-          sourceType: 'url',
-          id: generateId(),
-          url: uri,
-          title: chunk.retrievedContext.title ?? undefined,
-        });
+        addSource(
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: generateId(),
+            url: uri,
+            title: chunk.retrievedContext.title ?? undefined,
+          },
+          JSON.stringify(['url', uri]),
+        );
       } else if (uri) {
         // Old format: Document with file path (gs://, etc.)
         const title = chunk.retrievedContext.title ?? 'Unknown Document';
@@ -1793,35 +1806,44 @@ function extractSources({
           filename = uri.split('/').pop();
         }
 
-        sources.push({
-          type: 'source',
-          sourceType: 'document',
-          id: generateId(),
-          mediaType,
-          title,
-          filename,
-        });
+        addSource(
+          {
+            type: 'source',
+            sourceType: 'document',
+            id: generateId(),
+            mediaType,
+            title,
+            filename,
+          },
+          JSON.stringify(['document', uri]),
+        );
       } else if (fileSearchStore) {
         // New format: File Search with fileSearchStore (no uri)
         const title = chunk.retrievedContext.title ?? 'Unknown Document';
-        sources.push({
-          type: 'source',
-          sourceType: 'document',
-          id: generateId(),
-          mediaType: 'application/octet-stream',
-          title,
-          filename: fileSearchStore.split('/').pop(),
-        });
+        addSource(
+          {
+            type: 'source',
+            sourceType: 'document',
+            id: generateId(),
+            mediaType: 'application/octet-stream',
+            title,
+            filename: fileSearchStore.split('/').pop(),
+          },
+          JSON.stringify(['file-search', fileSearchStore, title]),
+        );
       }
     } else if (chunk.maps != null) {
       if (chunk.maps.uri) {
-        sources.push({
-          type: 'source',
-          sourceType: 'url',
-          id: generateId(),
-          url: chunk.maps.uri,
-          title: chunk.maps.title ?? undefined,
-        });
+        addSource(
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: generateId(),
+            url: chunk.maps.uri,
+            title: chunk.maps.title ?? undefined,
+          },
+          JSON.stringify(['url', chunk.maps.uri]),
+        );
       }
     }
   }

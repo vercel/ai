@@ -9141,6 +9141,93 @@ describe('doStream', () => {
     expect(sourceEvents).toHaveLength(1);
   });
 
+  it.each([
+    {
+      name: 'different RAG paths with the same title and filename',
+      retrievedContexts: [
+        { uri: 'gs://bucket/2025/annual.pdf', title: 'Annual report' },
+        { uri: 'gs://bucket/2026/annual.pdf', title: 'Annual report' },
+      ],
+      expectedSourceCount: 2,
+    },
+    {
+      name: 'the same RAG URI with different titles',
+      retrievedContexts: [
+        { uri: 'gs://bucket/annual.pdf', title: 'Annual report' },
+        { uri: 'gs://bucket/annual.pdf', title: 'Updated report' },
+      ],
+      expectedSourceCount: 1,
+    },
+    {
+      name: 'different File Search stores with the same basename',
+      retrievedContexts: [
+        {
+          fileSearchStore: 'projects/a/fileSearchStores/invoices',
+          title: 'Invoice',
+        },
+        {
+          fileSearchStore: 'projects/b/fileSearchStores/invoices',
+          title: 'Invoice',
+        },
+      ],
+      expectedSourceCount: 2,
+    },
+    {
+      name: 'File Search store names and titles containing colons',
+      retrievedContexts: [
+        {
+          fileSearchStore: 'fileSearchStores/invoices',
+          title: 'Report:2026',
+        },
+        {
+          fileSearchStore: 'fileSearchStores/2026:invoices',
+          title: 'Report',
+        },
+      ],
+      expectedSourceCount: 2,
+    },
+    {
+      name: 'different document titles in the same File Search store',
+      retrievedContexts: [
+        { fileSearchStore: 'fileSearchStores/invoices', title: 'Invoice A' },
+        { fileSearchStore: 'fileSearchStores/invoices', title: 'Invoice B' },
+      ],
+      expectedSourceCount: 2,
+    },
+    {
+      name: 'RAG and File Search documents with the same title and filename',
+      retrievedContexts: [
+        { uri: 'gs://bucket/annual.pdf', title: 'Annual report' },
+        {
+          fileSearchStore: 'fileSearchStores/annual.pdf',
+          title: 'Annual report',
+        },
+      ],
+      expectedSourceCount: 2,
+    },
+  ])(
+    'should preserve document source identities: $name',
+    async ({ retrievedContexts, expectedSourceCount }) => {
+      prepareStreamResponse({
+        content: ['first chunk', 'final chunk'],
+        groundingMetadata: {
+          groundingChunks: retrievedContexts.map(retrievedContext => ({
+            retrievedContext,
+          })),
+        },
+      });
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const events = await convertReadableStreamToArray(stream);
+      const sourceEvents = events.filter(event => event.type === 'source');
+
+      expect(sourceEvents).toHaveLength(expectedSourceCount);
+      expect(
+        sourceEvents.every(source => source.sourceType === 'document'),
+      ).toBe(true);
+    },
+  );
+
   it('should stream files', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
