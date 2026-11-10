@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 3.0.144
+
+### Patch Changes
+
+- d55ff04: Preserve the served service tier from the `x-gemini-service-tier` response header when usage metadata omits it, for generated and streamed responses.
+- 733b167: Apply contiguous array-index validation to dotted numeric paths in streamed tool arguments, while preserving numeric object keys and valid contiguous array updates.
+- Updated dependencies [88bb257]
+  - @ai-sdk/provider-utils@4.0.66
+
 ## 3.0.143
 
 ### Patch Changes

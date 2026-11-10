@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 3.0.140
+
+### Patch Changes
+
+- e38b209: Avoid repeating the complete parallel-tool wrapper input in every expanded tool call's metadata while preserving wrapper reconstruction for follow-up Responses API requests.
+- Updated dependencies [88bb257]
+  - @ai-sdk/provider-utils@4.0.66
+
 ## 3.0.139
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/anthropic
 
+## 3.0.142
+
+### Patch Changes
+
+- 05c2ec6: Require the request-level `allowInlineToolDefinitions` opt-in for by-value system-message tool additions. This prevents client UI history from introducing undeclared provider tools or replacing server-configured tool restrictions with default or automatic tool choice. Enable the option only for server-controlled messages; declared tools and changes by reference remain supported.
+- Updated dependencies [88bb257]
+  - @ai-sdk/provider-utils@4.0.66
+
 ## 3.0.141
 
 ### Patch Changes
