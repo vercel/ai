@@ -4,6 +4,10 @@ import {
   NoSuchModelError,
   type Experimental_VideoModelV4 as VideoModelV4,
 } from '@ai-sdk/provider';
+import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TencentChatLanguageModel } from './tencent-chat-language-model';
@@ -145,6 +149,29 @@ describe('createTencent', () => {
       await expect(
         createTencent()('hy4').doGenerate({ prompt }),
       ).rejects.toBeInstanceOf(LoadAPIKeyError);
+    });
+
+    it('keeps the TokenHub endpoint after workflow serialization', async () => {
+      const model = createTencent({ apiKey: 'test-key' })(
+        'hy4',
+      ) as TencentChatLanguageModel;
+      const restored = TencentChatLanguageModel[WORKFLOW_DESERIALIZE](
+        JSON.parse(
+          JSON.stringify(TencentChatLanguageModel[WORKFLOW_SERIALIZE](model)),
+        ),
+      );
+
+      const result = await restored.doGenerate({ prompt });
+
+      expect(restored).toBeInstanceOf(TencentChatLanguageModel);
+      expect(restored.provider).toBe('tencent.chat');
+      expect(server.calls[0].requestUrl).toBe(
+        'https://tokenhub-intl.tencentcloudmaas.com/v1/chat/completions',
+      );
+      expect(server.calls[0].requestHeaders.authorization).toBe(
+        'Bearer test-key',
+      );
+      expect(result.content).toStrictEqual([{ type: 'text', text: 'Hello' }]);
     });
 
     it('respects a custom baseURL and headers', async () => {

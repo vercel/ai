@@ -105,6 +105,17 @@ export function buildVodCreateTaskBody({
     });
   }
 
+  // `asset://` URLs cannot come through `inputReferences`, which only passes
+  // http(s) strings through as URLs.
+  for (const asset of tencentOptions?.assets ?? []) {
+    fileInfos.push({
+      Type: 'Url',
+      Url: asset.url,
+      Category: asset.category ?? 'Image',
+      Usage: asset.usage ?? 'Reference',
+    });
+  }
+
   const outputConfig = compact({
     StorageMode: 'Temporary',
     Resolution: resolveResolution({
@@ -183,6 +194,7 @@ export const vodDescribeTaskDetailResponseSchema = lazySchema(() =>
                     FileUrl: z.string().nullish(),
                     FileType: z.string().nullish(),
                     FileId: z.string().nullish(),
+                    UsageType: z.string().nullish(),
                     MetaData: z
                       .object({ Duration: z.number().nullish() })
                       .nullish(),
@@ -272,9 +284,15 @@ export function interpretVodTaskDetail({
     };
   }
 
-  const files = (task?.Output?.FileInfos ?? []).filter(
+  // `return_last_frame` (via `extInfo`) adds the last frame as a PNG entry
+  // with UsageType `last_frame_url`; it is not a video.
+  const fileInfos = (task?.Output?.FileInfos ?? []).filter(
     file => file.FileUrl != null,
   );
+  const files = fileInfos.filter(file => file.UsageType !== 'last_frame_url');
+  const lastFrameUrl = fileInfos.find(
+    file => file.UsageType === 'last_frame_url',
+  )?.FileUrl;
 
   if (files.length === 0) {
     return {
@@ -312,6 +330,7 @@ export function interpretVodTaskDetail({
         taskId,
         requestId: detail.RequestId,
         resolution: task?.Input?.OutputConfig?.Resolution || undefined,
+        lastFrameUrl,
         videos: files.map(file =>
           compactJson({
             url: file.FileUrl,

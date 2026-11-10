@@ -205,11 +205,11 @@ Top-level options map as follows:
 
 - `resolution` maps to the `480P`, `720P`, `1080P`, `2K`, and `4K` tiers by its shorter side.
 - `aspectRatio` also accepts `adaptive`, which follows the input image.
-- `duration` and `seed` are passed through.
+- `duration` and `seed` are passed through. Seedance does not guarantee identical output for the same seed.
 - `generateAudio` maps to `AudioGeneration`. Seedance includes audio when `generateAudio` is not set.
 - `fps` and `n` greater than 1 are not supported.
 
-Images that show real people may be rejected unless they are first registered as VOD assets in your Tencent Cloud account.
+Images that show real people may be rejected unless they are first registered as VOD assets (`CreateAigcMaterial`) in your Tencent Cloud account. Pass registered assets by their `asset://` URL with the `assets` provider option; `inputReferences` only accepts `http(s)` URLs and file data.
 
 VOD reports API errors inside a successful HTTP response. The provider raises them as an `APICallError` with a status code derived from the Tencent Cloud error code. For example, `AuthFailure` becomes 401, `InvalidParameterValue` becomes 400, and `RequestLimitExceeded` becomes 429.
 
@@ -301,8 +301,12 @@ The following options are available via `providerOptions.tencent`. Options that 
 
 - **extInfo** _string_
 
-  Reserved field for model-specific parameters, sent as-is.
+  Reserved field for model-specific parameters, sent as-is. For example, `JSON.stringify({ AdditionalParameters: JSON.stringify({ return_last_frame: true }) })` asks Seedance to also return the last frame as an image, reported in `providerMetadata.tencent.lastFrameUrl`.
+
+- **assets** _Array&lt;\{ url: string; usage?: 'FirstFrame' | 'LastFrame' | 'Reference'; category?: 'Image' | 'Video' | 'Audio' \}&gt;_
+
+  Registered VOD assets, referenced by their `asset://` URL. `usage` defaults to `Reference` and `category` to `Image`. Assets are sent after the other file inputs.
 
 ### Provider Metadata
 
-Completed video results include `providerMetadata.tencent` with the `taskId`, the `videos` (URL, duration, and `fileId` when VOD stores the file), and usage: `usage.totalTokens` for TokenHub Kling models, and for VOD models `usage.outputSeconds`, `usage.inputSeconds` (reference video length), `usage.totalSeconds`, and `usage.specificationUsages` (the billed specification, such as `SV2.0_720P`). VOD results also include the resolved output `resolution` (for example `720P`).
+Completed video results include `providerMetadata.tencent` with the `taskId`, the `videos` (URL, duration, and `fileId` when VOD stores the file), and usage: `usage.totalTokens` for TokenHub Kling models, and for VOD models `usage.outputSeconds`, `usage.inputSeconds` (reference video length), `usage.totalSeconds`, and `usage.specificationUsages` (the billed specification, such as `SV2.0_720P`). VOD results also include the resolved output `resolution` (for example `720P`) and, when requested, the `lastFrameUrl`.

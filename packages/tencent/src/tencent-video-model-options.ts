@@ -137,6 +137,20 @@ export type TencentVideoModelOptions = {
    * VOD: reserved field for model-specific parameters, sent as-is.
    */
   extInfo?: string;
+
+  /**
+   * VOD: materials registered with `CreateAigcMaterial`, referenced by their
+   * `asset://` URL. VOD requires assets for images that show real people.
+   * Sent after the other file inputs.
+   */
+  assets?: Array<{
+    /** Asset URL, for example `asset://asset-…`. */
+    url: string;
+    /** How the asset is used. Defaults to `Reference`. */
+    usage?: 'FirstFrame' | 'LastFrame' | 'Reference';
+    /** Asset media category. Defaults to `Image`. */
+    category?: 'Image' | 'Video' | 'Audio';
+  }>;
 };
 
 export const tencentVideoModelOptionsSchema = lazySchema(() =>
@@ -168,6 +182,15 @@ export const tencentVideoModelOptionsSchema = lazySchema(() =>
       sessionContext: z.string().optional(),
       tasksPriority: z.number().int().min(-10).max(10).optional(),
       extInfo: z.string().optional(),
+      assets: z
+        .array(
+          z.object({
+            url: z.string(),
+            usage: z.enum(['FirstFrame', 'LastFrame', 'Reference']).optional(),
+            category: z.enum(['Image', 'Video', 'Audio']).optional(),
+          }),
+        )
+        .optional(),
     }) satisfies z.ZodType<TencentVideoModelOptions>,
   ),
 );
@@ -197,4 +220,5 @@ export const VOD_ONLY_OPTIONS = [
   'sessionContext',
   'tasksPriority',
   'extInfo',
+  'assets',
 ] as const satisfies ReadonlyArray<keyof TencentVideoModelOptions>;

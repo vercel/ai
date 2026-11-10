@@ -371,6 +371,27 @@ describe('TencentVideoModel', () => {
           settings: { aspect_ratio: 'adaptive' },
         });
       });
+
+      it('routes kling-video-v4 with elements and no first frame to the omni endpoint', async () => {
+        const result = await createModel('kling-video-v4').doStart({
+          ...defaultOptions,
+          providerOptions: {
+            tencent: { elements: [{ elementId: 'element-1' }] },
+          },
+        });
+
+        expect(server.calls[0].requestUrl).toBe(
+          `${TOKENHUB_BASE_URL}/wand/kling/omni-video`,
+        );
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'kling-video-v4',
+          contents: [
+            { type: 'prompt', text: 'A cat walking on a beach' },
+            { type: 'element', element_id: 'element-1' },
+          ],
+        });
+        expect(result.warnings).toStrictEqual([]);
+      });
     });
 
     describe('motion control', () => {
@@ -522,7 +543,7 @@ describe('TencentVideoModel', () => {
                 {
                   id: 'video-1',
                   url: 'https://cdn.example.com/video.mp4',
-                  duration: '5.041',
+                  duration: 5.041,
                 },
               ],
               usage: { totalTokens: 12345 },
@@ -701,6 +722,42 @@ describe('TencentVideoModel', () => {
       ]);
     });
 
+    it('sends assets as URL file inputs', async () => {
+      await createModel('vod/VS/2.0').doStart({
+        ...defaultOptions,
+        providerOptions: {
+          tencent: {
+            assets: [
+              { url: 'asset://asset-1' },
+              { url: 'asset://asset-2', usage: 'FirstFrame' },
+              { url: 'asset://asset-3', category: 'Video' },
+            ],
+          },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).FileInfos).toStrictEqual([
+        {
+          Type: 'Url',
+          Url: 'asset://asset-1',
+          Category: 'Image',
+          Usage: 'Reference',
+        },
+        {
+          Type: 'Url',
+          Url: 'asset://asset-2',
+          Category: 'Image',
+          Usage: 'FirstFrame',
+        },
+        {
+          Type: 'Url',
+          Url: 'asset://asset-3',
+          Category: 'Video',
+          Usage: 'Reference',
+        },
+      ]);
+    });
+
     it('throws an APICallError for Response.Error', async () => {
       server.urls[VOD_URL].response = {
         type: 'json-value',
@@ -830,6 +887,64 @@ describe('TencentVideoModel', () => {
                 totalSeconds: 13,
               },
             },
+          },
+        });
+      });
+
+      it('returns the last-frame image as metadata instead of a video', async () => {
+        server.urls[VOD_URL].response = {
+          type: 'json-value',
+          body: {
+            Response: {
+              TaskType: 'AigcVideoTask',
+              Status: 'FINISH',
+              AigcVideoTask: {
+                TaskId: TASK_ID,
+                Status: 'FINISH',
+                ErrCode: 0,
+                Output: {
+                  FileInfos: [
+                    {
+                      FileUrl: 'https://vod.example.com/out.mp4',
+                      FileType: '',
+                      UsageType: '',
+                      MetaData: { Duration: 4.04 },
+                    },
+                    {
+                      FileUrl: 'https://vod.example.com/last.png',
+                      FileType: '',
+                      UsageType: 'last_frame_url',
+                      MetaData: null,
+                    },
+                  ],
+                  Usage: { OutputSeconds: 4 },
+                },
+              },
+            },
+          },
+        };
+
+        const result = await createModel('vod/VS/2.0').doStatus({
+          operation: { taskId: TASK_ID },
+        });
+
+        expect(result.status === 'completed' && result.videos).toStrictEqual([
+          {
+            type: 'url',
+            url: 'https://vod.example.com/out.mp4',
+            mediaType: 'video/mp4',
+          },
+        ]);
+        expect(
+          result.status === 'completed' && result.providerMetadata,
+        ).toStrictEqual({
+          tencent: {
+            taskId: TASK_ID,
+            lastFrameUrl: 'https://vod.example.com/last.png',
+            videos: [
+              { url: 'https://vod.example.com/out.mp4', duration: 4.04 },
+            ],
+            usage: { outputSeconds: 4 },
           },
         });
       });

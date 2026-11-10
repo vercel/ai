@@ -194,10 +194,9 @@ export function createTencent(
   const createLanguageModel = (modelId: TencentChatModelId) =>
     new TencentChatLanguageModel(modelId, {
       provider: 'tencent.chat',
-      url: ({ path }) => `${baseURL}${path}`,
+      baseURL,
       headers: getTokenHubHeaders,
       fetch: options.fetch,
-      includeUsage: true,
     });
 
   const createVideoModel = (modelId: TencentVideoModelId) =>

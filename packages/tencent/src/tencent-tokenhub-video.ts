@@ -159,9 +159,15 @@ export function buildTokenHubKlingRequest({
     references.videos.length > 0 ||
     (tencentOptions?.voices?.length ?? 0) > 0;
 
+  // Elements work on image-to-video and omni but not text-to-video, so an
+  // omni-capable model sends elements without a first frame to omni.
+  const hasElementsWithoutFirstFrame =
+    firstFrame == null && (tencentOptions?.elements?.length ?? 0) > 0;
+
   if (
     kind === 'omni' ||
-    (hasReferences && KLING_STANDARD_MODELS_WITH_OMNI.has(modelId))
+    (KLING_STANDARD_MODELS_WITH_OMNI.has(modelId) &&
+      (hasReferences || hasElementsWithoutFirstFrame))
   ) {
     const videoType =
       tencentOptions?.referenceVideoType === 'base'
@@ -518,11 +524,18 @@ export function interpretTokenHubKlingStatus({
       };
     }
 
-    const videos: JSONObject[] = outputs.map(output => ({
-      ...(output.id != null ? { id: output.id } : {}),
-      url: output.url as string,
-      ...(output.duration != null ? { duration: String(output.duration) } : {}),
-    }));
+    const videos: JSONObject[] = outputs.map(output => {
+      // TokenHub reports the duration as a string; VOD reports a number.
+      const duration =
+        output.duration == null || output.duration === ''
+          ? undefined
+          : Number(output.duration);
+      return {
+        ...(output.id != null ? { id: output.id } : {}),
+        url: output.url as string,
+        ...(duration != null && Number.isFinite(duration) ? { duration } : {}),
+      };
+    });
 
     const totalTokens = statusResponse.tokenhub_usage?.total_tokens;
 
