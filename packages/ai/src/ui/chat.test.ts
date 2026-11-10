@@ -6127,6 +6127,87 @@ describe('Chat', () => {
       expect(requests[2].messages.at(-1)).toBe('user: second');
     });
 
+    it.each(['stop', 'dispose'] as const)(
+      'should cancel a pending send-now on a later %s when the transport changes',
+      async cancel => {
+        const { transport, requests, waitForRequest } = createQueueTransport();
+        const callbackStarted = createResolvablePromise<void>();
+        const callbackCanFinish = createResolvablePromise<void>();
+        const replacementSend = vi.fn(
+          async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controller.close();
+              },
+            }),
+        );
+        let currentTransport = transport;
+        const chat = createQueueChat(
+          {
+            sendMessages: options => currentTransport.sendMessages(options),
+            reconnectToStream: async () => null,
+          },
+          {
+            onToolCall: async () => {
+              callbackStarted.resolve();
+              await callbackCanFinish.promise;
+            },
+          },
+        );
+
+        const sent = chat.sendMessage({ text: 'tenant A history' });
+        await waitForRequest(1);
+        const { controller } = requests[0];
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({
+          type: 'tool-input-available',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: {},
+        });
+        await callbackStarted.promise;
+        await chat.sendMessage({ text: 'queued for tenant A' });
+        const queuedId = chat.experimental_queuedMessages[0].id;
+
+        const sentNow = chat.experimental_sendQueuedMessageNow(queuedId);
+        // Model useChat replacing its transport and stopping the old chat
+        // while send-now is still draining the asynchronous tool callback.
+        currentTransport = {
+          sendMessages: replacementSend,
+          reconnectToStream: async () => null,
+        };
+        const cancelled = chat[cancel]();
+        callbackCanFinish.resolve();
+        await Promise.all([sent, sentNow, cancelled]);
+
+        expect(replacementSend).not.toHaveBeenCalled();
+        expect(requests).toHaveLength(1);
+        expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+          'queued for tenant A',
+        ]);
+        expect(conversation(chat)).toEqual([
+          'user: tenant A history',
+          'assistant: ',
+        ]);
+
+        // A late tool result must not unpause the cancelled queue either.
+        await chat.addToolOutput({
+          tool: 'testTool',
+          toolCallId: 'call-1',
+          output: 'done',
+        });
+        expect(replacementSend).not.toHaveBeenCalled();
+
+        if (cancel === 'stop') {
+          // A new explicit send-now is still allowed after cancellation.
+          await chat.experimental_sendQueuedMessageNow(queuedId);
+          expect(replacementSend).toHaveBeenCalledOnce();
+          expect(chat.experimental_queuedMessages).toEqual([]);
+        }
+      },
+    );
+
     it('should wait for a tool approval and send queued messages after the approved request', async () => {
       const { transport, requests, answer, waitForRequest } =
         createQueueTransport();

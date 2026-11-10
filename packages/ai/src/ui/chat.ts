@@ -432,7 +432,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       ...this.experimental_queuedMessages.filter(queued => queued.id !== id),
     ]);
 
+    // Account for our own stop, but let any later stop or dispose cancel
+    // this send before it can unpause the queue.
+    const stopGeneration = this.stopGeneration + 1;
     await this.stop();
+    if (stopGeneration !== this.stopGeneration) {
+      return;
+    }
+
     await this.resumeQueue({
       skipWaitForUser: true,
       options: this.queuedMessageOptions.get(id),
