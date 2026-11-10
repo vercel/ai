@@ -92,6 +92,13 @@ const CLAUDE_CODE_CLIENT_APP = `ai-sdk-harness-claude-code/${VERSION}`;
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthenticationMode;
   /**
+   * Requests Claude Code's classifier-based `auto` permission mode for
+   * `allow-reads` and `allow-edits`. Only escalated calls ask the host.
+   * Defaults to false; `allow-all` continues to bypass permissions.
+   * Observe raw init/status parts for the effective permission mode.
+   */
+  readonly autoMode?: boolean;
+  /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
    * discover, read, or otherwise access in the host process.
@@ -1130,6 +1137,7 @@ export function createClaudeCode(
             maxBudgetUsd: settings.maxBudgetUsd,
             additionalDirectories: settings.additionalDirectories,
             strictMcpConfig: settings.strictMcpConfig,
+            autoMode: settings.autoMode,
             questionTimeoutMs: settings.questionTimeoutMs,
             excludeDynamicSections: settings.excludeDynamicSections,
             agentProgressSummaries: settings.agentProgressSummaries,
@@ -1307,6 +1315,7 @@ export function createClaudeCode(
         maxBudgetUsd: settings.maxBudgetUsd,
         additionalDirectories: settings.additionalDirectories,
         strictMcpConfig: settings.strictMcpConfig,
+        autoMode: settings.autoMode,
         questionTimeoutMs: settings.questionTimeoutMs,
         excludeDynamicSections: settings.excludeDynamicSections,
         agentProgressSummaries: settings.agentProgressSummaries,
@@ -1364,6 +1373,7 @@ function createSession({
   maxBudgetUsd,
   additionalDirectories,
   strictMcpConfig,
+  autoMode,
   questionTimeoutMs,
   excludeDynamicSections,
   agentProgressSummaries,
@@ -1402,6 +1412,7 @@ function createSession({
   maxBudgetUsd: number | undefined;
   additionalDirectories: ReadonlyArray<string> | undefined;
   strictMcpConfig: boolean | undefined;
+  autoMode: boolean | undefined;
   questionTimeoutMs: number | undefined;
   excludeDynamicSections: boolean | undefined;
   agentProgressSummaries: boolean | undefined;
@@ -1815,6 +1826,7 @@ function createSession({
           ? { additionalDirectories: [...additionalDirectories] }
           : {}),
         ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
+        ...(autoMode !== undefined ? { autoMode } : {}),
         ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
         ...(excludeDynamicSections !== undefined
           ? { excludeDynamicSections }
@@ -1905,6 +1917,7 @@ function createSession({
             ? { additionalDirectories: [...additionalDirectories] }
             : {}),
           ...(strictMcpConfig !== undefined ? { strictMcpConfig } : {}),
+          ...(autoMode !== undefined ? { autoMode } : {}),
           ...(questionTimeoutMs !== undefined ? { questionTimeoutMs } : {}),
           ...(excludeDynamicSections !== undefined
             ? { excludeDynamicSections }
