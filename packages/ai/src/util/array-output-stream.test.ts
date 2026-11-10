@@ -16,10 +16,10 @@ describe('createArrayOutputStreamParser', () => {
         null,
       ];
       const validate = vi.fn();
-      const parser = createArrayOutputStreamParser({
-        schema: asSchema(z.unknown().superRefine(validate)),
-        skipInvalidElements: true,
-      });
+      const parser = createArrayOutputStreamParser(
+        asSchema(z.unknown().superRefine(validate)),
+        true,
+      );
       const text = JSON.stringify({ elements: values });
       const snapshots: unknown[][] = [];
       let json = '';
@@ -44,10 +44,7 @@ describe('createArrayOutputStreamParser', () => {
   );
 
   it('withholds the last element until a new element starts or the object closes', async () => {
-    const parser = createArrayOutputStreamParser({
-      schema: asSchema(z.number()),
-      skipInvalidElements: true,
-    });
+    const parser = createArrayOutputStreamParser(asSchema(z.number()), true);
     expect(await parser('{"elements":[1,')).toEqual({
       partial: [],
       textDelta: '[',
@@ -65,18 +62,15 @@ describe('createArrayOutputStreamParser', () => {
     '{"elements":[1],"elements":[2]}',
     '{"elements":[1]} trailing',
   ])('falls back for unsupported or malformed JSON: %s', async text => {
-    const parser = createArrayOutputStreamParser({
-      schema: asSchema(z.number()),
-      skipInvalidElements: true,
-    });
+    const parser = createArrayOutputStreamParser(asSchema(z.number()), true);
     expect(await parser(text)).toBe('fallback');
   });
 
   it('preserves transformed elements and skips invalid elements when requested', async () => {
-    const parser = createArrayOutputStreamParser({
-      schema: asSchema(z.number().transform(value => String(value))),
-      skipInvalidElements: true,
-    });
+    const parser = createArrayOutputStreamParser(
+      asSchema(z.number().transform(value => String(value))),
+      true,
+    );
     expect(await parser('{"elements":[1,"invalid",2]}')).toEqual({
       partial: ['1', '2'],
       textDelta: '["1","2"]',
@@ -84,10 +78,7 @@ describe('createArrayOutputStreamParser', () => {
   });
 
   it('falls back on schema errors for legacy array output', async () => {
-    const parser = createArrayOutputStreamParser({
-      schema: asSchema(z.number()),
-      skipInvalidElements: false,
-    });
+    const parser = createArrayOutputStreamParser(asSchema(z.number()), false);
     expect(await parser('{"elements":[1,"invalid",2]}')).toBe('fallback');
   });
 });

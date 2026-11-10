@@ -170,12 +170,10 @@ export function object<OBJECT>({
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: could not parse the response.',
           cause: parseResult.error,
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 
@@ -186,12 +184,10 @@ export function object<OBJECT>({
 
       if (!validationResult.success) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: response did not match schema.',
           cause: validationResult.error,
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 
@@ -344,12 +340,10 @@ export function array<ELEMENT>({
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: could not parse the response.',
           cause: parseResult.error,
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 
@@ -362,15 +356,13 @@ export function array<ELEMENT>({
         !Array.isArray(outerValue.elements)
       ) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: response did not match schema.',
           cause: new TypeValidationError({
             value: outerValue,
             cause: 'response must be an object with an elements array',
           }),
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 
@@ -382,12 +374,10 @@ export function array<ELEMENT>({
 
       if (lengthValidationError != null) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: response did not match schema.',
           cause: lengthValidationError,
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 
@@ -400,12 +390,10 @@ export function array<ELEMENT>({
 
         if (!validationResult.success) {
           throw new NoObjectGeneratedError({
+            ...context,
             message: 'No object generated: response did not match schema.',
             cause: validationResult.error,
             text,
-            response: context.response,
-            usage: context.usage,
-            finishReason: context.finishReason,
           });
         }
 
@@ -493,14 +481,12 @@ export function array<ELEMENT>({
     },
   };
 
-  arrayStreamParserFactories.set(output, {
-    parsePartialOutput: output.parsePartialOutput,
-    create: () =>
-      createArrayOutputStreamParser({
-        schema: elementSchema,
-        skipInvalidElements: true,
-      }),
-  });
+  const parsePartialOutput = output.parsePartialOutput;
+  arrayStreamParserFactories.set(output, () =>
+    output.parsePartialOutput === parsePartialOutput
+      ? createArrayOutputStreamParser(elementSchema, true)
+      : undefined,
+  );
   return output;
 }
 
@@ -614,12 +600,10 @@ export const choice = <CHOICE extends string>({
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: could not parse the response.',
           cause: parseResult.error,
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 
@@ -633,15 +617,13 @@ export const choice = <CHOICE extends string>({
         !choiceOptions.includes(outerValue.result as any)
       ) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: response did not match schema.',
           cause: new TypeValidationError({
             value: outerValue,
             cause: 'response must be an object that contains a choice value.',
           }),
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 
@@ -741,12 +723,10 @@ export const json = ({
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({
+          ...context,
           message: 'No object generated: could not parse the response.',
           cause: parseResult.error,
           text,
-          response: context.response,
-          usage: context.usage,
-          finishReason: context.finishReason,
         });
       }
 

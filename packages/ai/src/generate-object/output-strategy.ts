@@ -142,8 +142,7 @@ const arrayOutputStrategy = <ELEMENT>(
   return {
     type: 'array',
 
-    createArrayStreamParser: () =>
-      createArrayOutputStreamParser({ schema, skipInvalidElements: false }),
+    createArrayStreamParser: () => createArrayOutputStreamParser(schema, false),
 
     // wrap in object that contains array of elements, since most LLMs will not
     // be able to generate an array directly:

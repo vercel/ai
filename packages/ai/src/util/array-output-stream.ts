@@ -14,17 +14,18 @@ export type ArrayOutputStreamParser<ELEMENT> = (
 // Parser state belongs to a stream, not to the reusable output specification.
 export const arrayStreamParserFactories = new WeakMap<
   Output,
-  {
-    parsePartialOutput: Output['parsePartialOutput'];
-    create: () => ArrayOutputStreamParser<any>;
-  }
+  () => ArrayOutputStreamParser<any> | undefined
 >();
 
 export function createArrayStreamParser(output: Output) {
-  const factory = arrayStreamParserFactories.get(output);
-  return factory?.parsePartialOutput === output.parsePartialOutput
-    ? factory.create()
-    : undefined;
+  return arrayStreamParserFactories.get(output)?.();
+}
+
+enum Phase {
+  Prefix,
+  Elements,
+  Suffix,
+  Done,
 }
 
 /**
@@ -33,21 +34,18 @@ export function createArrayStreamParser(output: Output) {
  * matching the partial JSON parser's treatment of an incomplete response.
  * Nonstandard envelopes and malformed JSON use the existing partial parser.
  */
-export function createArrayOutputStreamParser<ELEMENT>({
-  schema,
-  skipInvalidElements,
-}: {
-  schema: Schema<ELEMENT>;
-  skipInvalidElements: boolean;
-}): ArrayOutputStreamParser<ELEMENT> {
-  let phase: 'prefix' | 'array' | 'suffix' | 'done' | 'fallback' = 'prefix';
+export function createArrayOutputStreamParser<ELEMENT>(
+  schema: Schema<ELEMENT>,
+  skipInvalidElements: boolean,
+): ArrayOutputStreamParser<ELEMENT> {
+  let phase = Phase.Prefix;
   let prefix = '';
   let elementText = '';
   let depth = 0;
   let inString = false;
   let escaped = false;
   let afterComma = false;
-  let pending: { value: ELEMENT } | undefined;
+  let pending: [] | [ELEMENT] = [];
   const elements: ELEMENT[] = [];
   let publishedCount: number | undefined;
 
@@ -59,7 +57,7 @@ export function createArrayOutputStreamParser<ELEMENT>({
 
     const validated = await safeValidateTypes({ value: parsed.value, schema });
     if (validated.success) {
-      pending = { value: validated.value };
+      pending = [validated.value];
     } else if (!skipInvalidElements) {
       return false;
     }
@@ -68,61 +66,50 @@ export function createArrayOutputStreamParser<ELEMENT>({
   }
 
   function publishPending() {
-    if (pending != null) {
-      elements.push(pending.value);
-      pending = undefined;
-    }
+    elements.push(...pending);
+    pending = [];
   }
 
   return async textDelta => {
     for (const char of textDelta) {
-      if (phase === 'fallback') {
-        return 'fallback';
-      }
-
-      if (phase === 'prefix') {
+      if (phase === Phase.Prefix) {
         prefix += char;
         if (char === '[') {
           // Bound prefix scanning; other valid object shapes retain their
           // existing behavior through the stateless parser.
           if (!/^\s*\{\s*"elements"\s*:\s*\[$/.test(prefix)) {
-            phase = 'fallback';
             return 'fallback';
           }
-          phase = 'array';
+          phase = Phase.Elements;
         } else if (prefix.length > 256) {
-          phase = 'fallback';
           return 'fallback';
         }
         continue;
       }
 
-      if (phase === 'suffix' || phase === 'done') {
+      if (phase === Phase.Suffix || phase === Phase.Done) {
         if (/\s/.test(char)) {
           continue;
         }
-        if (phase === 'suffix' && char === '}') {
+        if (phase === Phase.Suffix && char === '}') {
           publishPending();
-          phase = 'done';
+          phase = Phase.Done;
           continue;
         }
-        phase = 'fallback';
         return 'fallback';
       }
 
       if (!inString && depth === 0 && (char === ',' || char === ']')) {
         if (elementText.length > 0) {
           if (!(await finishElement())) {
-            phase = 'fallback';
             return 'fallback';
           }
         } else if (char === ',' || afterComma) {
-          phase = 'fallback';
           return 'fallback';
         }
         afterComma = char === ',';
         if (char === ']') {
-          phase = 'suffix';
+          phase = Phase.Suffix;
         }
         continue;
       }
@@ -153,7 +140,7 @@ export function createArrayOutputStreamParser<ELEMENT>({
       }
     }
 
-    if (phase === 'prefix' || publishedCount === elements.length) {
+    if (phase === Phase.Prefix || publishedCount === elements.length) {
       return undefined;
     }
 
@@ -165,7 +152,7 @@ export function createArrayOutputStreamParser<ELEMENT>({
         .slice(previousCount)
         .map(value => JSON.stringify(value))
         .join(',') +
-      (phase === 'done' ? ']' : '');
+      (phase === Phase.Done ? ']' : '');
     publishedCount = elements.length;
 
     // A snapshot prevents subsequent chunks from mutating already emitted arrays.
