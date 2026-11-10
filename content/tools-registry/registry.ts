@@ -970,4 +970,37 @@ console.log(text);`,
     websiteUrl: 'https://redis.io/agent-memory/',
     npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
+  {
+    slug: 'spider',
+    name: 'Spider',
+    description:
+      'Scrape, crawl and search the web with Spider. Tools return pages as markdown or text, crawl a site from a start URL, run web searches with optional page content, and list the links on a page.',
+    packageName: '@spider-cloud/ai-sdk',
+    tags: ['scraping', 'crawling', 'search', 'web'],
+    apiKeyEnvName: 'SPIDER_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @spider-cloud/ai-sdk',
+      npm: 'npm install @spider-cloud/ai-sdk',
+      yarn: 'yarn add @spider-cloud/ai-sdk',
+      bun: 'bun add @spider-cloud/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { spiderTools } from '@spider-cloud/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Find the latest Rust release notes and summarize the main changes.',
+  tools: spiderTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/spider-rs/spider-clients/tree/main/ai-sdk#readme',
+    apiKeyUrl:
+      'https://spider.cloud/api-keys?utm_source=vercel-ai-sdk&utm_medium=directory&utm_campaign=vercel-ai-sdk-listing',
+    websiteUrl:
+      'https://spider.cloud/?utm_source=vercel-ai-sdk&utm_medium=directory&utm_campaign=vercel-ai-sdk-listing',
+    npmUrl: 'https://www.npmjs.com/package/@spider-cloud/ai-sdk',
+  },
 ];
