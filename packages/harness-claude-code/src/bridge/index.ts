@@ -939,7 +939,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       mcpServers,
       settingSources: ['user'],
       cwd: workdir,
-      abortSignal: abortCtl.signal,
+      abortController: abortCtl,
     },
   };
   let deferredToolUseId = start.deferredToolUseId;
