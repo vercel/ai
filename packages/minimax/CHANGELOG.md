@@ -1,5 +1,11 @@
 # @ai-sdk/minimax
 
+## 2.0.41
+
+### Patch Changes
+
+- 8a027f7: Add MiniMax H3 Image and H3 Image Highspeed support for text-to-image generation and image editing, including output controls and token usage details.
+
 ## 2.0.40
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "4.0.328",
+  "version": "4.0.329",
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
