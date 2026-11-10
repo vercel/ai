@@ -970,4 +970,34 @@ console.log(text);`,
     websiteUrl: 'https://redis.io/agent-memory/',
     npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
+  {
+    slug: 'asyntai',
+    name: 'Asyntai AI Assistant',
+    description:
+      'Give your agent the knowledge of a whole website. Asyntai crawls a site and its product feed and keeps them fresh, so the agent answers from the real pages and prices. The tools also add new knowledge from a URL or a text, and read the website chats and the leads that visitors left.',
+    packageName: '@asyntai/ai-sdk',
+    tags: ['rag', 'knowledge-base', 'website', 'customer-support', 'leads'],
+    apiKeyEnvName: 'ASYNTAI_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @asyntai/ai-sdk',
+      npm: 'npm install @asyntai/ai-sdk',
+      yarn: 'yarn add @asyntai/ai-sdk',
+      bun: 'bun add @asyntai/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { asyntaiTools } from '@asyntai/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt: 'A customer asks: how long does delivery take?',
+  tools: asyntaiTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://asyntai.com/documentation/integrations/ai-sdk/',
+    apiKeyUrl: 'https://asyntai.com/settings/api/',
+    websiteUrl: 'https://asyntai.com',
+    npmUrl: 'https://www.npmjs.com/package/@asyntai/ai-sdk',
+  },
 ];
