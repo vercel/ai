@@ -7,25 +7,30 @@ import {
 } from '@ai-sdk/provider-utils';
 import { RetryError } from './retry-error';
 
-function getRetryDelayInMs({
+export function getRetryDelayInMs({
   error,
+  responseHeaders,
   exponentialBackoffDelay,
 }: {
-  error: APICallError | GatewayError;
+  error: unknown;
+  responseHeaders?: Record<string, string>;
   exponentialBackoffDelay: number;
 }): number {
   const headers = APICallError.isInstance(error)
-    ? error.responseHeaders
-    : APICallError.isInstance(error.cause)
-      ? (error.cause as APICallError).responseHeaders
-      : undefined;
+    ? (error.responseHeaders ?? responseHeaders)
+    : GatewayError.isInstance(error) && APICallError.isInstance(error.cause)
+      ? (error.cause.responseHeaders ?? responseHeaders)
+      : responseHeaders;
 
   if (!headers) return exponentialBackoffDelay;
 
+  const normalizedHeaders = Object.fromEntries(
+    Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]),
+  );
   let ms: number | undefined;
 
   // retry-ms is more precise than retry-after and used by e.g. OpenAI
-  const retryAfterMs = headers['retry-after-ms'];
+  const retryAfterMs = normalizedHeaders['retry-after-ms'];
   if (retryAfterMs) {
     const timeoutMs = parseFloat(retryAfterMs);
     if (!Number.isNaN(timeoutMs)) {
@@ -34,7 +39,7 @@ function getRetryDelayInMs({
   }
 
   // About the Retry-After header: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After
-  const retryAfter = headers['retry-after'];
+  const retryAfter = normalizedHeaders['retry-after'];
   if (retryAfter && ms === undefined) {
     const timeoutSeconds = parseFloat(retryAfter);
     if (!Number.isNaN(timeoutSeconds)) {
@@ -88,7 +93,7 @@ export const retryWithExponentialBackoffRespectingRetryHeaders = ({
         (await additionalRetryableError(error))),
     getDelayInMs: ({ error, exponentialBackoffDelay }) =>
       getRetryDelayInMs({
-        error: error as APICallError | GatewayError,
+        error,
         exponentialBackoffDelay,
       }),
     createRetryError: ({ message, reason, errors }) =>
