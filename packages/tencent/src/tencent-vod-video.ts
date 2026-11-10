@@ -108,11 +108,23 @@ export function buildVodCreateTaskBody({
   // `asset://` URLs cannot come through `inputReferences`, which only passes
   // http(s) strings through as URLs.
   for (const asset of tencentOptions?.assets ?? []) {
+    const usage = asset.usage ?? 'Reference';
+
+    // VOD takes one first frame and one last frame; keep the first one given.
+    if (usage !== 'Reference' && fileInfos.some(file => file.Usage === usage)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.tencent.assets',
+        details: `VOD accepts one ${usage === 'FirstFrame' ? 'first' : 'last'} frame; the asset ${asset.url} was ignored.`,
+      });
+      continue;
+    }
+
     fileInfos.push({
       Type: 'Url',
       Url: asset.url,
       Category: asset.category ?? 'Image',
-      Usage: asset.usage ?? 'Reference',
+      Usage: usage,
     });
   }
 
@@ -284,10 +296,11 @@ export function interpretVodTaskDetail({
     };
   }
 
-  // `return_last_frame` (via `extInfo`) adds the last frame as a PNG entry
-  // with UsageType `last_frame_url`; it is not a video.
+  // VOD reports unset strings as "". `return_last_frame` (via `extInfo`) adds
+  // the last frame as a PNG entry with UsageType `last_frame_url`; it is not a
+  // video.
   const fileInfos = (task?.Output?.FileInfos ?? []).filter(
-    file => file.FileUrl != null,
+    file => file.FileUrl != null && file.FileUrl !== '',
   );
   const files = fileInfos.filter(file => file.UsageType !== 'last_frame_url');
   const lastFrameUrl = fileInfos.find(

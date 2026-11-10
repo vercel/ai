@@ -758,6 +758,43 @@ describe('TencentVideoModel', () => {
       ]);
     });
 
+    it('ignores asset frames when that frame is already set', async () => {
+      const result = await createModel('vod/VS/2.0').doStart({
+        ...defaultOptions,
+        image: { type: 'url', url: 'https://example.com/first.png' },
+        providerOptions: {
+          tencent: {
+            assets: [
+              { url: 'asset://asset-1', usage: 'FirstFrame' },
+              { url: 'asset://asset-2', usage: 'LastFrame' },
+              { url: 'asset://asset-3', usage: 'LastFrame' },
+            ],
+          },
+        },
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).FileInfos.map(
+          (file: { Usage: string; Url: string }) => [file.Usage, file.Url],
+        ),
+      ).toStrictEqual([
+        ['FirstFrame', 'https://example.com/first.png'],
+        ['LastFrame', 'asset://asset-2'],
+      ]);
+      expect(result.warnings).toStrictEqual([
+        expect.objectContaining({
+          feature: 'providerOptions.tencent.assets',
+          details:
+            'VOD accepts one first frame; the asset asset://asset-1 was ignored.',
+        }),
+        expect.objectContaining({
+          feature: 'providerOptions.tencent.assets',
+          details:
+            'VOD accepts one last frame; the asset asset://asset-3 was ignored.',
+        }),
+      ]);
+    });
+
     it('throws an APICallError for Response.Error', async () => {
       server.urls[VOD_URL].response = {
         type: 'json-value',
@@ -947,6 +984,41 @@ describe('TencentVideoModel', () => {
             usage: { outputSeconds: 4 },
           },
         });
+      });
+
+      it('skips file entries with an empty URL', async () => {
+        server.urls[VOD_URL].response = {
+          type: 'json-value',
+          body: {
+            Response: {
+              TaskType: 'AigcVideoTask',
+              Status: 'FINISH',
+              AigcVideoTask: {
+                TaskId: TASK_ID,
+                Status: 'FINISH',
+                ErrCode: 0,
+                Output: {
+                  FileInfos: [
+                    { FileUrl: '' },
+                    { FileUrl: 'https://vod.example.com/out.mp4' },
+                  ],
+                },
+              },
+            },
+          },
+        };
+
+        const result = await createModel('vod/VS/2.0').doStatus({
+          operation: { taskId: TASK_ID },
+        });
+
+        expect(result.status === 'completed' && result.videos).toStrictEqual([
+          {
+            type: 'url',
+            url: 'https://vod.example.com/out.mp4',
+            mediaType: 'video/mp4',
+          },
+        ]);
       });
 
       it('omits an empty resolution and empty specification usages', async () => {

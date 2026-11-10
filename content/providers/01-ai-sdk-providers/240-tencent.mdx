@@ -305,7 +305,7 @@ The following options are available via `providerOptions.tencent`. Options that 
 
 - **assets** _Array&lt;\{ url: string; usage?: 'FirstFrame' | 'LastFrame' | 'Reference'; category?: 'Image' | 'Video' | 'Audio' \}&gt;_
 
-  Registered VOD assets, referenced by their `asset://` URL. `usage` defaults to `Reference` and `category` to `Image`. Assets are sent after the other file inputs.
+  Registered VOD assets, referenced by their `asset://` URL. `usage` defaults to `Reference` and `category` to `Image`. Assets are sent after the other file inputs. VOD accepts one first frame and one last frame, so a `FirstFrame` or `LastFrame` asset is ignored with a warning when that frame is already set.
 
 ### Provider Metadata
 
