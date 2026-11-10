@@ -663,7 +663,14 @@ describe('OpenAI batch service', () => {
     };
     const first = resultLine({
       id: 'france',
-      body: responsesResultBody('Paris'),
+      body: {
+        ...responsesResultBody('Paris'),
+        prompt_cache_diagnostics: {
+          type: 'cache_miss',
+          reason: 'input_changed',
+          cache_missed_tokens: 1200,
+        },
+      },
     });
     const second = resultLine({
       id: 'germany',
@@ -703,7 +710,15 @@ describe('OpenAI batch service', () => {
           modelId: 'gpt-5.6',
         },
         providerMetadata: {
-          openai: { responseId: 'resp_123', serviceTier: 'default' },
+          openai: {
+            responseId: 'resp_123',
+            serviceTier: 'default',
+            promptCacheDiagnostics: {
+              type: 'cache_miss',
+              reason: 'input_changed',
+              cache_missed_tokens: 1200,
+            },
+          },
         },
       },
     });
