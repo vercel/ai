@@ -271,9 +271,10 @@ export type ACPV1Settings = {
   readonly session?: {
     readonly meta?: Readonly<Record<string, ACPSerializableValue>>;
   };
+  // TODO: Remove in the next major version.
   /**
-   * Creates the authentication token used by the sandbox bridge. Defaults to
-   * a random 32-byte hexadecimal token.
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
    */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
