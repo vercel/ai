@@ -191,7 +191,7 @@ Asset IDs must already exist in the workspace associated with the API key. This 
 
 ### Resolution and Aspect Ratio
 
-Prefer `providerOptions.heygen.resolution` to select a size class. The standard `resolution` option accepts the exact frame sizes below and infers the corresponding aspect ratio when `aspectRatio` is omitted:
+Prefer `providerOptions.heygen.resolution` to select a size class. The standard `resolution` option accepts the exact frame sizes below and infers the corresponding aspect ratio when `aspectRatio` is omitted. The adapter also accepts the native labels `480p`, `768p`, `1080p`, and `2k` supplied at runtime by JavaScript callers; these labels do not imply an aspect ratio. The portable TypeScript resolution type remains `WIDTHxHEIGHT`, so use the provider option for typed size-class selection. Explicit `providerOptions.heygen.resolution` takes precedence over either form:
 
 | Aspect ratio | `480p`    | `768p`     | `1080p`     | `2k`        |
 | ------------ | --------- | ---------- | ----------- | ----------- |
