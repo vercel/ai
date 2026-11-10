@@ -3,7 +3,6 @@ name: Slack Workflow Failure Notification
 on:
   workflow_run:
     workflows:
-      - 'Backport'
       - 'CI'
       - 'Release'
     types:
