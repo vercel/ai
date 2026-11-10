@@ -741,6 +741,17 @@ describe('TencentVideoModel', () => {
                 ErrCode: 0,
                 Message: '',
                 Progress: 100,
+                Input: {
+                  ModelName: 'VS',
+                  ModelVersion: '2.0',
+                  OutputConfig: {
+                    StorageMode: 'Temporary',
+                    Duration: 8,
+                    Resolution: '720P',
+                    AspectRatio: '16:9',
+                    AudioGeneration: '',
+                  },
+                },
                 Output: {
                   FileInfos: [
                     {
@@ -750,7 +761,20 @@ describe('TencentVideoModel', () => {
                       MetaData: { Duration: 8.04 },
                     },
                   ],
-                  Usage: { OutputSeconds: 8 },
+                  Usage: {
+                    InputTokens: 0,
+                    ThoughtTokens: 0,
+                    InputImageCount: 0,
+                    InputSeconds: 5,
+                    OutputSeconds: 8,
+                    TotalSeconds: 13,
+                    SpecificationUsages: [
+                      {
+                        Specification: 'SV2.0_720P',
+                        Category: 'aigc_video_sv2_720',
+                      },
+                    ],
+                  },
                 },
               },
             },
@@ -787,11 +811,65 @@ describe('TencentVideoModel', () => {
             tencent: {
               taskId: TASK_ID,
               requestId: 'req-vod-2',
+              resolution: '720P',
               videos: [
                 { url: 'https://vod.example.com/out.mp4', duration: 8.04 },
               ],
-              usage: { outputSeconds: 8 },
+              usage: {
+                inputImageCount: 0,
+                inputSeconds: 5,
+                inputTokens: 0,
+                outputSeconds: 8,
+                specificationUsages: [
+                  {
+                    specification: 'SV2.0_720P',
+                    category: 'aigc_video_sv2_720',
+                  },
+                ],
+                thoughtTokens: 0,
+                totalSeconds: 13,
+              },
             },
+          },
+        });
+      });
+
+      it('omits an empty resolution and empty specification usages', async () => {
+        server.urls[VOD_URL].response = {
+          type: 'json-value',
+          body: {
+            Response: {
+              TaskType: 'AigcVideoTask',
+              Status: 'FINISH',
+              AigcVideoTask: {
+                TaskId: TASK_ID,
+                Status: 'FINISH',
+                ErrCode: 0,
+                Input: { OutputConfig: { Resolution: '' } },
+                Output: {
+                  FileInfos: [{ FileUrl: 'https://vod.example.com/out.mp4' }],
+                  Usage: {
+                    OutputSeconds: 4,
+                    SpecificationUsages: [{ Specification: '', Category: '' }],
+                  },
+                },
+              },
+            },
+          },
+        };
+
+        const result = await createModel('vod/VS/2.0').doStatus({
+          operation: { taskId: TASK_ID },
+        });
+
+        expect(result.status).toBe('completed');
+        expect(
+          result.status === 'completed' && result.providerMetadata,
+        ).toStrictEqual({
+          tencent: {
+            taskId: TASK_ID,
+            videos: [{ url: 'https://vod.example.com/out.mp4', duration: 4 }],
+            usage: { outputSeconds: 4 },
           },
         });
       });

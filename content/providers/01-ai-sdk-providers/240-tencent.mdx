@@ -267,4 +267,4 @@ The following options are available via `providerOptions.tencent`. Options that 
 
 ### Provider Metadata
 
-Completed video results include `providerMetadata.tencent` with the `taskId`, the `videos` (URL and duration), and usage: `usage.totalTokens` for TokenHub Kling models and `usage.outputSeconds` (plus input usage where reported) for VOD models.
+Completed video results include `providerMetadata.tencent` with the `taskId`, the `videos` (URL and duration), and usage: `usage.totalTokens` for TokenHub Kling models, and for VOD models `usage.outputSeconds`, `usage.inputSeconds` (reference video length), `usage.totalSeconds`, and `usage.specificationUsages` (the billed specification, such as `SV2.0_720P`). VOD results also include the resolved output `resolution` (for example `720P`).

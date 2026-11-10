@@ -168,6 +168,13 @@ export const vodDescribeTaskDetailResponseSchema = lazySchema(() =>
           ErrCodeExt: z.string().nullish(),
           Message: z.string().nullish(),
           Progress: z.number().nullish(),
+          Input: z
+            .object({
+              OutputConfig: z
+                .object({ Resolution: z.string().nullish() })
+                .nullish(),
+            })
+            .nullish(),
           Output: z
             .object({
               FileInfos: z
@@ -190,6 +197,14 @@ export const vodDescribeTaskDetailResponseSchema = lazySchema(() =>
                   InputSeconds: z.number().nullish(),
                   OutputSeconds: z.number().nullish(),
                   TotalSeconds: z.number().nullish(),
+                  SpecificationUsages: z
+                    .array(
+                      z.object({
+                        Specification: z.string().nullish(),
+                        Category: z.string().nullish(),
+                      }),
+                    )
+                    .nullish(),
                 })
                 .nullish(),
             })
@@ -270,6 +285,16 @@ export function interpretVodTaskDetail({
   }
 
   const usage = task?.Output?.Usage;
+  // VOD reports unset strings as "". The billing SKU (e.g. `SV2.0_720P`) and
+  // the resolved resolution identify the price tier.
+  const specificationUsages = (usage?.SpecificationUsages ?? [])
+    .map(entry =>
+      compactJson({
+        specification: entry.Specification || undefined,
+        category: entry.Category || undefined,
+      }),
+    )
+    .filter(entry => Object.keys(entry).length > 0);
 
   return {
     status: 'completed',
@@ -286,6 +311,7 @@ export function interpretVodTaskDetail({
       tencent: compactJson({
         taskId,
         requestId: detail.RequestId,
+        resolution: task?.Input?.OutputConfig?.Resolution || undefined,
         videos: files.map(file =>
           compactJson({
             url: file.FileUrl,
@@ -301,6 +327,10 @@ export function interpretVodTaskDetail({
                 inputSeconds: usage.InputSeconds,
                 inputTokens: usage.InputTokens,
                 outputSeconds: usage.OutputSeconds,
+                specificationUsages:
+                  specificationUsages.length > 0
+                    ? specificationUsages
+                    : undefined,
                 thoughtTokens: usage.ThoughtTokens,
                 totalSeconds: usage.TotalSeconds,
               })
