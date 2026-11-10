@@ -142,12 +142,16 @@ directly. See [model aliases and registries](/docs/ai-sdk-core/decisions#model-a
 
 The provider includes these model IDs and aliases:
 
-| Model ID      | Description                                       |
+{/* model-capabilities:typesafe-ai-models:start */}
+
+| Model         | Description                                       |
 | ------------- | ------------------------------------------------- |
 | `jev-1.13.0`  | Jev 1.13 release.                                 |
 | `jev-1.14.0`  | Jev 1.14 release.                                 |
 | `jev-latest`  | Alias for the latest stable release.              |
 | `jev-preview` | Alias for the latest release, including previews. |
+
+{/* model-capabilities:typesafe-ai-models:end */}
 
 | Question  | Native TypeSafe primitive | Limits and semantics                                                          |
 | --------- | ------------------------- | ----------------------------------------------------------------------------- |
@@ -327,3 +331,30 @@ embedding, and image model factories throw `NoSuchModelError`.
 
 Decision models support workflow serialization. A custom fetch function is not
 serialized; restored models use the default fetch implementation.
+
+
+### Decision Model Capabilities
+
+{/* model-capabilities:typesafe-ai-decision:start */}
+
+| Model         | Boolean   | Choice    | Score     | Box       | Image Input | Reasoning | Max Output Tokens |
+| ------------- | --------- | --------- | --------- | --------- | ----------- | --------- | ----------------- |
+| `jev-1.13.0`  | <Check /> | <Check /> | <Check /> | <Check /> | <Check />   | <Cross /> | <Cross />         |
+| `jev-1.14.0`  | <Check /> | <Check /> | <Check /> | <Check /> | <Check />   | <Cross /> | <Cross />         |
+| `jev-latest`  | <Check /> | <Check /> | <Check /> | <Check /> | <Check />   | <Cross /> | <Cross />         |
+| `jev-preview` | <Check /> | <Check /> | <Check /> | <Check /> | <Check />   | <Cross /> | <Cross />         |
+
+{/* model-capabilities:typesafe-ai-decision:end */}
+
+
+### Provider Option Catalog
+
+{/* model-capabilities:typesafe-ai-provider-options:start */}
+
+| Operation | Option            | Description                                                                                                                            |
+| --------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| decision  | `longContext`     | Enable experimental long context mode with 262k tokens per request and per question; slower and less accurate than default mode.       |
+| decision  | `reference`       | Image file parts only: asset reference used to place the image in state, instructions, or criteria. Defaults to a generated unique ID. |
+| decision  | `insertReference` | Image file parts only: whether to insert the asset reference into state. False requires an explicit reference.                         |
+
+{/* model-capabilities:typesafe-ai-provider-options:end */}
