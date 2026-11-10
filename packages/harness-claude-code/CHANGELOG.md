@@ -1,5 +1,18 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.183
+
+### Patch Changes
+
+- 0fc1f13: chore(harness): update harness adapter underlying SDKs to their latest releases
+- c849d37: feat(harness): use public-key cryptography instead of token for sandbox bridge communication
+- fcd763a: fix(harness-claude-code): fix incorrect low-level property being passed to Claude Agent SDK
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 1.0.182
 
 ### Patch Changes
