@@ -257,14 +257,6 @@ Available values are:
 - `allow-reads`: allow reads, but request approval for edits and shell commands
   when the adapter supports built-in approvals.
 
-The Claude Code adapter also supports an opt-in
-[`createClaudeCode({ autoMode: true })`](/providers/ai-sdk-harnesses/claude-code#auto-permission-mode)
-setting. With `allow-reads` or `allow-edits`, this requests Claude Code's
-classifier-based permissions instead of the adapter's normal edit, shell, and
-path approval rules. Only classifier-escalated calls reach the host as approval
-requests. `allow-all` and host-tool `toolApproval` behavior are unchanged.
-Escalated approvals wait in the running bridge and do not survive its restart.
-
 Use `toolApproval` for host-executed tools:
 
 ```ts
