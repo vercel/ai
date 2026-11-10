@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.145
+
+### Patch Changes
+
+- 56c41d5: Add support for the `gemini-4-carbon` model with the same capabilities as `gemini-4-argon`.
+
 ## 3.0.144
 
 ### Patch Changes

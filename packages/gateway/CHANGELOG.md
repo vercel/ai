@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 3.0.235
+
+### Patch Changes
+
+- 56c41d5: Add support for the `gemini-4-carbon` model with the same capabilities as `gemini-4-argon`.
+- 2d7f444: feat(provider/gateway): add developer-only `variableCost`, `maxVariableCostUsd` and `extraBody` options to `takoSearch`, and type Tako placeholder cards, `relevance_score`, premium and variable-cost pricing fields, and `usage.variable_cost`. Mark `export_pricing.free_rows` as deprecated and optional; Tako always sends 0 and will stop sending it.
+
 ## 3.0.234
 
 ### Patch Changes
