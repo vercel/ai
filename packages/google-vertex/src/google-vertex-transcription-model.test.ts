@@ -354,3 +354,121 @@ describe('doGenerate', () => {
     expect(result.response.headers?.['x-request-id']).toBe('test-request-id');
   });
 });
+
+describe('region validation', () => {
+  const invalidRegions = [
+    'attacker.example/#',
+    'user@attacker.example:8080/#',
+    '127.0.0.1:8080/#',
+    'us-central1/path',
+    'us-central1\\path',
+    'us-central1?query',
+    'us-central1#fragment',
+    'us-central1.example',
+    'us%2dcentral1',
+    'us_central1',
+    'us central1',
+    'us-central1\n',
+    'us-central1\r',
+    'us-central1\t',
+    '-us-central1',
+    'us-central1-',
+    'a'.repeat(64),
+    '',
+  ];
+
+  describe.each(['googleVertex', 'vertex', 'google'])(
+    '%s provider options',
+    namespace => {
+      it.each(invalidRegions)(
+        'rejects region %j before resolving credentials or fetching',
+        async region => {
+          const headers = vi.fn().mockResolvedValue({
+            Authorization: 'Bearer test-token',
+          });
+          const fetch = vi.fn();
+          const model = createVertex({
+            project: 'test-project',
+            location: 'us-central1',
+            headers,
+            fetch,
+          }).transcription('chirp_3');
+
+          await expect(
+            model.doGenerate({
+              audio: audioData,
+              mediaType: 'audio/wav',
+              providerOptions: { [namespace]: { region } },
+            }),
+          ).rejects.toMatchObject({
+            name: 'AI_InvalidArgumentError',
+            argument: 'region',
+          });
+          expect(headers).not.toHaveBeenCalled();
+          expect(fetch).not.toHaveBeenCalled();
+        },
+      );
+    },
+  );
+
+  it.each(invalidRegions)(
+    'rejects location %j before resolving credentials or fetching',
+    async location => {
+      const headers = vi.fn().mockResolvedValue({
+        Authorization: 'Bearer test-token',
+      });
+      const fetch = vi.fn();
+      const model = createVertex({
+        project: 'test-project',
+        location,
+        headers,
+        fetch,
+      }).transcription('chirp_3');
+
+      await expect(
+        model.doGenerate({ audio: audioData, mediaType: 'audio/wav' }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'location',
+      });
+      expect(headers).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    'us',
+    'eu',
+    'us-central1',
+    'asia-southeast1',
+    'US-CENTRAL1',
+    'global',
+  ])(
+    'accepts region %s and sends credentials only to the Speech endpoint',
+    async region => {
+      const fetch = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(defaultBody), {
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+      const model = createVertex({
+        project: 'test-project',
+        location: region,
+        headers: { Authorization: 'Bearer test-token' },
+        fetch,
+      }).transcription('chirp_3');
+
+      await model.doGenerate({ audio: audioData, mediaType: 'audio/wav' });
+
+      const [requestUrl, init] = fetch.mock.calls[0];
+      expect(new URL(requestUrl).origin).toBe(
+        region === 'global'
+          ? 'https://speech.googleapis.com'
+          : `https://${region.toLowerCase()}-speech.googleapis.com`,
+      );
+      expect(new Headers(init.headers).get('authorization')).toBe(
+        'Bearer test-token',
+      );
+    },
+  );
+});

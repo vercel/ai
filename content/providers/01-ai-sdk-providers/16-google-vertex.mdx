@@ -1547,7 +1547,10 @@ The following provider options are available:
 - **region** _string_
 
   The Speech-to-Text region for the request. Defaults to the provider
-  `location`.
+  `location`. Both the region override and the default location must be a
+  single DNS label (1–63 letters, digits, or hyphens, without a leading or
+  trailing hyphen). Invalid values are rejected before credentials are resolved
+  or a request is sent.
 
 #### Transcription Model Capabilities
 
