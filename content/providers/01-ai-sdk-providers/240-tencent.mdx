@@ -310,3 +310,90 @@ The following options are available via `providerOptions.tencent`. Options that 
 ### Provider Metadata
 
 Completed video results include `providerMetadata.tencent` with the `taskId`, the `videos` (URL, duration, and `fileId` when VOD stores the file), and usage: `usage.totalTokens` for TokenHub Kling models, and for VOD models `usage.outputSeconds`, `usage.inputSeconds` (reference video length), `usage.totalSeconds`, and `usage.specificationUsages` (the billed specification, such as `SV2.0_720P`). VOD results also include the resolved output `resolution` (for example `720P`) and, when requested, the `lastFrameUrl`.
+
+
+### Language Model Capabilities
+
+{/* model-capabilities:tencent-language:start */}
+
+| Model                  | Chat Completions |
+| ---------------------- | ---------------- |
+| `hy4`                  | <Check />        |
+| `hy4-preview`          | <Check />        |
+| `hy3`                  | <Check />        |
+| `hy-mt2-pro`           | <Check />        |
+| `hy-mt2-plus`          | <Check />        |
+| `hy-mt2-lite`          | <Check />        |
+| `deepseek-v4-pro-0813` | <Check />        |
+| `deepseek-v4.1-flash`  | <Check />        |
+| `glm-5.3`              | <Check />        |
+| `glm-5.3-flash`        | <Check />        |
+| `glm-5.2`              | <Check />        |
+| `mimo-v2.6-pro`        | <Check />        |
+| `mimo-v2.6-flash`      | <Check />        |
+| `step-5-preview`       | <Check />        |
+
+{/* model-capabilities:tencent-language:end */}
+
+
+### Video Model Capabilities
+
+{/* model-capabilities:tencent-video:start */}
+
+| Model                             | Text Input                                                   | Image Input                                                  | Reference Image                                              | Reference Video                                              | Audio Generation                                                                  | Seed      |
+| --------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | --------------------------------------------------------------------------------- | --------- |
+| `kling-video-v4`                  | <Check />                                                    | <Check />                                                    | <Check />                                                    | <Check />                                                    | <Cross />                                                                         | <Cross /> |
+| `kling-video-v3`                  | <Check />                                                    | <Check />                                                    | <Cross />                                                    | <Cross />                                                    | <Check />                                                                         | <Cross /> |
+| `kling-video-v3-turbo`            | <Check />                                                    | <Check />                                                    | <Cross />                                                    | <Cross />                                                    | <Cross />                                                                         | <Cross /> |
+| `kling-video-v3-omni`             | <Check />                                                    | <Check />                                                    | <Check />                                                    | <Check />                                                    | <Check />                                                                         | <Cross /> |
+| `kling-video-motion-control-v3.0` | <Check />                                                    | <Check />                                                    | <Check />                                                    | <Check />                                                    | Conditional: Keeps or removes the original audio from the motion reference video. | <Cross /> |
+| `kling-video-motion-control-v2.6` | <Check />                                                    | <Check />                                                    | <Check />                                                    | <Check />                                                    | Conditional: Keeps or removes the original audio from the motion reference video. | <Cross /> |
+| `vod/VS/2.5`                      | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario.                      | <Check /> |
+| `vod/VS/2.0`                      | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario.                      | <Check /> |
+| `vod/VS/2.0-fast`                 | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario.                      | <Check /> |
+| `vod/VS/2.0-mini`                 | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario.                      | <Check /> |
+| `vod/Kling/3.0`                   | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario.                      | <Check /> |
+| `vod/Kling/3.0-Omni`              | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario.                      | <Check /> |
+| `vod/Kling/3.0-turbo`             | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario.                      | <Check /> |
+| `vod/Kling/2.6`                   | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario.                      | <Check /> |
+| `vod/Hailuo/2.3`                  | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario.                      | <Check /> |
+| `vod/Vidu/q3-pro`                 | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario. | Conditional: Depends on the selected VOD model and scenario.                      | <Check /> |
+
+{/* model-capabilities:tencent-video:end */}
+
+
+### Provider Option Catalog
+
+{/* model-capabilities:tencent-provider-options:start */}
+
+| Operation | Option                  | Description                                                                                                                                                                                                       |
+| --------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| language  | `user`                  | End-user identifier forwarded by the OpenAI-compatible chat adapter.                                                                                                                                              |
+| language  | `reasoningEffort`       | Reasoning effort; support depends on the hosted model.                                                                                                                                                            |
+| language  | `textVerbosity`         | Text verbosity; support depends on the hosted model.                                                                                                                                                              |
+| language  | `strictJsonSchema`      | Strict response schema validation when supported by the hosted model.                                                                                                                                             |
+| video     | `resolution`            | Output resolution tier, sent as-is. Takes precedence over the top-level `resolution`. TokenHub Kling: `720p`, `1080p`, `4k`. VOD: e.g. `720P`, `1080P`, `2K`, `4K` depending on the model. Both backends.         |
+| video     | `audio`                 | TokenHub Kling: audio track mode. `native` generates audio, `original` keeps the audio of a reference video (omni and motion control), `off` disables audio. Takes precedence over the top-level `generateAudio`. |
+| video     | `multiShot`             | TokenHub Kling: whether a multi-shot prompt produces multi-shot output. Supported by `kling-video-v3` and `kling-video-v3-omni`.                                                                                  |
+| video     | `characterOrientation`  | TokenHub Kling motion control: whether the character orientation follows the image reference or the motion reference video. Required by the API for motion control models.                                        |
+| video     | `elements`              | TokenHub Kling: custom elements (subjects) created through the TokenHub element API. `id` is required by motion control models and lets the prompt reference the element.                                         |
+| video     | `voices`                | TokenHub Kling omni: voices to use, referenced in the prompt as `@id`.                                                                                                                                            |
+| video     | `referenceVideoType`    | How reference videos from `inputReferences` are used. `feature` uses them as a feature reference, `base` as a video to edit. Defaults to `feature`. TokenHub Kling omni and VOD Kling.                            |
+| video     | `watermark`             | Whether to add a watermark (TokenHub `watermark_info`, VOD `LogoAdd`). Both backends.                                                                                                                             |
+| video     | `externalTaskId`        | TokenHub Kling: custom task ID, unique within the account.                                                                                                                                                        |
+| video     | `negativePrompt`        | VOD: prompt describing what the model should avoid.                                                                                                                                                               |
+| video     | `enhancePrompt`         | VOD: whether to optimize the prompt automatically.                                                                                                                                                                |
+| video     | `inputRegion`           | VOD: where input files are stored. Tencent defaults to `Mainland`.                                                                                                                                                |
+| video     | `sceneType`             | VOD: scenario type, e.g. `motion_control`, `avatar_i2v` or `lip_sync` for Kling.                                                                                                                                  |
+| video     | `personGeneration`      | VOD: whether people and faces may be generated.                                                                                                                                                                   |
+| video     | `inputComplianceCheck`  | VOD: whether to run a compliance check on the input.                                                                                                                                                              |
+| video     | `outputComplianceCheck` | VOD: whether to run a compliance check on the output.                                                                                                                                                             |
+| video     | `enhanceSwitch`         | VOD: whether to upscale output with video enhancement. Tencent enables enhancement by default when the resolution exceeds what the model renders natively.                                                        |
+| video     | `offPeak`               | VOD: whether to run the task in off-peak mode.                                                                                                                                                                    |
+| video     | `sessionId`             | VOD: deduplication identifier. A request that repeats an identifier used within the last three days fails.                                                                                                        |
+| video     | `sessionContext`        | VOD: context string passed through to callbacks.                                                                                                                                                                  |
+| video     | `tasksPriority`         | VOD: task priority from -10 to 10.                                                                                                                                                                                |
+| video     | `extInfo`               | VOD: reserved field for model-specific parameters, sent as-is.                                                                                                                                                    |
+| video     | `assets`                | VOD: materials registered with `CreateAigcMaterial`, referenced by their `asset://` URL. VOD requires assets for images that show real people. Sent after the other file inputs.                                  |
+
+{/* model-capabilities:tencent-provider-options:end */}

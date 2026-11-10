@@ -1,3 +1,4 @@
+import { tencentDocs } from './providers/tencent.mjs';
 import { revaiDocs } from './providers/revai.mjs';
 import { humeDocs } from './providers/hume.mjs';
 import { gladiaDocs } from './providers/gladia.mjs';
@@ -37,6 +38,7 @@ import { formatSupport } from './render-tables.mjs';
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
+  tencentDocs,
   revaiDocs,
   humeDocs,
   gladiaDocs,
