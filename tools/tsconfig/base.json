@@ -20,7 +20,7 @@
     "strict": true,
     "target": "ES2022",
     "useDefineForClassFields": false,
-    "types": ["@types/node"]
+    "types": ["@types/node", "@vercel/ai-tsconfig/types/object-hasown"]
   },
   "exclude": ["node_modules"]
 }

@@ -15,7 +15,17 @@
         "packages/harness-*-v2/**"
       ],
       "rules": {
-        "ai-sdk/require-docblock": "error"
+        "ai-sdk/require-docblock": "error",
+        "ai-sdk/require-explicit-abort-property-names": "error",
+        "ai-sdk/require-object-parameter": "error",
+        "ai-sdk/require-optional-properties": "error",
+        "ai-sdk/no-as-unknown-as": "error",
+        "ai-sdk/no-conditional-object-spread": "error",
+        "ai-sdk/no-prototype-polluting-objects": "error",
+        "ai-sdk/no-prototype-chain-property-checks": "error",
+        "ai-sdk/no-process-env-mutation": "error",
+        "ai-sdk/no-prototype-mutation": "error",
+        "ai-sdk/no-prototype-property-access": "error"
       }
     },
     {
