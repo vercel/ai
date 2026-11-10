@@ -34,6 +34,7 @@ export type GatewayModelId =
   | 'anthropic/claude-fable-5.1-batch'
   | 'anthropic/claude-fable-5.2'
   | 'anthropic/claude-fable-5.2-batch'
+  | 'anthropic/claude-fable-5.2-fast'
   | 'anthropic/claude-haiku-4.5'
   | 'anthropic/claude-haiku-4.5-batch'
   | 'anthropic/claude-haiku-5.5'
