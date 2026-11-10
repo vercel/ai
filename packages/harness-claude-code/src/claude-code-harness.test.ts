@@ -1109,7 +1109,7 @@ describe('createClaudeCode adapter', () => {
   });
 
   it('resumes the exact conversation after detaching and attaching', async () => {
-    const harness = createClaudeCode();
+    const harness = createClaudeCode({ autoMode: true });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       writes: [],
@@ -1144,6 +1144,7 @@ describe('createClaudeCode adapter', () => {
 
     expect(lastStart()).toMatchObject({
       resumeSessionId: 'claude-session-1',
+      autoMode: true,
     });
     expect(lastStart()).not.toHaveProperty('continue');
 
@@ -1302,6 +1303,37 @@ describe('createClaudeCode adapter', () => {
 
     await session.doDestroy();
   });
+
+  it.each([true, false, undefined])(
+    'sends autoMode=%s to the bridge',
+    async autoMode => {
+      const harness = createClaudeCode({ autoMode });
+      const session = await harness.doStart({
+        sessionId: 's1',
+        sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+          bridgePortUrl: 'ws://127.0.0.1:1',
+          writes: [],
+          runs: [],
+        }),
+        sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+        permissionMode: 'allow-reads',
+      });
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Inspect the project.',
+        emit: () => {},
+      });
+      void Promise.resolve(control.done).catch(() => {});
+      expect(lastStart()).toMatchObject({ permissionMode: 'allow-reads' });
+      if (autoMode === undefined) {
+        expect(lastStart()).not.toHaveProperty('autoMode');
+      } else {
+        expect(lastStart()).toMatchObject({ autoMode });
+      }
+      await session.doDestroy();
+    },
+  );
 
   it('sends additional directories, strict MCP config, and the budget limit to the bridge', async () => {
     const harness = createClaudeCode({
@@ -1704,9 +1736,9 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('sends skill overrides when rerunning a continued turn', async () => {
+  it('sends skill overrides and auto mode when rerunning a continued turn', async () => {
     const skillOverrides = { init: 'off' } as const;
-    const harness = createClaudeCode({ skillOverrides });
+    const harness = createClaudeCode({ skillOverrides, autoMode: true });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -1729,7 +1761,11 @@ describe('createClaudeCode adapter', () => {
     });
     void Promise.resolve(control.done).catch(() => {});
 
-    expect(lastStart()).toMatchObject({ skillOverrides, continue: true });
+    expect(lastStart()).toMatchObject({
+      skillOverrides,
+      autoMode: true,
+      continue: true,
+    });
 
     await session.doDestroy();
   });

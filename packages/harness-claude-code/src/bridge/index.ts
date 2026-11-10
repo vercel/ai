@@ -214,9 +214,12 @@ function createPermissionOptions(input: {
   toolCwds: Map<string, string>;
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
+  const autoMode =
+    input.start.autoMode === true && permissionMode !== 'allow-all';
   const inactiveNativeTools = new Set(input.inactiveNativeTools);
   const permissionSettings = createPermissionSettings({
     permissionMode,
+    autoMode,
     inactiveNativeTools,
   });
 
@@ -224,9 +227,14 @@ function createPermissionOptions(input: {
     permissionMode:
       permissionMode === 'allow-all'
         ? 'bypassPermissions'
-        : permissionMode === 'allow-edits'
-          ? 'acceptEdits'
-          : 'default',
+        : autoMode
+          ? 'auto'
+          : permissionMode === 'allow-edits'
+            ? 'acceptEdits'
+            : 'default',
+    // Host tools are authorized by HarnessAgent's toolApproval, not the
+    // Claude Code classifier. Do not allow unrelated MCP servers here.
+    ...(autoMode ? { allowedTools: ['mcp__harness-tools__*'] } : {}),
     allowDangerouslySkipPermissions: permissionMode === 'allow-all',
     ...(permissionSettings ? { settings: permissionSettings } : {}),
   };
@@ -252,16 +260,18 @@ function createPermissionOptions(input: {
       options: { toolUseID: string; blockedPath?: string },
     ) => {
       if (
-        !(await needsHostApproval({
-          toolName,
-          toolInput,
-          permissionMode,
-          inactiveNativeTools,
-          cwd: input.toolCwds.get(options.toolUseID) ?? '',
-          readableSkillRoots: input.start.readableSkillRoots ?? [],
-          additionalDirectories: input.start.additionalDirectories ?? [],
-          blockedPath: options.blockedPath,
-        }))
+        toolName.startsWith('mcp__harness-tools__') ||
+        (!autoMode &&
+          !(await needsHostApproval({
+            toolName,
+            toolInput,
+            permissionMode,
+            inactiveNativeTools,
+            cwd: input.toolCwds.get(options.toolUseID) ?? '',
+            readableSkillRoots: input.start.readableSkillRoots ?? [],
+            additionalDirectories: input.start.additionalDirectories ?? [],
+            blockedPath: options.blockedPath,
+          })))
       ) {
         return { behavior: 'allow', updatedInput: toolInput };
       }
@@ -397,17 +407,19 @@ function createQuestionPreToolUseHook(input: {
 
 function createPermissionSettings(input: {
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
+  autoMode: boolean;
   inactiveNativeTools: ReadonlySet<string>;
 }): Record<string, unknown> | undefined {
   const askRules = new Set<string>();
   for (const [nativeName, kind] of Object.entries(NATIVE_TOOL_KINDS)) {
     if (
       input.inactiveNativeTools.has(nativeName) ||
-      (input.permissionMode === 'allow-reads'
-        ? kind === 'edit' || kind === 'bash'
-        : input.permissionMode === 'allow-edits'
-          ? kind === 'bash'
-          : false)
+      (!input.autoMode &&
+        (input.permissionMode === 'allow-reads'
+          ? kind === 'edit' || kind === 'bash'
+          : input.permissionMode === 'allow-edits'
+            ? kind === 'bash'
+            : false))
     ) {
       askRules.add(`${nativeName}(*)`);
     }
@@ -892,7 +904,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       // `compaction` event; return an empty output so compaction proceeds.
       hooks: {
         PreToolUse: [
-          ...(permissionMode === 'allow-all'
+          ...(permissionMode === 'allow-all' || start.autoMode === true
             ? []
             : [{ hooks: [approvalPreToolUseHook] }]),
           {
