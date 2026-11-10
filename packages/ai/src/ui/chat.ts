@@ -295,6 +295,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   // a stop or an error pauses the queue. a paused response is not waiting for
   // the user, so resuming the queue skips that check:
   private isQueuePaused = false;
+  private pendingAutomaticDecisions: number[] = [];
 
   private pendingMessagePreparations = new Set<AbortController>();
   private pendingApprovalMessageId: string | undefined;
@@ -429,7 +430,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     ]);
 
     await this.stop();
-    await this.resumeQueue({ skipWaitForUser: true });
+    await this.resumeQueue({
+      skipWaitForUser: true,
+      options: this.queuedMessageOptions.get(id),
+    });
   };
 
   // the user sending a message resumes a paused queue (after a stop, an error
@@ -437,13 +441,15 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   // first, the queue continues when its response finishes:
   private async resumeQueue({
     skipWaitForUser,
+    options,
   }: {
     skipWaitForUser: boolean;
+    options?: ChatRequestOptions;
   }): Promise<void> {
     this.isQueuePaused = false;
 
     if (!this.isRequestInProgress() && this.hasUnsentApprovalResponse()) {
-      await this.sendMessage();
+      await this.sendMessage(undefined, options);
       return;
     }
 
@@ -466,8 +472,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   }
 
+  // a pending sendAutomaticallyWhen decision can still start a request, so the
+  // queue waits for it like for a response in progress. a stop invalidates the
+  // decisions that were pending, so they no longer hold the queue:
   private isRequestInProgress(): boolean {
     return (
+      this.pendingAutomaticDecisions.includes(this.stopGeneration) ||
       this.activeResponse != null ||
       this.status === 'submitted' ||
       this.status === 'streaming'
@@ -671,7 +681,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       // a stopped response is not waiting for the user anymore, so resuming a
       // paused queue skips that check:
-      await this.resumeQueue({ skipWaitForUser: this.isQueuePaused });
+      await this.resumeQueue({
+        skipWaitForUser: this.isQueuePaused,
+        options,
+      });
       return;
     }
 
@@ -1056,9 +1069,19 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       return false;
     }
 
-    const result = await this.sendAutomaticallyWhen({
-      messages: this.state.messages,
-    });
+    const stopGeneration = this.stopGeneration;
+    this.pendingAutomaticDecisions.push(stopGeneration);
+    let result: boolean;
+    try {
+      result = await this.sendAutomaticallyWhen({
+        messages: this.state.messages,
+      });
+    } finally {
+      this.pendingAutomaticDecisions.splice(
+        this.pendingAutomaticDecisions.indexOf(stopGeneration),
+        1,
+      );
+    }
 
     return (
       result &&

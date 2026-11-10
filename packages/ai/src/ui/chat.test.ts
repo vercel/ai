@@ -5834,11 +5834,12 @@ describe('Chat', () => {
       const requests: Array<{
         messages: string[];
         body: unknown;
+        headers: unknown;
         controller: ReadableStreamDefaultController<UIMessageChunk>;
       }> = [];
 
       const transport: ChatTransport<UIMessage> = {
-        sendMessages: async ({ messages, body }) =>
+        sendMessages: async ({ messages, body, headers }) =>
           new ReadableStream<UIMessageChunk>({
             start(controller) {
               requests.push({
@@ -5846,6 +5847,7 @@ describe('Chat', () => {
                   message => `${message.role}: ${getMessageText(message)}`,
                 ),
                 body,
+                headers,
                 controller,
               });
             },
@@ -6544,6 +6546,148 @@ describe('Chat', () => {
       );
       answer(1, 'sunny');
       await vi.waitFor(() => expect(chat.status).toBe('ready'));
+    });
+
+    const streamApprovalRequest = (
+      controller: ReadableStreamDefaultController<UIMessageChunk>,
+    ) => {
+      controller.enqueue({ type: 'start' });
+      controller.enqueue({ type: 'start-step' });
+      controller.enqueue({
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'deleteFile',
+        input: {},
+      });
+      controller.enqueue({
+        type: 'tool-approval-request',
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+      });
+      controller.enqueue({ type: 'finish-step' });
+      controller.enqueue({ type: 'finish' });
+      controller.close();
+    };
+
+    it('should send the request options of the message that sends a responded tool approval', async () => {
+      const { transport, requests, waitForRequest } = createQueueTransport();
+      const chat = createQueueChat(transport);
+
+      const sent = chat.sendMessage({ text: 'delete it' });
+      await waitForRequest(1);
+      streamApprovalRequest(requests[0].controller);
+      await sent;
+      await chat.addToolApprovalResponse({ id: 'approval-1', approved: true });
+
+      void chat.sendMessage(
+        { text: 'second' },
+        { headers: { 'x-tenant': 't1' }, body: { tenant: 't1' } },
+      );
+      await waitForRequest(2);
+
+      expect(requests[1].messages).toEqual(['user: delete it', 'assistant: ']);
+      expect(requests[1].body).toMatchObject({ tenant: 't1' });
+      expect(requests[1].headers).toMatchObject({ 'x-tenant': 't1' });
+    });
+
+    it('should send the request options of a queued message sent now with a responded tool approval', async () => {
+      const { transport, requests, waitForRequest } = createQueueTransport();
+      const chat = createQueueChat(transport);
+
+      const sent = chat.sendMessage({ text: 'delete it' });
+      await waitForRequest(1);
+      streamApprovalRequest(requests[0].controller);
+      await sent;
+
+      await chat.sendMessage(
+        { text: 'second' },
+        { headers: { 'x-tenant': 't1' }, body: { tenant: 't1' } },
+      );
+      await chat.addToolApprovalResponse({ id: 'approval-1', approved: true });
+
+      void chat.experimental_sendQueuedMessageNow(
+        chat.experimental_queuedMessages[0].id,
+      );
+      await waitForRequest(2);
+
+      expect(requests[1].messages).toEqual(['user: delete it', 'assistant: ']);
+      expect(requests[1].body).toMatchObject({ tenant: 't1' });
+      expect(requests[1].headers).toMatchObject({ 'x-tenant': 't1' });
+    });
+
+    it.each([true, false])(
+      'should queue a message sent while sendAutomaticallyWhen decides (%s)',
+      async sendAutomatically => {
+        const { transport, requests, answer, waitForRequest } =
+          createQueueTransport();
+        const decision = createResolvablePromise<boolean>();
+        let decisions = 0;
+        const chat = createQueueChat(transport, {
+          sendAutomaticallyWhen: () =>
+            decisions++ === 0 ? decision.promise : false,
+        });
+
+        const sent = chat.sendMessage({ text: 'first' });
+        await waitForRequest(1);
+        answer(0, 'answer one');
+        await vi.waitFor(() => expect(decisions).toBe(1));
+
+        void chat.sendMessage({ text: 'second' });
+        await vi.waitFor(() =>
+          expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+            'second',
+          ]),
+        );
+        expect(requests).toHaveLength(1);
+
+        decision.resolve(sendAutomatically);
+        await waitForRequest(2);
+
+        if (sendAutomatically) {
+          expect(requests[1].messages.at(-1)).toBe('assistant: answer one');
+          answer(1, 'continued');
+          await waitForRequest(3);
+          expect(requests[2].messages.at(-1)).toBe('user: second');
+          answer(2, 'answer two');
+        } else {
+          expect(requests[1].messages.at(-1)).toBe('user: second');
+          answer(1, 'answer two');
+        }
+        await sent;
+        await vi.waitFor(() => expect(chat.status).toBe('ready'));
+      },
+    );
+
+    it('should send a queued message now while sendAutomaticallyWhen decides', async () => {
+      const { transport, requests, answer, waitForRequest } =
+        createQueueTransport();
+      const decision = createResolvablePromise<boolean>();
+      let decisions = 0;
+      const chat = createQueueChat(transport, {
+        sendAutomaticallyWhen: () =>
+          decisions++ === 0 ? decision.promise : false,
+      });
+
+      void chat.sendMessage({ text: 'first' });
+      await waitForRequest(1);
+      answer(0, 'answer one');
+      await vi.waitFor(() => expect(decisions).toBe(1));
+      void chat.sendMessage({ text: 'second' });
+      await vi.waitFor(() =>
+        expect(chat.experimental_queuedMessages).toHaveLength(1),
+      );
+
+      void chat.experimental_sendQueuedMessageNow(
+        chat.experimental_queuedMessages[0].id,
+      );
+      await waitForRequest(2);
+      expect(requests[1].messages.at(-1)).toBe('user: second');
+
+      decision.resolve(true);
+      answer(1, 'answer two');
+      await vi.waitFor(() => expect(chat.status).toBe('ready'));
+      await vi.advanceTimersByTimeAsync(10);
+      expect(requests).toHaveLength(2);
     });
 
     it('should send a responded tool approval before the queued messages when the user sends again', async () => {
