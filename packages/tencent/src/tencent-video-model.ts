@@ -1,13 +1,13 @@
 import {
   AISDKError,
   NoSuchModelError,
-  type Experimental_VideoModelV4 as VideoModelV4,
-  type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
-  type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
-  type SharedV4Warning,
+  type Experimental_VideoModelV3 as VideoModelV3,
+  type Experimental_VideoModelV3CallOptions as VideoModelV3CallOptions,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  delay,
   encodePathSegment,
   type FetchFunction,
   getFromApi,
@@ -45,6 +45,7 @@ import {
   parseTencentVideoModelId,
   type TencentVideoModelId,
 } from './tencent-video-settings';
+import type { TencentVideoTaskStatus } from './tencent-video-task-status';
 import {
   buildVodCreateTaskBody,
   interpretVodTaskDetail,
@@ -77,11 +78,10 @@ export interface TencentVideoModelConfig {
   };
 }
 
-type DoStartOptions = Parameters<NonNullable<VideoModelV4['doStart']>>[0];
-type DoStatusOptions = Parameters<NonNullable<VideoModelV4['doStatus']>>[0];
+type DoGenerateResult = Awaited<ReturnType<VideoModelV3['doGenerate']>>;
 
-export class TencentVideoModel implements VideoModelV4 {
-  readonly specificationVersion = 'v4';
+export class TencentVideoModel implements VideoModelV3 {
+  readonly specificationVersion = 'v3';
   readonly maxVideosPerCall = 1;
 
   private readonly parsedModelId: ParsedTencentVideoModelId;
@@ -105,11 +105,56 @@ export class TencentVideoModel implements VideoModelV4 {
     return this.config._internal?.currentDate?.() ?? new Date();
   }
 
-  async doStart(
-    options: DoStartOptions,
-  ): Promise<VideoModelV4OperationStartResult> {
+  async doGenerate(
+    options: VideoModelV3CallOptions,
+  ): Promise<DoGenerateResult> {
+    const { taskId, tencentOptions, warnings } = await this.startTask(options);
+
+    const pollIntervalMs = tencentOptions?.pollIntervalMs ?? 5000; // 5 seconds
+    const pollTimeoutMs = tencentOptions?.pollTimeoutMs ?? 600000; // 10 minutes
+    const startTime = Date.now();
+
+    while (true) {
+      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
+
+      if (Date.now() - startTime > pollTimeoutMs) {
+        throw new AISDKError({
+          name: 'TENCENT_VIDEO_GENERATION_TIMEOUT',
+          message: `Video generation timed out after ${pollTimeoutMs}ms (task ${taskId})`,
+        });
+      }
+
+      const status = await this.getTaskStatus({
+        taskId,
+        headers: options.headers,
+        abortSignal: options.abortSignal,
+      });
+
+      if (status.status === 'completed') {
+        return {
+          videos: status.videos,
+          warnings: [...warnings, ...status.warnings],
+          providerMetadata: status.providerMetadata,
+          response: status.response,
+        };
+      }
+
+      if (status.status === 'error') {
+        throw new AISDKError({
+          name: 'TENCENT_VIDEO_GENERATION_FAILED',
+          message: status.error,
+        });
+      }
+    }
+  }
+
+  private async startTask(options: VideoModelV3CallOptions): Promise<{
+    taskId: string;
+    tencentOptions: TencentVideoModelOptions | undefined;
+    warnings: SharedV3Warning[];
+  }> {
     const currentDate = this.currentDate();
-    const warnings: SharedV4Warning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const parsed = this.parsedModelId;
 
     const tencentOptions = (await parseProviderOptions({
@@ -125,7 +170,6 @@ export class TencentVideoModel implements VideoModelV4 {
     });
 
     let taskId: string;
-    let responseHeaders: Record<string, string> | undefined;
 
     if (parsed.backend === 'tokenhub') {
       warnIgnoredProviderOptions({
@@ -166,7 +210,6 @@ export class TencentVideoModel implements VideoModelV4 {
         });
       }
       taskId = id;
-      responseHeaders = result.responseHeaders;
     } else {
       warnIgnoredProviderOptions({
         tencentOptions,
@@ -204,25 +247,18 @@ export class TencentVideoModel implements VideoModelV4 {
       });
 
       taskId = result.value.TaskId;
-      responseHeaders = result.responseHeaders;
     }
 
-    return {
-      operation: { taskId },
-      warnings,
-      response: {
-        timestamp: currentDate,
-        modelId: this.modelId,
-        headers: responseHeaders,
-      },
-    };
+    return { taskId, tencentOptions, warnings };
   }
 
-  async doStatus(
-    options: DoStatusOptions,
-  ): Promise<VideoModelV4OperationStatusResult> {
+  private async getTaskStatus(options: {
+    taskId: string;
+    headers: Record<string, string | undefined> | undefined;
+    abortSignal: AbortSignal | undefined;
+  }): Promise<TencentVideoTaskStatus> {
     const currentDate = this.currentDate();
-    const { taskId } = options.operation as { taskId: string };
+    const { taskId } = options;
 
     if (this.parsedModelId.backend === 'tokenhub') {
       const baseURL = this.config.tokenHub.baseURL;

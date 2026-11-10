@@ -119,8 +119,8 @@ const { videos } = await generateVideo({
 });
 ```
 
-Video generation is asynchronous: the provider submits a task and the AI SDK polls for the result.
-Tencent video tasks do not accept a per-request callback URL.
+Video generation is asynchronous: the provider submits a task and polls until it finishes, which can take several minutes.
+Use the `pollIntervalMs` and `pollTimeoutMs` provider options to change how often it checks and how long it waits.
 
 ### TokenHub Kling
 
@@ -218,6 +218,14 @@ VOD reports API errors inside a successful HTTP response. The provider raises th
 The following options are available via `providerOptions.tencent`. Options that do not apply to the selected model are ignored with a warning.
 
 #### Options for Both Services
+
+- **pollIntervalMs** _number_
+
+  Polling interval in milliseconds for checking task status. Defaults to 5000.
+
+- **pollTimeoutMs** _number_
+
+  Maximum wait time in milliseconds for the task to finish. Defaults to 600000 (10 minutes).
 
 - **resolution** _string_
 

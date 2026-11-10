@@ -31,10 +31,10 @@ run(async () => {
         resolution: '854x480',
         providerOptions: {
           tencent: {
+            pollTimeoutMs: 900000,
             referenceVideoType: 'feature',
           } satisfies TencentVideoModelOptions,
         },
-        poll: { timeoutMs: 900000 },
       }),
   );
 

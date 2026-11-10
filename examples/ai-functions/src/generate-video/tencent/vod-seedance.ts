@@ -16,10 +16,10 @@ run(async () => {
         duration: 5,
         providerOptions: {
           tencent: {
+            pollTimeoutMs: 900000,
             inputRegion: 'Oversea',
           } satisfies TencentVideoModelOptions,
         },
-        poll: { timeoutMs: 900000 },
       }),
   );
 

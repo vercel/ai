@@ -1,5 +1,8 @@
-import { APICallError, NoSuchModelError } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { AISDKError, APICallError, NoSuchModelError } from '@ai-sdk/provider';
+import {
+  createTestServer,
+  type UrlResponse,
+} from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { TencentVideoModel } from './tencent-video-model';
 
@@ -42,6 +45,54 @@ function createModel(modelId: string) {
     },
     _internal: { currentDate: () => currentDate },
   });
+}
+
+// Polls every 1 ms so tests do not wait the default 5 s interval.
+function generate(
+  model: TencentVideoModel,
+  options: Parameters<TencentVideoModel['doGenerate']>[0],
+) {
+  return model.doGenerate({
+    ...options,
+    providerOptions: {
+      ...options.providerOptions,
+      tencent: { pollIntervalMs: 1, ...options.providerOptions?.tencent },
+    },
+  });
+}
+
+const vodCreatedResponse = {
+  type: 'json-value' as const,
+  body: { Response: { TaskId: TASK_ID, RequestId: 'req-vod-1' } },
+};
+
+const vodFinishedResponse = {
+  type: 'json-value' as const,
+  body: {
+    Response: {
+      TaskType: 'AigcVideoTask',
+      Status: 'FINISH',
+      RequestId: 'req-vod-2',
+      AigcVideoTask: {
+        TaskId: TASK_ID,
+        Status: 'FINISH',
+        ErrCode: 0,
+        Output: { FileInfos: [{ FileUrl: 'https://vod.example.com/out.mp4' }] },
+      },
+    },
+  },
+};
+
+// VOD serves CreateAigcVideoTask and DescribeTaskDetail on one URL: the first
+// call is the submit, later calls are status polls.
+function vodPolled(
+  ...polls: UrlResponse[]
+): (options: { callNumber: number }) => UrlResponse {
+  return ({ callNumber }) =>
+    callNumber === 0
+      ? vodCreatedResponse
+      : (polls[Math.min(callNumber - 1, polls.length - 1)] ??
+        vodFinishedResponse);
 }
 
 const submittedResponse = {
@@ -93,11 +144,10 @@ describe('TencentVideoModel', () => {
         },
       },
     },
+    // Submit, then one finished status poll. Initial routes are cloned, so
+    // they cannot use a response function.
     [VOD_URL]: {
-      response: {
-        type: 'json-value',
-        body: { Response: { TaskId: TASK_ID, RequestId: 'req-vod-1' } },
-      },
+      response: [vodCreatedResponse, vodFinishedResponse],
     },
   });
 
@@ -106,7 +156,7 @@ describe('TencentVideoModel', () => {
       const model = createModel('kling-video-v3');
       expect(model.provider).toBe('tencent.video');
       expect(model.modelId).toBe('kling-video-v3');
-      expect(model.specificationVersion).toBe('v4');
+      expect(model.specificationVersion).toBe('v3');
       expect(model.maxVideosPerCall).toBe(1);
     });
 
@@ -121,7 +171,7 @@ describe('TencentVideoModel', () => {
   describe('TokenHub Kling', () => {
     describe('text-to-video', () => {
       it('sends prompt and settings', async () => {
-        const result = await createModel('kling-video-v3').doStart({
+        const result = await generate(createModel('kling-video-v3'), {
           ...defaultOptions,
           aspectRatio: '16:9',
           duration: 5,
@@ -145,7 +195,7 @@ describe('TencentVideoModel', () => {
         expect(server.calls[0].requestHeaders.authorization).toBe(
           'Bearer test-key',
         );
-        expect(result.operation).toStrictEqual({ taskId: TASK_ID });
+        expect(result.providerMetadata?.tencent?.taskId).toBe(TASK_ID);
         expect(result.warnings).toStrictEqual([]);
         expect(result.response).toStrictEqual({
           timestamp: currentDate,
@@ -155,7 +205,7 @@ describe('TencentVideoModel', () => {
       });
 
       it('sends multi-shot, watermark and external task ID', async () => {
-        await createModel('kling-video-v3').doStart({
+        await generate(createModel('kling-video-v3'), {
           ...defaultOptions,
           providerOptions: {
             tencent: {
@@ -179,7 +229,7 @@ describe('TencentVideoModel', () => {
       });
 
       it('omits audio and multi-shot for models that do not support them', async () => {
-        const result = await createModel('kling-video-v4').doStart({
+        const result = await generate(createModel('kling-video-v4'), {
           ...defaultOptions,
           generateAudio: true,
           providerOptions: { tencent: { multiShot: true } },
@@ -198,13 +248,12 @@ describe('TencentVideoModel', () => {
       });
 
       it('warns on unsupported options', async () => {
-        const result = await createModel('kling-video-v3').doStart({
+        const result = await generate(createModel('kling-video-v3'), {
           ...defaultOptions,
           seed: 42,
           fps: 24,
           n: 2,
           resolution: '640x480',
-          webhookUrl: 'https://example.com/webhook',
           providerOptions: { tencent: { negativePrompt: 'dogs' } },
         });
 
@@ -213,7 +262,6 @@ describe('TencentVideoModel', () => {
           prompt: 'A cat walking on a beach',
         });
         expect(result.warnings.map(warning => warning.type)).toStrictEqual([
-          'unsupported',
           'unsupported',
           'unsupported',
           'unsupported',
@@ -228,7 +276,6 @@ describe('TencentVideoModel', () => {
           'fps',
           'n',
           'seed',
-          'webhookUrl',
           'providerOptions.tencent.negativePrompt',
           'resolution',
         ]);
@@ -237,7 +284,7 @@ describe('TencentVideoModel', () => {
 
     describe('image-to-video', () => {
       it('sends first and last frames as contents', async () => {
-        const result = await createModel('kling-video-v3').doStart({
+        const result = await generate(createModel('kling-video-v3'), {
           ...defaultOptions,
           aspectRatio: '9:16',
           duration: 10,
@@ -279,7 +326,7 @@ describe('TencentVideoModel', () => {
       });
 
       it('uses the legacy image option as the first frame', async () => {
-        await createModel('kling-video-v3-turbo').doStart({
+        await generate(createModel('kling-video-v3-turbo'), {
           ...defaultOptions,
           image: { type: 'file', mediaType: 'image/jpeg', data: 'AAAA' },
         });
@@ -294,7 +341,7 @@ describe('TencentVideoModel', () => {
       });
 
       it('ignores references on models without omni support', async () => {
-        const result = await createModel('kling-video-v3').doStart({
+        const result = await generate(createModel('kling-video-v3'), {
           ...defaultOptions,
           inputReferences: [
             { type: 'url', url: 'https://example.com/ref.png' },
@@ -312,7 +359,7 @@ describe('TencentVideoModel', () => {
 
     describe('omni', () => {
       it('sends reference images and videos to the omni endpoint', async () => {
-        await createModel('kling-video-v3-omni').doStart({
+        await generate(createModel('kling-video-v3-omni'), {
           ...defaultOptions,
           aspectRatio: '1:1',
           inputReferences: [
@@ -343,7 +390,7 @@ describe('TencentVideoModel', () => {
       });
 
       it('routes kling-video-v4 with references and voices to the omni endpoint', async () => {
-        await createModel('kling-video-v4').doStart({
+        await generate(createModel('kling-video-v4'), {
           ...defaultOptions,
           aspectRatio: 'adaptive',
           inputReferences: [
@@ -373,7 +420,7 @@ describe('TencentVideoModel', () => {
       });
 
       it('routes kling-video-v4 with elements and no first frame to the omni endpoint', async () => {
-        const result = await createModel('kling-video-v4').doStart({
+        const result = await generate(createModel('kling-video-v4'), {
           ...defaultOptions,
           providerOptions: {
             tencent: { elements: [{ elementId: 'element-1' }] },
@@ -396,27 +443,28 @@ describe('TencentVideoModel', () => {
 
     describe('motion control', () => {
       it('sends the character image and motion video', async () => {
-        const result = await createModel(
-          'kling-video-motion-control-v3.0',
-        ).doStart({
-          ...defaultOptions,
-          duration: 5,
-          generateAudio: false,
-          image: { type: 'url', url: 'https://example.com/character.png' },
-          inputReferences: [
-            {
-              type: 'url',
-              url: 'https://example.com/motion.mp4',
-              mediaType: 'video/mp4',
-            },
-          ],
-          providerOptions: {
-            tencent: {
-              characterOrientation: 'video',
-              elements: [{ elementId: 'element-1', id: 'e1' }],
+        const result = await generate(
+          createModel('kling-video-motion-control-v3.0'),
+          {
+            ...defaultOptions,
+            duration: 5,
+            generateAudio: false,
+            image: { type: 'url', url: 'https://example.com/character.png' },
+            inputReferences: [
+              {
+                type: 'url',
+                url: 'https://example.com/motion.mp4',
+                mediaType: 'video/mp4',
+              },
+            ],
+            providerOptions: {
+              tencent: {
+                characterOrientation: 'video',
+                elements: [{ elementId: 'element-1', id: 'e1' }],
+              },
             },
           },
-        });
+        );
 
         expect(server.calls[0].requestUrl).toBe(
           `${TOKENHUB_BASE_URL}/wand/kling/motion-control`,
@@ -437,7 +485,7 @@ describe('TencentVideoModel', () => {
       });
 
       it('uses the first image reference as the character image', async () => {
-        await createModel('kling-video-motion-control-v2.6').doStart({
+        await generate(createModel('kling-video-motion-control-v2.6'), {
           ...defaultOptions,
           prompt: undefined,
           inputReferences: [
@@ -470,9 +518,9 @@ describe('TencentVideoModel', () => {
             body: { code: 1201, message: 'Invalid model', request_id: 'r' },
           };
 
-        const error = await createModel('kling-video-v3')
-          .doStart({ ...defaultOptions })
-          .catch(e => e);
+        const error = await generate(createModel('kling-video-v3'), {
+          ...defaultOptions,
+        }).catch(e => e);
 
         expect(APICallError.isInstance(error)).toBe(true);
         expect(error.message).toBe('Invalid model');
@@ -489,9 +537,9 @@ describe('TencentVideoModel', () => {
             }),
           };
 
-        const error = await createModel('kling-video-v3')
-          .doStart({ ...defaultOptions })
-          .catch(e => e);
+        const error = await generate(createModel('kling-video-v3'), {
+          ...defaultOptions,
+        }).catch(e => e);
 
         expect(APICallError.isInstance(error)).toBe(true);
         expect(error.statusCode).toBe(401);
@@ -503,25 +551,28 @@ describe('TencentVideoModel', () => {
           { type: 'json-value', body: { code: 0, data: {} } };
 
         await expect(
-          createModel('kling-video-v3').doStart({ ...defaultOptions }),
+          generate(createModel('kling-video-v3'), { ...defaultOptions }),
         ).rejects.toMatchObject({
           message: 'No task ID returned from TokenHub.',
         });
       });
     });
 
-    describe('doStatus', () => {
+    describe('polling', () => {
       it('returns videos and usage for a succeeded task', async () => {
-        const result = await createModel('kling-video-v3').doStatus({
-          operation: { taskId: TASK_ID },
-        });
+        const result = await generate(
+          createModel('kling-video-v3'),
+          defaultOptions,
+        );
 
-        expect(server.calls[0].requestMethod).toBe('GET');
-        expect(server.calls[0].requestHeaders.authorization).toBe(
+        expect(server.calls[1].requestMethod).toBe('GET');
+        expect(server.calls[1].requestUrl).toBe(
+          `${TOKENHUB_BASE_URL}/wand/kling/tasks/${TASK_ID}`,
+        );
+        expect(server.calls[1].requestHeaders.authorization).toBe(
           'Bearer test-key',
         );
         expect(result).toStrictEqual({
-          status: 'completed',
           videos: [
             {
               type: 'url',
@@ -567,29 +618,50 @@ describe('TencentVideoModel', () => {
           },
         };
 
-        const result = await createModel('kling-video-v3').doStatus({
-          operation: { taskId: TASK_ID },
-        });
+        const result = await generate(
+          createModel('kling-video-v3'),
+          defaultOptions,
+        );
 
-        expect(result.status).toBe('completed');
+        expect(result.videos).toStrictEqual([
+          {
+            type: 'url',
+            url: 'https://cdn.example.com/video.mp4',
+            mediaType: 'video/mp4',
+          },
+        ]);
       });
 
-      it('returns pending for a processing task', async () => {
+      it('keeps polling while the task is processing', async () => {
         server.urls[
           `${TOKENHUB_BASE_URL}/wand/kling/tasks/${TASK_ID}`
-        ].response = {
+        ].response = ({ callNumber }) => ({
           type: 'json-value',
-          body: { code: 0, data: [{ id: TASK_ID, status: 'processing' }] },
-        };
-
-        const result = await createModel('kling-video-v3').doStatus({
-          operation: { taskId: TASK_ID },
+          body:
+            callNumber === 1
+              ? { code: 0, data: [{ id: TASK_ID, status: 'processing' }] }
+              : {
+                  code: 0,
+                  data: [
+                    {
+                      id: TASK_ID,
+                      status: 'succeeded',
+                      outputs: [{ url: 'https://cdn.example.com/video.mp4' }],
+                    },
+                  ],
+                },
         });
 
-        expect(result.status).toBe('pending');
+        const result = await generate(
+          createModel('kling-video-v3'),
+          defaultOptions,
+        );
+
+        expect(server.calls).toHaveLength(3);
+        expect(result.videos).toHaveLength(1);
       });
 
-      it('returns an error for a failed task', async () => {
+      it('throws when the task fails', async () => {
         server.urls[
           `${TOKENHUB_BASE_URL}/wand/kling/tasks/${TASK_ID}`
         ].response = {
@@ -600,21 +672,63 @@ describe('TencentVideoModel', () => {
           },
         };
 
-        const result = await createModel('kling-video-v3').doStatus({
-          operation: { taskId: TASK_ID },
-        });
+        const error = await generate(
+          createModel('kling-video-v3'),
+          defaultOptions,
+        ).catch(e => e);
 
-        expect(result).toMatchObject({
-          status: 'error',
-          error: `Video generation failed: risk control (task ${TASK_ID})`,
+        expect(AISDKError.isInstance(error)).toBe(true);
+        expect(error.name).toBe('TENCENT_VIDEO_GENERATION_FAILED');
+        expect(error.message).toBe(
+          `Video generation failed: risk control (task ${TASK_ID})`,
+        );
+      });
+
+      it('throws when the task does not finish within pollTimeoutMs', async () => {
+        server.urls[
+          `${TOKENHUB_BASE_URL}/wand/kling/tasks/${TASK_ID}`
+        ].response = {
+          type: 'json-value',
+          body: { code: 0, data: [{ id: TASK_ID, status: 'processing' }] },
+        };
+
+        const error = await generate(createModel('kling-video-v3'), {
+          ...defaultOptions,
+          providerOptions: { tencent: { pollTimeoutMs: 20 } },
+        }).catch(e => e);
+
+        expect(AISDKError.isInstance(error)).toBe(true);
+        expect(error.name).toBe('TENCENT_VIDEO_GENERATION_TIMEOUT');
+        expect(error.message).toBe(
+          `Video generation timed out after 20ms (task ${TASK_ID})`,
+        );
+      });
+
+      it('stops polling when aborted', async () => {
+        server.urls[
+          `${TOKENHUB_BASE_URL}/wand/kling/tasks/${TASK_ID}`
+        ].response = {
+          type: 'json-value',
+          body: { code: 0, data: [{ id: TASK_ID, status: 'processing' }] },
+        };
+        const controller = new AbortController();
+
+        const pending = generate(createModel('kling-video-v3'), {
+          ...defaultOptions,
+          abortSignal: controller.signal,
+          providerOptions: { tencent: { pollIntervalMs: 50 } },
         });
+        setTimeout(() => controller.abort(), 10);
+
+        await expect(pending).rejects.toThrow();
+        expect(server.calls).toHaveLength(1);
       });
     });
   });
 
   describe('VOD', () => {
     it('submits a signed CreateAigcVideoTask request', async () => {
-      const result = await createModel('vod/VS/2.0').doStart({
+      const result = await generate(createModel('vod/VS/2.0'), {
         ...defaultOptions,
         aspectRatio: '16:9',
         duration: 8,
@@ -700,12 +814,12 @@ describe('TencentVideoModel', () => {
         Seed: 7,
         SessionId: 'session-1',
       });
-      expect(result.operation).toStrictEqual({ taskId: TASK_ID });
+      expect(result.providerMetadata?.tencent?.taskId).toBe(TASK_ID);
       expect(result.warnings).toStrictEqual([]);
     });
 
     it('warns about TokenHub-only options', async () => {
-      const result = await createModel('vod/Kling/3.0').doStart({
+      const result = await generate(createModel('vod/Kling/3.0'), {
         ...defaultOptions,
         providerOptions: {
           tencent: { multiShot: true, characterOrientation: 'image' },
@@ -723,7 +837,7 @@ describe('TencentVideoModel', () => {
     });
 
     it('sends assets as URL file inputs', async () => {
-      await createModel('vod/VS/2.0').doStart({
+      await generate(createModel('vod/VS/2.0'), {
         ...defaultOptions,
         providerOptions: {
           tencent: {
@@ -759,7 +873,7 @@ describe('TencentVideoModel', () => {
     });
 
     it('ignores asset frames when that frame is already set', async () => {
-      const result = await createModel('vod/VS/2.0').doStart({
+      const result = await generate(createModel('vod/VS/2.0'), {
         ...defaultOptions,
         image: { type: 'url', url: 'https://example.com/first.png' },
         providerOptions: {
@@ -809,9 +923,9 @@ describe('TencentVideoModel', () => {
         },
       };
 
-      const error = await createModel('vod/VS/2.0')
-        .doStart({ ...defaultOptions })
-        .catch(e => e);
+      const error = await generate(createModel('vod/VS/2.0'), {
+        ...defaultOptions,
+      }).catch(e => e);
 
       expect(APICallError.isInstance(error)).toBe(true);
       expect(error.statusCode).toBe(400);
@@ -820,9 +934,9 @@ describe('TencentVideoModel', () => {
       );
     });
 
-    describe('doStatus', () => {
+    describe('polling', () => {
       it('returns videos and usage for a finished task', async () => {
-        server.urls[VOD_URL].response = {
+        server.urls[VOD_URL].response = vodPolled({
           type: 'json-value',
           body: {
             Response: {
@@ -873,21 +987,21 @@ describe('TencentVideoModel', () => {
               },
             },
           },
-        };
-
-        const result = await createModel('vod/VS/2.0').doStatus({
-          operation: { taskId: TASK_ID },
         });
 
-        expect(server.calls[0].requestHeaders['x-tc-action']).toBe(
+        const result = await generate(
+          createModel('vod/VS/2.0'),
+          defaultOptions,
+        );
+
+        expect(server.calls[1].requestHeaders['x-tc-action']).toBe(
           'DescribeTaskDetail',
         );
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        expect(await server.calls[1].requestBodyJson).toStrictEqual({
           TaskId: TASK_ID,
           SubAppId: 1500000000,
         });
         expect(result).toStrictEqual({
-          status: 'completed',
           videos: [
             {
               type: 'url',
@@ -929,7 +1043,7 @@ describe('TencentVideoModel', () => {
       });
 
       it('returns the last-frame image as metadata instead of a video', async () => {
-        server.urls[VOD_URL].response = {
+        server.urls[VOD_URL].response = vodPolled({
           type: 'json-value',
           body: {
             Response: {
@@ -959,22 +1073,21 @@ describe('TencentVideoModel', () => {
               },
             },
           },
-        };
-
-        const result = await createModel('vod/VS/2.0').doStatus({
-          operation: { taskId: TASK_ID },
         });
 
-        expect(result.status === 'completed' && result.videos).toStrictEqual([
+        const result = await generate(
+          createModel('vod/VS/2.0'),
+          defaultOptions,
+        );
+
+        expect(result.videos).toStrictEqual([
           {
             type: 'url',
             url: 'https://vod.example.com/out.mp4',
             mediaType: 'video/mp4',
           },
         ]);
-        expect(
-          result.status === 'completed' && result.providerMetadata,
-        ).toStrictEqual({
+        expect(result.providerMetadata).toStrictEqual({
           tencent: {
             taskId: TASK_ID,
             lastFrameUrl: 'https://vod.example.com/last.png',
@@ -987,7 +1100,7 @@ describe('TencentVideoModel', () => {
       });
 
       it('skips file entries with an empty URL', async () => {
-        server.urls[VOD_URL].response = {
+        server.urls[VOD_URL].response = vodPolled({
           type: 'json-value',
           body: {
             Response: {
@@ -1006,13 +1119,14 @@ describe('TencentVideoModel', () => {
               },
             },
           },
-        };
-
-        const result = await createModel('vod/VS/2.0').doStatus({
-          operation: { taskId: TASK_ID },
         });
 
-        expect(result.status === 'completed' && result.videos).toStrictEqual([
+        const result = await generate(
+          createModel('vod/VS/2.0'),
+          defaultOptions,
+        );
+
+        expect(result.videos).toStrictEqual([
           {
             type: 'url',
             url: 'https://vod.example.com/out.mp4',
@@ -1022,7 +1136,7 @@ describe('TencentVideoModel', () => {
       });
 
       it('omits an empty resolution and empty specification usages', async () => {
-        server.urls[VOD_URL].response = {
+        server.urls[VOD_URL].response = vodPolled({
           type: 'json-value',
           body: {
             Response: {
@@ -1043,16 +1157,15 @@ describe('TencentVideoModel', () => {
               },
             },
           },
-        };
-
-        const result = await createModel('vod/VS/2.0').doStatus({
-          operation: { taskId: TASK_ID },
         });
 
-        expect(result.status).toBe('completed');
-        expect(
-          result.status === 'completed' && result.providerMetadata,
-        ).toStrictEqual({
+        const result = await generate(
+          createModel('vod/VS/2.0'),
+          defaultOptions,
+        );
+
+        expect(result.videos).toHaveLength(1);
+        expect(result.providerMetadata).toStrictEqual({
           tencent: {
             taskId: TASK_ID,
             videos: [{ url: 'https://vod.example.com/out.mp4', duration: 4 }],
@@ -1062,23 +1175,28 @@ describe('TencentVideoModel', () => {
       });
 
       it.each(['WAITING', 'PROCESSING'])(
-        'returns pending for status %s',
+        'keeps polling while the task is %s',
         async status => {
-          server.urls[VOD_URL].response = {
-            type: 'json-value',
-            body: { Response: { TaskType: 'AigcVideoTask', Status: status } },
-          };
+          server.urls[VOD_URL].response = vodPolled(
+            {
+              type: 'json-value',
+              body: { Response: { TaskType: 'AigcVideoTask', Status: status } },
+            },
+            vodFinishedResponse,
+          );
 
-          const result = await createModel('vod/VS/2.0').doStatus({
-            operation: { taskId: TASK_ID },
-          });
+          const result = await generate(
+            createModel('vod/VS/2.0'),
+            defaultOptions,
+          );
 
-          expect(result.status).toBe('pending');
+          expect(server.calls).toHaveLength(3);
+          expect(result.videos).toHaveLength(1);
         },
       );
 
-      it('returns an error for a failed task', async () => {
-        server.urls[VOD_URL].response = {
+      it('throws when the task fails', async () => {
+        server.urls[VOD_URL].response = vodPolled({
           type: 'json-value',
           body: {
             Response: {
@@ -1092,29 +1210,29 @@ describe('TencentVideoModel', () => {
               },
             },
           },
-        };
-
-        const result = await createModel('vod/VS/2.0').doStatus({
-          operation: { taskId: TASK_ID },
         });
 
-        expect(result).toMatchObject({
-          status: 'error',
-          error: `Video generation failed (ContentModerationFailed): Content moderation failed. (task ${TASK_ID})`,
-        });
+        const error = await generate(
+          createModel('vod/VS/2.0'),
+          defaultOptions,
+        ).catch(e => e);
+
+        expect(AISDKError.isInstance(error)).toBe(true);
+        expect(error.name).toBe('TENCENT_VIDEO_GENERATION_FAILED');
+        expect(error.message).toBe(
+          `Video generation failed (ContentModerationFailed): Content moderation failed. (task ${TASK_ID})`,
+        );
       });
 
-      it('returns an error for an aborted task', async () => {
-        server.urls[VOD_URL].response = {
+      it('throws when the task is aborted', async () => {
+        server.urls[VOD_URL].response = vodPolled({
           type: 'json-value',
           body: { Response: { TaskType: 'AigcVideoTask', Status: 'ABORTED' } },
-        };
-
-        const result = await createModel('vod/VS/2.0').doStatus({
-          operation: { taskId: TASK_ID },
         });
 
-        expect(result.status).toBe('error');
+        await expect(
+          generate(createModel('vod/VS/2.0'), defaultOptions),
+        ).rejects.toThrow(`Video generation aborted (task ${TASK_ID})`);
       });
     });
   });

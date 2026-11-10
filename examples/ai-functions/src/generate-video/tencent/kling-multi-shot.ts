@@ -19,9 +19,11 @@ run(async () => {
         duration: 6,
         resolution: '1280x720',
         providerOptions: {
-          tencent: { multiShot: true } satisfies TencentVideoModelOptions,
+          tencent: {
+            multiShot: true,
+            pollTimeoutMs: 600000,
+          } satisfies TencentVideoModelOptions,
         },
-        poll: { timeoutMs: 600000 },
       }),
   );
 

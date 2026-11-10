@@ -11,6 +11,18 @@ import { z } from 'zod/v4';
  */
 export type TencentVideoModelOptions = {
   /**
+   * Polling interval in milliseconds for checking task status. Default: 5000
+   * (5 seconds). Both backends.
+   */
+  pollIntervalMs?: number | null;
+
+  /**
+   * Maximum time in milliseconds to wait for the task to finish. Default:
+   * 600000 (10 minutes). Both backends.
+   */
+  pollTimeoutMs?: number | null;
+
+  /**
    * Output resolution tier, sent as-is. Takes precedence over the top-level
    * `resolution`.
    *
@@ -156,6 +168,8 @@ export type TencentVideoModelOptions = {
 export const tencentVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      pollIntervalMs: z.number().positive().nullish(),
+      pollTimeoutMs: z.number().positive().nullish(),
       resolution: z.string().optional(),
       audio: z.enum(['native', 'original', 'off']).optional(),
       multiShot: z.boolean().optional(),

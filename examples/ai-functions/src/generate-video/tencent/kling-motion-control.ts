@@ -26,11 +26,11 @@ run(async () => {
         generateAudio: false,
         providerOptions: {
           tencent: {
+            pollTimeoutMs: 900000,
             characterOrientation: 'video',
             resolution: '720p',
           } satisfies TencentVideoModelOptions,
         },
-        poll: { timeoutMs: 900000 },
       }),
   );
 

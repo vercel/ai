@@ -46,12 +46,7 @@
     "@ai-sdk/quiverai": "workspace:*",
     "@ai-sdk/replicate": "workspace:*",
     "@ai-sdk/revai": "workspace:*",
-<<<<<<< HEAD
-=======
-    "@ai-sdk/sandbox-just-bash": "workspace:*",
-    "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/tencent": "workspace:*",
->>>>>>> 1c7a311d53 (feat(tencent): add Tencent Cloud provider (#24737))
     "@ai-sdk/togetherai": "workspace:*",
     "@ai-sdk/topaz": "workspace:*",
     "@ai-sdk/valibot": "workspace:*",

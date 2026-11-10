@@ -25,7 +25,7 @@ run(async () => {
         duration: 5,
         resolution: '1280x720',
         generateAudio: false,
-        poll: { timeoutMs: 600000 },
+        providerOptions: { tencent: { pollTimeoutMs: 600000 } },
       }),
   );
 

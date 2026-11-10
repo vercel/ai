@@ -21,9 +21,9 @@
     "doc": "./docs"
   },
   "scripts": {
-    "build": "pnpm clean && tsdown",
-    "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli docs *.tsbuildinfo",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm clean && tsup --watch",
+    "clean": "del-cli dist docs *.tsbuildinfo",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/240-tencent.mdx ./docs/",
     "postpack": "del-cli docs",
     "type-check": "tsc --build",
@@ -48,12 +48,11 @@
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
-    "@types/node": "22.19.19",
+    "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@vercel/ai-tsdown-config": "workspace:*",
-    "tsdown": "^0.23.0",
-    "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "typescript": "5.8.3",
+    "zod": "3.25.76",
+    "tsup": "^8.5.1"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"

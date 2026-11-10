@@ -1,9 +1,8 @@
 import type {
-  Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
-  Experimental_VideoModelV4File as VideoModelV4File,
-  Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
+  Experimental_VideoModelV3CallOptions as VideoModelV3CallOptions,
+  Experimental_VideoModelV3File as VideoModelV3File,
   JSONObject,
-  SharedV4Warning,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   type InferSchema,
@@ -20,6 +19,7 @@ import {
   resolveResolution,
 } from './tencent-video-inputs';
 import type { TencentVideoModelOptions } from './tencent-video-model-options';
+import type { TencentVideoTaskStatus } from './tencent-video-task-status';
 
 export const TENCENT_VOD_SERVICE = 'vod';
 export const TENCENT_VOD_VERSION = '2018-07-17';
@@ -42,7 +42,7 @@ function compact(value: Record<string, unknown>): Record<string, unknown> {
   );
 }
 
-function toVodFileInfo(file: VideoModelV4File): Record<string, string> {
+function toVodFileInfo(file: VideoModelV3File): Record<string, string> {
   return file.type === 'url'
     ? { Type: 'Url', Url: file.url }
     : { Type: 'Base64', Base64: getFileBase64(file) };
@@ -64,9 +64,9 @@ export function buildVodCreateTaskBody({
   modelName: string;
   modelVersion: string;
   subAppId: number;
-  options: VideoModelV4CallOptions;
+  options: VideoModelV3CallOptions;
   tencentOptions: TencentVideoModelOptions | undefined;
-  warnings: SharedV4Warning[];
+  warnings: SharedV3Warning[];
 }): Record<string, unknown> {
   const fileInfos: Array<Record<string, string>> = [];
 
@@ -115,7 +115,9 @@ export function buildVodCreateTaskBody({
       warnings.push({
         type: 'unsupported',
         feature: 'providerOptions.tencent.assets',
-        details: `VOD accepts one ${usage === 'FirstFrame' ? 'first' : 'last'} frame; the asset ${asset.url} was ignored.`,
+        details: `VOD accepts one ${
+          usage === 'FirstFrame' ? 'first' : 'last'
+        } frame; the asset ${asset.url} was ignored.`,
       });
       continue;
     }
@@ -272,7 +274,7 @@ export function interpretVodTaskDetail({
     modelId: string;
     headers: Record<string, string> | undefined;
   };
-}): VideoModelV4OperationStatusResult {
+}): TencentVideoTaskStatus {
   const task = detail.AigcVideoTask;
 
   if (detail.Status === 'ABORTED') {
@@ -291,7 +293,9 @@ export function interpretVodTaskDetail({
     const code = task.ErrCodeExt || String(task.ErrCode);
     return {
       status: 'error',
-      error: `Video generation failed (${code}): ${task.Message || 'unknown error'} (task ${taskId})`,
+      error: `Video generation failed (${code}): ${
+        task.Message || 'unknown error'
+      } (task ${taskId})`,
       response,
     };
   }

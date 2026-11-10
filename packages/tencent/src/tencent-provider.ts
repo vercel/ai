@@ -1,17 +1,15 @@
 import {
   LoadSettingError,
   NoSuchModelError,
-  type Experimental_VideoModelV4 as VideoModelV4,
-  type LanguageModelV4,
-  type ProviderV4,
+  type Experimental_VideoModelV3 as VideoModelV3,
+  type LanguageModelV3,
+  type ProviderV3,
 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
   loadApiKey,
   loadOptionalSetting,
   loadSetting,
-  type Resolvable,
-  resolveWith,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
@@ -29,7 +27,7 @@ export interface TencentProviderSettings {
    * TokenHub API key (`sk-...`), used by language models and TokenHub video
    * models. Defaults to the `TENCENT_TOKENHUB_API_KEY` environment variable.
    */
-  apiKey?: Resolvable<string>;
+  apiKey?: string;
 
   /**
    * TokenHub base URL. Defaults to
@@ -84,33 +82,33 @@ export interface TencentProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface TencentProvider extends ProviderV4 {
+export interface TencentProvider extends ProviderV3 {
   /**
    * Creates a TokenHub model for text generation.
    */
-  (modelId: TencentChatModelId): LanguageModelV4;
+  (modelId: TencentChatModelId): LanguageModelV3;
 
   /**
    * Creates a TokenHub model for text generation.
    */
-  languageModel(modelId: TencentChatModelId): LanguageModelV4;
+  languageModel(modelId: TencentChatModelId): LanguageModelV3;
 
   /**
    * Creates a TokenHub chat model for text generation.
    */
-  chat(modelId: TencentChatModelId): LanguageModelV4;
+  chat(modelId: TencentChatModelId): LanguageModelV3;
 
   /**
    * Creates a model for video generation. TokenHub Kling models use their
    * TokenHub ID (e.g. `kling-video-v3`); VOD AIGC models use
    * `vod/<ModelName>/<ModelVersion>` (e.g. `vod/VS/2.0`).
    */
-  video(modelId: TencentVideoModelId): VideoModelV4;
+  video(modelId: TencentVideoModelId): VideoModelV3;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: TencentVideoModelId): VideoModelV4;
+  videoModel(modelId: TencentVideoModelId): VideoModelV3;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -143,18 +141,16 @@ export function createTencent(
   const userAgentSuffix = `ai-sdk-tencent/${VERSION}`;
 
   const getTokenHubHeaders = () =>
-    resolveWith(options.apiKey, apiKey =>
-      withUserAgentSuffix(
-        {
-          Authorization: `Bearer ${loadApiKey({
-            apiKey,
-            environmentVariableName: 'TENCENT_TOKENHUB_API_KEY',
-            description: 'Tencent TokenHub API key',
-          })}`,
-          ...options.headers,
-        },
-        userAgentSuffix,
-      ),
+    withUserAgentSuffix(
+      {
+        Authorization: `Bearer ${loadApiKey({
+          apiKey: options.apiKey,
+          environmentVariableName: 'TENCENT_TOKENHUB_API_KEY',
+          description: 'Tencent TokenHub API key',
+        })}`,
+        ...options.headers,
+      },
+      userAgentSuffix,
     );
 
   const getVodHeaders = () =>
@@ -215,7 +211,7 @@ export function createTencent(
   const provider = (modelId: TencentChatModelId) =>
     createLanguageModel(modelId);
 
-  provider.specificationVersion = 'v4' as const;
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
   provider.video = createVideoModel;

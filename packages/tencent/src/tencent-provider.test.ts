@@ -2,12 +2,8 @@ import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
   LoadAPIKeyError,
   NoSuchModelError,
-  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV3 as VideoModelV3,
 } from '@ai-sdk/provider';
-import {
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
-} from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TencentChatLanguageModel } from './tencent-chat-language-model';
@@ -37,12 +33,26 @@ const videoOptions = {
   providerOptions: {},
 } as const;
 
-function startVideo(model: VideoModelV4) {
-  if (model.doStart == null) {
-    throw new Error('expected an async video model');
-  }
-  return model.doStart(videoOptions);
+function generateVideo(model: VideoModelV3) {
+  return model.doGenerate({
+    ...videoOptions,
+    providerOptions: { tencent: { pollIntervalMs: 1 } },
+  });
 }
+
+const vodFinishedTask = {
+  Response: {
+    TaskType: 'AigcVideoTask',
+    Status: 'FINISH',
+    RequestId: 'req-2',
+    AigcVideoTask: {
+      TaskId: 'task-1',
+      Status: 'FINISH',
+      ErrCode: 0,
+      Output: { FileInfos: [{ FileUrl: 'https://vod.example.com/out.mp4' }] },
+    },
+  },
+};
 
 describe('createTencent', () => {
   const server = createTestServer({
@@ -83,11 +93,15 @@ describe('createTencent', () => {
         },
       },
     },
+    // CreateAigcVideoTask, then one finished DescribeTaskDetail poll.
     'https://vod.intl.tencentcloudapi.com/': {
-      response: {
-        type: 'json-value',
-        body: { Response: { TaskId: 'task-1', RequestId: 'req-1' } },
-      },
+      response: [
+        {
+          type: 'json-value',
+          body: { Response: { TaskId: 'task-1', RequestId: 'req-1' } },
+        },
+        { type: 'json-value', body: vodFinishedTask },
+      ],
     },
   });
 
@@ -151,29 +165,6 @@ describe('createTencent', () => {
       ).rejects.toBeInstanceOf(LoadAPIKeyError);
     });
 
-    it('keeps the TokenHub endpoint after workflow serialization', async () => {
-      const model = createTencent({ apiKey: 'test-key' })(
-        'hy4',
-      ) as TencentChatLanguageModel;
-      const restored = TencentChatLanguageModel[WORKFLOW_DESERIALIZE](
-        JSON.parse(
-          JSON.stringify(TencentChatLanguageModel[WORKFLOW_SERIALIZE](model)),
-        ),
-      );
-
-      const result = await restored.doGenerate({ prompt });
-
-      expect(restored).toBeInstanceOf(TencentChatLanguageModel);
-      expect(restored.provider).toBe('tencent.chat');
-      expect(server.calls[0].requestUrl).toBe(
-        'https://tokenhub-intl.tencentcloudmaas.com/v1/chat/completions',
-      );
-      expect(server.calls[0].requestHeaders.authorization).toBe(
-        'Bearer test-key',
-      );
-      expect(result.content).toStrictEqual([{ type: 'text', text: 'Hello' }]);
-    });
-
     it('respects a custom baseURL and headers', async () => {
       await createTencent({
         apiKey: 'test-key',
@@ -208,7 +199,7 @@ describe('createTencent', () => {
     });
 
     it('signs VOD requests with configured credentials', async () => {
-      await startVideo(
+      await generateVideo(
         createTencent({
           secretId: 'AKIDEXAMPLE',
           secretKey: 'EXAMPLESECRET',
@@ -235,7 +226,7 @@ describe('createTencent', () => {
       vi.stubEnv('TENCENTCLOUD_SECRET_KEY', 'ENVSECRET');
       vi.stubEnv('TENCENTCLOUD_VOD_SUB_APP_ID', '1500000001');
 
-      await startVideo(createTencent().video('vod/VS/2.0'));
+      await generateVideo(createTencent().video('vod/VS/2.0'));
 
       expect(server.calls[0].requestHeaders.authorization).toMatch(
         /^TC3-HMAC-SHA256 Credential=AKIDENV\//,
@@ -247,7 +238,7 @@ describe('createTencent', () => {
 
     it('rejects an invalid SubAppId', async () => {
       await expect(
-        startVideo(
+        generateVideo(
           createTencent({
             secretId: 'AKIDEXAMPLE',
             secretKey: 'EXAMPLESECRET',

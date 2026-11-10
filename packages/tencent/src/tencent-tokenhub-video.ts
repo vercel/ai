@@ -1,9 +1,8 @@
 import type {
-  Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
-  Experimental_VideoModelV4File as VideoModelV4File,
-  Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
+  Experimental_VideoModelV3CallOptions as VideoModelV3CallOptions,
+  Experimental_VideoModelV3File as VideoModelV3File,
   JSONObject,
-  SharedV4Warning,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   type InferSchema,
@@ -20,6 +19,7 @@ import {
 } from './tencent-video-inputs';
 import type { TencentVideoModelOptions } from './tencent-video-model-options';
 import type { TencentKlingVideoKind } from './tencent-video-settings';
+import type { TencentVideoTaskStatus } from './tencent-video-task-status';
 
 const KLING_RESOLUTION_TIERS: Record<number, string> = {
   720: '720p',
@@ -91,9 +91,9 @@ export function buildTokenHubKlingRequest({
 }: {
   modelId: string;
   kind: TencentKlingVideoKind;
-  options: VideoModelV4CallOptions;
+  options: VideoModelV3CallOptions;
   tencentOptions: TencentVideoModelOptions | undefined;
-  warnings: SharedV4Warning[];
+  warnings: SharedV3Warning[];
 }): { endpoint: TokenHubKlingEndpoint; body: Record<string, unknown> } {
   const firstFrame = resolveFirstFrameImage(options, warnings);
   const lastFrame = resolveLastFrameImage(options, warnings);
@@ -316,10 +316,10 @@ function resolveAudio({
   supported,
   warnings,
 }: {
-  options: VideoModelV4CallOptions;
+  options: VideoModelV3CallOptions;
   tencentOptions: TencentVideoModelOptions | undefined;
   supported: boolean;
-  warnings: SharedV4Warning[];
+  warnings: SharedV3Warning[];
 }): string | undefined {
   const audio =
     tencentOptions?.audio ??
@@ -348,7 +348,7 @@ function resolveMultiShot({
 }: {
   tencentOptions: TencentVideoModelOptions | undefined;
   supported: boolean;
-  warnings: SharedV4Warning[];
+  warnings: SharedV3Warning[];
 }): boolean | undefined {
   if (tencentOptions?.multiShot != null && !supported) {
     warnings.push({
@@ -373,14 +373,14 @@ function buildMotionControlBody({
   warnings,
 }: {
   modelId: string;
-  options: VideoModelV4CallOptions;
+  options: VideoModelV3CallOptions;
   tencentOptions: TencentVideoModelOptions | undefined;
-  characterImage: VideoModelV4File | undefined;
-  motionVideo: VideoModelV4File | undefined;
-  lastFrame: VideoModelV4File | undefined;
+  characterImage: VideoModelV3File | undefined;
+  motionVideo: VideoModelV3File | undefined;
+  lastFrame: VideoModelV3File | undefined;
   extraReferenceCount: number;
   resolution: string | undefined;
-  warnings: SharedV4Warning[];
+  warnings: SharedV3Warning[];
 }): Record<string, unknown> {
   for (const [feature, value, details] of [
     [
@@ -505,7 +505,7 @@ export function interpretTokenHubKlingStatus({
   statusResponse: TokenHubKlingStatusResponse;
   taskId: string;
   response: StatusResponseMetadata;
-}): VideoModelV4OperationStatusResult {
+}): TencentVideoTaskStatus {
   const task = Array.isArray(statusResponse.data)
     ? (statusResponse.data.find(entry => entry.id === taskId) ??
       statusResponse.data[0])
@@ -564,7 +564,9 @@ export function interpretTokenHubKlingStatus({
   if (task?.status === 'failed') {
     return {
       status: 'error',
-      error: `Video generation failed: ${task.message || 'unknown error'} (task ${taskId})`,
+      error: `Video generation failed: ${
+        task.message || 'unknown error'
+      } (task ${taskId})`,
       response,
     };
   }

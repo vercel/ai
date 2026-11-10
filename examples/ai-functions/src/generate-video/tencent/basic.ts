@@ -13,7 +13,7 @@ run(async () => {
         prompt: 'A chicken flying into the sunset in the style of 90s anime.',
         aspectRatio: '16:9',
         duration: 5,
-        poll: { timeoutMs: 600000 },
+        providerOptions: { tencent: { pollTimeoutMs: 600000 } },
       }),
   );
 

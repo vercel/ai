@@ -24,7 +24,7 @@ run(async () => {
         aspectRatio: '16:9',
         duration: 5,
         resolution: '1280x720',
-        poll: { timeoutMs: 600000 },
+        providerOptions: { tencent: { pollTimeoutMs: 600000 } },
       }),
   );
 

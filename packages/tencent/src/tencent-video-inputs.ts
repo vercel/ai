@@ -1,45 +1,48 @@
 import type {
-  Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
-  Experimental_VideoModelV4File as VideoModelV4File,
-  SharedV4Warning,
+  Experimental_VideoModelV3CallOptions as VideoModelV3CallOptions,
+  Experimental_VideoModelV3File as VideoModelV3File,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
-import {
-  convertUint8ArrayToBase64,
-  getTopLevelMediaType,
-} from '@ai-sdk/provider-utils';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import type { TencentVideoModelOptions } from './tencent-video-model-options';
 
 export function getFileBase64(
-  file: Extract<VideoModelV4File, { type: 'file' }>,
+  file: Extract<VideoModelV3File, { type: 'file' }>,
 ): string {
   return typeof file.data === 'string'
     ? file.data
     : convertUint8ArrayToBase64(file.data);
 }
 
-export function toUrlOrDataUri(file: VideoModelV4File): string {
+export function toUrlOrDataUri(file: VideoModelV3File): string {
   if (file.type === 'url') {
     return file.url;
   }
   return `data:${file.mediaType};base64,${getFileBase64(file)}`;
 }
 
-function getMediaKind(file: VideoModelV4File): string | undefined {
-  return file.mediaType != null
-    ? getTopLevelMediaType(file.mediaType)
-    : undefined;
+// `video/mp4` -> `video`. Inlined because the v6 provider-utils does not
+// export `getTopLevelMediaType`.
+function getMediaKind(file: VideoModelV3File): string | undefined {
+  if (file.mediaType == null) {
+    return undefined;
+  }
+  const slashIndex = file.mediaType.indexOf('/');
+  return slashIndex === -1
+    ? file.mediaType
+    : file.mediaType.substring(0, slashIndex);
 }
 
-export const isVideoFile = (file: VideoModelV4File): boolean =>
+export const isVideoFile = (file: VideoModelV3File): boolean =>
   getMediaKind(file) === 'video';
 
-export const isAudioFile = (file: VideoModelV4File): boolean =>
+export const isAudioFile = (file: VideoModelV3File): boolean =>
   getMediaKind(file) === 'audio';
 
 function rejectNonImageFrame(
-  file: VideoModelV4File | undefined,
-  warnings: SharedV4Warning[],
-): VideoModelV4File | undefined {
+  file: VideoModelV3File | undefined,
+  warnings: SharedV3Warning[],
+): VideoModelV3File | undefined {
   if (file != null && (isVideoFile(file) || isAudioFile(file))) {
     warnings.push({
       type: 'unsupported',
@@ -52,9 +55,9 @@ function rejectNonImageFrame(
 }
 
 export function resolveFirstFrameImage(
-  options: VideoModelV4CallOptions,
-  warnings: SharedV4Warning[],
-): VideoModelV4File | undefined {
+  options: VideoModelV3CallOptions,
+  warnings: SharedV3Warning[],
+): VideoModelV3File | undefined {
   return rejectNonImageFrame(
     options.frameImages?.find(frame => frame.frameType === 'first_frame')
       ?.image ?? options.image,
@@ -63,23 +66,23 @@ export function resolveFirstFrameImage(
 }
 
 export function resolveLastFrameImage(
-  options: VideoModelV4CallOptions,
-  warnings: SharedV4Warning[],
-): VideoModelV4File | undefined {
+  options: VideoModelV3CallOptions,
+  warnings: SharedV3Warning[],
+): VideoModelV3File | undefined {
   return rejectNonImageFrame(
     options.frameImages?.find(frame => frame.frameType === 'last_frame')?.image,
     warnings,
   );
 }
 
-export function splitInputReferences(options: VideoModelV4CallOptions): {
-  images: VideoModelV4File[];
-  videos: VideoModelV4File[];
-  audios: VideoModelV4File[];
+export function splitInputReferences(options: VideoModelV3CallOptions): {
+  images: VideoModelV3File[];
+  videos: VideoModelV3File[];
+  audios: VideoModelV3File[];
 } {
-  const images: VideoModelV4File[] = [];
-  const videos: VideoModelV4File[] = [];
-  const audios: VideoModelV4File[] = [];
+  const images: VideoModelV3File[] = [];
+  const videos: VideoModelV3File[] = [];
+  const audios: VideoModelV3File[] = [];
 
   for (const reference of options.inputReferences ?? []) {
     if (isVideoFile(reference)) {
@@ -112,10 +115,10 @@ export function resolveResolution({
   tiers,
   warnings,
 }: {
-  options: VideoModelV4CallOptions;
+  options: VideoModelV3CallOptions;
   tencentOptions: TencentVideoModelOptions | undefined;
   tiers: Record<number, string>;
-  warnings: SharedV4Warning[];
+  warnings: SharedV3Warning[];
 }): string | undefined {
   if (tencentOptions?.resolution != null) {
     return tencentOptions.resolution;
@@ -131,7 +134,9 @@ export function resolveResolution({
       feature: 'resolution',
       details:
         `Resolution ${options.resolution} does not map to a supported tier ` +
-        `(${Object.values(tiers).join(', ')}); the default resolution was used.`,
+        `(${Object.values(tiers).join(
+          ', ',
+        )}); the default resolution was used.`,
     });
   }
   return tier;
@@ -146,7 +151,7 @@ export function warnIgnoredProviderOptions({
   tencentOptions: TencentVideoModelOptions | undefined;
   keys: ReadonlyArray<keyof TencentVideoModelOptions>;
   details: string;
-  warnings: SharedV4Warning[];
+  warnings: SharedV3Warning[];
 }): void {
   if (tencentOptions == null) {
     return;
@@ -167,9 +172,9 @@ export function warnUnsupportedCommonOptions({
   supportsSeed,
   warnings,
 }: {
-  options: VideoModelV4CallOptions & { webhookUrl?: string };
+  options: VideoModelV3CallOptions;
   supportsSeed: boolean;
-  warnings: SharedV4Warning[];
+  warnings: SharedV3Warning[];
 }): void {
   if (options.fps != null) {
     warnings.push({
@@ -194,16 +199,6 @@ export function warnUnsupportedCommonOptions({
       type: 'unsupported',
       feature: 'seed',
       details: 'TokenHub Kling models do not support a seed.',
-    });
-  }
-
-  if (options.webhookUrl != null) {
-    warnings.push({
-      type: 'unsupported',
-      feature: 'webhookUrl',
-      details:
-        'Tencent video tasks do not accept a per-request callback URL; ' +
-        'the result is retrieved by polling.',
     });
   }
 }
