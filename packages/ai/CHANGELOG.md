@@ -1,5 +1,14 @@
 # ai
 
+## 5.0.289
+
+### Patch Changes
+
+- bdbf015: Fix excessive CPU usage when streaming long arrays with `streamObject` array output. Parse and validate completed elements incrementally instead of repeatedly processing the entire accumulated array on every text chunk.
+- Updated dependencies [71955f0]
+- Updated dependencies [7d50c2f]
+  - @ai-sdk/gateway@2.0.180
+
 ## 5.0.288
 
 ### Patch Changes

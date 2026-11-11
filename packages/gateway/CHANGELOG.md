@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 2.0.180
+
+### Patch Changes
+
+- 71955f0: Add support for the `gemini-4-carbon` model with the same capabilities as `gemini-4-argon`.
+- 7d50c2f: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.179
 
 ### Patch Changes

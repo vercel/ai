@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [bdbf015]
+  - ai@5.0.289
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@5.0.288
 
 ## 0.0.1
