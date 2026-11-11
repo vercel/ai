@@ -66,6 +66,21 @@ strings, JSON objects, or JSON arrays.
 
 Answer value types are inferred from the field definitions.
 
+## Provider models
+
+Use a provider's `extractionModel` factory:
+
+| Provider  | Example model                                    |
+| --------- | ------------------------------------------------ |
+| OpenAI    | `openai.extractionModel('gpt-6.1-sol')`          |
+| Anthropic | `anthropic.extractionModel('claude-sonnet-5-5')` |
+| Google    | `google.extractionModel('gemini-3.8-flash')`     |
+
+These adapt structured language-model output and extract every field in one
+prompt. They return `null` for missing values but no `pNull`, `confidence`,
+`guess`, or `source`. Judge quality against your own labeled examples before
+choosing a model for a task.
+
 ## Answers
 
 Every answer has the field's `type` and a `value`. `value` is `null` when the

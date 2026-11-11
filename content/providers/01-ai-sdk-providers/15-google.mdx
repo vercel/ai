@@ -2709,3 +2709,32 @@ Decision models can also be accessed through `customProvider` aliases or
 use Gateway by default, or an explicitly configured default provider with a
 `decisionModel` method. See
 [model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).
+
+## Extraction Models
+
+Create an experimental extraction model with `google.extractionModel(modelId)`.
+It wraps a google language model and uses the Gemini API's structured output to
+extract typed fields in one call.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { experimental_extract } from 'ai';
+
+const { answers } = await experimental_extract({
+  model: google.extractionModel('gemini-3.8-flash'),
+  referenceDate: '2026-11-11',
+  state: 'Invoice INV-2041. Total due $1,250.00 by March 3.',
+  fields: {
+    invoiceNumber: { type: 'text', instructions: 'The invoice number' },
+    total: { type: 'number', instructions: 'Total due', decimals: 2 },
+    dueDate: { type: 'date', instructions: 'Payment due date' },
+  },
+});
+```
+
+The adapter supports every field type and returns `null` when the state has no
+value for a field. It does not return `pNull`, `confidence`, `guess`, or
+`source`, since a prompted model cannot give calibrated estimates or exact
+offsets. Image and PDF files are passed to the language model, which must
+support them. The adapter requests `reasoning: 'none'` by default and forwards
+`providerOptions.google`. See [Extractions](/docs/ai-sdk-core/extractions).
