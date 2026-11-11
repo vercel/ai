@@ -1893,7 +1893,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
             details:
-              'reasoningEffortUpdate is only supported by GPT-6 and later models',
+              'Configuration updates are only supported by GPT-6 and later models',
           },
         ]);
       });
@@ -1920,7 +1920,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
             details:
-              'reasoningEffortUpdate requires standard reasoning mode without automatic truncation',
+              'Configuration updates require standard reasoning mode without automatic truncation',
           },
         ]);
       });
@@ -1947,7 +1947,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
             details:
-              'reasoningEffortUpdate requires standard reasoning mode without automatic truncation',
+              'Configuration updates require standard reasoning mode without automatic truncation',
           },
         ]);
       });

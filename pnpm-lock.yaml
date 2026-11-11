@@ -1388,6 +1388,9 @@ importers:
       '@ai-sdk/google':
         specifier: workspace:*
         version: link:../google
+      '@ai-sdk/openai':
+        specifier: workspace:*
+        version: link:../openai
       '@ai-sdk/perplexity':
         specifier: workspace:*
         version: link:../perplexity

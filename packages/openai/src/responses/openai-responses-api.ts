@@ -1,3 +1,4 @@
+import type { OpenAIResponsesTextFormat } from './openai-responses-text-format';
 import type { JSONObject, JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
   lazySchema,
@@ -5,6 +6,18 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+
+const openaiResponsesPromptCacheDiagnosticsSchema = () =>
+  z.object({
+    type: z.string(),
+    reason: z.string().nullish(),
+    cache_missed_tokens: z.number().nullish(),
+    comparison_reusable_tokens: z.number().nullish(),
+  });
+
+export type OpenAIResponsesPromptCacheDiagnostics = z.infer<
+  ReturnType<typeof openaiResponsesPromptCacheDiagnosticsSchema>
+>;
 
 let cachedJsonValueSchema: z.ZodType<JSONValue> | undefined;
 const jsonValueSchema = (): z.ZodType<JSONValue> =>
@@ -626,7 +639,8 @@ export type OpenAIResponsesReasoning = {
 
 export type OpenAIResponsesConfigurationUpdate = {
   type: 'configuration_update';
-  reasoning: {
+  text?: { format: OpenAIResponsesTextFormat };
+  reasoning?: {
     effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   };
 };
@@ -775,6 +789,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
       z.object({
         type: z.enum(['response.completed', 'response.incomplete']),
         response: z.object({
+          prompt_cache_diagnostics:
+            openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
           incomplete_details: z.object({ reason: z.string() }).nullish(),
           usage: openaiResponsesUsageSchema().nullish(),
           reasoning: z
@@ -789,6 +805,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         type: z.literal('response.failed'),
         sequence_number: z.number(),
         response: z.object({
+          prompt_cache_diagnostics:
+            openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
           error: z
             .object({
               code: z.string().nullish(),
@@ -1637,6 +1655,8 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
         )
         .optional(),
       service_tier: z.string().nullish(),
+      prompt_cache_diagnostics:
+        openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
       reasoning: z
         .object({
           context: z.string().nullish(),
