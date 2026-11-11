@@ -381,6 +381,35 @@ describe('response validation', () => {
       },
     ],
     [
+      'a list with a hole masked by an enumerable property',
+      {
+        contacts: {
+          type: 'list',
+          value: Object.assign(new Array(1), { metadata: 'provider data' }),
+        },
+      },
+    ],
+    [
+      'list item entries with a hole masked by an enumerable property',
+      {
+        contacts: {
+          type: 'list',
+          value: ['Ana'],
+          items: Object.assign(new Array(1), { metadata: 'provider data' }),
+        },
+      },
+    ],
+    [
+      'sparse list item entries with a huge length',
+      {
+        contacts: {
+          type: 'list',
+          value: ['Ana'],
+          items: Object.assign([], { length: 2 ** 32 - 1 }),
+        },
+      },
+    ],
+    [
       'list item entries without values',
       { contacts: { type: 'list', value: null, items: [] } },
     ],
