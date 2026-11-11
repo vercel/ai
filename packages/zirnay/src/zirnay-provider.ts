@@ -607,16 +607,26 @@ export function createZirnay(
     let team = teamSlug ?? teamAlias;
     let rawModel = modelSlug ?? model ?? modelAlias;
 
-    if (rawModel) {
-      const parts = rawModel.split('/');
+    const qualifiedModel =
+      model ?? (modelSlug?.includes('/') ? modelSlug : undefined);
+    if (qualifiedModel) {
+      const parts = qualifiedModel.split('/');
       if (parts.length >= 3) {
         team = team ?? parts[1];
-        rawModel = parts[2];
+        if (!modelSlug) {
+          rawModel = parts[2];
+        }
       } else if (parts.length === 2) {
         team = team ?? parts[0];
-        rawModel = parts[1];
+        if (!modelSlug) {
+          rawModel = parts[1];
+        }
       }
-      rawModel = rawModel.split(':')[0];
+    }
+
+    if (rawModel) {
+      const parts = rawModel.split('/');
+      rawModel = parts[parts.length - 1].split(':')[0];
     }
 
     const mod = rawModel;

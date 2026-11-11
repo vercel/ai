@@ -304,4 +304,23 @@ describe('115-zirnay.mdx documentation examples', () => {
     );
     expect(call!.requestUrl).not.toContain(':latest');
   });
+
+  it('infers team from qualified model when modelSlug is also passed', async () => {
+    await zirnay.submitFeedback({
+      model: 'acme-corp/fraud-ops/laya-card-auth:v2-strict',
+      modelSlug: 'laya-card-auth',
+      requestId: 'req_8819d-29384',
+      actualOutcome: 'APPROVE',
+    });
+
+    const call = server.calls.find(
+      c =>
+        c.requestUrl.endsWith('/feedback') &&
+        c.requestUrl.includes('fraud-ops'),
+    );
+    expect(call).toBeDefined();
+    expect(call!.requestUrl).toBe(
+      'https://api.zirnay.com/v1/teams/fraud-ops/models/laya-card-auth/feedback',
+    );
+  });
 });
