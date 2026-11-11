@@ -407,36 +407,39 @@ describe('tool calls', () => {
     ]);
   });
 
-  it('should keep unsupported content output parts as text', () => {
-    const filePart = {
-      type: 'file' as const,
-      data: { type: 'data' as const, data: 'aGVsbG8=' },
-      mediaType: 'text/plain',
-    };
+  it.each(['text/plain', 'text', 'text/*', 'image'])(
+    'should keep %s content output files as text',
+    mediaType => {
+      const filePart = {
+        type: 'file' as const,
+        data: { type: 'data' as const, data: 'aGVsbG8=' },
+        mediaType,
+      };
 
-    const result = convertToMistralChatMessages([
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: 'tool-call-id-5',
-            toolName: 'read-file',
-            output: { type: 'content', value: [filePart] },
-          },
-        ],
-      },
-    ]);
+      const result = convertToMistralChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'tool-call-id-5',
+              toolName: 'read-file',
+              output: { type: 'content', value: [filePart] },
+            },
+          ],
+        },
+      ]);
 
-    expect(result).toEqual([
-      {
-        role: 'tool',
-        name: 'read-file',
-        tool_call_id: 'tool-call-id-5',
-        content: [{ type: 'text', text: JSON.stringify(filePart) }],
-      },
-    ]);
-  });
+      expect(result).toEqual([
+        {
+          role: 'tool',
+          name: 'read-file',
+          tool_call_id: 'tool-call-id-5',
+          content: [{ type: 'text', text: JSON.stringify(filePart) }],
+        },
+      ]);
+    },
+  );
 
   it('should handle error output format', () => {
     const result = convertToMistralChatMessages([

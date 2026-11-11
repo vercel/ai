@@ -31,6 +31,27 @@ function formatFileUrl({ part }: { part: LanguageModelV4FilePart }): string {
   });
 }
 
+function convertToolResultFilePart(
+  part: LanguageModelV4FilePart,
+): MistralUserMessageContent | undefined {
+  if (part.data.type !== 'url' && part.data.type !== 'data') {
+    return undefined;
+  }
+
+  if (getTopLevelMediaType(part.mediaType) === 'image') {
+    return { type: 'image_url', image_url: formatFileUrl({ part }) };
+  }
+
+  const mediaType =
+    part.data.type === 'data' ? resolveFullMediaType({ part }) : part.mediaType;
+
+  if (mediaType === 'application/pdf') {
+    return { type: 'document_url', document_url: formatFileUrl({ part }) };
+  }
+
+  return undefined;
+}
+
 function convertToolResultContentPart(
   part: Extract<
     LanguageModelV4ToolResultOutput,
@@ -41,21 +62,17 @@ function convertToolResultContentPart(
     return { type: 'text', text: part.text };
   }
 
-  if (
-    part.type === 'file' &&
-    (part.data.type === 'url' || part.data.type === 'data')
-  ) {
-    if (getTopLevelMediaType(part.mediaType) === 'image') {
-      return { type: 'image_url', image_url: formatFileUrl({ part }) };
-    }
+  if (part.type === 'file') {
+    try {
+      const fileChunk = convertToolResultFilePart(part);
 
-    const mediaType =
-      part.data.type === 'data'
-        ? resolveFullMediaType({ part })
-        : part.mediaType;
-
-    if (mediaType === 'application/pdf') {
-      return { type: 'document_url', document_url: formatFileUrl({ part }) };
+      if (fileChunk != null) {
+        return fileChunk;
+      }
+    } catch (error) {
+      if (!UnsupportedFunctionalityError.isInstance(error)) {
+        throw error;
+      }
     }
   }
 
