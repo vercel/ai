@@ -181,6 +181,8 @@ describe('MCP OAuth callback lifecycle', () => {
       authorizationCode: 'test-code',
       callbackState: state,
       callbackIssuer: 'https://authorization.example',
+      // The route passes its guarded transport for OAuth requests.
+      fetchFn: expect.any(Function),
     });
     expect(session.provider.pendingAuthorization).toBeUndefined();
     expect(session.provider.storedState()).toBeUndefined();

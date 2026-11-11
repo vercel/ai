@@ -101,6 +101,8 @@ export type GoogleLanguageModelConfig = {
   downloadToolResultFiles?: {
     maxBytes: number;
     supportsGoogleCloudStorageUrls?: boolean;
+    /** Transport for untrusted file URLs, without provider authentication. */
+    fetch?: FetchFunction;
   };
 };
 
@@ -317,6 +319,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       ? await downloadToolResultFiles(prompt, {
           abortSignal,
           maxBytes: config.downloadToolResultFiles.maxBytes,
+          fetch: config.downloadToolResultFiles.fetch,
           supportedUrls: supportedFunctionResponseUrls,
         })
       : prompt;

@@ -3670,6 +3670,13 @@ const model = openai.image('gpt-image-2.5-sunburst');
 
 OpenAI's `gpt-image-*` models support powerful image editing capabilities. Pass input images via `prompt.images` to transform, combine, or edit existing images.
 
+<Note type="warning">
+  The provider downloads remote input images and masks before uploading them to
+  OpenAI, using the `fetch` option of `createOpenAI`. For untrusted URLs on
+  Node.js, pass a `guarded-fetch` transport there. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
+</Note>
+
 #### Basic Image Editing
 
 Transform an existing image using text prompts:

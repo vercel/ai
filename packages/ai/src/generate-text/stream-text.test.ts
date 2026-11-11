@@ -33445,6 +33445,7 @@ describe('streamText', () => {
       expect(downloadCalls).toMatchInlineSnapshot(`
         [
           {
+            "abortSignal": undefined,
             "isUrlSupportedByModel": false,
             "url": "https://example.com/test.jpg",
           },
