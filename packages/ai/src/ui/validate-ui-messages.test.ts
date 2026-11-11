@@ -2460,6 +2460,202 @@ describe('validateUIMessages', () => {
       `);
     });
   });
+
+  describe('invalid messages and parts', () => {
+    function getIssuePaths(error: Error) {
+      return (error.cause as z.ZodError).issues.map(issue => issue.path);
+    }
+
+    it('should only report the issues of the schema for the part type', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [{ id: '1', role: 'user', parts: [{ type: 'text' }] }],
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: [{"id":"1","role":"user","parts":[{"type":"text"}]}].
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              0,
+              "parts",
+              0,
+              "text"
+            ],
+            "message": "Invalid input: expected string, received undefined"
+          }
+        ]]
+      `);
+    });
+
+    it('should report a part with an unknown type', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [{ id: '1', role: 'user', parts: [{ type: 'unknown' }] }],
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: [{"id":"1","role":"user","parts":[{"type":"unknown"}]}].
+        Error message: [
+          {
+            "code": "invalid_union",
+            "errors": [],
+            "note": "No matching discriminator",
+            "discriminator": "type",
+            "options": [
+              "text",
+              "reasoning",
+              "custom",
+              "source-url",
+              "source-document",
+              "file",
+              "reasoning-file",
+              "steering-message",
+              "step-start"
+            ],
+            "path": [
+              0,
+              "parts",
+              0,
+              "type"
+            ],
+            "message": "Invalid UI message part type. Expected a known part type (for example \\"text\\" or \\"dynamic-tool\\") or a type starting with \\"data-\\" or \\"tool-\\"."
+          }
+        ]]
+      `);
+    });
+
+    it('should report a tool part with an unknown state', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [{ type: 'tool-foo', toolCallId: '1', state: 'unknown' }],
+            },
+          ],
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: [{"id":"1","role":"assistant","parts":[{"type":"tool-foo","toolCallId":"1","state":"unknown"}]}].
+        Error message: [
+          {
+            "code": "invalid_union",
+            "errors": [],
+            "note": "No matching discriminator",
+            "discriminator": "state",
+            "options": [
+              "input-streaming",
+              "input-available",
+              "approval-requested",
+              "approval-responded",
+              "output-available",
+              "output-error",
+              "output-denied"
+            ],
+            "path": [
+              0,
+              "parts",
+              0,
+              "state"
+            ],
+            "message": "Invalid discriminator value. Expected 'input-streaming' | 'input-available' | 'approval-requested' | 'approval-responded' | 'output-available' | 'output-error' | 'output-denied'"
+          }
+        ]]
+      `);
+    });
+
+    it('should stop at the first invalid message', async () => {
+      const result = await safeValidateUIMessages({
+        messages: [
+          { id: '1', role: 'user', parts: [{ type: 'text', text: 'valid' }] },
+          {},
+          {},
+        ],
+      });
+
+      expectToBe(result.success, false);
+      expect(getIssuePaths(result.error)).toEqual([
+        [1, 'id'],
+        [1, 'role'],
+        [1, 'parts'],
+      ]);
+    });
+
+    it('should stop at the first invalid part', async () => {
+      const result = await safeValidateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'valid' }, {}, {}],
+          },
+        ],
+      });
+
+      expectToBe(result.success, false);
+      expect(getIssuePaths(result.error)).toEqual([[0, 'parts', 1, 'type']]);
+    });
+
+    it('should stop at the first invalid steering message part', async () => {
+      const result = await safeValidateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'steering-message',
+                id: 'steer-1',
+                parts: [{ type: 'text', text: 'valid' }, {}, {}],
+              },
+            ],
+          },
+        ],
+      });
+
+      expectToBe(result.success, false);
+      expect(getIssuePaths(result.error)).toEqual([
+        [0, 'parts', 0, 'parts', 1, 'type'],
+      ]);
+    });
+
+    it('should stop at the first invalid citation', async () => {
+      const result = await safeValidateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'valid', citations: [{}, {}] }],
+          },
+        ],
+      });
+
+      expectToBe(result.success, false);
+      expect(getIssuePaths(result.error)).toEqual([
+        [0, 'parts', 0, 'citations', 0, 'source'],
+      ]);
+    });
+
+    it('should not grow the error with the number of invalid parts', async () => {
+      const messages = [
+        {
+          id: '1',
+          role: 'user',
+          parts: Array.from({ length: 2500 }, () => ({})),
+        },
+      ];
+
+      const result = await safeValidateUIMessages({ messages });
+
+      expectToBe(result.success, false);
+      expect(getIssuePaths(result.error)).toEqual([[0, 'parts', 0, 'type']]);
+      // the error message contains the validated value once:
+      expect(result.error.message.length).toBeLessThan(
+        JSON.stringify(messages).length + 1000,
+      );
+    });
+  });
 });
 
 export function expectToBe<T extends boolean>(
