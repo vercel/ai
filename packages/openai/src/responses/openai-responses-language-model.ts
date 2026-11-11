@@ -52,10 +52,11 @@ import { getOpenAILanguageModelCapabilities } from '../openai-language-model-cap
 import type {
   ResponsesToolCallProviderMetadata,
   ResponsesUsageProviderMetadata,
+  ResponsesProviderMetadata,
 } from './openai-responses-provider-metadata';
 
 /**
- * Enforces OpenAI's configuration update restrictions for reasoningEffortUpdate,
+ * Enforces OpenAI's configuration update restrictions,
  * returning a string describing the unsupported reason if any.
  *
  * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
@@ -68,11 +69,11 @@ function getConfigurationUpdateUnsupportedReason({
   options: OpenAIResponsesProviderOptions | undefined;
 }): string | undefined {
   if (!modelCapabilities.supportsConfigurationUpdate) {
-    return 'reasoningEffortUpdate is only supported by GPT-6 and later models';
+    return 'Configuration updates are only supported by GPT-6 and later models';
   }
 
   if (options?.reasoningMode === 'pro' || options?.truncation === 'auto') {
-    return 'reasoningEffortUpdate requires standard reasoning mode without automatic truncation';
+    return 'Configuration updates require standard reasoning mode without automatic truncation';
   }
 
   return undefined;
@@ -223,7 +224,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       // would create an adjacent pair that OpenAI rejects.
       if (
         firstItem?.type !== 'configuration_update' ||
-        firstItem.reasoning.effort !== reasoningEffortUpdate
+        firstItem.reasoning?.effort !== reasoningEffortUpdate
       ) {
         input.unshift({
           type: 'configuration_update',
@@ -240,12 +241,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         input[i].type === 'configuration_update'
       ) {
         throw new UnsupportedFunctionalityError({
-          functionality: 'Adjacent reasoning effort configuration updates',
+          functionality: 'Adjacent configuration updates',
+          message:
+            'Configuration updates cannot be consecutive. Set reasoningEffortUpdate and textFormatUpdate in the same empty system message, and omit request-level reasoningEffortUpdate when using message-level updates.',
         });
       }
     }
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
+    const requestTextFormat = openaiOptions?.textFormat;
 
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
 
@@ -301,20 +305,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       top_p: topP,
       max_output_tokens: maxOutputTokens,
 
-      ...((responseFormat?.type === 'json' || openaiOptions?.textVerbosity) && {
+      ...((responseFormat?.type === 'json' ||
+        requestTextFormat != null ||
+        openaiOptions?.textVerbosity) && {
         text: {
-          ...(responseFormat?.type === 'json' && {
-            format:
-              responseFormat.schema != null
-                ? {
-                    type: 'json_schema',
-                    strict: strictJsonSchema,
-                    name: responseFormat.name ?? 'response',
-                    description: responseFormat.description,
-                    schema: responseFormat.schema,
-                  }
-                : { type: 'json_object' },
-          }),
+          ...(requestTextFormat != null
+            ? { format: requestTextFormat }
+            : responseFormat?.type === 'json' && {
+                format:
+                  responseFormat.schema != null
+                    ? {
+                        type: 'json_schema',
+                        strict: strictJsonSchema,
+                        name: responseFormat.name ?? 'response',
+                        description: responseFormat.description,
+                        schema: responseFormat.schema,
+                      }
+                    : { type: 'json_object' },
+              }),
           ...(openaiOptions?.textVerbosity && {
             verbosity: openaiOptions.textVerbosity,
           }),
@@ -333,7 +341,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       service_tier: openaiOptions?.serviceTier,
       include,
       prompt_cache_key: openaiOptions?.promptCacheKey,
-      prompt_cache_options: openaiOptions?.promptCacheOptions,
+      prompt_cache_options: openaiOptions?.promptCacheOptions && {
+        mode: openaiOptions.promptCacheOptions.mode,
+        ttl: openaiOptions.promptCacheOptions.ttl,
+        comparison_response_id:
+          openaiOptions.promptCacheOptions.comparisonResponseId,
+      },
       prompt_cache_retention: openaiOptions?.promptCacheRetention,
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
@@ -859,6 +872,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       providerMetadata[providerKey].logprobs = logprobs;
     }
 
+    if (response.prompt_cache_diagnostics != null) {
+      providerMetadata[providerKey].promptCacheDiagnostics =
+        response.prompt_cache_diagnostics;
+    }
+
     if (typeof response.service_tier === 'string') {
       providerMetadata[providerKey].serviceTier = response.service_tier;
     }
@@ -984,6 +1002,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     let serviceTier: string | undefined;
     let reasoningContext: string | undefined;
+    let promptCacheDiagnostics: ResponsesProviderMetadata['promptCacheDiagnostics'];
     let responsesUsage: ResponsesUsageProviderMetadata | undefined;
 
     return {
@@ -1464,6 +1483,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 ] = 'can-conclude';
               }
             } else if (isResponseFinishedChunk(value)) {
+              promptCacheDiagnostics =
+                value.response.prompt_cache_diagnostics ?? undefined;
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
                 hasFunctionCall,
@@ -1542,6 +1563,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
             if (reasoningContext !== undefined) {
               providerMetadata[providerKey].reasoningContext = reasoningContext;
+            }
+
+            if (promptCacheDiagnostics !== undefined) {
+              providerMetadata[providerKey].promptCacheDiagnostics =
+                promptCacheDiagnostics;
             }
 
             if (responsesUsage != null) {

@@ -339,7 +339,7 @@ describe.each(['generate', 'stream'] as const)(
       async ({ prompt, options }) => {
         await expect(request(prompt, options)).rejects.toMatchObject({
           name: 'AI_UnsupportedFunctionalityError',
-          functionality: 'Adjacent reasoning effort configuration updates',
+          functionality: 'Adjacent configuration updates',
         });
         expect(server.calls).toHaveLength(0);
       },

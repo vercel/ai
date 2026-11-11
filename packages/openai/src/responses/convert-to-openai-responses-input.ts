@@ -155,22 +155,30 @@ export async function convertToOpenAIResponsesInput({
           });
         }
         const effort = options?.reasoningEffortUpdate;
-        if (effort != null) {
+        const textFormat = options?.textFormatUpdate;
+        if (effort != null || textFormat != null) {
+          const feature =
+            effort != null ? 'reasoningEffortUpdate' : 'textFormatUpdate';
           const unsupportedReason =
             content !== ''
-              ? 'Message-level reasoningEffortUpdate requires empty system message content.'
+              ? `Message-level ${feature} requires empty system message content.`
               : configurationUpdateUnsupportedReason;
 
           if (unsupportedReason != null) {
             throw new UnsupportedFunctionalityError({
-              functionality: 'Message-level reasoningEffortUpdate',
+              functionality: `Message-level ${feature}`,
               message: unsupportedReason,
             });
           }
 
           input.push({
             type: 'configuration_update',
-            reasoning: { effort },
+            ...(effort != null && { reasoning: { effort } }),
+            ...(textFormat != null && {
+              text: {
+                format: textFormat,
+              },
+            }),
           });
           // The control is independent of systemMessageMode's text handling.
           break;

@@ -1,3 +1,4 @@
+import { openaiResponsesTextFormatSchema } from './openai-responses-text-format';
 import {
   type InferValidator,
   lazyValidator,
@@ -221,6 +222,7 @@ export const openaiResponsesProviderOptionsSchema = lazyValidator(() =>
        */
       promptCacheOptions: z
         .object({
+          comparisonResponseId: z.string().optional(),
           mode: z.enum(['implicit', 'explicit']).optional(),
           ttl: z.literal('30m').optional(),
         })
@@ -279,6 +281,9 @@ export const openaiResponsesProviderOptionsSchema = lazyValidator(() =>
       store: z.boolean().nullish(),
       strictJsonSchema: z.boolean().nullish(),
       textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
+
+      /** Keep the initial wire format stable while Output validates the current schema. */
+      textFormat: openaiResponsesTextFormatSchema().optional(),
       truncation: z.enum(['auto', 'disabled']).nullish(),
       user: z.string().nullish(),
     }),
@@ -292,6 +297,8 @@ export type OpenAIResponsesProviderOptions = InferValidator<
 export const openaiResponsesSystemMessageOptionsSchema = lazyValidator(() =>
   zodSchema(
     z.object({
+      /** Replace the format at this position; requires empty system content. */
+      textFormatUpdate: openaiResponsesTextFormatSchema().optional(),
       /**
        * Emit a configuration update at this position in Responses history.
        * Requires empty system message content and the same supported

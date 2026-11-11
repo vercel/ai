@@ -1,3 +1,4 @@
+import type { OpenAIResponsesTextFormat } from './openai-responses-text-format';
 import type { JSONSchema7 } from '@ai-sdk/provider';
 import {
   type InferValidator,
@@ -5,6 +6,18 @@ import {
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+
+const openaiResponsesPromptCacheDiagnosticsSchema = () =>
+  z.object({
+    type: z.string(),
+    reason: z.string().nullish(),
+    cache_missed_tokens: z.number().nullish(),
+    comparison_reusable_tokens: z.number().nullish(),
+  });
+
+export type OpenAIResponsesPromptCacheDiagnostics = z.infer<
+  ReturnType<typeof openaiResponsesPromptCacheDiagnosticsSchema>
+>;
 
 export type OpenAIResponsesInput = Array<OpenAIResponsesInputItem>;
 
@@ -168,7 +181,8 @@ export type OpenAIResponsesItemReference = {
 
 export type OpenAIResponsesConfigurationUpdate = {
   type: 'configuration_update';
-  reasoning: {
+  text?: { format: OpenAIResponsesTextFormat };
+  reasoning?: {
     effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   };
 };
@@ -339,6 +353,8 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
       z.object({
         type: z.enum(['response.completed', 'response.incomplete']),
         response: z.object({
+          prompt_cache_diagnostics:
+            openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
           incomplete_details: z.object({ reason: z.string() }).nullish(),
           usage: z.object({
             input_tokens: z.number(),
@@ -836,6 +852,8 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
         )
         .optional(),
       service_tier: z.string().nullish(),
+      prompt_cache_diagnostics:
+        openaiResponsesPromptCacheDiagnosticsSchema().nullish(),
       reasoning: z
         .object({
           context: z.string().nullish(),
