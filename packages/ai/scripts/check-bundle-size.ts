@@ -9,7 +9,8 @@ import { join } from 'path';
 // Patched Zod adds ~36 KiB; public message schemas retain the classic API.
 // Internal schemas use Mini, preserving the existing named-export budgets.
 // The opt-in useChat message queue adds ~3 KiB.
-const LIMIT = 643 * 1024;
+// Bounded validation of malformed UI messages adds ~1.5 KiB.
+const LIMIT = 645 * 1024;
 
 interface BundleResult {
   size: number;
