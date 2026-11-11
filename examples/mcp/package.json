@@ -45,7 +45,7 @@
     "dotenv": "16.4.5",
     "express": "5.0.1",
     "guarded-fetch": "^0.3.0",
-    "zod": "3.25.76"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@ai-sdk/mcp": "workspace:*",
