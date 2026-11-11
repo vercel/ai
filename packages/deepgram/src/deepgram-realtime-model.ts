@@ -591,7 +591,9 @@ function buildDeepgramSessionUpdate(
   config: RealtimeModelV4SessionConfig,
 ): Record<string, unknown> | null {
   for (const [key, value] of Object.entries(config)) {
-    if (value != null && key !== 'voice' && key !== 'instructions') {
+    // Only `undefined` means "unchanged": `turnDetection: null` asks for turn
+    // detection to be disabled, which the agent cannot do mid-session.
+    if (value !== undefined && key !== 'voice' && key !== 'instructions') {
       throw new UnsupportedFunctionalityError({
         functionality: `Deepgram Voice Agent live update of ${key}`,
       });

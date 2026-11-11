@@ -508,6 +508,32 @@ describe('DeepgramRealtimeModel', () => {
       ).toThrow('live update of voice and instructions in one event');
     });
 
+    it('rejects a live update that disables turn detection', async () => {
+      const model = createModel();
+      await model.serializeClientEvent({ type: 'session-update', config: {} });
+
+      // `null` is a value here: it asks for turn detection to be turned off.
+      expect(() =>
+        model.serializeClientEvent({
+          type: 'session-update',
+          config: { turnDetection: null },
+        }),
+      ).toThrow('live update of turnDetection');
+      expect(() =>
+        model.serializeClientEvent({
+          type: 'session-update',
+          config: { turnDetection: { type: 'disabled' } },
+        }),
+      ).toThrow('live update of turnDetection');
+      // An absent or undefined setting is not a change.
+      expect(
+        model.serializeClientEvent({
+          type: 'session-update',
+          config: { turnDetection: undefined, voice: 'flux-kit-en' },
+        }),
+      ).toMatchObject({ type: 'UpdateSpeak' });
+    });
+
     it.each([
       [
         'a browser connection',
