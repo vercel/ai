@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 4.0.232
+
+### Patch Changes
+
+- 3ea9b26: Reject invalid Cloud Speech transcription regions and default locations before resolving credentials or sending requests, preventing URL delimiters from redirecting bearer tokens and audio to another host.
+
 ## 4.0.231
 
 ### Patch Changes
