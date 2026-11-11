@@ -39,8 +39,8 @@ const result = await experimental_decide({
   },
 });
 
-console.log(result.answers.forecastCommit.selected);
-console.log(result.answers.forecastCommit.probability);
+console.log(result.answers.forecastCommit.choice); // 'COMMIT_APPROVED'
+console.log(result.answers.forecastCommit.probabilities?.COMMIT_APPROVED); // Calibrated probability
 ```
 
 ## Setup & Installation
@@ -128,13 +128,17 @@ const result = await experimental_decide({
 Zirnay responses return detailed calibration, latency, and arbitration metadata indexed by question ID:
 
 ```ts
-const metadata = result.providerMetadata?.zirnay;
+import type { ZirnayDecisionProviderMetadata } from '@ai-sdk/zirnay';
+
+const metadata = result.providerMetadata?.zirnay as
+  | ZirnayDecisionProviderMetadata
+  | undefined;
 
 console.log(result.response.id); // Unique decision trace ID (for HITL feedback requestId)
-console.log(metadata?.confidence?.['forecastCommit']); // Winning candidate confidence
-console.log(metadata?.calibratedProbability?.['forecastCommit']); // Calibrated probability
-console.log(metadata?.telemetry?.['forecastCommit']?.expectedCalibrationError); // Expected Calibration Error (ECE)
-console.log(metadata?.telemetry?.['forecastCommit']?.latencyMs); // Server-side inference latency
+console.log(metadata?.confidence['forecastCommit']); // Winning candidate confidence
+console.log(metadata?.calibratedProbability['forecastCommit']); // Calibrated probability
+console.log(metadata?.telemetry['forecastCommit']?.expectedCalibrationError); // Expected Calibration Error (ECE)
+console.log(metadata?.telemetry['forecastCommit']?.latencyMs); // Server-side inference latency
 ```
 
 ## Continuous Learning & HITL Feedback

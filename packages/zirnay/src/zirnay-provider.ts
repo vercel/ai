@@ -498,7 +498,7 @@ export function createZirnay(
     abortSignal,
   }: UpdateModelConfigOptions) => {
     const team = teamSlug ?? teamAlias;
-    const mod = modelSlug ?? modelAlias;
+    const mod = (modelSlug ?? modelAlias)?.split(':')[0];
     if (!team || !mod) {
       throw new Error(
         'updateModelConfig requires teamSlug and modelSlug (or team and model).',
@@ -533,7 +533,7 @@ export function createZirnay(
     abortSignal,
   }: DirectDecideOptions): Promise<DirectDecideResponse> => {
     const team = teamSlug ?? teamAlias;
-    const mod = modelSlug ?? modelAlias;
+    const mod = (modelSlug ?? modelAlias)?.split(':')[0];
     if (!team || !mod) {
       throw new Error(
         'directDecide requires teamSlug and modelSlug (or team and model).',
@@ -605,22 +605,21 @@ export function createZirnay(
     abortSignal,
   }: SubmitFeedbackOptions): Promise<SubmitFeedbackResponse> => {
     let team = teamSlug ?? teamAlias;
-    let mod =
-      modelSlug ??
-      (modelAlias && !modelAlias.includes('/') ? modelAlias : undefined);
+    let rawModel = modelSlug ?? model ?? modelAlias;
 
-    if ((!team || !mod) && model) {
-      const parts = model.split('/');
+    if (rawModel) {
+      const parts = rawModel.split('/');
       if (parts.length >= 3) {
         team = team ?? parts[1];
-        mod = mod ?? parts[2].split(':')[0];
+        rawModel = parts[2];
       } else if (parts.length === 2) {
         team = team ?? parts[0];
-        mod = mod ?? parts[1].split(':')[0];
-      } else {
-        mod = mod ?? parts[0].split(':')[0];
+        rawModel = parts[1];
       }
+      rawModel = rawModel.split(':')[0];
     }
+
+    const mod = rawModel;
 
     if (!team || !mod) {
       throw new Error(
@@ -701,14 +700,22 @@ export function createZirnay(
     abortSignal,
   }: UploadDatasetOptions) => {
     const team = teamSlug ?? teamAlias;
-    const mod = modelSlug ?? modelAlias;
+    const mod = (modelSlug ?? modelAlias)?.split(':')[0];
     if (!team || !mod) {
       throw new Error(
         'uploadDataset requires teamSlug and modelSlug (or team and model).',
       );
     }
     const fname = filename ?? datasetName ?? 'dataset.jsonl';
-    const payloadData = data ?? (typeof file === 'string' ? file : '');
+    let payloadData = data;
+    if (payloadData == null && file != null) {
+      if (typeof file === 'string') {
+        payloadData = file;
+      } else if (typeof (file as Blob).text === 'function') {
+        payloadData = await (file as Blob).text();
+      }
+    }
+    payloadData = payloadData ?? '';
 
     const resolvedBaseHeaders = await resolve(headers());
     const { value: response } = await postJsonToApi({
@@ -758,7 +765,7 @@ export function createZirnay(
     abortSignal,
   }: TriggerTrainingOptions) => {
     const team = teamSlug ?? teamAlias;
-    const mod = modelSlug ?? modelAlias;
+    const mod = (modelSlug ?? modelAlias)?.split(':')[0];
     if (!team || !mod) {
       throw new Error(
         'triggerTraining requires teamSlug and modelSlug (or team and model).',
@@ -799,7 +806,7 @@ export function createZirnay(
     abortSignal,
   }: ActivateCheckpointOptions) => {
     const team = teamSlug ?? teamAlias;
-    const mod = modelSlug ?? modelAlias;
+    const mod = (modelSlug ?? modelAlias)?.split(':')[0];
     if (!team || !mod) {
       throw new Error(
         'activateCheckpoint requires teamSlug and modelSlug (or team and model).',

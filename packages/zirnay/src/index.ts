@@ -2,6 +2,7 @@ export { createZirnay, zirnay } from './zirnay-provider';
 export type {
   ZirnayProvider,
   ZirnayProviderSettings,
+  RegisterModelOptions,
   CreateModelOptions,
   UpdateModelConfigOptions,
   DirectDecideOptions,
