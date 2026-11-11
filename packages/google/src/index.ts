@@ -1,5 +1,8 @@
 export type { GoogleErrorData } from './google-error';
-export type { GoogleDecisionModelId } from './google-decision-model';
+export type {
+  GoogleDecisionModelId,
+  GoogleDecisionModelOptions,
+} from './google-decision-model-options';
 export type {
   GoogleLanguageModelOptions,
   /** @deprecated Use `GoogleLanguageModelOptions` instead. */

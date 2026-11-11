@@ -12,7 +12,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { readFileSync } from 'node:fs';
 import { expect, it, vi } from 'vitest';
-import { GoogleDecisionModel } from './google-decision-model';
+import { DecisionGoogleModel } from './google-decision-model';
 import { createGoogle } from './google-provider';
 
 const fixture = JSON.parse(
@@ -504,12 +504,12 @@ it('preserves custom provider names and default API version', async () => {
 
 it('preserves workflow serialization', () => {
   const { model } = setup();
-  const serialized = GoogleDecisionModel[WORKFLOW_SERIALIZE](
-    model as GoogleDecisionModel,
+  const serialized = DecisionGoogleModel[WORKFLOW_SERIALIZE](
+    model as DecisionGoogleModel,
   );
-  const restored = GoogleDecisionModel[WORKFLOW_DESERIALIZE](
+  const restored = DecisionGoogleModel[WORKFLOW_DESERIALIZE](
     serialized as unknown as Parameters<
-      (typeof GoogleDecisionModel)[typeof WORKFLOW_DESERIALIZE]
+      (typeof DecisionGoogleModel)[typeof WORKFLOW_DESERIALIZE]
     >[0],
   );
   expect(restored.modelId).toBe(model.modelId);

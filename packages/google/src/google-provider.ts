@@ -23,10 +23,8 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import {
-  GoogleDecisionModel,
-  type GoogleDecisionModelId,
-} from './google-decision-model';
+import { DecisionGoogleModel } from './google-decision-model';
+import type { GoogleDecisionModelId } from './google-decision-model-options';
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
@@ -454,7 +452,7 @@ export function createGoogle(
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
   provider.decisionModel = (modelId: GoogleDecisionModelId) =>
-    new GoogleDecisionModel(modelId, {
+    new DecisionGoogleModel(modelId, {
       provider: `${providerName.replace(/\.generative-ai$/, '')}.decision`,
       baseURL,
       headers: getHeaders,

@@ -20,31 +20,30 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { googleDecisionResponseSchema } from './google-decision-api';
+import type { GoogleDecisionModelId } from './google-decision-model-options';
 import { googleFailedResponseHandler } from './google-error';
 
-export type GoogleDecisionModelId = 'gemini-decision-1' | (string & {});
-
-type GoogleDecisionModelConfig = {
+type DecisionGoogleModelConfig = {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
-export class GoogleDecisionModel implements DecisionModelV4 {
+export class DecisionGoogleModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
 
   constructor(
     readonly modelId: GoogleDecisionModelId,
-    private readonly config: GoogleDecisionModelConfig,
+    private readonly config: DecisionGoogleModelConfig,
   ) {}
 
   get provider() {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](model: GoogleDecisionModel) {
+  static [WORKFLOW_SERIALIZE](model: DecisionGoogleModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -53,9 +52,9 @@ export class GoogleDecisionModel implements DecisionModelV4 {
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: GoogleDecisionModelId;
-    config: GoogleDecisionModelConfig;
+    config: DecisionGoogleModelConfig;
   }) {
-    return new GoogleDecisionModel(options.modelId, options.config);
+    return new DecisionGoogleModel(options.modelId, options.config);
   }
 
   /** @deprecated Use `doDecide` instead. */
