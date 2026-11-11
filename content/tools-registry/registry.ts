@@ -686,7 +686,7 @@ const { text } = await generateText({
 console.log(text);`,
     docsUrl: 'https://pushary.com/docs/agents/build/vercel-ai-sdk',
     apiKeyUrl: 'https://pushary.com/onboarding/partner',
-    websiteUrl: 'https://pushary.com/human-in-the-loop',
+    websiteUrl: 'https://pushary.com/human-in-the-loop-vercel-ai-sdk',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
   {
@@ -929,6 +929,45 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@cleave-protocol/ai-sdk',
   },
   {
+    slug: 'sqai',
+    name: 'SQAI',
+    description:
+      'SQAI (Structured Query AI) is a governed, read-only structured-data tool for AI agents. It turns a natural-language question into a typed, policy-checked plan, runs it on an on-device runtime, and returns the answer with replayable provenance hashes. Query CSV, JSON, record arrays, and SQLite in-process, alongside 4,574 read-only compute capabilities across statistics, finance, linear algebra, time series, option pricing, and more. Policy lives in code — the model can only narrow what you allow, never widen it. Runs on your machine, no cloud; local compute uses a one-time free `sqai login`.',
+    packageName: '@thyn-ai/sqai-ai-sdk',
+    tags: [
+      'data',
+      'analytics',
+      'structured-data',
+      'read-only',
+      'governance',
+      'provenance',
+    ],
+    installCommand: {
+      pnpm: 'pnpm add @thyn-ai/sqai-ai-sdk',
+      npm: 'npm install @thyn-ai/sqai-ai-sdk',
+      yarn: 'yarn add @thyn-ai/sqai-ai-sdk',
+      bun: 'bun add @thyn-ai/sqai-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createSQAI } from '@thyn-ai/sqai-ai-sdk';
+
+const sqai = createSQAI({
+  sources: [{ data: './sales.csv', name: 'sales' }],
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: sqai.tools(),
+  stopWhen: isStepCount(8),
+  prompt: 'Which region had the highest total revenue, and what explains it?',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.sqai.com',
+    websiteUrl: 'https://sqai.com',
+    npmUrl: 'https://www.npmjs.com/package/@thyn-ai/sqai-ai-sdk',
+  },
+  {
     slug: 'redis-agent-memory',
     name: 'Redis Agent Memory',
     description:
@@ -971,42 +1010,33 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
   {
-    slug: 'sqai',
-    name: 'SQAI',
+    slug: 'keenable',
+    name: 'Keenable',
     description:
-      'SQAI (Structured Query AI) is a governed, read-only structured-data tool for AI agents. It turns a natural-language question into a typed, policy-checked plan, runs it on an on-device runtime, and returns the answer with replayable provenance hashes. Query CSV, JSON, record arrays, and SQLite in-process, alongside 4,574 read-only compute capabilities across statistics, finance, linear algebra, time series, option pricing, and more. Policy lives in code — the model can only narrow what you allow, never widen it. Runs on your machine, no cloud; local compute uses a one-time free `sqai login`.',
-    packageName: '@thyn-ai/sqai-ai-sdk',
-    tags: [
-      'data',
-      'analytics',
-      'structured-data',
-      'read-only',
-      'governance',
-      'provenance',
-    ],
+      'Keenable is a web search API built for AI agents. Search returns ranked pages with their text already extracted, and the fetch tool reads any URL as clean markdown. No API key is required.',
+    packageName: '@keenable/ai-sdk',
+    tags: ['search', 'web', 'extraction'],
+    apiKeyEnvName: 'KEENABLE_API_KEY',
     installCommand: {
-      pnpm: 'pnpm add @thyn-ai/sqai-ai-sdk',
-      npm: 'npm install @thyn-ai/sqai-ai-sdk',
-      yarn: 'yarn add @thyn-ai/sqai-ai-sdk',
-      bun: 'bun add @thyn-ai/sqai-ai-sdk',
+      pnpm: 'pnpm add @keenable/ai-sdk',
+      npm: 'npm install @keenable/ai-sdk',
+      yarn: 'yarn add @keenable/ai-sdk',
+      bun: 'bun add @keenable/ai-sdk',
     },
     codeExample: `import { generateText, isStepCount } from 'ai';
-import { createSQAI } from '@thyn-ai/sqai-ai-sdk';
-
-const sqai = createSQAI({
-  sources: [{ data: './sales.csv', name: 'sales' }],
-});
+import { keenableTools } from '@keenable/ai-sdk';
 
 const { text } = await generateText({
   model: 'openai/gpt-5-mini',
-  tools: sqai.tools(),
-  stopWhen: isStepCount(8),
-  prompt: 'Which region had the highest total revenue, and what explains it?',
+  prompt: 'What changed in the latest Bun release? Cite the pages you used.',
+  tools: keenableTools(),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
-    docsUrl: 'https://docs.sqai.com',
-    websiteUrl: 'https://sqai.com',
-    npmUrl: 'https://www.npmjs.com/package/@thyn-ai/sqai-ai-sdk',
+    docsUrl: 'https://docs.keenable.ai/integrations/vercel',
+    apiKeyUrl: 'https://keenable.ai/console',
+    websiteUrl: 'https://keenable.ai',
+    npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
 ];
