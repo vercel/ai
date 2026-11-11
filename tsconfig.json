@@ -256,6 +256,9 @@
       "path": "packages/zai"
     },
     {
+      "path": "packages/zirnay"
+    },
+    {
       "path": "tools/integration-tests"
     }
   ],

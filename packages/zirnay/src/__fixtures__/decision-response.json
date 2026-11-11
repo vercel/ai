@@ -1,0 +1,48 @@
+{
+  "id": "dec-zirnay-88e2c39a",
+  "object": "decision",
+  "created": 1729729050,
+  "model": "acme-corp/secops/anyjev-fast-router:v2-strict",
+  "decision": {
+    "selected_candidate_id": "BEST_CASE_GATED",
+    "confidence": 0.942,
+    "calibrated_probability": 0.938,
+    "margin_over_second": 0.881
+  },
+  "candidate_scores": [
+    {
+      "candidate_id": "BEST_CASE_GATED",
+      "raw_logit": 3.84,
+      "calibrated_prob": 0.938,
+      "utility_score": 0.912
+    },
+    {
+      "candidate_id": "COMMIT_APPROVED",
+      "raw_logit": -1.12,
+      "calibrated_prob": 0.062,
+      "utility_score": 0.041
+    }
+  ],
+  "audit_trail": {
+    "reasoning_code": "VR_GATE_ECONOMIC_BUYER_UNVALIDATED",
+    "explanation": "Economic Buyer confirmed uncontacted at C-level; paper process is unstarted with procurement.",
+    "citations": [
+      {
+        "source": "gong",
+        "id": "call_14",
+        "relevance": 0.96
+      }
+    ]
+  },
+  "telemetry": {
+    "latency_ms": 17.2,
+    "expected_calibration_error": 0.018,
+    "permutation_rounds": 4,
+    "data_retention": "DISABLED"
+  },
+  "usage": {
+    "input_tokens": 120,
+    "output_tokens": 15
+  }
+}
+
