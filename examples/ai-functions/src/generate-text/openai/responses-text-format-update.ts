@@ -3,7 +3,7 @@ import {
   type OpenAIResponsesSystemMessageOptions,
 } from '@ai-sdk/openai';
 import type { JSONValue } from '@ai-sdk/provider';
-import { generateText, Output, zodSchema, type ModelMessage } from 'ai';
+import { asSchema, generateText, Output, type ModelMessage } from 'ai';
 import { z } from 'zod/v4';
 import { run } from '../../lib/run';
 
@@ -33,7 +33,7 @@ run(async () => {
             type: 'json_schema',
             name: 'crate_count',
             strict: true,
-            schema: (await zodSchema(schema).jsonSchema) as Record<
+            schema: (await asSchema(schema).jsonSchema) as Record<
               string,
               JSONValue
             >,
