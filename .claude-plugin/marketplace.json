@@ -1,6 +1,6 @@
 {
   "name": "ai-sdk",
-  "description": "The AI SDK end-user agent skills for Claude Code",
+  "description": "The AI SDK end-user agent skills",
   "owner": {
     "name": "Vercel",
     "url": "https://vercel.com"
