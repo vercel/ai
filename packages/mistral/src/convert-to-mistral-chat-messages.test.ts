@@ -347,13 +347,95 @@ describe('tool calls', () => {
           ],
         },
         {
-          "content": "[{"type":"text","text":"Here is the result:"},{"type":"file","data":{"type":"data","data":"base64data"},"mediaType":"image/png"}]",
+          "content": [
+            {
+              "text": "Here is the result:",
+              "type": "text",
+            },
+            {
+              "image_url": "data:image/png;base64,base64data",
+              "type": "image_url",
+            },
+          ],
           "name": "image-tool",
           "role": "tool",
           "tool_call_id": "tool-call-id-3",
         },
       ]
     `);
+  });
+
+  it('should convert PDF content output to a document chunk', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'tool-call-id-4',
+            toolName: 'read-file',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('https://example.com/document.pdf'),
+                  },
+                  mediaType: 'application/pdf',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'tool',
+        name: 'read-file',
+        tool_call_id: 'tool-call-id-4',
+        content: [
+          {
+            type: 'document_url',
+            document_url: 'https://example.com/document.pdf',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should keep unsupported content output parts as text', () => {
+    const filePart = {
+      type: 'file' as const,
+      data: { type: 'data' as const, data: 'aGVsbG8=' },
+      mediaType: 'text/plain',
+    };
+
+    const result = convertToMistralChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'tool-call-id-5',
+            toolName: 'read-file',
+            output: { type: 'content', value: [filePart] },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'tool',
+        name: 'read-file',
+        tool_call_id: 'tool-call-id-5',
+        content: [{ type: 'text', text: JSON.stringify(filePart) }],
+      },
+    ]);
   });
 
   it('should handle error output format', () => {
