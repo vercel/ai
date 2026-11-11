@@ -3,7 +3,7 @@ import {
   zodSchema,
   createJsonErrorResponseHandler,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 
 export const zirnayDecisionResponseSchema = lazySchema(() =>
   zodSchema(

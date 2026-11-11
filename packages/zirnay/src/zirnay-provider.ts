@@ -21,7 +21,7 @@ import {
   type FetchFunction,
   type ResponseHandler,
 } from '@ai-sdk/provider-utils';
-import * as z from 'zod/v4';
+import { z } from 'zod/v4';
 import { DecisionZirnayModel } from './zirnay-decision-model';
 import type { ZirnayDecisionModelId } from './zirnay-decision-model-options';
 import {
