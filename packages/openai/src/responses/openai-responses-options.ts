@@ -434,6 +434,10 @@ export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
       reasoningEffortUpdate: z
         .enum(['low', 'medium', 'high', 'xhigh', 'max'])
         .optional(),
+      /** Tool definitions to load at this position in history. Requires empty system message content. */
+      additionalTools: z
+        .array(openaiResponsesAdditionalToolSchema())
+        .optional(),
     }),
   ),
 );
@@ -445,17 +449,9 @@ export type OpenAIResponsesSystemMessageOptions = InferSchema<
 export const openaiResponsesToolResultOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      /** Function definitions to load immediately after this ordinary tool result. */
+      /** Tool definitions to load immediately after this ordinary tool result. */
       additionalTools: z
-        .array(
-          z.strictObject({
-            type: z.literal('function'),
-            name: z.string().min(1),
-            description: z.string().optional(),
-            parameters: z.record(z.string(), z.json()),
-            strict: z.boolean().optional(),
-          }),
-        )
+        .array(openaiResponsesAdditionalToolSchema())
         .optional(),
     }),
   ),
@@ -464,3 +460,41 @@ export const openaiResponsesToolResultOptionsSchema = lazySchema(() =>
 export type OpenAIResponsesToolResultOptions = InferSchema<
   typeof openaiResponsesToolResultOptionsSchema
 >;
+
+function openaiResponsesFunctionToolDefinitionSchema() {
+  return z.strictObject({
+    type: z.literal('function'),
+    name: z.string().min(1),
+    description: z.string().optional(),
+    parameters: z.record(z.string(), z.json()),
+    strict: z.boolean().optional(),
+    defer_loading: z.boolean().optional(),
+  });
+}
+
+function openaiResponsesAdditionalToolSchema() {
+  return z.discriminatedUnion('type', [
+    openaiResponsesFunctionToolDefinitionSchema(),
+    z.strictObject({
+      type: z.literal('custom'),
+      name: z.string().min(1),
+      description: z.string().optional(),
+      format: z
+        .discriminatedUnion('type', [
+          z.strictObject({ type: z.literal('text') }),
+          z.strictObject({
+            type: z.literal('grammar'),
+            syntax: z.enum(['regex', 'lark']),
+            definition: z.string(),
+          }),
+        ])
+        .optional(),
+    }),
+    z.strictObject({
+      type: z.literal('namespace'),
+      name: z.string().min(1),
+      description: z.string(),
+      tools: z.array(openaiResponsesFunctionToolDefinitionSchema()).min(1),
+    }),
+  ]);
+}
