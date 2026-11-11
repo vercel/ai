@@ -5,7 +5,7 @@ description: Learn how to set up the Deepgram provider and check AI Gateway avai
 
 # Deepgram Provider
 
-The [Deepgram](https://deepgram.com/) provider contains language model support for the Deepgram transcription and speech generation APIs.
+The [Deepgram](https://deepgram.com/) provider contains language model support for the Deepgram transcription, speech generation, and Voice Agent APIs.
 Deepgram models are not currently available through [AI Gateway](https://vercel.com/ai-gateway/models), so the opening example uses `@ai-sdk/deepgram` directly. See [Using AI Gateway](#using-ai-gateway) below for supported alternatives.
 
 ```ts
@@ -577,3 +577,233 @@ The Nova streaming options above are ignored with a warning for Flux models,
 and the Flux options for Nova models. Flux does not report an audio duration
 or usage, so `result.durationInSeconds` is the duration of the audio that was
 sent. Flux models cannot be used with `transcribe`.
+
+## Realtime Voice Agent
+
+<Note type="warning">Realtime is an experimental feature.</Note>
+
+`deepgram.experimental_realtime()` connects to Deepgram's
+[Voice Agent API](https://developers.deepgram.com/docs/voice-agent): a single
+WebSocket that takes audio in and returns audio out, with Deepgram running
+speech-to-text, an LLM, and text-to-speech in between.
+
+```ts
+import { deepgram } from '@ai-sdk/deepgram';
+
+const model = deepgram.experimental_realtime('voice-agent');
+```
+
+The model ID is `voice-agent`. What runs inside the agent is chosen per
+session: the LLM with the `think` provider option, the voice with `voice`, and
+the speech-to-text model with `inputAudioTranscription.model`. Listening and
+speaking default to Flux.
+
+### Server-Owned Connections
+
+The model works where your code owns the WebSocket, as described in
+[Server-owned connections](/docs/ai-sdk-core/realtime#server-owned-connections).
+The agent sends its audio as binary frames. Pass those frames to the parser as
+received, and pass text frames as parsed JSON:
+
+```ts
+import { deepgram } from '@ai-sdk/deepgram';
+import type { Experimental_RealtimeClientEvent as RealtimeClientEvent } from 'ai';
+import { WebSocket } from 'ws';
+
+const model = deepgram.experimental_realtime('voice-agent');
+const { url, headers, protocols } = await model.getServerWebSocketConfig();
+const socket = new WebSocket(url, protocols, { headers });
+const parse = model.createServerEventParser();
+
+async function send(event: RealtimeClientEvent) {
+  const data = await model.serializeClientEvent(event);
+  if (data == null) return; // the agent has no message for this event
+  // Audio is sent as a binary frame, everything else as JSON.
+  socket.send(data instanceof Uint8Array ? data : JSON.stringify(data));
+}
+
+socket.on('message', (data, isBinary) => {
+  const events = parse(isBinary ? data : JSON.parse(data.toString()));
+
+  for (const event of Array.isArray(events) ? events : [events]) {
+    if (event.type === 'session-created') {
+      void send({
+        type: 'session-update',
+        config: { instructions: 'You are a helpful voice assistant.' },
+      });
+    } else if (event.type === 'session-updated') {
+      // start sending microphone audio with `input-audio-append` events
+    } else if (event.type === 'audio-delta') {
+      // play the base64-encoded audio in `event.delta`
+    }
+  }
+});
+```
+
+The parser keeps track of the agent's current turn. Create one parser per
+connection with `createServerEventParser()` and give it the frames in the
+order they arrive. The returned headers contain your API key, so keep the
+connection settings on your server. A complete Node.js example is in
+[`basic.ts`](https://github.com/vercel/ai/blob/main/examples/ai-functions/src/realtime/deepgram/basic.ts).
+
+Send audio continuously, including silence, as an open microphone would; the
+provider does not send keep-alive messages. Deepgram ends a connection that
+receives no client message for about 60 seconds, reporting an `error` event
+with the code `CLIENT_MESSAGE_TIMEOUT`.
+
+<Note>
+  The browser `experimental_useRealtime` hook cannot drive this model yet. It
+  reads every incoming frame as JSON, and the agent's audio arrives as binary
+  frames. This also applies when the hook connects through a relay that forwards
+  frames unchanged.
+</Note>
+
+### Session Configuration
+
+The first `session-update` event configures the agent:
+
+```ts
+import type { DeepgramRealtimeModelOptions } from '@ai-sdk/deepgram';
+
+await send({
+  type: 'session-update',
+  config: {
+    instructions: 'You are a helpful voice assistant. Respond briefly.',
+    voice: 'flux-alexis-en',
+    inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+    outputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+    tools: [
+      {
+        type: 'function',
+        name: 'get_weather',
+        description: 'Get the current weather for a city',
+        parameters: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        },
+      },
+    ],
+    providerOptions: {
+      deepgram: {
+        think: { provider: 'open_ai', model: 'gpt-4o-mini' },
+        greeting: 'Hello! How can I help?',
+      } satisfies DeepgramRealtimeModelOptions,
+    },
+  },
+});
+```
+
+- **instructions** _string_: the system prompt for the LLM.
+- **voice** _string_: a full Deepgram voice model ID, such as the Flux voice
+  `flux-alexis-en` or the Aura voice `aura-2-thalia-en`. Deepgram uses its
+  default voice when it is omitted.
+- **tools**: functions the agent can call. A call arrives as a
+  `function-call-arguments-done` event. Return the result with a
+  `conversation-item-create` event that contains a `function-call-output`
+  item with the event's `callId` and the function `name`; the agent then
+  speaks its answer.
+- **inputAudioFormat**, **outputAudioFormat**: `audio/pcm` (16-bit
+  little-endian, default `24000` Hz), `audio/pcmu`, or `audio/pcma` (default
+  `8000` Hz). Output audio is raw, without a container.
+- **inputAudioTranscription.model** _string_: the speech-to-text model.
+  Defaults to `flux-general-en`. `inputAudioTranscription.language` is passed
+  as a language hint to `flux-general-multi` and as the language to non-Flux
+  models such as `nova-3`.
+- **turnDetection**: Flux decides when a turn ends with a model instead of a
+  silence timer. `silenceDurationMs` sets the silence that ends a turn
+  regardless of the model's confidence (limited to `500` to `60000` ms);
+  `threshold` and `prefixPaddingMs` are ignored. Set `turnDetection` to `null`
+  or `{ type: 'disabled' }` to suppress automatic end-of-turn detection, and
+  send an `input-audio-commit` event when the user's turn is complete. Both
+  need a Flux speech-to-text model: disabling turn detection with another
+  model throws an error, and for an `input-audio-commit` event Deepgram then
+  only sends a warning and the turn does not end.
+
+The following `providerOptions.deepgram` options are available:
+
+- **think** _object_
+
+  The LLM the agent thinks with: `provider` is a Deepgram think provider type
+  and `model` one of its model IDs, for example
+  `{ provider: 'anthropic', model: 'claude-haiku-4-5' }`. See Deepgram's
+  [supported LLMs](https://developers.deepgram.com/docs/voice-agent-llm-models).
+  Defaults to `{ provider: 'open_ai', model: 'gpt-4o-mini' }`.
+
+- **greeting** _string_
+
+  A message the agent speaks when the session starts.
+
+- **eotThreshold** _number_
+
+  Flux end-of-turn confidence required before the agent replies, `0.5` to `1`
+  (default `0.7`). Higher values wait longer before treating a pause as the
+  end of the user's turn.
+
+Deepgram accepts the session configuration once per connection. Later
+`session-update` events can change the `voice` or add to the `instructions`
+(Deepgram appends the text to the current prompt), one of them per event.
+Updates to any other setting throw an error; open a new connection instead.
+If Deepgram rejects an update, such as an unknown voice, it reports an `error`
+event and closes the connection.
+
+### Events
+
+The agent's turn is reported as one response:
+
+- `session-created` when the connection opens, and `session-updated` when the
+  configuration or an update has been applied.
+- `speech-started` when the user starts speaking, and
+  `input-transcription-completed` with the transcript of the user's turn.
+- `response-created`, then `audio-delta` events with the agent's audio and
+  `audio-transcript-delta` events with its text, one sentence at a time.
+- `audio-done`, `audio-transcript-done`, and `response-done` when the agent
+  has finished. If the user interrupts, the response ends with the status
+  `cancelled`.
+- `error` for Deepgram errors. Deepgram usually closes the connection after
+  an error.
+
+All other agent messages, including warnings, are passed through as `custom`
+events with the Deepgram message type in `rawType`. Deepgram reports problems
+with the agent's speech as warnings, so a response with the status `completed`
+does not guarantee that the audio matched the text. Watch for `custom` events
+with `rawType: 'Warning'`.
+
+A `conversation-item-create` event with a text message is handled as if the
+user had spoken the text. Deepgram reports it back as a user transcript, so
+it also arrives as an `input-transcription-completed` event, preceded by a
+`speech-started` event.
+
+### Short-Lived Tokens
+
+`deepgram.experimental_realtime.getToken()` requests a
+[temporary token](https://developers.deepgram.com/docs/token-based-authentication)
+from Deepgram for clients that open the agent WebSocket themselves:
+
+```ts
+const secret = await deepgram.experimental_realtime.getToken({
+  model: 'voice-agent',
+  expiresAfterSeconds: 60,
+});
+```
+
+`expiresAfterSeconds` can be `1` to `3600`; Deepgram applies its own default
+when it is omitted. Your Deepgram API key needs permission to create tokens,
+otherwise Deepgram rejects the request. Pass `secret.token` and `secret.url`
+to `model.getWebSocketConfig()` to get the WebSocket URL and the subprotocols
+that carry the token. The client has to handle the agent's binary audio
+frames as shown above.
+
+### Unsupported Features
+
+- Browser sessions with `experimental_useRealtime`.
+- Text-only output: the agent always speaks, and `outputModalities` without
+  `audio` throws an error.
+- `response-create`, `response-cancel`, `input-audio-clear`,
+  `conversation-item-truncate`, and complete audio messages. The agent
+  replies on its own after each user turn, function result, or text message,
+  so these events are ignored.
+- Changing the LLM, tools, audio formats, or turn detection during a session.
+- Usage information: no usage is reported for agent sessions.
+- Other Voice Agent settings, such as third-party speech providers, functions
+  that Deepgram calls itself, and conversation history.

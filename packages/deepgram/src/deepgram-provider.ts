@@ -1,4 +1,6 @@
 import {
+  type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   NoSuchModelError,
   type TranscriptionModelV4,
   type SpeechModelV4,
@@ -16,6 +18,8 @@ import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
 import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 import { DeepgramSpeechModel } from './deepgram-speech-model';
 import type { DeepgramSpeechModelId } from './deepgram-speech-options';
+import { DeepgramRealtimeModel } from './deepgram-realtime-model';
+import type { DeepgramRealtimeModelId } from './deepgram-realtime-model-options';
 import { VERSION } from './version';
 
 export interface DeepgramProvider extends ProviderV4 {
@@ -35,6 +39,14 @@ export interface DeepgramProvider extends ProviderV4 {
    * Creates a model for speech generation.
    */
   speech(modelId: DeepgramSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a realtime model for Deepgram's Voice Agent. The model ID is
+   * `voice-agent`; the LLM, voice, and listen model are session settings.
+   */
+  experimental_realtime: {
+    (modelId: DeepgramRealtimeModelId): DeepgramRealtimeModel;
+  } & RealtimeFactoryV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -103,6 +115,35 @@ export function createDeepgram(
       webSocket: options.webSocket,
     });
 
+  const createRealtimeModel = (modelId: DeepgramRealtimeModelId) =>
+    new DeepgramRealtimeModel(modelId, {
+      provider: `deepgram.realtime`,
+      baseURL: 'https://api.deepgram.com',
+      webSocketURL: 'wss://agent.deepgram.com/v1/agent/converse',
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const experimentalRealtimeFactory = Object.assign(
+    (modelId: DeepgramRealtimeModelId) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        const secret = await createRealtimeModel(
+          tokenOptions.model,
+        ).doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+        };
+      },
+    },
+  );
+
   const provider = function (modelId: DeepgramTranscriptionModelId) {
     return {
       transcription: createTranscriptionModel(modelId),
@@ -114,6 +155,7 @@ export function createDeepgram(
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+  provider.experimental_realtime = experimentalRealtimeFactory;
 
   // Required ProviderV4 methods that are not supported
   provider.languageModel = (modelId: string) => {
