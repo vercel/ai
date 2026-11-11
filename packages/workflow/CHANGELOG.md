@@ -1,5 +1,14 @@
 # @ai-sdk/workflow
 
+## 2.0.102
+
+### Patch Changes
+
+- efd2905: fix(workflow): End the final step's telemetry when streaming stops on a client-side tool, preserving the step span and its model call in the agent trace.
+- Updated dependencies [91a67c2]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+
 ## 2.0.101
 
 ### Patch Changes

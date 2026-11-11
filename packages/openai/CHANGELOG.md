@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.115
+
+### Patch Changes
+
+- 5a645e9: Support positioned Responses API format updates so changing structured output schemas can preserve earlier reasoning and prompt cache reuse. Add a stable request-level text format override and expose prompt cache comparison diagnostics for generation, streaming, and batch results.
+
 ## 4.0.114
 
 ### Patch Changes

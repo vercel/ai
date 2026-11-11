@@ -1,5 +1,12 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.184
+
+### Patch Changes
+
+- aa4e711: fix(harness-opencode): ignore compacted tool parts in the bridge
+  - @ai-sdk/harness@1.0.181
+
 ## 1.0.183
 
 ### Patch Changes
