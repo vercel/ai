@@ -1,4 +1,5 @@
 import {
+  APICallError,
   NoSuchModelError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type ProviderV4,
@@ -15,7 +16,10 @@ import {
   createJsonResponseHandler,
   combineHeaders,
   zodSchema,
+  extractResponseHeaders,
+  isAbortError,
   type FetchFunction,
+  type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import * as z from 'zod/v4';
 import { DecisionZirnayModel } from './zirnay-decision-model';
@@ -366,6 +370,86 @@ export function createZirnay(
     return response as Record<string, unknown>;
   };
 
+  const patchJsonToApi = async <T>({
+    url,
+    headers: requestHeaders,
+    body,
+    failedResponseHandler,
+    successfulResponseHandler,
+    abortSignal,
+    fetch: customFetch = globalThis.fetch,
+  }: {
+    url: string;
+    headers?: Record<string, string | undefined>;
+    body: unknown;
+    failedResponseHandler: ResponseHandler<APICallError>;
+    successfulResponseHandler: ResponseHandler<T>;
+    abortSignal?: AbortSignal;
+    fetch?: FetchFunction;
+  }) => {
+    try {
+      const response = await customFetch(url, {
+        method: 'PATCH',
+        headers: withUserAgentSuffix(
+          {
+            'Content-Type': 'application/json',
+            ...requestHeaders,
+          },
+          `ai-sdk-zirnay/${VERSION}`,
+        ),
+        body: JSON.stringify(body),
+        signal: abortSignal,
+      });
+
+      const responseHeaders = extractResponseHeaders(response);
+
+      if (!response.ok) {
+        let errorInformation: {
+          value: APICallError;
+          responseHeaders?: Record<string, string> | undefined;
+        };
+
+        try {
+          errorInformation = await failedResponseHandler({
+            response,
+            url,
+            requestBodyValues: body,
+          });
+        } catch (error) {
+          if (isAbortError(error)) {
+            throw error;
+          }
+          throw new APICallError({
+            message: 'Failed to process error response',
+            cause: error,
+            statusCode: response.status,
+            url,
+            responseHeaders,
+            requestBodyValues: body,
+          });
+        }
+
+        throw errorInformation.value;
+      }
+
+      return await successfulResponseHandler({
+        response,
+        url,
+        requestBodyValues: body,
+      });
+    } catch (error) {
+      if (isAbortError(error) || error instanceof APICallError) {
+        throw error;
+      }
+      throw new APICallError({
+        message: error instanceof Error ? error.message : 'Fetch failed',
+        cause: error,
+        url,
+        requestBodyValues: body,
+      });
+    }
+  };
+
   const updateModelConfig = async ({
     teamSlug,
     modelSlug,
@@ -374,7 +458,7 @@ export function createZirnay(
     abortSignal,
   }: UpdateModelConfigOptions) => {
     const resolvedBaseHeaders = await resolve(headers());
-    const { value: response } = await postJsonToApi({
+    const { value: response } = await patchJsonToApi({
       url: `${baseURL}/teams/${teamSlug}/models/${modelSlug}`,
       headers: combineHeaders(resolvedBaseHeaders, requestHeaders),
       body: config,

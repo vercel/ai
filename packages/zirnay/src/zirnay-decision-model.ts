@@ -197,6 +197,10 @@ export class DecisionZirnayModel implements DecisionModelV4 {
     ) => {
       let decisionType = zirnayOptions?.decisionType ?? 'categorical_choice';
       let candidates: Array<{ id: string; label?: string }>;
+      const instructions =
+        question.instructions != null
+          ? toText(question.instructions)
+          : undefined;
 
       switch (question.type) {
         case 'choice':
@@ -244,9 +248,18 @@ export class DecisionZirnayModel implements DecisionModelV4 {
           }
         : undefined;
 
+      const input =
+        instructions != null
+          ? {
+              ...inputObject,
+              instruction: instructions,
+            }
+          : inputObject;
+
       const body = {
         model: this.modelId,
-        input: inputObject,
+        input,
+        ...(instructions != null && { instructions }),
         decision_type: decisionType,
         candidates,
         ...(constraintsPayload && { constraints: constraintsPayload }),

@@ -173,6 +173,44 @@ describe('DecisionZirnayModel', () => {
     });
   });
 
+  it('preserves instructions in request body and input for choice and score questions', async () => {
+    await model.doDecide({
+      state: [{ type: 'text', text: 'Transaction at 3am' }],
+      questions: {
+        isHipaaCompliant: {
+          type: 'choice',
+          instructions: 'Evaluate HIPAA compliance',
+          criteria: { YES: 'Compliant', NO: 'Non-compliant' },
+        },
+        urgency: {
+          type: 'score',
+          instructions: 'Rate operational urgency',
+          criteria: ['Low', 'High'],
+        },
+      },
+    });
+
+    expect(server.calls).toHaveLength(2);
+
+    const hipaaCall = (await server.calls[0].requestBodyJson) as Record<
+      string,
+      unknown
+    >;
+    expect(hipaaCall.instructions).toBe('Evaluate HIPAA compliance');
+    expect((hipaaCall.input as Record<string, unknown>).instruction).toBe(
+      'Evaluate HIPAA compliance',
+    );
+
+    const urgencyCall = (await server.calls[1].requestBodyJson) as Record<
+      string,
+      unknown
+    >;
+    expect(urgencyCall.instructions).toBe('Rate operational urgency');
+    expect((urgencyCall.input as Record<string, unknown>).instruction).toBe(
+      'Rate operational urgency',
+    );
+  });
+
   it('rejects unsupported file state', async () => {
     await expect(
       model.doDecide({

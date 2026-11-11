@@ -102,7 +102,7 @@ describe('zirnayProvider', () => {
     expect(res).toEqual({ status: 'created', slug: 'laya-card-auth' });
   });
 
-  it('updates model config via updateModelConfig', async () => {
+  it('updates model config via updateModelConfig using PATCH', async () => {
     const provider = createZirnay({ apiKey: 'test-key' });
     const res = await provider.updateModelConfig({
       teamSlug: 'fraud-ops',
@@ -110,6 +110,10 @@ describe('zirnayProvider', () => {
       config: { engine_type: 'laya' },
     });
     expect(res).toEqual({ status: 'updated' });
+    const updateCall = server.calls.find(c =>
+      c.requestUrl.endsWith('/teams/fraud-ops/models/laya-card-auth'),
+    );
+    expect(updateCall?.requestMethod).toBe('PATCH');
   });
 
   it('executes direct warm decide via directDecide', async () => {
