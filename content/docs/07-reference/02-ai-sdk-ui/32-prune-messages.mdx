@@ -7,6 +7,15 @@ description: API Reference for pruneMessages.
 
 The `pruneMessages` function is used to prune or filter an array of `ModelMessage` objects. This is useful for reducing message context (to save tokens), removing intermediate reasoning, or trimming tool calls and empty messages before sending to an LLM.
 
+<Note>
+  OpenAI Responses models may drop reasoning items after edits to their
+  preceding context. Pruning earlier history can therefore increase reasoning
+  work. Also preserve empty system messages carrying positioned configuration
+  updates; `emptyMessages: 'remove'` removes them. See [preserving reasoning
+  across
+  turns](/providers/ai-sdk-providers/openai#preserving-reasoning-across-turns).
+</Note>
+
 ```ts filename="app/api/chat/route.ts"
 import {
   createUIMessageStreamResponse,

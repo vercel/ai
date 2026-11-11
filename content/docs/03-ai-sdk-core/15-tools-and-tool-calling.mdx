@@ -632,6 +632,15 @@ Use `initialMessages` when you need the original input messages and `responseMes
 
 The `pruneMessages` helper provides a built-in way to remove selected messages or message parts. You can use it inside `prepareStep` when you want a simple compaction strategy.
 
+<Note>
+  With OpenAI Responses models, editing earlier history can cause subsequent
+  reasoning to be dropped. Pruning earlier messages or tool results changes that
+  history. Prefer provider compaction when supported, and preserve positioned
+  configuration updates, including empty system messages. See [preserving
+  reasoning across
+  turns](/providers/ai-sdk-providers/openai#preserving-reasoning-across-turns).
+</Note>
+
 ```tsx
 import { generateText, pruneMessages, type ModelMessage } from 'ai';
 

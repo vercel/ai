@@ -140,12 +140,12 @@ const gatewayDecisionAnswerSchema = () =>
     z.object({
       type: z.literal('choice'),
       choice: z.string(),
-      probabilities: z.record(z.string(), z.number()).optional(),
+      probabilities: z.optional(z.record(z.string(), z.number())),
     }),
     z.object({
       type: z.literal('score'),
       score: z.number(),
-      probabilities: z.record(z.string(), z.number()).optional(),
+      probabilities: z.optional(z.record(z.string(), z.number())),
     }),
     z.object({
       type: z.literal('boolean'),
@@ -161,12 +161,12 @@ const gatewayDecisionWarningSchema = () =>
     z.object({
       type: z.literal('unsupported'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('compatibility'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('deprecated'),
@@ -183,23 +183,23 @@ const gatewayDecisionResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       answers: z.record(z.string(), gatewayDecisionAnswerSchema()),
-      model: z.string().optional(),
-      rounding: z
-        .object({
-          probabilityDecimals: z.number().optional(),
-          scoreDecimals: z.number().optional(),
-        })
-        .optional(),
-      usage: z
-        .object({
-          inputTokens: z.number().optional(),
-          outputTokens: z.number().optional(),
-        })
-        .optional(),
-      warnings: z.array(gatewayDecisionWarningSchema()).optional(),
-      providerMetadata: z
-        .record(z.string(), z.record(z.string(), z.unknown()))
-        .optional(),
+      model: z.optional(z.string()),
+      rounding: z.optional(
+        z.object({
+          probabilityDecimals: z.optional(z.number()),
+          scoreDecimals: z.optional(z.number()),
+        }),
+      ),
+      usage: z.optional(
+        z.object({
+          inputTokens: z.optional(z.number()),
+          outputTokens: z.optional(z.number()),
+        }),
+      ),
+      warnings: z.optional(z.array(gatewayDecisionWarningSchema())),
+      providerMetadata: z.optional(
+        z.record(z.string(), z.record(z.string(), z.unknown())),
+      ),
     }),
   ),
 );

@@ -33,6 +33,48 @@ To run the example locally you need to:
 5. `pnpm install` to install the required dependencies.
 6. `pnpm dev` to launch the development server.
 
+## Local shell
+
+The `/chat/openai-local-shell`, `/chat/openai-shell`, and
+`/chat/openai-shell-skills` demos each share one sandbox across local chats.
+Their API routes are available only in local
+development and reject production, Vercel
+deployments (including `vercel dev`), non-loopback Host headers, forwarded external
+clients, and cross-origin browser requests before reading messages or invoking
+the agent. Run `pnpm dev`, which binds to `127.0.0.1`, and keep the server on
+loopback. Do not expose it through a public interface or tunnel; request headers
+cannot authenticate callers.
+
+For deployed use, authenticate callers, allocate sandboxes per authorized user or
+chat, verify ownership when retrieving them, and clean them up. Tool approval
+does not establish ownership of a sandbox.
+
+Run the route regression tests with `pnpm test:local-shell`.
+
+## MCP OAuth
+
+The `/chat/mcp-with-auth` demo is available only in local development. Run
+`pnpm dev` and open `http://localhost:3000/chat/mcp-with-auth`. Send a message,
+follow **Connect your MCP account**, then return to the chat and select
+**Retry message**. The callback uses the same Next.js origin; no separate
+callback server or port is needed.
+
+An HttpOnly, host-only cookie identifies a server-issued browser session. Each
+session owns its tokens, client registration, PKCE verifier, and authorization
+state for the fixed MCP server. The SDK also validates the authorization issuer.
+Callbacks require the initiating session and matching, single-use OAuth state.
+Pending authorization expires after five minutes; sessions expire after thirty
+minutes or a server restart. Use separate browser profiles to try separate
+accounts. Tabs in the same browser profile share a session.
+
+Keep the development server on loopback. Production and Vercel deployments,
+forwarded external clients, and cross-origin chat requests are rejected. This
+in-memory browser session is a local demonstration, not an application login
+system. A deployed integration needs authenticated users and durable credential
+storage scoped to the user, MCP resource, and authorization issuer.
+
+Run the regression tests with `pnpm test:mcp-auth`.
+
 ## Code execution file downloads
 
 Anthropic code execution file downloads (including Anthropic on Microsoft) and

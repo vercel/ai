@@ -5,7 +5,8 @@ import type {
 } from '@standard-schema/spec';
 import type * as z3 from 'zod/v3';
 import { safeParseAsync } from 'zod/v4';
-import { toJSONSchema, type $ZodType } from 'zod/v4/core';
+import { config, toJSONSchema, type $ZodType } from 'zod/v4/core';
+import en from 'zod/v4/locales/en.js';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
 
@@ -66,8 +67,18 @@ export function lazySchema<SCHEMA>(
 
 export type LazySchema<SCHEMA> = () => Schema<SCHEMA>;
 
+// Compare the fields used by the adapter, rather than recursively comparing
+// Zod 3's fluent methods across installed versions. `_type` distinguishes v3.
+type Zod3Schema<SCHEMA = any> = {
+  readonly _type: SCHEMA;
+  readonly _output: SCHEMA;
+  readonly _input: any;
+  readonly _def: z3.ZodTypeDef;
+  safeParseAsync: z3.Schema<SCHEMA>['safeParseAsync'];
+};
+
 export type ZodSchema<SCHEMA = any> =
-  | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
+  | Zod3Schema<SCHEMA>
   | $ZodType<SCHEMA, any>;
 
 export type StandardSchema<SCHEMA = any> = StandardSchemaV1<unknown, SCHEMA> & {
@@ -82,13 +93,15 @@ type StandardSchemaWithJsonSchema<SCHEMA = any> = StandardSchema<SCHEMA> &
 export type FlexibleSchema<SCHEMA = any> =
   | Schema<SCHEMA>
   | LazySchema<SCHEMA>
-  | ZodSchema<SCHEMA>
-  | StandardSchema<SCHEMA>;
+  // Zod 3 implements Standard Schema. Avoid comparing its recursive fluent
+  // methods across installed Zod versions during type inference.
+  | StandardSchema<SCHEMA>
+  | $ZodType<SCHEMA, any>;
 
 export type InferSchema<SCHEMA> =
-  SCHEMA extends ZodSchema<infer T>
+  SCHEMA extends StandardSchema<infer T>
     ? T
-    : SCHEMA extends StandardSchema<infer T>
+    : SCHEMA extends ZodSchema<infer T>
       ? T
       : SCHEMA extends LazySchema<infer T>
         ? T
@@ -198,7 +211,7 @@ function hasStandardJsonSchema<OBJECT>(
 }
 
 export function zod3Schema<OBJECT>(
-  zodSchema: z3.Schema<OBJECT, z3.ZodTypeDef, any>,
+  zodSchema: Zod3Schema<OBJECT>,
   options?: {
     /**
      * Enables support for references in the schema.
@@ -215,7 +228,7 @@ export function zod3Schema<OBJECT>(
   return jsonSchema(
     // defer json schema creation to avoid unnecessary computation when only validation is needed
     () =>
-      zod3ToJsonSchema(zodSchema, {
+      zod3ToJsonSchema(zodSchema as z3.Schema<OBJECT, z3.ZodTypeDef, any>, {
         $refStrategy: useReferences ? 'root' : 'none',
       }) as JSONSchema7,
     {
@@ -241,6 +254,12 @@ export function zod4Schema<OBJECT>(
     useReferences?: boolean;
   },
 ): Schema<OBJECT> {
+  // Mini does not initialize the default locale. Preserve classic Zod's error
+  // messages while allowing a consumer-configured locale to take precedence.
+  if (!config().localeError) {
+    config(en());
+  }
+
   // default to no references (to support openapi conversion for google)
   const useReferences = options?.useReferences ?? false;
 
@@ -266,14 +285,14 @@ export function zod4Schema<OBJECT>(
 }
 
 export function isZod4Schema(
-  zodSchema: $ZodType<any, any> | z3.Schema<any, z3.ZodTypeDef, any>,
+  zodSchema: ZodSchema,
 ): zodSchema is $ZodType<any, any> {
   // https://zod.dev/library-authors?id=how-to-support-zod-3-and-zod-4-simultaneously
   return '_zod' in zodSchema;
 }
 
 export function zodSchema<OBJECT>(
-  zodSchema: $ZodType<OBJECT, any> | z3.Schema<OBJECT, z3.ZodTypeDef, any>,
+  zodSchema: ZodSchema<OBJECT>,
   options?: {
     /**
      * Enables support for references in the schema.

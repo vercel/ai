@@ -317,6 +317,129 @@ describe('GoogleJSONAccumulator', () => {
     });
   });
 
+  describe('array index bounds', () => {
+    const accumulate = (partialArgs: PartialArg[]) => {
+      const accumulator = new GoogleJSONAccumulator();
+      let text = '';
+      for (const arg of partialArgs) {
+        text += accumulator.processPartialArgs([arg]).textDelta;
+      }
+      const { finalJSON, closingDelta } = accumulator.finalize();
+      return { finalJSON, text: text + closingDelta };
+    };
+
+    it('should skip dotted indexes that leave a gap in an existing array', () => {
+      const result = accumulate([
+        { jsonPath: '$.items[0]', stringValue: 'a' },
+        { jsonPath: '$.items.3', stringValue: 'ignored' },
+        { jsonPath: '$.items[1]', stringValue: 'b' },
+      ]);
+
+      expect(result.finalJSON).toBe('{"items":["a","b"]}');
+      expect(result.text).toBe(result.finalJSON);
+    });
+
+    it('should skip dotted indexes that leave a gap in nested arrays', () => {
+      const result = accumulate([
+        { jsonPath: '$.rows[0][0]', numberValue: 1 },
+        { jsonPath: '$.rows.0.3', numberValue: 2 },
+        { jsonPath: '$.rows.3.name', stringValue: 'ignored' },
+        { jsonPath: '$.rows[0][1]', numberValue: 3 },
+      ]);
+
+      expect(result.finalJSON).toBe('{"rows":[[1,3]]}');
+      expect(result.text).toBe(result.finalJSON);
+    });
+
+    it('should skip dotted indexes that leave a gap in an empty array', () => {
+      const result = accumulate([
+        { jsonPath: '$.items[]' },
+        { jsonPath: '$.items.2' },
+        { jsonPath: '$.items[0]', numberValue: 1 },
+      ]);
+
+      expect(result.finalJSON).toBe('{"items":[1]}');
+      expect(result.text).toBe(result.finalJSON);
+    });
+
+    it('should stream contiguous dotted indexes in existing arrays', () => {
+      const result = accumulate([
+        { jsonPath: '$.rows[0][0]', stringValue: 'a', willContinue: true },
+        { jsonPath: '$.rows.0.0', stringValue: 'b' },
+        { jsonPath: '$.rows.0.1', stringValue: 'c' },
+        { jsonPath: '$.rows.1[0]', stringValue: 'd' },
+      ]);
+
+      expect(result.finalJSON).toBe('{"rows":[["ab","c"],["d"]]}');
+      expect(result.text).toBe(result.finalJSON);
+    });
+
+    it.each(['0', '3', '01', '-0', '1e0'])(
+      'should preserve dotted object key %s',
+      key => {
+        const result = accumulate([
+          { jsonPath: `$.items.${key}.name`, stringValue: 'a' },
+        ]);
+
+        expect(result.finalJSON).toBe(
+          JSON.stringify({ items: { [key]: { name: 'a' } } }),
+        );
+        expect(result.text).toBe(result.finalJSON);
+      },
+    );
+
+    it('should skip an index that does not start a new array', () => {
+      expect(accumulate([{ jsonPath: '$.items[20000000]', numberValue: 1 }]))
+        .toMatchInlineSnapshot(`
+        {
+          "finalJSON": "{}",
+          "text": "{}",
+        }
+      `);
+    });
+
+    it('should skip an index that leaves a gap in an array', () => {
+      expect(
+        accumulate([
+          { jsonPath: '$.items[0]', stringValue: 'a' },
+          { jsonPath: '$.items[5]', stringValue: 'b' },
+          { jsonPath: '$.items[1]', stringValue: 'c' },
+        ]),
+      ).toMatchInlineSnapshot(`
+        {
+          "finalJSON": "{"items":["a","c"]}",
+          "text": "{"items":["a","c"]}",
+        }
+      `);
+    });
+
+    it('should skip an index that does not start an array replacing null', () => {
+      expect(
+        accumulate([
+          { jsonPath: '$.items', nullValue: null },
+          { jsonPath: '$.items[20000000]', numberValue: 1 },
+          { jsonPath: '$.rows[0]', nullValue: null },
+          { jsonPath: '$.rows[0][3000000]', numberValue: 2 },
+        ]).finalJSON.length,
+      ).toBeLessThan(100);
+    });
+
+    it('should skip an index that leaves a gap in a nested array', () => {
+      expect(
+        accumulate([
+          { jsonPath: '$.rows[0][0]', numberValue: 1 },
+          { jsonPath: '$.rows[0][3000000]', numberValue: 2 },
+          { jsonPath: '$.rows[2000000].name', stringValue: 'x' },
+        ]),
+      ).toMatchInlineSnapshot(`
+        {
+          "finalJSON": "{"rows":[[1]]}",
+          "text": "{"rows":[[1]]}",
+        }
+      `);
+    });
+  });
+
   describe('nested paths', () => {
     it('should build nested object from dotted jsonPath', () => {
       const accumulator = new GoogleJSONAccumulator();
