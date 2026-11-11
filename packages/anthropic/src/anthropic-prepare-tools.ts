@@ -79,16 +79,30 @@ export async function prepareTools({
   toolChoice: AnthropicToolChoice | undefined;
   toolWarnings: SharedV4Warning[];
   betas: Set<string>;
+
+  /**
+   * Names of the function tools whose input schema was sent wrapped in an
+   * `input` property (see `wrap-tool-input`). Their tool calls have to be
+   * unwrapped, and wrapped again when replayed.
+   */
+  wrappedToolNames: Set<string>;
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
   const toolWarnings: SharedV4Warning[] = [];
   const betas = new Set<string>();
+  const wrappedToolNames = new Set<string>();
   const validator = cacheControlValidator || new CacheControlValidator();
 
   if (tools == null && !hasInlineTools) {
-    return { tools: undefined, toolChoice: undefined, toolWarnings, betas };
+    return {
+      tools: undefined,
+      toolChoice: undefined,
+      toolWarnings,
+      betas,
+      wrappedToolNames,
+    };
   }
 
   const anthropicTools: AnthropicTool[] = [];
@@ -123,6 +137,9 @@ export async function prepareTools({
         // Anthropic needs an object schema without top-level unions at the
         // root, so other schemas are sent nested in an `input` property:
         const wrapInput = needsToolInputWrapping(tool.inputSchema);
+        if (wrapInput) {
+          wrappedToolNames.add(tool.name);
+        }
 
         anthropicTools.push({
           name: tool.name,
@@ -495,6 +512,7 @@ export async function prepareTools({
         : undefined,
       toolWarnings,
       betas,
+      wrappedToolNames,
     };
   }
 
@@ -510,6 +528,7 @@ export async function prepareTools({
         },
         toolWarnings,
         betas,
+        wrappedToolNames,
       };
     case 'required':
       if (rejectsForcedToolUse) {
@@ -528,6 +547,7 @@ export async function prepareTools({
           },
           toolWarnings,
           betas,
+          wrappedToolNames,
         };
       }
       return {
@@ -538,6 +558,7 @@ export async function prepareTools({
         },
         toolWarnings,
         betas,
+        wrappedToolNames,
       };
     case 'none':
       return {
@@ -545,6 +566,7 @@ export async function prepareTools({
         toolChoice: { type: 'none' },
         toolWarnings,
         betas,
+        wrappedToolNames,
       };
     case 'tool':
       if (rejectsForcedToolUse) {
@@ -566,6 +588,7 @@ export async function prepareTools({
           },
           toolWarnings,
           betas,
+          wrappedToolNames,
         };
       }
       return {
@@ -577,6 +600,7 @@ export async function prepareTools({
         },
         toolWarnings,
         betas,
+        wrappedToolNames,
       };
     default: {
       const _exhaustiveCheck: never = type;

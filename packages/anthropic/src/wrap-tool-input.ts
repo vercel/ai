@@ -137,8 +137,8 @@ function rewriteReference(ref: string): string {
   }
 
   return ref.startsWith('#/') &&
-    !ref.startsWith('#/definitions') &&
-    !ref.startsWith('#/$defs')
+    !ref.startsWith('#/definitions/') &&
+    !ref.startsWith('#/$defs/')
     ? `${target}${ref.slice(1)}`
     : ref;
 }

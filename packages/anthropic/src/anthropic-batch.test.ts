@@ -492,6 +492,38 @@ describe('Anthropic batch', () => {
     expect(server.calls).toHaveLength(0);
   });
 
+  it('rejects tools with wrapped input schemas that cannot be unwrapped later', async () => {
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await expect(
+      model.doStartBatch({
+        requests: [
+          {
+            id: 'request-1',
+            ...request('Search', {
+              tools: [
+                {
+                  type: 'function',
+                  name: 'lookup',
+                  inputSchema: {
+                    anyOf: [{ type: 'string' }, { type: 'object' }],
+                  },
+                },
+              ],
+            }),
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'tools with wrapped input schemas in batches',
+      message: expect.stringContaining('lookup'),
+    });
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('allows web tools that implicitly provision code execution', async () => {
     server.urls[urls.batches].response = {
       type: 'json-value',

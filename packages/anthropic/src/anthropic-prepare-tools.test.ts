@@ -44,6 +44,7 @@ describe('prepareTools', () => {
       tool_choice: undefined,
       toolWarnings: [],
       betas: new Set(),
+      wrappedToolNames: new Set(),
     });
   });
 
@@ -59,6 +60,7 @@ describe('prepareTools', () => {
       tool_choice: undefined,
       toolWarnings: [],
       betas: new Set(),
+      wrappedToolNames: new Set(),
     });
   });
 
@@ -142,6 +144,7 @@ describe('prepareTools', () => {
             "name": "tool_with_examples",
           },
         ],
+        "wrappedToolNames": Set {},
       }
     `);
   });
@@ -182,6 +185,7 @@ describe('prepareTools', () => {
               "strict": true,
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -219,6 +223,7 @@ describe('prepareTools', () => {
               "name": "testFunction",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -261,6 +266,7 @@ describe('prepareTools', () => {
               "name": "testFunction",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -318,6 +324,7 @@ describe('prepareTools', () => {
               "strict": true,
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -357,6 +364,7 @@ describe('prepareTools', () => {
               "strict": false,
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -400,6 +408,7 @@ describe('prepareTools', () => {
                 "type": "computer_20241022",
               },
             ],
+            "wrappedToolNames": Set {},
           }
         `);
       });
@@ -442,6 +451,7 @@ describe('prepareTools', () => {
                 "type": "computer_20250124",
               },
             ],
+            "wrappedToolNames": Set {},
           }
         `);
       });
@@ -485,6 +495,7 @@ describe('prepareTools', () => {
                 "type": "computer_20251124",
               },
             ],
+            "wrappedToolNames": Set {},
           }
         `);
       });
@@ -527,6 +538,7 @@ describe('prepareTools', () => {
                 "type": "computer_20251124",
               },
             ],
+            "wrappedToolNames": Set {},
           }
         `);
       });
@@ -569,6 +581,7 @@ describe('prepareTools', () => {
                 "type": "computer_20251124",
               },
             ],
+            "wrappedToolNames": Set {},
           }
         `);
       });
@@ -603,6 +616,7 @@ describe('prepareTools', () => {
                 "type": "text_editor_20241022",
               },
             ],
+            "wrappedToolNames": Set {},
           }
         `);
       });
@@ -637,6 +651,7 @@ describe('prepareTools', () => {
               "type": "bash_20241022",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -668,6 +683,7 @@ describe('prepareTools', () => {
               "type": "text_editor_20250728",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -699,6 +715,7 @@ describe('prepareTools', () => {
               "type": "text_editor_20250728",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -742,6 +759,7 @@ describe('prepareTools', () => {
               },
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -787,6 +805,7 @@ describe('prepareTools', () => {
               },
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -832,6 +851,7 @@ describe('prepareTools', () => {
               },
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -879,6 +899,7 @@ describe('prepareTools', () => {
               "type": "web_fetch_20250910",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -926,6 +947,7 @@ describe('prepareTools', () => {
               "type": "web_fetch_20260209",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -975,6 +997,7 @@ describe('prepareTools', () => {
               "use_cache": false,
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -1005,6 +1028,7 @@ describe('prepareTools', () => {
               "type": "tool_search_tool_regex_20251119",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -1035,6 +1059,7 @@ describe('prepareTools', () => {
               "type": "code_execution_20260120",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -1065,6 +1090,7 @@ describe('prepareTools', () => {
               "type": "tool_search_tool_bm25_20251119",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -1100,6 +1126,7 @@ describe('prepareTools', () => {
               "type": "advisor_20260301",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -1144,6 +1171,7 @@ describe('prepareTools', () => {
               "type": "advisor_20260301",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -1233,6 +1261,7 @@ describe('prepareTools', () => {
               "name": "testFunction",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -1274,6 +1303,7 @@ describe('prepareTools', () => {
               "name": "testFunction",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -1347,6 +1377,7 @@ describe('prepareTools', () => {
               "name": "query_database",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -1449,6 +1480,7 @@ describe('prepareTools', () => {
               "name": "query_database",
             },
           ],
+          "wrappedToolNames": Set {},
         }
       `);
     });
@@ -2093,6 +2125,7 @@ describe('computer_toolset_20260801', () => {
             "type": "computer_toolset_20260801",
           },
         ],
+        "wrappedToolNames": Set {},
       }
     `);
   });

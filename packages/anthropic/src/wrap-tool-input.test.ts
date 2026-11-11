@@ -1,4 +1,5 @@
 import type {
+  JSONObject,
   JSONSchema7,
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
@@ -107,6 +108,26 @@ describe('wrapToolInputSchema', () => {
             { type: 'string' },
             { type: 'array', items: { $ref: '#/properties/input' } },
             { $ref: '#/properties/input/anyOf/0' },
+          ],
+        },
+      },
+    });
+  });
+});
+
+describe('wrapToolInputSchema references', () => {
+  it('only keeps references into the definitions and $defs maps', () => {
+    expect(
+      wrapToolInputSchema({
+        anyOf: [{ $ref: '#/definitionsX/a' }, { $ref: '#/definitions/a' }],
+        definitions: { a: { type: 'string' } },
+      } as JSONSchema7),
+    ).toMatchObject({
+      properties: {
+        input: {
+          anyOf: [
+            { $ref: '#/properties/input/definitionsX/a' },
+            { $ref: '#/definitions/a' },
           ],
         },
       },
@@ -398,6 +419,166 @@ describe('wrapped tool inputs in the language model', () => {
 
     const body = await server.calls[0].requestBodyJson;
     expect(body.messages[1].content[0].input).toEqual({ input: '123' });
+  });
+
+  describe('tools added by value in the prompt', () => {
+    const toolCallAndResult = (toolCallId: string, input: unknown) =>
+      [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'tool-call', toolCallId, toolName: 'search', input },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId,
+              toolName: 'search',
+              output: { type: 'text', value: 'result' },
+            },
+          ],
+        },
+      ] as LanguageModelV4Prompt;
+
+    const replaceSearchTool = (
+      inputSchema: JSONSchema7,
+    ): LanguageModelV4Prompt[number] => ({
+      role: 'system',
+      content: '',
+      providerOptions: {
+        anthropic: {
+          toolChanges: [
+            {
+              type: 'tool_addition',
+              tool: {
+                type: 'function',
+                name: 'search',
+                inputSchema: inputSchema as JSONObject,
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    it('wraps calls according to the definition in effect, and unwraps according to the latest one', async () => {
+      server.urls[URL].response = {
+        type: 'json-value',
+        body: message([
+          {
+            type: 'tool_use',
+            id: 'toolu_3',
+            name: 'search',
+            input: { input: { kind: 'a', x: 'hi' } },
+          },
+        ]),
+      };
+
+      // `search` is declared as an object, then replaced by a union
+      const result = await model.doGenerate({
+        prompt: [
+          ...prompt,
+          ...toolCallAndResult('toolu_1', { q: 'x' }),
+          replaceSearchTool(UNION_SCHEMA),
+          ...toolCallAndResult('toolu_2', { kind: 'b', y: 1 }),
+        ],
+        tools: [
+          { type: 'function', name: 'search', inputSchema: OBJECT_SCHEMA },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      const toolUses = body.messages
+        .flatMap((m: { content: unknown }) => m.content)
+        .filter((c: { type: string }) => c.type === 'tool_use');
+      expect(toolUses.map((c: { input: unknown }) => c.input)).toEqual([
+        { q: 'x' },
+        { input: { kind: 'b', y: 1 } },
+      ]);
+      expect(result.content).toMatchObject([
+        { type: 'tool-call', input: '{"kind":"a","x":"hi"}' },
+      ]);
+    });
+
+    it('does not unwrap when a wrapped declared tool is replaced by an object schema', async () => {
+      server.urls[URL].response = {
+        type: 'json-value',
+        body: message([
+          {
+            type: 'tool_use',
+            id: 'toolu_3',
+            name: 'search',
+            input: { q: 'x' },
+          },
+        ]),
+      };
+
+      const result = await model.doGenerate({
+        prompt: [
+          ...prompt,
+          ...toolCallAndResult('toolu_1', { kind: 'a', x: 'hi' }),
+          replaceSearchTool(OBJECT_SCHEMA),
+          ...toolCallAndResult('toolu_2', { q: 'y' }),
+        ],
+        tools: [
+          { type: 'function', name: 'search', inputSchema: UNION_SCHEMA },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      const toolUses = body.messages
+        .flatMap((m: { content: unknown }) => m.content)
+        .filter((c: { type: string }) => c.type === 'tool_use');
+      expect(toolUses.map((c: { input: unknown }) => c.input)).toEqual([
+        { input: { kind: 'a', x: 'hi' } },
+        { q: 'y' },
+      ]);
+      expect(result.content).toMatchObject([
+        { type: 'tool-call', input: '{"q":"x"}' },
+      ]);
+    });
+  });
+
+  it('unwraps tool calls that are part of message_start in doStream', async () => {
+    server.urls[URL].response = {
+      type: 'stream-chunks',
+      chunks: [
+        {
+          type: 'message_start',
+          message: {
+            ...message([
+              {
+                type: 'tool_use',
+                id: 'toolu_9',
+                name: 'lookup',
+                input: { input: { kind: 'b', y: 2 } },
+              },
+            ]),
+          },
+        },
+        {
+          type: 'message_delta',
+          delta: { stop_reason: 'tool_use', stop_sequence: null },
+          usage: { output_tokens: 20 },
+        },
+        { type: 'message_stop' },
+      ]
+        .map(event => `data: ${JSON.stringify(event)}\n\n`)
+        .concat('data: [DONE]\n\n'),
+    };
+
+    const { stream } = await model.doStream({ prompt, tools });
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'tool-call')).toMatchObject([
+      { toolName: 'lookup', input: '{"kind":"b","y":2}' },
+    ]);
+    expect(
+      parts.filter(part => part.type === 'tool-input-delta'),
+    ).toMatchObject([{ delta: '{"kind":"b","y":2}' }]);
   });
 
   describe('JSON response tool', () => {

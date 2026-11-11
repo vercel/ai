@@ -696,27 +696,32 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     // tools whose input schema Anthropic cannot represent at the root are
     // sent wrapped, so their calls have to be unwrapped (and wrapped again
-    // when replayed). Later entries win, like for the tool name mapping:
-    const wrappedToolInputNames = getWrappedToolInputNames([
-      ...inlineTools,
+    // when replayed). Tools added by value in the prompt replace these from
+    // that point on, which the prompt conversion takes into account.
+    const declaredWrappedToolInputNames = getWrappedToolInputNames([
       ...(tools ?? []),
       ...(jsonResponseTool != null ? [jsonResponseTool] : []),
     ]);
 
-    const { prompt: messagesPrompt, betas } = await convertToAnthropicPrompt({
+    const {
+      prompt: messagesPrompt,
+      betas,
+      wrappedToolInputNames,
+    } = await convertToAnthropicPrompt({
       prompt,
       sendReasoning: anthropicOptions?.sendReasoning ?? true,
       warnings,
       cacheControlValidator,
       toolNameMapping,
       toolsetNames,
-      wrappedToolInputNames,
+      wrappedToolInputNames: declaredWrappedToolInputNames,
       convertMediaPart: config.convertMediaPart,
       convertInlineTool: async tool => {
         const {
           tools: definitions,
           toolWarnings,
           betas,
+          wrappedToolNames,
         } = await prepareTools({
           tools: [tool],
           toolChoice: undefined,
@@ -732,6 +737,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           definition: definitions?.[0],
           warnings: toolWarnings,
           betas,
+          wrappedToolNames,
         };
       },
     });
@@ -3330,7 +3336,11 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       toolName: part.name,
                     });
 
-                    const inputStr = JSON.stringify(part.input ?? {});
+                    const inputStr = JSON.stringify(
+                      wrappedToolInputNames.has(part.name)
+                        ? unwrapToolInput(part.input ?? {})
+                        : (part.input ?? {}),
+                    );
                     controller.enqueue({
                       type: 'tool-input-delta',
                       id: part.id,
