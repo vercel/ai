@@ -6125,6 +6125,82 @@ describe('Chat', () => {
       expect(requests[2].messages.at(-1)).toBe('user: second');
     });
 
+    describe('when a later stop happens while waiting for the response to stop', () => {
+      // a stop waits for a pending onToolCall, which keeps the stop below
+      // running until the tool is released:
+      async function setup() {
+        const queueTransport = createQueueTransport();
+        let releaseToolCall: () => void = () => {};
+        const toolCall = new Promise<void>(resolve => {
+          releaseToolCall = resolve;
+        });
+        const chat = createQueueChat(queueTransport.transport, {
+          onToolCall: () => toolCall,
+        });
+
+        void chat.sendMessage({ text: 'first' });
+        await queueTransport.waitForRequest(1);
+        await chat.sendMessage({ text: 'second' });
+
+        const { controller } = queueTransport.requests[0];
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({
+          type: 'tool-input-available',
+          toolCallId: 'call-1',
+          toolName: 'getWeather',
+          input: {},
+        });
+        await vi.waitFor(() => expect(chat.status).toBe('streaming'));
+
+        return { ...queueTransport, chat, releaseToolCall };
+      }
+
+      it('should not send a queued message that is sent now', async () => {
+        const { chat, requests, releaseToolCall } = await setup();
+
+        const sentNow = chat.experimental_sendQueuedMessageNow(
+          chat.experimental_queuedMessages[0].id,
+        );
+        const stopped = chat.stop();
+        releaseToolCall();
+        await Promise.all([sentNow, stopped]);
+
+        expect(requests).toHaveLength(1);
+        expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+          'second',
+        ]);
+        expect(conversation(chat)).toEqual(['user: first', 'assistant: ']);
+      });
+
+      it('should not regenerate', async () => {
+        const { chat, requests, releaseToolCall } = await setup();
+
+        const regenerated = chat.regenerate();
+        const stopped = chat.stop();
+        releaseToolCall();
+        await Promise.all([regenerated, stopped]);
+
+        expect(requests).toHaveLength(1);
+        expect(conversation(chat)).toEqual(['user: first', 'assistant: ']);
+      });
+
+      it('should not send an edited message', async () => {
+        const { chat, requests, releaseToolCall } = await setup();
+
+        const edited = chat.sendMessage({
+          parts: [{ type: 'text', text: 'edited' }],
+          messageId: chat.messages[0].id,
+        });
+        const stopped = chat.stop();
+        releaseToolCall();
+        await Promise.all([edited, stopped]);
+
+        expect(requests).toHaveLength(1);
+        expect(conversation(chat)).toEqual(['user: first', 'assistant: ']);
+      });
+    });
+
     it('should wait for a tool approval and send queued messages after the approved request', async () => {
       const { transport, requests, answer, waitForRequest } =
         createQueueTransport();

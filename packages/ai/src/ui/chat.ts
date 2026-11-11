@@ -428,18 +428,28 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       ...this.experimental_queuedMessages.filter(queued => queued.id !== id),
     ]);
 
+    // a stop that starts after this one (e.g. a replaced or disposed chat)
+    // cancels the send:
+    const stopGeneration = this.stopGeneration + 1;
     await this.stop();
-    await this.resumeQueue({ skipWaitForUser: true });
+    await this.resumeQueue({ skipWaitForUser: true, stopGeneration });
   };
 
   // the user sending a message resumes a paused queue (after a stop, an error
   // or an interruption). an answered approval that was not sent yet goes
-  // first, the queue continues when its response finishes:
+  // first, the queue continues when its response finishes. a stop that
+  // happened after the caller captured `stopGeneration` keeps the queue paused:
   private async resumeQueue({
     skipWaitForUser,
+    stopGeneration = this.stopGeneration,
   }: {
     skipWaitForUser: boolean;
+    stopGeneration?: number;
   }): Promise<void> {
+    if (stopGeneration !== this.stopGeneration) {
+      return;
+    }
+
     this.isQueuePaused = false;
 
     if (!this.isRequestInProgress() && this.hasUnsentApprovalResponse()) {
@@ -447,23 +457,28 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       return;
     }
 
-    await this.settleQueue({ skipWaitForUser });
+    await this.settleQueue({ skipWaitForUser, stopGeneration });
   }
 
   // editing a message or regenerating rewrites the history that the queued
   // messages were sent after, so they are dropped together with the response
-  // in progress:
-  private async clearQueueForHistoryChange(): Promise<void> {
+  // in progress. returns whether a later stop (e.g. a replaced or disposed
+  // chat) happened while waiting for that response, which cancels the change:
+  private async clearQueueForHistoryChange(): Promise<boolean> {
     if (!this.queueEnabled) {
-      return;
+      return false;
     }
 
     this.queuedMessageOptions.clear();
     this.setQueuedMessages([]);
 
     if (this.isRequestInProgress()) {
+      const stopGeneration = this.stopGeneration + 1;
       await this.stop();
+      return stopGeneration !== this.stopGeneration;
     }
+
+    return false;
   }
 
   private isRequestInProgress(): boolean {
@@ -676,7 +691,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     if (message.messageId != null) {
-      await this.clearQueueForHistoryChange();
+      const isCancelled = await this.clearQueueForHistoryChange();
+      if (isCancelled) {
+        return;
+      }
 
       const messageIndex = this.state.messages.findIndex(
         m => m.id === message.messageId,
@@ -737,7 +755,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }: {
     messageId?: string;
   } & ChatRequestOptions = {}): Promise<void> => {
-    await this.clearQueueForHistoryChange();
+    const isCancelled = await this.clearQueueForHistoryChange();
+    if (isCancelled) {
+      return;
+    }
 
     const messageIndex =
       messageId == null
