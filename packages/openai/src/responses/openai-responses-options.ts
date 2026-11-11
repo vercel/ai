@@ -1,3 +1,4 @@
+import { openaiResponsesTextFormatSchema } from './openai-responses-text-format';
 import {
   lazySchema,
   zodSchema,
@@ -248,6 +249,7 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        */
       promptCacheOptions: z
         .object({
+          comparisonResponseId: z.string().optional(),
           mode: z.enum(['implicit', 'explicit']).optional(),
           ttl: z.enum(['30m', '12h']).optional(),
           prewarm: z.boolean().optional(),
@@ -354,6 +356,9 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        */
       textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
 
+      /** Keep the initial wire format stable while Output validates the current schema. */
+      textFormat: openaiResponsesTextFormatSchema().optional(),
+
       /**
        * Controls output truncation. 'auto' (default) performs truncation automatically;
        * 'disabled' turns truncation off.
@@ -416,6 +421,8 @@ export type OpenAILanguageModelResponsesOptions = InferSchema<
 export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      /** Replace the format at this position; requires empty system content. */
+      textFormatUpdate: openaiResponsesTextFormatSchema().optional(),
       /**
        * Emit a configuration update at this position in Responses history.
        * Requires empty system message content and the same supported
