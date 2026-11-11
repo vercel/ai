@@ -1,0 +1,101 @@
+---
+title: SparrowCodes
+description: Use the SparrowCodes OpenAI compatible API with the AI SDK.
+---
+
+# SparrowCodes Provider
+
+[SparrowCodes](https://sparrowcodes.com/) is a model gateway: one API key for Claude, GPT, Gemini, DeepSeek, Qwen, GLM and other models, plus `sparrow/auto`, a router that picks a low-cost or stronger model for each coding task. You can use its OpenAI-compatible Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+Install the OpenAI Compatible provider:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+Create a SparrowCodes API key on the [API keys page](https://sparrowcodes.com/dashboard/keys) and set it as a server-side environment variable:
+
+```bash
+export SPARROWCODES_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Create a SparrowCodes provider instance with `createOpenAICompatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const sparrowcodes = createOpenAICompatible({
+  name: 'sparrowcodes',
+  apiKey: process.env.SPARROWCODES_API_KEY,
+  baseURL: 'https://api.sparrowcodes.com/v1',
+  includeUsage: true,
+});
+```
+
+## Language Models
+
+Create a chat model with the `.chatModel()` factory method and a SparrowCodes model ID. Model IDs keep their vendor prefix:
+
+```ts
+const model = sparrowcodes.chatModel('anthropic/claude-sonnet-5.5');
+```
+
+Use `sparrow/auto` to let SparrowCodes pick the model for each task. The response's model ID names the model that answered.
+
+### Example
+
+Use `generateText` to generate text with the model:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const sparrowcodes = createOpenAICompatible({
+  name: 'sparrowcodes',
+  apiKey: process.env.SPARROWCODES_API_KEY,
+  baseURL: 'https://api.sparrowcodes.com/v1',
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: sparrowcodes.chatModel('sparrow/auto'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(text);
+```
+
+Use `streamText` to stream the response:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const sparrowcodes = createOpenAICompatible({
+  name: 'sparrowcodes',
+  apiKey: process.env.SPARROWCODES_API_KEY,
+  baseURL: 'https://api.sparrowcodes.com/v1',
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: sparrowcodes.chatModel('deepseek/deepseek-v4.1-flash'),
+  prompt: 'Write a haiku about routers.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Supported Models and Capabilities
+
+This integration uses SparrowCodes' OpenAI-compatible Chat Completions endpoint for text generation and tool calling. The public [models endpoint](https://api.sparrowcodes.com/v1/models) lists every model ID with its prices, context window, input types and tool support.
+
+## Resources
+
+- [SparrowCodes documentation](https://sparrowcodes.com/docs)
+- [SparrowCodes models](https://sparrowcodes.com/models)
+- [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
