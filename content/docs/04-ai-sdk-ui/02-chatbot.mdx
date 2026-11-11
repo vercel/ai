@@ -859,7 +859,7 @@ export async function POST(req: Request) {
         }
 
         if (error instanceof Error) {
-          return error.message;
+          return error.toString();
         }
 
         return JSON.stringify(error);
@@ -868,6 +868,10 @@ export async function POST(req: Request) {
   });
 }
 ```
+
+This function returns the same error text that the model receives for a failed tool call.
+If the two texts differ, the stored messages no longer match what the model received.
+See [Tool error text and message history](/docs/ai-sdk-ui/chatbot-tool-usage#tool-error-text-and-message-history).
 
 ### Usage Information
 
