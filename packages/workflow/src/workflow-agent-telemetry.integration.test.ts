@@ -144,8 +144,9 @@ describe('WorkflowAgent telemetry with global integrations', () => {
       expect(await run.returnValue).toEqual({
         stepCount: 2,
         lastTool: 'askUser',
-        // Preserve the public callback behavior on the paused-tool path.
-        stepEndCallbacks: mode === 'generate' ? 2 : 1,
+        // onStepEnd runs for the paused step in both modes
+        // (https://github.com/vercel/ai/issues/24874).
+        stepEndCallbacks: 2,
       });
 
       expect(events.filter(event => event === 'onStepEnd')).toHaveLength(2);
