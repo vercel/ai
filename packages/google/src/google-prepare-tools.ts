@@ -48,6 +48,13 @@ export function prepareTools({
       };
   toolWarnings: SharedV4Warning[];
 } {
+  // NONE only disables function calling in the Google API. Provider tools
+  // must be omitted so they cannot execute server-side. Keep function
+  // declarations for conversation history containing function calls.
+  if (toolChoice?.type === 'none') {
+    tools = tools?.filter(tool => tool.type === 'function');
+  }
+
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 

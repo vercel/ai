@@ -3,6 +3,7 @@ import {
   zodSchema,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
+import { openAITranscriptionModelOptionsShape } from '@ai-sdk/openai/internal';
 import { z } from 'zod/v4';
 import { getAzureModelEntry } from './azure-model-catalog';
 import { azureMaiTranscriptionModelOptionsShape } from './azure-mai-transcription-model-options';
@@ -16,6 +17,9 @@ export const azureTranscriptionModelOptions = lazySchema(() =>
        * MAI-Transcribe-2-Streaming, and OpenAI otherwise.
        */
       api: z.enum(['openai', 'speech', 'mai']).optional(),
+      // OpenAI API options for Azure OpenAI deployments. Listed first so the
+      // shared `language` key keeps the MAI validation.
+      ...openAITranscriptionModelOptionsShape(),
       ...azureSpeechTranscriptionModelOptionsShape(),
       ...azureMaiTranscriptionModelOptionsShape(),
     }),

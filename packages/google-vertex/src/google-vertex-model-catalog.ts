@@ -342,6 +342,7 @@ const entries: [string, VertexEntry][] = [
   ...[
     'gemini-nano-banana-2.1',
     'gemini-4-argon',
+    'gemini-4-carbon',
     'gemini-3.8-flash',
     'gemini-3.7-flash',
     'gemini-3.6-flash',
@@ -442,6 +443,13 @@ export const googleVertexModelCatalog: Readonly<Record<string, VertexEntry>> =
 
 const vertexAnthropicModels = {
   'claude-fable-5-1': {
+    image: true,
+    objectGeneration: true,
+    tools: true,
+    streaming: true,
+    computerUse: true,
+  },
+  'claude-fable-5-2': {
     image: true,
     objectGeneration: true,
     tools: true,

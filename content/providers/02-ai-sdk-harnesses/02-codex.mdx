@@ -120,10 +120,9 @@ Settings:
   2 seconds. These retries use exponential backoff and are separate from
   `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
   bridge endpoint is permanently unavailable.
-- `mintBridgeToken`: synchronous function that receives the sandbox id and
-  returns the bridge authentication token. By default, the adapter generates a
-  random 32-byte token. Custom implementations must return a suitably secret
-  token.
+- `mintBridgeToken`: deprecated and ignored. Passing it logs a warning. The
+  adapter generates a key pair for each bridge, passes only the public key into
+  the sandbox, and keeps the private key in host-side resume state.
 
 ## Built-in Tool Filtering
 
@@ -238,6 +237,10 @@ approvals still work.
 When the app-server must cold-resume a thread, Codex does not provide raw
 events for `apply_patch` and `view_image`, so those tool calls and results
 cannot be surfaced for that resumed thread.
+
+The Codex app-server cannot disable loading repository-owned configuration
+such as `.codex/config.toml`. Repository hooks still require separate per-hook
+trust before execution, so it is an acceptable limitation.
 
 ## Related
 

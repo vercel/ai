@@ -143,7 +143,6 @@ function resolveCodexRuntime({ start }: { start: StartMessage }): CodexRuntime {
       .join('\n\n'),
   };
   if (apiBaseUrl) {
-    codexConfig.preferred_auth_method = 'apikey';
     codexConfig.model_provider = 'agent_bridge_openai';
     codexConfig.model_providers = {
       agent_bridge_openai: {

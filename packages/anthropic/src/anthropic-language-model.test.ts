@@ -1,5 +1,7 @@
 import {
   APICallError,
+  InvalidArgumentError,
+  InvalidResponseDataError,
   NoSuchProviderReferenceError,
   LanguageModelV4,
   type LanguageModelV4GenerateResult,
@@ -276,6 +278,752 @@ describe('AnthropicLanguageModel', () => {
               input_schema: options.responseFormat.schema,
             },
           ]);
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
+    'MCP tools with JSON response tool (%s)',
+    method => {
+      const mcpServers = [
+        { type: 'url', name: 'default', url: 'https://default.invalid/mcp' },
+        {
+          type: 'url',
+          name: 'enabled',
+          url: 'https://enabled.invalid/mcp',
+          toolConfiguration: { enabled: true, allowedTools: ['selected'] },
+        },
+        {
+          type: 'url',
+          name: 'disabled',
+          url: 'https://disabled.invalid/mcp',
+          toolConfiguration: { enabled: false, allowedTools: ['other'] },
+        },
+        {
+          type: 'url',
+          name: 'allowlist',
+          url: 'https://allowlist.invalid/mcp',
+          toolConfiguration: { allowedTools: ['selected'] },
+        },
+      ];
+      const tools = [
+        {
+          type: 'function' as const,
+          name: 'selected',
+          inputSchema: { type: 'object' as const, properties: {} },
+        },
+        {
+          type: 'function' as const,
+          name: 'other',
+          inputSchema: { type: 'object' as const, properties: {} },
+        },
+      ];
+
+      beforeEach(() => {
+        if (method === 'generate') {
+          prepareJsonFixtureResponse('anthropic-json-tool.1');
+        } else {
+          prepareChunksFixtureResponse('anthropic-json-tool.1');
+        }
+      });
+
+      describe.each(['auto', 'jsonTool'] as const)(
+        'structured output mode %s',
+        structuredOutputMode => {
+          it.each([
+            { type: 'none' },
+            { type: 'tool', toolName: 'selected' },
+          ] as const)(
+            'should disable all MCP tools for $type tool choice',
+            async toolChoice => {
+              const options = {
+                prompt: TEST_PROMPT,
+                tools,
+                toolChoice,
+                responseFormat: {
+                  type: 'json' as const,
+                  schema: {
+                    type: 'object' as const,
+                    additionalProperties: true,
+                  },
+                },
+                providerOptions: {
+                  anthropic: { mcpServers, structuredOutputMode },
+                },
+              };
+
+              if (method === 'generate') {
+                await provider('claude-sonnet-4-5').doGenerate(options);
+              } else {
+                const result =
+                  await provider('claude-sonnet-4-5').doStream(options);
+                const chunks = await convertReadableStreamToArray(
+                  result.stream,
+                );
+                expect(chunks.some(chunk => chunk.type === 'error')).toBe(
+                  false,
+                );
+              }
+
+              const body = await server.calls[0].requestBodyJson;
+              expect(body.mcp_servers).toEqual([
+                {
+                  type: 'url',
+                  name: 'default',
+                  url: 'https://default.invalid/mcp',
+                  tool_configuration: { enabled: false },
+                },
+                {
+                  type: 'url',
+                  name: 'enabled',
+                  url: 'https://enabled.invalid/mcp',
+                  tool_configuration: {
+                    enabled: false,
+                    allowed_tools: ['selected'],
+                  },
+                },
+                {
+                  type: 'url',
+                  name: 'disabled',
+                  url: 'https://disabled.invalid/mcp',
+                  tool_configuration: {
+                    enabled: false,
+                    allowed_tools: ['other'],
+                  },
+                },
+                {
+                  type: 'url',
+                  name: 'allowlist',
+                  url: 'https://allowlist.invalid/mcp',
+                  tool_configuration: {
+                    enabled: false,
+                    allowed_tools: ['selected'],
+                  },
+                },
+              ]);
+              expect(
+                body.tools.map((tool: { name: string }) => tool.name),
+              ).toEqual(
+                toolChoice.type === 'none' ? ['json'] : ['selected', 'json'],
+              );
+              expect(body.tool_choice).toEqual({
+                type: 'any',
+                disable_parallel_tool_use: true,
+              });
+            },
+          );
+        },
+      );
+
+      it.each([undefined, { type: 'auto' }, { type: 'required' }] as const)(
+        'should preserve MCP configuration for unrestricted choice %j',
+        async toolChoice => {
+          const options = {
+            prompt: TEST_PROMPT,
+            tools,
+            toolChoice,
+            responseFormat: {
+              type: 'json' as const,
+              schema: { type: 'object' as const, additionalProperties: true },
+            },
+            providerOptions: { anthropic: { mcpServers } },
+          };
+          if (method === 'generate') {
+            await provider('claude-sonnet-4-5').doGenerate(options);
+          } else {
+            const result =
+              await provider('claude-sonnet-4-5').doStream(options);
+            await convertReadableStreamToArray(result.stream);
+          }
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.mcp_servers).toEqual([
+            {
+              type: 'url',
+              name: 'default',
+              url: 'https://default.invalid/mcp',
+            },
+            {
+              type: 'url',
+              name: 'enabled',
+              url: 'https://enabled.invalid/mcp',
+              tool_configuration: {
+                enabled: true,
+                allowed_tools: ['selected'],
+              },
+            },
+            {
+              type: 'url',
+              name: 'disabled',
+              url: 'https://disabled.invalid/mcp',
+              tool_configuration: { enabled: false, allowed_tools: ['other'] },
+            },
+            {
+              type: 'url',
+              name: 'allowlist',
+              url: 'https://allowlist.invalid/mcp',
+              tool_configuration: { allowed_tools: ['selected'] },
+            },
+          ]);
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
+    'MCP tools with named tool choice fallback (%s)',
+    method => {
+      it.each([
+        { modelId: 'claude-opus-5-5', thinking: undefined },
+        {
+          modelId: 'claude-sonnet-4-5',
+          thinking: { type: 'enabled', budgetTokens: 1024 },
+        },
+      ] as const)(
+        'should disable MCP tools for $modelId with thinking $thinking',
+        async ({ modelId, thinking }) => {
+          const options = {
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'function' as const,
+                name: 'selected',
+                inputSchema: { type: 'object' as const },
+              },
+              {
+                type: 'function' as const,
+                name: 'other',
+                inputSchema: { type: 'object' as const },
+              },
+            ],
+            toolChoice: { type: 'tool' as const, toolName: 'selected' },
+            providerOptions: {
+              anthropic: {
+                thinking,
+                mcpServers: [
+                  {
+                    type: 'url',
+                    name: 'echo',
+                    url: 'https://echo.invalid/mcp',
+                  },
+                ],
+              },
+            },
+          };
+          if (method === 'generate') {
+            prepareJsonFixtureResponse('anthropic-text');
+            await provider(modelId).doGenerate(options);
+          } else {
+            prepareChunksFixtureResponse('anthropic-text');
+            const result = await provider(modelId).doStream(options);
+            await convertReadableStreamToArray(result.stream);
+          }
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.tool_choice).toEqual({ type: 'auto' });
+          expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual(
+            ['selected'],
+          );
+          expect(body.mcp_servers).toEqual([
+            {
+              type: 'url',
+              name: 'echo',
+              url: 'https://echo.invalid/mcp',
+              tool_configuration: { enabled: false },
+            },
+          ]);
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
+    'MCP tools with provider-enforced tool choice (%s)',
+    method => {
+      describe.each([false, true])(
+        'native structured output %s',
+        useStructuredOutput => {
+          it.each([
+            { type: 'none' },
+            { type: 'tool', toolName: 'selected' },
+          ] as const)(
+            'should preserve MCP configuration for $type',
+            async toolChoice => {
+              const options = {
+                prompt: TEST_PROMPT,
+                tools: [
+                  {
+                    type: 'function' as const,
+                    name: 'selected',
+                    inputSchema: { type: 'object' as const },
+                  },
+                ],
+                toolChoice,
+                ...(useStructuredOutput && {
+                  responseFormat: {
+                    type: 'json' as const,
+                    schema: {
+                      type: 'object' as const,
+                      properties: {},
+                      additionalProperties: false,
+                    },
+                  },
+                }),
+                providerOptions: {
+                  anthropic: {
+                    mcpServers: [
+                      {
+                        type: 'url',
+                        name: 'echo',
+                        url: 'https://echo.invalid/mcp',
+                        toolConfiguration: {
+                          enabled: true,
+                          allowedTools: ['selected'],
+                        },
+                      },
+                    ],
+                  },
+                },
+              };
+              if (method === 'generate') {
+                prepareJsonFixtureResponse('anthropic-text');
+                await provider('claude-sonnet-4-5').doGenerate(options);
+              } else {
+                prepareChunksFixtureResponse('anthropic-text');
+                const result =
+                  await provider('claude-sonnet-4-5').doStream(options);
+                await convertReadableStreamToArray(result.stream);
+              }
+              const body = await server.calls[0].requestBodyJson;
+              expect(body.tool_choice).toEqual(
+                toolChoice.type === 'none'
+                  ? { type: 'none' }
+                  : { type: 'tool', name: 'selected' },
+              );
+              expect(
+                body.tools.map((tool: { name: string }) => tool.name),
+              ).toEqual(['selected']);
+              expect(body.output_config?.format?.type).toEqual(
+                useStructuredOutput ? 'json_schema' : undefined,
+              );
+              expect(body.mcp_servers).toEqual([
+                {
+                  type: 'url',
+                  name: 'echo',
+                  url: 'https://echo.invalid/mcp',
+                  tool_configuration: {
+                    enabled: true,
+                    allowed_tools: ['selected'],
+                  },
+                },
+              ]);
+            },
+          );
+        },
+      );
+    },
+  );
+
+  describe.each(['generate', 'stream'] as const)(
+    'named tool choice with inline tools (%s)',
+    method => {
+      const selectedTool = {
+        type: 'function' as const,
+        name: 'selected',
+        inputSchema: { type: 'object' as const },
+      };
+      const thinking = { type: 'enabled', budgetTokens: 1024 };
+
+      it.each([false, true])(
+        'should keep ignoring initial system tool additions with JSON tool %s',
+        async useJsonTool => {
+          prepareJsonFixtureResponse(
+            useJsonTool ? 'anthropic-json-tool.1' : 'anthropic-text',
+          );
+          const options = {
+            prompt: [
+              {
+                role: 'system',
+                content: 'Initial instructions',
+                providerOptions: {
+                  anthropic: {
+                    toolChanges: [
+                      {
+                        type: 'tool_addition',
+                        tool: { ...selectedTool, name: 'other' },
+                      },
+                    ],
+                  },
+                },
+              },
+              ...TEST_PROMPT,
+            ] satisfies LanguageModelV4Prompt,
+            tools: [selectedTool],
+            toolChoice: { type: 'tool' as const, toolName: 'selected' },
+            providerOptions: {
+              anthropic: { thinking, structuredOutputMode: 'jsonTool' },
+            },
+            ...(useJsonTool && {
+              responseFormat: {
+                type: 'json' as const,
+                schema: { type: 'object' as const, properties: {} },
+              },
+            }),
+          };
+
+          if (method === 'stream') {
+            prepareChunksFixtureResponse(
+              useJsonTool
+                ? 'anthropic-json-tool.1'
+                : 'anthropic-message-delta-input-tokens',
+            );
+          }
+          const result =
+            method === 'generate'
+              ? await provider('claude-haiku-4-5').doGenerate(options)
+              : await provider('claude-haiku-4-5').doStream(options);
+          const warnings =
+            'stream' in result
+              ? (await convertReadableStreamToArray(result.stream)).find(
+                  part => part.type === 'stream-start',
+                )?.warnings
+              : result.warnings;
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.system).toEqual([
+            { type: 'text', text: 'Initial instructions' },
+          ]);
+          expect(body.messages).toHaveLength(1);
+          expect(body.messages[0].role).toBe('user');
+          expect(warnings).toContainEqual({
+            type: 'other',
+            message:
+              'tool changes on the initial system message are not supported by Anthropic. ' +
+              'Configure the initial tool set via the tools option instead. ' +
+              'The tool changes have been ignored.',
+          });
+        },
+      );
+
+      describe.each([
+        { ...selectedTool, name: 'other' },
+        {
+          type: 'provider' as const,
+          id: 'anthropic.web_search_20250305',
+          name: 'web_search',
+          args: {},
+        },
+        {
+          type: 'provider' as const,
+          id: 'anthropic.web_fetch_20250910',
+          name: 'web_fetch',
+          args: {},
+        },
+        {
+          type: 'provider' as const,
+          id: 'anthropic.web_search_20250305',
+          name: 'selected',
+          args: {},
+        },
+      ])('$name', inlineTool => {
+        it.each([
+          { modelId: 'claude-haiku-4-5', source: 'providerOptions' },
+          { modelId: 'claude-haiku-4-5', source: 'reasoning' },
+          { modelId: 'claude-opus-5-5', source: 'model' },
+          { modelId: 'claude-haiku-4-5', source: 'inlineOnly' },
+        ])(
+          'should reject conflicting additions before sending a request for $modelId via $source',
+          async ({ modelId, source }) => {
+            prepareJsonFixtureResponse('anthropic-text');
+
+            const options = {
+              prompt: [
+                ...TEST_PROMPT,
+                {
+                  role: 'system',
+                  content: '',
+                  providerOptions: {
+                    anthropic: {
+                      toolChanges: [
+                        { type: 'tool_addition', tool: inlineTool },
+                      ],
+                    },
+                  },
+                },
+                // Also check definitions replayed from earlier turns.
+                ...(source === 'providerOptions'
+                  ? []
+                  : [
+                      {
+                        role: 'assistant' as const,
+                        content: [{ type: 'text' as const, text: 'OK.' }],
+                      },
+                      ...TEST_PROMPT,
+                    ]),
+              ] satisfies LanguageModelV4Prompt,
+              ...(source !== 'inlineOnly' && { tools: [selectedTool] }),
+              toolChoice: { type: 'tool' as const, toolName: 'selected' },
+              ...(source === 'reasoning'
+                ? { reasoning: 'low' as const }
+                : source !== 'model'
+                  ? { providerOptions: { anthropic: { thinking } } }
+                  : {}),
+            };
+
+            await expect(
+              method === 'generate'
+                ? provider(modelId).doGenerate(options)
+                : provider(modelId).doStream(options),
+            ).rejects.toThrow(InvalidArgumentError);
+            expect(server.calls).toHaveLength(0);
+          },
+        );
+      });
+
+      it.each([
+        {
+          modelId: 'claude-haiku-4-5',
+          thinking,
+          toolName: 'selected',
+          choice: 'tool',
+        },
+        {
+          modelId: 'claude-haiku-4-5',
+          thinking,
+          toolName: 'other',
+          choice: 'auto',
+        },
+        {
+          modelId: 'claude-haiku-4-5',
+          thinking,
+          toolName: 'other',
+          choice: 'required',
+        },
+        {
+          modelId: 'claude-sonnet-4-6',
+          thinking: { type: 'adaptive' },
+          toolName: 'other',
+          choice: 'tool',
+        },
+        {
+          modelId: 'claude-haiku-5-5',
+          thinking,
+          toolName: 'other',
+          choice: 'tool',
+        },
+      ] as const)(
+        'should preserve inline $toolName with $choice choice on $modelId',
+        async ({ modelId, thinking, toolName, choice }) => {
+          const options = {
+            prompt: [
+              ...TEST_PROMPT,
+              {
+                role: 'system',
+                content: '',
+                providerOptions: {
+                  anthropic: {
+                    toolChanges: [
+                      {
+                        type: 'tool_addition',
+                        tool: { ...selectedTool, name: toolName },
+                      },
+                    ],
+                  },
+                },
+              },
+            ] satisfies LanguageModelV4Prompt,
+            toolChoice:
+              choice === 'tool'
+                ? { type: 'tool' as const, toolName: 'selected' }
+                : { type: choice },
+            providerOptions: { anthropic: { thinking } },
+          };
+
+          if (method === 'generate') {
+            prepareJsonFixtureResponse('anthropic-text');
+            await provider(modelId).doGenerate(options);
+          } else {
+            prepareChunksFixtureResponse(
+              'anthropic-message-delta-input-tokens',
+            );
+            const result = await provider(modelId).doStream(options);
+            await convertReadableStreamToArray(result.stream);
+          }
+
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.tools).toBeUndefined();
+          expect(body.messages[1].content[0]).toMatchObject({
+            type: 'tool_addition',
+            tool: { type: 'tool_definition', definition: { name: toolName } },
+          });
+          expect(body.tool_choice).toEqual(
+            choice === 'tool' && modelId !== 'claude-haiku-4-5'
+              ? { type: 'tool', name: 'selected' }
+              : { type: 'auto' },
+          );
+        },
+      );
+
+      describe.each([false, true])(
+        'JSON response tool (thinking %s)',
+        useThinking => {
+          const responseFormat = {
+            type: 'json' as const,
+            schema: { type: 'object' as const, properties: {} },
+          };
+
+          it.each([
+            { choice: 'tool', providerAlias: false, reuseSelectedName: false },
+            { choice: 'none', providerAlias: false, reuseSelectedName: false },
+            { choice: 'tool', providerAlias: true, reuseSelectedName: false },
+            { choice: 'tool', providerAlias: false, reuseSelectedName: true },
+            { choice: 'tool', providerAlias: true, reuseSelectedName: true },
+          ] as const)(
+            'should reject conflicting inline tools with $choice choice, providerAlias=$providerAlias and reuseSelectedName=$reuseSelectedName before sending a request',
+            async ({ choice, providerAlias, reuseSelectedName }) => {
+              prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+              const providerTool = {
+                type: 'provider' as const,
+                id: 'anthropic.web_fetch_20250910' as const,
+                name: 'selected',
+                args: {},
+              };
+              const options = {
+                prompt: [
+                  ...TEST_PROMPT,
+                  {
+                    role: 'system',
+                    content: '',
+                    providerOptions: {
+                      anthropic: {
+                        toolChanges: [
+                          {
+                            type: 'tool_addition',
+                            tool: {
+                              ...providerTool,
+                              ...(reuseSelectedName
+                                ? { id: 'anthropic.web_search_20250305' }
+                                : {}),
+                              name: reuseSelectedName
+                                ? 'selected'
+                                : providerAlias
+                                  ? 'other'
+                                  : 'web_fetch',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ] satisfies LanguageModelV4Prompt,
+                tools: [providerAlias ? providerTool : selectedTool],
+                toolChoice:
+                  choice === 'tool'
+                    ? { type: 'tool' as const, toolName: 'selected' }
+                    : { type: choice },
+                responseFormat,
+                providerOptions: {
+                  anthropic: {
+                    structuredOutputMode: 'jsonTool',
+                    ...(useThinking && { thinking }),
+                  },
+                },
+              };
+
+              await expect(
+                method === 'generate'
+                  ? provider('claude-opus-4-8').doGenerate(options)
+                  : provider('claude-opus-4-8').doStream(options),
+              ).rejects.toThrow(InvalidArgumentError);
+              expect(server.calls).toHaveLength(0);
+            },
+          );
+
+          it.each([
+            { choice: 'tool', providerAlias: false, inlineOnly: false },
+            { choice: 'auto', providerAlias: false, inlineOnly: false },
+            { choice: 'required', providerAlias: false, inlineOnly: false },
+            { choice: 'tool', providerAlias: true, inlineOnly: false },
+            { choice: 'tool', providerAlias: false, inlineOnly: true },
+            { choice: 'tool', providerAlias: true, inlineOnly: true },
+          ] as const)(
+            'should preserve allowed inline tools with $choice choice, providerAlias=$providerAlias and inlineOnly=$inlineOnly',
+            async ({ choice, providerAlias, inlineOnly }) => {
+              const inlineTool = providerAlias
+                ? {
+                    type: 'provider' as const,
+                    id: 'anthropic.web_search_20250305' as const,
+                    name: 'selected',
+                    args: {},
+                  }
+                : {
+                    ...selectedTool,
+                    name: choice === 'tool' ? 'selected' : 'other',
+                  };
+              const options = {
+                prompt: [
+                  ...TEST_PROMPT,
+                  {
+                    role: 'system',
+                    content: '',
+                    providerOptions: {
+                      anthropic: {
+                        toolChanges: [
+                          { type: 'tool_addition', tool: inlineTool },
+                        ],
+                      },
+                    },
+                  },
+                ] satisfies LanguageModelV4Prompt,
+                tools: inlineOnly
+                  ? []
+                  : [providerAlias ? inlineTool : selectedTool],
+                toolChoice:
+                  choice === 'tool'
+                    ? { type: 'tool' as const, toolName: 'selected' }
+                    : { type: choice },
+                responseFormat,
+                providerOptions: {
+                  anthropic: {
+                    structuredOutputMode: 'jsonTool',
+                    ...(useThinking && { thinking }),
+                  },
+                },
+              };
+
+              if (method === 'generate') {
+                prepareJsonFixtureResponse('anthropic-json-tool.1');
+                await provider('claude-opus-4-8').doGenerate(options);
+              } else {
+                prepareChunksFixtureResponse('anthropic-json-tool.1');
+                const result =
+                  await provider('claude-opus-4-8').doStream(options);
+                await convertReadableStreamToArray(result.stream);
+              }
+
+              const body = await server.calls[0].requestBodyJson;
+              expect(body.tool_choice).toEqual({
+                type: useThinking ? 'auto' : 'any',
+                disable_parallel_tool_use: true,
+              });
+              expect(
+                body.tools.map((tool: { name: string }) => tool.name),
+              ).toEqual(
+                inlineOnly
+                  ? ['json']
+                  : [providerAlias ? 'web_search' : 'selected', 'json'],
+              );
+              expect(body.messages[1].content[0]).toMatchObject({
+                type: 'tool_addition',
+                tool: {
+                  type: 'tool_definition',
+                  definition: {
+                    name: providerAlias ? 'web_search' : inlineTool.name,
+                  },
+                },
+              });
+            },
+          );
         },
       );
     },
@@ -12996,6 +13744,90 @@ describe('AnthropicLanguageModel', () => {
     });
   });
 
+  describe('legacy custom provider options names', () => {
+    function createGoogleVertexNamedModel() {
+      return createAnthropic({
+        apiKey: 'test-api-key',
+        name: 'googleVertex',
+        generateId: mockId({ prefix: 'id' }),
+      })('claude-3-haiku-20240307');
+    }
+
+    function prepareResponse() {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_legacy_test',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello, World!' }],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 10, output_tokens: 20 },
+        },
+      };
+    }
+
+    const tools = [
+      {
+        type: 'function' as const,
+        name: 'testTool',
+        inputSchema: { type: 'object' as const, properties: {} },
+      },
+    ];
+
+    it('reads the legacy "vertex" key when "googleVertex" is absent', async () => {
+      prepareResponse();
+
+      const result = await createGoogleVertexNamedModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          vertex: { disableParallelToolUse: true },
+        },
+        tools,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+      });
+      expect(Object.keys(result.providerMetadata ?? {})).toStrictEqual([
+        'anthropic',
+      ]);
+    });
+
+    it('ignores the legacy "vertex" key when "googleVertex" is present', async () => {
+      prepareResponse();
+
+      await createGoogleVertexNamedModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          googleVertex: { disableParallelToolUse: false },
+          vertex: { disableParallelToolUse: true },
+        },
+        tools,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.tool_choice?.disable_parallel_tool_use).not.toBe(true);
+    });
+
+    it('ignores Vertex-only keys such as labels under "vertex"', async () => {
+      prepareResponse();
+
+      await createGoogleVertexNamedModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          vertex: { labels: { team: 'ai' } },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'labels',
+      );
+    });
+  });
+
   describe('custom provider name support', () => {
     function createCustomModel(providerName: string) {
       return createAnthropic({
@@ -13294,6 +14126,24 @@ describe('getModelCapabilities', () => {
 
   it('should return correct capabilities for claude-fable-5-1', () => {
     expect(getModelCapabilities('claude-fable-5-1')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsBudgetThinking": true,
+        "rejectsForcedToolUse": true,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": true,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsAdaptiveThinking": true,
+        "supportsBetweenToolsThinking": false,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-fable-5-2', () => {
+    expect(getModelCapabilities('claude-fable-5-2')).toMatchInlineSnapshot(`
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
@@ -14610,18 +15460,44 @@ describe('claude-opus-5-5 specific behavior', () => {
     `);
   });
 
-  it('should use auto tool choice for claude-fable-5-1 when tool choice is "required"', async () => {
+  it.each(['claude-fable-5-1', 'claude-fable-5-2'])(
+    'should use auto tool choice for %s when tool choice is "required"',
+    async modelId => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await provider(modelId).doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [TEST_TOOL],
+        toolChoice: { type: 'required' },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+      expect(result.warnings).toHaveLength(1);
+    },
+  );
+
+  it('should remove disabled thinking for claude-fable-5-2 and warn', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
-    const result = await provider('claude-fable-5-1').doGenerate({
+    const result = await provider('claude-fable-5-2').doGenerate({
       prompt: TEST_PROMPT,
-      tools: [TEST_TOOL],
-      toolChoice: { type: 'required' },
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'xhigh',
+        } satisfies AnthropicLanguageModelOptions,
+      },
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+    expect(requestBody.thinking).toBeUndefined();
+    expect(requestBody.max_tokens).toBe(128000);
+    expect(requestBody.output_config).toEqual({ effort: 'xhigh' });
     expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({
+      feature: 'providerOptions.anthropic.thinking',
+    });
   });
 
   it('should still send forced tool choice for claude-opus-5', async () => {
@@ -15103,6 +15979,226 @@ describe('computer toolset', () => {
     args: {},
   };
 
+  function prepareMemberResponse({
+    streaming,
+    memberName = 'screenshot',
+    toolsetName = 'computer',
+    input = {},
+    partialJson = JSON.stringify(input),
+  }: {
+    streaming: boolean;
+    memberName?: string;
+    toolsetName?: string;
+    input?: Record<string, unknown>;
+    partialJson?: string;
+  }) {
+    const member = {
+      type: 'tool_use',
+      id: 'toolu_member',
+      name: memberName,
+      toolset_name: toolsetName,
+      input: streaming ? {} : input,
+    };
+    const message = {
+      id: 'msg_toolset',
+      type: 'message',
+      role: 'assistant',
+      content: streaming ? [] : [member],
+      model: 'claude-opus-5-5',
+      stop_reason: streaming ? null : 'tool_use',
+      stop_sequence: null,
+      usage: { input_tokens: 4, output_tokens: 30 },
+    };
+
+    server.urls['https://api.anthropic.com/v1/messages'].response = streaming
+      ? {
+          type: 'stream-chunks',
+          chunks: [
+            { type: 'message_start', message },
+            { type: 'content_block_start', index: 0, content_block: member },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: { type: 'input_json_delta', partial_json: partialJson },
+            },
+            { type: 'content_block_stop', index: 0 },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'tool_use', stop_sequence: null },
+              usage: { output_tokens: 30 },
+            },
+            { type: 'message_stop' },
+          ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        }
+      : { type: 'json-value', body: message };
+  }
+
+  it.each([false, true])(
+    'should preserve the returned member action (streaming: %s)',
+    async streaming => {
+      prepareMemberResponse({
+        streaming,
+        input: { action: 'wait', duration: 0 },
+      });
+      const options = {
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            ...computerToolset,
+            args: { configs: { wait: { enabled: false } } },
+          },
+        ],
+      };
+      const parts = streaming
+        ? await convertReadableStreamToArray(
+            (await provider('claude-opus-5-5').doStream(options)).stream,
+          )
+        : (await provider('claude-opus-5-5').doGenerate(options)).content;
+      const calls = parts.filter(part => part.type === 'tool-call');
+
+      expect(calls).toHaveLength(1);
+      expect(JSON.parse(calls[0].input)).toEqual({
+        action: 'screenshot',
+        duration: 0,
+      });
+      if (streaming) {
+        expect(parts.filter(part => part.type === 'tool-input-delta')).toEqual([
+          expect.objectContaining({ delta: calls[0].input }),
+        ]);
+      }
+    },
+  );
+
+  it.each(
+    [false, true].flatMap(streaming =>
+      ['disabled', 'unknown member', 'unknown toolset', 'undeclared'].map(
+        scenario => ({ streaming, scenario }),
+      ),
+    ),
+  )(
+    'should reject $scenario members (streaming: $streaming)',
+    async ({ streaming, scenario }) => {
+      prepareMemberResponse({
+        streaming,
+        memberName: scenario === 'unknown member' ? 'unknown' : 'screenshot',
+        toolsetName: scenario === 'unknown toolset' ? 'other' : 'computer',
+      });
+      const options = {
+        prompt: TEST_PROMPT,
+        tools:
+          scenario === 'undeclared'
+            ? []
+            : [
+                {
+                  ...computerToolset,
+                  args: {
+                    configs: {
+                      screenshot: { enabled: scenario !== 'disabled' },
+                    },
+                  },
+                },
+              ],
+      };
+
+      if (streaming) {
+        const { stream } = await provider('claude-opus-5-5').doStream(options);
+        const parts: LanguageModelV4StreamPart[] = [];
+        const reader = stream.getReader();
+        const consume = async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) return;
+            parts.push(value);
+          }
+        };
+        await expect(consume()).rejects.toBeInstanceOf(
+          InvalidResponseDataError,
+        );
+        expect(parts.some(part => part.type.startsWith('tool-'))).toBe(false);
+      } else {
+        await expect(
+          provider('claude-opus-5-5').doGenerate(options),
+        ).rejects.toBeInstanceOf(InvalidResponseDataError);
+      }
+    },
+  );
+
+  it.each(['{', 'null', '[]', '"text"', '1'])(
+    'should reject invalid streamed member input (%s)',
+    async partialJson => {
+      prepareMemberResponse({ streaming: true, partialJson });
+      const { stream } = await provider('claude-opus-5-5').doStream({
+        prompt: TEST_PROMPT,
+        tools: [computerToolset],
+      });
+      await expect(convertReadableStreamToArray(stream)).rejects.toBeInstanceOf(
+        InvalidResponseDataError,
+      );
+    },
+  );
+
+  it.each([false, true])(
+    'should preserve custom tool names on thread continuation (streaming: %s)',
+    async streaming => {
+      prepareMemberResponse({ streaming });
+      const options = {
+        prompt: TEST_PROMPT,
+        tools: [{ ...computerToolset, name: 'desktop' }],
+        providerOptions: {
+          anthropic: {
+            thread: {
+              type: 'continue' as const,
+              previousMessageId: 'msg_previous',
+            },
+          },
+        },
+      };
+      const parts = streaming
+        ? await convertReadableStreamToArray(
+            (await provider('claude-opus-5-5').doStream(options)).stream,
+          )
+        : (await provider('claude-opus-5-5').doGenerate(options)).content;
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        expect.objectContaining({
+          toolName: 'desktop',
+          input: '{"action":"screenshot"}',
+        }),
+      ]);
+      expect((await server.calls[0].requestBodyJson).tools).toBeUndefined();
+    },
+  );
+
+  it.each([false, true])(
+    'should reject disabled members on thread continuation (streaming: %s)',
+    async streaming => {
+      prepareMemberResponse({ streaming });
+      const options = {
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            ...computerToolset,
+            args: { configs: { screenshot: { enabled: false } } },
+          },
+        ],
+        providerOptions: {
+          anthropic: {
+            thread: {
+              type: 'continue' as const,
+              previousMessageId: 'msg_previous',
+            },
+          },
+        },
+      };
+      const call = async () =>
+        streaming
+          ? convertReadableStreamToArray(
+              (await provider('claude-opus-5-5').doStream(options)).stream,
+            )
+          : provider('claude-opus-5-5').doGenerate(options);
+      await expect(call()).rejects.toBeInstanceOf(InvalidResponseDataError);
+    },
+  );
+
   it('should send the toolset definition without a name and map member calls to the computer tool', async () => {
     server.urls['https://api.anthropic.com/v1/messages'].response = {
       type: 'json-value',
@@ -15157,7 +16253,7 @@ describe('computer toolset', () => {
           "type": "text",
         },
         {
-          "input": "{"action":"left_click","coordinate":[640,60]}",
+          "input": "{"coordinate":[640,60],"action":"left_click"}",
           "providerMetadata": {
             "anthropic": {
               "toolsetName": "computer",
@@ -15168,7 +16264,7 @@ describe('computer toolset', () => {
           "type": "tool-call",
         },
         {
-          "input": "{"action":"type","text":"pictures of cats"}",
+          "input": "{"text":"pictures of cats","action":"type"}",
           "providerMetadata": {
             "anthropic": {
               "toolsetName": "computer",
@@ -15435,7 +16531,7 @@ describe('computer toolset', () => {
           "type": "tool-input-start",
         },
         {
-          "delta": "{"action":"left_click","coordinate":[640,60]}",
+          "delta": "{"coordinate":[640,60],"action":"left_click"}",
           "id": "toolu_click",
           "type": "tool-input-delta",
         },
@@ -15444,7 +16540,7 @@ describe('computer toolset', () => {
           "type": "tool-input-end",
         },
         {
-          "input": "{"action":"left_click","coordinate":[640,60]}",
+          "input": "{"coordinate":[640,60],"action":"left_click"}",
           "providerExecuted": undefined,
           "providerMetadata": {
             "anthropic": {

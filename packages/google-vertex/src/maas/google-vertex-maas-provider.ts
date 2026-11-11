@@ -64,14 +64,16 @@ export interface GoogleVertexMaasProviderSettings {
 }
 
 /**
- * Create a Google Vertex AI MaaS (Model as a Service) provider instance.
- * Uses the OpenAI-compatible Chat Completions API for partner and open models.
- *
- * @see https://cloud.google.com/vertex-ai/generative-ai/docs/maas/use-open-models
+ * Loads the base URL of the MaaS API from the settings or from the project and
+ * location. Settings are loaded on each call so environment variables are read
+ * at runtime.
  */
-export function createGoogleVertexMaas(
-  options: GoogleVertexMaasProviderSettings = {},
-): GoogleVertexMaasProvider {
+export function loadGoogleVertexMaasBaseURL(
+  options: Pick<
+    GoogleVertexMaasProviderSettings,
+    'baseURL' | 'project' | 'location'
+  >,
+): string {
   // Lazy-load settings to support loading from environment variables at runtime
   const loadLocation = () => {
     const location =
@@ -114,14 +116,23 @@ export function createGoogleVertexMaas(
     return `https://${getHost(location)}/v1/projects/${projectId}/locations/${location}/endpoints/openapi`;
   };
 
-  const loadBaseURL = () =>
-    withoutTrailingSlash(options.baseURL ?? '') || constructBaseURL();
+  return withoutTrailingSlash(options.baseURL ?? '') || constructBaseURL();
+}
 
+/**
+ * Create a Google Vertex AI MaaS (Model as a Service) provider instance.
+ * Uses the OpenAI-compatible Chat Completions API for partner and open models.
+ *
+ * @see https://cloud.google.com/vertex-ai/generative-ai/docs/maas/use-open-models
+ */
+export function createGoogleVertexMaas(
+  options: GoogleVertexMaasProviderSettings = {},
+): GoogleVertexMaasProvider {
   let cachedProvider: GoogleVertexMaasProvider | undefined;
   const getProvider = () =>
     (cachedProvider ??= createOpenAICompatible({
       name: 'vertex.maas',
-      baseURL: loadBaseURL(),
+      baseURL: loadGoogleVertexMaasBaseURL(options),
       fetch: options.fetch,
       transformRequestBody: transformGoogleVertexMaasRequestBody,
     }));

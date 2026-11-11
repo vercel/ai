@@ -113,6 +113,7 @@ const claudeStructuredOutputCapabilities: Readonly<
   'claude-haiku-5-5': strictToolsAndNativeOutput,
   'claude-fable-5': noStrictToolsOrNativeOutput,
   'claude-fable-5-1': noStrictToolsOrNativeOutput,
+  'claude-fable-5-2': noStrictToolsOrNativeOutput,
 };
 
 function resolveClaudeStructuredOutputCapabilities(
@@ -735,6 +736,7 @@ export const amazonBedrockModelCatalog: Readonly<
       'anthropic.claude-haiku-5-5',
       'anthropic.claude-fable-5',
       'anthropic.claude-fable-5-1',
+      'anthropic.claude-fable-5-2',
       'anthropic.claude-opus-5',
       'anthropic.claude-opus-5-5',
       'anthropic.claude-opus-4-8',
@@ -790,6 +792,7 @@ export const amazonBedrockModelCatalog: Readonly<
       'us.anthropic.claude-haiku-5-5',
       'us.anthropic.claude-fable-5',
       'us.anthropic.claude-fable-5-1',
+      'us.anthropic.claude-fable-5-2',
       'us.anthropic.claude-opus-5',
       'us.anthropic.claude-opus-5-5',
       'us.anthropic.claude-opus-4-8',
@@ -803,6 +806,7 @@ export const amazonBedrockModelCatalog: Readonly<
       'us.anthropic.claude-opus-4-1-20250805-v1:0',
       'us.anthropic.claude-haiku-4-5-20251001-v1:0',
       'global.anthropic.claude-fable-5-1',
+      'global.anthropic.claude-fable-5-2',
       'us.meta.llama3-2-11b-instruct-v1:0',
       'us.meta.llama3-2-3b-instruct-v1:0',
       'us.meta.llama3-2-90b-instruct-v1:0',
@@ -851,6 +855,7 @@ export const amazonBedrockModelCatalog: Readonly<
 /** Capabilities of the native Anthropic endpoint, distinct from Converse. */
 const nativeAnthropicModels = {
   'us.anthropic.claude-fable-5-1': { computerUse: true, reasoning: true },
+  'us.anthropic.claude-fable-5-2': { computerUse: true, reasoning: true },
   'us.anthropic.claude-sonnet-5-5': { computerUse: true, reasoning: true },
   'us.anthropic.claude-sonnet-5': { computerUse: true, reasoning: true },
   'us.anthropic.claude-haiku-5-5': { computerUse: true, reasoning: true },

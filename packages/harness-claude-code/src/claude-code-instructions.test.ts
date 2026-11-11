@@ -5,6 +5,7 @@ import type {
   HarnessV1Session,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
+import { createBridgeAuthKeyPair } from '@ai-sdk/harness/utils';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -309,7 +310,7 @@ describe('claude-code adapter — instructions transport', () => {
         data: {
           bridge: {
             port: 4319,
-            token: 'token',
+            privateKey: createBridgeAuthKeyPair().privateKey,
             lastSeenEventId: 7,
           },
         },
@@ -325,7 +326,7 @@ describe('claude-code adapter — instructions transport', () => {
         data: {
           bridge: {
             port: 4319,
-            token: 'token',
+            privateKey: createBridgeAuthKeyPair().privateKey,
             lastSeenEventId: 7,
           },
         },

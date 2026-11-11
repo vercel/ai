@@ -155,6 +155,46 @@ describe('API routing', () => {
     ]);
   });
 
+  it('accepts OpenAI options under the azure key on the OpenAI API', async () => {
+    const { provider, request } = setup();
+    const result = await provider.transcription('whisper-1').doGenerate({
+      ...input,
+      providerOptions: { azure: { language: 'en', prompt: 'Names' } },
+    });
+    expect(request().body.get('language')).toBe('en');
+    expect(request().body.get('prompt')).toBe('Names');
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('prefers azure over openai for the same OpenAI option', async () => {
+    const { provider, request } = setup();
+    await provider.transcription('whisper-1').doGenerate({
+      ...input,
+      providerOptions: {
+        openai: { language: 'de', prompt: 'Names' },
+        azure: { language: 'en' },
+      },
+    });
+    expect(request().body.get('language')).toBe('en');
+    expect(request().body.get('prompt')).toBe('Names');
+  });
+
+  it('warns about OpenAI-only options on the Speech API', async () => {
+    const { provider, request } = setup();
+    const result = await provider.transcription('mai-transcribe-2').doGenerate({
+      ...input,
+      providerOptions: { azure: { prompt: 'Names' } },
+    });
+    expect(request().url).toContain('/speechtotext/');
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'providerOptions.azure.prompt',
+        details: 'This option requires the OpenAI transcription API.',
+      },
+    ]);
+  });
+
   it.each([
     { api: 'invalid' },
     { timestamps: 'invalid' },

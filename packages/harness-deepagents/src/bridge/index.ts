@@ -48,6 +48,7 @@ import {
   saveMemorySaver,
 } from './persistent-memory-saver';
 import { createBuiltinToolFilteringMiddleware } from './tool-filtering';
+import { createDeepAgentsRepositoryResourceMiddlewares } from './repository-resources';
 
 const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 procEnv.PATH = [
@@ -156,10 +157,13 @@ function createModelMiddleware() {
 
 const args = parseArgs(argv.slice(2));
 const workdir = args.workdir;
+const homeDir = args.homeDir;
 const bridgeStateDir = args.bridgeStateDir;
-if (!workdir || !bridgeStateDir) {
+if (!workdir || !homeDir || !bridgeStateDir) {
   // eslint-disable-next-line no-console
-  console.error('deepagents bridge: missing --workdir / --bridge-state-dir');
+  console.error(
+    'deepagents bridge: missing --workdir / --home-dir / --bridge-state-dir',
+  );
   process.exit(1);
 }
 const conversationCheckpointPath = `${bridgeStateDir}/conversation.checkpoint`;
@@ -331,6 +335,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       },
     );
     const middleware = [
+      ...Object.values(
+        createDeepAgentsRepositoryResourceMiddlewares({
+          workDir: workdir,
+          homeDir,
+          skillsPaths: start.skillsPaths,
+        }),
+      ),
       createMcpToolErrorMiddleware({
         mcpToolNames: () => mcpToolNames,
         abortSignal: () => currentTurn?.abortSignal,
@@ -356,8 +367,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       systemPrompt: start.instructions
         ? { suffix: start.instructions }
         : undefined,
-      // Native skills loaded from the source dirs ($HOME-materialized + <workDir> for repo-provided skills).
-      ...(start.skillsPaths?.length ? { skills: start.skillsPaths } : {}),
       ...(middleware.length > 0 ? { middleware } : {}),
       // Gate built-in tools behind HITL approval when the permission mode requires it.
       ...(interruptOn ? { interruptOn } : {}),

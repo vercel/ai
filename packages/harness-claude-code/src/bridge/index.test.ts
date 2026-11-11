@@ -507,6 +507,31 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).not.toHaveProperty('env');
   });
 
+  test.each(['allow-all', 'allow-reads'])(
+    'loads only user settings on initial and subsequent queries under %s',
+    async permissionMode => {
+      state.start = { ...state.start, permissionMode };
+      state.additionalTurns = [{ start: state.start, firstTurn: false }];
+
+      await import('./index');
+
+      expect(state.queryArgs).toHaveLength(2);
+      for (const { options } of state.queryArgs) {
+        expect({
+          settingSources: options.settingSources,
+          cwd: options.cwd,
+        }).toMatchInlineSnapshot(`
+          {
+            "cwd": "/tmp/harness-claude-code-test/work",
+            "settingSources": [
+              "user",
+            ],
+          }
+        `);
+      }
+    },
+  );
+
   test('passes the configured effort to the Agent SDK', async () => {
     state.start = { ...state.start, effort: 'max' };
 
@@ -1843,6 +1868,136 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  describe('classifier-based permissions', () => {
+    type CanUseTool = (
+      name: string,
+      input: Record<string, unknown>,
+      options: { toolUseID: string },
+    ) => Promise<unknown>;
+    type Hooks = {
+      PreToolUse: Array<{ matcher?: string; hooks: unknown[] }>;
+    };
+
+    test.each(['allow-reads', 'allow-edits'])(
+      'uses auto instead of ask rules and approval deferral for %s',
+      async permissionMode => {
+        state.start = { ...state.start, permissionMode, autoMode: true };
+        await import('./index');
+
+        const options = state.queryArgs[0]!.options;
+        expect(options).toMatchObject({
+          permissionMode: 'auto',
+          allowDangerouslySkipPermissions: false,
+          allowedTools: ['mcp__harness-tools__*'],
+        });
+        expect(options.settings).toBeUndefined();
+        expect(
+          (options.hooks as Hooks).PreToolUse.map(hook => hook.matcher),
+        ).toEqual(['AskUserQuestion']);
+      },
+    );
+
+    test.each([
+      ['allow-reads', false, 'default'],
+      ['allow-edits', false, 'acceptEdits'],
+      ['allow-all', true, 'bypassPermissions'],
+      [undefined, true, 'bypassPermissions'],
+    ])(
+      'preserves permission mode %s when autoMode is %s',
+      async (permissionMode, autoMode, expected) => {
+        state.start = { ...state.start, permissionMode, autoMode };
+        await import('./index');
+
+        const options = state.queryArgs[0]!.options;
+        expect(options.permissionMode).toBe(expected);
+        expect(options).not.toHaveProperty('allowedTools');
+        if (expected === 'bypassPermissions') {
+          expect(options).not.toHaveProperty('canUseTool');
+        } else {
+          expect(options.settings).toMatchObject({
+            permissions: { ask: expect.arrayContaining(['Bash(*)']) },
+          });
+          expect(
+            (options.hooks as Hooks).PreToolUse[0]!.matcher,
+          ).toBeUndefined();
+        }
+      },
+    );
+
+    test('retains inactive built-in tool restrictions', async () => {
+      state.start = {
+        ...state.start,
+        permissionMode: 'allow-edits',
+        autoMode: true,
+        builtinToolFiltering: { mode: 'deny', toolNames: ['write'] },
+      };
+      await import('./index');
+
+      expect(state.queryArgs[0]!.options).toMatchObject({
+        disallowedTools: ['Write'],
+        settings: { permissions: { ask: ['Write(*)'] } },
+      });
+    });
+
+    test.each([true, false])(
+      'asks the host about escalated reads and external MCP calls and honors approved=%s',
+      async approved => {
+        state.start = {
+          ...state.start,
+          permissionMode: 'allow-reads',
+          autoMode: true,
+        };
+        const approvals = vi.fn(async () => ({
+          approved,
+          reason: 'Host decision',
+        }));
+        state.requestToolApproval = approvals;
+        await import('./index');
+
+        const canUseTool = state.queryArgs[0]!.options.canUseTool as CanUseTool;
+        for (const [name, input, id] of [
+          ['WebFetch', { url: 'https://example.com' }, 'fetch-1'],
+          [
+            'Read',
+            { file_path: '/tmp/harness-claude-code-test/work/README.md' },
+            'read-1',
+          ],
+          ['mcp__external__read', {}, 'external-1'],
+        ] as const) {
+          await expect(
+            canUseTool(name, input, { toolUseID: id }),
+          ).resolves.toEqual(
+            approved
+              ? { behavior: 'allow', updatedInput: input, toolUseID: id }
+              : { behavior: 'deny', message: 'Host decision', toolUseID: id },
+          );
+        }
+        await expect(
+          canUseTool(
+            'mcp__harness-tools__weather',
+            {},
+            { toolUseID: 'host-1' },
+          ),
+        ).resolves.toEqual({ behavior: 'allow', updatedInput: {} });
+        expect(approvals.mock.calls).toHaveLength(3);
+        expect(
+          state.emitted
+            .filter(event => event.type === 'tool-approval-request')
+            .map(event => [event.approvalId, event.toolCallId]),
+        ).toEqual([
+          ['fetch-1', 'fetch-1'],
+          ['read-1', 'read-1'],
+          ['external-1', 'external-1'],
+        ]);
+        expect(
+          state.emitted
+            .filter(event => event.type === 'tool-call')
+            .map(event => event.toolCallId),
+        ).toEqual(['fetch-1', 'read-1', 'external-1']);
+      },
+    );
+  });
+
   test('allows ListAgents without approval in allow-reads mode', async () => {
     state.start = {
       ...state.start,
@@ -2602,7 +2757,8 @@ describe('Claude Code bridge configuration', () => {
         return originalReturn(value as never);
       }) as typeof generator.return;
       state.createQuery = args => {
-        queryAbortSignal = args.options.abortSignal as AbortSignal;
+        queryAbortSignal = (args.options.abortController as AbortController)
+          .signal;
         return Object.assign(generator, { interrupt });
       };
 
@@ -2733,8 +2889,8 @@ describe('Claude Code bridge configuration', () => {
     });
     const disposed = vi.fn();
     state.createQuery = args => {
-      const abortSignal = (args.options as { abortSignal: AbortSignal })
-        .abortSignal;
+      const abortSignal = (args.options as { abortController: AbortController })
+        .abortController.signal;
       const generator = (async function* () {
         await new Promise<void>(resolve => {
           if (abortSignal.aborted) return resolve();
