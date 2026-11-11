@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 3.0.191
+
+### Patch Changes
+
+- 71955f0: Add support for the `gemini-4-carbon` model with the same capabilities as `gemini-4-argon`.
+- Updated dependencies [71955f0]
+  - @ai-sdk/google@2.0.111
+
 ## 3.0.190
 
 ### Patch Changes
