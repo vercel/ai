@@ -1,3 +1,4 @@
+import { TypeValidationError } from '@ai-sdk/provider';
 import { tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -7,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createAgentUIStream } from './create-agent-ui-stream';
+import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
 import { ToolLoopAgent } from './tool-loop-agent';
 
 const currentTool = tool({
@@ -114,6 +116,29 @@ describe('createAgentUIStream', () => {
     ).rejects.toThrowError(
       'Type validation failed for messages[0].parts[0].input',
     );
+  });
+
+  it('should reject many malformed parts without running the agent', async () => {
+    const model = createMockModel();
+    const uiMessages = [
+      {
+        id: 'user-1',
+        role: 'user',
+        parts: Array.from({ length: 2500 }, () => ({})),
+      },
+    ];
+
+    const error = await createAgentUIStreamResponse({
+      agent: new ToolLoopAgent({ model }),
+      uiMessages,
+    }).catch(error => error);
+
+    expect(TypeValidationError.isInstance(error)).toBe(true);
+    // the error message contains the validated value once:
+    expect(error.message.length).toBeLessThan(
+      JSON.stringify(uiMessages).length + 1000,
+    );
+    expect(model.doStreamCalls).toHaveLength(0);
   });
 
   it('should expose unavailable terminal tools as dynamic parts to callbacks', async () => {
