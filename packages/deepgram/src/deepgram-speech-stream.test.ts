@@ -391,6 +391,45 @@ describe('Deepgram speech streaming', () => {
     expect(socket.send).toHaveBeenCalledTimes(3);
   });
 
+  it('keeps the session alive while waiting for the first text part', async () => {
+    vi.useFakeTimers();
+    let textController!: ReadableStreamDefaultController<SpeechModelV4StreamTextPart>;
+    const result = await model().doStream({
+      text: new ReadableStream<SpeechModelV4StreamTextPart>({
+        start(controller) {
+          textController = controller;
+        },
+      }),
+      voice: 'haley',
+    });
+    const parts = convertReadableStreamToArray(result.stream);
+    const socket = MockWebSocket.instances[0];
+    socket.open();
+
+    // A slow text producer (e.g. a reasoning model) sends nothing for longer
+    // than the server's 60 s inactivity timeout.
+    await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
+    expect(socket.sentMessages()).toEqual([
+      { type: 'Configure' },
+      { type: 'Configure' },
+    ]);
+
+    textController.enqueue({ type: 'text', text: 'Hello' });
+    textController.close();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(socket.sentMessages().slice(2)).toEqual([
+      { type: 'Speak', text: 'Hello' },
+      { type: 'Flush' },
+      { type: 'Close' },
+    ]);
+
+    // No keepalive follows the end of the input.
+    await vi.advanceTimersByTimeAsync(KEEPALIVE_INTERVAL_MS * 2);
+    expect(socket.send).toHaveBeenCalledTimes(5);
+    socket.message(sessionMetadata);
+    await parts;
+  });
+
   it('handles an already aborted request without opening a socket', async () => {
     const controller = new AbortController();
     controller.abort(new Error('stop'));

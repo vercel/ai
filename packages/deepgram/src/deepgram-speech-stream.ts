@@ -203,12 +203,10 @@ export async function streamDeepgramSpeech(
         // The server closes a session after 60 s without a client message.
         // Native WebSockets cannot send pings, so an empty `Configure` (which
         // changes nothing) resets the timer while the text producer is idle.
-        // Every send restarts the idle clock; none follows the end of input.
-        const send = (
-          socket: WebSocketLike,
-          message: Record<string, unknown>,
-        ) => {
-          socket.send(JSON.stringify(message));
+        // The idle clock starts when the socket opens (the first text part can
+        // be slow too) and restarts on every send; none follows the end of
+        // input.
+        const scheduleKeepalive = (socket: WebSocketLike) => {
           clearTimeout(keepaliveTimer);
           if (finished || inputEnded) return;
           keepaliveTimer = setTimeout(() => {
@@ -219,6 +217,13 @@ export async function streamDeepgramSpeech(
               fail(error);
             }
           }, KEEPALIVE_INTERVAL_MS);
+        };
+        const send = (
+          socket: WebSocketLike,
+          message: Record<string, unknown>,
+        ) => {
+          socket.send(JSON.stringify(message));
+          scheduleKeepalive(socket);
         };
 
         const sendText = async (socket: WebSocketLike) => {
@@ -271,6 +276,7 @@ export async function streamDeepgramSpeech(
           onProcessingError: fail,
           onOpen(socket) {
             controller.enqueue({ type: 'stream-start', warnings });
+            scheduleKeepalive(socket);
             void sendText(socket).catch(fail);
           },
           onMessageBinary(bytes) {
