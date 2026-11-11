@@ -148,7 +148,8 @@ First things first, run the following command to install the project’s depende
 
 You will need a Postgres database to complete this tutorial. If you don't have Postgres setup on your local machine you can:
 
-- Create a free Postgres database with Vercel (recommended - see instructions below); or
+- Create a free Postgres database with Vercel (recommended - see instructions below);
+- Create a temporary [Prisma Postgres](https://www.prisma.io/postgres?utm_source=ai_sdk&utm_medium=docs&utm_campaign=ai_sdk_rag_chatbot) database from your terminal (see instructions below); or
 - Follow [this guide](https://www.prisma.io/dataguide/postgresql/setting-up-a-local-postgresql-database) to set it up locally
 
 #### Setting up Postgres with Vercel
@@ -172,6 +173,14 @@ To set up a Postgres instance on your Vercel account:
 1. You'll be redirected to your database instance
 1. In the Quick Start section, click **Show secrets**
 1. Copy the full `DATABASE_URL` environment variable
+
+#### Setting up Prisma Postgres from the terminal
+
+To create a temporary Prisma Postgres database without signing up for an account, run the following command:
+
+<Snippet text="npx create-db@latest" />
+
+Copy the connection string from the output. The database is deleted after 24 hours unless you open the claim link from the output and add the database to a Prisma account. The `pgvector` extension is available, so the migration in the next step works without changes.
 
 ### Migrate Database
 
