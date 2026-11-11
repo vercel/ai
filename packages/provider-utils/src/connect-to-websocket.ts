@@ -1,6 +1,7 @@
 import { removeUndefinedEntries } from './remove-undefined-entries';
 import {
   getWebSocketConstructor,
+  readWebSocketMessageBytes,
   readWebSocketMessageText,
   type WebSocketConstructor,
   type WebSocketLike,
@@ -30,6 +31,7 @@ export function connectToWebSocket({
   abortSignal,
   onOpen,
   onMessageText,
+  onMessageBinary,
   onProcessingError,
   onSocketError,
   onClose,
@@ -43,6 +45,11 @@ export function connectToWebSocket({
   onOpen?: (socket: WebSocketLike) => void;
   /** One decoded message. Throws and rejections go to `onProcessingError`. */
   onMessageText: (text: string) => void | PromiseLike<void>;
+  /**
+   * One binary frame (e.g. raw audio). When set, non-string frames go here
+   * instead of being decoded as text for `onMessageText`.
+   */
+  onMessageBinary?: (data: Uint8Array) => void | PromiseLike<void>;
   /** Constructor throws and message decoding/processing failures. */
   onProcessingError: (error: unknown) => void;
   onSocketError?: () => void;
@@ -104,10 +111,16 @@ export function connectToWebSocket({
   // overtake a still-decoding terminal frame.
   let tail: Promise<void> = Promise.resolve();
   socket.onmessage = event => {
-    tail = tail
-      .then(() => readWebSocketMessageText(event.data))
-      .then(text => onMessageText(text))
-      .catch(onProcessingError);
+    const data = event.data;
+    tail = (
+      onMessageBinary != null && typeof data !== 'string'
+        ? tail
+            .then(() => readWebSocketMessageBytes(data))
+            .then(bytes => onMessageBinary(bytes))
+        : tail
+            .then(() => readWebSocketMessageText(data))
+            .then(text => onMessageText(text))
+    ).catch(onProcessingError);
   };
   socket.onerror = () => {
     tail = tail.then(() => onSocketError?.()).catch(onProcessingError);

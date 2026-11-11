@@ -1,5 +1,8 @@
 import {
   InvalidArgumentError,
+  type Experimental_SpeechModelV4StreamOptions as SpeechModelV4StreamOptions,
+  type Experimental_SpeechModelV4StreamResult as SpeechModelV4StreamResult,
+  type Experimental_StreamingSpeechModelV4 as StreamingSpeechModelV4,
   type SpeechModelV4,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -15,8 +18,15 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
+import {
+  composeDeepgramSpeechModelId,
+  getIgnoredLanguageWarning,
+  getIgnoredVoiceWarning,
+  isDeepgramFluxSpeechModelId,
+} from './deepgram-speech-model-id';
 import { deepgramSpeechModelOptionsSchema } from './deepgram-speech-model-options';
 import type { DeepgramSpeechModelId } from './deepgram-speech-options';
+import { streamDeepgramSpeech } from './deepgram-speech-stream';
 
 interface DeepgramSpeechModelConfig extends DeepgramConfig {
   _internal?: {
@@ -24,12 +34,9 @@ interface DeepgramSpeechModelConfig extends DeepgramConfig {
   };
 }
 
-// Deepgram embeds voice and language in the model ID
-// (`<family>-<voice>-<language>`, e.g. `aura-2-thalia-en`). Bare family IDs
-// compose the upstream model ID from the voice and language call options.
-const VOICE_FAMILY_IDS = new Set<string>(['aura', 'aura-2']);
-
-export class DeepgramSpeechModel implements SpeechModelV4 {
+export class DeepgramSpeechModel
+  implements SpeechModelV4, StreamingSpeechModelV4
+{
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -93,25 +100,22 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
       });
     }
 
-    // Compose the upstream model ID from voice/language when a bare voice
-    // family ID is used; full voice IDs (e.g. `aura-2-thalia-en`) pass through.
-    let upstreamModelId: string = this.modelId;
-    if (VOICE_FAMILY_IDS.has(this.modelId)) {
-      const trimmedVoice = voice?.trim();
-      if (!trimmedVoice) {
-        throw new Error(
-          `Deepgram speech model "${this.modelId}" requires a \`voice\` to be set (e.g. voice: 'thalia').`,
-        );
-      }
-      if (language === 'auto') {
-        warnings.push({
-          type: 'compatibility',
-          feature: 'language',
-          details: `Deepgram TTS models do not support automatic language detection. Language "en" was used instead.`,
-        });
-      }
-      upstreamModelId = `${this.modelId}-${trimmedVoice}-${language && language !== 'auto' ? language : 'en'}`;
-    }
+    const upstreamModelId = composeDeepgramSpeechModelId({
+      modelId: this.modelId,
+      voice,
+      language,
+      warnings,
+    });
+
+    // Flux TTS (/v2/speak) accepts more output settings than Aura (/v1/speak).
+    // https://developers.deepgram.com/docs/flux-tts/batch#query-parameters
+    const isFlux = isDeepgramFluxSpeechModelId(this.modelId);
+    const linear16SampleRates = isFlux
+      ? [8000, 16000, 24000, 32000, 44100, 48000]
+      : [8000, 16000, 24000, 32000, 48000];
+    const mp3BitRates = isFlux
+      ? [8000, 16000, 24000, 32000, 40000, 48000]
+      : [32000, 48000];
 
     // Create request body
     const requestBody = {
@@ -210,7 +214,7 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
             if (!isNaN(sampleRate)) {
               if (
                 firstPart === 'linear16' &&
-                [8000, 16000, 24000, 32000, 48000].includes(sampleRate)
+                linear16SampleRates.includes(sampleRate)
               ) {
                 queryParams.sample_rate = String(sampleRate);
               } else if (
@@ -345,11 +349,11 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
 
         // Validate sample rate based on encoding
         if (encoding === 'linear16') {
-          if (![8000, 16000, 24000, 32000, 48000].includes(sampleRate)) {
+          if (!linear16SampleRates.includes(sampleRate)) {
             warnings.push({
               type: 'unsupported',
               feature: 'providerOptions',
-              details: `Encoding "linear16" only supports sample rates: 8000, 16000, 24000, 32000, 48000. Sample rate ${sampleRate} was ignored.`,
+              details: `Encoding "linear16" only supports sample rates: ${linear16SampleRates.join(', ')}. Sample rate ${sampleRate} was ignored.`,
             });
           } else {
             queryParams.sample_rate = String(sampleRate);
@@ -392,11 +396,11 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
 
         // Validate bitrate based on encoding
         if (encoding === 'mp3') {
-          if (![32000, 48000].includes(Number(bitRate))) {
+          if (!mp3BitRates.includes(Number(bitRate))) {
             warnings.push({
               type: 'unsupported',
               feature: 'providerOptions',
-              details: `Encoding "mp3" only supports bit rates: 32000, 48000. Bit rate ${bitRate} was ignored.`,
+              details: `Encoding "mp3" only supports bit rates: ${mp3BitRates.join(', ')}. Bit rate ${bitRate} was ignored.`,
             });
           } else {
             queryParams.bit_rate = String(bitRate);
@@ -435,6 +439,17 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
         }
       }
 
+      if (deepgramOptions.expressivity != null) {
+        if (isFlux) {
+          queryParams.expressivity = String(deepgramOptions.expressivity);
+        } else {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'providerOptions.deepgram.expressivity',
+            details: `Expressivity is only supported by Flux TTS models and was ignored for "${this.modelId}".`,
+          });
+        }
+      }
       if (deepgramOptions.mipOptOut != null) {
         queryParams.mip_opt_out = String(deepgramOptions.mipOptOut);
       }
@@ -447,14 +462,13 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
       }
     }
 
-    // Handle voice parameter - only relevant for full voice model IDs, where
-    // the voice is embedded in the model ID and a voice param cannot compose.
-    if (upstreamModelId === this.modelId && voice && voice !== this.modelId) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'voice',
-        details: `Deepgram TTS models embed the voice in the model ID. The voice parameter "${voice}" was ignored. Use the model ID to select a voice (e.g., "aura-2-helena-en").`,
-      });
+    const ignoredVoiceWarning = getIgnoredVoiceWarning({
+      modelId: this.modelId,
+      upstreamModelId,
+      voice,
+    });
+    if (ignoredVoiceWarning != null) {
+      warnings.push(ignoredVoiceWarning);
     }
 
     // Map speed to Deepgram's speed query parameter. Deepgram does not
@@ -463,14 +477,13 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
       queryParams.speed = String(speed);
     }
 
-    // Handle language - full voice model IDs are already language-specific;
-    // language was already consumed when composing from a voice family ID.
-    if (upstreamModelId === this.modelId && language) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'language',
-        details: `Deepgram TTS models are language-specific via the model ID. Language parameter "${language}" was ignored. Select a model with the appropriate language suffix (e.g., "-en" for English).`,
-      });
+    const ignoredLanguageWarning = getIgnoredLanguageWarning({
+      modelId: this.modelId,
+      upstreamModelId,
+      language,
+    });
+    if (ignoredLanguageWarning != null) {
+      warnings.push(ignoredLanguageWarning);
     }
 
     // Handle instructions - not supported in Deepgram REST API
@@ -489,6 +502,18 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
     };
   }
 
+  async doStream(
+    options: SpeechModelV4StreamOptions,
+  ): Promise<SpeechModelV4StreamResult> {
+    try {
+      return await streamDeepgramSpeech(this.modelId, this.config, options);
+    } catch (error) {
+      // The provider owns the text stream once doStream is called.
+      await options.text.cancel(error).catch(() => {});
+      throw error;
+    }
+  }
+
   async doGenerate(
     options: Parameters<SpeechModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
@@ -502,7 +527,9 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
     } = await postJsonToApi({
       url: (() => {
         const baseUrl = this.config.url({
-          path: '/v1/speak',
+          path: isDeepgramFluxSpeechModelId(this.modelId)
+            ? '/v2/speak'
+            : '/v1/speak',
           modelId: this.modelId,
         });
         const queryString = new URLSearchParams(queryParams).toString();

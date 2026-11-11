@@ -99,8 +99,8 @@ You can use the following optional settings to customize the Deepgram provider i
 
 - **webSocket** _WebSocketConstructor_
 
-  Custom WebSocket implementation for streaming transcription. Defaults to the
-  global `WebSocket`. Use a header-capable implementation such as `ws` when you
+  Custom WebSocket implementation for streaming transcription and streaming
+  speech. Defaults to the global `WebSocket`. Use a header-capable implementation such as `ws` when you
   need to forward custom HTTP headers during the handshake.
 
 ## Speech Models
@@ -108,8 +108,8 @@ You can use the following optional settings to customize the Deepgram provider i
 You can create models that call the [Deepgram text-to-speech API](https://developers.deepgram.com/docs/text-to-speech)
 using the `.speech()` factory method.
 
-The first argument is the voice family ID: `aura-2` (current generation) or
-`aura` (Aura-1). The voice and language are selected with the
+The first argument is the voice family ID: `flux` ([Flux TTS](#flux-tts)),
+`aura-2`, or `aura` (Aura-1). The voice and language are selected with the
 `generateSpeech` `voice` and `language` options — the provider composes the
 upstream Deepgram model ID as `<family>-<voice>-<language>` (language
 defaults to `en`):
@@ -169,14 +169,22 @@ The following provider options are available:
 
   Sample rate for the output audio in Hz.
   Supported values depend on the encoding: `8000`, `16000`, `24000`, `32000`, `48000`.
+  Flux TTS also supports `44100` for `linear16`.
   Optional.
 
 - **bitRate** _number | string_
 
   Bitrate of the audio in bits per second.
-  For `mp3`: `32000` or `48000`.
+  For `mp3`: `32000` or `48000` (Flux TTS: `8000`, `16000`, `24000`, `32000`, `40000`, or `48000`).
   For `opus`: `4000` to `650000`.
   For `aac`: `4000` to `192000`.
+  Optional.
+
+- **expressivity** _number_
+
+  Flux TTS only (beta). Delivery register from `-2` (calm) to `2` (animated);
+  defaults to `0`, the voice's tuned delivery. Ignored with a warning for Aura
+  models.
   Optional.
 
 - **callback** _string_
@@ -210,18 +218,88 @@ count), `breaksApplied`, `pronunciationsApplied`,
 `pronunciationWarnings` (when present), and `requestId`.
 
 The `generateSpeech` `speed` option is passed through to Deepgram's `speed`
-parameter. Deepgram accepts speeds in the 0.7–1.5 range and rejects
-out-of-range values with a 400 error; speed is not supported for all
-languages. `instructions` is not supported and is ignored with a warning.
+parameter. Aura accepts speeds in the 0.7–1.5 range and Flux TTS 0.5–1.5 in
+0.05 increments; Deepgram rejects other values with a 400 error, and speed is
+not supported for all languages. `instructions` is not supported and is
+ignored with a warning.
+
+### Flux TTS
+
+[Flux TTS](https://developers.deepgram.com/docs/flux-tts/overview) is
+Deepgram's text-to-speech family for voice agents. Use the `flux` family ID
+with a [Flux voice](https://developers.deepgram.com/docs/flux-tts/voices); the
+`language` option selects the voice's language (English and 41 other
+languages):
+
+```ts
+import { generateSpeech } from 'ai';
+import { deepgram, type DeepgramSpeechModelOptions } from '@ai-sdk/deepgram';
+
+const english = await generateSpeech({
+  model: deepgram.speech('flux'),
+  voice: 'haley',
+  text: 'Hello, world!',
+  providerOptions: {
+    deepgram: { expressivity: 1 } satisfies DeepgramSpeechModelOptions,
+  },
+});
+
+const spanish = await generateSpeech({
+  model: deepgram.speech('flux'),
+  voice: 'carmen',
+  language: 'es',
+  text: '¡Hola, mundo!',
+});
+```
+
+Flux voices are served by Deepgram's `/v2/speak` endpoint and Aura voices by
+`/v1/speak`; the provider picks the endpoint from the model ID. Full Flux
+model IDs such as `deepgram.speech('flux-haley-en')` also pass through.
+
+### Streaming Speech
+
+Use `experimental_streamSpeech` with Flux TTS to synthesize text as it
+arrives (for example from `streamText`) over Deepgram's
+[`/v2/speak` WebSocket API](https://developers.deepgram.com/reference/text-to-speech/speak-flux):
+
+```ts
+import { deepgram } from '@ai-sdk/deepgram';
+import { experimental_streamSpeech as streamSpeech } from 'ai';
+
+const result = streamSpeech({
+  model: deepgram.speech('flux'),
+  voice: 'haley',
+  text: textStream, // e.g. streamText(...).textStream
+  outputFormat: { type: 'audio/pcm', rate: 24000 },
+});
+
+for await (const chunk of result.audioStream) {
+  // raw 16-bit little-endian PCM
+}
+
+console.log(await result.usage);
+```
+
+The socket emits raw audio only: `audio/pcm` (16-bit little-endian at `8000`,
+`16000`, `24000`, `32000`, `44100`, or `48000` Hz; default `24000`),
+`audio/pcmu`, or `audio/pcma` (`8000` or `16000` Hz; default `8000`). Text
+parts are forwarded as they arrive and can split anywhere; the end of the text
+ends the turn. `speed`, `expressivity`, `mipOptOut`, and `tag` apply, while
+the batch-only `encoding`, `container`, `sampleRate`, and `bitRate` options
+are ignored with a warning. A stream speaks a single voice. `result.usage`
+reports Deepgram's billable character count, and the connection is kept alive
+while the text input is idle. Aura models do not support streaming speech.
 
 ### Model Capabilities
 
 | Family   | Voices (selected via the `voice` option)                                    |
 | -------- | --------------------------------------------------------------------------- |
+| `flux`   | Flux TTS voices in English and 41 other languages                           |
 | `aura-2` | 41 English, 17 Spanish, 9 Dutch, 7 German, 10 Italian, 5 Japanese, 2 French |
 | `aura`   | 12 English (Aura-1)                                                         |
 
-See the [full voice list](https://developers.deepgram.com/docs/tts-models)
+See the [Flux TTS voice list](https://developers.deepgram.com/docs/flux-tts/voices)
+and the [Aura voice list](https://developers.deepgram.com/docs/tts-models)
 for all voice names and accents.
 
 ## Transcription Models
@@ -363,6 +441,9 @@ The following provider options are available:
 | `enhanced` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#enhanced)) | <Check />     | <Check /> | <Check /> | <Cross /> |
 | `base` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#base))         | <Check />     | <Check /> | <Check /> | <Cross /> |
 
+Flux models (`flux-general-en` and `flux-general-multi`) are streaming-only;
+see [Flux Streaming Transcription](#flux-streaming-transcription).
+
 ## Streaming Transcription
 
 Use `experimental_streamTranscribe` with Nova models to transcribe live audio
@@ -404,8 +485,8 @@ source.
 
 The provider authenticates with WebSocket subprotocols when using a Deepgram API
 key, so native WebSockets work without custom headers. Keep long-lived API keys
-on the server. Flux models use a separate `/v2/listen` protocol and are not
-supported by this implementation.
+on the server. Flux models use the turn-based `/v2/listen` protocol; see
+[Flux Streaming Transcription](#flux-streaming-transcription).
 
 To authenticate with a short-lived token, use the Bearer scheme:
 
@@ -438,3 +519,61 @@ to the `experimental_onStreamTranscriptionEnd` telemetry callback. The
 `providerMetadata.deepgram.speechFinal` flag indicates an utterance boundary.
 Enable `includeRawChunks` for complete provider events, including request IDs,
 speaker labels, and utterance-end events.
+
+### Flux Streaming Transcription
+
+[Flux](https://developers.deepgram.com/docs/flux/quickstart) models
+(`flux-general-en` and the multilingual `flux-general-multi`) are
+conversational, streaming-only models with built-in end-of-turn detection,
+served by Deepgram's
+[`/v2/listen` WebSocket API](https://developers.deepgram.com/reference/speech-to-text/listen-flux):
+
+```ts
+import { deepgram } from '@ai-sdk/deepgram';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+
+const result = streamTranscribe({
+  model: deepgram.transcription('flux-general-multi'),
+  audio: audioStream, // ReadableStream<Uint8Array | string>
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+  providerOptions: {
+    deepgram: {
+      streaming: { languageHints: ['en', 'es'], eotThreshold: 0.7 },
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-final') {
+    console.log(part.text, part.providerMetadata?.deepgram);
+  }
+}
+```
+
+Every Flux turn event becomes a transcript part with the transcript of the
+current turn: `EndOfTurn` events are `transcript-final` parts, and all other
+events (`StartOfTurn`, `Update`, `EagerEndOfTurn`, `TurnResumed`) are
+`transcript-partial` parts. `providerMetadata.deepgram` contains the `event`,
+the `turnIndex`, the `endOfTurnConfidence`, the `trigger` of a turn end, and
+the detected `languages` (Flux Multilingual). Closing the audio input does
+not end the active turn, so its latest transcript is emitted as a final part
+before the result finishes. Deepgram recommends sending audio in 80ms chunks.
+
+Flux supports the `keyterm` and `redact` (`numbers`, `aggressive_numbers`)
+options and these `providerOptions.deepgram.streaming` options:
+
+- **eotThreshold** _number_: confidence required to end a turn, `0.5` to `1`
+  (default `0.7`).
+- **eagerEotThreshold** _number_: confidence required for an early
+  `EagerEndOfTurn` event, `0.3` to `0.9`; enables `EagerEndOfTurn` and
+  `TurnResumed` events.
+- **eotTimeoutMs** _number_: silence in milliseconds that forces the end of a
+  turn, `500` to `60000` (default `5000`).
+- **languageHints** _string[]_: language codes that bias
+  `flux-general-multi`; without hints the language is detected
+  automatically. A single `language` option is used as one hint.
+
+The Nova streaming options above are ignored with a warning for Flux models,
+and the Flux options for Nova models. Flux does not report an audio duration
+or usage, so `result.durationInSeconds` is the duration of the audio that was
+sent. Flux models cannot be used with `transcribe`.

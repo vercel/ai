@@ -1,6 +1,5 @@
 import {
   InvalidArgumentError,
-  UnsupportedFunctionalityError,
   type Experimental_TranscriptionModelV4StreamPart as TranscriptionModelV4StreamPart,
   type SharedV4Warning,
   type TranscriptionModelV4,
@@ -11,8 +10,6 @@ import {
   lazySchema,
   safeParseJSON,
   parseProviderOptions,
-  removeUndefinedEntries,
-  resolve,
   toWebSocketUrl,
   validateTypes,
   waitForWebSocketBufferDrain,
@@ -22,7 +19,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { DeepgramConfig } from './deepgram-config';
+import {
+  isDeepgramFluxTranscriptionModelId,
+  streamDeepgramFluxTranscription,
+} from './deepgram-flux-streaming-transcription';
 import { deepgramTranscriptionModelOptionsSchema } from './deepgram-transcription-model-options';
+import { resolveDeepgramWebSocketAuth } from './deepgram-websocket-auth';
 
 type StreamOptions = Parameters<
   NonNullable<TranscriptionModelV4['doStream']>
@@ -33,10 +35,8 @@ export async function streamDeepgramTranscription(
   config: DeepgramConfig & { _internal?: { currentDate?: () => Date } },
   options: StreamOptions,
 ): Promise<Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>> {
-  if (modelId.startsWith('flux')) {
-    throw new UnsupportedFunctionalityError({
-      functionality: 'Deepgram Flux streaming transcription (/v2/listen)',
-    });
+  if (isDeepgramFluxTranscriptionModelId(modelId)) {
+    return streamDeepgramFluxTranscription(modelId, config, options);
   }
 
   const encodings = new Map([
@@ -108,36 +108,24 @@ export async function streamDeepgramTranscription(
     utteranceEndMs: 'utterance_end_ms',
   } as const;
   for (const [key, value] of Object.entries(streaming ?? {})) {
-    if (value != null)
-      url.searchParams.set(
-        streamingMappings[key as keyof typeof streamingMappings],
-        String(value),
-      );
+    if (value == null) continue;
+    const parameter = streamingMappings[key as keyof typeof streamingMappings];
+    if (parameter == null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: `providerOptions.deepgram.streaming.${key}`,
+        details:
+          'This option is only supported by Deepgram Flux models (/v2/listen).',
+      });
+      continue;
+    }
+    url.searchParams.set(parameter, String(value));
   }
 
-  const headers: Record<string, string | undefined> = {};
-  for (const source of [await resolve(config.headers), options.headers]) {
-    for (const [name, value] of Object.entries(source ?? {})) {
-      headers[name.toLowerCase()] = value;
-    }
-  }
-  const authorization = new Headers(removeUndefinedEntries(headers)).get(
-    'authorization',
-  );
-  // The subprotocol authentication channel also works with native WebSockets,
-  // which cannot send custom HTTP headers. Never put credentials in the URL.
-  const credentials = authorization?.match(/^(Token|Bearer) (\S+)$/i);
-  if (authorization != null && credentials == null) {
-    throw new InvalidArgumentError({
-      argument: 'headers',
-      message:
-        'Deepgram streaming authorization must use the Token or Bearer scheme.',
-    });
-  }
-  const protocols =
-    credentials != null
-      ? [credentials[1].toLowerCase(), credentials[2]]
-      : undefined;
+  const { headers, protocols } = await resolveDeepgramWebSocketAuth({
+    config,
+    headers: options.headers,
+  });
   const timestamp = config._internal?.currentDate?.() ?? new Date();
   let finished = false;
   let cleanup: () => void = () => {};

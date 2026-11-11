@@ -12,6 +12,9 @@ export type DeepgramTranscriptionModelId =
   | 'enhanced-meeting'
   | 'enhanced-phonecall'
   | 'enhanced-finance'
+  // Flux models are streaming-only (`experimental_streamTranscribe`).
+  | 'flux-general-en'
+  | 'flux-general-multi'
   | 'nova'
   | 'nova-general'
   | 'nova-phonecall'
