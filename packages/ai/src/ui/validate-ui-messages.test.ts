@@ -2462,10 +2462,6 @@ describe('validateUIMessages', () => {
   });
 
   describe('invalid messages and parts', () => {
-    function getIssuePaths(error: Error) {
-      return (error.cause as z.ZodError).issues.map(issue => issue.path);
-    }
-
     it('should only report the issues of the schema for the part type', async () => {
       await expect(
         validateUIMessages({
@@ -2656,7 +2652,252 @@ describe('validateUIMessages', () => {
       );
     });
   });
+
+  describe('invalid JSON values in metadata', () => {
+    // JSON.parse returns Infinity for numbers that are out of range:
+    const nonFiniteNumber: number = JSON.parse('1e999');
+
+    function nestInArrays(value: unknown, depth: number) {
+      let nested = value;
+      for (let i = 0; i < depth; i++) {
+        nested = [nested];
+      }
+      return nested;
+    }
+
+    it('should report an invalid JSON value in provider metadata', async () => {
+      await expect(
+        validateUIMessages({
+          messages: [
+            {
+              id: '1',
+              role: 'user',
+              parts: [
+                {
+                  type: 'text',
+                  text: 'Hello',
+                  providerMetadata: { provider: { key: [nonFiniteNumber] } },
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed: Value: [{"id":"1","role":"user","parts":[{"type":"text","text":"Hello","providerMetadata":{"provider":{"key":[null]}}}]}].
+        Error message: [
+          {
+            "code": "custom",
+            "message": "Invalid JSON value. Expected null, a string, a finite number, a boolean, an array, or an object.",
+            "path": [
+              0,
+              "parts",
+              0,
+              "providerMetadata",
+              "provider",
+              "key",
+              0
+            ]
+          }
+        ]]
+      `);
+    });
+
+    it('should report a single issue for a deeply nested invalid JSON value', async () => {
+      const result = await safeValidateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'user',
+            parts: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerMetadata: {
+                  provider: { key: nestInArrays(nonFiniteNumber, 300) },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectToBe(result.success, false);
+      expect(getIssuePaths(result.error)).toEqual([
+        [
+          0,
+          'parts',
+          0,
+          'providerMetadata',
+          'provider',
+          'key',
+          ...Array.from({ length: 300 }, () => 0),
+        ],
+      ]);
+      expect(result.error.message.length).toBeLessThan(10_000);
+    });
+
+    it('should report a single issue for many invalid JSON values', async () => {
+      const messages = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'input-available',
+              input: {},
+              callProviderMetadata: {
+                provider: {
+                  key: nestInArrays(
+                    Array.from({ length: 1000 }, () => nonFiniteNumber),
+                    100,
+                  ),
+                },
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = await safeValidateUIMessages({ messages });
+
+      expectToBe(result.success, false);
+      expect(getIssuePaths(result.error)).toHaveLength(1);
+      expect(result.error.message.length).toBeLessThan(
+        JSON.stringify(messages).length + 5000,
+      );
+    });
+
+    it('should report an invalid JSON value in tool metadata', async () => {
+      const result = await safeValidateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'dynamic-tool',
+                toolName: 'foo',
+                toolCallId: '1',
+                state: 'input-available',
+                input: {},
+                toolMetadata: { key: [[nonFiniteNumber]] },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectToBe(result.success, false);
+      expect(getIssuePaths(result.error)).toEqual([
+        [0, 'parts', 0, 'toolMetadata', 'key', 0, 0],
+      ]);
+    });
+
+    it('should report an invalid JSON value in citation provider metadata', async () => {
+      const result = await safeValidateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'text',
+                text: 'Hello',
+                citations: [
+                  {
+                    source: {
+                      type: 'source',
+                      sourceType: 'url',
+                      id: 'source-1',
+                      url: 'https://example.com',
+                      providerMetadata: {
+                        provider: { key: [nonFiniteNumber] },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      expectToBe(result.success, false);
+      expect(getIssuePaths(result.error)).toEqual([
+        [
+          0,
+          'parts',
+          0,
+          'citations',
+          0,
+          'source',
+          'providerMetadata',
+          'provider',
+          'key',
+          0,
+        ],
+      ]);
+    });
+
+    it('should keep ignoring unknown properties with invalid JSON values', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'text',
+                text: 'Hello',
+                unknown: nonFiniteNumber,
+                citations: [
+                  {
+                    source: {
+                      type: 'source',
+                      sourceType: 'url',
+                      id: 'source-1',
+                      url: 'https://example.com',
+                    },
+                    unknown: nonFiniteNumber,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(messages).toEqual([
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'text',
+              text: 'Hello',
+              citations: [
+                {
+                  source: {
+                    type: 'source',
+                    sourceType: 'url',
+                    id: 'source-1',
+                    url: 'https://example.com',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+    });
+  });
 });
+
+function getIssuePaths(error: Error) {
+  return (error.cause as z.ZodError).issues.map(issue => issue.path);
+}
 
 export function expectToBe<T extends boolean>(
   value: boolean,

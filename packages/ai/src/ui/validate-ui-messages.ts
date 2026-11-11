@@ -13,7 +13,7 @@ import { InvalidArgumentError } from '../error';
 import { jsonValueSchema } from '../types/json-value';
 import { getOwn } from '../util/get-own';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
-import { providerMetadataSchema } from '../types/provider-metadata';
+import { providerMetadataSchema as providerMetadataRecordSchema } from '../types/provider-metadata';
 import { z, type ZodOutput, type ZodType } from '../util/zod';
 import type {
   DataUIPart,
@@ -26,12 +26,104 @@ import type {
 import { markToolPartAsUnavailable } from './unavailable-tool';
 import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
 
-const toolMetadataSchema: ZodType<JSONObject> = z.record(
+/**
+ * Returns the path to the first value that can never be part of a JSON value
+ * (a non-finite number, bigint, symbol, or function), if there is one.
+ */
+function findInvalidJsonValuePath(
+  value: unknown,
+  path: PropertyKey[] = [],
+  visited = new WeakSet<object>(),
+): PropertyKey[] | undefined {
+  switch (typeof value) {
+    case 'number':
+      return Number.isFinite(value) ? undefined : [...path];
+    case 'bigint':
+    case 'symbol':
+    case 'function':
+      return [...path];
+    case 'object': {
+      if (value === null || visited.has(value)) {
+        return undefined;
+      }
+      visited.add(value);
+
+      const keys = Array.isArray(value) ? value.keys() : Object.keys(value);
+      for (const key of keys) {
+        // record schemas ignore `__proto__` keys:
+        if (key === '__proto__') continue;
+
+        path.push(key);
+        const invalidPath = findInvalidJsonValuePath(
+          (value as Record<PropertyKey, unknown>)[key],
+          path,
+          visited,
+        );
+        if (invalidPath != null) return invalidPath;
+        path.pop();
+      }
+      return undefined;
+    }
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Rejects values that contain an invalid JSON value with a single issue before
+ * `schema` validates them.
+ *
+ * The JSON value schema is a recursive union. It reports the issues of every
+ * alternative at every nesting level around an invalid value, so the size of a
+ * validation error would grow much faster than the (untrusted) input.
+ *
+ * @param jsonValuePath - Path from the validated value to the JSON value.
+ */
+function withJsonValueCheck<SCHEMA extends ZodType>(
+  schema: SCHEMA,
+  jsonValuePath: string[] = [],
+) {
+  return z.pipe(
+    z.unknown().check(context => {
+      let jsonValue = context.value;
+      for (const key of jsonValuePath) {
+        jsonValue =
+          jsonValue != null && typeof jsonValue === 'object'
+            ? (jsonValue as Record<string, unknown>)[key]
+            : undefined;
+      }
+
+      const invalidPath = findInvalidJsonValuePath(jsonValue);
+      if (invalidPath != null) {
+        context.issues.push({
+          code: 'custom',
+          message:
+            'Invalid JSON value. Expected null, a string, a finite number, ' +
+            'a boolean, an array, or an object.',
+          input: context.value,
+          path: [...jsonValuePath, ...invalidPath],
+        });
+      }
+    }),
+    schema,
+  );
+}
+
+const toolMetadataRecordSchema: ZodType<JSONObject> = z.record(
   z.string(),
   z.optional(jsonValueSchema),
 );
 
+const toolMetadataSchema = withJsonValueCheck(toolMetadataRecordSchema);
+
+const providerMetadataSchema = withJsonValueCheck(providerMetadataRecordSchema);
+
 const providerReferenceSchema = z.record(z.string(), z.string());
+
+const uiCitationSchema = withJsonValueCheck(citationSchema, [
+  'source',
+  'providerMetadata',
+]);
 
 function isEmptyObject(value: unknown): value is Record<string, never> {
   return (
@@ -151,7 +243,7 @@ const uiMessagesSchema = lazySchema(() => {
         type: z.literal('text'),
         text: z.string(),
         citations: z.optional(
-          arrayUntilFirstInvalidElement(() => citationSchema),
+          arrayUntilFirstInvalidElement(() => uiCitationSchema),
         ),
         state: z.optional(z.enum(['streaming', 'done'])),
         providerMetadata: z.optional(providerMetadataSchema),
