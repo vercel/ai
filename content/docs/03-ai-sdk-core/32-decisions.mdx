@@ -95,17 +95,19 @@ parts. Question instructions and criteria still accept JSON arrays directly.
 
 Use a provider's `decisionModel` factory:
 
-| Provider    | Example model                                          |
-| ----------- | ------------------------------------------------------ |
-| TypeSafe AI | `typeSafeAi.decisionModel('jev-latest')`               |
-| Perplexity  | `perplexity.decisionModel('pplx-decider-latest')`      |
-| OpenAI      | `openai.decisionModel('gpt-6-luna')`                   |
-| Anthropic   | `anthropic.decisionModel('claude-haiku-4-5-20251001')` |
-| Google      | `google.decisionModel('gemini-3.5-flash-lite')`        |
+| Provider    | Example model                                              |
+| ----------- | ---------------------------------------------------------- |
+| TypeSafe AI | `typeSafeAi.decisionModel('jev-latest')`                   |
+| Perplexity  | `perplexity.decisionModel('pplx-decider-latest')`          |
+| OpenAI      | `openai.decisionModel('gpt-6-luna')`                       |
+| Zirnay      | `zirnay.decisionModel('zirnay/anyjev-fast-router:latest')` |
+| Anthropic   | `anthropic.decisionModel('claude-haiku-4-5-20251001')`     |
+| Google      | `google.decisionModel('gemini-3.5-flash-lite')`            |
 
 TypeSafe AI's [Jev](https://vercel.com/i/what-is-jev), OpenAI's
-[Decisions API](https://developers.openai.com/api/docs/guides/decisions), and
-[Perplexity's decision models](/providers/ai-sdk-providers/perplexity#decision-models)
+[Decisions API](https://developers.openai.com/api/docs/guides/decisions),
+[Perplexity's decision models](/providers/ai-sdk-providers/perplexity#decision-models), and
+[Zirnay's decision models](/providers/ai-sdk-providers/zirnay)
 supply native Choice, Score, and Boolean decisions. Answers are keyed by question
 ID, and Choice and Score answers include native probability distributions.
 

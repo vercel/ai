@@ -1,0 +1,38 @@
+{
+  "model": "acme-corp/secops/anyjev-fast-router:v2-strict",
+  "input": {
+    "deal_id": "356401732297",
+    "customer": "Stripe",
+    "stage": "Appointment Scheduled",
+    "target_close_days": 65,
+    "crm_assertions": {
+      "metrics": "GREEN",
+      "economic_buyer": "YELLOW",
+      "paper_process": "YELLOW"
+    },
+    "evidence_sources": [
+      {
+        "source": "gong",
+        "id": "call_14",
+        "snippet": "VP Infra engaged; legal review queued."
+      }
+    ]
+  },
+  "decision_type": "categorical_choice",
+  "candidates": [
+    {
+      "id": "COMMIT_APPROVED",
+      "label": "Commit to Current Quarter Forecast"
+    },
+    {
+      "id": "BEST_CASE_GATED",
+      "label": "Best Case Gated"
+    }
+  ],
+  "constraints": {
+    "max_ece_threshold": 0.03,
+    "min_confidence": 0.85
+  },
+  "arbitration_strategy": "calibrated_utility"
+}
+
