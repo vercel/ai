@@ -23,7 +23,10 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { Experimental_DecisionLanguageModel as DecisionLanguageModel } from '@ai-sdk/provider-utils/experimental-decision';
+import {
+  GoogleDecisionModel,
+  type GoogleDecisionModelId,
+} from './google-decision-model';
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
@@ -65,10 +68,10 @@ export interface GoogleProvider extends ProviderV4 {
 
   chat(modelId: GoogleModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score/Boolean decision model using Gemini. */
-  decisionModel(modelId: GoogleModelId): DecisionModelV4;
+  /** Creates an experimental model using the Gemini Decisions API. */
+  decisionModel(modelId: GoogleDecisionModelId): DecisionModelV4;
   /** @deprecated Use `decisionModel` instead. */
-  evaluationModel(modelId: GoogleModelId): DecisionModelV4 & {
+  evaluationModel(modelId: GoogleDecisionModelId): DecisionModelV4 & {
     doEvaluate: DecisionModelV4['doDecide'];
   };
 
@@ -450,10 +453,12 @@ export function createGoogle(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
-  provider.decisionModel = (modelId: GoogleModelId) =>
-    new DecisionLanguageModel({
-      model: createChatModel(modelId),
+  provider.decisionModel = (modelId: GoogleDecisionModelId) =>
+    new GoogleDecisionModel(modelId, {
       provider: `${providerName.replace(/\.generative-ai$/, '')}.decision`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
     });
   provider.evaluationModel =
     provider.decisionModel as GoogleProvider['evaluationModel'];

@@ -101,25 +101,26 @@ Use a provider's `decisionModel` factory:
 | Perplexity  | `perplexity.decisionModel('pplx-decider-latest')`      |
 | OpenAI      | `openai.decisionModel('gpt-6-luna')`                   |
 | Anthropic   | `anthropic.decisionModel('claude-haiku-4-5-20251001')` |
-| Google      | `google.decisionModel('gemini-3.5-flash-lite')`        |
+| Google      | `google.decisionModel('gemini-decision-1')`            |
 
 TypeSafe AI's [Jev](https://vercel.com/i/what-is-jev), OpenAI's
-[Decisions API](https://developers.openai.com/api/docs/guides/decisions), and
-[Perplexity's decision models](/providers/ai-sdk-providers/perplexity#decision-models)
+[Decisions API](https://developers.openai.com/api/docs/guides/decisions),
+[Perplexity's decision models](/providers/ai-sdk-providers/perplexity#decision-models),
+and [Google's Decisions API](/providers/ai-sdk-providers/google#decision-models)
 supply native Choice, Score, and Boolean decisions. Answers are keyed by question
 ID, and Choice and Score answers include native probability distributions.
 
-Anthropic and Google adapt structured language-model output for all three types,
-evaluating all questions in one prompt. Their Boolean answers contain prompted
+Anthropic adapts structured language-model output for all three types,
+evaluating all questions in one prompt. Its Boolean answers contain prompted
 estimates of P(true), and Choice and Score answers omit probability distributions.
 Select a model that supports the provider's structured-output API and judge quality
 against your own labeled examples before choosing a model for a task.
 
-The Anthropic and Google language-model adapters request `reasoning: 'none'` by
-default. Each provider maps this setting to its model's reasoning controls. Pass
-supported reasoning settings through `providerOptions` to override this default.
-OpenAI decision models use the Decisions endpoint and do not accept Responses
-API reasoning options.
+The Anthropic language-model adapter requests `reasoning: 'none'` by default.
+Pass supported reasoning settings through `providerOptions` to override this default.
+OpenAI and Google decision models use native Decisions endpoints and do not accept
+language-model reasoning options. Google's endpoint requires Decisions EAP access
+and the `gemini-decision-1` model on `v1beta`.
 
 ## Model aliases and registries
 
@@ -285,6 +286,9 @@ structured descriptions preserved.
 Perplexity exposes Choice/Score confidence at
 `result.providerMetadata?.perplexity?.confidence` and Score legends at
 `result.providerMetadata?.perplexity?.legend`, also keyed by question ID.
+Google exposes confidence for all three question types at
+`result.providerMetadata?.google?.confidence` and Score legends at
+`result.providerMetadata?.google?.legend`, also keyed by question ID.
 
 Check for optional distributions before using them. For example, an application
 can route only when a provider supplies a sufficiently high selected-option
