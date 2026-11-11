@@ -11,11 +11,11 @@ export type ExtractionValue<FIELD extends ExtractionField> = FIELD extends {
   type: 'number' | 'duration';
 }
   ? number
-  : FIELD extends { type: 'list'; items: 'number' }
-    ? number[]
-    : FIELD extends { type: 'list' }
-      ? string[]
-      : string;
+  : FIELD extends { type: 'list'; items: infer ITEMS }
+    ? ITEMS extends 'number'
+      ? number[]
+      : string[]
+    : string;
 
 export type ExtractionAnswer<FIELD extends ExtractionField> = FIELD extends {
   type: 'list';

@@ -69,3 +69,21 @@ it('rejects invalid field definitions', async () => {
     fields: { wait: { type: 'duration', unit: 'fortnights' } },
   });
 });
+
+it('keeps numeric list values in the answer type for widened fields', async () => {
+  const fields: Record<string, ExtractionField> = {
+    values: { type: 'list', items: 'number' },
+  };
+  const result = await extract({
+    model: new ExtractionMockModelV4(),
+    state: '',
+    fields,
+  });
+  expectTypeOf<
+    number[] extends NonNullable<
+      Extract<(typeof result.answers)[string], { type: 'list' }>['value']
+    >
+      ? true
+      : false
+  >().toEqualTypeOf<true>();
+});
