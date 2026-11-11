@@ -686,7 +686,7 @@ const { text } = await generateText({
 console.log(text);`,
     docsUrl: 'https://pushary.com/docs/agents/build/vercel-ai-sdk',
     apiKeyUrl: 'https://pushary.com/onboarding/partner',
-    websiteUrl: 'https://pushary.com/human-in-the-loop',
+    websiteUrl: 'https://pushary.com/human-in-the-loop-vercel-ai-sdk',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
   {
@@ -929,6 +929,39 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@cleave-protocol/ai-sdk',
   },
   {
+    slug: 'algenta',
+    name: 'Algenta',
+    description:
+      'Governed decision-engine tools for the Vercel AI SDK, backed by your own self-hosted Algenta engine over MCP. Tool profiles (observe, govern, execute, full) control which tools the model can see, executions return typed receipts, and policy-blocked calls fail with named safety gates.',
+    packageName: 'algenta-tools',
+    tags: ['mcp', 'governance', 'decision-engine', 'self-hosted'],
+    installCommand: {
+      pnpm: 'pnpm add algenta-tools ai zod',
+      npm: 'npm install algenta-tools ai zod',
+      yarn: 'yarn add algenta-tools ai zod',
+      bun: 'bun add algenta-tools ai zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createAlgentaTools } from 'algenta-tools';
+
+// Connects to your own self-hosted Algenta engine
+// (ALGENTA_BASE_URL, or pass baseUrl). 'observe' is read-only.
+const tools = await createAlgentaTools({ profile: 'observe' });
+
+const { text } = await generateText({
+  model: 'openai/gpt-5.2',
+  prompt: 'What is the expected value of scenario X?',
+  tools,
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/thyn-ai/algenta-integrations/tree/main/typescript/algenta-tools/packages/algenta-tools#readme',
+    websiteUrl: 'https://algenta.ai',
+    npmUrl: 'https://www.npmjs.com/package/algenta-tools',
+  },
+  {
     slug: 'redis-agent-memory',
     name: 'Redis Agent Memory',
     description:
@@ -971,36 +1004,33 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
   {
-    slug: 'algenta',
-    name: 'Algenta',
+    slug: 'keenable',
+    name: 'Keenable',
     description:
-      'Governed decision-engine tools for the Vercel AI SDK, backed by your own self-hosted Algenta engine over MCP. Tool profiles (observe, govern, execute, full) control which tools the model can see, executions return typed receipts, and policy-blocked calls fail with named safety gates.',
-    packageName: 'algenta-tools',
-    tags: ['mcp', 'governance', 'decision-engine', 'self-hosted'],
+      'Keenable is a web search API built for AI agents. Search returns ranked pages with their text already extracted, and the fetch tool reads any URL as clean markdown. No API key is required.',
+    packageName: '@keenable/ai-sdk',
+    tags: ['search', 'web', 'extraction'],
+    apiKeyEnvName: 'KEENABLE_API_KEY',
     installCommand: {
-      pnpm: 'pnpm add algenta-tools ai zod',
-      npm: 'npm install algenta-tools ai zod',
-      yarn: 'yarn add algenta-tools ai zod',
-      bun: 'bun add algenta-tools ai zod',
+      pnpm: 'pnpm add @keenable/ai-sdk',
+      npm: 'npm install @keenable/ai-sdk',
+      yarn: 'yarn add @keenable/ai-sdk',
+      bun: 'bun add @keenable/ai-sdk',
     },
     codeExample: `import { generateText, isStepCount } from 'ai';
-import { createAlgentaTools } from 'algenta-tools';
-
-// Connects to your own self-hosted Algenta engine
-// (ALGENTA_BASE_URL, or pass baseUrl). 'observe' is read-only.
-const tools = await createAlgentaTools({ profile: 'observe' });
+import { keenableTools } from '@keenable/ai-sdk';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5.2',
-  prompt: 'What is the expected value of scenario X?',
-  tools,
+  model: 'openai/gpt-5-mini',
+  prompt: 'What changed in the latest Bun release? Cite the pages you used.',
+  tools: keenableTools(),
   stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
-    docsUrl:
-      'https://github.com/thyn-ai/algenta-integrations/tree/main/typescript/algenta-tools/packages/algenta-tools#readme',
-    websiteUrl: 'https://algenta.ai',
-    npmUrl: 'https://www.npmjs.com/package/algenta-tools',
+    docsUrl: 'https://docs.keenable.ai/integrations/vercel',
+    apiKeyUrl: 'https://keenable.ai/console',
+    websiteUrl: 'https://keenable.ai',
+    npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
 ];
