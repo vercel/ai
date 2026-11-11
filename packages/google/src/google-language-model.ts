@@ -1666,21 +1666,24 @@ function resolveGemini3ThinkingConfig({
   modelId: string;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
-  const minimumThinkingLevel =
+  const thinkingLevels =
     getGoogleLanguageModelEntry(modelId).capabilities.language.reasoning
-      .efforts?.[0];
+      .efforts;
 
   // It's not possible to fully disable thinking with Gemini 3, so reasoning
   // 'none' maps to the lowest supported thinking level.
   const thinkingLevel = mapReasoningToProviderEffort({
     reasoning,
     effortMap: {
-      ...(minimumThinkingLevel === 'minimal' && {
+      ...(thinkingLevels?.[0] === 'minimal' && {
         minimal: 'minimal' as const,
       }),
       low: 'low',
       medium: 'medium',
       high: 'high',
+      ...(thinkingLevels?.includes('xhigh') && {
+        xhigh: 'xhigh' as const,
+      }),
     },
     warnings,
   });

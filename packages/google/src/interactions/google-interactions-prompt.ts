@@ -424,7 +424,8 @@ export type GoogleInteractionsThinkingLevel =
   | 'minimal'
   | 'low'
   | 'medium'
-  | 'high';
+  | 'high'
+  | 'xhigh';
 
 export type GoogleInteractionsThinkingSummaries = 'auto' | 'none';
 
