@@ -1,0 +1,190 @@
+---
+title: Zirnay
+description: Learn how to use Zirnay decision models with the AI SDK.
+---
+
+# Zirnay Provider
+
+The [Zirnay](https://zirnay.com) provider offers Decision-as-a-Service (DaaS) System 1 reflex models (`anyjev-fast-router`, `laya`, `strands-dc`) via the AI SDK's experimental decision API. It delivers sub-5ms latency, calibrated decision probabilities, statistical ECE constraints, and a built-in Human-in-the-Loop (HITL) active learning flywheel.
+
+You can connect directly using `@ai-sdk/zirnay`:
+
+```ts
+import { experimental_decide } from 'ai';
+import { zirnay } from '@ai-sdk/zirnay';
+
+const result = await experimental_decide({
+  model: zirnay.decisionModel('zirnay/anyjev-fast-router:latest'),
+  state: {
+    deal_id: '356401732297',
+    customer: 'Stripe',
+    stage: 'Appointment Scheduled',
+    target_close_days: 65,
+    crm_assertions: {
+      metrics: 'GREEN',
+      economic_buyer: 'YELLOW',
+      paper_process: 'YELLOW',
+    },
+  },
+  questions: {
+    forecastCommit: {
+      type: 'choice',
+      instructions:
+        'Should this deal be committed to current quarter forecast?',
+      criteria: {
+        COMMIT_APPROVED: 'High confidence commit to current quarter',
+        COMMIT_REJECTED: 'Defer or push to future pipeline',
+      },
+    },
+  },
+});
+
+console.log(result.answers.forecastCommit.selected);
+console.log(result.answers.forecastCommit.probability);
+```
+
+## Setup & Installation
+
+Install `ai` and `@ai-sdk/zirnay`:
+
+<InstallPackages packages="ai @ai-sdk/zirnay" />
+
+Set your Zirnay API key in the `ZIRNAY_API_KEY` environment variable:
+
+```bash
+export ZIRNAY_API_KEY=your_api_key_here
+```
+
+Optional environment variables:
+
+- `ZIRNAY_ACCOUNT_ID`: Tenant or organization account ID.
+- `ZIRNAY_BASE_URL`: Custom API endpoint (defaults to `https://api.zirnay.com/v1`).
+
+## Configuration
+
+Import the preconfigured default provider or configure a custom instance:
+
+```ts
+import { createZirnay, zirnay } from '@ai-sdk/zirnay';
+
+const customZirnay = createZirnay({
+  apiKey: process.env.MY_ZIRNAY_KEY,
+  accountId: 'org_enterprise_secops',
+  baseURL: 'https://api.zirnay.com/v1',
+});
+```
+
+`createZirnay` accepts:
+
+| Setting     | Description                                                      |
+| ----------- | ---------------------------------------------------------------- |
+| `apiKey`    | API key or token; defaults to `ZIRNAY_API_KEY`.                  |
+| `accountId` | Optional tenant ID; defaults to `ZIRNAY_ACCOUNT_ID`.             |
+| `baseURL`   | Defaults to `ZIRNAY_BASE_URL`, then `https://api.zirnay.com/v1`. |
+| `headers`   | Additional custom HTTP request headers.                          |
+| `fetch`     | Custom `fetch` implementation.                                   |
+
+## Available Models
+
+Zirnay provides pre-trained baseline foundation reflex models and supports custom tenant-trained models:
+
+| Model ID                           | Description                                                                |
+| ---------------------------------- | -------------------------------------------------------------------------- |
+| `zirnay/anyjev-fast-router:latest` | Zero-shot agentic router and multi-class decision engine.                  |
+| `zirnay/laya:latest`               | Ultra-low latency reflex engine (<2.5ms SLA) for transaction scoring.      |
+| `zirnay/strands-dc:latest`         | High-throughput structured data classifier with Platt temperature scaling. |
+| `<team>/<model_slug>:<tag>`        | Custom tenant models trained on proprietary domain datasets.               |
+
+## Provider Options & Constraints
+
+You can configure calibration thresholds and arbitration strategies using provider options:
+
+```ts
+import { zirnay, type ZirnayDecisionModelOptions } from '@ai-sdk/zirnay';
+import { experimental_decide } from 'ai';
+
+const result = await experimental_decide({
+  model: zirnay.decisionModel('zirnay/anyjev-fast-router:latest'),
+  providerOptions: {
+    zirnay: {
+      constraints: {
+        maxEceThreshold: 0.03, // Refuse decision if Expected Calibration Error exceeds 3%
+        minConfidence: 0.85, // Require 85% minimum winning probability
+      },
+      arbitrationStrategy: 'calibrated_utility',
+    } satisfies ZirnayDecisionModelOptions,
+  },
+  state: {
+    /* ... */
+  },
+  questions: {
+    /* ... */
+  },
+});
+```
+
+### Provider Metadata
+
+Zirnay responses return detailed calibration, latency, and arbitration metadata:
+
+```ts
+const metadata = result.providerMetadata?.zirnay;
+
+console.log(metadata?.decisionId); // Unique decision trace ID (for HITL feedback)
+console.log(metadata?.ece); // Expected Calibration Error
+console.log(metadata?.confidenceScore); // Calibrated confidence
+console.log(metadata?.latencyMs); // Server-side inference latency
+```
+
+## Continuous Learning & HITL Feedback
+
+Zirnay provides native Human-in-the-Loop (HITL) feedback submission to continuously improve reflex accuracy:
+
+```ts
+await zirnay.submitFeedback({
+  team: 'fraud-ops',
+  model: 'laya-card-auth',
+  decisionId: result.providerMetadata?.zirnay?.decisionId,
+  target: 'APPROVE', // Human-verified ground truth
+  feedbackType: 'override',
+  reviewer: 'analyst_42',
+});
+```
+
+## Model Lifecycle & Training API
+
+For MLOps pipelines and CI/CD scripts, the `@ai-sdk/zirnay` provider instance exposes lifecycle methods:
+
+```ts
+// 1. Register a new model definition
+await zirnay.createModel({
+  team: 'fraud-ops',
+  name: 'Cardholder Fraud Reflex Guard',
+  slug: 'laya-card-auth',
+  engineType: 'laya',
+  version: '1.0.0',
+  classes: ['APPROVE', 'CHALLENGE', 'DECLINE'],
+});
+
+// 2. Upload training dataset (JSONL)
+await zirnay.uploadDataset({
+  team: 'fraud-ops',
+  model: 'laya-card-auth',
+  datasetName: 'fraud-train-v1.jsonl',
+  file: new Blob([datasetContent], { type: 'application/jsonlines' }),
+});
+
+// 3. Trigger training run
+const training = await zirnay.triggerTraining({
+  team: 'fraud-ops',
+  model: 'laya-card-auth',
+  hyperparameters: { epochs: 10, batch_size: 64 },
+});
+
+// 4. Activate verified checkpoint
+await zirnay.activateCheckpoint({
+  team: 'fraud-ops',
+  model: 'laya-card-auth',
+  checkpointId: training.checkpointId,
+});
+```

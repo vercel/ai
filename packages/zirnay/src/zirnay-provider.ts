@@ -129,11 +129,11 @@ export interface UploadDatasetOptions {
   modelSlug: string;
   filename: string;
   data: string;
-  format: {
+  format?: {
     dataset_name: string;
     description?: string;
     target_field?: string;
-    fields: Array<{
+    fields?: Array<{
       name: string;
       datatype:
         | 'number'

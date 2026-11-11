@@ -374,14 +374,24 @@ export class DecisionZirnayModel implements DecisionModelV4 {
           break;
         }
         case 'boolean': {
-          const prob =
-            candidateScoresMap?.['true'] ??
-            (decision.selected_candidate_id === 'true'
-              ? (decision.calibrated_probability ?? 1)
-              : 1 - (decision.calibrated_probability ?? 0));
+          let prob: number;
+          if (candidateScoresMap?.['true'] != null) {
+            prob = candidateScoresMap['true'];
+          } else if (candidateScoresMap?.['false'] != null) {
+            prob = 1 - candidateScoresMap['false'];
+          } else if (decision.selected_candidate_id === 'true') {
+            prob = decision.calibrated_probability ?? 1;
+          } else if (decision.selected_candidate_id === 'false') {
+            prob =
+              decision.calibrated_probability != null
+                ? 1 - decision.calibrated_probability
+                : 0;
+          } else {
+            prob = 0.5;
+          }
           answers[questionId] = {
             type: 'boolean',
-            probability: prob,
+            probability: Math.max(0, Math.min(1, prob)),
           };
           break;
         }

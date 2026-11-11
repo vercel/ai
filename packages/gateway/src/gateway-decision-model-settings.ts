@@ -13,4 +13,7 @@ export type GatewayDecisionModelId =
   | 'typesafe-ai/jev'
   | 'typesafe-ai/jev-1.13.0'
   | 'typesafe-ai/jev-1.14.0'
+  | 'zirnay/anyjev-fast-router:latest'
+  | 'zirnay/laya:latest'
+  | 'zirnay/strands-dc:latest'
   | (string & {});

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { DecisionZirnayModel } from './zirnay-decision-model';
 
@@ -7,8 +7,9 @@ const fixtureResponse = JSON.parse(
   readFileSync('src/__fixtures__/decision-response.json', 'utf8'),
 );
 
+const decisionsUrl = 'https://api.zirnay.com/v1/decisions';
 const server = createTestServer({
-  'https://api.zirnay.com/v1/decisions': {
+  [decisionsUrl]: {
     response: {
       type: 'json-value',
       body: fixtureResponse,
@@ -17,6 +18,13 @@ const server = createTestServer({
 });
 
 describe('DecisionZirnayModel', () => {
+  beforeEach(() => {
+    server.urls[decisionsUrl].response = {
+      type: 'json-value',
+      body: fixtureResponse,
+    };
+  });
+
   const model = new DecisionZirnayModel(
     'acme-corp/secops/anyjev-fast-router:v2-strict',
     {
@@ -83,6 +91,85 @@ describe('DecisionZirnayModel', () => {
         { id: 'COMMIT_APPROVED', label: 'Commit to Current Quarter Forecast' },
         { id: 'BEST_CASE_GATED', label: 'Best Case Gated' },
       ],
+    });
+  });
+
+  it('correctly maps boolean probability when selecting false without scores', async () => {
+    server.urls[decisionsUrl].response = {
+      type: 'json-value',
+      body: {
+        id: 'dec-bool-false',
+        decision_id: 'dec-bool-false',
+        model: 'zirnay/laya:latest',
+        decision: {
+          selected_candidate_id: 'false',
+        },
+      },
+    };
+
+    const result = await model.doDecide({
+      state: [{ type: 'text', text: 'Test state' }],
+      questions: {
+        isFraud: { type: 'boolean', instructions: 'Is this fraudulent?' },
+      },
+    });
+
+    expect(result.answers.isFraud).toEqual({
+      type: 'boolean',
+      probability: 0,
+    });
+  });
+
+  it('correctly maps boolean probability when selecting false with calibrated probability', async () => {
+    server.urls[decisionsUrl].response = {
+      type: 'json-value',
+      body: {
+        id: 'dec-bool-false-prob',
+        decision_id: 'dec-bool-false-prob',
+        model: 'zirnay/laya:latest',
+        decision: {
+          selected_candidate_id: 'false',
+          calibrated_probability: 0.85,
+        },
+      },
+    };
+
+    const result = await model.doDecide({
+      state: [{ type: 'text', text: 'Test state' }],
+      questions: {
+        isFraud: { type: 'boolean', instructions: 'Is this fraudulent?' },
+      },
+    });
+
+    expect(result.answers.isFraud).toMatchObject({
+      type: 'boolean',
+      probability: expect.closeTo(0.15, 5),
+    });
+  });
+
+  it('correctly maps boolean probability when selecting true without scores', async () => {
+    server.urls[decisionsUrl].response = {
+      type: 'json-value',
+      body: {
+        id: 'dec-bool-true',
+        decision_id: 'dec-bool-true',
+        model: 'zirnay/laya:latest',
+        decision: {
+          selected_candidate_id: 'true',
+        },
+      },
+    };
+
+    const result = await model.doDecide({
+      state: [{ type: 'text', text: 'Test state' }],
+      questions: {
+        isFraud: { type: 'boolean', instructions: 'Is this fraudulent?' },
+      },
+    });
+
+    expect(result.answers.isFraud).toEqual({
+      type: 'boolean',
+      probability: 1,
     });
   });
 

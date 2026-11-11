@@ -235,6 +235,9 @@
     },
     {
       "path": "../../packages/zai"
+    },
+    {
+      "path": "../../packages/zirnay"
     }
   ]
 }

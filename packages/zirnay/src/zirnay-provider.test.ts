@@ -145,7 +145,10 @@ describe('zirnayProvider', () => {
       modelSlug: 'laya-card-auth',
       filename: 'dataset.jsonl',
       data: '{"text": "sample"}',
-      format: { dataset_name: 'test' },
+      format: {
+        dataset_name: 'test',
+        fields: [{ name: 'text', datatype: 'string', role: 'feature' }],
+      },
     });
     expect(uploadRes.datasetId).toBe('ds_9a12c84e');
 
