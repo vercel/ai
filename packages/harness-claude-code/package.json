@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-claude-code",
-  "version": "1.0.182",
+  "version": "1.0.184",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -53,7 +53,7 @@
     "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "engines": {
     "node": ">=22"

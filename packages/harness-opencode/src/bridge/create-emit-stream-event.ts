@@ -678,6 +678,7 @@ function legacyToolPartFromValue(value: unknown): LegacyToolPart | undefined {
   }
 
   const stateObject = asOpenCodeObject(part.state);
+  if (asOpenCodeObject(stateObject?.time)?.compacted != null) return undefined;
   const provider = asOpenCodeObject(part.provider);
   const state = stateObject
     ? {

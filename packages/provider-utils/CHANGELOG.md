@@ -1,5 +1,18 @@
 # @ai-sdk/provider-utils
 
+## 5.0.79
+
+### Patch Changes
+
+- 4311fa1: Infer Zod 3 schemas through Standard Schema to prevent recursive type comparisons between installed Zod versions, preserving tool input and streamed output inference.
+- 4311fa1: Use Zod Mini for internal validation schemas to reduce bundle size while preserving the public message schemas' classic Zod methods, error messages, and compatibility with supported Zod 3 and Zod 4 versions.
+
+## 5.0.78
+
+### Patch Changes
+
+- 88b9575: Require a DNS-pinned fetch for untrusted MCP OAuth discovery and metadata-derived token/registration URLs on server runtimes without a protected default transport. Preserve developer-configured endpoints and allow explicitly supplied fetch implementations that provide equivalent connect-time validation. Browser workers without a DOM follow the same explicit custom-fetch requirement.
+
 ## 5.0.77
 
 ### Patch Changes

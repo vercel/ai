@@ -1,5 +1,24 @@
 # @ai-sdk/gateway
 
+## 4.0.142
+
+### Patch Changes
+
+- c160b74: Add support for the `gemini-4-carbon` model with the same capabilities as `gemini-4-argon`.
+- 4311fa1: Use Zod Mini for internal validation schemas to reduce bundle size while preserving the public message schemas' classic Zod methods, error messages, and compatibility with supported Zod 3 and Zod 4 versions.
+- 838dd53: fix(provider/gateway): restore `export_pricing.free_rows` on `takoSearch` results as a deprecated optional field, so code that reads it compiles again. Tako always sends 0 and will stop sending it.
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 4.0.141
+
+### Patch Changes
+
+- 5497ff7: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 4.0.140
 
 ### Patch Changes

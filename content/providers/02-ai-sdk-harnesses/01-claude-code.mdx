@@ -107,6 +107,9 @@ Settings:
 - `mcpServers`: MCP server definitions keyed by server name.
 - `strictMcpConfig`: only use the servers from `mcpServers` and ignore other
   MCP configuration, such as a project `.mcp.json` or user settings.
+- `autoMode`: requests Claude Code's classifier-based `auto` permission mode
+  for `allow-reads` and `allow-edits`. Defaults to `false`. `allow-all` still
+  uses `bypassPermissions`. See [Auto Permission Mode](#auto-permission-mode).
 - `toolHints`: Claude Code hints for host tools, keyed by tool name.
   `readOnly: true` marks a tool without side effects, so Claude Code can run
   its calls in parallel and allows it in plan mode; calls to other host tools
@@ -186,6 +189,71 @@ const harness = createClaudeCode({
 Skills without an override keep their Claude Code defaults, so other bundled
 skills such as `code-review`, `simplify`, and `claude-api` remain available
 when provided by the installed Claude Code runtime.
+
+## Auto Permission Mode
+
+Opt in to Claude Code's own permission classifier with an adapter setting:
+
+```ts
+const agent = new HarnessAgent({
+  harness: createClaudeCode({ autoMode: true }),
+  permissionMode: 'allow-reads', // or 'allow-edits'
+});
+```
+
+With `autoMode: true`, both `allow-reads` and `allow-edits` request Claude Code's
+`auto` mode instead of their usual deterministic edit, shell, and path approval
+rules. The adapter removes its blanket edit/shell ask rules and does not defer
+calls before classification. Claude Code approves or denies calls itself;
+every non-host tool call it escalates through `canUseTool` becomes a
+`tool-approval-request`, including reads that would normally be auto-approved.
+Answer these requests using the normal approval-response messages on the same
+session. Inactive built-in tool restrictions remain in place. Explicit Claude
+Code permission rules can still affect permission handling.
+
+Host-executed tools bypass the classifier through the adapter's
+`mcp__harness-tools__*` allowance. Their authorization is still controlled by
+`HarnessAgent`'s `toolApproval`. Other MCP servers do not receive this allowance.
+The built-in question tool retains its usual host question/answer handling.
+
+The setting defaults to `false` and has no effect with `allow-all` (including
+when `permissionMode` is omitted). Auto mode depends on Claude Code's
+provider/model eligibility; requesting it does not guarantee that it is active
+or that an unavailable mode falls back in a particular way. Observe the actual
+mode on raw stream parts:
+
+```ts
+for await (const part of result.stream) {
+  if (part.type === 'raw') {
+    const raw = part.rawValue as {
+      type?: string;
+      subtype?: string;
+      permissionMode?: string;
+    };
+    if (
+      raw.type === 'system' &&
+      (raw.subtype === 'init' || raw.subtype === 'status')
+    ) {
+      console.log('Effective Claude Code permission mode:', raw.permissionMode);
+    }
+  }
+}
+```
+
+The adapter forwards only `{ type, subtype, permissionMode }` from `init` and
+`status` messages, not the full session metadata. `permissionMode` is omitted
+when Claude Code does not report it on a message. These raw parts are
+available even when `autoMode` is disabled.
+
+<Note>
+  Auto-mode escalations wait in the running bridge process, unlike the default
+  deferred built-in approvals stored in Claude Code's transcript. Reconnecting
+  to that same running bridge can answer a pending escalation, but a bridge
+  restart, sandbox replacement, or turn cancellation does not preserve it as a
+  deferred call. Keep the bridge running while waiting for a decision.
+  Classifier decisions are not a security or filesystem sandbox boundary; opt in
+  only if they fit your application's permission policy.
+</Note>
 
 ## Structured Output
 
@@ -269,15 +337,17 @@ Additional Claude Code built-ins may also appear in `agent.tools` when they do
 not fit a common tool shape.
 
 Claude Code supports built-in tool approval requests when `permissionMode` is
-`allow-reads` or `allow-edits`. A call waiting for approval is kept in the
-Claude Code session, so an approval answered after a resume runs that same
-call, even in a new sandbox. Claude Code waits for one approval at a time, so
-parallel calls that need approval run one after another.
+`allow-reads` or `allow-edits`. With the default `autoMode: false`, a call
+waiting for approval is kept in the Claude Code session, so an approval answered
+after a resume runs that same call, even in a new sandbox. Claude Code waits
+for one approval at a time, so parallel calls that need approval run one after
+another.
 
-In these modes, file reads are automatically approved only within the session
-workdir or an active skill's directory. `allow-edits` automatically approves
-file changes only within the workdir. Paths outside those directories, including
-symlink targets, and paths that cannot be resolved require host approval.
+With `autoMode: false`, file reads in these modes are automatically approved
+only within the session workdir or an active skill's directory. `allow-edits`
+automatically approves file changes only within the workdir. Paths outside
+those directories, including symlink targets, and paths that cannot be
+resolved require host approval.
 `allow-all` remains unrestricted. These approval rules are not a filesystem
 sandbox, and approved shell commands can access paths outside the workdir.
 

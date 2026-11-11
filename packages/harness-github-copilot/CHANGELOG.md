@@ -1,5 +1,29 @@
 # @ai-sdk/harness-github-copilot
 
+## 1.0.77
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/harness@1.0.180
+  - @ai-sdk/harness-acp@1.0.120
+
+## 1.0.76
+
+### Patch Changes
+
+- 0fc1f13: chore(harness): update harness adapter underlying SDKs to their latest releases
+- c849d37: feat(harness): use public-key cryptography instead of token for sandbox bridge communication
+- Updated dependencies [0fc1f13]
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness-acp@1.0.119
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 1.0.75
 
 ### Patch Changes

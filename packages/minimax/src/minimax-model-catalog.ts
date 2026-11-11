@@ -8,10 +8,23 @@ import type {
   MiniMaxLanguageModelChatOptions,
   MiniMaxLanguageModelOptions,
 } from './minimax-chat-language-model-options';
+import type { MiniMaxImageModelOptions } from './minimax-image-model-options';
 import type { MiniMaxVideoModelOptions } from './minimax-video-model-options';
 import { minimaxVideoResolutions } from './minimax-model-catalog-config';
 /** Known options accepted under providerOptions; open-ended extension keys remain undeclared. */
 export const miniMaxProviderOptions = {
+  image: {
+    area: {
+      description: 'Output area: 1K, 2K, or 4K. Use without a pixel size.',
+    },
+    disablePromptEnhanced: {
+      description: 'Disable prompt enhancement for text-to-image requests.',
+    },
+    outputCompression: {
+      description: 'JPEG or WebP compression quality, from 0 to 100.',
+    },
+    outputFormat: { description: 'Output format: JPEG, PNG, or WebP.' },
+  } satisfies Record<keyof MiniMaxImageModelOptions, ProviderOptionDefinition>,
   language: {
     effort: {
       description:
@@ -225,7 +238,34 @@ export function getMiniMaxVideoModelEntry(modelId: string) {
     };
   }>;
 }
+export function getMiniMaxImageModelEntry() {
+  return {
+    capabilities: {
+      image: {
+        fileInput: true,
+        maskInput: false,
+        sizes: {
+          description:
+            '655,360 to 20,000,000 pixels, with aspect ratio from 1:3 to 3:1.',
+        },
+        maxImagesPerCall: 10,
+      },
+    },
+    providerOptions: {
+      image: {
+        area: true,
+        disablePromptEnhanced: { condition: 'Text-to-image requests only.' },
+        outputCompression: { condition: 'JPEG or WebP output only.' },
+        outputFormat: true,
+      },
+    },
+  } as const satisfies ModelEntry;
+}
+
 export const minimaxModelCatalog = Object.fromEntries([
+  ...['MiniMax-H3-Image', 'MiniMax-H3-Image-Highspeed'].map(
+    id => [id, getMiniMaxImageModelEntry()] as const,
+  ),
   ...languageModelIds.map(
     id => [id, getMiniMaxLanguageModelEntry(id)] as const,
   ),

@@ -1,5 +1,26 @@
 # @ai-sdk/rsc
 
+## 3.0.169
+
+### Patch Changes
+
+- 4311fa1: Use the shared schema types for streamUI tools to preserve Zod 3 input inference when multiple Zod versions are installed.
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - @ai-sdk/provider-utils@5.0.79
+  - ai@7.0.169
+
+## 3.0.168
+
+### Patch Changes
+
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+- Updated dependencies [88b9575]
+  - ai@7.0.168
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 3.0.167
 
 ### Patch Changes
