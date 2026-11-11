@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.97
+
+### Patch Changes
+
+- 6309382: Add support for `baseUriDomains` in MCP App CSP metadata.
+
 ## 2.0.96
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 4.0.118
+
+### Patch Changes
+
+- f703361: use the native gemini decisions api for google decision models
+- 540509c: Emit File Search and RAG document sources when streaming. Deduplicate by document URI or File Search store and title so distinct documents with matching titles and filenames are preserved.
+
 ## 4.0.117
 
 ### Patch Changes
