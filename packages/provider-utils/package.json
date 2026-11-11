@@ -50,6 +50,11 @@
       "types": "./dist/experimental-evaluation/index.d.ts",
       "import": "./dist/experimental-evaluation/index.js",
       "default": "./dist/experimental-evaluation/index.js"
+    },
+    "./experimental-extraction": {
+      "types": "./dist/experimental-extraction/index.d.ts",
+      "import": "./dist/experimental-extraction/index.js",
+      "default": "./dist/experimental-extraction/index.js"
     }
   },
   "dependencies": {
