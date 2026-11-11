@@ -61,7 +61,7 @@ function parallelToolCallProviderMetadata(index: number) {
         itemId: 'fc_parallel',
         toolCallId: 'call_parallel',
         toolName: 'parallel',
-        input: PARALLEL_TOOL_CALL_INPUT,
+        ...(index === 0 && { input: PARALLEL_TOOL_CALL_INPUT }),
         index,
         count: 2,
       },
@@ -2151,7 +2151,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
             details:
-              'reasoningEffortUpdate is only supported by GPT-6 and later models',
+              'Configuration updates are only supported by GPT-6 and later models',
           },
         ]);
       });
@@ -2180,7 +2180,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
             details:
-              'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation',
+              'Configuration updates require standard reasoning mode without automatic compaction or automatic truncation',
           },
         ]);
       });

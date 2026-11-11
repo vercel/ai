@@ -5,6 +5,7 @@ import {
   resolveBridgeEndpoint,
   resolveBridgePort,
   validateBridgeSandboxSettings,
+  warnMintBridgeTokenIgnored,
 } from './bridge-endpoint';
 
 function createNetworkSandboxSession({
@@ -38,10 +39,8 @@ describe('validateBridgeSandboxSettings', () => {
     expect(() =>
       validateBridgeSandboxSettings({
         sandboxSession: createNetworkSandboxSession(),
-        sandboxId: 'sandbox-1',
         portOverride: undefined,
         portEndpointOverride: undefined,
-        mintBridgeToken: undefined,
       }),
     ).not.toThrow();
   });
@@ -50,10 +49,8 @@ describe('validateBridgeSandboxSettings', () => {
     const error = captureError(() =>
       validateBridgeSandboxSettings({
         sandboxSession: basicSandboxSession,
-        sandboxId: undefined,
         portOverride: undefined,
         portEndpointOverride: { url: 'wss://example' },
-        mintBridgeToken: undefined,
       }),
     );
 
@@ -67,32 +64,13 @@ describe('validateBridgeSandboxSettings', () => {
     const error = captureError(() =>
       validateBridgeSandboxSettings({
         sandboxSession: basicSandboxSession,
-        sandboxId: undefined,
         portOverride: 4000,
         portEndpointOverride: undefined,
-        mintBridgeToken: undefined,
       }),
     );
 
     expect((error as Error).message).toMatchInlineSnapshot(
       `"The harness requires an explicit \`portEndpoint\` setting when using a basic sandbox session."`,
-    );
-  });
-
-  it('requires a sandbox id when mintBridgeToken is set', () => {
-    const error = captureError(() =>
-      validateBridgeSandboxSettings({
-        sandboxSession: basicSandboxSession,
-        sandboxId: undefined,
-        portOverride: 4000,
-        portEndpointOverride: { url: 'wss://example' },
-        mintBridgeToken: () => 'token',
-      }),
-    );
-
-    expect(error).toBeInstanceOf(HarnessCapabilityUnsupportedError);
-    expect((error as Error).message).toMatchInlineSnapshot(
-      `"The harness cannot use \`mintBridgeToken\` with a sandbox session that does not expose an id."`,
     );
   });
 });
@@ -132,7 +110,7 @@ describe('resolveBridgePort', () => {
 });
 
 describe('resolveBridgeEndpoint', () => {
-  it('resolves the sandbox endpoint and applies the bridge token', async () => {
+  it('resolves the sandbox endpoint without credentials in the URL', async () => {
     const sandboxSession = createNetworkSandboxSession();
 
     await expect(
@@ -140,10 +118,9 @@ describe('resolveBridgeEndpoint', () => {
         sandboxSession,
         port: 4321,
         portEndpointOverride: undefined,
-        token: 'bridge-token',
       }),
     ).resolves.toEqual({
-      url: 'wss://sandbox.example/4321?agent_bridge_token=bridge-token',
+      url: 'wss://sandbox.example/4321',
       headers: { 'x-access-token': 'traffic-token' },
     });
     expect(sandboxSession.getPortEndpoint).toHaveBeenCalledWith({
@@ -152,7 +129,7 @@ describe('resolveBridgeEndpoint', () => {
     });
   });
 
-  it('prefers the portEndpoint setting and keeps its query parameters', async () => {
+  it('prefers the portEndpoint setting as-is', async () => {
     const sandboxSession = createNetworkSandboxSession();
 
     await expect(
@@ -160,10 +137,9 @@ describe('resolveBridgeEndpoint', () => {
         sandboxSession,
         port: 4321,
         portEndpointOverride: { url: 'wss://custom.example/bridge?a=b' },
-        token: 'bridge-token',
       }),
     ).resolves.toEqual({
-      url: 'wss://custom.example/bridge?a=b&agent_bridge_token=bridge-token',
+      url: 'wss://custom.example/bridge?a=b',
     });
     expect(sandboxSession.getPortEndpoint).not.toHaveBeenCalled();
   });
@@ -174,10 +150,41 @@ describe('resolveBridgeEndpoint', () => {
         sandboxSession: basicSandboxSession,
         port: 4321,
         portEndpointOverride: undefined,
-        token: 'bridge-token',
       }),
     ).rejects.toThrow(
       'The harness requires an explicit `portEndpoint` setting when using a basic sandbox session.',
     );
+  });
+});
+
+describe('warnMintBridgeTokenIgnored', () => {
+  it('warns when a mintBridgeToken callback is passed', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      warnMintBridgeTokenIgnored({
+        harnessId: 'codex',
+        mintBridgeToken: () => 'token',
+      });
+
+      expect(warn).toHaveBeenCalledExactlyOnceWith(
+        'The codex harness ignores the deprecated `mintBridgeToken` setting. Sandbox bridge authentication now uses an adapter-generated key pair.',
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('does not warn without a mintBridgeToken callback', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      warnMintBridgeTokenIgnored({
+        harnessId: 'codex',
+        mintBridgeToken: undefined,
+      });
+
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

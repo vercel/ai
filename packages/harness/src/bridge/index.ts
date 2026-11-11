@@ -1,7 +1,7 @@
 // Shared in-sandbox bridge runtime. Adapter `bridge.mjs` bundles re-bundle
 // this module (tsdown inlines it; `ws` stays external and resolves from the
 // sandbox-installed node_modules). It owns everything generic to the bridge
-// transport — the WebSocket server, token auth, the in-memory event log +
+// transport — the WebSocket server, public-key auth, the in-memory event log +
 // monotonic `seq`, resume replay, and the lifecycle/meta files. Any number of
 // hosts may be connected; exactly one of them owns the event stream, and
 // `start`/`resume` transfer that ownership. The adapter supplies only `onStart`
@@ -13,6 +13,11 @@ import { randomUUID } from 'node:crypto';
 import { env as procEnv, pid, stdout } from 'node:process';
 import type { ToolResultPart } from '@ai-sdk/provider-utils';
 import { WebSocketServer, type WebSocket } from 'ws';
+import { BRIDGE_AUTH_PUBLIC_KEY_ENV } from '../utils/bridge-auth-protocol';
+import {
+  authenticateBridgeConnection,
+  parseBridgeAuthPublicKey,
+} from './bridge-auth';
 
 export { HarnessBridgeCapabilityUnsupportedError } from './harness-bridge-capability-unsupported-error';
 export {
@@ -343,8 +348,11 @@ export interface RunBridgeOptions<TStart extends { type: 'start' }> {
   onDestroy?(): void | Promise<void>;
   /** WS port. Defaults to `BRIDGE_WS_PORT` env (0 = OS-assigned). */
   port?: number;
-  /** Auth token. Defaults to `BRIDGE_CHANNEL_TOKEN` env. */
-  token?: string;
+  /**
+   * Base64url-encoded raw Ed25519 public key that verifies host connections.
+   * Defaults to the `BRIDGE_AUTH_PUBLIC_KEY` env.
+   */
+  publicKey?: string;
   /**
    * Abort the running turn when its host disconnects and no host reconnects
    * within this many milliseconds. A host that suspends the turn is exempt.
@@ -414,7 +422,9 @@ export async function runBridge<TStart extends { type: 'start' }>(
     clearTimeout(hostDisconnectTimer);
     hostDisconnectTimer = undefined;
   };
-  const expectedToken = options.token ?? procEnv.BRIDGE_CHANNEL_TOKEN ?? '';
+  const authPublicKey = parseBridgeAuthPublicKey({
+    publicKey: options.publicKey ?? procEnv[BRIDGE_AUTH_PUBLIC_KEY_ENV],
+  });
   const bridgeWsPort =
     options.port ?? parseInt(procEnv.BRIDGE_WS_PORT ?? '0', 10);
 
@@ -1020,13 +1030,15 @@ export async function runBridge<TStart extends { type: 'start' }>(
     options.onListening?.(currentBoundPort);
   });
 
-  wss.on('connection', (ws: WebSocket, req: { url?: string }) => {
-    const url = new URL(req.url ?? '/', 'http://localhost');
-    if (url.searchParams.get('agent_bridge_token') !== expectedToken) {
-      ws.close(1008, 'unauthorized');
-      return;
-    }
+  wss.on('connection', (ws: WebSocket) =>
+    authenticateBridgeConnection({
+      ws,
+      publicKey: authPublicKey,
+      onAuthenticated: () => acceptConnection(ws),
+    }),
+  );
 
+  const acceptConnection = (ws: WebSocket): void => {
     // Announce liveness the instant we accept. Some sandbox runtimes complete
     // the host-side WS handshake before the connection is forwarded here; the
     // host waits for this frame before sending `start`/`resume`.
@@ -1082,7 +1094,7 @@ export async function runBridge<TStart extends { type: 'start' }>(
     ws.on('error', () => {
       // 'close' follows; nothing to do beyond keeping the process alive.
     });
-  });
+  };
 
   // Surface bridge-internal crashes to the host instead of dying silently.
   process.on('uncaughtException', err => {

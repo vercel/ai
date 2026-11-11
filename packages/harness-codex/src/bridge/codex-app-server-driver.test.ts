@@ -392,6 +392,37 @@ describe('Codex app-server runtime lifecycle', () => {
     await runtime.close();
   });
 
+  it('selects model providers on the app-server command line', async () => {
+    const runtime = createCodexAppServerRuntime();
+    await runtime.runTurn(
+      createOptions({
+        codexConfig: {
+          model_provider: 'agent_bridge_openai',
+          model_providers: {
+            agent_bridge_openai: {
+              base_url: 'https://api.openai.com/v1',
+              env_key: 'CODEX_API_KEY',
+            },
+          },
+          model_verbosity: 'low',
+        },
+      }),
+    );
+
+    const client = server.clients[0]!;
+    expect(client.args).toContain('model_provider="agent_bridge_openai"');
+    expect(client.args).toContain(
+      'model_providers={"agent_bridge_openai"={"base_url"="https://api.openai.com/v1","env_key"="CODEX_API_KEY"}}',
+    );
+    const { config: threadConfig } = client.calls.find(
+      call => call.method === 'thread/start',
+    )!.params as { config: Record<string, unknown> };
+    expect(threadConfig).not.toHaveProperty('model_provider');
+    expect(threadConfig).not.toHaveProperty('model_providers');
+    expect(threadConfig.model_verbosity).toBe('low');
+    await runtime.close();
+  });
+
   it('cold-resumes on config, web search, or provider header changes', async () => {
     const runtime = createCodexAppServerRuntime();
     await runtime.runTurn(createOptions());

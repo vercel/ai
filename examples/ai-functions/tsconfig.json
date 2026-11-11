@@ -207,6 +207,9 @@
       "path": "../../packages/sandbox-vercel"
     },
     {
+      "path": "../../packages/tencent"
+    },
+    {
       "path": "../../packages/togetherai"
     },
     {

@@ -1,5 +1,41 @@
 # @ai-sdk/workflow
 
+## 2.0.101
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - @ai-sdk/provider-utils@5.0.79
+  - ai@7.0.169
+
+## 2.0.100
+
+### Patch Changes
+
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+- Updated dependencies [88b9575]
+  - ai@7.0.168
+  - @ai-sdk/provider-utils@5.0.78
+
+## 2.0.99
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+- Updated dependencies [9f37b45]
+- Updated dependencies [404ce3b]
+  - @ai-sdk/provider-utils@5.0.77
+  - ai@7.0.167
+
+## 2.0.98
+
+### Patch Changes
+
+- ai@7.0.166
+
 ## 2.0.97
 
 ### Patch Changes

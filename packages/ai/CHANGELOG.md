@@ -1,5 +1,49 @@
 # ai
 
+## 7.0.169
+
+### Patch Changes
+
+- 4311fa1: Use Zod Mini for internal validation schemas to reduce bundle size while preserving the public message schemas' classic Zod methods, error messages, and compatibility with supported Zod 3 and Zod 4 versions.
+- d9dd2b7: keep the request options when the useChat queue sends a tool approval first, and hold the queue while an async sendAutomaticallyWhen decides
+- Updated dependencies [4311fa1]
+- Updated dependencies [c160b74]
+- Updated dependencies [4311fa1]
+- Updated dependencies [838dd53]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/gateway@4.0.142
+
+## 7.0.168
+
+### Patch Changes
+
+- 65aa669: add experimental_queue to useChat to queue messages sent while a response is in progress
+- 8585d7e: fix(ai): call `toUIMessageStream` `onError` once per invalid tool call
+- Updated dependencies [5497ff7]
+- Updated dependencies [88b9575]
+  - @ai-sdk/gateway@4.0.141
+  - @ai-sdk/provider-utils@5.0.78
+
+## 7.0.167
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+- 404ce3b: Redact OpenAI Code Interpreter and shell domain secrets and MCP credentials from telemetry events and tracing results, including raw request metadata, while preserving provider requests and application results.
+- Updated dependencies [8420810]
+- Updated dependencies [6d65092]
+- Updated dependencies [9f37b45]
+- Updated dependencies [0e869b4]
+  - @ai-sdk/gateway@4.0.140
+  - @ai-sdk/provider-utils@5.0.77
+
+## 7.0.166
+
+### Patch Changes
+
+- Updated dependencies [44db225]
+  - @ai-sdk/gateway@4.0.139
+
 ## 7.0.165
 
 ### Patch Changes
