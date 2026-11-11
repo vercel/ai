@@ -50,12 +50,15 @@ type DeepgramAgentMessage = {
   content?: string;
   description?: string;
   code?: string;
-  functions?: Array<{
-    id?: string;
-    name?: string;
-    arguments?: string;
-    client_side?: boolean;
-  }>;
+  functions?: DeepgramFunctionCall[];
+};
+
+type DeepgramFunctionCall = {
+  id?: string | null;
+  name?: string;
+  arguments?: string;
+  client_side?: boolean;
+  thought_signature?: string | null;
 };
 
 /**
@@ -77,10 +80,32 @@ export class DeepgramRealtimeModel implements RealtimeModelV4 {
   readonly modelId: DeepgramRealtimeModelId;
 
   private readonly config: DeepgramRealtimeModelConfig;
-  private readonly mapper = new DeepgramRealtimeEventMapper();
   // Deepgram accepts `Settings` once per connection and closes the socket on a
   // second one, so later session updates must become `Update*` messages.
   private settingsSent = false;
+  // The function calls of the current connection, by the call ID they were
+  // emitted with. A result has to go back under the ID that Deepgram sent,
+  // together with the thought signature that Gemini models attach to a call.
+  private readonly functionCalls = new Map<
+    string,
+    Pick<DeepgramFunctionCall, 'id' | 'thought_signature'>
+  >();
+  private synthesizedCallIds = 0;
+  private readonly trackFunctionCall = (call: DeepgramFunctionCall): string => {
+    // Deepgram reports the ID `<UNKNOWN>` for every call of some LLMs.
+    const callId =
+      call.id == null || call.id === '' || call.id === '<UNKNOWN>'
+        ? `deepgram-call-${++this.synthesizedCallIds}`
+        : call.id;
+    this.functionCalls.set(callId, {
+      id: call.id,
+      thought_signature: call.thought_signature,
+    });
+    return callId;
+  };
+  private readonly mapper = new DeepgramRealtimeEventMapper(
+    this.trackFunctionCall,
+  );
 
   constructor(
     modelId: DeepgramRealtimeModelId,
@@ -146,7 +171,7 @@ export class DeepgramRealtimeModel implements RealtimeModelV4 {
     url: string;
     protocols: string[];
   } {
-    this.settingsSent = false;
+    this.startConnection();
     // Browsers cannot set handshake headers, so the token travels as a
     // subprotocol. Never put credentials in the URL.
     return { url: options.url, protocols: ['bearer', options.token] };
@@ -158,7 +183,7 @@ export class DeepgramRealtimeModel implements RealtimeModelV4 {
     | RealtimeModelV4ServerConnection
     | PromiseLike<RealtimeModelV4ServerConnection> {
     assertConversationIntent(options);
-    this.settingsSent = false;
+    this.startConnection();
     return resolveWith(this.config.headers, resolved => {
       const headers = removeUndefinedEntries(resolved);
       const credentials = new Headers(headers)
@@ -192,9 +217,15 @@ export class DeepgramRealtimeModel implements RealtimeModelV4 {
   > {
     // A caller that opens its own socket may never ask for a WebSocket config,
     // so a new parser also marks the start of a connection.
-    this.settingsSent = false;
-    const mapper = new DeepgramRealtimeEventMapper();
+    this.startConnection();
+    const mapper = new DeepgramRealtimeEventMapper(this.trackFunctionCall);
     return raw => mapper.parseServerEvent(raw);
+  }
+
+  private startConnection(): void {
+    this.settingsSent = false;
+    this.functionCalls.clear();
+    this.synthesizedCallIds = 0;
   }
 
   serializeClientEvent(
@@ -234,12 +265,10 @@ export class DeepgramRealtimeModel implements RealtimeModelV4 {
                   'Deepgram Voice Agent function call outputs require the function name.',
               });
             }
-            return {
-              type: 'FunctionCallResponse',
-              id: item.callId,
-              name: item.name,
-              content: item.output,
-            };
+            return buildDeepgramFunctionCallResponse(
+              { callId: item.callId, name: item.name, output: item.output },
+              this.functionCalls.get(item.callId),
+            );
         }
         // The agent only takes audio as a live stream, not as a finished clip.
         return null;
@@ -262,11 +291,16 @@ export class DeepgramRealtimeModel implements RealtimeModelV4 {
 }
 
 class DeepgramRealtimeEventMapper {
+  private readonly trackFunctionCall: (call: DeepgramFunctionCall) => string;
   private turnCounter = 0;
   private inputCounter = 0;
   private responseOpen = false;
   private hasAudio = false;
   private transcript = '';
+
+  constructor(trackFunctionCall: (call: DeepgramFunctionCall) => string) {
+    this.trackFunctionCall = trackFunctionCall;
+  }
 
   private get responseId(): string {
     return `deepgram-resp-${this.turnCounter}`;
@@ -349,20 +383,20 @@ class DeepgramRealtimeEventMapper {
       case 'FunctionCallRequest': {
         // Deepgram runs `client_side: false` functions itself.
         const calls = (message.functions ?? []).filter(
-          call =>
-            call.client_side !== false && call.id != null && call.name != null,
+          call => call.client_side !== false && call.name != null,
         );
         if (calls.length === 0) break;
 
         const events = this.beginResponse(raw);
         for (const call of calls) {
+          const callId = this.trackFunctionCall(call);
           const args = call.arguments ?? '{}';
           events.push(
             {
               type: 'function-call-arguments-delta',
               responseId: this.responseId,
               itemId: this.itemId,
-              callId: call.id!,
+              callId,
               delta: args,
               raw,
             },
@@ -370,7 +404,7 @@ class DeepgramRealtimeEventMapper {
               type: 'function-call-arguments-done',
               responseId: this.responseId,
               itemId: this.itemId,
-              callId: call.id!,
+              callId,
               name: call.name!,
               arguments: args,
               raw,
@@ -578,6 +612,23 @@ function buildDeepgramSessionUpdate(
     return { type: 'UpdatePrompt', prompt: config.instructions };
   }
   return null;
+}
+
+function buildDeepgramFunctionCallResponse(
+  result: { callId: string; name: string; output: string },
+  call: Pick<DeepgramFunctionCall, 'id' | 'thought_signature'> | undefined,
+): Record<string, unknown> {
+  // A result for a call that this connection has not seen keeps its call ID.
+  const id = call != null ? call.id : result.callId;
+  return {
+    type: 'FunctionCallResponse',
+    ...(id != null && { id }),
+    name: result.name,
+    content: result.output,
+    ...(call?.thought_signature != null && {
+      thought_signature: call.thought_signature,
+    }),
+  };
 }
 
 function buildDeepgramSpeak(voice: string): Record<string, unknown> {

@@ -634,6 +634,190 @@ describe('DeepgramRealtimeModel', () => {
     });
   });
 
+  describe('function calls', () => {
+    const request = (...functions: Array<Record<string, unknown>>) => ({
+      type: 'FunctionCallRequest',
+      functions: functions.map(call => ({
+        name: 'get_weather',
+        arguments: '{"city":"Paris"}',
+        client_side: true,
+        ...call,
+      })),
+    });
+    const callIds = (
+      events: RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[],
+    ) =>
+      (Array.isArray(events) ? events : [events]).flatMap(event =>
+        event.type === 'function-call-arguments-delta' ||
+        event.type === 'function-call-arguments-done'
+          ? [`${event.type}:${event.callId}`]
+          : [],
+      );
+    const result = (callId: string) =>
+      ({
+        type: 'conversation-item-create',
+        item: {
+          type: 'function-call-output',
+          callId,
+          name: 'get_weather',
+          output: '{"temperature_c":18}',
+        },
+      }) as const;
+
+    it('assigns its own call ID when Deepgram reports <UNKNOWN>', () => {
+      const parse = createModel().createServerEventParser();
+
+      expect(callIds(parse(request({ id: '<UNKNOWN>' })))).toEqual([
+        'function-call-arguments-delta:deepgram-call-1',
+        'function-call-arguments-done:deepgram-call-1',
+      ]);
+    });
+
+    it('gives every <UNKNOWN> call in a connection a distinct ID', () => {
+      const parse = createModel().createServerEventParser();
+
+      expect(callIds(parse(request({ id: '<UNKNOWN>' })))).toEqual([
+        'function-call-arguments-delta:deepgram-call-1',
+        'function-call-arguments-done:deepgram-call-1',
+      ]);
+      expect(callIds(parse(request({ id: '<UNKNOWN>' })))).toEqual([
+        'function-call-arguments-delta:deepgram-call-2',
+        'function-call-arguments-done:deepgram-call-2',
+      ]);
+      expect(
+        callIds(parse(request({ id: '<UNKNOWN>' }, { id: '<UNKNOWN>' }))),
+      ).toEqual([
+        'function-call-arguments-delta:deepgram-call-3',
+        'function-call-arguments-done:deepgram-call-3',
+        'function-call-arguments-delta:deepgram-call-4',
+        'function-call-arguments-done:deepgram-call-4',
+      ]);
+    });
+
+    it('emits calls that arrive without an ID', () => {
+      const parse = createModel().createServerEventParser();
+
+      expect(parse(request({}, { id: null }))).toMatchObject([
+        { type: 'response-created' },
+        { type: 'function-call-arguments-delta', callId: 'deepgram-call-1' },
+        {
+          type: 'function-call-arguments-done',
+          callId: 'deepgram-call-1',
+          name: 'get_weather',
+          arguments: '{"city":"Paris"}',
+        },
+        { type: 'function-call-arguments-delta', callId: 'deepgram-call-2' },
+        { type: 'function-call-arguments-done', callId: 'deepgram-call-2' },
+      ]);
+    });
+
+    it('returns results under the ID that Deepgram sent', () => {
+      const model = createModel();
+      const parse = model.createServerEventParser();
+      parse(request({ id: '<UNKNOWN>' }, {}, { id: 'call_abc' }));
+
+      expect(model.serializeClientEvent(result('deepgram-call-1'))).toEqual({
+        type: 'FunctionCallResponse',
+        id: '<UNKNOWN>',
+        name: 'get_weather',
+        content: '{"temperature_c":18}',
+      });
+      expect(model.serializeClientEvent(result('deepgram-call-2'))).toEqual({
+        type: 'FunctionCallResponse',
+        name: 'get_weather',
+        content: '{"temperature_c":18}',
+      });
+      expect(model.serializeClientEvent(result('call_abc'))).toEqual({
+        type: 'FunctionCallResponse',
+        id: 'call_abc',
+        name: 'get_weather',
+        content: '{"temperature_c":18}',
+      });
+    });
+
+    it.each([
+      ['a Deepgram call ID', 'call_abc', 'call_abc'],
+      ['an <UNKNOWN> call ID', '<UNKNOWN>', 'deepgram-call-1'],
+    ])('returns the thought signature for %s', (_, id, callId) => {
+      const model = createModel();
+      const parse = model.createServerEventParser();
+
+      expect(
+        callIds(parse(request({ id, thought_signature: 'signature-1' }))),
+      ).toEqual([
+        `function-call-arguments-delta:${callId}`,
+        `function-call-arguments-done:${callId}`,
+      ]);
+      expect(model.serializeClientEvent(result(callId))).toEqual({
+        type: 'FunctionCallResponse',
+        id,
+        name: 'get_weather',
+        content: '{"temperature_c":18}',
+        thought_signature: 'signature-1',
+      });
+    });
+
+    it('tracks calls parsed with parseServerEvent', () => {
+      const model = createModel();
+
+      expect(
+        callIds(
+          model.parseServerEvent(
+            request({ id: '<UNKNOWN>', thought_signature: 'signature-1' }),
+          ),
+        ),
+      ).toEqual([
+        'function-call-arguments-delta:deepgram-call-1',
+        'function-call-arguments-done:deepgram-call-1',
+      ]);
+      expect(model.serializeClientEvent(result('deepgram-call-1'))).toEqual({
+        type: 'FunctionCallResponse',
+        id: '<UNKNOWN>',
+        name: 'get_weather',
+        content: '{"temperature_c":18}',
+        thought_signature: 'signature-1',
+      });
+    });
+
+    type Parser = ReturnType<DeepgramRealtimeModel['createServerEventParser']>;
+    it.each([
+      [
+        'a browser connection',
+        (model: DeepgramRealtimeModel, parse: Parser) => {
+          model.getWebSocketConfig({ token: 'token', url: 'wss://example' });
+          return parse;
+        },
+      ],
+      [
+        'a server connection',
+        async (model: DeepgramRealtimeModel, parse: Parser) => {
+          await model.getServerWebSocketConfig();
+          return parse;
+        },
+      ],
+      [
+        'a new event parser',
+        (model: DeepgramRealtimeModel) => model.createServerEventParser(),
+      ],
+    ])('starts over with function calls after %s starts', async (_, start) => {
+      const model = createModel();
+      const first = model.createServerEventParser();
+      first(request({ id: '<UNKNOWN>', thought_signature: 'signature-1' }));
+
+      const parse = await start(model, first);
+
+      expect(callIds(parse(request({})))).toEqual([
+        'function-call-arguments-delta:deepgram-call-1',
+        'function-call-arguments-done:deepgram-call-1',
+      ]);
+      expect(model.serializeClientEvent(result('deepgram-call-1'))).toEqual({
+        type: 'FunctionCallResponse',
+        name: 'get_weather',
+        content: '{"temperature_c":18}',
+      });
+    });
+  });
+
   describe('parseServerEvent', () => {
     it('maps the connection handshake', () => {
       const model = createModel();

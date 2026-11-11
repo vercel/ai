@@ -643,10 +643,13 @@ socket.on('message', (data, isBinary) => {
 The parser keeps track of the agent's current turn. Create one parser per
 connection with `createServerEventParser()` and give it the frames in the
 order they arrive. The returned headers contain your API key, so keep the
-connection settings on your server. Send audio continuously, including
-silence, as an open microphone would; the provider does not send keep-alive
-messages. A complete Node.js example is in
+connection settings on your server. A complete Node.js example is in
 [`basic.ts`](https://github.com/vercel/ai/blob/main/examples/ai-functions/src/realtime/deepgram/basic.ts).
+
+Send audio continuously, including silence, as an open microphone would; the
+provider does not send keep-alive messages. Deepgram ends a connection that
+receives no client message for about 60 seconds, reporting an `error` event
+with the code `CLIENT_MESSAGE_TIMEOUT`.
 
 <Note>
   The browser `experimental_useRealtime` hook cannot drive this model yet. It
@@ -698,7 +701,8 @@ await send({
 - **tools**: functions the agent can call. A call arrives as a
   `function-call-arguments-done` event. Return the result with a
   `conversation-item-create` event that contains a `function-call-output`
-  item, including the function `name`; the agent then speaks its answer.
+  item with the event's `callId` and the function `name`; the agent then
+  speaks its answer.
 - **inputAudioFormat**, **outputAudioFormat**: `audio/pcm` (16-bit
   little-endian, default `24000` Hz), `audio/pcmu`, or `audio/pcma` (default
   `8000` Hz). Output audio is raw, without a container.
@@ -711,8 +715,10 @@ await send({
   regardless of the model's confidence (limited to `500` to `60000` ms);
   `threshold` and `prefixPaddingMs` are ignored. Set `turnDetection` to `null`
   or `{ type: 'disabled' }` to suppress automatic end-of-turn detection, and
-  send an `input-audio-commit` event when the user's turn is complete. Manual
-  turns require a Flux speech-to-text model.
+  send an `input-audio-commit` event when the user's turn is complete. Both
+  need a Flux speech-to-text model: disabling turn detection with another
+  model throws an error, and for an `input-audio-commit` event Deepgram then
+  only sends a warning and the turn does not end.
 
 The following `providerOptions.deepgram` options are available:
 
@@ -738,6 +744,8 @@ Deepgram accepts the session configuration once per connection. Later
 `session-update` events can change the `voice` or add to the `instructions`
 (Deepgram appends the text to the current prompt), one of them per event.
 Updates to any other setting throw an error; open a new connection instead.
+If Deepgram rejects an update, such as an unknown voice, it reports an `error`
+event and closes the connection.
 
 ### Events
 
@@ -756,11 +764,15 @@ The agent's turn is reported as one response:
   an error.
 
 All other agent messages, including warnings, are passed through as `custom`
-events with the Deepgram message type in `rawType`.
+events with the Deepgram message type in `rawType`. Deepgram reports problems
+with the agent's speech as warnings, so a response with the status `completed`
+does not guarantee that the audio matched the text. Watch for `custom` events
+with `rawType: 'Warning'`.
 
 A `conversation-item-create` event with a text message is handled as if the
 user had spoken the text. Deepgram reports it back as a user transcript, so
-it also arrives as an `input-transcription-completed` event.
+it also arrives as an `input-transcription-completed` event, preceded by a
+`speech-started` event.
 
 ### Short-Lived Tokens
 
