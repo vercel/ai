@@ -4,7 +4,10 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { DecisionZirnayModel } from './zirnay-decision-model';
 
 const fixtureResponse = JSON.parse(
-  readFileSync('src/__fixtures__/decision-response.json', 'utf8'),
+  readFileSync(
+    new URL('__fixtures__/decision-response.json', import.meta.url),
+    'utf8',
+  ),
 );
 
 const decisionsUrl = 'https://api.zirnay.com/v1/decisions';

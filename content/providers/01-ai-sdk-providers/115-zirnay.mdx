@@ -125,15 +125,16 @@ const result = await experimental_decide({
 
 ### Provider Metadata
 
-Zirnay responses return detailed calibration, latency, and arbitration metadata:
+Zirnay responses return detailed calibration, latency, and arbitration metadata indexed by question ID:
 
 ```ts
 const metadata = result.providerMetadata?.zirnay;
 
-console.log(metadata?.decisionId); // Unique decision trace ID (for HITL feedback)
-console.log(metadata?.ece); // Expected Calibration Error
-console.log(metadata?.confidenceScore); // Calibrated confidence
-console.log(metadata?.latencyMs); // Server-side inference latency
+console.log(result.response.id); // Unique decision trace ID (for HITL feedback requestId)
+console.log(metadata?.confidence?.['forecastCommit']); // Winning candidate confidence
+console.log(metadata?.calibratedProbability?.['forecastCommit']); // Calibrated probability
+console.log(metadata?.telemetry?.['forecastCommit']?.expectedCalibrationError); // Expected Calibration Error (ECE)
+console.log(metadata?.telemetry?.['forecastCommit']?.latencyMs); // Server-side inference latency
 ```
 
 ## Continuous Learning & HITL Feedback
@@ -142,12 +143,16 @@ Zirnay provides native Human-in-the-Loop (HITL) feedback submission to continuou
 
 ```ts
 await zirnay.submitFeedback({
-  team: 'fraud-ops',
-  model: 'laya-card-auth',
-  decisionId: result.providerMetadata?.zirnay?.decisionId,
-  target: 'APPROVE', // Human-verified ground truth
-  feedbackType: 'override',
-  reviewer: 'analyst_42',
+  teamSlug: 'fraud-ops',
+  modelSlug: 'laya-card-auth',
+  requestId: result.response.id!,
+  actualOutcome: 'APPROVE',
+  feedbackType: 'CORRECTION',
+  reviewer: {
+    reviewerId: 'usr_analyst_42',
+    reviewerRole: 'SUPERVISOR',
+    notes: 'Human-verified valid cardholder transaction',
+  },
 });
 ```
 
@@ -158,7 +163,7 @@ For MLOps pipelines and CI/CD scripts, the `@ai-sdk/zirnay` provider instance ex
 ```ts
 // 1. Register a new model definition
 await zirnay.createModel({
-  team: 'fraud-ops',
+  teamSlug: 'fraud-ops',
   name: 'Cardholder Fraud Reflex Guard',
   slug: 'laya-card-auth',
   engineType: 'laya',
@@ -167,24 +172,34 @@ await zirnay.createModel({
 });
 
 // 2. Upload training dataset (JSONL)
-await zirnay.uploadDataset({
-  team: 'fraud-ops',
-  model: 'laya-card-auth',
-  datasetName: 'fraud-train-v1.jsonl',
-  file: new Blob([datasetContent], { type: 'application/jsonlines' }),
+const dataset = await zirnay.uploadDataset({
+  teamSlug: 'fraud-ops',
+  modelSlug: 'laya-card-auth',
+  filename: 'fraud-train-v1.jsonl',
+  data: jsonlContentString,
+  format: {
+    dataset_name: 'fraud-train-v1.jsonl',
+    target_field: 'is_fraud',
+    fields: [
+      { name: 'amount_cents', datatype: 'integer', role: 'feature' },
+      { name: 'currency', datatype: 'string', role: 'feature' },
+      { name: 'is_fraud', datatype: 'string', role: 'target' },
+    ],
+  },
 });
 
 // 3. Trigger training run
 const training = await zirnay.triggerTraining({
-  team: 'fraud-ops',
-  model: 'laya-card-auth',
-  hyperparameters: { epochs: 10, batch_size: 64 },
+  teamSlug: 'fraud-ops',
+  modelSlug: 'laya-card-auth',
+  datasetId: dataset.datasetId!,
+  hyperparameters: { epochs: 10, batchSize: 64 },
 });
 
 // 4. Activate verified checkpoint
 await zirnay.activateCheckpoint({
-  team: 'fraud-ops',
-  model: 'laya-card-auth',
-  checkpointId: training.checkpointId,
+  teamSlug: 'fraud-ops',
+  modelSlug: 'laya-card-auth',
+  checkpointId: (training.checkpoint_id as string) ?? 'chk_89f02c77',
 });
 ```

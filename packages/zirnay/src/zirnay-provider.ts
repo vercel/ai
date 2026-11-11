@@ -31,7 +31,8 @@ import {
 import { VERSION } from './version';
 
 export interface CreateModelOptions {
-  teamSlug: string;
+  teamSlug?: string;
+  team?: string;
   name: string;
   slug: string;
   engineType: string;
@@ -61,16 +62,20 @@ export interface CreateModelOptions {
 }
 
 export interface UpdateModelConfigOptions {
-  teamSlug: string;
-  modelSlug: string;
+  teamSlug?: string;
+  team?: string;
+  modelSlug?: string;
+  model?: string;
   config: Record<string, unknown>;
   headers?: Record<string, string>;
   abortSignal?: AbortSignal;
 }
 
 export interface DirectDecideOptions {
-  teamSlug: string;
-  modelSlug: string;
+  teamSlug?: string;
+  team?: string;
+  modelSlug?: string;
+  model?: string;
   rawText?: string;
   jsonState?: Record<string, unknown>;
   query?: {
@@ -102,15 +107,25 @@ export interface DirectDecideResponse {
 export interface SubmitFeedbackOptions {
   model?: string;
   teamSlug?: string;
+  team?: string;
   modelSlug?: string;
-  requestId: string;
-  actualOutcome: string | number | boolean;
-  feedbackType: 'CORRECTION' | 'AFFIRMATION' | 'ESCALATION';
-  reviewer?: {
-    reviewerId?: string;
-    reviewerRole?: string;
-    notes?: string;
-  };
+  requestId?: string;
+  decisionId?: string;
+  actualOutcome?: string | number | boolean;
+  target?: string | number | boolean;
+  feedbackType?:
+    | 'CORRECTION'
+    | 'AFFIRMATION'
+    | 'ESCALATION'
+    | 'override'
+    | (string & {});
+  reviewer?:
+    | string
+    | {
+        reviewerId?: string;
+        reviewerRole?: string;
+        notes?: string;
+      };
   metadata?: Record<string, unknown>;
   headers?: Record<string, string>;
   abortSignal?: AbortSignal;
@@ -129,12 +144,16 @@ export interface SubmitFeedbackResponse {
 }
 
 export interface UploadDatasetOptions {
-  teamSlug: string;
-  modelSlug: string;
-  filename: string;
-  data: string;
+  teamSlug?: string;
+  team?: string;
+  modelSlug?: string;
+  model?: string;
+  filename?: string;
+  datasetName?: string;
+  data?: string;
+  file?: string | Blob;
   format?: {
-    dataset_name: string;
+    dataset_name?: string;
     description?: string;
     target_field?: string;
     fields?: Array<{
@@ -159,21 +178,27 @@ export interface UploadDatasetOptions {
 }
 
 export interface TriggerTrainingOptions {
-  teamSlug: string;
-  modelSlug: string;
+  teamSlug?: string;
+  team?: string;
+  modelSlug?: string;
+  model?: string;
   datasetId: string;
   hyperparameters?: {
     epochs?: number;
     learningRate?: number;
     batchSize?: number;
+    batch_size?: number;
+    learning_rate?: number;
   };
   headers?: Record<string, string>;
   abortSignal?: AbortSignal;
 }
 
 export interface ActivateCheckpointOptions {
-  teamSlug: string;
-  modelSlug: string;
+  teamSlug?: string;
+  team?: string;
+  modelSlug?: string;
+  model?: string;
   checkpointId: string;
   headers?: Record<string, string>;
   abortSignal?: AbortSignal;
@@ -314,6 +339,7 @@ export function createZirnay(
 
   const createModel = async ({
     teamSlug,
+    team: teamAlias,
     name,
     slug,
     engineType,
@@ -329,9 +355,13 @@ export function createZirnay(
     headers: requestHeaders,
     abortSignal,
   }: CreateModelOptions) => {
+    const team = teamSlug ?? teamAlias;
+    if (!team) {
+      throw new Error('createModel requires teamSlug (or team).');
+    }
     const resolvedBaseHeaders = await resolve(headers());
     const { value: response } = await postJsonToApi({
-      url: `${baseURL}/teams/${teamSlug}/models`,
+      url: `${baseURL}/teams/${team}/models`,
       headers: combineHeaders(resolvedBaseHeaders, requestHeaders),
       body: {
         name,
@@ -452,14 +482,23 @@ export function createZirnay(
 
   const updateModelConfig = async ({
     teamSlug,
+    team: teamAlias,
     modelSlug,
+    model: modelAlias,
     config,
     headers: requestHeaders,
     abortSignal,
   }: UpdateModelConfigOptions) => {
+    const team = teamSlug ?? teamAlias;
+    const mod = modelSlug ?? modelAlias;
+    if (!team || !mod) {
+      throw new Error(
+        'updateModelConfig requires teamSlug and modelSlug (or team and model).',
+      );
+    }
     const resolvedBaseHeaders = await resolve(headers());
     const { value: response } = await patchJsonToApi({
-      url: `${baseURL}/teams/${teamSlug}/models/${modelSlug}`,
+      url: `${baseURL}/teams/${team}/models/${mod}`,
       headers: combineHeaders(resolvedBaseHeaders, requestHeaders),
       body: config,
       abortSignal,
@@ -474,7 +513,9 @@ export function createZirnay(
 
   const directDecide = async ({
     teamSlug,
+    team: teamAlias,
     modelSlug,
+    model: modelAlias,
     rawText,
     jsonState,
     query,
@@ -483,9 +524,16 @@ export function createZirnay(
     headers: requestHeaders,
     abortSignal,
   }: DirectDecideOptions): Promise<DirectDecideResponse> => {
+    const team = teamSlug ?? teamAlias;
+    const mod = modelSlug ?? modelAlias;
+    if (!team || !mod) {
+      throw new Error(
+        'directDecide requires teamSlug and modelSlug (or team and model).',
+      );
+    }
     const resolvedBaseHeaders = await resolve(headers());
     const { value: response } = await postJsonToApi({
-      url: `${baseURL}/teams/${teamSlug}/models/${modelSlug}/decide`,
+      url: `${baseURL}/teams/${team}/models/${mod}/decide`,
       headers: combineHeaders(resolvedBaseHeaders, requestHeaders),
       body: {
         ...(rawText !== undefined && { raw_text: rawText }),
@@ -535,17 +583,23 @@ export function createZirnay(
   const submitFeedback = async ({
     model,
     teamSlug,
+    team: teamAlias,
     modelSlug,
+    model: modelAlias,
     requestId,
+    decisionId,
     actualOutcome,
-    feedbackType,
+    target,
+    feedbackType = 'CORRECTION',
     reviewer,
     metadata,
     headers: requestHeaders,
     abortSignal,
   }: SubmitFeedbackOptions): Promise<SubmitFeedbackResponse> => {
-    let team = teamSlug;
-    let mod = modelSlug;
+    let team = teamSlug ?? teamAlias;
+    let mod =
+      modelSlug ??
+      (modelAlias && !modelAlias.includes('/') ? modelAlias : undefined);
 
     if ((!team || !mod) && model) {
       const parts = model.split('/');
@@ -566,21 +620,40 @@ export function createZirnay(
       );
     }
 
+    const reqId = requestId ?? decisionId;
+    if (!reqId) {
+      throw new Error('submitFeedback requires a requestId (or decisionId).');
+    }
+
+    const outcome = actualOutcome ?? target;
+    if (outcome === undefined) {
+      throw new Error(
+        'submitFeedback requires actualOutcome (or target ground truth).',
+      );
+    }
+
+    const fbType = feedbackType === 'override' ? 'CORRECTION' : feedbackType;
+
+    const reviewerPayload =
+      typeof reviewer === 'string'
+        ? { reviewer_id: reviewer }
+        : reviewer
+          ? {
+              reviewer_id: reviewer.reviewerId,
+              reviewer_role: reviewer.reviewerRole,
+              notes: reviewer.notes,
+            }
+          : undefined;
+
     const resolvedBaseHeaders = await resolve(headers());
     const { value: response } = await postJsonToApi({
       url: `${baseURL}/teams/${team}/models/${mod}/feedback`,
       headers: combineHeaders(resolvedBaseHeaders, requestHeaders),
       body: {
-        request_id: requestId,
-        actual_outcome: actualOutcome,
-        feedback_type: feedbackType,
-        ...(reviewer && {
-          reviewer: {
-            reviewer_id: reviewer.reviewerId,
-            reviewer_role: reviewer.reviewerRole,
-            notes: reviewer.notes,
-          },
-        }),
+        request_id: reqId,
+        actual_outcome: outcome,
+        feedback_type: fbType,
+        ...(reviewerPayload && { reviewer: reviewerPayload }),
         ...(metadata && { metadata }),
       },
       abortSignal,
@@ -606,22 +679,36 @@ export function createZirnay(
 
   const uploadDataset = async ({
     teamSlug,
+    team: teamAlias,
     modelSlug,
+    model: modelAlias,
     filename,
+    datasetName,
     data,
+    file,
     format,
     validation = 'strict',
     maxRejections = 5000,
     headers: requestHeaders,
     abortSignal,
   }: UploadDatasetOptions) => {
+    const team = teamSlug ?? teamAlias;
+    const mod = modelSlug ?? modelAlias;
+    if (!team || !mod) {
+      throw new Error(
+        'uploadDataset requires teamSlug and modelSlug (or team and model).',
+      );
+    }
+    const fname = filename ?? datasetName ?? 'dataset.jsonl';
+    const payloadData = data ?? (typeof file === 'string' ? file : '');
+
     const resolvedBaseHeaders = await resolve(headers());
     const { value: response } = await postJsonToApi({
-      url: `${baseURL}/teams/${teamSlug}/models/${modelSlug}/datasets/upload`,
+      url: `${baseURL}/teams/${team}/models/${mod}/datasets/upload`,
       headers: combineHeaders(resolvedBaseHeaders, requestHeaders),
       body: {
-        filename,
-        data,
+        filename: fname,
+        data: payloadData,
         format,
         validation,
         max_rejections: maxRejections,
@@ -654,23 +741,33 @@ export function createZirnay(
 
   const triggerTraining = async ({
     teamSlug,
+    team: teamAlias,
     modelSlug,
+    model: modelAlias,
     datasetId,
     hyperparameters,
     headers: requestHeaders,
     abortSignal,
   }: TriggerTrainingOptions) => {
+    const team = teamSlug ?? teamAlias;
+    const mod = modelSlug ?? modelAlias;
+    if (!team || !mod) {
+      throw new Error(
+        'triggerTraining requires teamSlug and modelSlug (or team and model).',
+      );
+    }
     const resolvedBaseHeaders = await resolve(headers());
     const { value: response } = await postJsonToApi({
-      url: `${baseURL}/teams/${teamSlug}/models/${modelSlug}/train`,
+      url: `${baseURL}/teams/${team}/models/${mod}/train`,
       headers: combineHeaders(resolvedBaseHeaders, requestHeaders),
       body: {
         dataset_id: datasetId,
         ...(hyperparameters && {
           hyperparameters: {
             epochs: hyperparameters.epochs,
-            learning_rate: hyperparameters.learningRate,
-            batch_size: hyperparameters.batchSize,
+            learning_rate:
+              hyperparameters.learningRate ?? hyperparameters.learning_rate,
+            batch_size: hyperparameters.batchSize ?? hyperparameters.batch_size,
           },
         }),
       },
@@ -686,14 +783,23 @@ export function createZirnay(
 
   const activateCheckpoint = async ({
     teamSlug,
+    team: teamAlias,
     modelSlug,
+    model: modelAlias,
     checkpointId,
     headers: requestHeaders,
     abortSignal,
   }: ActivateCheckpointOptions) => {
+    const team = teamSlug ?? teamAlias;
+    const mod = modelSlug ?? modelAlias;
+    if (!team || !mod) {
+      throw new Error(
+        'activateCheckpoint requires teamSlug and modelSlug (or team and model).',
+      );
+    }
     const resolvedBaseHeaders = await resolve(headers());
     const { value: response } = await postJsonToApi({
-      url: `${baseURL}/teams/${teamSlug}/models/${modelSlug}/checkpoints/${checkpointId}/activate`,
+      url: `${baseURL}/teams/${team}/models/${mod}/checkpoints/${checkpointId}/activate`,
       headers: combineHeaders(resolvedBaseHeaders, requestHeaders),
       body: {},
       abortSignal,

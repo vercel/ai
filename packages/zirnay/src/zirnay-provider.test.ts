@@ -142,6 +142,26 @@ describe('zirnayProvider', () => {
     expect(res.ingestedToBuffer).toBe(true);
   });
 
+  it('supports alias argument names in submitFeedback and lifecycle methods', async () => {
+    const provider = createZirnay({ apiKey: 'test-key' });
+    const res = await provider.submitFeedback({
+      team: 'fraud-ops',
+      model: 'laya-card-auth',
+      decisionId: 'req_8819d-29384',
+      target: 'APPROVE',
+      feedbackType: 'override',
+      reviewer: 'analyst_42',
+    });
+    expect(res.feedbackId).toBe('fb_77e02b19');
+
+    const updateRes = await provider.updateModelConfig({
+      team: 'fraud-ops',
+      model: 'laya-card-auth',
+      config: { engine_type: 'laya' },
+    });
+    expect(updateRes).toEqual({ status: 'updated' });
+  });
+
   it('uploads a dataset, triggers training, and activates checkpoint', async () => {
     const provider = createZirnay({ apiKey: 'test-key' });
     const uploadRes = await provider.uploadDataset({
