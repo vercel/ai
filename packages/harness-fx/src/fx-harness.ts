@@ -8,6 +8,7 @@ import { z } from 'zod/v4';
 import type { FxAuthenticationMode } from './fx-auth';
 import { fxResumeStateSchema } from './fx-resume-state';
 import { createFxSession } from './fx-session';
+import type { FxSessionStorage } from './fx-session-storage';
 import { VERSION } from './version';
 
 const FX_CLIENT_APP = `ai-sdk-harness-fx/${VERSION}`;
@@ -19,6 +20,12 @@ export type FxHarnessSettings = {
   readonly effort?: string;
   readonly serviceTier?: 'default' | 'fast' | 'ultrafast';
   readonly backend?: 'auto' | 'native' | 'wasm';
+  /**
+   * Caller-provided append-only log for the fx session (see
+   * `FxSessionStorage`). Without it, the lifecycle state holds the whole
+   * session.
+   */
+  readonly sessionStorage?: FxSessionStorage;
 };
 
 const FX_BUILTIN_TOOLS = {

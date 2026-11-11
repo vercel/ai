@@ -9,12 +9,17 @@
 
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { WebSocket } from 'ws';
+import { WebSocket, type RawData } from 'ws';
 import { z } from 'zod/v4';
 import { runBridge, type BridgeHandle, type BridgeTurn } from './index';
 import { SandboxChannel } from '../utils/sandbox-channel';
+import {
+  createBridgeAuthKeyPair,
+  createBridgeAuthProof,
+  parseBridgeAuthPrivateKey,
+} from '../utils/bridge-auth';
 
-const TOKEN = 'replay-token';
+const BRIDGE_AUTH = createBridgeAuthKeyPair();
 const outboundSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('bridge-hello'),
@@ -39,12 +44,10 @@ afterEach(async () => {
 });
 
 function connectTo(port: number): () => Promise<WebSocket> {
-  const url = `ws://127.0.0.1:${port}/?agent_bridge_token=${TOKEN}`;
   return () =>
-    new Promise<WebSocket>((resolve, reject) => {
-      const ws = new WebSocket(url);
-      ws.on('open', () => resolve(ws));
-      ws.on('error', reject);
+    openAuthenticatedBridgeWebSocket({
+      url: `ws://127.0.0.1:${port}/`,
+      privateKey: BRIDGE_AUTH.privateKey,
     });
 }
 
@@ -74,7 +77,7 @@ describe('runBridge disk replay', () => {
       bridgeType: 'test',
       bridgeStateDir,
       port: 0,
-      token: TOKEN,
+      publicKey: BRIDGE_AUTH.publicKey,
       onStart,
       onExit: () => {},
     });
@@ -115,7 +118,7 @@ describe('runBridge disk replay', () => {
       bridgeType: 'test',
       bridgeStateDir,
       port: 0,
-      token: TOKEN,
+      publicKey: BRIDGE_AUTH.publicKey,
       // Would only run for a *new* turn; replay must not invoke it.
       onStart: async () => {
         throw new Error('onStart must not run during replay');
@@ -145,3 +148,43 @@ describe('runBridge disk replay', () => {
     expect(ch2.lastSeenEventId).toBe(4);
   });
 });
+
+/**
+ * Opens a raw bridge WebSocket and answers its authentication challenge.
+ * Resolves right after the proof is sent, so the caller still receives the
+ * `bridge-hello` frame that the bridge sends once the proof is verified.
+ */
+function openAuthenticatedBridgeWebSocket({
+  url,
+  privateKey,
+}: {
+  url: string;
+  privateKey: string;
+}): Promise<WebSocket> {
+  const key = parseBridgeAuthPrivateKey({ privateKey });
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    ws.once('error', reject);
+    ws.once('message', (raw: RawData) => {
+      try {
+        ws.send(
+          createBridgeAuthProof({
+            privateKey: key,
+            message: rawDataToString(raw),
+          }),
+        );
+        ws.off('error', reject);
+        resolve(ws);
+      } catch (error) {
+        ws.terminate();
+        reject(error);
+      }
+    });
+  });
+}
+
+function rawDataToString(raw: RawData): string {
+  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
+  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
+  return Buffer.from(raw).toString('utf8');
+}

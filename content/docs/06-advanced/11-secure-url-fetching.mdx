@@ -62,6 +62,10 @@ When the SDK fetches a URL taken from a provider response, it:
   `.internal` hostnames. Non-`http(s)` schemes are rejected too.
 - **Re-validates every redirect hop** — a URL that passes but then redirects to
   an internal address is blocked; the redirect is never followed blindly.
+- **Rejects HTTPS downgrades on server-side downloads** — a redirect from HTTPS
+  to HTTP is blocked before requesting the insecure target, even when that target
+  matches `trustedOrigin`. Initial HTTP URLs and HTTP-to-HTTPS upgrades remain
+  supported.
 - **Strips risky request headers** — proxy-forwarding, cloud-metadata, and
   cookie headers are removed before the request.
 - **Drops credentials across origins** — caller headers (`Authorization`,
@@ -247,6 +251,23 @@ including framework-internal requests.
 URLs passed through to a model are fetched by that service and are outside the
 local transport's control. Custom tools and other application fetches also need
 their own transport configuration.
+
+### MCP OAuth discovery
+
+MCP OAuth discovery is stricter than other SDK requests. On server runtimes,
+including Node.js, it blocks untrusted authorization-server hosts, redirects,
+token endpoints, and registration endpoints unless you explicitly supply a
+custom fetch with connect-time DNS validation, such as `createGuardedFetch()`
+passed through
+[`transport.fetch`](/docs/ai-sdk-core/mcp-tools#securing-remote-server-urls).
+The runtime's global fetch does not satisfy this requirement, even when passed
+explicitly. The configured MCP server origin and browser window discovery
+remain supported. Browser Web Workers and Service Workers without a DOM also
+require an explicit custom fetch under this strict policy: worker globals alone
+are not sufficient to distinguish them from server workers. Direct callers of
+`fetchWithValidatedEndpoint` can opt into this policy with
+`requireDnsValidation: true`; other download helpers retain their existing
+runtime behavior.
 
 ## Restrict outbound egress at the network layer
 

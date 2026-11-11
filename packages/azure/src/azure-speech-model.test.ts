@@ -123,6 +123,36 @@ describe('API routing', () => {
     ]);
   });
 
+  it('accepts OpenAI options under the azure key on the OpenAI API', async () => {
+    const { provider, request } = setup();
+    const result = await provider.speech('tts-1').doGenerate({
+      text: 'Hello',
+      providerOptions: {
+        openai: { speed: 2 },
+        azure: { instructions: 'Speak calmly', speed: 1.5 },
+      },
+    });
+    expect(JSON.parse(request().body)).toMatchObject({
+      instructions: 'Speak calmly',
+      speed: 1.5,
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('warns about OpenAI-only options on the Speech API', async () => {
+    const { provider, request } = setup();
+    const result = await provider.speech('mai-voice-2').doGenerate({
+      text: 'Hello',
+      providerOptions: { azure: { speed: 1.5 } },
+    });
+    expect(request().url).toBe(speechUrl);
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'providerOptions.azure.speed',
+      details: 'This option requires the OpenAI speech API.',
+    });
+  });
+
   it.each([
     { emotion: 'happy' },
     { api: 'invalid' },

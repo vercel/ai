@@ -28,6 +28,7 @@ export async function fetchWithValidatedEndpoint({
   fetch: customFetch,
   trustedOrigin,
   redirect = 'error',
+  requireDnsValidation = false,
 }: {
   url: string | URL;
   init?: RequestInit;
@@ -38,6 +39,12 @@ export async function fetchWithValidatedEndpoint({
    */
   trustedOrigin?: string;
   redirect?: 'error' | 'manual';
+  /**
+   * Reject untrusted URLs on server runtimes, including Node.js, unless an
+   * explicit custom fetch provides connect-time DNS validation and connection
+   * pinning. The runtime's global fetch does not satisfy this requirement.
+   */
+  requireDnsValidation?: boolean;
 }): Promise<Response> {
   const urlText = url.toString();
   const isTrusted =
@@ -45,6 +52,19 @@ export async function fetchWithValidatedEndpoint({
 
   if (!isTrusted) {
     validateDownloadUrl(urlText);
+
+    if (
+      requireDnsValidation &&
+      (customFetch == null || customFetch === globalThis.fetch) &&
+      // A window alias alone does not distinguish older Deno from a browser.
+      !(isBrowserRuntime() && typeof document !== 'undefined')
+    ) {
+      throw new DownloadError({
+        url: urlText,
+        message:
+          'This server runtime requires a custom fetch with connect-time DNS validation for untrusted URLs',
+      });
+    }
   }
 
   const fetch = customFetch ?? globalThis.fetch;
@@ -63,6 +83,9 @@ export async function fetchWithValidatedEndpoint({
  * on the default `redirect: 'follow'` would issue the request to a redirect
  * target (e.g. an internal address) before we ever see its URL, defeating the
  * guard.
+ *
+ * Manually followed redirects from HTTPS to HTTP are rejected before requesting
+ * the target.
  *
  * Request headers are also protected: {@link sanitizeRequestHeaders} strips
  * proxy/metadata/cookie/hop-by-hop headers before the first request, and all
@@ -168,6 +191,16 @@ export async function fetchWithValidatedRedirects({
       // the cloned branch is consumed.
       void cancelResponseBody(response);
       const nextUrl = new URL(location, currentUrl).toString();
+
+      if (
+        new URL(currentUrl).protocol === 'https:' &&
+        new URL(nextUrl).protocol === 'http:'
+      ) {
+        throw new DownloadError({
+          url,
+          message: 'Redirect from HTTPS to HTTP was blocked',
+        });
+      }
 
       // Drop all caller headers except the user-agent before following a
       // redirect that crosses origin. Only stripping Authorization (as the

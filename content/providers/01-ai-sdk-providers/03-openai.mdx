@@ -306,6 +306,13 @@ The following provider options are available:
   Controls the verbosity of the model's response. Lower values result in more concise responses,
   while higher values result in more verbose responses. Defaults to `'medium'`.
 
+- **textFormat** _object_
+  Overrides the request-level `text.format` while keeping `Output` parsing and
+  validation unchanged. Use `{ type: 'text' }` or
+  `{ type: 'json_schema', name, schema, description?, strict? }`. Keep this
+  original format unchanged when replaying message-level `textFormatUpdate`
+  controls. Without this option, the format is derived from `Output` as usual.
+
 - **include** _Array&lt;string&gt;_
   Specifies additional content to include in the response. Supported values:
   `['file_search_call.results']` for including file search results in responses.
@@ -322,6 +329,9 @@ The following provider options are available:
 
 - **promptCacheOptions** _object_
   Configures prompt caching for GPT-5.6 and later models. `mode` can be `'implicit'` or `'explicit'`. `ttl` sets the minimum cache lifetime: `'30m'` (default) or `'12h'`. 12-hour writes are billed at a higher rate, and `usage.raw.input_tokens_details.cache_write_tokens_details` splits cache writes into `ttl_30m_tokens` and `ttl_12h_tokens`. Set `prewarm` to `true` to write the prompt to the cache without generating output. In explicit mode, only content blocks marked with a prompt cache breakpoint are cached.
+  Set `comparisonResponseId` to a recent completed response ID from the same
+  organization to request [cache diagnostics](#cache-diagnostics). This requests
+  a comparison; it does not load the earlier conversation or change caching.
 
 - **promptCacheRetention** _'in_memory' | '24h'_
   The legacy retention policy for models before GPT-5.6. Set to `'24h'` to enable extended prompt caching on supported models. For GPT-5.6 and later models, use `promptCacheOptions.ttl` instead.
@@ -376,6 +386,149 @@ The following OpenAI-specific metadata may be returned:
   Service tier information returned by the API.
 - **reasoningContext** _(optional)_
   Effective persisted-reasoning context returned by GPT-5.6 (`'current_turn'` or `'all_turns'`).
+- **promptCacheDiagnostics** _(optional)_
+  Cache comparison result. Contains `type` and, when supplied by OpenAI, `reason`,
+  `cache_missed_tokens`, and `comparison_reusable_tokens`. Inner field names match
+  the API response. Available on generation, streaming, and batch results.
+
+#### Preserving Reasoning Across Turns
+
+OpenAI may drop reasoning items after edits to the context that precedes them.
+This can increase reasoning token usage and reduce output quality. Preserve the
+original request settings and history, and append changes where possible:
+
+- Use positioned configuration updates for [reasoning effort](#changing-reasoning-effort-mid-conversation)
+  and [response formats](#changing-response-formats-mid-conversation).
+- Keep tool definitions stable. Use `allowedTools` or `toolChoice` to restrict
+  calls; `activeTools` changes the request's tool definitions. To add function
+  tools after a tool result, use [additional tools](#load-tools-after-an-ordinary-tool-result).
+- Append trusted system messages with `allowSystemInMessages: true` for updated
+  developer instructions, instead of replacing earlier instructions. Reasoning
+  models map these to the developer role by default.
+- Truncate tool results and downsize images or files before first sending them.
+  Editing earlier results or pruning historical messages changes the prefix.
+- Prefer [OpenAI compaction](#compaction-1) when supported. With custom compaction,
+  place summary items as late in the context as possible to limit reasoning loss.
+  Configuration updates have the [compaction restrictions](#compaction) below.
+
+See [OpenAI's preserved reasoning guide](https://developers.openai.com/api/docs/guides/preserved-reasoning).
+
+#### Changing Response Formats Mid-Conversation
+
+Append an empty system message with `providerOptions.openai.textFormatUpdate`
+to change the model's response format at that position. It emits a
+`configuration_update` input item and accepts the same format shape as
+request-level `textFormat`. Keep the original request-level `textFormat` on
+every call, and use `Output.object` with the current schema to parse and validate
+the response:
+
+<Note>
+  If the first turn already uses `Output.object`, set `textFormat` to that
+  initial JSON schema format from the first call and keep it unchanged on later
+  calls. For an existing conversation that began without `textFormat`, match
+  the originally emitted `text.format` exactly, including the schema, its
+  normalization, the name (default `'response'`), strictness (default `true`),
+  and any description. Switching such a conversation to `{ type: 'text' }`
+  changes its prefix. The example below starts with plain text, so its original
+  format is `{ type: 'text' }`.
+</Note>
+
+```ts
+import {
+  openai,
+  type OpenAIResponsesSystemMessageOptions,
+} from '@ai-sdk/openai';
+import { generateText, Output, zodSchema, type ModelMessage } from 'ai';
+import type { JSONValue } from '@ai-sdk/provider';
+import { z } from 'zod/v4';
+
+const model = openai.responses('gpt-6-astra');
+const providerOptions = {
+  openai: { store: false, textFormat: { type: 'text' as const } },
+};
+const messages: ModelMessage[] = [
+  { role: 'user', content: 'Summarize 17 red crates and 26 blue crates.' },
+];
+const first = await generateText({ model, messages, providerOptions });
+const schema = z.object({ totalCrates: z.number().int() });
+
+messages.push(
+  ...first.responseMessages,
+  {
+    role: 'system',
+    content: '',
+    providerOptions: {
+      openai: {
+        textFormatUpdate: {
+          type: 'json_schema',
+          name: 'crate_count',
+          strict: true,
+          schema: (await zodSchema(schema).jsonSchema) as Record<
+            string,
+            JSONValue
+          >,
+        },
+      } satisfies OpenAIResponsesSystemMessageOptions,
+    },
+  },
+  { role: 'user', content: 'How many crates are there altogether?' },
+);
+
+const second = await generateText({
+  model,
+  messages,
+  allowSystemInMessages: true,
+  providerOptions,
+  output: Output.object({ schema }),
+});
+console.log(second.output);
+messages.push(...second.responseMessages);
+```
+
+Replay all earlier update messages in their original positions. To return to
+plain text, append `textFormatUpdate: { type: 'text' }` and omit `Output.object`
+on that call. For schema-to-schema changes, append the new schema and use the
+matching `Output.object` while keeping the original `textFormat` unchanged.
+`textFormat` overrides the wire format, so it must agree with the effective
+format after all updates; `Output` still validates against its own schema.
+
+These controls also work with `streamText` and `previousResponseId`, and share
+the [reasoning update restrictions](#restrictions). Combine `textFormatUpdate`
+and `reasoningEffortUpdate` in one empty system message to change both settings;
+consecutive configuration updates are rejected. After explicit compaction,
+append a fresh update with the desired format and effort.
+
+Omit request-level `reasoningEffortUpdate` when using message-level format
+updates. It prepends an effort update and would create an invalid consecutive
+pair if the input starts with a format update. Combine the changes in one empty
+system message instead; earlier history is never merged or rewritten for you.
+
+#### Cache Diagnostics
+
+Set `providerOptions.openai.promptCacheOptions.comparisonResponseId` to compare
+the current request with an earlier response:
+
+```ts
+const result = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  messages,
+  providerOptions: {
+    openai: {
+      promptCacheOptions: { comparisonResponseId: previousResponse.id },
+    },
+  },
+});
+console.log(result.providerMetadata?.openai?.promptCacheDiagnostics);
+```
+
+For streams, await `result.providerMetadata` after consuming the stream.
+Diagnostic types include `cache_hit`, `cache_miss`,
+`comparison_response_not_found`, and `unavailable`. Diagnostics are best effort:
+missing or unavailable diagnostics do not fail the generation. A `cache_hit`
+means no miss was detected for that comparison; it does not prove reasoning
+retention or that all input tokens were cached. Use
+`result.usage.inputTokenDetails.cacheReadTokens` to measure reported cache reuse.
+See [OpenAI's cache diagnostics guide](https://developers.openai.com/api/docs/guides/prompt-caching/diagnostics).
 
 #### Changing Reasoning Effort Mid-Conversation
 
@@ -2005,6 +2158,47 @@ message into `result.output`. This prevents commentary or repeated final answers
 from being joined into invalid JSON. The returned `text`, `content`, response
 messages, and token usage still include the complete response as before.
 
+#### Refusals
+
+The Responses API can answer a request with a `refusal` content part instead of
+`output_text`. The provider surfaces the refusal explanation as text, and
+reports a `content-filter` finish reason in both `generateText` and
+`streamText`. When the same response also contains a client-side function call,
+the finish reason is `tool-calls` instead, so the tools are still executed; the
+refusal text remains part of the content.
+
+Refusal content parts mainly appear with structured outputs (`Output.object` or
+a JSON schema passed to the model). With structured output, a refusal means no
+object can be generated: `generateText` throws `NoObjectGeneratedError` with the
+refusal text on `error.text` and `error.finishReason` set to `'content-filter'`.
+
+```ts
+import { NoObjectGeneratedError, Output, generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+try {
+  await generateText({
+    model: openai.responses('gpt-4o'),
+    output: Output.object({
+      schema: z.object({ steps: z.array(z.string()) }),
+    }),
+    prompt: '...',
+  });
+} catch (error) {
+  if (NoObjectGeneratedError.isInstance(error)) {
+    // the model's refusal explanation
+    console.log(error.text);
+    // 'content-filter'
+    console.log(error.finishReason);
+  }
+}
+```
+
+Without structured output, the model may still decline in plain text. Such a
+response arrives as ordinary text with a `stop` finish reason, so check the text
+in your application if you need to detect declines.
+
 #### Typed providerMetadata in Text Parts
 
 When using the OpenAI Responses API, the SDK attaches OpenAI-specific metadata to output parts via `providerMetadata`.
@@ -2704,6 +2898,33 @@ For example, optional schema properties are not supported.
 You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
 
 </Note>
+
+#### Refusals
+
+Refusals mainly happen when you request structured outputs. When OpenAI declines
+a request, the provider surfaces the refusal explanation as text and reports a
+`content-filter` finish reason in both `generateText` and `streamText`:
+
+```ts
+const { text, finishReason } = await generateText({
+  model: openai.chat('gpt-4o'),
+  prompt: '...',
+});
+
+if (finishReason === 'content-filter') {
+  // `text` contains the model's refusal explanation
+}
+```
+
+When you request structured output, a refusal means that no object can be
+generated: `generateText` throws `NoObjectGeneratedError` with the refusal text
+on `error.text`.
+
+When you request logprobs, `providerMetadata.openai.logprobs` contains the
+logprobs of all emitted tokens: the content logprobs first, followed by the
+refusal logprobs. This is the same for `generateText` and `streamText`; with
+`streamText`, the logprobs of all streamed tokens are reported when the stream
+finishes.
 
 #### Logprobs
 

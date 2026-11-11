@@ -15,6 +15,7 @@ type AnthropicLanguageProviderOption = keyof AnthropicLanguageModelOptions;
  */
 export const anthropicProviderOptions = {
   language: {
+    thread: { description: 'Create or continue a short-lived message thread.' },
     sendReasoning: { description: 'Whether to send reasoning to the model.' },
     includePings: { description: 'Include transient ping events in streams.' },
     structuredOutputMode: {
@@ -180,7 +181,9 @@ const runtimeRules: readonly {
     }),
   },
   {
-    matches: modelId => modelId.includes('claude-fable-5-1'),
+    matches: modelId =>
+      modelId.includes('claude-fable-5-2') ||
+      modelId.includes('claude-fable-5-1'),
     definition: defineRuntime({
       ...currentClaudeWithoutSampling,
       thinkingCanBeDisabled: false,
@@ -251,6 +254,7 @@ const documentedModels: Readonly<Record<string, DocumentedCapabilities>> = {
   'claude-sonnet-5-5': { toolSearch: true, compaction: true, effort: true },
   'claude-sonnet-5': { toolSearch: true, compaction: true, effort: true },
   'claude-haiku-5-5': { toolSearch: true, compaction: true, effort: true },
+  'claude-fable-5-2': { toolSearch: true, compaction: true, effort: true },
   'claude-fable-5-1': { toolSearch: true, compaction: true, effort: true },
   'claude-fable-5': { toolSearch: true, compaction: true, effort: true },
   'claude-opus-4-8': { toolSearch: true, compaction: true, effort: true },
@@ -406,3 +410,6 @@ export function getAnthropicModelCapabilities(modelId: string) {
     isKnownModel: requestConfig.knownModel,
   };
 }
+
+// Compatibility name also exported by the Anthropic runtime adapter.
+export { getAnthropicModelCapabilities as getModelCapabilities };

@@ -39,6 +39,9 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
   | 'status'
   | 'messages'
   | 'clearError'
+  | 'experimental_queuedMessages'
+  | 'experimental_removeQueuedMessage'
+  | 'experimental_sendQueuedMessageNow'
 >;
 
 export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
@@ -161,6 +164,7 @@ type ChatSnapshot<UI_MESSAGE extends UIMessage> = {
   messages: UI_MESSAGE[];
   status: Chat<UI_MESSAGE>['status'];
   error: Error | undefined;
+  experimental_queuedMessages: UI_MESSAGE[];
 };
 
 function readChatSnapshot<UI_MESSAGE extends UIMessage>(
@@ -171,6 +175,7 @@ function readChatSnapshot<UI_MESSAGE extends UIMessage>(
     messages: chat.messages,
     status: chat.status,
     error: chat.error,
+    experimental_queuedMessages: chat.experimental_queuedMessages,
   };
 }
 
@@ -182,7 +187,8 @@ function equalChatSnapshots<UI_MESSAGE extends UIMessage>(
     current.chat === next.chat &&
     current.messages === next.messages &&
     current.status === next.status &&
-    current.error === next.error
+    current.error === next.error &&
+    current.experimental_queuedMessages === next.experimental_queuedMessages
   );
 }
 
@@ -308,6 +314,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       chat['~registerMessagesCallback'](publishSnapshot, throttleWaitMs),
       chat['~registerStatusCallback'](publishSnapshot),
       chat['~registerErrorCallback'](publishSnapshot),
+      chat['~registerQueuedMessagesCallback'](publishSnapshot),
     ];
 
     // Catch changes between render and subscription, including updates that
@@ -323,7 +330,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     };
   }, [chat, throttleWaitMs]);
 
-  const { messages, status, error } = snapshot;
+  const { messages, status, error, experimental_queuedMessages } = snapshot;
 
   const setMessages = useCallback(
     (
@@ -365,5 +372,8 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     addToolResult: chat.addToolOutput,
     addToolOutput: chat.addToolOutput,
     addToolApprovalResponse: chat.addToolApprovalResponse,
+    experimental_queuedMessages,
+    experimental_removeQueuedMessage: chat.experimental_removeQueuedMessage,
+    experimental_sendQueuedMessageNow: chat.experimental_sendQueuedMessageNow,
   };
 }

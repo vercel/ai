@@ -1,3 +1,4 @@
+import { getDeepInfraImageModelEntry } from './deepinfra-model-catalog';
 import type {
   ImageModelV4,
   ImageModelV4File,
@@ -39,23 +40,15 @@ interface DeepInfraImageModelConfig {
 
 export class DeepInfraImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 1;
+  get maxImagesPerCall() {
+    return getDeepInfraImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
+  }
 
   get supportsFileInputs(): boolean | undefined {
-    return [
-      'stabilityai/sd3.5',
-      'black-forest-labs/FLUX-1.1-pro',
-      'black-forest-labs/FLUX-1-schnell',
-      'black-forest-labs/FLUX-1-dev',
-      'black-forest-labs/FLUX-pro',
-      'black-forest-labs/FLUX.1-Kontext-dev',
-      'black-forest-labs/FLUX.1-Kontext-pro',
-      'Qwen/Qwen-Image-Edit',
-      'stabilityai/sd3.5-medium',
-      'stabilityai/sdxl-turbo',
-    ].includes(this.modelId)
-      ? true
-      : undefined;
+    const support = getDeepInfraImageModelEntry(this.modelId).capabilities.image
+      .fileInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get supportsMaskInputs(): boolean | undefined {

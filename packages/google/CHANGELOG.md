@@ -1,5 +1,58 @@
 # @ai-sdk/google
 
+## 4.0.118
+
+### Patch Changes
+
+- f703361: use the native gemini decisions api for google decision models
+- 540509c: Emit File Search and RAG document sources when streaming. Deduplicate by document URI or File Search store and title so distinct documents with matching titles and filenames are preserved.
+
+## 4.0.117
+
+### Patch Changes
+
+- c160b74: Add support for the `gemini-4-carbon` model with the same capabilities as `gemini-4-argon`.
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 4.0.116
+
+### Patch Changes
+
+- 45337f0: Preserve the served service tier from the `x-gemini-service-tier` response header when usage metadata omits it, for generated and streamed responses.
+- 304dec5: Apply contiguous array-index validation to dotted numeric paths in streamed tool arguments, while preserving numeric object keys and valid contiguous array updates.
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 4.0.115
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 4.0.114
+
+### Patch Changes
+
+- 6400cf8: Add `resolveProviderOptions` to parse provider options that a model accepts under several `providerOptions` keys, either as aliases (`first`) or merged in order (`merge`), and use it for the existing multi-key lookups in the OpenAI, OpenAI-compatible, Anthropic, Google, and Amazon Bedrock models. Resolution behavior for these models is unchanged.
+- a210a29: Pass `providerOptions.google.labels` through to Google and Vertex AI Interactions requests, including streaming, so callers can attach request metadata such as `safety_identifier`.
+- 32dc1d2: Omit Google provider-defined tools, including File Search and Vertex RAG Store, when `toolChoice` is `none` so disabled tools cannot retrieve data or execute server-side. Preserve function declarations needed by conversation history while disabling function calling. This also applies when structured output uses a synthetic JSON response tool.
+- 26fc2a9: skip streamed tool-call array indexes that leave a gap so a small response can't build a huge sparse array
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 4.0.113
+
+### Patch Changes
+
+- 27a8a77: Refactor Google Vertex model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export Google catalog metadata internally for Vertex to reuse. Request behavior is unchanged.
+
 ## 4.0.112
 
 ### Patch Changes

@@ -239,4 +239,41 @@ describe('doRerank', () => {
       `);
     });
   });
+
+  describe('response without meta', () => {
+    it('should return result with the correct ranking', async () => {
+      server.urls['https://api.cohere.com/v2/rerank'].response = {
+        type: 'json-value',
+        body: {
+          id: 'b44fe75b-e3d3-489a-b61e-1a1aede3ef72',
+          results: [
+            { index: 1, relevance_score: 0.10183054 },
+            { index: 0, relevance_score: 0.03762639 },
+          ],
+        },
+      };
+
+      const result = await model.doRerank({
+        documents: {
+          type: 'text',
+          values: ['sunny day at the beach', 'rainy day in the city'],
+        },
+        query: 'rainy day',
+        topN: 2,
+      });
+
+      expect(result.ranking).toMatchInlineSnapshot(`
+        [
+          {
+            "index": 1,
+            "relevanceScore": 0.10183054,
+          },
+          {
+            "index": 0,
+            "relevanceScore": 0.03762639,
+          },
+        ]
+      `);
+    });
+  });
 });

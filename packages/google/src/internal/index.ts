@@ -9,3 +9,8 @@ export {
 } from '../interactions/google-interactions-language-model';
 export type { GoogleInteractionsModelId } from '../interactions/google-interactions-language-model-options';
 export type { GoogleInteractionsAgentName } from '../interactions/google-interactions-agent';
+
+export {
+  getGoogleLanguageModelEntry,
+  googleProviderOptions,
+} from '../google-model-catalog';

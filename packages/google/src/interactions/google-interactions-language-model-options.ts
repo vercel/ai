@@ -38,6 +38,7 @@ export type GoogleInteractionsModelId =
   | 'gemini-3.7-flash'
   | 'gemini-3.8-flash'
   | 'gemini-4-argon'
+  | 'gemini-4-carbon'
   | 'gemini-nano-banana-2.1'
   | 'lyria-3-clip-preview'
   | 'lyria-3-pro-preview'
@@ -76,6 +77,8 @@ export type GoogleInteractionsVideoOptions = {
 export const googleInteractionsLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
+      /** User-defined request metadata, including `safety_identifier`. */
+      labels: z.record(z.string(), z.string()).nullish(),
       previousInteractionId: z.string().nullish(),
       store: z.boolean().nullish(),
 

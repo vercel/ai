@@ -121,8 +121,11 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
     'anthropic.claude-fable-5-1',
+    'anthropic.claude-fable-5-2',
     'us.anthropic.claude-fable-5-1',
+    'us.anthropic.claude-fable-5-2',
     'global.anthropic.claude-fable-5-1',
+    'global.anthropic.claude-fable-5-2',
   ])('should disable native structured output for %s', modelId => {
     const provider = createAmazonBedrockAnthropic({
       region: 'us-east-1',
@@ -152,8 +155,11 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
     'anthropic.claude-fable-5-1',
+    'anthropic.claude-fable-5-2',
     'us.anthropic.claude-fable-5-1',
+    'us.anthropic.claude-fable-5-2',
     'global.anthropic.claude-fable-5-1',
+    'global.anthropic.claude-fable-5-2',
   ])(
     'should disable strict tools for %s (Bedrock rejects tools[].strict)',
     modelId => {

@@ -1,5 +1,39 @@
 # @ai-sdk/perplexity
 
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 5.0.30
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 5.0.29
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 5.0.28
+
+### Patch Changes
+
+- 7772d0c: Honor `toolChoice: 'none'` by omitting function and native tools, including MCP and connector configurations, and setting `max_tool_calls: 0` to disable preset tools.
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
 ## 5.0.27
 
 ### Patch Changes

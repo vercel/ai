@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -169,7 +169,10 @@ function pickAnthropic({
  * it. The `claude` CLI uses this hook to fetch credentials from password
  * managers and similar tools; mirroring it here lets users with that
  * setup run the harness without having to set `ANTHROPIC_API_KEY`
- * explicitly.
+ * explicitly. It preserves existing helper commands by using `sh` from
+ * PATH when available. If `sh` cannot be found, it uses the system shell:
+ * `/bin/sh` on macOS and Linux, `cmd.exe` on Windows. Only a missing shell
+ * triggers fallback, so a helper that fails is never executed twice.
  */
 function readApiKeyHelper(): string | undefined {
   const home = homedir();
@@ -189,10 +192,27 @@ function readApiKeyHelper(): string | undefined {
   const command = settings.apiKeyHelper;
   if (typeof command !== 'string' || command.length === 0) return undefined;
   try {
-    const output = execFileSync('sh', ['-c', command], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
+    let output: string;
+    try {
+      output = execFileSync('sh', ['-c', command], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        windowsHide: true,
+      });
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        !('code' in error) ||
+        error.code !== 'ENOENT'
+      ) {
+        return undefined;
+      }
+      output = execSync(command, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        windowsHide: true,
+      });
+    }
     const trimmed = output.trim();
     return trimmed.length > 0 ? trimmed : undefined;
   } catch {

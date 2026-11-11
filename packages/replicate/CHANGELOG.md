@@ -1,5 +1,47 @@
 # @ai-sdk/replicate
 
+## 3.0.81
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 3.0.80
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 3.0.79
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 3.0.77
+
+### Patch Changes
+
+- 082d786: Refactor Replicate model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+- 0d47a6c: fix(replicate): cancel abandoned image predictions on abort or poll timeout
+
+  Image generations that were abandoned — the caller aborted via `abortSignal` or polling gave up after `maxPollAttempts` — stopped polling but left the prediction running on Replicate, where it kept consuming compute. The image model now sends a best-effort cancel request to `POST /predictions/{prediction_id}/cancel` in those cases. The cancel URL is built from the configured base URL instead of the response body's `urls.cancel`, so configured credentials are only sent to the provider origin. Cancellation uses only the provider headers, never reuses the aborted signal, is never retried, and never replaces the abort or timeout error.
+
 ## 3.0.76
 
 ### Patch Changes

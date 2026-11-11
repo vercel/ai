@@ -1,5 +1,53 @@
 # @ai-sdk/mcp
 
+## 2.0.97
+
+### Patch Changes
+
+- 6309382: Add support for `baseUriDomains` in MCP App CSP metadata.
+
+## 2.0.96
+
+### Patch Changes
+
+- 6141e6f: fix(mcp): reject with the network error when `server/discover` fails over Streamable HTTP instead of falling back to `initialize` against the same unreachable server
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 2.0.95
+
+### Patch Changes
+
+- 88b9575: Require a DNS-pinned fetch for untrusted MCP OAuth discovery and metadata-derived token/registration URLs on server runtimes without a protected default transport. Preserve developer-configured endpoints and allow explicitly supplied fetch implementations that provide equivalent connect-time validation. Browser workers without a DOM follow the same explicit custom-fetch requirement.
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 2.0.94
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 2.0.93
+
+### Patch Changes
+
+- dc0f7f2: Prevent newly registered OAuth clients from supplying an authorization server binding for existing unbound refresh tokens. Clear unbound tokens before saving new registration information, and stop authorization if they remain in storage.
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 2.0.92
+
+### Patch Changes
+
+- ae13fce: fix(mcp): include the canonical MCP resource in OAuth authorization, code exchange, and refresh requests when protected resource metadata is unavailable or custom resource validation returns undefined, preventing unbound authorization grants.
+
 ## 2.0.91
 
 ### Patch Changes

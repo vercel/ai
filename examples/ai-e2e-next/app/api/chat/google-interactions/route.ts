@@ -12,27 +12,8 @@ import {
 
 export const maxDuration = 30;
 
-function findLatestInteractionId(messages: UIMessage[]): string | undefined {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const message = messages[i];
-    if (message.role !== 'assistant') continue;
-    for (const part of message.parts) {
-      const id = (
-        part as {
-          providerMetadata?: { google?: { interactionId?: unknown } };
-        }
-      ).providerMetadata?.google?.interactionId;
-      if (typeof id === 'string') {
-        return id;
-      }
-    }
-  }
-}
-
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
-
-  const previousInteractionId = findLatestInteractionId(messages);
 
   const result = streamText({
     model: google.interactions('gemini-3.1-flash-image-preview'),
@@ -40,9 +21,11 @@ export async function POST(req: Request) {
     reasoning: 'high',
     providerOptions: {
       google: {
+        // This unauthenticated example sends full history instead of resuming
+        // stored interactions using IDs supplied by the client.
+        store: false,
         responseModalities: ['text', 'image'],
         thinkingSummaries: 'auto',
-        ...(previousInteractionId != null ? { previousInteractionId } : {}),
       } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });

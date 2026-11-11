@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/vue",
-  "version": "4.0.163",
+  "version": "4.0.170",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -53,7 +53,7 @@
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "vitest": "4.1.11",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "vue": "^3.3.4"

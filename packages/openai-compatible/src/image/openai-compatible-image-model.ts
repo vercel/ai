@@ -1,3 +1,4 @@
+import { openaiCompatibleRequestDefaults } from '../openai-compatible-model-catalog';
 import {
   InvalidResponseDataError,
   type ImageModelV4,
@@ -52,7 +53,8 @@ export type OpenAICompatibleImageModelConfig = {
 
 export class OpenAICompatibleImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 10;
+  readonly maxImagesPerCall =
+    openaiCompatibleRequestDefaults.image.maxImagesPerCall;
   readonly supportsFileInputs = undefined;
   readonly supportsMaskInputs = undefined;
 
