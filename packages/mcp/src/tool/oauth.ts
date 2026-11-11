@@ -284,7 +284,7 @@ async function getStoredAuthorizationServerInformation({
   tokens,
 }: {
   provider: OAuthClientProvider;
-  clientInformation: OAuthClientInformation;
+  clientInformation: OAuthClientInformation | undefined;
   tokens?: OAuthTokens;
 }): Promise<OAuthAuthorizationServerInformation | undefined> {
   const tokenAuthorizationServerInformation =
@@ -481,6 +481,7 @@ async function fetchWithCorsRetry(
           fetch: fetchFn,
           trustedOrigin,
           redirect: 'manual',
+          requireDnsValidation: true,
         }),
       headers,
       trustedOrigin,
@@ -1021,6 +1022,7 @@ export async function exchangeAuthorization(
     resource,
     addClientAuthentication,
     fetchFn,
+    trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl),
   }: {
     metadata?: AuthorizationServerMetadata;
     clientInformation: OAuthClientInformation;
@@ -1030,6 +1032,8 @@ export async function exchangeAuthorization(
     resource?: URL;
     addClientAuthentication?: OAuthClientProvider['addClientAuthentication'];
     fetchFn?: FetchFunction;
+    /** Developer-configured origin, never derived from response metadata. */
+    trustedOrigin?: string;
   },
 ): Promise<OAuthTokens> {
   const grantType = 'authorization_code';
@@ -1037,7 +1041,6 @@ export async function exchangeAuthorization(
   const tokenUrl = metadata?.token_endpoint
     ? new URL(metadata.token_endpoint)
     : new URL('/token', authorizationServerUrl);
-  const trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl);
   assertSafeOAuthEndpoint(tokenUrl, {
     allowLoopback: tokenUrl.origin === trustedOrigin,
   });
@@ -1093,6 +1096,7 @@ export async function exchangeAuthorization(
     },
     fetch: fetchFn,
     trustedOrigin,
+    requireDnsValidation: true,
   });
 
   if (!response.ok) {
@@ -1123,6 +1127,7 @@ export async function refreshAuthorization(
     resource,
     addClientAuthentication,
     fetchFn,
+    trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl),
   }: {
     metadata?: AuthorizationServerMetadata;
     clientInformation: OAuthClientInformation;
@@ -1130,6 +1135,8 @@ export async function refreshAuthorization(
     resource?: URL;
     addClientAuthentication?: OAuthClientProvider['addClientAuthentication'];
     fetchFn?: FetchFunction;
+    /** Developer-configured origin, never derived from response metadata. */
+    trustedOrigin?: string;
   },
 ): Promise<OAuthTokens> {
   const grantType = 'refresh_token';
@@ -1149,7 +1156,6 @@ export async function refreshAuthorization(
   } else {
     tokenUrl = new URL('/token', authorizationServerUrl);
   }
-  const trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl);
   assertSafeOAuthEndpoint(tokenUrl, {
     allowLoopback: tokenUrl.origin === trustedOrigin,
   });
@@ -1194,6 +1200,7 @@ export async function refreshAuthorization(
     },
     fetch: fetchFn,
     trustedOrigin,
+    requireDnsValidation: true,
   });
   if (!response.ok) {
     throw await parseErrorResponse(response);
@@ -1214,10 +1221,13 @@ export async function registerClient(
     metadata,
     clientMetadata,
     fetchFn,
+    trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl),
   }: {
     metadata?: AuthorizationServerMetadata;
     clientMetadata: OAuthClientMetadata;
     fetchFn?: FetchFunction;
+    /** Developer-configured origin, never derived from response metadata. */
+    trustedOrigin?: string;
   },
 ): Promise<OAuthClientInformationFull> {
   let registrationUrl: URL;
@@ -1233,7 +1243,6 @@ export async function registerClient(
   } else {
     registrationUrl = new URL('/register', authorizationServerUrl);
   }
-  const trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl);
   assertSafeOAuthEndpoint(registrationUrl, {
     allowLoopback: registrationUrl.origin === trustedOrigin,
   });
@@ -1255,6 +1264,7 @@ export async function registerClient(
     },
     fetch: fetchFn,
     trustedOrigin,
+    requireDnsValidation: true,
   });
 
   if (!response.ok) {
@@ -1544,6 +1554,36 @@ async function authInternal(
     }
   }
 
+  // Resolve the existing token's binding before registration can create a new one.
+  const refreshAuthorizationServerInformation = tokens?.refresh_token
+    ? await getStoredAuthorizationServerInformation({
+        provider,
+        clientInformation,
+        tokens,
+      })
+    : undefined;
+  if (tokens?.refresh_token) {
+    if (refreshAuthorizationServerInformation) {
+      assertAuthorizationServerInformationMatches({
+        storedAuthorizationServerInformation:
+          refreshAuthorizationServerInformation,
+        currentAuthorizationServerInformation,
+      });
+    } else {
+      await provider.invalidateCredentials?.('tokens', {
+        tokens: { ...tokens },
+      });
+      // Do not persist a new binding alongside an unbound token, even if the
+      // optional invalidation hook is missing or leaves tokens in storage.
+      if ((await provider.tokens())?.refresh_token) {
+        throw new MCPClientOAuthError({
+          message:
+            'Stored OAuth tokens without an authorization server binding must be cleared before starting authorization',
+        });
+      }
+    }
+  }
+
   if (!clientInformation) {
     if (authorizationCode !== undefined) {
       throw new Error(
@@ -1564,6 +1604,7 @@ async function authInternal(
         scope: selectedScope,
       },
       fetchFn,
+      trustedOrigin: trustedAuthorizationServerOrigin,
     });
 
     clientInformation = addAuthorizationServerInformationToClientInformation(
@@ -1618,6 +1659,7 @@ async function authInternal(
       resource,
       addClientAuthentication: provider.addClientAuthentication,
       fetchFn: fetchFn,
+      trustedOrigin: trustedAuthorizationServerOrigin,
     });
 
     await provider.saveTokens(
@@ -1630,48 +1672,29 @@ async function authInternal(
   }
 
   /** Refresh only when stored credentials match the current AS pin */
-  if (tokens?.refresh_token) {
-    const storedAuthorizationServerInformation =
-      await getStoredAuthorizationServerInformation({
-        provider,
-        clientInformation,
-        tokens,
-      });
-
-    if (storedAuthorizationServerInformation) {
-      assertAuthorizationServerInformationMatches({
-        storedAuthorizationServerInformation,
-        currentAuthorizationServerInformation,
-      });
-    } else {
-      await provider.invalidateCredentials?.('tokens', {
-        tokens: { ...tokens },
-      });
-    }
-
+  if (tokens?.refresh_token && refreshAuthorizationServerInformation) {
     try {
-      if (storedAuthorizationServerInformation) {
-        if (refreshAttempt) {
-          refreshAttempt.tokens = { ...tokens };
-        }
-        // Attempt to refresh the token
-        const newTokens = await refreshAuthorization(authorizationServerUrl, {
-          metadata,
-          clientInformation,
-          refreshToken: tokens.refresh_token,
-          resource,
-          addClientAuthentication: provider.addClientAuthentication,
-          fetchFn,
-        });
-
-        await provider.saveTokens(
-          addAuthorizationServerInformationToTokens(
-            newTokens,
-            currentAuthorizationServerInformation,
-          ),
-        );
-        return 'AUTHORIZED';
+      if (refreshAttempt) {
+        refreshAttempt.tokens = { ...tokens };
       }
+      // Attempt to refresh the token
+      const newTokens = await refreshAuthorization(authorizationServerUrl, {
+        metadata,
+        clientInformation,
+        refreshToken: tokens.refresh_token,
+        resource,
+        addClientAuthentication: provider.addClientAuthentication,
+        fetchFn,
+        trustedOrigin: trustedAuthorizationServerOrigin,
+      });
+
+      await provider.saveTokens(
+        addAuthorizationServerInformationToTokens(
+          newTokens,
+          currentAuthorizationServerInformation,
+        ),
+      );
+      return 'AUTHORIZED';
     } catch (error) {
       if (
         // If this is a ServerError, or an unknown type, log it out and try to continue. Otherwise, escalate so we can fix things and retry.

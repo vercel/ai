@@ -333,3 +333,60 @@ built from the configured `baseURL` (never from the prediction response), and
 the request carries only the provider's configured headers. It is not retried,
 does not receive the aborted signal, and failures are ignored, so it never
 replaces the abort or timeout error.
+
+## Image Model Capabilities
+
+{/* model-capabilities:replicate-image:start */}
+
+| Model                             | Sizes                                                             | Image Editing | Mask Input | Max Images Per Call |
+| --------------------------------- | ----------------------------------------------------------------- | ------------- | ---------- | ------------------- |
+| `black-forest-labs/flux-fill-pro` | Accepted size or aspect ratio depends on the model and operation. | <Check />     | <Check />  | 1                   |
+| `black-forest-labs/flux-fill-dev` | Accepted size or aspect ratio depends on the model and operation. | <Check />     | <Check />  | 1                   |
+| `black-forest-labs/flux-2-pro`    | Accepted size or aspect ratio depends on the model and operation. | <Check />     | <Cross />  | 8                   |
+| `black-forest-labs/flux-2-dev`    | Accepted size or aspect ratio depends on the model and operation. | <Check />     | <Cross />  | 8                   |
+
+{/* model-capabilities:replicate-image:end */}
+
+## Video Model Capabilities
+
+{/* model-capabilities:replicate-video:start */}
+
+| Model                                                                                                  | Image Input                                   | First Frame | Last Frame | Reference Images | Reference Video | Audio     | Aspect Ratio                                  | Resolution                                    | Duration                                      | FPS                                           | Seed                                          |
+| ------------------------------------------------------------------------------------------------------ | --------------------------------------------- | ----------- | ---------- | ---------------- | --------------- | --------- | --------------------------------------------- | --------------------------------------------- | --------------------------------------------- | --------------------------------------------- | --------------------------------------------- |
+| `minimax/video-01`                                                                                     | Conditional: Supported by the selected model. | <Cross />   | <Cross />  | <Cross />        | <Cross />       | <Cross /> | Conditional: Supported by the selected model. | Conditional: Supported by the selected model. | Conditional: Supported by the selected model. | Conditional: Supported by the selected model. | Conditional: Supported by the selected model. |
+| `minimax/video-01:6c1e4171-288a-4ca2-a738-894f0e87699d`                                                | Conditional: Supported by the selected model. | <Cross />   | <Cross />  | <Cross />        | <Cross />       | <Cross /> | Conditional: Supported by the selected model. | Conditional: Supported by the selected model. | Conditional: Supported by the selected model. | Conditional: Supported by the selected model. | Conditional: Supported by the selected model. |
+| `stability-ai/stable-video-diffusion:3f0457e4619daac51203dedb472816fd4af51f3149fa7a9e0b5ffcf1b8172438` | Conditional: Supported by the selected model. | <Cross />   | <Cross />  | <Cross />        | <Cross />       | <Cross /> | Conditional: Supported by the selected model. | Conditional: Supported by the selected model. | Conditional: Supported by the selected model. | Conditional: Supported by the selected model. | Conditional: Supported by the selected model. |
+
+{/* model-capabilities:replicate-video:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:replicate-provider-options:start */}
+
+| Operation | Option                 | Description                                                                                                                                                                                                                                                                                |
+| --------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| image     | `maxWaitTimeInSeconds` | Maximum time in seconds to wait for the prediction to complete in sync mode. By default, Replicate uses sync mode with a 60-second timeout. - When not specified: Uses default 60-second sync wait (`prefer: wait`) - When set to a positive number: Uses that duration (`prefer: wait=N`) |
+| image     | `pollIntervalMillis`   | Interval in milliseconds between polling attempts when the prediction does not complete within the synchronous wait duration. Defaults to 500 milliseconds.                                                                                                                                |
+| image     | `maxPollAttempts`      | Maximum number of polling attempts before giving up. Defaults to 240 attempts.                                                                                                                                                                                                             |
+| image     | `guidance_scale`       | Guidance scale for classifier-free guidance. Higher values make the output more closely match the prompt.                                                                                                                                                                                  |
+| image     | `num_inference_steps`  | Number of denoising steps. More steps = higher quality but slower.                                                                                                                                                                                                                         |
+| image     | `negative_prompt`      | Negative prompt to guide what to avoid in the generation.                                                                                                                                                                                                                                  |
+| image     | `output_format`        | Output image format.                                                                                                                                                                                                                                                                       |
+| image     | `output_quality`       | Output image quality (1-100). Only applies to jpg and webp.                                                                                                                                                                                                                                |
+| image     | `strength`             | Strength of the transformation for img2img (0-1). Lower values keep more of the original image.                                                                                                                                                                                            |
+| video     | `pollIntervalMs`       | pollIntervalMs                                                                                                                                                                                                                                                                             |
+| video     | `pollTimeoutMs`        | pollTimeoutMs                                                                                                                                                                                                                                                                              |
+| video     | `maxWaitTimeInSeconds` | Maximum time in seconds to wait for the prediction to complete in sync mode. By default, Replicate uses sync mode with a 60-second timeout. - When not specified: Uses default 60-second sync wait (`prefer: wait`) - When set to a positive number: Uses that duration (`prefer: wait=N`) |
+| video     | `guidance_scale`       | Guidance scale for classifier-free guidance. Higher values make the output more closely match the prompt.                                                                                                                                                                                  |
+| video     | `num_inference_steps`  | Number of denoising steps. More steps = higher quality but slower.                                                                                                                                                                                                                         |
+| video     | `motion_bucket_id`     | motion_bucket_id                                                                                                                                                                                                                                                                           |
+| video     | `cond_aug`             | cond_aug                                                                                                                                                                                                                                                                                   |
+| video     | `decoding_t`           | decoding_t                                                                                                                                                                                                                                                                                 |
+| video     | `video_length`         | video_length                                                                                                                                                                                                                                                                               |
+| video     | `sizing_strategy`      | sizing_strategy                                                                                                                                                                                                                                                                            |
+| video     | `frames_per_second`    | frames_per_second                                                                                                                                                                                                                                                                          |
+| video     | `prompt_optimizer`     | prompt_optimizer                                                                                                                                                                                                                                                                           |
+
+{/* model-capabilities:replicate-provider-options:end */}

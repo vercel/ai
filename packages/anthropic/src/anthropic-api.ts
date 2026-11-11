@@ -35,13 +35,26 @@ export interface AnthropicSystemMessage {
  * conversation's tool set without invalidating the prompt cache.
  *
  * Only valid inside system messages that appear in the `messages` array.
- * Requires the `mid-conversation-tool-changes-2026-07-01` beta.
+ * Changes by reference require the `mid-conversation-tool-changes-2026-07-01`
+ * beta. Additions by value (`tool_definition`) require the
+ * `inline-tools-2026-09-15` beta, which also covers changes by reference.
  */
-export interface AnthropicToolChangeContent {
-  type: 'tool_addition' | 'tool_removal';
-  tool: { type: 'tool_reference'; name: string };
-  cache_control?: never;
-}
+export type AnthropicToolChangeContent =
+  | {
+      type: 'tool_addition' | 'tool_removal';
+      tool: { type: 'tool_reference'; name: string };
+      cache_control?: never;
+    }
+  | {
+      type: 'tool_addition';
+      /**
+       * The tool definition, in the same shape as an entry of the top-level
+       * `tools` array. It replaces any earlier definition with the same name
+       * from this point on.
+       */
+      tool: { type: 'tool_definition'; definition: AnthropicTool };
+      cache_control?: never;
+    };
 
 export interface AnthropicUserMessage {
   role: 'user';

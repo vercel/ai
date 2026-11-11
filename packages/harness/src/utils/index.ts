@@ -58,11 +58,13 @@ export {
   type WaitForBridgeReadyOptions,
   type WaitForBridgeReadyResult,
 } from './bridge-ready';
-export { createBridgeToken } from './bridge-token';
+export { BRIDGE_AUTH_PUBLIC_KEY_ENV } from './bridge-auth-protocol';
+export { createBridgeAuthKeyPair, type BridgeAuthKeyPair } from './bridge-auth';
 export {
   resolveBridgeEndpoint,
   resolveBridgePort,
   validateBridgeSandboxSettings,
+  warnMintBridgeTokenIgnored,
 } from './bridge-endpoint';
 export {
   createBridgeWebSocketConnect,
@@ -92,3 +94,4 @@ export {
   convertHarnessToolModelOutput,
   type HarnessToolModelOutputContent,
 } from './convert-harness-tool-model-output';
+export { encodeHarnessPathSegment } from '../v1/harness-session-data-directory-path';

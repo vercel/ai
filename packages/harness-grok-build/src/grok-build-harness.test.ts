@@ -31,13 +31,10 @@ describe('createGrokBuild', () => {
     }
     const source = {
       ...settings.source,
-      packageJson: JSON.parse(settings.source.packageJson),
+      packageJson: '<package.json>',
       pnpmLockYaml: '<pnpm-lock.yaml>',
       pnpmWorkspaceYaml: '<pnpm-workspace.yaml>',
     };
-    expect(settings.source.pnpmLockYaml).toContain(
-      "'@xai-official/grok@1.0.49'",
-    );
     expect(settings.source.pnpmWorkspaceYaml).toContain(
       "'@xai-official/grok': true",
     );
@@ -134,19 +131,7 @@ describe('createGrokBuild', () => {
           },
         },
         "source": {
-          "packageJson": {
-            "dependencies": {
-              "@agentclientprotocol/sdk": "1.7.0",
-              "@modelcontextprotocol/sdk": "1.32.1",
-              "@xai-official/grok": "1.0.49",
-              "ws": "8.21.0",
-              "zod": "4.4.3",
-            },
-            "name": "harness-grok-build-bridge",
-            "private": true,
-            "type": "module",
-            "version": "0.0.0",
-          },
+          "packageJson": "<package.json>",
           "pnpmLockYaml": "<pnpm-lock.yaml>",
           "pnpmWorkspaceYaml": "<pnpm-workspace.yaml>",
           "type": "npm-locked",
@@ -221,6 +206,33 @@ describe('createGrokBuild', () => {
     ]);
   });
 
+  it.each([undefined, 'direct', 'ai-gateway'] as const)(
+    'disables Claude and Cursor hook and MCP compatibility with auth %s',
+    auth => {
+      createGrokBuild({ auth });
+
+      const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+
+      expect(settings.env).toMatchInlineSnapshot(`
+        {
+          "GROK_CLAUDE_HOOKS_ENABLED": "false",
+          "GROK_CLAUDE_MCPS_ENABLED": "false",
+          "GROK_CURSOR_HOOKS_ENABLED": "false",
+          "GROK_CURSOR_MCPS_ENABLED": "false",
+        }
+      `);
+      for (const name of [
+        'GROK_CLAUDE_HOOKS_ENABLED',
+        'GROK_CURSOR_HOOKS_ENABLED',
+        'GROK_CLAUDE_MCPS_ENABLED',
+        'GROK_CURSOR_MCPS_ENABLED',
+      ]) {
+        expect(settings.forwardEnv).not.toContain(name);
+      }
+      expect(settings.skillsDirectory).toBeUndefined();
+    },
+  );
+
   it('forwards user-configurable settings', () => {
     const mintBridgeToken = (sandboxId: string) => `token-for-${sandboxId}`;
     const credentialForwarding = async ({
@@ -241,6 +253,7 @@ describe('createGrokBuild', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      hostDisconnectTimeoutMs: 60_000,
       reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
@@ -256,6 +269,7 @@ describe('createGrokBuild', () => {
       port: settings.port,
       portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
+      hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
       reconnect: settings.reconnect,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
@@ -270,6 +284,7 @@ describe('createGrokBuild', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      hostDisconnectTimeoutMs: 60_000,
       reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,

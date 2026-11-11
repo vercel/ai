@@ -2,6 +2,7 @@ import { once } from 'node:events';
 import type { HarnessV1Diagnostic, HarnessV1StreamPart } from '@ai-sdk/harness';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WebSocketServer, type WebSocket } from 'ws';
+import { createBridgeAuthKeyPair } from '@ai-sdk/harness/utils';
 import { createClaudeCode } from './claude-code-harness';
 
 const cleanups: Array<() => Promise<void>> = [];
@@ -9,6 +10,28 @@ const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => {
   while (cleanups.length > 0) await cleanups.pop()!();
 });
+
+/**
+ * Plays the bridge side of the authentication handshake: sends a challenge and
+ * hands the socket to `handler` once the host answered with its proof.
+ */
+function onAuthenticatedConnection({
+  server,
+  handler,
+}: {
+  server: WebSocketServer;
+  handler: (socket: WebSocket) => void;
+}): void {
+  server.on('connection', socket => {
+    socket.once('message', () => handler(socket));
+    socket.send(
+      JSON.stringify({
+        type: 'bridge-auth-challenge',
+        challenge: 'a'.repeat(64),
+      }),
+    );
+  });
+}
 
 async function createBridgeSession({
   onConnection,
@@ -24,7 +47,7 @@ async function createBridgeSession({
   const address = server.address();
   if (address == null || typeof address === 'string')
     throw new Error('Expected a local port');
-  server.on('connection', onConnection);
+  onAuthenticatedConnection({ server, handler: onConnection });
   cleanups.push(async () => {
     for (const client of server.clients) client.terminate();
     await new Promise<void>((resolve, reject) => {
@@ -104,76 +127,79 @@ async function startTurn({
   const reconnecting = new Promise<void>(resolve => {
     resolveReconnect = resolve;
   });
-  server.on('connection', socket => {
-    const leg = ++legs;
-    const sendHello = () => {
-      socket.send(
-        JSON.stringify({
-          type: 'bridge-hello',
-          state,
-          lastSeq,
-          capabilities: {
-            idempotentStart,
-            experimental_userMessageResponses:
-              submitDuringReconnect || submitBeforeFirstEvent,
-          },
-        }),
-      );
-    };
-    if (leg === 1) disconnectIdle = () => socket.close(1001, 'idle drop');
-    if ((startDuringReconnect || submitDuringReconnect) && leg === 2) {
-      sendReconnectHello = sendHello;
-      resolveReconnect();
-    } else {
-      sendHello();
-    }
-    const finish = () => {
-      state = 'waiting';
-      lastSeq = 1;
-      socket.send(
-        JSON.stringify({
-          type: 'finish',
-          seq: 1,
-          finishReason: { unified: 'stop', raw: 'stop' },
-          totalUsage: { inputTokens: {}, outputTokens: {} },
-        }),
-      );
-    };
-    socket.on('message', raw => {
-      const message = JSON.parse(String(raw)) as {
-        type: string;
-        startId?: string;
-        messageId?: string;
-      };
-      frames.push({ leg, ...message });
-      if (message.type === 'resume' && acceptedIds.size > 0) finish();
-      if (message.type === 'user-message') {
-        if (submitBeforeFirstEvent && leg === 1) return;
-        const accepted = acceptedIds.size > 0;
+  onAuthenticatedConnection({
+    server,
+    handler: socket => {
+      const leg = ++legs;
+      const sendHello = () => {
         socket.send(
           JSON.stringify({
-            type: 'user-message-response',
-            messageId: message.messageId,
-            accepted,
+            type: 'bridge-hello',
+            state,
+            lastSeq,
+            capabilities: {
+              idempotentStart,
+              experimental_userMessageResponses:
+                submitDuringReconnect || submitBeforeFirstEvent,
+            },
           }),
         );
-        if (accepted && state === 'running') finish();
+      };
+      if (leg === 1) disconnectIdle = () => socket.close(1001, 'idle drop');
+      if ((startDuringReconnect || submitDuringReconnect) && leg === 2) {
+        sendReconnectHello = sendHello;
+        resolveReconnect();
+      } else {
+        sendHello();
       }
-      if (message.type !== 'start') return;
-      if (drop && leg === (startDuringReconnect ? 2 : 1)) {
-        if (acceptBeforeDrop) {
-          acceptedIds.add(message.startId!);
-          state = finishBeforeReconnect ? 'waiting' : 'running';
-          lastSeq = finishBeforeReconnect ? 1 : 0;
+      const finish = () => {
+        state = 'waiting';
+        lastSeq = 1;
+        socket.send(
+          JSON.stringify({
+            type: 'finish',
+            seq: 1,
+            finishReason: { unified: 'stop', raw: 'stop' },
+            totalUsage: { inputTokens: {}, outputTokens: {} },
+          }),
+        );
+      };
+      socket.on('message', raw => {
+        const message = JSON.parse(String(raw)) as {
+          type: string;
+          startId?: string;
+          messageId?: string;
+        };
+        frames.push({ leg, ...message });
+        if (message.type === 'resume' && acceptedIds.size > 0) finish();
+        if (message.type === 'user-message') {
+          if (submitBeforeFirstEvent && leg === 1) return;
+          const accepted = acceptedIds.size > 0;
+          socket.send(
+            JSON.stringify({
+              type: 'user-message-response',
+              messageId: message.messageId,
+              accepted,
+            }),
+          );
+          if (accepted && state === 'running') finish();
         }
-        socket.close(1001, 'leg dropped');
-        return;
-      }
-      if (acceptedIds.has(message.startId!)) return;
-      acceptedIds.add(message.startId!);
-      state = 'running';
-      if (!submitDuringReconnect && !submitBeforeFirstEvent) finish();
-    });
+        if (message.type !== 'start') return;
+        if (drop && leg === (startDuringReconnect ? 2 : 1)) {
+          if (acceptBeforeDrop) {
+            acceptedIds.add(message.startId!);
+            state = finishBeforeReconnect ? 'waiting' : 'running';
+            lastSeq = finishBeforeReconnect ? 1 : 0;
+          }
+          socket.close(1001, 'leg dropped');
+          return;
+        }
+        if (acceptedIds.has(message.startId!)) return;
+        acceptedIds.add(message.startId!);
+        state = 'running';
+        if (!submitDuringReconnect && !submitBeforeFirstEvent) finish();
+      });
+    },
   });
   const abort = new AbortController();
   cleanups.push(async () => {
@@ -415,7 +441,7 @@ describe('Claude Code turn start delivery', () => {
           data: {
             bridge: {
               port: 4000,
-              token: 'test',
+              privateKey: createBridgeAuthKeyPair().privateKey,
               lastSeenEventId: 1,
               startId: 'suspended-turn',
             },

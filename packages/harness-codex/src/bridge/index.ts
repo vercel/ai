@@ -40,6 +40,9 @@ const appServer = createCodexAppServerRuntime();
 await runBridge<StartMessage>({
   bridgeType: 'codex',
   bridgeStateDir,
+  ...(args.hostDisconnectTimeoutMs !== undefined
+    ? { hostDisconnectTimeoutMs: args.hostDisconnectTimeoutMs }
+    : {}),
   onStart: runTurn,
   onStop: async () => {
     const data = threadState.id ? { threadId: threadState.id } : {};
@@ -140,7 +143,6 @@ function resolveCodexRuntime({ start }: { start: StartMessage }): CodexRuntime {
       .join('\n\n'),
   };
   if (apiBaseUrl) {
-    codexConfig.preferred_auth_method = 'apikey';
     codexConfig.model_provider = 'agent_bridge_openai';
     codexConfig.model_providers = {
       agent_bridge_openai: {
@@ -177,16 +179,23 @@ function resolveCodexRuntime({ start }: { start: StartMessage }): CodexRuntime {
 function parseArgs(args: string[]): {
   workdir?: string;
   bridgeStateDir?: string;
+  hostDisconnectTimeoutMs?: number;
 } {
   const out: {
     workdir?: string;
     bridgeStateDir?: string;
+    hostDisconnectTimeoutMs?: number;
   } = {};
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--workdir' && i + 1 < args.length) {
       out.workdir = args[++i];
     } else if (args[i] === '--bridge-state-dir' && i + 1 < args.length) {
       out.bridgeStateDir = args[++i];
+    } else if (
+      args[i] === '--host-disconnect-timeout-ms' &&
+      i + 1 < args.length
+    ) {
+      out.hostDisconnectTimeoutMs = Number(args[++i]);
     }
   }
   return out;

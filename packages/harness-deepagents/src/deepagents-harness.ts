@@ -20,7 +20,8 @@ import {
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
-  createBridgeToken,
+  BRIDGE_AUTH_PUBLIC_KEY_ENV,
+  createBridgeAuthKeyPair,
   createBridgeWebSocketConnect,
   resolveSandboxCredentialEnvironment,
   markBridgeStarting,
@@ -37,6 +38,7 @@ import {
   shellQuote,
   validateBridgeSandboxSettings,
   warnCredentialBrokeringUnavailable,
+  warnMintBridgeTokenIgnored,
   waitForBridgeReady,
   writeSkills,
   type SandboxChannelReconnectOptions,
@@ -118,15 +120,22 @@ export type DeepAgentsHarnessSettings = {
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
   /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
+  /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
    * backoff delays. Defaults to 30 seconds with exponential backoff from 50
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
+  // TODO: Remove in the next major version.
   /**
-   * Creates the authentication token used by the sandbox bridge. Defaults to
-   * a random 32-byte hexadecimal token.
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
    */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
   /**
@@ -211,7 +220,7 @@ const DEEPAGENTS_BUILTIN_TOOLS = {
 // Live bridge coordinates returned by doDetach/doSuspendTurn so a later process can reattach.
 const deepAgentsBridgeCoordsSchema = z.object({
   port: z.number(),
-  token: z.string(),
+  privateKey: z.string(),
   lastSeenEventId: z.number(),
   sandboxId: z.string().optional(),
 });
@@ -224,6 +233,10 @@ type DeepAgentsBridgeCoords = z.infer<typeof deepAgentsBridgeCoordsSchema>;
 export function createDeepAgents(
   settings: DeepAgentsHarnessSettings = {},
 ): HarnessV1<typeof DEEPAGENTS_BUILTIN_TOOLS> {
+  warnMintBridgeTokenIgnored({
+    harnessId: 'deepagents',
+    mintBridgeToken: settings.mintBridgeToken,
+  });
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'deepagents',
@@ -240,10 +253,8 @@ export function createDeepAgents(
       const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
       validateBridgeSandboxSettings({
         sandboxSession,
-        sandboxId,
         portOverride: settings.port,
         portEndpointOverride: settings.portEndpoint,
-        mintBridgeToken: settings.mintBridgeToken,
       });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
@@ -341,11 +352,11 @@ export function createDeepAgents(
             sandboxSession,
             port: coords.port,
             portEndpointOverride: settings.portEndpoint,
-            token: coords.token,
           });
           const attachChannel: DeepAgentsChannel = new SandboxChannel({
             connect: createBridgeWebSocketConnect({
               endpoint: attachEndpoint,
+              privateKey: coords.privateKey,
               webSocketConstructor: WebSocket,
             }),
             outboundSchema: outboundMessageSchema,
@@ -362,7 +373,7 @@ export function createDeepAgents(
             thinking: settings.thinking,
             effort: settings.effort,
             bridgePort: coords.port,
-            bridgeToken: coords.token,
+            bridgePrivateKey: coords.privateKey,
             sandboxId,
             sandboxCredentialEnvironment,
             isResume: true,
@@ -384,10 +395,7 @@ export function createDeepAgents(
         sandboxSession,
         portOverride: settings.port,
       });
-      const token =
-        settings.mintBridgeToken == null
-          ? createBridgeToken()
-          : settings.mintBridgeToken(sandboxId!);
+      const bridgeAuth = createBridgeAuthKeyPair();
 
       const forwardedAuthEnvironment = credentialsBrokered
         ? sandboxAuthEnvironment
@@ -408,7 +416,7 @@ export function createDeepAgents(
       const env = {
         ...forwardedAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: DEEPAGENTS_CLIENT_APP,
-        BRIDGE_CHANNEL_TOKEN: token,
+        [BRIDGE_AUTH_PUBLIC_KEY_ENV]: bridgeAuth.publicKey,
         BRIDGE_WS_PORT: String(port),
       };
 
@@ -425,7 +433,7 @@ export function createDeepAgents(
       });
 
       const proc = await toolSafeSandboxSession.spawn({
-        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}${isResume ? ' --resume true' : ''}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --home-dir ${shellQuote(homeDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)}${isResume ? ' --resume true' : ''}${settings.hostDisconnectTimeoutMs !== undefined ? ` --host-disconnect-timeout-ms ${shellQuote(String(settings.hostDisconnectTimeoutMs))}` : ''}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -467,12 +475,12 @@ export function createDeepAgents(
         sandboxSession,
         port: boundPort,
         portEndpointOverride: settings.portEndpoint,
-        token,
       });
 
       const channel: DeepAgentsChannel = new SandboxChannel({
         connect: createBridgeWebSocketConnect({
           endpoint: bridgeEndpoint,
+          privateKey: bridgeAuth.privateKey,
           webSocketConstructor: WebSocket,
           openRetryTimeoutMs: timeoutMs,
           startAbortSignal: startOpts.abortSignal,
@@ -491,7 +499,7 @@ export function createDeepAgents(
         thinking: settings.thinking,
         effort: settings.effort,
         bridgePort: boundPort,
-        bridgeToken: token,
+        bridgePrivateKey: bridgeAuth.privateKey,
         sandboxId,
         sandboxCredentialEnvironment,
         isResume,
@@ -515,7 +523,7 @@ function createSession({
   thinking,
   effort,
   bridgePort,
-  bridgeToken,
+  bridgePrivateKey,
   sandboxId,
   sandboxCredentialEnvironment,
   isResume,
@@ -535,7 +543,7 @@ function createSession({
   thinking: DeepAgentsThinkingConfig | undefined;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   bridgePort: number;
-  bridgeToken: string;
+  bridgePrivateKey: string;
   sandboxId: string | undefined;
   sandboxCredentialEnvironment: Record<string, string> | undefined;
   isResume: boolean;
@@ -776,7 +784,7 @@ function createSession({
             : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
-            token: bridgeToken,
+            privateKey: bridgePrivateKey,
             lastSeenEventId,
             ...(sandboxId == null ? {} : { sandboxId }),
           },
@@ -803,7 +811,7 @@ function createSession({
             : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
-            token: bridgeToken,
+            privateKey: bridgePrivateKey,
             lastSeenEventId,
             ...(sandboxId == null ? {} : { sandboxId }),
           },
