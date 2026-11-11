@@ -176,7 +176,7 @@ const dataset = await zirnay.uploadDataset({
   teamSlug: 'fraud-ops',
   modelSlug: 'laya-card-auth',
   filename: 'fraud-train-v1.jsonl',
-  data: jsonlContentString,
+  data: '{"amount_cents": 4200, "currency": "USD", "is_fraud": "DECLINE"}\n',
   format: {
     dataset_name: 'fraud-train-v1.jsonl',
     target_field: 'is_fraud',
@@ -196,10 +196,10 @@ const training = await zirnay.triggerTraining({
   hyperparameters: { epochs: 10, batchSize: 64 },
 });
 
-// 4. Activate verified checkpoint
+// 4. Activate verified checkpoint in production
 await zirnay.activateCheckpoint({
   teamSlug: 'fraud-ops',
   modelSlug: 'laya-card-auth',
-  checkpointId: (training.checkpoint_id as string) ?? 'chk_89f02c77',
+  checkpointId: 'chk_89f02c77',
 });
 ```
