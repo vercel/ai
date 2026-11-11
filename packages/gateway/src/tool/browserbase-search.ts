@@ -70,18 +70,16 @@ export type BrowserbaseSearchOutput =
 const browserbaseSearchInputSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      query: z
-        .string()
-        .min(1)
-        .max(200)
-        .describe('Web search query. Must be between 1 and 200 characters.'),
-      num_results: z
-        .number()
-        .int()
-        .min(1)
-        .max(25)
-        .optional()
-        .describe('Maximum number of results to return (1-25, default: 10).'),
+      query: z.describe(
+        z.string().check(z.minLength(1)).check(z.maxLength(200)),
+        'Web search query. Must be between 1 and 200 characters.',
+      ),
+      num_results: z.describe(
+        z.optional(
+          z.number().check(z.int()).check(z.minimum(1)).check(z.maximum(25)),
+        ),
+        'Maximum number of results to return (1-25, default: 10).',
+      ),
     }),
   ),
 );
@@ -97,10 +95,10 @@ const browserbaseSearchOutputSchema = lazySchema(() =>
             id: z.string(),
             title: z.string(),
             url: z.string(),
-            author: z.string().optional(),
-            favicon: z.string().optional(),
-            image: z.string().optional(),
-            publishedDate: z.string().optional(),
+            author: z.optional(z.string()),
+            favicon: z.optional(z.string()),
+            image: z.optional(z.string()),
+            publishedDate: z.optional(z.string()),
           }),
         ),
       }),
@@ -114,7 +112,7 @@ const browserbaseSearchOutputSchema = lazySchema(() =>
           'timeout',
           'unknown',
         ]),
-        statusCode: z.number().optional(),
+        statusCode: z.optional(z.number()),
         message: z.string(),
       }),
     ]),

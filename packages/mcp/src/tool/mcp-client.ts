@@ -762,6 +762,13 @@ class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
         throw error;
       }
 
+      if (
+        this.transport.waitsForProtocolVersionDiscovery &&
+        !MCPClientError.isInstance(error)
+      ) {
+        throw error;
+      }
+
       return false;
     }
   }

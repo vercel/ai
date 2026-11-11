@@ -1,3 +1,4 @@
+import { redactToolDefinition } from './redact-tool-definition';
 import {
   context,
   metrics,
@@ -60,7 +61,6 @@ import {
 } from './gen-ai-format-messages';
 import { stringifyDecisionStateForTelemetry } from './stringify-for-telemetry';
 import { recordErrorOnSpan } from './record-span';
-import { redactToolDefinition } from './redact-tool-definition';
 import { getProviderUsageAttributes } from './provider-usage-attributes';
 import { getServerAttributes } from './server-attributes';
 import { sanitizeAttributes } from './sanitize-attribute-value';

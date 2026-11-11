@@ -4,6 +4,7 @@ export type AmazonBedrockAnthropicModelId =
   | 'anthropic.claude-haiku-5-5'
   | 'anthropic.claude-fable-5'
   | 'anthropic.claude-fable-5-1'
+  | 'anthropic.claude-fable-5-2'
   | 'anthropic.claude-opus-5'
   | 'anthropic.claude-opus-5-5'
   | 'anthropic.claude-opus-4-8'
@@ -28,6 +29,7 @@ export type AmazonBedrockAnthropicModelId =
   | 'us.anthropic.claude-haiku-5-5'
   | 'us.anthropic.claude-fable-5'
   | 'us.anthropic.claude-fable-5-1'
+  | 'us.anthropic.claude-fable-5-2'
   | 'us.anthropic.claude-opus-5'
   | 'us.anthropic.claude-opus-5-5'
   | 'us.anthropic.claude-opus-4-8'
@@ -48,4 +50,5 @@ export type AmazonBedrockAnthropicModelId =
   | 'us.anthropic.claude-3-sonnet-20240229-v1:0'
   | 'us.anthropic.claude-3-haiku-20240307-v1:0'
   | 'global.anthropic.claude-fable-5-1'
+  | 'global.anthropic.claude-fable-5-2'
   | (string & {});

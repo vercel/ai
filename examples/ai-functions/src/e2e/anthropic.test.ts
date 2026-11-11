@@ -18,6 +18,7 @@ createFeatureTestSuite({
       createChatModel('claude-sonnet-4-20250514'),
       createChatModel('claude-haiku-4-5-20251001'),
       createChatModel('claude-haiku-5-5'),
+      createChatModel('claude-fable-5-2'),
     ],
   },
   timeout: 30000,

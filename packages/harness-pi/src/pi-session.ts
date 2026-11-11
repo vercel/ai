@@ -45,6 +45,7 @@ import {
 import {
   getRestrictedSandboxSession,
   convertHarnessToolModelOutput,
+  encodeHarnessPathSegment,
   resolveSandboxHomeDir,
   writeSkills,
 } from '@ai-sdk/harness/utils';
@@ -481,8 +482,12 @@ export async function createPiSession(
   assertPiMcpSettingsSupported(input.settings.mcpSettings);
   const mcpServers = resolvePiMcpServers(input.settings.mcpServers);
 
-  const safeSessionId = input.sessionId.replace(/[\\/: ]/g, '-');
-  const hostRoot = path.join(tmpdir(), 'ai-sdk-harness', 'pi', safeSessionId);
+  const hostRoot = path.join(
+    tmpdir(),
+    'ai-sdk-harness',
+    'pi',
+    encodeHarnessPathSegment(input.sessionId),
+  );
   const hostAgentDir = path.join(hostRoot, 'agent');
   const toolSafeSandboxSession = getRestrictedSandboxSession(
     input.sandboxSession,

@@ -49,6 +49,7 @@ export class HttpMCPTransport implements MCPTransport {
   private inboundSseConnection?: { close: () => void };
   private redirectMode: RequestRedirect;
   private fetchFn: FetchFunction;
+  private customFetch?: FetchFunction;
   private authPromise?: Promise<AuthResult>;
   private onSessionIdChange?: (sessionId: string | undefined) => void;
   private onSessionExpired?: (sessionId: string) => void;
@@ -103,6 +104,7 @@ export class HttpMCPTransport implements MCPTransport {
     this.onSessionExpired = onSessionExpired;
     this.terminateSessionOnClose = terminateSessionOnClose;
     this.fetchFn = fetchFn ?? globalThis.fetch.bind(globalThis);
+    this.customFetch = fetchFn;
   }
 
   setProtocolVersion(version: string): void {
@@ -206,7 +208,7 @@ export class HttpMCPTransport implements MCPTransport {
         serverUrl: this.url,
         resourceMetadataUrl,
         scope,
-        fetchFn: this.fetchFn,
+        fetchFn: this.customFetch,
       }).finally(() => {
         this.authPromise = undefined;
       });

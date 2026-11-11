@@ -1,5 +1,38 @@
 # @ai-sdk/otel
 
+## 1.0.169
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - ai@7.0.169
+
+## 1.0.168
+
+### Patch Changes
+
+- a41a6cf: Restore credential redaction for unannotated OpenAI MCP, Code Interpreter, and shell tool definitions in both OpenTelemetry integrations. This preserves protection for older providers and plain provider tool definitions without changing application or provider arguments.
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+  - ai@7.0.168
+
+## 1.0.167
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+- Updated dependencies [9f37b45]
+- Updated dependencies [404ce3b]
+  - ai@7.0.167
+
+## 1.0.166
+
+### Patch Changes
+
+- 382d0b8: Export the GenAI message and system instruction formatting helpers and their output types for reuse outside the telemetry integration.
+  - ai@7.0.166
+
 ## 1.0.165
 
 ### Patch Changes

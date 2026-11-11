@@ -3,7 +3,7 @@ import { DownloadError } from './download-error';
 import type { FetchFunction } from './fetch-function';
 import { isBrowserRuntime } from './is-browser-runtime';
 import { isSameOrigin } from './is-same-origin';
-import { getDefaultDownloadFetch } from './safe-node-fetch';
+import { getDefaultDownloadFetch, isNodeRuntime } from './safe-node-fetch';
 import { sanitizeRequestHeaders } from './sanitize-request-headers';
 import { validateDownloadUrl } from './validate-download-url';
 
@@ -39,6 +39,7 @@ export async function fetchWithValidatedEndpoint({
   fetch: customFetch,
   trustedOrigin,
   redirect = 'error',
+  requireDnsValidation = false,
 }: {
   url: string | URL;
   init?: RequestInit;
@@ -49,6 +50,11 @@ export async function fetchWithValidatedEndpoint({
    */
   trustedOrigin?: string;
   redirect?: 'error' | 'manual';
+  /**
+   * Reject untrusted URLs on server runtimes without a DNS-pinned default
+   * transport unless an explicit custom fetch provides equivalent validation.
+   */
+  requireDnsValidation?: boolean;
 }): Promise<Response> {
   const urlText = url.toString();
   const isTrusted =
@@ -56,6 +62,20 @@ export async function fetchWithValidatedEndpoint({
 
   if (!isTrusted) {
     validateDownloadUrl(urlText);
+
+    if (
+      requireDnsValidation &&
+      (customFetch == null || customFetch === globalThis.fetch) &&
+      !isNodeRuntime() &&
+      // A window alias alone does not distinguish older Deno from a browser.
+      !(isBrowserRuntime() && typeof document !== 'undefined')
+    ) {
+      throw new DownloadError({
+        url: urlText,
+        message:
+          'This server runtime requires a custom fetch with connect-time DNS validation for untrusted URLs',
+      });
+    }
   }
 
   const fetch =

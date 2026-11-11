@@ -29,6 +29,7 @@ import {
   openaiResponsesSystemMessageOptionsSchema,
   openaiResponsesToolResultOptionsSchema,
 } from './openai-responses-language-model-options';
+import { normalizeOpenAIResponsesTextFormat } from './openai-responses-text-format';
 import {
   applyPatchInputSchema,
   applyPatchOutputSchema,
@@ -311,7 +312,7 @@ async function convertFunctionToolResultOutput({
 }
 
 type ParallelToolResultGroup = {
-  metadata: ParallelToolCallMetadata;
+  metadata: ParallelToolCallMetadata & { input: string };
   results: Array<LanguageModelV4ToolResultPart>;
 };
 
@@ -323,7 +324,9 @@ function hasSameParallelToolCall(
     first.itemId === second.itemId &&
     first.toolCallId === second.toolCallId &&
     first.toolName === second.toolName &&
-    first.input === second.input &&
+    (first.input === undefined ||
+      second.input === undefined ||
+      first.input === second.input) &&
     first.count === second.count
   );
 }
@@ -381,6 +384,12 @@ function collectCompleteParallelToolResultGroups({
         continue;
       }
 
+      if (
+        existing.metadata.input === undefined &&
+        metadata.input !== undefined
+      ) {
+        existing.metadata = metadata;
+      }
       existing.results.set(metadata.index, part);
     }
   }
@@ -388,7 +397,11 @@ function collectCompleteParallelToolResultGroups({
   const completeGroups = new Map<string, ParallelToolResultGroup>();
 
   for (const [toolCallId, group] of pendingGroups) {
-    if (group.invalid || group.results.size !== group.metadata.count) {
+    if (
+      group.invalid ||
+      group.results.size !== group.metadata.count ||
+      group.metadata.input === undefined
+    ) {
       continue;
     }
 
@@ -398,7 +411,7 @@ function collectCompleteParallelToolResultGroups({
 
     if (results.every(isNonNullable)) {
       completeGroups.set(toolCallId, {
-        metadata: group.metadata,
+        metadata: { ...group.metadata, input: group.metadata.input },
         results,
       });
     }
@@ -522,22 +535,33 @@ export async function convertToOpenAIResponsesInput({
           });
         }
         const effort = options?.reasoningEffortUpdate;
-        if (effort != null) {
+        const textFormat = options?.textFormatUpdate;
+        if (effort != null || textFormat != null) {
+          const feature =
+            effort != null ? 'reasoningEffortUpdate' : 'textFormatUpdate';
           const unsupportedReason =
             content !== ''
-              ? 'Message-level reasoningEffortUpdate requires empty system message content.'
+              ? `Message-level ${feature} requires empty system message content.`
               : configurationUpdateUnsupportedReason;
 
           if (unsupportedReason != null) {
             throw new UnsupportedFunctionalityError({
-              functionality: 'Message-level reasoningEffortUpdate',
+              functionality: `Message-level ${feature}`,
               message: unsupportedReason,
             });
           }
 
           input.push({
             type: 'configuration_update',
-            reasoning: { effort },
+            ...(effort != null && { reasoning: { effort } }),
+            ...(textFormat != null && {
+              text: {
+                format: normalizeOpenAIResponsesTextFormat(
+                  textFormat,
+                  warnings,
+                ),
+              },
+            }),
           });
           // The control is independent of systemMessageMode's text handling.
           break;

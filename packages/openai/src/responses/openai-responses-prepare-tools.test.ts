@@ -3,8 +3,51 @@ import { openai } from '../openai-provider';
 import { imageGeneration } from '../tool/image-generation';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
+import { redactTelemetryValue } from '@ai-sdk/provider-utils';
+import { withOpenAIResponseRedaction } from '../redact-openai-tool-credentials';
 
 describe('prepareResponsesTools', () => {
+  it.each(['codeInterpreter', 'shell', 'mcp'] as const)(
+    '%s supplies telemetry redaction for configuration and raw bodies',
+    async name => {
+      const networkPolicy = {
+        type: 'allowlist' as const,
+        allowedDomains: ['example.com'],
+        domainSecrets: [
+          { domain: 'example.com', name: 'KEY', value: 'test-secret' },
+        ],
+      };
+      const tool =
+        name === 'codeInterpreter'
+          ? openai.tools.codeInterpreter({ container: { networkPolicy } })
+          : name === 'shell'
+            ? openai.tools.shell({
+                environment: { type: 'containerAuto', networkPolicy },
+              })
+            : openai.tools.mcp({
+                serverLabel: 'remote',
+                serverUrl: 'https://example.com',
+                authorization: 'test-secret',
+                headers: { 'X-Key': 'test-secret' },
+              });
+      const originalArgs = structuredClone(tool.args);
+      const result = await prepareResponsesTools({
+        tools: [
+          { type: 'provider', id: tool.id, name: 'renamed', args: tool.args },
+        ],
+        toolChoice: undefined,
+      });
+      const body = withOpenAIResponseRedaction({ tools: result.tools });
+      for (const value of [tool.args, body]) {
+        expect(JSON.stringify(value)).toContain('test-secret');
+        expect(JSON.stringify(redactTelemetryValue(value))).toBe(
+          JSON.stringify(value).replaceAll('test-secret', '[redacted]'),
+        );
+      }
+      expect(tool.args).toEqual(originalArgs);
+    },
+  );
+
   describe('MCP tools', () => {
     it('should serialize a remote MCP server URL', async () => {
       const result = await prepareResponsesTools({
