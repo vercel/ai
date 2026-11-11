@@ -25,7 +25,7 @@ Zirnay models operate across a continuous lifecycle:
 
 ```mermaid
 flowchart LR
-    A["1. Create Model Instance"] --> B["2. Configure Schema & Query"]
+    A["1. Register Model Definition"] --> B["2. Configure Schema & Query"]
     B --> C["3. Upload Training Dataset"]
     C --> D["4. Train & Evaluate Checkpoint"]
     D --> E["5. Hot Swap Activate in Prod"]
@@ -36,14 +36,14 @@ flowchart LR
 
 ---
 
-### Step 1: Create an Instance of the Model
+### Step 1: Register a Model Definition
 
-Provision a tenant model instance:
+Register a tenant model definition:
 
 ```ts
 import { zirnay } from '@ai-sdk/zirnay';
 
-await zirnay.createModel({
+await zirnay.registerModel({
   teamSlug: 'fraud-ops',
   name: 'Cardholder Fraud Reflex Guard',
   slug: 'laya-card-auth',
@@ -52,11 +52,13 @@ await zirnay.createModel({
   p99LatencyBudgetMs: 2.5,
   storageProvider: 'S3',
   classes: ['APPROVE', 'CHALLENGE', 'DECLINE'],
-  description: 'System 1 transaction risk scoring evaluated within card authorization SLA.',
+  description:
+    'System 1 transaction risk scoring evaluated within card authorization SLA.',
 });
 ```
 
-*Equivalent cURL:*
+_Equivalent cURL:_
+
 ```bash
 curl -X POST https://api.zirnay.com/v1/teams/fraud-ops/models \
   -H "Authorization: Bearer $ZIRNAY_JWT_TOKEN" \
@@ -152,7 +154,8 @@ const trainingRun = await zirnay.triggerTraining({
 });
 ```
 
-*Equivalent cURL:*
+_Equivalent cURL:_
+
 ```bash
 curl -X POST https://api.zirnay.com/v1/teams/fraud-ops/models/laya-card-auth/datasets/upload \
   -H "Authorization: Bearer $ZIRNAY_JWT_TOKEN" \
@@ -170,7 +173,8 @@ Perform sub-millisecond testing against the in-memory warm checkpoint:
 const decision = await zirnay.directDecide({
   teamSlug: 'fraud-ops',
   modelSlug: 'laya-card-auth',
-  rawText: 'Card swipe at electronics retailer in Lagos, Nigeria. Billing country: US. Amount: $4,200.',
+  rawText:
+    'Card swipe at electronics retailer in Lagos, Nigeria. Billing country: US. Amount: $4,200.',
   query: {
     type: 'choice',
     options: ['APPROVE', 'CHALLENGE', 'DECLINE'],
@@ -187,7 +191,8 @@ console.log(decision.confidence); // e.g. 0.9842
 console.log(decision.executionNanos); // e.g. 1842000 (1.84ms)
 ```
 
-*Equivalent cURL:*
+_Equivalent cURL:_
+
 ```bash
 curl -X POST https://api.zirnay.com/v1/teams/fraud-ops/models/laya-card-auth/decide \
   -H "X-API-Key: zrn_live_98124acme" \
@@ -213,7 +218,8 @@ await zirnay.activateCheckpoint({
 });
 ```
 
-*Equivalent cURL:*
+_Equivalent cURL:_
+
 ```bash
 curl -X POST https://api.zirnay.com/v1/teams/fraud-ops/models/laya-card-auth/checkpoints/chk_89f02c77/activate \
   -H "Authorization: Bearer $ZIRNAY_JWT_TOKEN"
@@ -236,7 +242,8 @@ const result = await experimental_decide({
     currency: 'USD',
     geo_entropy: 0.94,
     velocity_1h: 6,
-    raw_text: 'Card swipe at electronics retailer in Lagos, Nigeria. Billing country: US. Amount: $4,200.',
+    raw_text:
+      'Card swipe at electronics retailer in Lagos, Nigeria. Billing country: US. Amount: $4,200.',
   },
   questions: {
     authorization: {

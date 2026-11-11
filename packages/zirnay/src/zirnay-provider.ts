@@ -30,7 +30,7 @@ import {
 } from './zirnay-decision-api';
 import { VERSION } from './version';
 
-export interface CreateModelOptions {
+export interface RegisterModelOptions {
   teamSlug?: string;
   team?: string;
   name: string;
@@ -60,6 +60,9 @@ export interface CreateModelOptions {
   headers?: Record<string, string>;
   abortSignal?: AbortSignal;
 }
+
+/** @deprecated Use `RegisterModelOptions` instead. */
+export type CreateModelOptions = RegisterModelOptions;
 
 export interface UpdateModelConfigOptions {
   teamSlug?: string;
@@ -212,9 +215,14 @@ export interface ZirnayProvider extends ProviderV4 {
   };
 
   /**
-   * Create a new model instance on Zirnay (POST /v1/teams/{team_slug}/models).
+   * Register a new model definition on Zirnay (POST /v1/teams/{team_slug}/models).
    */
-  createModel(options: CreateModelOptions): Promise<Record<string, unknown>>;
+  registerModel(
+    options: RegisterModelOptions,
+  ): Promise<Record<string, unknown>>;
+
+  /** @deprecated Use `registerModel` instead. */
+  createModel(options: RegisterModelOptions): Promise<Record<string, unknown>>;
 
   /**
    * Update model configuration or registered dataset format (PATCH /v1/teams/{team_slug}/models/{model_slug}).
@@ -337,7 +345,7 @@ export function createZirnay(
       fetch: options.fetch,
     });
 
-  const createModel = async ({
+  const registerModel = async ({
     teamSlug,
     team: teamAlias,
     name,
@@ -354,10 +362,10 @@ export function createZirnay(
     sla,
     headers: requestHeaders,
     abortSignal,
-  }: CreateModelOptions) => {
+  }: RegisterModelOptions) => {
     const team = teamSlug ?? teamAlias;
     if (!team) {
-      throw new Error('createModel requires teamSlug (or team).');
+      throw new Error('registerModel requires teamSlug (or team).');
     }
     const resolvedBaseHeaders = await resolve(headers());
     const { value: response } = await postJsonToApi({
@@ -816,7 +824,8 @@ export function createZirnay(
     specificationVersion: 'v4',
     decisionModel,
     evaluationModel: decisionModel,
-    createModel,
+    registerModel,
+    createModel: registerModel,
     updateModelConfig,
     directDecide,
     submitFeedback,

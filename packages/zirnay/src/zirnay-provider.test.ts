@@ -91,15 +91,23 @@ describe('zirnayProvider', () => {
     expect(() => provider.imageModel('any')).toThrow();
   });
 
-  it('creates a model instance via createModel', async () => {
+  it('registers a model definition via registerModel and createModel alias', async () => {
     const provider = createZirnay({ apiKey: 'test-key' });
-    const res = await provider.createModel({
+    const res = await provider.registerModel({
       teamSlug: 'fraud-ops',
       name: 'Cardholder Fraud Reflex Guard',
       slug: 'laya-card-auth',
       engineType: 'laya',
     });
     expect(res).toEqual({ status: 'created', slug: 'laya-card-auth' });
+
+    const aliasRes = await provider.createModel({
+      teamSlug: 'fraud-ops',
+      name: 'Cardholder Fraud Reflex Guard',
+      slug: 'laya-card-auth',
+      engineType: 'laya',
+    });
+    expect(aliasRes).toEqual({ status: 'created', slug: 'laya-card-auth' });
   });
 
   it('updates model config via updateModelConfig using PATCH', async () => {

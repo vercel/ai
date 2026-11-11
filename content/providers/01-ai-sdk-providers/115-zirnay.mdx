@@ -162,7 +162,7 @@ For MLOps pipelines and CI/CD scripts, the `@ai-sdk/zirnay` provider instance ex
 
 ```ts
 // 1. Register a new model definition
-await zirnay.createModel({
+await zirnay.registerModel({
   teamSlug: 'fraud-ops',
   name: 'Cardholder Fraud Reflex Guard',
   slug: 'laya-card-auth',
