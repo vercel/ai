@@ -3,6 +3,7 @@ import {
   NoSuchModelError,
   type Experimental_BatchV4 as BatchV4,
   type Experimental_DecisionModelV4 as DecisionModelV4,
+  type Experimental_ExtractionModelV4 as ExtractionModelV4,
   type FilesV4,
   type LanguageModelV4,
   type ProviderV4,
@@ -20,6 +21,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { Experimental_DecisionLanguageModel as DecisionLanguageModel } from '@ai-sdk/provider-utils/experimental-decision';
+import { Experimental_ExtractionLanguageModel as ExtractionLanguageModel } from '@ai-sdk/provider-utils/experimental-extraction';
 import { AnthropicFiles } from './files/anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
 import { AnthropicBatch } from './anthropic-batch';
@@ -62,6 +64,9 @@ export interface AnthropicProvider extends ProviderV4 {
   evaluationModel(modelId: AnthropicModelId): DecisionModelV4 & {
     doEvaluate: DecisionModelV4['doDecide'];
   };
+
+  /** Creates an experimental typed field extraction model using Messages. */
+  extractionModel(modelId: AnthropicModelId): ExtractionModelV4;
 
   experimental_batch(): BatchV4<{ text: AnthropicModelId }>;
 
@@ -243,6 +248,11 @@ export function createAnthropic(
     });
   provider.evaluationModel =
     provider.decisionModel as AnthropicProvider['evaluationModel'];
+  provider.extractionModel = (modelId: AnthropicModelId) =>
+    new ExtractionLanguageModel({
+      model: createChatModel(modelId),
+      provider: `${providerName.replace(/\.messages$/, '')}.extraction`,
+    });
   provider.experimental_batch = createBatch;
 
   provider.embeddingModel = (modelId: string) => {

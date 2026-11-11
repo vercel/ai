@@ -1,0 +1,187 @@
+{
+  "id": "resp_084fb893cc68e002006af4edf2d38c87d2a5dbe31ff387180d",
+  "object": "response",
+  "created_at": 1794436594,
+  "status": "completed",
+  "access_programs": {
+    "cyber": "standard"
+  },
+  "background": false,
+  "billing": {
+    "payer": "developer"
+  },
+  "completed_at": 1794436598,
+  "error": null,
+  "frequency_penalty": 0,
+  "image": {
+    "context_compression": "disabled"
+  },
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "max_tool_calls": null,
+  "model": "gpt-6.1-sol",
+  "moderation": null,
+  "output": [
+    {
+      "id": "rs_084fb893cc68e002006af4edf40aec87d2b1caf020912c1369",
+      "type": "reasoning",
+      "content": [],
+      "encrypted_content": "gAAAAABq9O33kIvbutQLi5AGKFj7csUMPME2McYmKL985Aa3WdLrfqXFE7NPXtHgF7ET8LNz7H03fMkifmkOwyxIhmy8x3Q6dDKy3MH3XoVL0ZYXSCZrr2Ag0KElzytptBe54XHPKtflecD1cLFID6nQHbYFyMrdfIWsdzjSRymtuDVhZ72Wby3Mp1YjNA1expmUY1NtTO_QvtbL9FEKMIAOtYBP0ffBACAK94IG4VxJbX7NYUCLuoWaVpLbMT7v2ErMCHr6QeA3Jn9LtodOeqnbYr1RhT-66ORMPBrY0JAmGeiTSLsIqzODir2g-IZX6Ucs_RcZoP-jX52xsIxhz4lZimnhAGvsqi5GV2EuVd73e9vkpFnvCSdPnh_nhaXbVw1OVh8vCGvLK76tB42O3qDsENSB7nAiXzcUvQvTpDbV9etqiJsy7kQtxqHIDK09UkXQtaadGb-_T4icywrtuym8h7RHMt2R3enGmXZ8FAMbLk9fKe5MTBl6-oVCTPiWXnCgclPCvpCRPrs-crFEM1IQqpbmirm9MDP6b39j0vvKIN-Uy1AvZnTKpfIJnQ9plDZgmd3t-498LNgj5FY4Q0A0DWU0L7EMoHAFD5EwzsXIeElcoKrGJybUOW4-XnByuIzCv4YjI0pgNiJYbPN-fQLzxqUWZ2gsSsdvKHx1lTiRSiU-Vwb29ZEpS0uTGw51dN7AZEIKQwgKEZHCSBWWixKOyyzgH5VrlJRGjHhz3o0QAoBHJ7iLCvlCMSShZypaEjc7Heip2X-otM0rT2ostfoU2IQJhuM_RnTI_QfmGtWl4rT9nhbpVPGjZ_hkjKVTjANmxMBGiOnwcG-4WH9eFFdWXjevpINj0zERXrIAxNqjw0eSWc-llZ8YMM3QtzIgUkfYLp2hw-71mBW-9UG2ayA5IeSvJT22wwWe_CEInOXiIV0_wKEKaPccZg4rBAChlfGJy6j522gfpLk3LXcxiYgIbnt4hKM9_hWzS7CVkZUHm-nyk9YiydQc6vttgayIqZwr7mKpDuCcpMZb6CR5rZ72Vp4h7lEfnCXpL1vkh2sDyVExqy_1qTOdHwuB7sEHWAPl_8uuXeu1jQkSznz4ux_okFGM7uHrokSRc4dewLQhRQeshCfDW7wqP0MN3hRiw356CGW3Yy7oxlF4QIL9-XdGN908LiguyhbPTKPShD-Gk53xc27dZleSz2Pm3eTwlHGidSkFrlUM2K_O0Cj0pyrzHe7RcBDOvqrG_Py21uJxC2uVMbz_55YomNaBLOEzi7kqqCm-FkiGW1Yv34Cwg0JdTHn2ttf8g5Niy9gbtYJIblQZtk2GfeqxQ60pIwWAgbfsQNfThw5a9-X2Xr1hpWlZKx5TYy9dr6tiv-_qMmjVI3ARq-Ef6AS0Dw6s_bGwV7fGfY5vBfRD1VSjN2oBKIL3K2obgJVjyXHWF9y2zEIraBojexz2Q5gADUmdP_qYKAIEG3WbL03CnKLgdqa8R6rr_yBElY_MdlFPG8eUL-9JcJrhOQGbnBZnORD7Su3oPxtP9ibtmUYW7YgrHg_ABlFxAcqt3GB5OJVCXpWnuSCXY3rGcTljDrGIqGKmGBQm8QgW_tVEdMnh2bT8EJ9VwvVOhZnyWdK1EIFbYuIzGAsg3bUla1yhbODl4ASRoIFNz1MFE0CCNb_b9MYXAmVFNwExfSj8KqLnLIBqpXPGSi7c-BnQJv9SwcgRLJxxIxY2arrFip9GU5T3RRkfv-i0iOFD2ODNOrkilTKqV5SLolmz1Efr9SC_eDmUg-3F6K47mlrZ32DOoT-l3wQcS5ONDnpKisqFj77mOw==",
+      "summary": [
+        {
+          "type": "summary_text",
+          "text": "**Determining closest date**\n\nI need to figure out the closest date to March 3, 2027, compared to 2026. Since 2027 is later than 2026, I’m pretty sure the answer is 2027. It seems straightforward, but I just want to double-check that I’m not missing anything. March 3, 2027, is definitely closer to itself than to the previous year. So yeah, the date I’m looking for is 2027."
+        }
+      ]
+    },
+    {
+      "id": "msg_084fb893cc68e002006af4edf6b97087d2b98eaf8478b18568",
+      "type": "message",
+      "status": "completed",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "{\"f0\":\"INV-2041\",\"f1\":1250,\"f2\":\"2027-03-03\",\"f3\":[\"Ana\",\"Bo\"],\"f4\":null}"
+        }
+      ],
+      "phase": "final_answer",
+      "role": "assistant"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+    "context": "all_turns",
+    "effort": "low",
+    "mode": "standard",
+    "summary": "detailed"
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "json_schema",
+      "description": null,
+      "name": "extraction",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "f0": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Text copied from the state."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "f1": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "A finite number."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "f2": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "A calendar date formatted as YYYY-MM-DD."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "f3": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "Text copied from the state."
+                },
+                "description": "Every matching value in the order it appears in the state."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "f4": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Text copied from the state."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "f0",
+          "f1",
+          "f2",
+          "f3",
+          "f4"
+        ],
+        "additionalProperties": false
+      },
+      "strict": true
+    },
+    "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+    "image_gen": {
+      "input_tokens": 0,
+      "input_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "image_tokens": 0,
+        "text_tokens": 0
+      },
+      "total_tokens": 0
+    },
+    "web_search": {
+      "num_requests": 0
+    }
+  },
+  "tools": [],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 437,
+    "input_tokens_details": {
+      "cache_write_tokens": 0,
+      "cached_tokens": 0
+    },
+    "output_tokens": 69,
+    "output_tokens_details": {
+      "reasoning_tokens": 21
+    },
+    "total_tokens": 506
+  },
+  "user": null,
+  "metadata": {}
+}

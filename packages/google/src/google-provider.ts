@@ -2,6 +2,7 @@ import type {
   EmbeddingModelV4,
   Experimental_BatchV4 as BatchV4,
   Experimental_DecisionModelV4 as DecisionModelV4,
+  Experimental_ExtractionModelV4 as ExtractionModelV4,
   Experimental_VideoModelV4,
   FilesV4,
   ImageModelV4,
@@ -23,6 +24,7 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
+import { Experimental_ExtractionLanguageModel as ExtractionLanguageModel } from '@ai-sdk/provider-utils/experimental-extraction';
 import { DecisionGoogleModel } from './google-decision-model';
 import type { GoogleDecisionModelId } from './google-decision-model-options';
 import { VERSION } from './version';
@@ -72,6 +74,9 @@ export interface GoogleProvider extends ProviderV4 {
   evaluationModel(modelId: GoogleDecisionModelId): DecisionModelV4 & {
     doEvaluate: DecisionModelV4['doDecide'];
   };
+
+  /** Creates an experimental typed field extraction model using Gemini. */
+  extractionModel(modelId: GoogleModelId): ExtractionModelV4;
 
   experimental_batch(): BatchV4<{
     text: GoogleModelId;
@@ -460,6 +465,11 @@ export function createGoogle(
     });
   provider.evaluationModel =
     provider.decisionModel as GoogleProvider['evaluationModel'];
+  provider.extractionModel = (modelId: GoogleModelId) =>
+    new ExtractionLanguageModel({
+      model: createChatModel(modelId),
+      provider: `${providerName.replace(/\.generative-ai$/, '')}.extraction`,
+    });
   provider.experimental_batch = createBatch;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;

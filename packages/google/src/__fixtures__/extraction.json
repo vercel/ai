@@ -1,0 +1,31 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\"f0\":\"INV-2041\",\"f1\":1250.0,\"f2\":\"2027-03-03\",\"f3\":[\"Ana\",\"Bo\"],\"f4\":null}",
+            "thoughtSignature": "EmkKZwFpFH0TYE3BJr0E/yuS+Nvuftzd2zUvLVjLcttabi5N6B0W9MogVgDSKO4C54UbadwOxx1T0yd2WO6E3/De15TQxjaIrDo4rE4hyen4C6krbVQM9aVzs9KmJO2pENftz0LMQ++QfY4="
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 269,
+    "candidatesTokenCount": 48,
+    "totalTokenCount": 317,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 269
+      }
+    ],
+    "serviceTier": "standard"
+  },
+  "modelVersion": "gemini-3.8-flash",
+  "responseId": "-u30apDhFaLj7M8PxcOgoQc"
+}
