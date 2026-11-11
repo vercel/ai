@@ -1,4 +1,8 @@
-import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
+import {
+  UnsupportedFunctionalityError,
+  type SharedV4Warning,
+  type TranscriptionModelV4,
+} from '@ai-sdk/provider';
 import {
   resolve,
   lazySchema,
@@ -15,6 +19,7 @@ import { z } from 'zod/v4';
 import type { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
 import type { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
+import { isDeepgramFluxTranscriptionModelId } from './deepgram-flux-streaming-transcription';
 import { deepgramTranscriptionModelOptionsSchema } from './deepgram-transcription-model-options';
 import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 import { streamDeepgramTranscription } from './deepgram-streaming-transcription';
@@ -123,6 +128,13 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
   async doGenerate(
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    if (isDeepgramFluxTranscriptionModelId(this.modelId)) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `non-streaming transcription with ${this.modelId}`,
+        message: `Deepgram ${this.modelId} is a streaming-only model; use experimental_streamTranscribe instead.`,
+      });
+    }
+
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { queryParams, warnings } = await this.getArgs(options);
 

@@ -60,7 +60,7 @@ export interface DeepgramProviderSettings {
    */
   fetch?: FetchFunction;
 
-  /** Custom WebSocket implementation for streaming transcription. */
+  /** Custom WebSocket implementation for streaming transcription and speech. */
   webSocket?: WebSocketConstructor;
 }
 
@@ -100,6 +100,7 @@ export function createDeepgram(
       url: ({ path }) => `https://api.deepgram.com${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const provider = function (modelId: DeepgramTranscriptionModelId) {

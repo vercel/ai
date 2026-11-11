@@ -126,6 +126,43 @@ describe('connectToWebSocket', () => {
     expect(onMessageText).toHaveBeenCalledWith('frame-2');
   });
 
+  it('should route binary frames to onMessageBinary in order with text frames', async () => {
+    MockWebSocket.instances = [];
+    const received: Array<string | Uint8Array> = [];
+    const onProcessingError = vi.fn();
+
+    connectToWebSocket({
+      ...baseOptions,
+      onMessageText: text => {
+        received.push(text);
+      },
+      onMessageBinary: bytes => {
+        received.push(bytes);
+      },
+      onProcessingError,
+    });
+
+    const ws = MockWebSocket.instances[0];
+    ws.onmessage?.({ data: 'text-1' });
+    // Blob frames decode asynchronously and must not be overtaken.
+    ws.onmessage?.({ data: new Blob([new Uint8Array([1, 2])]) });
+    ws.onmessage?.({ data: new Uint8Array([3, 4]).buffer });
+    // A view over a larger buffer (e.g. a pooled Node.js Buffer).
+    ws.onmessage?.({ data: new Uint8Array([9, 5, 6, 9]).subarray(1, 3) });
+    ws.onmessage?.({ data: 'text-2' });
+    await flush();
+    await flush();
+
+    expect(received).toEqual([
+      'text-1',
+      new Uint8Array([1, 2]),
+      new Uint8Array([3, 4]),
+      new Uint8Array([5, 6]),
+      'text-2',
+    ]);
+    expect(onProcessingError).not.toHaveBeenCalled();
+  });
+
   it('should route open, socket error, and close events', async () => {
     MockWebSocket.instances = [];
     const onOpen = vi.fn();
