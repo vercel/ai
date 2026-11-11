@@ -146,7 +146,7 @@ experimental webhook delivery, see the [MCP Events guide](/docs/ai-sdk-core/mcp-
                       type: 'OAuthClientProvider',
                       isOptional: true,
                       description:
-                        'Optional OAuth provider for authorization to access protected remote MCP servers. Implement `validateAuthorizationServerURL` on the provider to allowlist discovered OAuth authorization server URLs before metadata is fetched.',
+                        'Optional OAuth provider for authorization to access protected remote MCP servers. Implement `validateAuthorizationServerURL` on the provider to allowlist discovered OAuth authorization server URLs before metadata is fetched. On server runtimes, including Node.js, an authorization server on a different origin than the MCP server also requires the `fetch` option.',
                     },
                     {
                       name: 'redirect',
@@ -195,7 +195,7 @@ experimental webhook delivery, see the [MCP Events guide](/docs/ai-sdk-core/mcp-
                       type: 'FetchFunction',
                       isOptional: true,
                       description:
-                        'Optional custom fetch implementation for the built-in HTTP/SSE transport and its OAuth requests, e.g. a `guarded-fetch` transport for user-configured server URLs (see [Securing remote server URLs](/docs/ai-sdk-core/mcp-tools#securing-remote-server-urls)). Also useful for runtimes that need a request-local fetch.',
+                        'Optional custom fetch implementation for the built-in HTTP/SSE transport and its OAuth requests, e.g. a `guarded-fetch` transport for user-configured server URLs (see [Securing remote server URLs](/docs/ai-sdk-core/mcp-tools#securing-remote-server-urls)). On server runtimes, including Node.js, OAuth with an authorization server on a different origin than the MCP server requires a fetch with connect-time DNS validation here. Also useful for runtimes that need a request-local fetch.',
                     },
                   ],
                 },

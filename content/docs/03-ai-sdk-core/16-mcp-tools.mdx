@@ -49,7 +49,9 @@ resolving to a private address.
 
 Pass the guarded transport through `transport.fetch` on the built-in HTTP or SSE
 transport. The built-in transports also use that fetch implementation for OAuth
-metadata and token requests:
+metadata and token requests. On server runtimes, OAuth with an authorization
+server on a different origin than the MCP server
+[requires such a transport](#oauth-authorization-server-validation):
 
 ```ts
 import { createGuardedFetch } from 'guarded-fetch';
@@ -220,7 +222,10 @@ You can also bring your own transport by implementing the `MCPTransport` interfa
   persistence, resumable streams, and receiving notifications.
 
 Authorization via OAuth is supported when using the AI SDK MCP HTTP or SSE
-transports by providing an `authProvider`.
+transports by providing an `authProvider`. On server runtimes, including
+Node.js, also pass a `fetch` with connect-time DNS validation, such as
+`guarded-fetch`, when the authorization server is on a different origin than
+the MCP server. See [Securing remote server URLs](#securing-remote-server-urls).
 
 </Note>
 
@@ -332,9 +337,11 @@ it does not replace the credential binding required for confidential clients.
 On server runtimes, including Node.js, OAuth discovery blocks untrusted
 authorization-server URLs, redirects, token endpoints, and registration
 endpoints unless you supply a custom `fetch` with connect-time address
-validation and DNS pinning. On Node.js, pass `createGuardedFetch()` through
+validation and DNS pinning. Without one, the request fails with a
+`DownloadError`. On Node.js, pass `createGuardedFetch()` through
 `transport.fetch` as shown in
-[Securing remote server URLs](#securing-remote-server-urls).
+[Securing remote server URLs](#securing-remote-server-urls). When calling
+`auth` directly, pass the same transport as `fetchFn`.
 Passing global `fetch` explicitly does not opt out of this requirement. The
 configured MCP server origin remains supported, including local endpoints;
 response-supplied authorization-server hosts are not automatically trusted.
