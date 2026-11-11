@@ -383,10 +383,9 @@ Checkpointing only `step.response.messages` inside `onStepEnd` risks losing the 
 
 ### Distributed Safety and Idempotency
 
-In-process lifecycle callbacks cannot protect against sudden process termination (`SIGKILL` or hardware failure) that occurs _during_ the execution of an external side-effect before a durable write finishes. For operations with external side-effects:
+In-process lifecycle callbacks—and durable execution engines like [`WorkflowAgent`](/docs/agents/workflow-agent) that automate step checkpointing—cannot prevent duplicate external writes if a process terminates (`SIGKILL` or hardware failure) _after_ an external service processes a request but _before_ the tool completion is durably recorded.
 
-1. Use `toolCallId` (passed into `execute`) as an idempotency key with your external payment, database, or email service.
-2. Or use [`WorkflowAgent`](/docs/agents/workflow-agent), which provides durable execution steps that automatically record state before and after side-effects.
+For operations with external side-effects, always pass `toolCallId` (provided to `execute`) as an idempotency key to your external payment, database, or email service so retried attempts are safely deduplicated.
 
 ## Related APIs
 
