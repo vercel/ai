@@ -10,7 +10,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
-import { experimental_extract as extract } from '../index';
+import { createDownload, experimental_extract as extract } from '../index';
 import { ExtractionMockModelV4 } from '../test/extraction-mock-model-v4';
 
 const state =
@@ -663,6 +663,39 @@ it('sends JSON state as a JSON part', async () => {
   ]);
 });
 
+it.each([
+  'https://attacker.example/invoice.pdf',
+  new URL('https://attacker.example/invoice.pdf'),
+  {
+    type: 'url' as const,
+    url: new URL('https://attacker.example/invoice.pdf'),
+  },
+])('rejects remote file state without a download hook (%s)', async data => {
+  const { model, doExtract } = setup({
+    answers: { invoiceNumber: { type: 'text', value: 'INV-2041' } },
+    warnings: [],
+  });
+  const fetch = vi.fn().mockResolvedValue(
+    new Response('invoice', {
+      headers: { 'content-type': 'application/pdf' },
+    }),
+  );
+  vi.stubGlobal('fetch', fetch);
+
+  await expect(
+    extract({
+      model,
+      fields: { invoiceNumber: fields.invoiceNumber },
+      state: [{ type: 'file', mediaType: 'application/pdf', data }],
+    }),
+  ).rejects.toMatchObject({
+    name: 'AI_DownloadError',
+    message: expect.stringContaining('experimental_download'),
+  });
+  expect(fetch).not.toHaveBeenCalled();
+  expect(doExtract).not.toHaveBeenCalled();
+});
+
 it('stops before provider I/O when a file download fails', async () => {
   const { model, doExtract } = setup();
   vi.stubGlobal(
@@ -673,6 +706,7 @@ it('stops before provider I/O when a file download fails', async () => {
     extract({
       model,
       fields,
+      experimental_download: createDownload(),
       state: [
         {
           type: 'file',
@@ -681,6 +715,77 @@ it('stops before provider I/O when a file download fails', async () => {
         },
       ],
     }),
-  ).rejects.toThrow();
+  ).rejects.toMatchObject({ name: 'AI_DownloadError', statusCode: 404 });
+  expect(doExtract).not.toHaveBeenCalled();
+});
+
+it('uses the configured download transport and forwards cancellation', async () => {
+  const { model, doExtract } = setup({
+    answers: { invoiceNumber: { type: 'text', value: 'INV-2041' } },
+    warnings: [],
+  });
+  const bytes = new TextEncoder().encode('Invoice INV-2041');
+  const fetch = vi
+    .fn<typeof globalThis.fetch>()
+    .mockResolvedValue(
+      new Response(bytes, { headers: { 'content-type': 'application/pdf' } }),
+    );
+  const globalFetch = vi.fn();
+  vi.stubGlobal('fetch', globalFetch);
+  const abortSignal = new AbortController().signal;
+
+  await extract({
+    model,
+    fields: { invoiceNumber: fields.invoiceNumber },
+    state: [
+      { type: 'text', text: 'Read the invoice.' },
+      {
+        type: 'file',
+        mediaType: 'application/pdf',
+        data: new URL('https://example.com/invoice.pdf'),
+      },
+    ],
+    abortSignal,
+    experimental_download: createDownload({ fetch }),
+  });
+
+  expect(fetch).toHaveBeenCalledWith(
+    'https://example.com/invoice.pdf',
+    expect.objectContaining({ signal: abortSignal, redirect: 'manual' }),
+  );
+  expect(globalFetch).not.toHaveBeenCalled();
+  expect(doExtract.mock.calls[0][0].state).toEqual([
+    { type: 'text', text: 'Read the invoice.' },
+    {
+      type: 'file',
+      mediaType: 'application/pdf',
+      data: { type: 'data', data: bytes },
+    },
+  ]);
+});
+
+it('stops before provider I/O when the download transport blocks a URL', async () => {
+  const { model, doExtract } = setup();
+  const reason = new Error('Blocked private DNS address');
+  const fetch = vi.fn().mockRejectedValue(reason);
+  const globalFetch = vi.fn();
+  vi.stubGlobal('fetch', globalFetch);
+
+  await expect(
+    extract({
+      model,
+      fields,
+      state: [
+        {
+          type: 'file',
+          mediaType: 'application/pdf',
+          data: new URL('https://attacker.example/invoice.pdf'),
+        },
+      ],
+      experimental_download: createDownload({ fetch }),
+    }),
+  ).rejects.toMatchObject({ name: 'AI_DownloadError', cause: reason });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(globalFetch).not.toHaveBeenCalled();
   expect(doExtract).not.toHaveBeenCalled();
 });

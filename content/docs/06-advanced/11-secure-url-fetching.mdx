@@ -201,7 +201,16 @@ A provider's `fetch` option applies to requests made by that provider. Core file
 downloads have separate hooks that all accept the function returned by
 `createDownload({ fetch })`: the `download` option of `transcribe` and
 `experimental_generateVideo`, and the `experimental_download` option of
-`generateText` and `streamText`.
+`generateText`, `streamText`, `experimental_decide`, and `experimental_extract`.
+
+`experimental_decide` and `experimental_extract` reject remote file URLs in
+`state` with `DownloadError` unless `experimental_download` is supplied. Inline
+bytes, base64 content, and data URLs do not require a download hook. For untrusted
+URLs, supply `createDownload({ fetch })` with a transport that validates DNS and
+pins the connection to the validated addresses, such as `createGuardedFetch()`
+on Node.js. A model's guarded `fetch` does not protect core state downloads.
+Calling `createDownload()` without a custom `fetch` explicitly opts into the
+runtime's global fetch and does not provide DNS protection.
 
 Batch download requests include the call's `abortSignal`. `createDownload`
 forwards it to the transport; custom download functions should do the same so
