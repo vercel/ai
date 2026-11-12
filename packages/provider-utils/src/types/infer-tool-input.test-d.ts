@@ -18,4 +18,15 @@ describe('InferToolInput', () => {
       countryCode: string;
     }>();
   });
+
+  it('infers an empty object input when inputSchema is omitted', () => {
+    const pingTool = tool({
+      description: 'Ping',
+      execute: async () => 'pong',
+    });
+
+    expectTypeOf<InferToolInput<typeof pingTool>>().toEqualTypeOf<
+      Record<string, never>
+    >();
+  });
 });

@@ -1,5 +1,5 @@
 import type { JSONValue, JSONObject } from '@ai-sdk/provider';
-import type { FlexibleSchema } from '../schema';
+import { asSchema, type FlexibleSchema } from '../schema';
 import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
 import type { ExecutableTool } from './executable-tool';
@@ -97,6 +97,9 @@ type BaseTool<
    * It is also used to validate the output of the language model.
    *
    * You can use descriptions on the schema properties to make the input understandable for the language model.
+   *
+   * When using the `tool()` helper, this can be omitted for tools with no
+   * parameters; it then defaults to an empty object schema.
    */
   inputSchema: FlexibleSchema<INPUT>;
 
@@ -344,6 +347,11 @@ export type Tool<
   | ProviderExecutedTool<INPUT, OUTPUT, CONTEXT>;
 
 /**
+ * Input type used when `tool()` is called without an `inputSchema`.
+ */
+type EmptyToolInput = Record<string, never>;
+
+/**
  * Infer the tool type from a tool object.
  *
  * This is useful for type inference when working with tool objects.
@@ -351,11 +359,17 @@ export type Tool<
  * When the input has an `execute` function, the return type narrows to
  * `ExecutableTool<Tool<...>>` so that `.execute` is non-nullable without
  * needing `isExecutableTool` or a `!` assertion at the call site.
+ *
+ * When `inputSchema` is omitted, it defaults to an empty object schema so
+ * tools with no parameters do not need `inputSchema: z.object({})`.
  */
 // Note: overload order is important for auto-completion.
 // The "with execute" overload comes first so calls that include an
 // `execute` function get the narrowed return type. Calls without
-// `execute` fall through to the overloads below.
+// `execute` fall through to the overloads below. Overloads that omit
+// `inputSchema` come last so existing inference from a provided schema
+// is unchanged. They only accept function tools: provider and dynamic
+// tools always define their own input schema.
 export function tool<INPUT, OUTPUT, CONTEXT extends Context>(
   tool: Tool<INPUT, OUTPUT, CONTEXT> & {
     execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
@@ -373,8 +387,32 @@ export function tool<OUTPUT, CONTEXT extends Context>(
 export function tool<CONTEXT extends Context>(
   tool: Tool<never, never, CONTEXT>,
 ): Tool<never, never, CONTEXT>;
+export function tool<OUTPUT, CONTEXT extends Context>(
+  tool: Omit<FunctionTool<EmptyToolInput, OUTPUT, CONTEXT>, 'inputSchema'> & {
+    inputSchema?: never;
+    execute: ToolExecuteFunction<EmptyToolInput, OUTPUT, CONTEXT>;
+  },
+): ExecutableTool<Tool<EmptyToolInput, OUTPUT, CONTEXT>>;
+export function tool<OUTPUT, CONTEXT extends Context>(
+  tool: Omit<FunctionTool<EmptyToolInput, OUTPUT, CONTEXT>, 'inputSchema'> & {
+    inputSchema?: never;
+    outputSchema: FlexibleSchema<OUTPUT>;
+  },
+): Tool<EmptyToolInput, OUTPUT, CONTEXT>;
+export function tool<CONTEXT extends Context>(
+  tool: Omit<FunctionTool<EmptyToolInput, never, CONTEXT>, 'inputSchema'> & {
+    inputSchema?: never;
+  },
+): Tool<EmptyToolInput, never, CONTEXT>;
 export function tool(tool: any): any {
-  return tool;
+  if (tool.inputSchema != null) {
+    return tool;
+  }
+
+  return {
+    ...tool,
+    inputSchema: asSchema(undefined),
+  };
 }
 
 /**
