@@ -43,8 +43,7 @@
     "deploymentEnabled": {
       "release-v*": false,
       "changeset-release/release-v*": false,
-      "changesets-ghcommit-temp/**": false,
-      "backport-pr-*": false
+      "changesets-ghcommit-temp/**": false
     }
   }
 }

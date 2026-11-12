@@ -9,8 +9,12 @@ import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { z } from 'zod/v4';
 import { createFx } from './fx-harness';
 import { createFxRuntime } from './fx-runtime';
-import type { FxStoredState } from './fx-resume-state';
+import type { FxSessionState } from './fx-resume-state';
 import * as subscriptions from './fx-subscription';
+
+function sessionStateOf(state: { data: unknown }): FxSessionState {
+  return (state.data as { session: FxSessionState }).session;
+}
 
 describe('native libfx subscription engines', () => {
   it('surfaces rejected native model response status', async () => {
@@ -70,7 +74,7 @@ describe('native libfx subscription engines', () => {
   ] as const)(
     'uses $provider subscriptions with libfx-owned $refresh refresh',
     async ({ provider, refresh }) => {
-      const { sandbox, files } = createParallelFixtureContext({
+      const { sandbox } = createParallelFixtureContext({
         kind: 'custom',
       });
       const lines = readFileSync(
@@ -202,7 +206,7 @@ describe('native libfx subscription engines', () => {
         expect(refreshRequests).toHaveLength(1);
         expect(modelRequests).toBe(fixtures.length);
         expect(modelHeaders.at(-1)).toBe(`Bearer ${rotatedToken}`);
-        const saved = [...files.values()].join('\n');
+        const saved = JSON.stringify(await session.stop());
         for (const secret of [
           'test-access-secret',
           'test-refresh-secret',
@@ -285,7 +289,7 @@ function createParallelFixtureContext(input: {
     return new Response(fixture);
   });
   vi.stubGlobal('fetch', fetch);
-  return { sandbox, files, effects, requests };
+  return { sandbox, effects, requests };
 }
 
 describe('parallel fx approvals', () => {
@@ -528,100 +532,8 @@ describe('parallel fx approvals', () => {
     }
   }, 30000);
 
-  it('continues legacy state that only exposed the first call of a batch', async () => {
-    const { sandbox, files, requests } = createParallelFixtureContext({
-      kind: 'custom',
-    });
-    const harness = createFx({
-      auth: { AI_GATEWAY_API_KEY: 'test-key' },
-      backend: 'native',
-    });
-    const start = {
-      sandboxSession: sandbox,
-      sessionId: 'legacy-parallel',
-      sessionWorkDir: '/workspace',
-    };
-    const opts = {
-      model: 'spacexai/grok-4.7',
-      skills: [],
-      tools: [{ name: 'weather' }],
-    };
-    const session = await harness.doStart(start);
-    const events: HarnessV1StreamPart[] = [];
-    let resolveWaiting!: () => void;
-    const waiting = new Promise<void>(resolve => {
-      resolveWaiting = resolve;
-    });
-    try {
-      const control = await session.doPromptTurn({
-        ...opts,
-        prompt: 'Weather for Paris and Tokyo.',
-        emit: event => {
-          events.push(event);
-          if (event.type === 'finish-step') resolveWaiting();
-        },
-      });
-      await waiting;
-      const calls = events.filter(event => event.type === 'tool-call');
-      const continueFrom = await session.doSuspendTurn();
-      await control.done;
-      const [statePath, content] = [...files.entries()].find(([path]) =>
-        path.endsWith('/state.json'),
-      )!;
-      const stored = secureJsonParse(content) as FxStoredState;
-      stored.turn!.tools = stored.turn!.tools.filter(
-        record => record.id === calls[0].toolCallId,
-      );
-      stored.turn!.emittedKeys = stored
-        .turn!.emittedKeys.filter(key => key !== `call:${calls[1].toolCallId}`)
-        .map(key =>
-          key === 'waiting-step:0' ? `waiting:${calls[0].toolCallId}` : key,
-        );
-      await sandbox.writeTextFile({
-        path: statePath,
-        content: JSON.stringify(stored),
-      });
-      const resumed = await harness.doStart({ ...start, continueFrom });
-      try {
-        const after: HarnessV1StreamPart[] = [];
-        let resolveSecond!: () => void;
-        const secondWaiting = new Promise<void>(resolve => {
-          resolveSecond = resolve;
-        });
-        const continued = await resumed.doContinueTurn({
-          ...opts,
-          emit: event => {
-            after.push(event);
-            if (event.type === 'finish-step') resolveSecond();
-          },
-        });
-        await continued.submitToolResult({
-          toolCallId: calls[0].toolCallId,
-          output: 'Paris',
-        });
-        await secondWaiting;
-        expect(
-          after
-            .filter(event => event.type === 'tool-call')
-            .map(event => event.toolCallId),
-        ).toEqual([calls[1].toolCallId]);
-        await continued.submitToolResult({
-          toolCallId: calls[1].toolCallId,
-          output: 'Tokyo',
-        });
-        await continued.done;
-        expect(requests).toHaveLength(2);
-      } finally {
-        await resumed.doDestroy();
-      }
-    } finally {
-      await session.doDestroy();
-      vi.unstubAllGlobals();
-    }
-  }, 30000);
-
   it('persists a later custom result before its callback and consumes it on cold continuation', async () => {
-    const { sandbox, files, requests } = createParallelFixtureContext({
+    const { sandbox, requests } = createParallelFixtureContext({
       kind: 'custom',
     });
     const harness = createFx({
@@ -682,13 +594,10 @@ describe('parallel fx approvals', () => {
           .filter(event => event.type === 'tool-result')
           .map(event => event.toolCallId),
       ).toEqual([calls[1].toolCallId]);
-      const stored = secureJsonParse(
-        [...files.entries()].find(([path]) => path.endsWith('/state.json'))![1],
-      ) as {
-        turn: { tools: Array<{ status: string; result?: { text: string } }> };
-      };
+      const continueFrom = await session.doSuspendTurn();
+      await control.done;
       expect(
-        stored.turn.tools.map(tool => ({
+        sessionStateOf(continueFrom).turn!.tools.map(tool => ({
           status: tool.status,
           result: tool.result?.text,
         })),
@@ -704,8 +613,6 @@ describe('parallel fx approvals', () => {
           },
         ]
       `);
-      const continueFrom = await session.doSuspendTurn();
-      await control.done;
       const resumed = await harness.doStart({ ...start, continueFrom });
       try {
         const after: HarnessV1StreamPart[] = [];
@@ -744,7 +651,7 @@ describe('parallel fx approvals', () => {
   }, 30000);
 
   it('collects both built-in approvals and persists a later denial before cold continuation', async () => {
-    const { sandbox, files, effects, requests } = createParallelFixtureContext({
+    const { sandbox, effects, requests } = createParallelFixtureContext({
       kind: 'builtin',
     });
     const harness = createFx({
@@ -801,11 +708,11 @@ describe('parallel fx approvals', () => {
         approved: false,
         reason: 'Tokyo denied',
       });
-      expect(
-        [...files.values()].some(content => content.includes('Tokyo denied')),
-      ).toBe(true);
       const continueFrom = await session.doSuspendTurn();
       await control.done;
+      expect(
+        sessionStateOf(continueFrom).turn!.tools.map(tool => tool.approval),
+      ).toEqual([undefined, { approved: false, reason: 'Tokyo denied' }]);
       const resumed = await harness.doStart({ ...start, continueFrom });
       try {
         const after: HarnessV1StreamPart[] = [];
@@ -1203,10 +1110,9 @@ describe('stable fx continuation', () => {
       await control.submitUserMessage!('After the tool, reply STEERED.');
       const continueFrom = await session.doSuspendTurn();
       await control.done;
-      const stored = [...files.entries()].find(([path]) =>
-        path.endsWith('/state.json'),
-      )![1];
-      expect(stored).toContain('After the tool, reply STEERED.');
+      expect(sessionStateOf(continueFrom).turn!.steers).toEqual([
+        { text: 'After the tool, reply STEERED.', beforeRequest: 1 },
+      ]);
       let continuedBody = '';
       fetch.mockImplementation(async (_url, init) => {
         continuedBody = Buffer.from(init!.body as Uint8Array).toString('utf8');

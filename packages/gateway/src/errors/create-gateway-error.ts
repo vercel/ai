@@ -153,11 +153,11 @@ const gatewayErrorResponseSchema = lazySchema(() =>
     z.object({
       error: z.object({
         message: z.string(),
-        type: z.string().nullish(),
-        param: z.unknown().nullish(),
-        code: z.union([z.string(), z.number()]).nullish(),
+        type: z.nullish(z.string()),
+        param: z.nullish(z.unknown()),
+        code: z.nullish(z.union([z.string(), z.number()])),
       }),
-      generationId: z.string().nullish(),
+      generationId: z.nullish(z.string()),
     }),
   ),
 );

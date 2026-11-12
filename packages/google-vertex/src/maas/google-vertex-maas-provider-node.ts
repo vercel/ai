@@ -49,7 +49,8 @@ export function createGoogleVertexMaas(
         return (options.fetch ?? fetch)(url, init);
       }
 
-      // Preserve the default DNS-pinned transport behind this auth wrapper.
+      // Validate the URL and keep redirects manual behind this auth wrapper.
+      // Uses the configured fetch (e.g. guarded-fetch) or the runtime's fetch.
       return fetchWithValidatedEndpoint({
         url: href,
         init,

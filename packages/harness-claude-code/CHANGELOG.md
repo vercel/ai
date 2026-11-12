@@ -1,5 +1,34 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.185
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.181
+
+## 1.0.184
+
+### Patch Changes
+
+- 5c3842f: feat(harness-claude-code): add opt-in auto permission mode with host approval for classifier escalations and raw effective permission-mode reporting.
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/harness@1.0.180
+
+## 1.0.183
+
+### Patch Changes
+
+- 0fc1f13: chore(harness): update harness adapter underlying SDKs to their latest releases
+- c849d37: feat(harness): use public-key cryptography instead of token for sandbox bridge communication
+- fcd763a: fix(harness-claude-code): fix incorrect low-level property being passed to Claude Agent SDK
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 1.0.182
 
 ### Patch Changes

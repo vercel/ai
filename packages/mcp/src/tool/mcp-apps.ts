@@ -55,6 +55,7 @@ export type MCPAppResourceCSP = {
   connectDomains?: string[];
   resourceDomains?: string[];
   frameDomains?: string[];
+  baseUriDomains?: string[];
   [key: string]: unknown;
 };
 
@@ -102,6 +103,7 @@ const MCPAppResourceCSPSchema = z4.looseObject({
   connectDomains: optionalStringArray,
   resourceDomains: optionalStringArray,
   frameDomains: optionalStringArray,
+  baseUriDomains: optionalStringArray,
 });
 
 /**

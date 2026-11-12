@@ -1,3 +1,4 @@
+import { topazVideoCapabilities } from './topaz-model-catalog';
 import {
   APICallError,
   InvalidArgumentError,
@@ -91,7 +92,7 @@ const containerMediaTypes: Record<string, string> = {
  */
 export class TopazVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxVideosPerCall = 1;
+  readonly maxVideosPerCall = topazVideoCapabilities.maxVideosPerCall;
 
   get provider(): string {
     return this.config.provider;

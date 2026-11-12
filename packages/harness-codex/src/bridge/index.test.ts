@@ -336,8 +336,10 @@ describe('Codex bridge config', () => {
           supports_websockets: false,
         },
       },
-      preferred_auth_method: 'apikey',
     });
+    expect(state.appServerOptions[0]?.codexConfig).not.toHaveProperty(
+      'preferred_auth_method',
+    );
   });
 
   test('enables standalone web search for the ChatGPT Codex backend', async () => {

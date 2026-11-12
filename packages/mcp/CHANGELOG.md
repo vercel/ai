@@ -1,5 +1,28 @@
 # @ai-sdk/mcp
 
+## 2.0.97
+
+### Patch Changes
+
+- 6309382: Add support for `baseUriDomains` in MCP App CSP metadata.
+
+## 2.0.96
+
+### Patch Changes
+
+- 6141e6f: fix(mcp): reject with the network error when `server/discover` fails over Streamable HTTP instead of falling back to `initialize` against the same unreachable server
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 2.0.95
+
+### Patch Changes
+
+- 88b9575: Require a DNS-pinned fetch for untrusted MCP OAuth discovery and metadata-derived token/registration URLs on server runtimes without a protected default transport. Preserve developer-configured endpoints and allow explicitly supplied fetch implementations that provide equivalent connect-time validation. Browser workers without a DOM follow the same explicit custom-fetch requirement.
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 2.0.94
 
 ### Patch Changes

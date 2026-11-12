@@ -1044,6 +1044,15 @@ the changed content, and the next step fails. Editing or removing earlier
 messages between turns, or changing the system prompt or tools between turns,
 has the same effect.
 
+UI message streams can change this content as well. By default,
+`toUIMessageStream` sends "An error occurred." to the client for a failed tool
+call, while the model received the full error text during the multi-step call.
+When you convert those UI messages back with `convertToModelMessages`, the tool
+result differs from the one the model received, and the thinking blocks after it
+become invalid. See
+[Tool error text and message history](/docs/ai-sdk-ui/chatbot-tool-usage#tool-error-text-and-message-history)
+for the available options.
+
 If your application changes this content, set
 `blockBinding.prefixMismatchBehavior` to `drop_block` (see below). The API then
 drops the invalid thinking blocks instead of rejecting the request. The model

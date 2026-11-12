@@ -1279,6 +1279,7 @@ will still validate the response against the schema in `Output.object`.
 | ------------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------- | ----------- |
 | `gemini-nano-banana-2.1`              | <Check />   | <Cross />         | <Cross />  | <Cross />      | <Check />     | <Cross />   |
 | `gemini-4-argon`                      | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
+| `gemini-4-carbon`                     | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.8-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.7-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.6-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
@@ -2646,20 +2647,24 @@ Older models continue to use labelled transcripts, such as
 ## Decision Models
 
 Create an experimental decision model with `google.decisionModel(modelId)`.
-It uses Gemini structured output for Choice, Score, and Boolean questions. Choose a model
-that supports structured output, such as `gemini-4-argon`.
+It calls the Gemini Decisions API directly for Choice, Score, and Boolean questions.
+The endpoint requires `v1beta` and is not available on Vertex AI.
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { experimental_decide } from 'ai';
 
 const { answers } = await experimental_decide({
-  model: google.decisionModel('gemini-4-argon'),
+  model: google.decisionModel('gemini-decision-1'),
   state: 'I was charged twice.',
   questions: {
     requestsRefund: {
       type: 'boolean',
       instructions: 'Is the customer requesting money back?',
+      criteria: {
+        true: 'The customer wants a charge refunded.',
+        false: 'The customer only wants information.',
+      },
     },
     department: {
       type: 'choice',
@@ -2667,29 +2672,40 @@ const { answers } = await experimental_decide({
       criteria: { billing: 'Charges and refunds', support: 'Other requests' },
     },
   },
-  providerOptions: {
-    google: { thinkingConfig: { thinkingLevel: 'low' } },
-  },
 });
 ```
 
-The factory respects `createGoogle` settings and forwards `providerOptions.google`,
-including thinking configuration. Thinking controls depend on the selected model;
-use options supported by that model. The existing Gemini implementation sends the
-answer schema as `generationConfig.responseJsonSchema`.
+Choice and Score answers include native probability distributions. Scores are
+probability-weighted positions on the zero-based ordered rubric. Boolean questions
+map to Google's `noul` type, and answers expose its calibrated P(true) as
+`probability`. During EAP, that probability is between `0.01` and `0.99`.
+Apply thresholds in application code, for example
+`answers.requestsRefund.probability >= 0.5`.
 
-Choice labels are returned exactly, and Scores are finite fractional positions
-within the ordered rubric. The adapter validates complete answers after parsing
-and rejects safety-blocked, truncated, or invalid output. It preserves usage
-(including reasoning tokens), warnings, response data, and provider metadata.
+Confidence values are available at `result.providerMetadata.google.confidence`,
+keyed by question ID. Score legends are at `result.providerMetadata.google.legend`.
+Token usage includes input tokens and zero output tokens; modality details are
+preserved in `result.providerMetadata.google.usage`. A safety-blocked request
+produces refusals, which `experimental_decide` surfaces as
+`Experimental_DecisionRefusalError`.
 
-Choice and Score answers do not include probability distributions. Boolean
-answers contain prompted estimates of P(true), validated to be finite and in
-`[0, 1]`. These estimates are not guaranteed to be calibrated. Apply thresholds
-in application code, for example `answers.requestsRefund.probability >= 0.5`. See [Decisions](/docs/ai-sdk-core/decisions).
+State can contain text, JSON, images, audio, video, and PDFs. Structured state,
+instructions, and criteria descriptions are serialized as text. Every question
+requires instructions. Choice questions require 2–255 options; Score questions
+require 2–255 non-empty level descriptions. Question IDs must contain 1–64 ASCII
+letters, digits, underscores, or hyphens. Choice option IDs must contain 1–128
+characters without leading or trailing whitespace. Google sorts Choice IDs
+alphabetically and breaks exact probability ties in that order.
+
+The factory respects `createGoogle` settings, including API keys, base URLs,
+headers, and custom fetch implementations. Generation options such as
+`maxOutputTokens`, `reasoning`, and `providerOptions.google.thinkingConfig` are
+unsupported and produce warnings. Decisions do not use structured output or
+fall back to `generateContent`. The deprecated `evaluationModel` factory and
+`doEvaluate` method remain aliases for the native implementation.
 
 Decision models can also be accessed through `customProvider` aliases or
 `createProviderRegistry().decisionModel('provider:model')`. Direct string IDs
-use Gateway by default, or an explicitly configured default provider with an
+use Gateway by default, or an explicitly configured default provider with a
 `decisionModel` method. See
 [model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).

@@ -1,5 +1,31 @@
 # @ai-sdk/harness-cline
 
+## 1.0.109
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.181
+
+## 1.0.108
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/harness@1.0.180
+
+## 1.0.107
+
+### Patch Changes
+
+- 0fc1f13: chore(harness): update harness adapter underlying SDKs to their latest releases
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 1.0.106
 
 ### Patch Changes

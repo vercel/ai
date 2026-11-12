@@ -1,5 +1,29 @@
 # @ai-sdk/tool-bash
 
+## 1.0.24
+
+### Patch Changes
+
+- Updated dependencies [91a67c2]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - ai@7.0.169
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+  - ai@7.0.168
+
 ## 1.0.21
 
 ### Patch Changes

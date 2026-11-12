@@ -1,5 +1,38 @@
 # ai
 
+## 7.0.170
+
+### Patch Changes
+
+- 91a67c2: Fix excessive CPU usage when streaming long arrays with `Output.array` or `streamObject`. Parse and validate completed elements incrementally instead of repeatedly processing the entire accumulated array on every text chunk.
+- 84b1cb0: Cancel pending send-now operations when a later stop or dispose occurs, preventing an abandoned chat's queued messages and history from being sent through a replacement transport.
+- Updated dependencies [eaeb37e]
+  - @ai-sdk/gateway@4.0.143
+
+## 7.0.169
+
+### Patch Changes
+
+- 4311fa1: Use Zod Mini for internal validation schemas to reduce bundle size while preserving the public message schemas' classic Zod methods, error messages, and compatibility with supported Zod 3 and Zod 4 versions.
+- d9dd2b7: keep the request options when the useChat queue sends a tool approval first, and hold the queue while an async sendAutomaticallyWhen decides
+- Updated dependencies [4311fa1]
+- Updated dependencies [c160b74]
+- Updated dependencies [4311fa1]
+- Updated dependencies [838dd53]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/gateway@4.0.142
+
+## 7.0.168
+
+### Patch Changes
+
+- 65aa669: add experimental_queue to useChat to queue messages sent while a response is in progress
+- 8585d7e: fix(ai): call `toUIMessageStream` `onError` once per invalid tool call
+- Updated dependencies [5497ff7]
+- Updated dependencies [88b9575]
+  - @ai-sdk/gateway@4.0.141
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 7.0.167
 
 ### Patch Changes

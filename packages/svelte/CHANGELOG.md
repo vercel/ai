@@ -1,5 +1,34 @@
 # @ai-sdk/svelte
 
+## 5.0.170
+
+### Patch Changes
+
+- Updated dependencies [91a67c2]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+
+## 5.0.169
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - @ai-sdk/provider-utils@5.0.79
+  - ai@7.0.169
+
+## 5.0.168
+
+### Patch Changes
+
+- 65aa669: add experimental_queue to useChat to queue messages sent while a response is in progress
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+- Updated dependencies [88b9575]
+  - ai@7.0.168
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 5.0.167
 
 ### Patch Changes

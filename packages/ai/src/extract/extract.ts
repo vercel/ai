@@ -1,0 +1,132 @@
+import {
+  Experimental_ExtractionRefusalError as ExtractionRefusalError,
+  Experimental_ExtractionUnsupportedFieldTypeError as ExtractionUnsupportedFieldTypeError,
+  type Experimental_ExtractionModelV4CallOptions as ExtractionCallOptions,
+  type Experimental_ExtractionModelV4Field as ExtractionField,
+} from '@ai-sdk/provider';
+import {
+  withUserAgentSuffix,
+  type ProviderOptions,
+} from '@ai-sdk/provider-utils';
+import {
+  prepareDecisionState,
+  type DecisionState,
+} from '../decide/decision-state';
+import { logWarnings } from '../logger/log-warnings';
+import { resolveExtractionModel } from '../model/resolve-model';
+import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
+import { prepareRetries } from '../util/prepare-retries';
+import { VERSION } from '../version';
+import type { ExtractionModel, ExtractionResult } from './extraction-result';
+import {
+  validateExtractionAnswers,
+  validateExtractionInput,
+} from './validate-extraction';
+
+/** Extract typed field values from one shared state. Experimental. */
+export async function extract<
+  const FIELDS extends Record<string, ExtractionField>,
+>({
+  model: modelArg,
+  state,
+  fields,
+  referenceDate,
+  maxOutputTokens,
+  reasoning,
+  maxRetries,
+  abortSignal,
+  headers,
+  providerOptions = {},
+}: {
+  /** An extraction model instance. */
+  model: ExtractionModel;
+  state: DecisionState;
+  fields: FIELDS;
+  /** `YYYY-MM-DD` date that anchors relative dates and dates without a year. */
+  referenceDate?: string;
+  /** Maximum output tokens for supported models. Must be an integer >= 1. */
+  maxOutputTokens?: number;
+  /** Reasoning effort for supported models. */
+  reasoning?: ExtractionCallOptions['reasoning'];
+  /** Maximum retries for transient provider failures. Defaults to 2. */
+  maxRetries?: number;
+  abortSignal?: AbortSignal;
+  headers?: Record<string, string>;
+  providerOptions?: ProviderOptions;
+}): Promise<ExtractionResult<FIELDS>> {
+  const model = resolveExtractionModel(modelArg);
+
+  prepareLanguageModelCallOptions({ maxOutputTokens });
+  validateExtractionInput({ state, fields, referenceDate });
+
+  for (const [fieldId, field] of Object.entries(fields)) {
+    if (!model.supportedFieldTypes.includes(field.type)) {
+      throw new ExtractionUnsupportedFieldTypeError({
+        fieldId,
+        fieldType: field.type,
+        provider: model.provider,
+        modelId: model.modelId,
+      });
+    }
+  }
+
+  const { retry } = prepareRetries({ maxRetries, abortSignal });
+  const preparedState = await prepareDecisionState(state, abortSignal);
+  const result = await retry(async () => {
+    abortSignal?.throwIfAborted();
+    return await model.doExtract({
+      state: preparedState,
+      fields,
+      referenceDate,
+      maxOutputTokens,
+      reasoning,
+      abortSignal,
+      headers: withUserAgentSuffix(headers ?? {}, `ai/${VERSION}`),
+      providerOptions,
+    });
+  });
+
+  abortSignal?.throwIfAborted();
+  validateExtractionAnswers({
+    fields,
+    state: preparedState,
+    answers: result.answers,
+  });
+  const refusedFieldIds = Object.keys(fields).filter(
+    id => result.answers[id]?.type === 'refusal',
+  );
+  if (refusedFieldIds.length > 0) {
+    throw new ExtractionRefusalError({
+      fieldIds: refusedFieldIds,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+  }
+
+  logWarnings({
+    warnings: result.warnings,
+    provider: model.provider,
+    model: model.modelId,
+  });
+
+  const inputTokens = result.usage?.inputTokens;
+  const outputTokens = result.usage?.outputTokens;
+  return {
+    answers: result.answers as ExtractionResult<FIELDS>['answers'],
+    usage: {
+      inputTokens,
+      outputTokens,
+      totalTokens:
+        inputTokens != null && outputTokens != null
+          ? inputTokens + outputTokens
+          : undefined,
+    },
+    warnings: result.warnings,
+    providerMetadata: result.providerMetadata,
+    response: {
+      ...result.response,
+      timestamp: result.response?.timestamp ?? new Date(),
+      modelId: result.response?.modelId ?? model.modelId,
+    },
+  };
+}

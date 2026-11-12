@@ -1,5 +1,35 @@
 # @ai-sdk/harness
 
+## 1.0.181
+
+### Patch Changes
+
+- Updated dependencies [91a67c2]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+
+## 1.0.180
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - @ai-sdk/provider-utils@5.0.79
+  - ai@7.0.169
+
+## 1.0.179
+
+### Patch Changes
+
+- c849d37: feat(harness): use public-key cryptography instead of token for sandbox bridge communication
+- 7f1c01e: feat(harness): export `encodeHarnessPathSegment` helper
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+- Updated dependencies [88b9575]
+  - ai@7.0.168
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 1.0.178
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/workflow",
-  "version": "2.0.99",
+  "version": "2.0.102",
   "type": "module",
   "description": "WorkflowAgent for building AI agents with AI SDK",
   "license": "Apache-2.0",
@@ -65,7 +65,7 @@
     "typescript": "6.0.3",
     "vitest": "4.1.11",
     "workflow": "5.1.0",
-    "zod": "4.5.4"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "workflow": "^5.1.0",
