@@ -15,6 +15,7 @@
         "packages/harness-*-v2/**"
       ],
       "rules": {
+        "@typescript-eslint/no-explicit-any": "error",
         "ai-sdk/require-docblock": "error",
         "ai-sdk/require-explicit-abort-property-names": "error",
         "ai-sdk/require-object-parameter": "error",

@@ -337,7 +337,13 @@ export class HarnessAgent<
     // no-op values for TypeScript compliance.
     if (isHarnessV2Adapter(inputSettings.harness)) {
       const v2Settings = { ...inputSettings, harness: inputSettings.harness };
-      const harnessAgentV2 = new HarnessAgentV2(v2Settings);
+      const harnessAgentV2 = new HarnessAgentV2<
+        Extract<THarness, HarnessV2<any>>,
+        TUserTools,
+        RUNTIME_CONTEXT,
+        OUTPUT,
+        CALL_OPTIONS
+      >(v2Settings);
       this.harnessAgentV2 = harnessAgentV2;
       this.settings = {
         ...inputSettings,

@@ -90,7 +90,7 @@ interface HarnessAgentCallExtensions {
  * Combines adapter built-ins with user tools, letting user tools take precedence.
  */
 type HarnessAllTools<
-  THarness extends HarnessV2<any>,
+  THarness extends HarnessV2,
   TUserTools extends ToolSet,
 > = Omit<THarness['builtinTools'], keyof TUserTools> & TUserTools;
 
@@ -109,7 +109,7 @@ type HarnessAllTools<
  * ```
  */
 export class HarnessAgent<
-  THarness extends HarnessV2<any> = HarnessV2,
+  THarness extends HarnessV2 = HarnessV2,
   TUserTools extends ToolSet = {},
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
