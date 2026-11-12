@@ -824,6 +824,18 @@ describe('toUIMessageChunk', () => {
     });
   });
 
+  it('masks error parts when redactToolErrors is false', () => {
+    expect(
+      toUIMessageChunk(
+        { type: 'error', error: new Error('boom') },
+        { redactToolErrors: false },
+      ),
+    ).toEqual({
+      type: 'error',
+      errorText: 'An error occurred.',
+    });
+  });
+
   describe('error text of failed tool calls', () => {
     const toolError: TextStreamPart<Tools> = {
       type: 'tool-error',
