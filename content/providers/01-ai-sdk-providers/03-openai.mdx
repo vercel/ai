@@ -1875,10 +1875,66 @@ await generateText({
 });
 ```
 
-`additionalTools` currently accepts function definitions with `type: 'function'`,
-`name`, `parameters`, and optional `description` and `strict`. An empty array emits
-no item. These are OpenAI-format definitions; keep their names and schemas aligned
-with the SDK tools used for local validation and execution.
+`additionalTools` accepts OpenAI-format tool definitions:
+
+- `type: 'function'` with `name`, `parameters`, and optional `description`, `strict`
+  and `defer_loading`
+- `type: 'custom'` with `name` and optional `description` and `format`
+- `type: 'namespace'` with `name`, `description`, and a non-empty `tools` list of
+  function definitions
+
+An empty array emits no item. Keep the names and schemas aligned with the SDK tools
+used for local validation and execution.
+
+##### Load tools at any point in the conversation
+
+To add tools somewhere other than after a tool result, add an empty system message
+with `providerOptions.openai.additionalTools` at that point. The Responses provider
+emits an `additional_tools` item in its place, so the earlier history and the
+top-level tool list stay unchanged. This requires `allowSystemInMessages: true`.
+
+```ts
+import {
+  openai,
+  type OpenAIResponsesSystemMessageOptions,
+} from '@ai-sdk/openai';
+
+messages.push(
+  {
+    role: 'system',
+    content: '',
+    providerOptions: {
+      openai: {
+        additionalTools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather for a city.',
+            parameters: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+              additionalProperties: false,
+            },
+          },
+        ],
+      } satisfies OpenAIResponsesSystemMessageOptions,
+    },
+  },
+  { role: 'user', content: 'What is the weather in Rome?' },
+);
+
+await generateText({
+  model: openai.responses('gpt-5.4'),
+  tools, // includes get_weather with omitFromRequestTools: true
+  messages,
+  allowSystemInMessages: true,
+});
+```
+
+The control message must have empty content. It can be combined with
+`reasoningEffortUpdate` or `textFormatUpdate` on the same message, in which case
+the configuration update comes first.
 
 `omitFromRequestTools: true` omits only the function's top-level Responses tool
 definition. Keep the function in `tools` and, if you use `activeTools`, include it

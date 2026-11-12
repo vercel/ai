@@ -1,5 +1,15 @@
 # @ai-sdk/fish-audio
 
+## 3.0.58
+
+### Patch Changes
+
+- 203a0e0: Centralize Fish Audio speech and transcription model IDs, timestamp defaults, loudness normalization support, and provider option metadata in a model catalog.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
 ## 3.0.57
 
 ### Patch Changes

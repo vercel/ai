@@ -4,6 +4,18 @@
 
 ### Patch Changes
 
+- Updated dependencies [11323f9]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+- Updated dependencies [ceeee29]
+- Updated dependencies [1a94af3]
+  - ai@7.0.171
+  - @ai-sdk/rsc@3.0.171
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [91a67c2]
 - Updated dependencies [84b1cb0]
   - ai@7.0.170

@@ -392,6 +392,7 @@ export function createGrokBuild(
       type: 'filesystem',
       path: '.grok/AGENTS.md',
     },
+    writeProtectedPaths: ['.grok'],
     outputSchemaMapping: {
       type: 'session-prompt-meta',
       path: ['outputSchema'],

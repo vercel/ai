@@ -9,7 +9,7 @@ import { InvalidArgumentError } from '../error/invalid-argument-error';
 // Absolute tolerance for sums and means. Never renormalize provider output.
 const tolerance = 1e-6;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   if (value == null || typeof value !== 'object' || Array.isArray(value))
     return false;
   const prototype = Object.getPrototypeOf(value);
@@ -21,7 +21,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * cycles, and no array holes. These would otherwise be silently changed by
  * `JSON.stringify` or make it throw.
  */
-function isSerializableJSON(
+export function isSerializableJSON(
   value: unknown,
   ancestors = new Set<object>(),
 ): boolean {
@@ -38,7 +38,7 @@ function isSerializableJSON(
   return valid;
 }
 
-function invalidInput(
+export function invalidInput(
   parameter: string,
   value: unknown,
   message: string,
@@ -46,13 +46,7 @@ function invalidInput(
   throw new InvalidArgumentError({ parameter, value, message });
 }
 
-export function validateDecisionInput({
-  state,
-  questions,
-}: {
-  state: DecisionState;
-  questions: Readonly<Record<string, DecisionQuestion>>;
-}) {
+export function validateDecisionState(state: DecisionState) {
   if (
     Array.isArray(state) &&
     Array.from(state.keys()).some(index => !(index in state))
@@ -70,6 +64,16 @@ export function validateDecisionInput({
       'JSON content must not contain non-finite numbers, cycles, or array holes',
     );
   }
+}
+
+export function validateDecisionInput({
+  state,
+  questions,
+}: {
+  state: DecisionState;
+  questions: Readonly<Record<string, DecisionQuestion>>;
+}) {
+  validateDecisionState(state);
 
   if (Object.keys(questions).length === 0) {
     invalidInput('questions', questions, 'must be a nonempty question map');
@@ -139,7 +143,7 @@ function invalidAnswer(answers: unknown, message: string): never {
   throw new InvalidResponseDataError({ data: answers, message });
 }
 
-function isProbability(value: unknown): value is number {
+export function isProbability(value: unknown): value is number {
   return (
     typeof value === 'number' &&
     Number.isFinite(value) &&
@@ -148,7 +152,10 @@ function isProbability(value: unknown): value is number {
   );
 }
 
-function hasExactKeys(value: Record<string, unknown>, keys: string[]): boolean {
+export function hasExactKeys(
+  value: Record<string, unknown>,
+  keys: string[],
+): boolean {
   return (
     Object.keys(value).length === keys.length &&
     keys.every(key => Object.hasOwn(value, key))

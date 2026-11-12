@@ -313,6 +313,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     workDir,
     permissionMode: start.permissionMode ?? 'allow-all',
     hasPermissionModeMapping: start.permissionModeMapping != null,
+    writeProtectedPaths: bridgeConfiguration.writeProtectedPaths,
     emitToolCall: emitStreamEvent.permissionToolCall,
     claimHostToolPermission: emitStreamEvent.claimHostToolPermission,
     onHostToolPermissionAllowed: hostToolAuthorization.authorizePermission,

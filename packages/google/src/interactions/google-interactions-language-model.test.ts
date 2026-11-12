@@ -858,6 +858,22 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(body.generation_config?.thinking_summaries).toBe('auto');
     });
 
+    it.each(['gemini-4-hydrogen', 'gemini-4-hydrogen-eap'])(
+      'passes the xhigh thinking level for %s',
+      async modelId => {
+        const result = await provider.interactions(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { google: { thinkingLevel: 'xhigh' } },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: modelId,
+          generation_config: { thinking_level: 'xhigh' },
+        });
+        expect(result.warnings).toEqual([]);
+      },
+    );
+
     it('forwards topK and warns for unsupported penalties', async () => {
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,

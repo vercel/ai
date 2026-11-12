@@ -16,7 +16,6 @@ export type GatewayVideoModelId =
   | 'bytedance/seedance-2.5'
   | 'bytedance/seedance-v1.0-pro'
   | 'bytedance/seedance-v1.0-pro-fast'
-  | 'bytedance/seedance-v1.5-pro'
   | 'google/veo-3.1-fast-generate-001'
   | 'google/veo-3.1-generate-001'
   | 'google/veo-3.1-lite-generate-001'

@@ -411,6 +411,7 @@ export function createCursor(
     },
     executable: 'agent',
     args: ['--disable-auto-update', '--disable-project-configs', 'acp'],
+    writeProtectedPaths: ['.cursor'],
     modelMapping: {
       type: 'session-config-option',
       path: 'model',
