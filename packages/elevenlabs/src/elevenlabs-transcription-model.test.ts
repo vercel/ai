@@ -80,14 +80,17 @@ function prepareJsonFixtureResponse(
 }
 
 describe('doGenerate', () => {
-  it('should reject scribe_v2_realtime for non-streaming transcription', async () => {
-    await expect(
-      provider.transcription('scribe_v2_realtime').doGenerate({
-        audio: audioData,
-        mediaType: 'audio/wav',
-      }),
-    ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
-  });
+  it.each(['scribe_v2_realtime', 'scribe_v3_live'])(
+    'should reject %s for non-streaming transcription',
+    async modelId => {
+      await expect(
+        provider.transcription(modelId).doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+        }),
+      ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
+    },
+  );
 
   it('warns when streaming options are passed to batch transcription', async () => {
     prepareJsonFixtureResponse('elevenlabs-transcription');
@@ -640,6 +643,55 @@ describe('doStream', () => {
     expect(ws.close).toHaveBeenCalledWith(1000);
   });
 
+  it('streams Scribe v3 Live with the turn prediction commit strategy', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v3_live').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: {
+          streaming: { commitStrategy: 'turn_prediction' },
+        },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    const url = new URL(ws.url);
+    expect(url.origin + url.pathname).toBe(
+      'wss://api.elevenlabs.io/v1/speech-to-text/realtime',
+    );
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      model_id: 'scribe_v3_live',
+      audio_format: 'pcm_16000',
+      commit_strategy: 'turn_prediction',
+    });
+
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({ message_type: 'committed_transcript', text: 'Hello world.' });
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'transcript-final',
+        id: 'session-1:0',
+        text: 'Hello world.',
+      },
+      {
+        type: 'finish',
+        text: 'Hello world.',
+        segments: [],
+        language: undefined,
+        durationInSeconds: undefined,
+      },
+    ]);
+    expect(result.response?.modelId).toBe('scribe_v3_live');
+  });
+
   it('detects language without returning timestamps unless requested', async () => {
     const result = await createElevenLabs({
       apiKey: 'test-api-key',
@@ -1127,6 +1179,35 @@ describe('doStream', () => {
     ws.message({ message_type: 'session_started', session_id: 'session-1' });
     const assertion = expect(partsPromise).rejects.toThrow('quota exhausted');
     ws.message({ message_type: 'quota_exceeded', error: 'quota exhausted' });
+    await assertion;
+    expect(ws.close).toHaveBeenCalled();
+  });
+
+  it('errors the stream when the provider rejects the session configuration', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v2_realtime').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: {
+          streaming: { commitStrategy: 'turn_prediction' },
+        },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    const assertion = expect(partsPromise).rejects.toThrow(
+      "commit_strategy 'turn_prediction' is not supported by model_id 'scribe_v2_realtime'",
+    );
+    ws.message({
+      message_type: 'invalid_request',
+      error:
+        "commit_strategy 'turn_prediction' is not supported by model_id 'scribe_v2_realtime'",
+    });
     await assertion;
     expect(ws.close).toHaveBeenCalled();
   });

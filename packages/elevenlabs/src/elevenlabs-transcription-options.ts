@@ -3,4 +3,6 @@ export type ElevenLabsTranscriptionModelId =
   | 'scribe_v1_experimental'
   | 'scribe_v2'
   | 'scribe_v2_realtime'
+  | 'scribe_v3'
+  | 'scribe_v3_live'
   | (string & {});
