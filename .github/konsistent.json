@@ -104,7 +104,8 @@
           "excludeFiles": [
             "${providerId}-realtime-model.ts",
             "${providerId}-video-model.ts",
-            "${providerId}-decision-model.ts"
+            "${providerId}-decision-model.ts",
+            "packages/scaledown/src/scaledown-extraction-model.ts"
           ]
         },
         {
@@ -135,7 +136,8 @@
             "packages/gateway/src/gateway-reranking-model.ts",
             "packages/gateway/src/gateway-speech-model.ts",
             "packages/gateway/src/gateway-transcription-model.ts",
-            "packages/typesafe-ai/src/typesafe-ai-decision-model.ts"
+            "packages/typesafe-ai/src/typesafe-ai-decision-model.ts",
+            "packages/scaledown/src/scaledown-decision-model.ts"
           ]
         },
         {
@@ -1120,6 +1122,7 @@
     "opencode": "OpenCode",
     "quiverai": "QuiverAI",
     "togetherai": "TogetherAI",
+    "scaledown": "ScaleDown",
     "typesafe-ai": "TypeSafeAi"
   },
   "kebabToCamelMap": {
