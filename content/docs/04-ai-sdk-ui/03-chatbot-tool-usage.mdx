@@ -814,6 +814,11 @@ const weatherTool = tool({
 });
 ```
 
+The `execute` function does not run for an invalid tool call. Its error text
+contains the input that the model generated, the validation messages of the
+input schema, or the names of the available tools. Only
+[`redactToolErrors`](#redacting-tool-errors) replaces this text.
+
 Tool execution errors marked `providerExecuted: true` are also sent unchanged.
 String errors pass through; other error values are serialized with
 `JSON.stringify`. The original error data is needed when converting persisted UI
