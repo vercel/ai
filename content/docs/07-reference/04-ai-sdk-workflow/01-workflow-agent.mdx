@@ -395,6 +395,20 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Callback called when all agent steps are finished and the response is complete. Receives steps, messages, text, finish reason, total usage, and context. If also specified in `stream()`, both callbacks fire (constructor first).',
     },
     {
+      name: 'onError',
+      type: 'WorkflowAgentOnErrorCallback',
+      isOptional: true,
+      description:
+        'Callback called when an error occurs. Aborts are not reported. If also specified in `generate()` or `stream()`, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
+    },
+    {
+      name: 'onAbort',
+      type: 'WorkflowAgentOnAbortCallback',
+      isOptional: true,
+      description:
+        'Callback called when the operation is aborted. Receives all previously finished steps. If also specified in `generate()` or `stream()`, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
+    },
+    {
       name: 'maxOutputTokens',
       type: 'number',
       isOptional: true,
@@ -741,13 +755,15 @@ const result = await agent.stream({
       name: 'onError',
       type: 'WorkflowAgentOnErrorCallback',
       isOptional: true,
-      description: 'Callback invoked when an error occurs during streaming.',
+      description:
+        'Callback invoked when an error occurs. Aborts are not reported. If also specified in the constructor, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
     },
     {
       name: 'onAbort',
       type: 'WorkflowAgentOnAbortCallback',
       isOptional: true,
-      description: 'Callback invoked when the operation is aborted. Receives all previously finished steps.',
+      description:
+        'Callback invoked when the operation is aborted. Receives all previously finished steps. If also specified in the constructor, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
     },
 
 ]}

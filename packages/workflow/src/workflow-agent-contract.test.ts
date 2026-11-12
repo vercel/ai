@@ -293,6 +293,104 @@ describe('WorkflowAgent stream and core generate contracts', () => {
   });
 });
 
+describe('WorkflowAgent error and abort callbacks', () => {
+  function failingModel() {
+    return new MockLanguageModelV4({
+      doGenerate: async () => {
+        throw new Error('model exploded');
+      },
+      doStream: async () => {
+        throw new Error('model exploded');
+      },
+    });
+  }
+
+  it('calls a constructor onError callback like ToolLoopAgent, before the call callback', async () => {
+    const calls: string[] = [];
+    const record =
+      (label: string) =>
+      ({ error }: { error: unknown }) => {
+        calls.push(`${label}: ${(error as Error).message}`);
+      };
+
+    const core = new ToolLoopAgent({
+      model: failingModel(),
+      maxRetries: 0,
+      onError: record('core constructor'),
+    });
+    await expect(core.generate({ prompt })).rejects.toThrow('model exploded');
+
+    const agent = new WorkflowAgent({
+      model: failingModel(),
+      maxRetries: 0,
+      onError: record('constructor'),
+    });
+    await expect(
+      agent.generate({ prompt, onError: record('generate call') }),
+    ).rejects.toThrow('model exploded');
+    await expect(
+      agent.stream({ prompt, onError: record('stream call') }),
+    ).rejects.toThrow('model exploded');
+
+    expect(calls).toEqual([
+      'core constructor: model exploded',
+      'constructor: model exploded',
+      'generate call: model exploded',
+      'constructor: model exploded',
+      'stream call: model exploded',
+    ]);
+  });
+
+  it('keeps the model error when onError throws, like ToolLoopAgent', async () => {
+    const onError = () => {
+      throw new Error('onError exploded');
+    };
+
+    await expect(
+      new ToolLoopAgent({
+        model: failingModel(),
+        maxRetries: 0,
+        onError,
+      }).generate({ prompt }),
+    ).rejects.toThrow('model exploded');
+
+    const agent = new WorkflowAgent({
+      model: failingModel(),
+      maxRetries: 0,
+      onError,
+    });
+    await expect(agent.generate({ prompt, onError })).rejects.toThrow(
+      'model exploded',
+    );
+    await expect(agent.stream({ prompt, onError })).rejects.toThrow(
+      'model exploded',
+    );
+  });
+
+  it('calls constructor and call onAbort callbacks and ignores errors they throw', async () => {
+    const calls: string[] = [];
+    const abortController = new AbortController();
+    abortController.abort();
+
+    const result = await new WorkflowAgent({
+      model: createAgentModel([textResponse('Unused.')]),
+      onAbort: ({ steps }) => {
+        calls.push(`constructor: ${steps.length} steps`);
+        throw new Error('onAbort exploded');
+      },
+    }).stream({
+      prompt,
+      abortSignal: abortController.signal,
+      onAbort: ({ steps }) => {
+        calls.push(`call: ${steps.length} steps`);
+      },
+    });
+
+    expect(calls).toEqual(['constructor: 0 steps', 'call: 0 steps']);
+    expect(result.steps).toEqual([]);
+  });
+});
+
 describe('WorkflowAgent stream completion contract', () => {
   it.each([false, true])(
     'forwards raw chunks when requested: %s',
