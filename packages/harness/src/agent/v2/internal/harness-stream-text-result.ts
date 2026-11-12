@@ -837,6 +837,7 @@ export class HarnessStreamTextResult<
     sendStart,
     sendFinish,
     onError,
+    redactToolErrors,
     ...init
   }: ResponseInit & {
     consumeSseStream?: (options: {
@@ -857,6 +858,7 @@ export class HarnessStreamTextResult<
         sendStart,
         sendFinish,
         onError,
+        redactToolErrors,
       }),
       ...init,
     });

@@ -224,4 +224,48 @@ describe('HarnessStreamTextResult', () => {
 
     expect(chunks).toEqual(['Hello', ' world']);
   });
+
+  test.each(['toUIMessageStream', 'toUIMessageStreamResponse'] as const)(
+    'redacts a tool error in %s when redactToolErrors is true',
+    async method => {
+      const result = createResult({
+        parts: [
+          { type: 'start' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: '{}',
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            result: 'weather backend timeout',
+            isError: true,
+          },
+          finishStepPart,
+          { type: 'finish', finishReason, totalUsage: usage },
+        ],
+      });
+
+      let body: string;
+      if (method === 'toUIMessageStreamResponse') {
+        body = await result
+          .toUIMessageStreamResponse({ redactToolErrors: true })
+          .text();
+      } else {
+        const chunks: unknown[] = [];
+        for await (const chunk of result.toUIMessageStream({
+          redactToolErrors: true,
+        })) {
+          chunks.push(chunk);
+        }
+        body = JSON.stringify(chunks);
+      }
+
+      expect(body).toContain('"errorText":"An error occurred."');
+      expect(body).not.toContain('weather backend timeout');
+    },
+  );
 });
