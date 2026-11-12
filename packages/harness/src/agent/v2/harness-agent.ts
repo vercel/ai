@@ -26,10 +26,9 @@ import {
 import { InMemoryWorld } from './in-memory-world';
 import { createDriveContext } from './internal/create-drive-context';
 import { createEffectFunction } from './internal/create-effect-function';
-import { createExecuteHostToolFunction } from './internal/create-execute-host-tool-function';
+import { createExecuteToolFunctions } from './internal/create-execute-tool-functions';
 import { createFinishFunctions } from './internal/create-finish-functions';
 import { createGateBuiltinToolFunction } from './internal/create-gate-builtin-tool-function';
-import { createExecuteBuiltinToolFunction } from './internal/create-execute-builtin-tool-function';
 import { createLog } from './internal/create-log';
 import {
   createStreamWriter,
@@ -763,14 +762,11 @@ async function runDrivePass(options: {
       abortSignal: stopAbortSignal,
     });
     finishTurn = finishFunctions.finishTurn;
-    const executeHostTool = createExecuteHostToolFunction({
+    const { executeHostTool, executeBuiltinTool } = createExecuteToolFunctions({
       tools: userTools,
-      effect,
-      getSandboxSession: () => session.getSandboxSession(),
-    });
-    const executeBuiltinTool = createExecuteBuiltinToolFunction({
       builtinTools: harness.builtinTools,
       effect,
+      getSandboxSession: () => session.getSandboxSession(),
     });
     const gateBuiltinTool = createGateBuiltinToolFunction({
       builtinTools: harness.builtinTools,
