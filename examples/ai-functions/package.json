@@ -47,6 +47,7 @@
     "@ai-sdk/heygen": "workspace:*",
     "@ai-sdk/huggingface": "workspace:*",
     "@ai-sdk/hume": "workspace:*",
+    "@ai-sdk/inception": "workspace:*",
     "@ai-sdk/klingai": "workspace:*",
     "@ai-sdk/langchain": "workspace:*",
     "@ai-sdk/luma": "workspace:*",

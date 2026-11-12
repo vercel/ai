@@ -1,0 +1,180 @@
+---
+title: Inception
+description: Learn how to use Inception's Mercury language models with the AI SDK.
+---
+
+# Inception Provider
+
+The [Inception](https://inceptionlabs.ai) provider supports Mercury language models through Inception's [chat completions API](https://docs.inceptionlabs.ai/api-reference/chat/create-a-chat-completion).
+
+## Setup
+
+The Inception provider is available in the `@ai-sdk/inception` module:
+
+<InstallPackages packages="@ai-sdk/inception" />
+
+Set the `INCEPTION_API_KEY` environment variable to your API key from the
+[Inception platform](https://platform.inceptionlabs.ai).
+
+## Provider Instance
+
+Import the default provider instance:
+
+```ts
+import { inception } from '@ai-sdk/inception';
+```
+
+For custom configuration, use `createInception`:
+
+```ts
+import { createInception } from '@ai-sdk/inception';
+
+const inception = createInception({
+  apiKey: 'your-api-key',
+});
+```
+
+The following settings are available:
+
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  API key sent in the `Authorization` header. Defaults to `INCEPTION_API_KEY`.
+  A function is resolved before every request to support rotating credentials.
+
+- **baseURL** _string_
+
+  URL prefix for API calls. Defaults to `https://api.inceptionlabs.ai/v1`.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Additional HTTP headers to include in requests.
+
+- **fetch** _FetchFunction_
+
+  Custom fetch implementation.
+
+## Language Models
+
+Create a chat model with `inception(modelId)`. You can also use
+`inception.chat(modelId)` or `inception.languageModel(modelId)`.
+
+```ts
+import { inception } from '@ai-sdk/inception';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: inception('mercury-3'),
+  prompt: 'Explain diffusion language models in one paragraph.',
+});
+```
+
+### Reasoning Effort
+
+Use the top-level `reasoning` option to control how much the model deliberates
+before answering. When omitted, the API uses the model's default.
+
+```ts
+import { inception } from '@ai-sdk/inception';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: inception('mercury-3'),
+  reasoning: 'high',
+  prompt: 'Solve this step by step: 3x + 7 = 22.',
+});
+```
+
+`none` and `minimal` map to `instant`; `low`, `medium`, and `high` map directly;
+`xhigh` and `max` map to `high`.
+
+To select an Inception effort directly, set
+`providerOptions.inception.reasoningEffort` to `instant`, `low`, `medium`, or
+`high`. This provider-specific option takes precedence over `reasoning`.
+
+### Streaming
+
+```ts
+import { inception } from '@ai-sdk/inception';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: inception('mercury-3'),
+  prompt: 'Write a short story about a robot gardener.',
+});
+
+for await (const text of result.textStream) {
+  process.stdout.write(text);
+}
+```
+
+Streaming uses standard server-sent events and includes token usage.
+
+### Structured Outputs
+
+```ts
+import { inception } from '@ai-sdk/inception';
+import { generateText, Output } from 'ai';
+import { z } from 'zod';
+
+const { output } = await generateText({
+  model: inception('mercury-3'),
+  output: Output.object({
+    schema: z.object({
+      sentiment: z.enum(['positive', 'negative', 'neutral']),
+      confidence: z.number().min(0).max(1),
+    }),
+  }),
+  prompt: 'Analyze the sentiment: I love this feature!',
+});
+```
+
+JSON schemas are sent using `response_format.type: 'json_schema'` with strict
+validation enabled by default. Structured output also works with `streamText`.
+
+### Tool Calling
+
+Mercury supports function tools, parallel tool calls, and streaming tool calls.
+Use the standard AI SDK `tools` and `toolChoice` settings. Tool results are sent
+back as tool messages for multi-step generation.
+
+### Provider Options
+
+The following `InceptionLanguageModelChatOptions` can be passed under
+`providerOptions.inception`:
+
+- **reasoningEffort** _'instant' | 'low' | 'medium' | 'high'_
+
+  How much the model deliberates before responding.
+
+- **strictJsonSchema** _boolean_
+
+  Whether to use strict JSON schema validation. Defaults to `true`.
+
+- **realtime** _boolean_
+
+  Optimize for workloads that require lower time to first token.
+
+`maxOutputTokens` maps to `max_completion_tokens`, which includes reasoning
+tokens. `temperature` and `stopSequences` are supported. The API accepts
+temperatures from 0.5 to 1; values outside this range are reset by the API to the
+model's default. Unsupported `topP`, `topK`, `frequencyPenalty`, `presencePenalty`,
+and `seed` settings are omitted with warnings.
+
+### Model Capabilities
+
+{/* model-capabilities:inception-language:start */}
+
+| Model           | Image Input | Object Generation | Tool Usage | Tool Streaming | Reasoning |
+| --------------- | ----------- | ----------------- | ---------- | -------------- | --------- |
+| `mercury-3`     | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
+| `mercury-2.5`   | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
+| `mercury-2`     | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
+| `mercury-voice` | <Cross />   | <Check />         | <Check />  | <Check />      | <Check /> |
+
+{/* model-capabilities:inception-language:end */}
+
+Chat models accept text inputs and support streaming. `mercury-voice` requires
+enterprise access and supports `low`, `medium`, and `high` reasoning effort.
+See Inception's
+[model documentation](https://docs.inceptionlabs.ai/get-started/models) for
+current model availability.

@@ -1,4 +1,5 @@
 import { typeSafeAiDocs } from './providers/typesafe-ai.mjs';
+import { inceptionDocs } from './providers/inception.mjs';
 import { parallelDocs } from './providers/parallel.mjs';
 import { topazDocs } from './providers/topaz.mjs';
 import { quiveraiDocs } from './providers/quiverai.mjs';
@@ -42,6 +43,7 @@ import { formatSupport } from './render-tables.mjs';
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
+  inceptionDocs,
   typeSafeAiDocs,
   parallelDocs,
   topazDocs,
