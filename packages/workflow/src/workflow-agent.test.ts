@@ -2197,7 +2197,8 @@ describe('WorkflowAgent', () => {
       expect(receivedToolCallId).toBe('test-call-id');
       expect(receivedMessages).toBeDefined();
       expect(Array.isArray(receivedMessages)).toBe(true);
-      expect(receivedMessages).toEqual(conversationMessages);
+      // like in core, without the assistant message that contains the tool call
+      expect(receivedMessages).toEqual(conversationMessages.slice(0, -1));
     });
 
     it('should pass messages to multiple tools in parallel execution', async () => {
@@ -2293,8 +2294,10 @@ describe('WorkflowAgent', () => {
       });
 
       // Both tools should have received the same conversation messages
-      expect(receivedByTools['weatherTool']).toEqual(conversationMessages);
-      expect(receivedByTools['newsTool']).toEqual(conversationMessages);
+      // like in core, without the assistant message that contains the tool calls
+      const expectedMessages = conversationMessages.slice(0, -1);
+      expect(receivedByTools['weatherTool']).toEqual(expectedMessages);
+      expect(receivedByTools['newsTool']).toEqual(expectedMessages);
     });
 
     it('should pass updated messages on subsequent tool call rounds', async () => {
@@ -2412,8 +2415,9 @@ describe('WorkflowAgent', () => {
 
       // Verify messages grow with each round
       expect(messagesPerRound).toHaveLength(2);
-      expect(messagesPerRound[0]).toEqual(firstRoundMessages);
-      expect(messagesPerRound[1]).toEqual(secondRoundMessages);
+      // like in core, without the assistant message that contains the tool call
+      expect(messagesPerRound[0]).toEqual(firstRoundMessages.slice(0, -1));
+      expect(messagesPerRound[1]).toEqual(secondRoundMessages.slice(0, -1));
       // Second round should have more messages than first
       expect((messagesPerRound[1] as unknown[]).length).toBeGreaterThan(
         (messagesPerRound[0] as unknown[]).length,
