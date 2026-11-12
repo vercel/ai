@@ -1,5 +1,15 @@
 # @ai-sdk/revai
 
+## 3.0.80
+
+### Patch Changes
+
+- fb37359: Add a Rev.ai transcription model catalog for model ID suggestions, polling defaults, capabilities, and provider option metadata.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
 ## 3.0.79
 
 ### Patch Changes
