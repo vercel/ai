@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 3.0.236
+
+### Patch Changes
+
+- 271ca50: Add the `gemini-4-hydrogen` model ID and support Hydrogen's `xhigh` thinking level in Google Generate Content and Interactions provider options.
+- f0a7beb: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.235
 
 ### Patch Changes
