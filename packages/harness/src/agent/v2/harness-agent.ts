@@ -27,12 +27,17 @@ import { InMemoryWorld } from './in-memory-world';
 import { createDriveContext } from './internal/create-drive-context';
 import { createEffectFunction } from './internal/create-effect-function';
 import { createExecuteToolFunctions } from './internal/create-execute-tool-functions';
-import { createFinishFunctions } from './internal/create-finish-functions';
+import {
+  createFinishFunctions,
+  type HarnessAgentFinishTurnFunction,
+} from './internal/create-finish-functions';
 import { createGateBuiltinToolFunction } from './internal/create-gate-builtin-tool-function';
-import { createLog } from './internal/create-log';
+import { createLog, type HarnessAgentLog } from './internal/create-log';
 import {
   createStreamWriter,
   decodeStreamRecords,
+  type HarnessAgentStreamPart,
+  type HarnessAgentStreamWriter,
 } from './internal/create-stream-writer';
 import {
   HarnessAfterFinishError,
@@ -40,12 +45,6 @@ import {
 } from './internal/errors';
 import { HarnessGenerateTextResult } from './internal/harness-generate-text-result';
 import { HarnessStreamTextResult } from './internal/harness-stream-text-result';
-import type {
-  HarnessAgentFinishTurnFunction,
-  HarnessAgentLog,
-  HarnessAgentStreamPart,
-  HarnessAgentStreamWriter,
-} from './internal/types';
 import type {
   HarnessAgentSandboxConfig,
   HarnessAgentSettings,

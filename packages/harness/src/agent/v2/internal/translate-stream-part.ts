@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { TextStreamPart } from 'ai';
 import { HarnessEffectError } from '../../../errors/harness-effect-error';
-import type { HarnessAgentStreamPart } from './types';
+import type { HarnessAgentStreamPart } from './create-stream-writer';
 
 /**
  * What a translated `tool-call` part recorded about its call, so the call's

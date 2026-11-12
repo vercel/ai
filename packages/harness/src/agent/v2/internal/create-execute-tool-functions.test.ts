@@ -12,18 +12,17 @@ import type { HarnessV2ToolExecutionValue } from '../../../v2/harness-v2-drive-c
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
 import { createEffectFunction } from './create-effect-function';
-import { createExecuteToolFunctions } from './create-execute-tool-functions';
-import { createLog } from './create-log';
+import {
+  createExecuteToolFunctions,
+  type HarnessAgentExecuteBuiltinToolFunction,
+  type HarnessAgentExecuteHostToolFunction,
+} from './create-execute-tool-functions';
+import { createLog, type HarnessAgentLog } from './create-log';
 import {
   createStreamWriter,
   decodeStreamRecords,
+  type HarnessAgentStreamPartRecord,
 } from './create-stream-writer';
-import type {
-  HarnessAgentExecuteBuiltinToolFunction,
-  HarnessAgentExecuteHostToolFunction,
-  HarnessAgentLog,
-  HarnessAgentStreamPartRecord,
-} from './types';
 
 const abortControllers = new Set<AbortController>();
 

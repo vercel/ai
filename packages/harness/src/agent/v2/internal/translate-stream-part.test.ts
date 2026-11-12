@@ -6,7 +6,7 @@ import {
   translateStreamPart,
   type TranslatedToolCall,
 } from './translate-stream-part';
-import type { HarnessAgentStreamPart } from './types';
+import type { HarnessAgentStreamPart } from './create-stream-writer';
 
 const tools = {
   weather: tool({ inputSchema: z.object({ city: z.string() }) }),

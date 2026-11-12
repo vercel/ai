@@ -3,16 +3,16 @@ import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-d
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
 import { createFinishFunctions } from './create-finish-functions';
-import { createLog } from './create-log';
+import {
+  createLog,
+  type HarnessAgentLog,
+  type HarnessAgentLogEvent,
+} from './create-log';
 import {
   createStreamWriter,
   decodeStreamRecords,
+  type HarnessAgentStreamWriter,
 } from './create-stream-writer';
-import type {
-  HarnessAgentLog,
-  HarnessAgentLogEvent,
-  HarnessAgentStreamWriter,
-} from './types';
 
 const abortControllers = new Set<AbortController>();
 

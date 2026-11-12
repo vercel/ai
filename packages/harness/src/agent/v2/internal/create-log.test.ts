@@ -5,8 +5,7 @@ import {
 import { slotToEventId, type EventResult } from '@workflow/world';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { InMemoryWorld } from '../in-memory-world';
-import { createLog } from './create-log';
-import type { HarnessAgentLogEvent } from './types';
+import { createLog, type HarnessAgentLogEvent } from './create-log';
 
 afterEach(() => vi.useRealTimers());
 

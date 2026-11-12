@@ -1,5 +1,5 @@
 import type { SerializableValue } from '@ai-sdk/provider';
-import type { HarnessAgentLogEvent } from './types';
+import type { HarnessAgentLogEvent } from './create-log';
 
 /**
  * Exhaustive fixed event types from HarnessAgentLogEvent. Adding or removing a

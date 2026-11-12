@@ -14,11 +14,221 @@ import {
 } from '@workflow/world';
 import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 import { isValidHarnessAgentLogEvent } from './is-valid-harness-agent-log-event';
+import type { HarnessV2LogEvent } from '../../../v2/harness-v2-log';
 import type {
-  HarnessAgentLog,
-  HarnessAgentLogEvent,
-  HarnessAgentLogListenerConfig,
-} from './types';
+  HarnessV2FinishReason,
+  HarnessV2Metadata,
+  HarnessV2Usage,
+} from '../../../v2/harness-v2-stream-part';
+
+/**
+ * Event variants stored in the agent log, including events that are private to
+ * the HarnessAgent engine. Public event shapes are reused with required IDs
+ * for every stored event, including adapter-defined events.
+ *
+ * Additional union variants beyond HarnessV2LogEvent support framework-internal
+ * behavior, such as tracking partial effect output. These events are not exposed
+ * to harness adapters and therefore do not belong in HarnessV2LogEvent.
+ *
+ * The `turnId` of `turn-start`, `finish-step` and `finish-turn` events is
+ * currently the ID of the `prompt` submission that started the turn, and the
+ * engine relies on that (e.g. to find prompts that have not started a turn).
+ * Adapters only see `turnId` on `finish-turn` events, as an opaque string,
+ * so this relationship can change without affecting them.
+ *
+ * Runtime checks for common fields and supported event types live in
+ * is-valid-harness-agent-log-event.ts. Changes to these fields or event types
+ * must also update that helper and its tests. Variant-specific data payloads
+ * are not validated by the helper.
+ */
+export type HarnessAgentLogEvent =
+  | (HarnessV2LogEvent & {
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    })
+  | {
+      /**
+       * Records a complete yielded value, visible only to the agent engine.
+       */
+      readonly type: 'effect-progress';
+
+      /**
+       * Effect attempt and its latest yielded value.
+       */
+      readonly data: {
+        /**
+         * ID of the corresponding `effect-start` event.
+         */
+        readonly startId: string;
+
+        /**
+         * Complete yielded value used as partial output on interruption.
+         */
+        readonly partial: SerializableValue;
+      };
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    }
+  | {
+      /**
+       * Records a finished AI SDK step, visible only to the agent engine.
+       * Written by the drive context's `finishStep()` under the ID
+       * `finish-step:${turnId}:${stepNumber}`.
+       */
+      readonly type: 'finish-step';
+
+      /**
+       * Step identity and the options the step was finished with.
+       */
+      readonly data: {
+        /**
+         * ID of the step's turn. Currently the ID of the `prompt` submission
+         * that started the turn.
+         */
+        readonly turnId: string;
+
+        /**
+         * Zero-based number of the step within its turn.
+         */
+        readonly stepNumber: number;
+
+        /**
+         * Reason reported for the step's completion.
+         */
+        readonly finishReason: HarnessV2FinishReason;
+
+        /**
+         * Usage attributed to the step.
+         */
+        readonly usage: HarnessV2Usage;
+
+        /**
+         * Provider metadata associated with the step, if any.
+         */
+        readonly harnessMetadata?: HarnessV2Metadata;
+      };
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    }
+  | {
+      /**
+       * Records the start of a turn, visible only to the agent engine. Written
+       * by the effect function under the ID `turn-start:${turnId}`, right
+       * before the `effect-start` that first delivers the turn's `prompt`
+       * submission. From then on, that submission counts as delivered and the
+       * turn is the session's current turn.
+       */
+      readonly type: 'turn-start';
+
+      /**
+       * Turn identity.
+       */
+      readonly data: {
+        /**
+         * ID of the turn. Currently the ID of the `prompt` submission that
+         * starts the turn.
+         */
+        readonly turnId: string;
+      };
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    };
+
+/**
+ * Event type filters for an agent-log append listener.
+ */
+export type HarnessAgentLogListenerConfig = {
+  /**
+   * Event types the listener is allowed to receive.
+   */
+  types?: HarnessAgentLogEvent['type'][];
+
+  /**
+   * Event types the listener must not receive.
+   */
+  ignoreTypes?: HarnessAgentLogEvent['type'][];
+};
+
+/**
+ * Append-only log used by the HarnessAgent engine. The harness adapter
+ * receives a wrapped version of this (`HarnessV2Log`) with limited access.
+ */
+export type HarnessAgentLog = {
+  /**
+   * Refreshes the committed log and returns canonical events after a World
+   * position, optionally filtered by type. Infrastructure and duplicate records
+   * advance the position without appearing in the returned events.
+   */
+  read(options?: {
+    /**
+     * Position after which to return events, independent of type filters.
+     */
+    after?: number;
+
+    /**
+     * Event types to include in the returned events.
+     */
+    types?: HarnessAgentLogEvent['type'][];
+  }): Promise<{
+    /**
+     * Canonical events matching the requested position and event types.
+     */
+    events: HarnessAgentLogEvent[];
+    /**
+     * Last verified committed World slot, including non-harness records.
+     */
+    position: number;
+  }>;
+
+  /**
+   * Appends an event and waits for its canonical durable outcome. Returns false
+   * if an identical event is found before writing. Returns true when a matching
+   * event is confirmed after attempting a write, including when a concurrent
+   * append committed it. Conflicting content under the same ID is rejected.
+   * Exhausted uncertain-outcome recovery refuses further appends on this
+   * instance; reads and reconstruction through a new log remain available.
+   */
+  append(event: HarnessAgentLogEvent): Promise<boolean>;
+
+  /**
+   * Registers a callback for matching new events and returns an unsubscribe
+   * function. Each matching canonical event first observed while registered is
+   * delivered once, in committed order, with an independent payload snapshot.
+   * The callback is called synchronously as soon as a read or write adds the
+   * event to the log's in-memory copy, before that read or write resolves.
+   * Previously cached events are not replayed; events first observed after
+   * registration may also appear in a subsequent read's history.
+   * Callback failures are isolated from persistence and other listeners, and
+   * asynchronous callback work is not awaited. External writes are discovered
+   * through advisory hints, polling, reads, or append reconciliation.
+   */
+  onAppend(options: {
+    /**
+     * Callback invoked when an event matches the listener configuration.
+     */
+    listener: (event: HarnessAgentLogEvent) => void;
+
+    /**
+     * Optional allowlist and denylist for event types.
+     */
+    config?: HarnessAgentLogListenerConfig;
+  }): () => void;
+};
 
 const LOG_STEP_NAME = 'harness-agent-log';
 const PAGE_SIZE = 1000;

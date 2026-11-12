@@ -11,6 +11,7 @@ import {
 import { NoSuchToolError } from 'ai';
 import { HarnessEffectError } from '../../../errors/harness-effect-error';
 import type {
+  HarnessV2GateBuiltinToolFunction,
   HarnessV2ToolExecutionValue,
   HarnessV2ToolGateOutput,
 } from '../../../v2/harness-v2-drive-context';
@@ -20,11 +21,23 @@ import type {
   HarnessV2EffectOutput,
 } from '../../../v2/harness-v2-effect';
 import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
-import type {
-  HarnessAgentEffectFunction,
-  HarnessAgentGateBuiltinToolFunction,
-} from './types';
 import { isPlainJSONValue } from './utils';
+import type { HarnessAgentEffectFunction } from './create-effect-function';
+
+/**
+ * Gates one of the harness's built-in tools before the runtime runs it. Same
+ * as `HarnessV2GateBuiltinToolFunction`, redeclared so the engine does not
+ * depend on the adapter-facing type.
+ *
+ * Each call is recorded as the effect `tool:${toolCallId}` under the built-in
+ * tool's replay policy. A new call is approved once its start is committed and
+ * stays open until the adapter reports its outcome. A call with a recorded
+ * output is denied; a recorded retryable interruption is approved again as a
+ * new attempt, like any effect. The `tool-result` parts are emitted by the
+ * engine.
+ */
+export type HarnessAgentGateBuiltinToolFunction =
+  HarnessV2GateBuiltinToolFunction;
 
 /**
  * Denial reason for a call gated after the drive's abort signal fired.

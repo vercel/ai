@@ -37,7 +37,7 @@ import {
   translateStreamPart,
   type TranslatedToolCall,
 } from './translate-stream-part';
-import type { HarnessAgentStreamPart } from './types';
+import type { HarnessAgentStreamPart } from './create-stream-writer';
 
 /**
  * How the turn read by a `HarnessStreamTextResult` ended.

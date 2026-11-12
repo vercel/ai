@@ -16,18 +16,43 @@ import { InvalidToolInputError, NoSuchToolError } from 'ai';
 import { createToolModelOutput, validateToolContext } from 'ai/internal';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type {
+  HarnessV2ExecuteBuiltinToolFunction,
+  HarnessV2ExecuteHostToolFunction,
   HarnessV2ToolExecutionOutput,
   HarnessV2ToolExecutionValue,
 } from '../../../v2/harness-v2-drive-context';
 import type { HarnessV2EffectContext } from '../../../v2/harness-v2-effect';
 import type { HarnessV2NetworkSandboxSession } from '../../../v2/harness-v2-network-sandbox-session';
 import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
-import type {
-  HarnessAgentEffectFunction,
-  HarnessAgentExecuteBuiltinToolFunction,
-  HarnessAgentExecuteHostToolFunction,
-} from './types';
 import { isPlainJSONValue } from './utils';
+import type { HarnessAgentEffectFunction } from './create-effect-function';
+
+/**
+ * Executes one of the app's own tools as a recorded effect. Same as
+ * `HarnessV2ExecuteHostToolFunction`, redeclared so the engine does not depend
+ * on the adapter-facing type.
+ *
+ * Each call is recorded as the effect `tool:${toolCallId}` under the tool's
+ * replay policy, so a recorded call returns its recorded outcome without
+ * running the tool again. Tool values are converted to JSON, and the
+ * `tool-result` parts are emitted by the engine. A client tool (no `execute`)
+ * resolves `suspended` without being recorded.
+ */
+export type HarnessAgentExecuteHostToolFunction =
+  HarnessV2ExecuteHostToolFunction;
+
+/**
+ * Executes one of the harness's built-in tools, implemented by the adapter, as
+ * a recorded effect. Same as `HarnessV2ExecuteBuiltinToolFunction`,
+ * redeclared so the engine does not depend on the adapter-facing type.
+ *
+ * Each call is recorded as the effect `tool:${toolCallId}` under the built-in
+ * tool's replay policy, and the adapter's `execute` runs inside it, so a
+ * recorded call returns its recorded outcome without running again. The
+ * `tool-result` parts are emitted by the engine.
+ */
+export type HarnessAgentExecuteBuiltinToolFunction =
+  HarnessV2ExecuteBuiltinToolFunction;
 
 /**
  * Returns the tool registered under the name as an own property, if any.

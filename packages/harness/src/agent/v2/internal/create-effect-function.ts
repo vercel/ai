@@ -9,16 +9,30 @@ import {
 import { HarnessEffectError } from '../../../errors/harness-effect-error';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type {
+  HarnessV2EffectFunction,
+  HarnessV2EffectOptions,
+} from '../../../v2/harness-v2-drive-context';
+import type {
   HarnessV2EffectContext,
   HarnessV2EffectOutput,
 } from '../../../v2/harness-v2-effect';
-import type {
-  HarnessAgentEffectFunction,
-  HarnessAgentEffectOptions,
-  HarnessAgentLog,
-  HarnessAgentLogEvent,
-  HarnessAgentStreamWriter,
-} from './types';
+import type { HarnessAgentLog, HarnessAgentLogEvent } from './create-log';
+import type { HarnessAgentStreamWriter } from './create-stream-writer';
+
+/**
+ * Options of one `effect()` call. Same as `HarnessV2EffectOptions`, redeclared
+ * so the engine does not depend on the adapter-facing type.
+ */
+export type HarnessAgentEffectOptions<
+  T extends SerializableValue = SerializableValue,
+> = HarnessV2EffectOptions<T>;
+
+/**
+ * Runs a keyed effect and returns its committed output. Terminal outputs are
+ * replayed; recorded retryable interruptions permit a new attempt. Callback
+ * failures become error outputs, while persistence failures reject the call.
+ */
+export type HarnessAgentEffectFunction = HarnessV2EffectFunction;
 
 /**
  * Log event types the effect function reads. Effect events tell it which

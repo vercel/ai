@@ -175,6 +175,196 @@ export type HarnessV2ToolGateOutput =
     };
 
 /**
+ * Executes one of the app's own tools and returns its outcome.
+ *
+ * Each call is recorded as the effect `tool:${toolCallId}` named
+ * `tool.${toolName}`, with the tool's `replay` policy (`'never'` when
+ * omitted): a call already recorded returns its recorded outcome without
+ * running the tool again. `input` must already be parsed from the model's
+ * JSON. Invalid calls (an unknown tool or input that does not match the
+ * tool's input schema) are recorded as `error` outcomes too.
+ *
+ * The agent emits the `tool-result` parts (preliminary, final and error) of
+ * host tools itself, so the adapter must not emit them. A tool without
+ * `execute` (a client tool) resolves `suspended` without being recorded.
+ */
+export type HarnessV2ExecuteHostToolFunction = <
+  T extends JSONValue = JSONValue,
+>(call: {
+  /**
+   * ID of the tool call, unique across all tool calls.
+   */
+  toolCallId: string;
+
+  /**
+   * Name of the tool to execute.
+   */
+  toolName: string;
+
+  /**
+   * Tool input, already parsed from the model's JSON.
+   */
+  input: JSONValue;
+}) => Promise<HarnessV2ToolExecutionOutput<T>>;
+
+/**
+ * Executes one of the harness's built-in tools whose implementation the
+ * adapter runs itself (e.g. an in-process runtime's tools operating on the
+ * sandbox), and returns its outcome. Built-in tools that a closed runtime
+ * runs go through `gateBuiltinTool()` instead.
+ *
+ * Each call is recorded as the effect `tool:${toolCallId}` named
+ * `tool.${toolName}`, with the built-in tool's `replay` policy (`'never'`
+ * when omitted), and `execute` runs inside that effect. A call already
+ * recorded returns its recorded outcome without running `execute` again;
+ * a recorded retryable interruption (a `replay: 'safe'` tool) runs it in a
+ * new attempt. A tool that is not one of the harness's built-in tools is
+ * recorded as an `error` outcome without running `execute`. `input` must
+ * already be parsed from the model's JSON.
+ *
+ * `execute` is either an async function, whose return value is the final
+ * value, or an async iterable, whose yielded values are recorded as partial
+ * values and whose last yielded value is the final value. Every value is
+ * complete, not a delta. A thrown error becomes an `error` outcome.
+ *
+ * The agent emits the `tool-result` parts (preliminary, final and error) of
+ * these calls itself, so the adapter must not emit them.
+ */
+export type HarnessV2ExecuteBuiltinToolFunction = <
+  T extends JSONValue = JSONValue,
+>(call: {
+  /**
+   * ID of the tool call, unique across all tool calls.
+   */
+  toolCallId: string;
+
+  /**
+   * Name of the built-in tool to execute.
+   */
+  toolName: string;
+
+  /**
+   * Tool input, already parsed from the model's JSON.
+   */
+  input: JSONValue;
+
+  /**
+   * Runs the tool for a new attempt.
+   */
+  execute: (options: {
+    /**
+     * Aborts the execution when its attempt is cancelled.
+     */
+    abortSignal: AbortSignal;
+  }) =>
+    | PromiseLike<HarnessV2ToolExecutionValue<T>>
+    | AsyncIterable<HarnessV2ToolExecutionValue<T>>;
+}) => Promise<HarnessV2ToolExecutionOutput<T>>;
+
+/**
+ * Gates one of the harness's built-in tools, called from the runtime's
+ * permission point before the tool runs.
+ *
+ * Each call is recorded as the effect `tool:${toolCallId}` named
+ * `tool.${toolName}`, with the built-in tool's `replay` policy (`'never'`
+ * when omitted). A new call resolves `approved` once its start event is
+ * committed; the adapter then reports the runtime's outcome through the
+ * returned `result()` or `error()`. A call that is already recorded is
+ * `denied` and must not run again, unless it was interrupted with a
+ * retryable output (a `replay: 'safe'` tool), which approves a new attempt.
+ * A tool that is not one of the harness's built-in tools is recorded as an
+ * `error` and `denied` too. `input` must already be parsed from the model's
+ * JSON.
+ *
+ * The agent emits the `tool-result` parts (preliminary, final and error) of
+ * built-in tools itself, so the adapter must not emit them.
+ */
+export type HarnessV2GateBuiltinToolFunction = (call: {
+  /**
+   * ID of the tool call, unique across all tool calls.
+   */
+  toolCallId: string;
+
+  /**
+   * Name of the built-in tool to run.
+   */
+  toolName: string;
+
+  /**
+   * Tool input, already parsed from the model's JSON.
+   */
+  input: JSONValue;
+}) => Promise<HarnessV2ToolGateOutput>;
+
+/**
+ * Finishes the current AI SDK step (one model call plus the tool calls
+ * resulting from it, however many effects that spans); every step must end
+ * this way. `stepNumber` is counted by the adapter, zero-based within the
+ * current turn, including across drives: after a resume, the adapter must
+ * continue counting from the steps the turn already finished.
+ *
+ * Records the step and emits `finish-step` only on the first call for its
+ * `stepNumber` in the turn; a call replayed after a crash records and emits
+ * nothing, even if its other options differ. The current turn is the one
+ * started by the latest delivered prompt, even once it finished, so replays
+ * of a finished turn's last step still resolve. A `stepNumber` beyond the
+ * next unrecorded step, a new step for a finished turn, or a call before any
+ * prompt was delivered is rejected. Resolves after the
+ * step is recorded and `stopWhen` was evaluated (which may abort
+ * `yieldAbortSignal`), so it must be awaited before starting the next step.
+ */
+export type HarnessV2FinishStepFunction = (options: {
+  /**
+   * Zero-based number of the step within the current turn.
+   */
+  stepNumber: number;
+
+  /**
+   * Reason reported for the step's completion.
+   */
+  finishReason: HarnessV2FinishReason;
+
+  /**
+   * Usage attributed to this step.
+   */
+  usage: HarnessV2Usage;
+
+  /**
+   * Optional provider metadata associated with this step.
+   */
+  harnessMetadata?: HarnessV2Metadata;
+}) => Promise<void>;
+
+/**
+ * Finishes the current turn (`finishReason: 'error'` for a turn the runtime
+ * failed); every turn must end this way. The turn's identity is derived from
+ * the prompt submission that started it.
+ *
+ * Records the finish and emits `finish` only on the first call for the turn;
+ * a call replayed after a crash records and emits nothing, even if its
+ * options differ. The current turn is the one started by the latest
+ * delivered prompt, even once it finished. A call before any prompt was
+ * delivered is rejected. The finish is recorded as a `finish-turn` log
+ * event, which the agent also writes when it ends a turn itself.
+ */
+export type HarnessV2FinishTurnFunction = (options: {
+  /**
+   * Reason reported for the turn's completion.
+   */
+  finishReason: HarnessV2FinishReason;
+
+  /**
+   * Aggregate usage across all steps in the turn.
+   */
+  totalUsage: HarnessV2Usage;
+
+  /**
+   * Optional provider metadata associated with the turn.
+   */
+  harnessMetadata?: HarnessV2Metadata;
+}) => Promise<void>;
+
+/**
  * Host capabilities exposed to a harness while it drives a session.
  */
 export interface HarnessV2DriveContext {
@@ -190,121 +380,20 @@ export interface HarnessV2DriveContext {
 
   /**
    * Executes one of the app's own tools and returns its outcome.
-   *
-   * Each call is recorded as the effect `tool:${toolCallId}` named
-   * `tool.${toolName}`, with the tool's `replay` policy (`'never'` when
-   * omitted): a call already recorded returns its recorded outcome without
-   * running the tool again. `input` must already be parsed from the model's
-   * JSON. Invalid calls (an unknown tool or input that does not match the
-   * tool's input schema) are recorded as `error` outcomes too.
-   *
-   * The agent emits the `tool-result` parts (preliminary, final and error) of
-   * host tools itself, so the adapter must not emit them. A tool without
-   * `execute` (a client tool) resolves `suspended` without being recorded.
    */
-  executeHostTool<T extends JSONValue = JSONValue>(call: {
-    /**
-     * ID of the tool call, unique across all tool calls.
-     */
-    toolCallId: string;
-
-    /**
-     * Name of the tool to execute.
-     */
-    toolName: string;
-
-    /**
-     * Tool input, already parsed from the model's JSON.
-     */
-    input: JSONValue;
-  }): Promise<HarnessV2ToolExecutionOutput<T>>;
+  executeHostTool: HarnessV2ExecuteHostToolFunction;
 
   /**
    * Executes one of the harness's built-in tools whose implementation the
-   * adapter runs itself (e.g. an in-process runtime's tools operating on the
-   * sandbox), and returns its outcome. Built-in tools that a closed runtime
-   * runs go through `gateBuiltinTool()` instead.
-   *
-   * Each call is recorded as the effect `tool:${toolCallId}` named
-   * `tool.${toolName}`, with the built-in tool's `replay` policy (`'never'`
-   * when omitted), and `execute` runs inside that effect. A call already
-   * recorded returns its recorded outcome without running `execute` again;
-   * a recorded retryable interruption (a `replay: 'safe'` tool) runs it in a
-   * new attempt. A tool that is not one of the harness's built-in tools is
-   * recorded as an `error` outcome without running `execute`. `input` must
-   * already be parsed from the model's JSON.
-   *
-   * `execute` is either an async function, whose return value is the final
-   * value, or an async iterable, whose yielded values are recorded as partial
-   * values and whose last yielded value is the final value. Every value is
-   * complete, not a delta. A thrown error becomes an `error` outcome.
-   *
-   * The agent emits the `tool-result` parts (preliminary, final and error) of
-   * these calls itself, so the adapter must not emit them.
+   * adapter runs itself, and returns its outcome.
    */
-  executeBuiltinTool<T extends JSONValue = JSONValue>(call: {
-    /**
-     * ID of the tool call, unique across all tool calls.
-     */
-    toolCallId: string;
-
-    /**
-     * Name of the built-in tool to execute.
-     */
-    toolName: string;
-
-    /**
-     * Tool input, already parsed from the model's JSON.
-     */
-    input: JSONValue;
-
-    /**
-     * Runs the tool for a new attempt.
-     */
-    execute: (options: {
-      /**
-       * Aborts the execution when its attempt is cancelled.
-       */
-      abortSignal: AbortSignal;
-    }) =>
-      | PromiseLike<HarnessV2ToolExecutionValue<T>>
-      | AsyncIterable<HarnessV2ToolExecutionValue<T>>;
-  }): Promise<HarnessV2ToolExecutionOutput<T>>;
+  executeBuiltinTool: HarnessV2ExecuteBuiltinToolFunction;
 
   /**
    * Gates one of the harness's built-in tools, called from the runtime's
    * permission point before the tool runs.
-   *
-   * Each call is recorded as the effect `tool:${toolCallId}` named
-   * `tool.${toolName}`, with the built-in tool's `replay` policy (`'never'`
-   * when omitted). A new call resolves `approved` once its start event is
-   * committed; the adapter then reports the runtime's outcome through the
-   * returned `result()` or `error()`. A call that is already recorded is
-   * `denied` and must not run again, unless it was interrupted with a
-   * retryable output (a `replay: 'safe'` tool), which approves a new attempt.
-   * A tool that is not one of the harness's built-in tools is recorded as an
-   * `error` and `denied` too. `input` must already be parsed from the model's
-   * JSON.
-   *
-   * The agent emits the `tool-result` parts (preliminary, final and error) of
-   * built-in tools itself, so the adapter must not emit them.
    */
-  gateBuiltinTool(call: {
-    /**
-     * ID of the tool call, unique across all tool calls.
-     */
-    toolCallId: string;
-
-    /**
-     * Name of the built-in tool to run.
-     */
-    toolName: string;
-
-    /**
-     * Tool input, already parsed from the model's JSON.
-     */
-    input: JSONValue;
-  }): Promise<HarnessV2ToolGateOutput>;
+  gateBuiltinTool: HarnessV2GateBuiltinToolFunction;
 
   /**
    * Resolves the session's sandbox session and its working directory for this
@@ -318,72 +407,14 @@ export interface HarnessV2DriveContext {
   }>;
 
   /**
-   * Finishes the current AI SDK step (one model call plus the tool calls
-   * resulting from it, however many effects that spans); every step must end
-   * this way. `stepNumber` is counted by the adapter, zero-based within the
-   * current turn, including across drives: after a resume, the adapter must
-   * continue counting from the steps the turn already finished.
-   *
-   * Records the step and emits `finish-step` only on the first call for its
-   * `stepNumber` in the turn; a call replayed after a crash records and emits
-   * nothing, even if its other options differ. The current turn is the one
-   * started by the latest delivered prompt, even once it finished, so replays
-   * of a finished turn's last step still resolve. A `stepNumber` beyond the
-   * next unrecorded step, a new step for a finished turn, or a call before any
-   * prompt was delivered is rejected. Resolves after the
-   * step is recorded and `stopWhen` was evaluated (which may abort
-   * `yieldAbortSignal`), so it must be awaited before starting the next step.
+   * Finishes the current AI SDK step; every step must end this way.
    */
-  finishStep(options: {
-    /**
-     * Zero-based number of the step within the current turn.
-     */
-    stepNumber: number;
-
-    /**
-     * Reason reported for the step's completion.
-     */
-    finishReason: HarnessV2FinishReason;
-
-    /**
-     * Usage attributed to this step.
-     */
-    usage: HarnessV2Usage;
-
-    /**
-     * Optional provider metadata associated with this step.
-     */
-    harnessMetadata?: HarnessV2Metadata;
-  }): Promise<void>;
+  finishStep: HarnessV2FinishStepFunction;
 
   /**
-   * Finishes the current turn (`finishReason: 'error'` for a turn the runtime
-   * failed); every turn must end this way. The turn's identity is derived from
-   * the prompt submission that started it.
-   *
-   * Records the finish and emits `finish` only on the first call for the turn;
-   * a call replayed after a crash records and emits nothing, even if its
-   * options differ. The current turn is the one started by the latest
-   * delivered prompt, even once it finished. A call before any prompt was
-   * delivered is rejected. The finish is recorded as a `finish-turn` log
-   * event, which the agent also writes when it ends a turn itself.
+   * Finishes the current turn; every turn must end this way.
    */
-  finishTurn(options: {
-    /**
-     * Reason reported for the turn's completion.
-     */
-    finishReason: HarnessV2FinishReason;
-
-    /**
-     * Aggregate usage across all steps in the turn.
-     */
-    totalUsage: HarnessV2Usage;
-
-    /**
-     * Optional provider metadata associated with the turn.
-     */
-    harnessMetadata?: HarnessV2Metadata;
-  }): Promise<void>;
+  finishTurn: HarnessV2FinishTurnFunction;
 
   /**
    * Undesirable exception: only ever call this if the harness is unable to run

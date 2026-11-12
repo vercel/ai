@@ -7,17 +7,16 @@ import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
 import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
 import { createEffectFunction } from './create-effect-function';
-import { createGateBuiltinToolFunction } from './create-gate-builtin-tool-function';
-import { createLog } from './create-log';
+import {
+  createGateBuiltinToolFunction,
+  type HarnessAgentGateBuiltinToolFunction,
+} from './create-gate-builtin-tool-function';
+import { createLog, type HarnessAgentLog } from './create-log';
 import {
   createStreamWriter,
   decodeStreamRecords,
+  type HarnessAgentStreamPartRecord,
 } from './create-stream-writer';
-import type {
-  HarnessAgentGateBuiltinToolFunction,
-  HarnessAgentLog,
-  HarnessAgentStreamPartRecord,
-} from './types';
 
 const abortControllers = new Set<AbortController>();
 

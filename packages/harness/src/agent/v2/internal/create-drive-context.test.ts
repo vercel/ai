@@ -5,18 +5,22 @@ import type { HarnessV2NetworkSandboxSession } from '../../../v2/harness-v2-netw
 import type { HarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
 import { createDriveContext } from './create-drive-context';
-import { createLog } from './create-log';
+import {
+  createLog,
+  type HarnessAgentLog,
+  type HarnessAgentLogEvent,
+} from './create-log';
+import type { HarnessAgentEffectFunction } from './create-effect-function';
 import type {
-  HarnessAgentEffectFunction,
   HarnessAgentExecuteBuiltinToolFunction,
   HarnessAgentExecuteHostToolFunction,
+} from './create-execute-tool-functions';
+import type {
   HarnessAgentFinishStepFunction,
   HarnessAgentFinishTurnFunction,
-  HarnessAgentGateBuiltinToolFunction,
-  HarnessAgentLog,
-  HarnessAgentLogEvent,
-  HarnessAgentStreamWriter,
-} from './types';
+} from './create-finish-functions';
+import type { HarnessAgentGateBuiltinToolFunction } from './create-gate-builtin-tool-function';
+import type { HarnessAgentStreamWriter } from './create-stream-writer';
 
 const abortControllers = new Set<AbortController>();
 

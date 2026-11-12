@@ -2,7 +2,7 @@ import { NoOutputGeneratedError } from 'ai';
 import { describe, expect, test } from 'vitest';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { HarnessAfterFinishError, HarnessBeforeStartError } from './errors';
-import type { HarnessAgentStreamPart } from './types';
+import type { HarnessAgentStreamPart } from './create-stream-writer';
 
 const finishReason = { unified: 'stop' as const, raw: 'stop' };
 

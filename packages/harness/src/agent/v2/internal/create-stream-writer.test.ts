@@ -6,8 +6,8 @@ import { InMemoryWorld } from '../in-memory-world';
 import {
   createStreamWriter,
   decodeStreamRecords,
+  type HarnessAgentStreamPart,
 } from './create-stream-writer';
-import type { HarnessAgentStreamPart } from './types';
 
 const runId = 'stream-session';
 const session = new DefaultHarnessAgentSession({

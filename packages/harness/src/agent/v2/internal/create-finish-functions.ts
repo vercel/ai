@@ -1,17 +1,39 @@
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
 import type {
+  HarnessV2FinishStepFunction,
+  HarnessV2FinishTurnFunction,
+} from '../../../v2/harness-v2-drive-context';
+import type {
   HarnessV2FinishReason,
   HarnessV2Metadata,
   HarnessV2Usage,
 } from '../../../v2/harness-v2-stream-part';
+import type { HarnessAgentLog, HarnessAgentLogEvent } from './create-log';
 import type {
-  HarnessAgentFinishStepFunction,
-  HarnessAgentFinishTurnFunction,
-  HarnessAgentLog,
-  HarnessAgentLogEvent,
   HarnessAgentStreamPart,
   HarnessAgentStreamWriter,
-} from './types';
+} from './create-stream-writer';
+
+/**
+ * Finishes the current AI SDK step. Same as `HarnessV2FinishStepFunction`,
+ * redeclared so the engine does not depend on the adapter-facing type.
+ *
+ * The current turn is the one started by the latest `turn-start` event,
+ * finished or not. A `stepNumber` below the turn's recorded step
+ * count is a replay and records and emits nothing; one equal to it records the
+ * step and emits `finish-step`; anything else rejects.
+ */
+export type HarnessAgentFinishStepFunction = HarnessV2FinishStepFunction;
+
+/**
+ * Finishes the current turn. Same as `HarnessV2FinishTurnFunction`,
+ * redeclared so the engine does not depend on the adapter-facing type.
+ *
+ * The current turn is the one started by the latest `turn-start` event. If it
+ * is already finished, the call is a replay and records and
+ * emits nothing; otherwise it records the finish and emits `finish`.
+ */
+export type HarnessAgentFinishTurnFunction = HarnessV2FinishTurnFunction;
 
 /**
  * Log event types the finish functions read to track the turn state. They

@@ -10,17 +10,18 @@ import type {
 } from '../../../v2/harness-v2-log';
 import type { HarnessV2NetworkSandboxSession } from '../../../v2/harness-v2-network-sandbox-session';
 import type { HarnessAgentSession } from '../harness-agent-session';
+import type { HarnessAgentEffectFunction } from './create-effect-function';
 import type {
-  HarnessAgentEffectFunction,
   HarnessAgentExecuteBuiltinToolFunction,
   HarnessAgentExecuteHostToolFunction,
+} from './create-execute-tool-functions';
+import type {
   HarnessAgentFinishStepFunction,
   HarnessAgentFinishTurnFunction,
-  HarnessAgentGateBuiltinToolFunction,
-  HarnessAgentLog,
-  HarnessAgentLogEvent,
-  HarnessAgentStreamWriter,
-} from './types';
+} from './create-finish-functions';
+import type { HarnessAgentGateBuiltinToolFunction } from './create-gate-builtin-tool-function';
+import type { HarnessAgentLog, HarnessAgentLogEvent } from './create-log';
+import type { HarnessAgentStreamWriter } from './create-stream-writer';
 
 /**
  * Engine-written event types of `HarnessV2LogEvent`: every named type except
