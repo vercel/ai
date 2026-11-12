@@ -806,7 +806,8 @@ export function errorHandler(error: unknown) {
   }
 
   if (error instanceof Error) {
-    return error.message;
+    // matches the error text that the model receives for a failed tool call
+    return error.toString();
   }
 
   return JSON.stringify(error);
@@ -837,3 +838,32 @@ const response = createUIMessageResponse({
   onError: error => `Custom error: ${error.message}`,
 });
 ```
+
+### Tool error text and message history
+
+During a [server-side multi-step call](#server-side-multi-step-calls), the model
+receives the full error text of a failed tool call, while the UI receives the
+result of `onError`. When the two texts differ, the tool result that
+`convertToModelMessages` creates from the stored UI messages on the next request
+is not the tool result that the model received.
+
+Some models bind their reasoning to the messages before it and reject a request
+when those messages have changed. For example, Anthropic models with
+[preserved thinking](/providers/ai-sdk-providers/anthropic#thinking-binding-controls)
+respond with a 400 error, and every later request with these messages fails the
+same way. The AI SDK logs a warning when a UI message stream sends a tool error
+text that differs from the text the model received and then sends reasoning from
+a later step.
+
+To avoid the rejected request, use one of these options:
+
+- Return the error text that the model received from `onError`, as the
+  `errorHandler` above does. This sends tool error details to the client.
+- Set `sendReasoning: false` so that the UI messages contain no reasoning to
+  send back to the model.
+- With Anthropic models, set `thinking.blockBinding.prefixMismatchBehavior` to
+  `drop_block`. The API then drops the reasoning that no longer matches instead
+  of rejecting the request.
+
+With the last two options, the model still reads the masked error text on later
+requests, not the text it received when the tool call failed.

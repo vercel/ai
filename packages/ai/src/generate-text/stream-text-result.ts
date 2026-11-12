@@ -126,6 +126,10 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
    * preserve provider error data for model-message round trips and harness
    * runtime error messages. Stream errors and invalid tool calls still use it.
    *
+   * For a failed tool call, the model receives the full error text. If this
+   * callback returns a different text, the UI messages no longer match the
+   * message history that the model received.
+   *
    * @returns error message to include in the data stream.
    */
   onError?: (error: unknown) => string;
