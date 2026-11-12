@@ -86,6 +86,65 @@ describe('WorkflowAgent stream and core generate contracts', () => {
     expect(streamed.messages.slice(1)).toEqual(generated.responseMessages);
   });
 
+  it('returns unresolved client tool calls in both contracts', async () => {
+    const tools = {
+      weather: tool({ inputSchema: z.object({ city: z.string() }) }),
+    };
+    const generated = await new ToolLoopAgent({
+      model: createAgentModel([toolResponse()]),
+      tools,
+    }).generate({ prompt });
+    const streamed = await new WorkflowAgent({
+      model: createAgentModel([toolResponse()]),
+      tools,
+    }).stream({ prompt });
+
+    expect(streamed.steps).toHaveLength(1);
+    expect(generated.steps).toHaveLength(1);
+    expect(streamed.toolCalls).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'weather-call',
+        toolName: 'weather',
+        input: { city: 'London' },
+      },
+    ]);
+    expect(generated.toolCalls).toMatchObject(streamed.toolCalls);
+    expect(streamed.toolResults).toEqual([]);
+    expect(generated.toolResults).toEqual([]);
+  });
+
+  it('distinguishes the core 20-step default from the unbounded Workflow stream default', async () => {
+    const responses = [
+      ...Array.from({ length: 21 }, (_, index) => {
+        const response = toolResponse();
+        return {
+          ...response,
+          content: response.content.map(part =>
+            part.type === 'tool-call'
+              ? { ...part, toolCallId: `weather-${index}` }
+              : part,
+          ),
+        };
+      }),
+      textResponse('Done.'),
+    ];
+    const generated = await new ToolLoopAgent({
+      model: createAgentModel(responses),
+      tools: weatherTools(),
+    }).generate({ prompt });
+    const streamed = await new WorkflowAgent({
+      model: createAgentModel(responses),
+      tools: weatherTools(),
+    }).stream({ prompt });
+
+    expect(generated.steps).toHaveLength(20);
+    expect(generated.finishReason).toBe('tool-calls');
+    expect(streamed.steps).toHaveLength(22);
+    expect(streamed.steps.at(-1)?.text).toBe('Done.');
+    // This comparison runs 42 model steps under the full monorepo CI load.
+  }, 30_000);
+
   it('applies prepareStep setting overrides to one step only, like core', async () => {
     const responses = () => [toolResponse(), textResponse('It is 18°C.')];
     const tools = () => ({
@@ -195,65 +254,6 @@ describe('WorkflowAgent stream and core generate contracts', () => {
       expect(model.doGenerateCalls.length + model.doStreamCalls.length).toBe(1);
     }
   });
-
-  it('returns unresolved client tool calls in both contracts', async () => {
-    const tools = {
-      weather: tool({ inputSchema: z.object({ city: z.string() }) }),
-    };
-    const generated = await new ToolLoopAgent({
-      model: createAgentModel([toolResponse()]),
-      tools,
-    }).generate({ prompt });
-    const streamed = await new WorkflowAgent({
-      model: createAgentModel([toolResponse()]),
-      tools,
-    }).stream({ prompt });
-
-    expect(streamed.steps).toHaveLength(1);
-    expect(generated.steps).toHaveLength(1);
-    expect(streamed.toolCalls).toEqual([
-      {
-        type: 'tool-call',
-        toolCallId: 'weather-call',
-        toolName: 'weather',
-        input: { city: 'London' },
-      },
-    ]);
-    expect(generated.toolCalls).toMatchObject(streamed.toolCalls);
-    expect(streamed.toolResults).toEqual([]);
-    expect(generated.toolResults).toEqual([]);
-  });
-
-  it('distinguishes the core 20-step default from the unbounded Workflow stream default', async () => {
-    const responses = [
-      ...Array.from({ length: 21 }, (_, index) => {
-        const response = toolResponse();
-        return {
-          ...response,
-          content: response.content.map(part =>
-            part.type === 'tool-call'
-              ? { ...part, toolCallId: `weather-${index}` }
-              : part,
-          ),
-        };
-      }),
-      textResponse('Done.'),
-    ];
-    const generated = await new ToolLoopAgent({
-      model: createAgentModel(responses),
-      tools: weatherTools(),
-    }).generate({ prompt });
-    const streamed = await new WorkflowAgent({
-      model: createAgentModel(responses),
-      tools: weatherTools(),
-    }).stream({ prompt });
-
-    expect(generated.steps).toHaveLength(20);
-    expect(generated.finishReason).toBe('tool-calls');
-    expect(streamed.steps).toHaveLength(22);
-    expect(streamed.steps.at(-1)?.text).toBe('Done.');
-    // This comparison runs 42 model steps under the full monorepo CI load.
-  }, 30_000);
 
   it('applies stream settings after prepareCall and constructor defaults', async () => {
     const model = createAgentModel([textResponse('Done.')]);
