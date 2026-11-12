@@ -1,3 +1,4 @@
+import type { FishAudioModelIds } from './fish-audio-model-catalog';
 /**
  * Fish Audio transcription model ID.
  *
@@ -8,4 +9,6 @@
  *
  * https://docs.fish.audio/api-reference/endpoint/openapi-v1/speech-to-text
  */
-export type FishAudioTranscriptionModelId = 'transcribe-1' | (string & {});
+export type FishAudioTranscriptionModelId =
+  | FishAudioModelIds['transcription']
+  | (string & {});

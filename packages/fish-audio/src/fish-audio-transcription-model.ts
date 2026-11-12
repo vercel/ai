@@ -1,3 +1,4 @@
+import { getFishAudioTranscriptionModelEntry } from './fish-audio-model-catalog';
 import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
   resolve,
@@ -85,7 +86,11 @@ export class FishAudioTranscriptionModel implements TranscriptionModelV4 {
     // let callers opt back out.
     formData.append(
       'ignore_timestamps',
-      String(fishAudioOptions?.ignoreTimestamps ?? false),
+      String(
+        fishAudioOptions?.ignoreTimestamps ??
+          getFishAudioTranscriptionModelEntry(this.modelId).requestConfig
+            .transcription.ignoreTimestamps,
+      ),
     );
 
     return { formData, warnings };
