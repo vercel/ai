@@ -52,12 +52,12 @@ export function toUIMessageStream<
   // TODO AI SDK 8: remove once invalid tool calls no longer inject tool-error parts
   const invalidToolCallIds = new Set<string>();
 
-  // When tool errors are redacted (`redactToolErrors`, or a custom `onError`),
-  // a failed tool call has two error texts: the model receives
-  // `getErrorMessage(error)` with the next step, and the UI receives the
-  // `onError` result. Reasoning from a later step was produced after the model
-  // read its text, so UI messages that contain both no longer reproduce the
-  // history that this reasoning belongs to.
+  // When tool errors are redacted (`redactToolErrors`, which defaults to `true`
+  // with a custom `onError`), a failed tool call has two error texts: the model
+  // receives `getErrorMessage(error)` with the next step, and the UI receives
+  // the `onError` result. Reasoning from a later step was produced after the
+  // model read its text, so UI messages that contain both no longer reproduce
+  // the history that this reasoning belongs to.
   let mismatchedToolCallIdInCurrentStep: string | undefined;
   let mismatchedToolCallIdInEarlierStep: string | undefined;
   let hasWarnedAboutToolErrorMismatch = false;
