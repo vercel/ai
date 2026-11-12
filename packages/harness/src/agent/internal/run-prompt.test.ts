@@ -2284,6 +2284,156 @@ describe('runPrompt host tool input validation', () => {
     ]);
   });
 
+  test('keeps host tool context out of the stream when context validation fails', async () => {
+    const execute = vi.fn(async () => 'not reached');
+    const lookupAccount = tool({
+      inputSchema: z.object({}),
+      contextSchema: z.object({ userId: z.string() }),
+      execute,
+    });
+    const askUser = tool({ inputSchema: z.object({}) });
+    const submitted: SubmittedResult[] = [];
+    let hostFacingError: unknown;
+    const { result, done } = runPrompt({
+      harness,
+      // The turn pauses for the client-side tool before the runtime echoes
+      // the result of the host tool, so the harness reports the host tool
+      // outcome itself.
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'lookupAccount',
+            input: '{}',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'c2',
+            toolName: 'askUser',
+            input: '{}',
+          },
+          ...finishEvents,
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { lookupAccount, askUser },
+      toolsContext: {
+        lookupAccount: { userId: 123, apiKey: 'host-secret' },
+      } as never,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      callbacks: {
+        onToolExecutionEnd: event => {
+          if (event.toolOutput.type === 'tool-error') {
+            hostFacingError = event.toolOutput.error;
+          }
+        },
+      },
+    });
+    const uiChunksPromise = (async () => {
+      const chunks: Array<{ type: string }> = [];
+      for await (const chunk of result.toUIMessageStream()) chunks.push(chunk);
+      return chunks;
+    })();
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    const uiChunks = await uiChunksPromise;
+    await done;
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Tool context validation failed.' },
+        isError: true,
+      },
+    ]);
+
+    // The callback is host-only and keeps the detailed validation error.
+    expect(String(hostFacingError)).toContain('host-secret');
+
+    // Stream parts can reach the client. They carry the error that the
+    // runtime received.
+    expect(parts.filter(part => part.type === 'tool-error')).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        error: expect.objectContaining({
+          message: 'Tool context validation failed.',
+        }),
+      }),
+    ]);
+    expect(
+      uiChunks.filter(chunk => chunk.type === 'tool-output-error'),
+    ).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        errorText: 'Error: Tool context validation failed.',
+      }),
+    ]);
+    expect(JSON.stringify(uiChunks)).not.toContain('host-secret');
+    expect(JSON.stringify((await result.steps)[0]!.content)).not.toContain(
+      'host-secret',
+    );
+  });
+
+  test('keeps host tool context out of the stream when an approved host tool fails context validation', async () => {
+    const execute = vi.fn(async () => 'not reached');
+    const lookupAccount = tool({
+      inputSchema: z.object({}),
+      contextSchema: z.object({ userId: z.string() }),
+      execute,
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([]),
+      mode: 'continue',
+      prompt: undefined,
+      instructions: undefined,
+      tools: { lookupAccount },
+      toolsContext: {
+        lookupAccount: { userId: 123, apiKey: 'host-secret' },
+      } as never,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      pendingToolApprovals: [
+        {
+          approvalId: 'a1',
+          toolCallId: 'c1',
+          toolName: 'lookupAccount',
+          input: '{}',
+          kind: 'custom',
+          providerExecuted: false,
+        },
+      ],
+      toolApprovalContinuations: [
+        { type: 'tool-approval-response', approvalId: 'a1', approved: true },
+      ],
+    });
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(parts.filter(part => part.type === 'tool-error')).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        error: expect.objectContaining({
+          message: 'Tool context validation failed.',
+        }),
+      }),
+    ]);
+    expect(JSON.stringify(parts)).not.toContain('host-secret');
+  });
+
   test('reports a rejected host call without an adapter echo in the step and UI stream', async () => {
     const execute = vi.fn(async () => 'not reached');
     const restricted = tool({
