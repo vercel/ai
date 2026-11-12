@@ -1214,13 +1214,6 @@ describe('toUIMessageStream', () => {
 
   it('should not finalize messages of another namespace on a subgraph values event', async () => {
     const namespace = ['batch-a'];
-    const toolCallChunk = (args: string) => ({
-      id: 'lookup-1',
-      name: 'lookup',
-      args,
-      index: 0,
-      type: 'tool_call_chunk' as const,
-    });
     const inputStream = convertArrayToReadableStream([
       [
         namespace,
@@ -1234,7 +1227,9 @@ describe('toUIMessageStream', () => {
           new AIMessageChunk({
             id: 'a-tool',
             content: '',
-            tool_call_chunks: [toolCallChunk('{"query":')],
+            tool_call_chunks: [
+              { id: 'lookup-1', name: 'lookup', args: '{"query":', index: 0 },
+            ],
           }),
           {},
         ],
@@ -1252,7 +1247,9 @@ describe('toUIMessageStream', () => {
           new AIMessageChunk({
             id: 'a-tool',
             content: '',
-            tool_call_chunks: [toolCallChunk('"spend"}')],
+            tool_call_chunks: [
+              { id: 'lookup-1', name: 'lookup', args: '"spend"}', index: 0 },
+            ],
           }),
           {},
         ],
