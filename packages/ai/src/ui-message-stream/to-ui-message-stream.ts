@@ -193,7 +193,7 @@ export function toUIMessageStream<
                     'and reasoning from a later step was sent to the UI. ' +
                     'Converting these UI messages back to model messages changes the tool result. ' +
                     'Models that bind reasoning to the preceding messages (for example Anthropic models with preserved thinking) reject that history. ' +
-                    'See https://ai-sdk.dev/docs/ai-sdk-ui/chatbot-tool-usage#errors',
+                    'See https://ai-sdk.dev/docs/ai-sdk-ui/chatbot-tool-usage#tool-error-text-and-message-history',
                 },
               ],
             });
