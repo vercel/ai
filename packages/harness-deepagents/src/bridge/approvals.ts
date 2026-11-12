@@ -1,9 +1,17 @@
 import type { StartMessage } from '../deepagents-bridge-protocol';
+import { isWriteProtectedPath } from '@ai-sdk/harness/bridge';
 import type { InterruptOnConfig } from 'langchain';
 import path from 'node:path';
 import { areFileToolPathsTrusted } from './permission-paths';
 
 export type PermissionMode = NonNullable<StartMessage['permissionMode']>;
+
+/*
+ * Workspace paths that hold Deep Agents memory, configuration, or skills,
+ * which can change the agent's behavior in later sessions. Writes to them
+ * always require host approval unless the permission mode is `allow-all`.
+ */
+const DEEPAGENTS_WRITE_PROTECTED_PATHS = ['.agents/skills', '.deepagents'];
 
 // Native built-in tool -> approval kind (mirrors the host adapter's toolUseKind).
 export const NATIVE_TOOL_KIND: Readonly<
@@ -127,13 +135,24 @@ export function buildInterruptOn(options: {
               `${path.posix.resolve(options.workDir, target)}/${globPrefix}`,
             );
           }
-          return !(await areFileToolPathsTrusted({
-            workDir: options.workDir,
-            cwd: options.workDir,
-            paths,
-            access,
-            readableSkillRoots: options.readableSkillRoots,
-          }));
+          if (
+            !(await areFileToolPathsTrusted({
+              workDir: options.workDir,
+              cwd: options.workDir,
+              paths,
+              access,
+              readableSkillRoots: options.readableSkillRoots,
+            }))
+          )
+            return true;
+          return (
+            access === 'write' &&
+            (await isWriteProtectedPath({
+              workDir: options.workDir,
+              paths,
+              writeProtectedPaths: DEEPAGENTS_WRITE_PROTECTED_PATHS,
+            }))
+          );
         },
       };
     }
