@@ -1490,4 +1490,86 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     expect(onAbortEvents).toHaveLength(1);
     expect(onErrorEvents).toEqual([]);
   });
+
+  it('allows an ai:telemetry subscriber to wrap result.stream with pipeThrough without locking error during streamText with tools', async () => {
+    let text = '';
+    const tappedChunks: unknown[] = [];
+    const channel = diagnosticsChannel.tracingChannel(
+      AI_SDK_TELEMETRY_TRACING_CHANNEL,
+    );
+    const subscribers = {
+      start() {},
+      end() {},
+      asyncStart() {},
+      asyncEnd(message: unknown) {
+        const ctx = message as { result?: { stream?: ReadableStream } };
+        if (ctx.result?.stream) {
+          // Exactly what Sentry and dd-trace do:
+          ctx.result.stream = ctx.result.stream.pipeThrough(
+            new TransformStream({
+              transform(chunk, controller) {
+                tappedChunks.push(chunk);
+                controller.enqueue(chunk);
+              },
+            }),
+          );
+        }
+      },
+      error() {},
+    };
+    channel.subscribe(subscribers);
+
+    try {
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              start(controller) {
+                controller.enqueue({ type: 'stream-start', warnings: [] });
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: '1',
+                  delta: 'Hello world',
+                });
+                controller.enqueue({
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 10,
+                      noCache: 10,
+                      cacheRead: 0,
+                      cacheWrite: 0,
+                    },
+                    outputTokens: { total: 2, text: 2, reasoning: 0 },
+                  },
+                });
+                controller.close();
+              },
+            }),
+            request: {
+              body: { tools: [{ name: 'test_tool', description: 'a tool' }] },
+            },
+          }),
+        }),
+        tools: {
+          test_tool: {
+            description: 'a tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'done',
+          },
+        },
+        prompt: 'test prompt',
+      });
+
+      for await (const delta of result.textStream) {
+        text += delta;
+      }
+
+      expect(text).toBe('Hello world');
+      expect(tappedChunks.length).toBeGreaterThan(0);
+    } finally {
+      channel.unsubscribe(subscribers);
+    }
+  });
 });

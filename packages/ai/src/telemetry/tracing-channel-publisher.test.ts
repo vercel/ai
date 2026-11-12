@@ -158,5 +158,129 @@ describe.runIf(runningOnNode)(
         }
       },
     );
+
+    it('propagates stream replacement by ai:telemetry subscriber back to execution result', async () => {
+      vi.mocked(isNodeRuntime).mockReturnValue(true);
+
+      const originalStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue('chunk-1');
+          controller.close();
+        },
+      });
+
+      const result = {
+        stream: originalStream,
+        request: {
+          body: withTelemetryRedaction({ credential: 'secret-token' }, val => ({
+            ...val,
+            credential: '[redacted]',
+          })),
+        },
+      };
+
+      const transformedStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue('transformed-chunk');
+          controller.close();
+        },
+      });
+
+      const channel = diagnosticsChannel.tracingChannel(
+        AI_SDK_TELEMETRY_TRACING_CHANNEL,
+      );
+      const subscribers = {
+        start() {},
+        end() {},
+        asyncStart() {},
+        asyncEnd(message: unknown) {
+          const ctx = message as { result?: { stream?: unknown } };
+          if (ctx.result?.stream) {
+            // Simulate Sentry / dd-trace tapping result.stream via pipeThrough():
+            // calling pipeThrough locks originalStream
+            (ctx.result.stream as ReadableStream).pipeThrough(
+              new TransformStream(),
+            );
+            ctx.result.stream = transformedStream;
+          }
+        },
+        error() {},
+      };
+      channel.subscribe(subscribers);
+
+      try {
+        const execution = await runWithTracingChannelSpan(
+          message,
+          async () => result,
+        );
+
+        // The execution result must have received the replaced stream and not be locked
+        expect(execution.stream).toBe(transformedStream);
+        expect(execution.stream.locked).toBe(false);
+        expect(originalStream.locked).toBe(true);
+        expect(execution.request.body.credential).toBe('secret-token');
+      } finally {
+        channel.unsubscribe(subscribers);
+      }
+    });
+
+    it('propagates stream replacement when subscriber replaces ctx.result object', async () => {
+      vi.mocked(isNodeRuntime).mockReturnValue(true);
+
+      const originalStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue('chunk-1');
+          controller.close();
+        },
+      });
+
+      const result = {
+        stream: originalStream,
+        request: {
+          body: withTelemetryRedaction({ credential: 'secret-token' }, val => ({
+            ...val,
+            credential: '[redacted]',
+          })),
+        },
+      };
+
+      const newStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue('new-chunk');
+          controller.close();
+        },
+      });
+
+      const channel = diagnosticsChannel.tracingChannel(
+        AI_SDK_TELEMETRY_TRACING_CHANNEL,
+      );
+      const subscribers = {
+        start() {},
+        end() {},
+        asyncStart() {},
+        asyncEnd(message: unknown) {
+          const ctx = message as { result?: unknown };
+          ctx.result = {
+            ...(ctx.result as object),
+            stream: newStream,
+          };
+        },
+        error() {},
+      };
+      channel.subscribe(subscribers);
+
+      try {
+        const execution = await runWithTracingChannelSpan(
+          message,
+          async () => result,
+        );
+
+        expect(execution.stream).toBe(newStream);
+        expect(execution.stream.locked).toBe(false);
+        expect(execution.request.body.credential).toBe('secret-token');
+      } finally {
+        channel.unsubscribe(subscribers);
+      }
+    });
   },
 );
