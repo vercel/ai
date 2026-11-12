@@ -594,6 +594,12 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
+  const TEST_URL_GEMINI_4_HYDROGEN =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-4-hydrogen:generateContent';
+
+  const TEST_URL_GEMINI_4_HYDROGEN_EAP =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-4-hydrogen-eap:generateContent';
+
   const TEST_URL_GEMINI_2_0_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:generateContent';
 
@@ -623,6 +629,8 @@ describe('doGenerate', () => {
 
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
+    [TEST_URL_GEMINI_4_HYDROGEN_EAP]: {},
+    [TEST_URL_GEMINI_4_HYDROGEN]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
     [TEST_URL_GEMINI_1_0_PRO]: {},
@@ -643,6 +651,8 @@ describe('doGenerate', () => {
       headers?: Record<string, string>;
       url?:
         | typeof TEST_URL_GEMINI_PRO
+        | typeof TEST_URL_GEMINI_4_HYDROGEN
+        | typeof TEST_URL_GEMINI_4_HYDROGEN_EAP
         | typeof TEST_URL_GEMINI_2_0_PRO
         | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
         | typeof TEST_URL_GEMINI_1_0_PRO
@@ -4641,6 +4651,30 @@ describe('doGenerate', () => {
       },
     });
   });
+
+  it.each([
+    ['gemini-4-hydrogen', TEST_URL_GEMINI_4_HYDROGEN],
+    ['gemini-4-hydrogen-eap', TEST_URL_GEMINI_4_HYDROGEN_EAP],
+  ] as const)(
+    'should pass thinkingLevel "xhigh" for %s',
+    async (modelId, url) => {
+      prepareJsonFixtureResponse('google-text', { url });
+
+      const result = await provider.chat(modelId).doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: { thinkingConfig: { thinkingLevel: 'xhigh' } },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        generationConfig: {
+          thinkingConfig: { thinkingLevel: 'xhigh' },
+        },
+      });
+      expect(result.warnings).toEqual([]);
+    },
+  );
 
   describe('providerMetadata key based on provider string', () => {
     it('should use "vertex" as providerMetadata key when provider includes "vertex"', async () => {

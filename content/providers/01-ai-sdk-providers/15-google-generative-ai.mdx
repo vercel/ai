@@ -185,13 +185,14 @@ The following optional provider options are available for Google Generative AI m
 - **responseModalities** _string[]_
   The modalities to use for the response. The following modalities are supported: `TEXT`, `IMAGE`. When not defined or empty, the model defaults to returning only text.
 
-- **thinkingConfig** _\{ thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high'; thinkingBudget?: number; includeThoughts?: boolean \}_
+- **thinkingConfig** _\{ thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'; thinkingBudget?: number; includeThoughts?: boolean \}_
 
   Optional. Configuration for the model's thinking process. Only supported by specific [Google Generative AI models](https://ai.google.dev/gemini-api/docs/thinking).
 
-  - **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high'_
+  - **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
 
     Optional. Controls the thinking depth for Gemini 3 and later models. Gemini 3.1 Pro supports 'low', 'medium', and 'high', Gemini 3 Pro supports 'low' and 'high', while Gemini 3 Flash supports all four levels: 'minimal', 'low', 'medium', and 'high'.
+    Gemini 4 Hydrogen supports 'low', 'medium', 'high', and 'xhigh'. The 'xhigh' level is only supported by Hydrogen.
 
   - **thinkingBudget** _number_
 
@@ -309,6 +310,14 @@ console.log(text);
 
 console.log(reasoning); // Reasoning summary
 ```
+
+For `gemini-4-hydrogen` (including `gemini-4-hydrogen-eap`), use
+`thinkingConfig: { thinkingLevel: 'xhigh' }` for maximum reasoning depth.
+Hydrogen defaults to `high` when the thinking level is unset.
+Following the November 11, 2026 update, `xhigh` matches the previous `high`,
+`high` matches the previous `medium`, and `medium` sits between `low` and the
+new `high`. The `low` level is unchanged. Re-run prompts tuned before that
+update to check their reasoning quality.
 
 #### Gemini 2.5 Models
 
@@ -1262,6 +1271,7 @@ The following Zod features are known to not work with Google Generative AI:
 | `gemini-nano-banana-2.1` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `gemini-4-argon`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-4-carbon`                     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-4-hydrogen`                   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3.8-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3.7-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3.6-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -1381,10 +1391,12 @@ The following optional provider options are available:
   Per-agent configuration. Currently supports `{ type: 'dynamic' }` and
   `{ type: 'deep-research', thinkingSummaries?, visualization?, collaborativePlanning? }`.
 
-- **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high'_
+- **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
 
   Controls reasoning depth for thinking-enabled models. Mapped onto the
   Interactions request's `thinking_level`.
+  The `xhigh` level is only supported by Gemini 4 Hydrogen and requests its
+  maximum reasoning depth.
 
 - **thinkingSummaries** _'auto' | 'none'_
 
