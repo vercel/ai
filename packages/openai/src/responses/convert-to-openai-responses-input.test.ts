@@ -108,6 +108,27 @@ function createExpandedParallelToolCallPrompt({
 
 const parallelToolCallOutput = '{"temperature":72}\nColosseum';
 
+const customDefinition = {
+  type: 'custom',
+  name: 'apply_patch',
+  description: 'Apply a patch',
+  format: { type: 'grammar', syntax: 'lark', definition: 'start: "x"' },
+};
+
+const namespaceDefinition = {
+  type: 'namespace',
+  name: 'linear',
+  description: 'Linear tools',
+  tools: [
+    {
+      type: 'function',
+      name: 'get_issue',
+      parameters: { type: 'object', properties: {} },
+      defer_loading: true,
+    },
+  ],
+};
+
 describe('convertToOpenAIResponsesInput', () => {
   describe('compact parallel tool metadata', () => {
     it.each([
@@ -347,7 +368,137 @@ describe('convertToOpenAIResponsesInput', () => {
         ).rejects.toThrow();
       },
     );
+
+    it('accepts custom and namespace definitions', async () => {
+      const tools = [customDefinition, namespaceDefinition];
+      expect(
+        (await convert([{ role: 'tool', content: [result(tools)] }])).input,
+      ).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'search-call',
+          output: JSON.stringify(output),
+        },
+        { type: 'additional_tools', role: 'developer', tools },
+      ]);
+    });
   });
+
+  describe('additional tools at a message position', () => {
+    const definition = {
+      type: 'function',
+      name: 'list_issues',
+      parameters: { type: 'object', properties: {} },
+      defer_loading: true,
+    };
+    const control = (
+      options: Record<string, JSONValue>,
+      provider = 'openai',
+    ): LanguageModelV4Prompt[number] => ({
+      role: 'system',
+      content: '',
+      providerOptions: { [provider]: options },
+    });
+    const convert = (
+      prompt: LanguageModelV4Prompt,
+      {
+        providerOptionsName = 'openai',
+        configurationUpdateUnsupportedReason,
+      }: {
+        providerOptionsName?: string;
+        configurationUpdateUnsupportedReason?: string;
+      } = {},
+    ) =>
+      convertToOpenAIResponsesInput({
+        prompt,
+        providerOptionsName,
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'developer',
+        store: false,
+        configurationUpdateUnsupportedReason,
+      });
+
+    it.each(['openai', 'azure'])(
+      'emits the item where the control message is for %s',
+      async provider => {
+        const tools = [definition, customDefinition, namespaceDefinition];
+        const { input } = await convert(
+          [
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+            control({ additionalTools: tools }, provider),
+            { role: 'user', content: [{ type: 'text', text: 'Use them' }] },
+          ],
+          { providerOptionsName: provider },
+        );
+        expect(input).toEqual([
+          { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          { type: 'additional_tools', role: 'developer', tools },
+          { role: 'user', content: [{ type: 'input_text', text: 'Use them' }] },
+        ]);
+      },
+    );
+
+    it('emits a configuration update before tools from the same message', async () => {
+      const { input } = await convert([
+        control({
+          reasoningEffortUpdate: 'low',
+          additionalTools: [definition],
+        }),
+      ]);
+      expect(input).toEqual([
+        { type: 'configuration_update', reasoning: { effort: 'low' } },
+        { type: 'additional_tools', role: 'developer', tools: [definition] },
+      ]);
+    });
+
+    it('does not need configuration update support', async () => {
+      const { input } = await convert(
+        [control({ additionalTools: [definition] })],
+        { configurationUpdateUnsupportedReason: 'not supported' },
+      );
+      expect(input).toEqual([
+        { type: 'additional_tools', role: 'developer', tools: [definition] },
+      ]);
+    });
+
+    it('does not emit an item for an empty list', async () => {
+      expect((await convert([control({ additionalTools: [] })])).input).toEqual(
+        [],
+      );
+    });
+
+    it('requires empty system message content', async () => {
+      await expect(
+        convert([
+          {
+            role: 'system',
+            content: 'Instructions',
+            providerOptions: { openai: { additionalTools: [definition] } },
+          },
+        ]),
+      ).rejects.toThrow(
+        new UnsupportedFunctionalityError({
+          functionality: 'Message-level additionalTools',
+          message:
+            'Message-level additionalTools requires empty system message content.',
+        }),
+      );
+    });
+
+    it.each(
+      [
+        [{ type: 'namespace', name: 'ns', description: 'd', tools: [] }],
+        [{ type: 'custom', name: 'c', format: { type: 'grammar' } }],
+        [{ type: 'web_search' }],
+      ].map(additionalTools => ({ additionalTools })),
+    )(
+      'rejects malformed definitions: $additionalTools',
+      async ({ additionalTools }) => {
+        await expect(convert([control({ additionalTools })])).rejects.toThrow();
+      },
+    );
+  });
+
   describe('explicit message item types', () => {
     it('should add the message type to system, user, and assistant messages', async () => {
       const result = await convertToOpenAIResponsesInput({
