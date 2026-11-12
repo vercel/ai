@@ -11,6 +11,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   type InferSchema,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -42,15 +44,13 @@ import {
   type perplexityUsageSchema,
 } from './perplexity-agent-api';
 import { perplexityLanguageModelOptions } from './perplexity-language-model-options';
-import type {
-  PerplexityAgentPreset,
-  PerplexityLanguageModelId,
-} from './perplexity-options';
+import { getPerplexityLanguageModelEntry } from './perplexity-model-catalog';
+import type { PerplexityLanguageModelId } from './perplexity-options';
 import { preparePerplexityTools } from './perplexity-prepare-tools';
 
 type PerplexityAgentConfig = {
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -66,25 +66,6 @@ type PerplexityUrlSource = Extract<
   LanguageModelV4Content,
   { type: 'source'; sourceType: 'url' }
 >;
-
-const presetIds = new Set<PerplexityAgentPreset>([
-  'fast',
-  'low',
-  'medium',
-  'high',
-  'xhigh',
-]);
-
-function getModelSelection(modelId: PerplexityLanguageModelId): {
-  model?: string;
-  preset?: PerplexityAgentPreset;
-} {
-  if (presetIds.has(modelId as PerplexityAgentPreset)) {
-    return { preset: modelId as PerplexityAgentPreset };
-  }
-
-  return { model: modelId };
-}
 
 function getResponseMetadata(response: {
   id?: string | null;
@@ -246,6 +227,10 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     toolChoice,
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
+    const { capabilities, requestConfig } = getPerplexityLanguageModelEntry(
+      this.modelId,
+    );
+    const { sampling } = capabilities.language;
 
     const perplexityOptions =
       (await parseProviderOptions({
@@ -254,25 +239,25 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
         schema: perplexityLanguageModelOptions,
       })) ?? {};
 
-    if (topK != null) {
+    if (topK != null && sampling.topK === false) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
-    if (frequencyPenalty != null) {
+    if (frequencyPenalty != null && sampling.frequencyPenalty === false) {
       warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
-    if (presencePenalty != null) {
+    if (presencePenalty != null && sampling.presencePenalty === false) {
       warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
     }
-    if (stopSequences != null) {
+    if (stopSequences != null && sampling.stopSequences === false) {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
-    if (seed != null) {
+    if (seed != null && sampling.seed === false) {
       warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
     const { tools: nativeTools, ...agentOptions } = perplexityOptions;
 
-    const modelSelection = getModelSelection(this.modelId);
+    const modelSelection = requestConfig.language.selection;
 
     const { input, warnings: inputWarnings } = convertToPerplexityInput(prompt);
     warnings.push(...inputWarnings);
@@ -281,38 +266,34 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       preparePerplexityTools({ tools, toolChoice });
     warnings.push(...toolWarnings);
 
-    const agentTools = [
-      ...((nativeTools ?? []) as PerplexityAgentTool[]),
-      ...functionTools,
-    ];
+    const agentTools =
+      toolChoice?.type === 'none'
+        ? []
+        : [...((nativeTools ?? []) as PerplexityAgentTool[]), ...functionTools];
 
     let reasoningConfig = agentOptions.reasoning;
     if (reasoningConfig == null && isCustomReasoning(reasoning)) {
-      if (reasoning === 'none') {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'reasoning "none"',
-        });
-      } else {
-        const effort = mapReasoningToProviderEffort({
-          reasoning,
-          effortMap: {
-            minimal: 'minimal',
-            low: 'low',
-            medium: 'medium',
-            high: 'high',
-            xhigh: 'xhigh',
-            max: 'xhigh',
-          },
-          warnings,
-        });
-        reasoningConfig = effort == null ? undefined : { effort };
-      }
+      // Reasoning cannot be disabled, so reasoning 'none' maps to the lowest
+      // effort.
+      const effort = mapReasoningToProviderEffort({
+        reasoning,
+        effortMap: {
+          minimal: 'minimal',
+          low: 'low',
+          medium: 'medium',
+          high: 'high',
+          xhigh: 'xhigh',
+        },
+        warnings,
+      });
+      reasoningConfig = effort == null ? undefined : { effort };
     }
 
     const body: Record<string, unknown> = {
       ...agentOptions,
       ...modelSelection,
+      // Presets can enable native tools even when no explicit tools are sent.
+      ...(toolChoice?.type === 'none' ? { max_tool_calls: 0 } : {}),
       input,
       max_output_tokens: maxOutputTokens,
       temperature,
@@ -326,7 +307,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                 name: responseFormat.name ?? 'response',
                 description: responseFormat.description,
                 schema: responseFormat.schema,
-                strict: true,
+                strict: requestConfig.language.strictJsonSchema,
               },
             }
           : undefined,
@@ -355,7 +336,10 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: perplexityErrorSchema,
@@ -490,7 +474,10 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/v1/agent`,
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: perplexityErrorSchema,

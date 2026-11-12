@@ -1,7 +1,6 @@
 {
   "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
   "compilerOptions": {
-    "lib": ["ES2022", "DOM"],
     "composite": true,
     "rootDir": "src",
     "outDir": "dist",

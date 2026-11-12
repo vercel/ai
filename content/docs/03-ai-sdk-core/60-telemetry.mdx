@@ -16,7 +16,7 @@ to see providers that offer monitoring and tracing for AI SDK applications.
 
 ### Step 1: Register the OpenTelemetry integration
 
-OpenTelemetry span collection requires the `@ai-sdk/otel` package. Install it and register the integration once at application startup:
+OpenTelemetry collection requires the `@ai-sdk/otel` package. Install it and register the integration once at application startup:
 
 ```bash
 pnpm install @ai-sdk/otel
@@ -74,6 +74,22 @@ By default, both inputs and outputs are recorded. You can disable them by settin
 Disabling the recording of inputs and outputs can be useful for privacy, data transfer, and performance reasons.
 You might for example want to disable recording inputs if they contain sensitive information.
 
+These settings filter content before lifecycle events reach telemetry integrations
+and Node.js `ai:telemetry` subscribers. Raw provider bodies and provider metadata
+are omitted when either recording option is disabled. Raw tracing span results
+are also omitted in that case because they can contain both inputs and outputs.
+Tracing span errors use a generic failure message.
+Application lifecycle callbacks and returned results retain their full content.
+
+OpenAI Code Interpreter and shell domain secrets, and MCP authorization and
+header values, are redacted from tool definitions and object request/response
+bodies before they reach telemetry integrations or tracing-channel subscribers,
+including when recording is enabled. Redaction uses telemetry-only copies;
+provider requests and application results retain their original values.
+The OpenAI provider supplies these rules, so update `@ai-sdk/openai` together
+with `ai` to use this protection. Older provider versions do not supply these
+telemetry views.
+
 For `generateSpeech`, input telemetry contains the source text and output
 telemetry contains the generated audio byte length, media type, and format.
 For `transcribe` and `experimental_streamTranscribe`, telemetry contains the
@@ -101,6 +117,23 @@ such as `gen_ai.usage.characters`, `gen_ai.usage.seconds`, and
 `ai.usage.*` attributes. The provider-native usage object remains available to
 callbacks, and can also be included as the supplemental `ai.response.usage`
 attribute by enabling `usage: true`.
+
+### Provider endpoints
+
+For completed language-model calls, providers can report the known HTTP request
+endpoint. `OpenTelemetry` records its host as `server.address` and its port as
+`server.port` on the `chat` span. This includes default ports (443 for HTTPS and
+80 for HTTP) and works when input and output recording are disabled.
+
+OpenAI Chat reports this information for both `generateText` and `streamText`,
+including custom `baseURL` settings. Azure Chat and Bedrock Mantle Chat reuse
+this adapter and also report their configured endpoint. Other providers leave these attributes
+unset until they report their endpoint; no destination is inferred from the
+provider or model name, including an unknown backend behind an intermediary.
+
+The model-call end event's optional `request.url` contains only the HTTP origin.
+Credentials, paths, queries, and fragments are removed before telemetry events
+are emitted. The OpenTelemetry attributes contain only host and port.
 
 ### Opting out
 
@@ -253,6 +286,42 @@ registerTelemetry(
 );
 ```
 
+## Durable WorkflowAgent runs
+
+The steps of a durable `WorkflowAgent` run (`@ai-sdk/workflow`) can execute in
+different processes. To report the run as one `invoke_agent` span tree, use the
+same `OpenTelemetryIdGenerator` instance as your tracer provider's ID generator
+and sampler, and pass it to the globally registered `OpenTelemetry` integration:
+
+```ts
+import { OpenTelemetry, OpenTelemetryIdGenerator } from '@ai-sdk/otel';
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { registerTelemetry } from 'ai';
+
+const durable = new OpenTelemetryIdGenerator();
+new NodeSDK({ idGenerator: durable, sampler: durable }).start();
+registerTelemetry(new OpenTelemetry({ durable }));
+```
+
+Model calls are reported live from their durable steps, so spans started by the
+provider call (for example auto-instrumented HTTP spans) nest under their `chat`
+span. The root, step, and tool spans appear when the run ends or suspends (for
+example on a tool approval), using the original event timestamps. The root
+includes the run's prompt and final output, subject to `recordInputs` and
+`recordOutputs`.
+
+A preparation step captures the active parent trace and makes the run's sampling
+decision once. That context is carried to subsequent steps, preserving the trace
+ID, sampling decision, and trace state. By default, the bridge uses parent-based
+sampling with roots enabled. To use another sampler, pass it through
+`new OpenTelemetryIdGenerator({ sampler: yourSampler })` and keep the bridge as
+the provider's sampler. Unrelated spans use random IDs and the configured sampler.
+
+Install this setup in every process that executes workflow steps, with integrations
+registered in the same order. Without the bridge, `OpenTelemetry` preserves live
+per-model operation traces. Other globally registered telemetry integrations receive
+the recorded run lifecycle when it ends or suspends.
+
 ## Telemetry Integrations
 
 Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `Telemetry` once and register it globally or pass it via `telemetry.integrations`.
@@ -395,6 +464,18 @@ export function myIntegration(): Telemetry {
 }
 ```
 
+For durable workflows, integrations normally receive recorded events after the
+run ends. Events can include `timestamp` (Unix milliseconds); use it for span
+start and end times instead of the current time. Integrations that can reconstruct
+traces across processes can implement the experimental
+`experimental_durable.captureContext(event)` hook. It runs in a preparation step
+and returns a serializable `DurableTelemetryContext`. Live model-start events
+then carry that context in `event.durableContext` with `phase: 'live'`; the
+recorded operation-start event carries it with `phase: 'replay'`. Such integrations
+should skip replayed model events to avoid duplicate spans. Returning `undefined`
+selects live per-model operations instead, with no deferred replay to that
+integration.
+
 ### Available lifecycle methods
 
 <PropertiesTable
@@ -513,9 +594,40 @@ The `LegacyOpenTelemetry` integration emits legacy AI SDK-specific spans.
 The `OpenTelemetry` emits spans that follow the [OpenTelemetry Semantic Conventions for GenAI](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
 By default, attributes use the `gen_ai.*` prefix. Provider names are mapped to well-known values (e.g. `openai`, `anthropic`, `gcp.vertex_ai`).
 
+#### Inference duration metric
+
+For `generateText` and `streamText`, `OpenTelemetry` also records the
+[`gen_ai.client.inference.duration`](https://github.com/open-telemetry/semantic-conventions-genai/blob/3fe84604a581b3d50dd5b4bd29383b462d2a5018/docs/gen-ai/client-inference.md#metric-gen_aiclientinferenceduration)
+histogram in seconds, following the development GenAI semantic conventions.
+Configure a global OpenTelemetry `MeterProvider` with a metric reader and exporter
+to collect it. A `TracerProvider` alone does not export metrics.
+
+Each language model call contributes one observation, including calls that fail or
+are cancelled. Streaming calls record the full response duration. In a workflow
+with multiple model calls, each call is recorded separately; local tool execution
+time is excluded. Each attempt of a retried model stream contributes its own
+observation, including failed attempts that close without a finish chunk.
+
+The histogram includes these attributes:
+
+- `gen_ai.operation.name`: `"chat"`
+- `gen_ai.provider.name`: the normalized provider name
+- `gen_ai.request.model`: the requested model ID
+- `gen_ai.response.model`: the response model ID, when available
+- `error.type`: the error name for thrown errors, `"AbortError"` for cancellation,
+  or `"_OTHER"` when a call ends with an error finish reason or an unknown error
+
+The default bucket boundary advice is `[0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64,
+1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92]` seconds. Your OpenTelemetry SDK
+configuration can override aggregation and bucket boundaries.
+
+Setting `telemetry.isEnabled` to `false` disables these metrics for a call.
+Setting `recordInputs` or `recordOutputs` to `false` does not disable duration
+metrics. The `LegacyOpenTelemetry` integration does not emit this histogram.
+
 #### generateText / streamText
 
-For `generateText` and `streamText`, the integration records 3 types of spans:
+For `generateText` and `streamText`, the integration records 4 types of spans:
 
 - **`invoke_agent {modelId}`** (default root span name, `INTERNAL`): covers the full operation including all steps and tool calls. Use [`agentSpanName`](#agent-span-names) to customize the name.
 
@@ -543,7 +655,16 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   - `gen_ai.usage.cache_creation.input_tokens`: cached input tokens created
   - `gen_ai.output.messages`: the output in [GenAI SemConv message format](#genai-message-format) (when `recordOutputs` is enabled)
 
-- **`chat {modelId}`** (step span, `CLIENT`): one span per LLM provider call, nested under the root span.
+- **`step {n}`** (step span, `INTERNAL`): one span per step, nested under the root span. `n` is the step number, starting at 1. It contains the model call and tool spans of that step.
+
+  Initial attributes:
+  - `gen_ai.operation.name`: `"agent_step"`
+
+  `agent_step` is an AI SDK-defined custom operation name, not a well-known
+  OpenTelemetry GenAI operation. It marks an orchestration step, while the
+  nested `chat` span marks the model call.
+
+- **`chat {modelId}`** (model call span, `CLIENT`): one span per LLM provider call, nested under the step span.
 
   Initial attributes:
   - `gen_ai.operation.name`: `"chat"`
@@ -576,11 +697,11 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   `streamText` with the `output` property instead.
 </Note>
 
-The deprecated object APIs emit the same span hierarchy as `generateText`/`streamText` with these additional attributes on the root span:
+The deprecated object APIs emit the same spans as `generateText`/`streamText`, except that there is no `step {n}` span: the `chat {modelId}` span is nested directly under the root span. The root span has these additional attributes:
 
 - `gen_ai.output.type`: `"json"`
 
-The step spans also include `gen_ai.output.type: "json"`, and `gen_ai.output.messages` contains the generated object as a text part.
+The `chat {modelId}` spans also include `gen_ai.output.type: "json"`, and `gen_ai.output.messages` contains the generated object as a text part.
 
 #### embed / embedMany
 

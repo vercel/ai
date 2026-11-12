@@ -147,6 +147,78 @@ describe('API routing', () => {
     });
   });
 
+  it('accepts OpenAI options under the azure key on the OpenAI API', async () => {
+    const { provider, request } = setup({}, () =>
+      jsonResponse({ data: [{ b64_json: 'aGk=' }] }),
+    );
+
+    await provider.image('gpt-image-1').doGenerate(
+      callOptions({
+        providerOptions: {
+          openai: { quality: 'low', background: 'opaque' },
+          azure: { quality: 'high' },
+        },
+      }),
+    );
+
+    expect(request().json()).toMatchObject({
+      quality: 'high',
+      background: 'opaque',
+    });
+  });
+
+  it.each([
+    ['alone', undefined],
+    [
+      'overriding openai options',
+      {
+        inputFidelity: 'low',
+        markup: 'data:image/png;base64,AQID',
+        background: 'opaque',
+      },
+    ],
+  ] as const)(
+    'accepts OpenAI image edit options under the azure key %s',
+    async (_, openai) => {
+      const { provider, request } = setup({}, () =>
+        jsonResponse({ data: [{ b64_json: 'aGk=' }] }),
+      );
+
+      const result = await provider.image('gpt-image-2.6-flare').doGenerate(
+        callOptions({
+          files: [
+            {
+              type: 'file',
+              data: new Uint8Array([137, 80, 78, 71]),
+              mediaType: 'image/png',
+            },
+          ],
+          providerOptions: {
+            ...(openai ? { openai } : {}),
+            azure: {
+              inputFidelity: 'high',
+              markup: 'data:image/png;base64,iVBORw==',
+            },
+          },
+        }),
+      );
+
+      const { url, body } = request();
+      expect(url).toBe(
+        'https://test-resource.openai.azure.com/openai/v1/images/edits?api-version=v1',
+      );
+      const formData = body as FormData;
+      expect(formData.get('input_fidelity')).toBe('high');
+      expect(formData.get('background')).toBe(openai?.background ?? null);
+      const markup = formData.get('markup') as File;
+      expect(markup.type).toBe('image/png');
+      expect(new Uint8Array(await markup.arrayBuffer())).toEqual(
+        new Uint8Array([137, 80, 78, 71]),
+      );
+      expect(result.warnings).toEqual([]);
+    },
+  );
+
   it.each(['MAI-Image-2.6', 'gpt-image-1'])(
     'accepts unrelated azure provider options for %s',
     async id => {
@@ -485,7 +557,7 @@ describe('edits', () => {
 
     expect(downloadBlobMock).toHaveBeenCalledWith(
       'https://example.com/apple.png',
-      { abortSignal },
+      { abortSignal, fetch: expect.any(Function) },
     );
     expect((request().body as FormData).getAll('image')).toHaveLength(1);
   });

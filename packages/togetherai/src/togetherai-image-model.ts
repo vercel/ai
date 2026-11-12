@@ -1,5 +1,8 @@
+import { getTogetherAIImageModelEntry } from './togetherai-model-catalog';
 import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  resolve,
   combineHeaders,
   convertImageModelFileToDataUri,
   createJsonResponseHandler,
@@ -18,50 +21,24 @@ import { z } from 'zod/v4';
 interface TogetherAIImageModelConfig {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string>;
+  headers?: Resolvable<Record<string, string>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
   };
 }
 
-const nonDiffusionImageModels = new Set<string>(['google/gemini-3-pro-image']);
-
 export class TogetherAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 1;
+  get maxImagesPerCall() {
+    return getTogetherAIImageModelEntry(this.modelId).capabilities.image
+      .maxImagesPerCall;
+  }
 
   get supportsFileInputs(): boolean | undefined {
-    if (
-      [
-        'black-forest-labs/FLUX.1-kontext-pro',
-        'black-forest-labs/FLUX.1-kontext-max',
-        'black-forest-labs/FLUX.1-kontext-dev',
-        'black-forest-labs/FLUX.1-canny',
-        'black-forest-labs/FLUX.1-depth',
-        'black-forest-labs/FLUX.1-redux',
-        // These FLUX.2 models accept the single image_url sent by doGenerate.
-        'black-forest-labs/FLUX.2-pro',
-        'black-forest-labs/FLUX.2-flex',
-      ].includes(this.modelId)
-    ) {
-      return true;
-    }
-
-    return [
-      'stabilityai/stable-diffusion-xl-base-1.0',
-      'black-forest-labs/FLUX.1-dev',
-      'black-forest-labs/FLUX.1-dev-lora',
-      'black-forest-labs/FLUX.1-schnell',
-      'black-forest-labs/FLUX.1.1-pro',
-      'black-forest-labs/FLUX.1-pro',
-      'black-forest-labs/FLUX.1-schnell-Free',
-      // These models require reference_images, which doGenerate does not send.
-      'black-forest-labs/FLUX.2-dev',
-      'google/gemini-3-pro-image',
-    ].includes(this.modelId)
-      ? false
-      : undefined;
+    const support = getTogetherAIImageModelEntry(this.modelId).capabilities
+      .image.fileInput;
+    return support === 'unknown' ? undefined : support;
   }
 
   get supportsMaskInputs(): boolean | undefined {
@@ -131,7 +108,8 @@ export class TogetherAIImageModel implements ImageModelV4 {
       schema: togetheraiImageModelOptionsSchema,
     });
 
-    const isNonDiffusionModel = nonDiffusionImageModels.has(this.modelId);
+    const isNonDiffusionModel = !getTogetherAIImageModelEntry(this.modelId)
+      .capabilities.image.diffusion;
 
     const modelOptions = { ...togetheraiOptions };
     if (isNonDiffusionModel) {
@@ -167,7 +145,7 @@ export class TogetherAIImageModel implements ImageModelV4 {
     // https://docs.together.ai/reference/post_images-generations
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/images/generations`,
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         prompt,

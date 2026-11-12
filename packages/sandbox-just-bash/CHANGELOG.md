@@ -1,5 +1,133 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.181
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.181
+
+## 1.0.180
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/harness@1.0.180
+
+## 1.0.179
+
+### Patch Changes
+
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/provider-utils@5.0.78
+
+## 1.0.178
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/harness@1.0.178
+
+## 1.0.177
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.176
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/harness@1.0.176
+
+## 1.0.175
+
+### Patch Changes
+
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+  - @ai-sdk/harness@1.0.175
+
+## 1.0.174
+
+### Patch Changes
+
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+
+## 1.0.173
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+
+## 1.0.172
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+
+## 1.0.171
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.171
+
+## 1.0.170
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.170
+
+## 1.0.169
+
+### Patch Changes
+
+- 5c247e9: feat(sandbox): add `stat`, `listDirectory`, and `deleteFile` to `Experimental_SandboxSession`, and specify that relative paths in every method resolve against the directory `run` and `spawn` start in
+
+  The just-bash and Vercel Sandbox adapters implement the new methods. Both now resolve a relative `workingDirectory` for `run` and `spawn` against the sandbox's working directory, and the just-bash adapter rejects writes to a directory instead of replacing it with a file.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/harness@1.0.169
+
+## 1.0.168
+
+### Patch Changes
+
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [61a315e]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+  - @ai-sdk/provider-utils@5.0.71
+
+## 1.0.167
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.167
+
 ## 1.0.166
 
 ### Patch Changes

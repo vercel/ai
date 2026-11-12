@@ -1,5 +1,115 @@
 # @ai-sdk/cerebras
 
+## 3.0.90
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/openai-compatible@3.0.90
+
+## 3.0.89
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+  - @ai-sdk/openai-compatible@3.0.89
+
+## 3.0.88
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+- Updated dependencies [c9c6402]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/openai-compatible@3.0.88
+
+## 3.0.87
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/openai-compatible@3.0.87
+  - @ai-sdk/provider@4.0.37
+
+## 3.0.86
+
+### Patch Changes
+
+- Updated dependencies [b63c06a]
+- Updated dependencies [646a7e3]
+  - @ai-sdk/openai-compatible@3.0.86
+
+## 3.0.85
+
+### Patch Changes
+
+- d9db70d: Centralize Cerebras model capabilities and provider options in a shared catalog, preserving request behavior and generating the model capability table from the catalog.
+- 4a4e854: Add the `queueThreshold` provider option as a `queue_threshold` request header and expose the API-reported `service_tier` as `providerMetadata.cerebras.serviceTier` for generated and streamed responses. Missing or null response tiers remain absent. Service tiers require a preview-enabled dedicated Cerebras endpoint.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [add01ab]
+- Updated dependencies [5f19ea5]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/openai-compatible@3.0.85
+  - @ai-sdk/provider-utils@5.0.75
+
+## 3.0.84
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/openai-compatible@3.0.84
+
+## 3.0.83
+
+### Patch Changes
+
+- Updated dependencies [4ae6986]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [5006d83]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/openai-compatible@3.0.83
+  - @ai-sdk/provider-utils@5.0.73
+
+## 3.0.82
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/openai-compatible@3.0.82
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 3.0.81
+
+### Patch Changes
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/openai-compatible@3.0.81
+
 ## 3.0.80
 
 ### Patch Changes

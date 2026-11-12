@@ -1,5 +1,143 @@
 # @ai-sdk/anthropic
 
+## 4.0.102
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 4.0.101
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 4.0.100
+
+### Patch Changes
+
+- 8420810: feat(anthropic): add Claude Fable 5.2 support
+
+  - add the `claude-fable-5-2` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-fable-5-2`, `us.anthropic.claude-fable-5-2`, and `global.anthropic.claude-fable-5-2` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-fable-5.2` to `@ai-sdk/gateway`
+  - recognize `claude-fable-5-2` as a known model with the same capabilities as `claude-fable-5-1`: 128k max output tokens, always-on adaptive thinking, all five effort levels, no sampling parameters, and no forced tool use
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 4.0.99
+
+### Patch Changes
+
+- a161c0a: Keep computer toolset actions tied to the returned member name and reject disabled or unavailable members before emitting tool calls. Apply member configuration to local input validation and reject malformed or non-object member input.
+- 6400cf8: Add `resolveProviderOptions` to parse provider options that a model accepts under several `providerOptions` keys, either as aliases (`first`) or merged in order (`merge`), and use it for the existing multi-key lookups in the OpenAI, OpenAI-compatible, Anthropic, Google, and Amazon Bedrock models. Resolution behavior for these models is unchanged.
+- ba302a1: Reject conflicting inline tool additions when a named tool choice falls back to auto or the internal JSON response tool limits available application tools, including definitions replayed from conversation history.
+- 5ab7ff1: Disable MCP connector tools when structured output falls back to the JSON response tool and the caller selects no tools or a named application tool, and when a named application tool choice falls back to automatic tool selection.
+- b3088a7: Preserve warning-only handling of ignored inline tool additions on the initial system message when named tool choice falls back or the JSON response tool is used. Validate tool-choice restrictions only for inline definitions emitted in the outgoing request.
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 4.0.98
+
+### Patch Changes
+
+- 067dd77: Refactor Amazon Bedrock model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export the Anthropic catalog capability helper under its compatibility name for Bedrock to reuse. Request behavior is unchanged.
+- 25240d9: Refactor Anthropic AWS model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export Anthropic catalog metadata internally for Anthropic AWS to reuse. Request behavior is unchanged.
+- 457dc40: feat(anthropic): support adding tools by value in mid-conversation `toolChanges` (`inline-tools-2026-09-15`)
+- 6b101ac: Add support for creating and continuing Anthropic message threads, including automatic beta headers and thread error details for application-managed recovery.
+
+## 4.0.97
+
+### Patch Changes
+
+- fd7e8a7: Preserve the order of text and complete function calls in streamed Google responses, including standalone thought signatures on empty text or reasoning parts.
+
+  Keep provider metadata on empty text parts when converting results to response messages so it can be passed back in subsequent requests.
+
+  Omit foreign-provider empty signature text when replaying history through Anthropic or Bedrock, preserving Bedrock’s existing native reasoning-history handling.
+
+- 8291ccf: Add MiniMax `serviceTier` support for `standard` and `priority` admission. Omit tiers belonging to another known provider with an unsupported-setting warning instead of forwarding incompatible values. Expose the applied `serviceTier`, when returned, in Anthropic-compatible generation, stream and batch metadata without changing existing metadata construction types.
+- 9754014: Add typed streaming heartbeat parts. Anthropic emits them only with `includePings: true` (disabled by default), without requiring raw chunks. Core forwards pings through stream retries without storing them as generated content or sending them to UI message streams. Consumers with exhaustive stream-part switches must handle the new `ping` union variant when upgrading, even when the opt-in is disabled. Typed pings do not flush partial words during stream smoothing.
+- 4b8f00e: Add a `supportsNativeStructuredOutput` opt-in to the Vertex Anthropic provider so `auto` can use native structured output for Claude 4.5 and newer when enabled by Google Cloud policy. Keep tool emulation as the default and avoid adding the structured-output beta header for providers without strict tool support.
+- 8b11ff6: Support deleting files, retrieving metadata, and streaming downloads of generated files through the Anthropic Files API. Metadata reads and uploads expose consistent media type, size, creation time, expiration, and provider metadata when available. Downloads preserve Anthropic’s restriction to files generated by tools or skills.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 4.0.96
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 4.0.95
+
+### Patch Changes
+
+- 2cd0a97: Enable native structured output and strict tools for supported Claude 5 models on Bedrock. In automatic mode, Bedrock and Anthropic now fall back for schemas that native structured output cannot represent: recursive references, open objects, or more than ten optional properties. Anthropic uses the JSON response tool; Bedrock Converse uses the JSON tool or JSON instructions for models that reject forced tool use. The JSON-tool fallback excludes disabled and unselected application tools. Explicit `outputFormat` selection remains unchanged.
+- 4ae6986: fix(anthropic): parse valid JSON string tool input and safely serialize BigInt and cycles in tool results
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 4.0.94
+
+### Patch Changes
+
+- f4c5f1e: fix(anthropic): use native structured outputs for Claude models that reject forced tool use (Sonnet 5.5, Opus 5.5, Fable 5.1) even when the provider disables them by default, as Amazon Bedrock and Google Vertex do. Self-referencing schemas keep the JSON response tool. Also keep `definitions` and `$defs` next to a top-level `$ref` when sanitizing structured output schemas, so the reference still resolves.
+- e10aebb: fix(anthropic): when the JSON response tool is in use but the model answers in text without calling it (for example with manual thinking, where the forced tool choice is downgraded to `auto`), return the final answer text instead of dropping it. Text before a tool call, result, or message continuation is still dropped.
+- b0d51fe: fix(anthropic): keep the JSON response tool for schemas that native structured outputs cannot represent when upgrading models that reject forced tool use. Schemas with open objects (maps, free-form objects) would otherwise come back as `{}`, and schemas with more than 10 optional properties can be rejected as too complex.
+
+## 4.0.93
+
+### Patch Changes
+
+- dcd2f8d: Introduce a model entry contract with named capability sections and request configuration. Consolidate the OpenAI and Anthropic model catalogs so existing request behavior and generated capability documentation use the same source of truth. Catalogs also declare the provider options each provider accepts and which models support them.
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 4.0.92
+
+### Patch Changes
+
+- 61a315e: fix: map the top-level `reasoning` option consistently across providers
+
+  Providers now resolve reasoning the same way:
+
+  1. A provider-specific reasoning setting in `providerOptions` is sent unchanged. OpenAI no longer drops `providerOptions.openai.reasoningEffort` values that are not in its list for the model, and Fireworks no longer rewrites `providerOptions.fireworks.reasoningEffort`. Fireworks also sends top-level `reasoning` values directly instead of rounding them to `'high'` at most, except for model families known to reject `'none'` (GPT-OSS, GLM-5.3, Muse Spark) or `'minimal'` (Nemotron, Inkling).
+  2. Otherwise, `reasoning` maps to the closest level the model supports, rounding down, and rounds up only when there is no lower level. For example, `'xhigh'` now maps to `'high'` instead of `'max'` on Anthropic and Bedrock models without `xhigh` effort, and `'medium'` maps to `'low'` instead of `'high'` on DeepSeek, Kimi K3, and Mistral GLM-5.3 models.
+  3. `'none'` on a model that cannot disable reasoning maps to the model's lowest level with a compatibility warning, instead of being dropped or sending a request the API rejects. This affects GPT-6 models without `'none'`, xAI grok-4.5 and later, Groq GPT-OSS, Kimi K3, Perplexity, QuiverAI, Bedrock OpenAI `gpt-oss` models, and Gemini 2.5 Pro (minimum thinking budget). Gemini 3 and Anthropic and Bedrock `between_tools` mappings now emit the compatibility warning too.
+
+  `mapReasoningToProviderEffort` now accepts any `reasoning` value, returns an optional `providerOptionsEffort` unchanged, and rounds levels that are missing from the effort map to the closest supported level. `mapReasoningToProviderBudget` maps `'none'` to the minimum reasoning budget, always returns a budget, and uses the default percentage for levels missing from `budgetPercentages`. `OpenAICompatibleChatConfig` adds an optional `mapReasoning` function for mapping the top-level `reasoning` option.
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
+## 4.0.91
+
+### Patch Changes
+
+- 50da4c5: Fix workflow serialization of Anthropic models using API keys or synchronous auth tokens while preserving support for asynchronous token providers.
+
 ## 4.0.90
 
 ### Patch Changes

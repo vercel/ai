@@ -1,5 +1,172 @@
 # @ai-sdk/workflow
 
+## 2.0.102
+
+### Patch Changes
+
+- efd2905: fix(workflow): End the final step's telemetry when streaming stops on a client-side tool, preserving the step span and its model call in the agent trace.
+- Updated dependencies [91a67c2]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+
+## 2.0.101
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - @ai-sdk/provider-utils@5.0.79
+  - ai@7.0.169
+
+## 2.0.100
+
+### Patch Changes
+
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+- Updated dependencies [88b9575]
+  - ai@7.0.168
+  - @ai-sdk/provider-utils@5.0.78
+
+## 2.0.99
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+- Updated dependencies [9f37b45]
+- Updated dependencies [404ce3b]
+  - @ai-sdk/provider-utils@5.0.77
+  - ai@7.0.167
+
+## 2.0.98
+
+### Patch Changes
+
+- ai@7.0.166
+
+## 2.0.97
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [883fcde]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [6d21e8e]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - ai@7.0.165
+  - @ai-sdk/provider@4.0.37
+
+## 2.0.96
+
+### Patch Changes
+
+- ai@7.0.164
+
+## 2.0.95
+
+### Patch Changes
+
+- 85b920f: feat(workflow): remove `experimental_transform` from `WorkflowAgent.stream()`
+
+  Stream transforms cannot reliably run across workflow step boundaries, so the option has been removed along with the `StreamTextTransform` type export.
+
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 2.0.94
+
+### Patch Changes
+
+- 4d6d830: Support a single telemetry operation for durable `WorkflowAgent` runs, including the prompt, final output, steps, and tools. Events recorded in the workflow are reported on completion or suspension with their original timestamps. For OpenTelemetry, pass the same `OpenTelemetryIdGenerator` instance as the tracer provider's `idGenerator` and `sampler` and as `new OpenTelemetry({ durable })`. This explicit bridge carries parent trace context and sampling across steps, reports model spans live with provider requests nested beneath them, and reconstructs the enclosing `invoke_agent` tree when the run completes. Without the bridge, existing live per-model tracing is preserved. Add typed experimental durable context hooks for telemetry integrations; remove reliance on process-global ID-generator detection.
+- Updated dependencies [fa15312]
+- Updated dependencies [857ca45]
+- Updated dependencies [4d6d830]
+  - @ai-sdk/provider-utils@5.0.74
+  - ai@7.0.162
+
+## 2.0.93
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - ai@7.0.161
+  - @ai-sdk/provider-utils@5.0.73
+
+## 2.0.92
+
+### Patch Changes
+
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
+## 2.0.91
+
+### Patch Changes
+
+- ai@7.0.159
+
+## 2.0.90
+
+### Patch Changes
+
+- 5c247e9: feat(sandbox): add `stat`, `listDirectory`, and `deleteFile` to `Experimental_SandboxSession`, and specify that relative paths in every method resolve against the directory `run` and `spawn` start in
+
+  The just-bash and Vercel Sandbox adapters implement the new methods. Both now resolve a relative `workingDirectory` for `run` and `spawn` against the sandbox's working directory, and the just-bash adapter rejects writes to a directory instead of replacing it with a file.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - ai@7.0.158
+  - @ai-sdk/provider@4.0.35
+
+## 2.0.89
+
+### Patch Changes
+
+- 0cc4921: graduate LanguageModelStreamPart to stable and deprecate Experimental_LanguageModelStreamPart
+- 077cfb3: feat(ai): Graduate `filterActiveTools` from experimental. It is now exported as `filterActiveTools`; `experimental_filterActiveTools` remains as a deprecated alias.
+- Updated dependencies [0cc4921]
+- Updated dependencies [61a315e]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+  - @ai-sdk/provider-utils@5.0.71
+
+## 2.0.88
+
+### Patch Changes
+
+- ai@7.0.156
+
 ## 2.0.87
 
 ### Patch Changes

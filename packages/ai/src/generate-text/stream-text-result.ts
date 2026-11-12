@@ -1,6 +1,11 @@
 import type { Citation } from '../types/citation';
 import type { JSONObject } from '@ai-sdk/provider';
-import type { Context, IdGenerator, ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  Context,
+  IdGenerator,
+  ToolSet,
+  UserModelMessage,
+} from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import type {
   CallWarning,
@@ -551,6 +556,23 @@ export type TextStreamToolApprovalRequestPart<TOOLS extends ToolSet> =
 export type TextStreamToolApprovalResponsePart<TOOLS extends ToolSet> =
   ToolApprovalResponseOutput<TOOLS>;
 
+/**
+ * Experimental. A steering message that was added to the run before the step
+ * with the given number. Streamed before the output of that step.
+ */
+export type TextStreamSteeringMessagePart = {
+  type: 'steering-message';
+
+  /** The id of the steering message. */
+  id: string;
+
+  /** The user message that was added to the run. */
+  message: UserModelMessage;
+
+  /** The number of the step whose model call received the message. */
+  stepNumber: number;
+};
+
 export type TextStreamStartStepPart = {
   type: 'start-step';
   request: LanguageModelRequestMetadata;
@@ -593,6 +615,10 @@ export type TextStreamRawPart = {
   rawValue: unknown;
 };
 
+export type TextStreamPingPart = {
+  type: 'ping';
+};
+
 export type TextStreamPart<TOOLS extends ToolSet> =
   | TextStreamTextStartPart
   | TextStreamTextEndPart
@@ -613,10 +639,12 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | TextStreamToolOutputDeniedPart<TOOLS>
   | TextStreamToolApprovalRequestPart<TOOLS>
   | TextStreamToolApprovalResponsePart<TOOLS>
+  | TextStreamSteeringMessagePart
   | TextStreamStartStepPart
   | TextStreamFinishStepPart
   | TextStreamStartPart
   | TextStreamFinishPart
   | TextStreamAbortPart
   | TextStreamErrorPart
+  | TextStreamPingPart
   | TextStreamRawPart;

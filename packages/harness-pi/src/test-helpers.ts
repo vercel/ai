@@ -1,7 +1,14 @@
-import type { HarnessV1NetworkSandboxSession } from '@ai-sdk/harness';
+import type {
+  HarnessV1NetworkSandboxSession,
+  HarnessV1Session,
+  HarnessV1StreamPart,
+} from '@ai-sdk/harness';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { vi } from 'vitest';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterAll, beforeAll, expect, vi } from 'vitest';
 import { createPi, type PiHarnessSettings } from './pi-harness';
 
 export type ModelRequestBody = {
@@ -19,6 +26,28 @@ type ModelResponseChunks = ReadonlyArray<object>;
 const STOP_CHUNKS: ModelResponseChunks = [
   { choices: [{ index: 0, delta: { role: 'assistant', content: 'done' } }] },
   { choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] },
+];
+
+export const toolCallChunks = (name: string, args: object): object[] => [
+  {
+    choices: [
+      {
+        index: 0,
+        delta: {
+          role: 'assistant',
+          tool_calls: [
+            {
+              index: 0,
+              id: `call-${name}`,
+              type: 'function',
+              function: { name, arguments: JSON.stringify(args) },
+            },
+          ],
+        },
+      },
+    ],
+  },
+  { choices: [{ index: 0, delta: {}, finish_reason: 'tool_calls' }] },
 ];
 
 export const readBody = async (request: IncomingMessage): Promise<string> => {
@@ -54,6 +83,43 @@ export const createScriptedModelServerThenDone = () => {
   return { server, requests, enqueue };
 };
 
+export const useScriptedPiModel = () => {
+  const model = createScriptedModelServerThenDone();
+  const agentDir = mkdtempSync(path.join(tmpdir(), 'pi-test-agent-'));
+  const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
+  const state = { model, agentDir, url: '' };
+
+  beforeAll(async () => {
+    process.env.PI_CODING_AGENT_DIR = agentDir;
+    state.url = await listen(model.server);
+  });
+
+  afterAll(async () => {
+    if (previousAgentDir == null) delete process.env.PI_CODING_AGENT_DIR;
+    else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
+    await close(model.server);
+    rmSync(agentDir, { recursive: true, force: true });
+  });
+
+  return state;
+};
+
+export const runPromptTurn = async (
+  session: HarnessV1Session,
+  prompt: string,
+): Promise<void> => {
+  const parts: HarnessV1StreamPart[] = [];
+  const control = await session.doPromptTurn({
+    prompt,
+    model: 'fake/fake-model',
+    tools: [],
+    skills: [],
+    emit: part => parts.push(part),
+  });
+  await control.done;
+  expect(parts.filter(part => part.type === 'error')).toEqual([]);
+};
+
 export const createFakePi = (
   modelUrl: string,
   settings: PiHarnessSettings = {},
@@ -86,21 +152,50 @@ const untouchable = () =>
     throw new Error('sandbox must not be touched');
   });
 
-export const createThrowingSandboxSession =
+export function mockCanonicalPathResolution({ command }: { command: string }) {
+  const frame = command.match(/realpath_marker='([^']+)'/)?.[1];
+  const targets = [...command.matchAll(/target='([^']+)'/g)].map(
+    match => match[1]!,
+  );
+  if (frame == null || targets.length === 0) return undefined;
+
+  return {
+    exitCode: 0,
+    stdout: targets
+      .map(target => `${Buffer.from(target).toString('base64')}${frame}`)
+      .join(''),
+    stderr: '',
+  };
+}
+
+export const createEmptyRepositorySandboxSession =
   (): HarnessV1NetworkSandboxSession => {
     const sandbox: HarnessV1NetworkSandboxSession = {
       id: 'sandbox',
       description: 'throwing sandbox',
       defaultWorkingDirectory: '/sandbox',
       ports: [],
-      run: untouchable(),
+      run: vi.fn(async ({ command }: { command: string }) => {
+        const result = mockCanonicalPathResolution({ command });
+        if (result != null) return result;
+        throw new Error('sandbox must not be touched');
+      }),
       spawn: untouchable(),
       readFile: untouchable(),
       readBinaryFile: untouchable(),
-      readTextFile: untouchable(),
+      readTextFile: vi.fn(async ({ path }) => {
+        expect(path).toBe('/sandbox/work/AGENTS.md');
+        return null;
+      }),
       writeFile: untouchable(),
       writeBinaryFile: untouchable(),
       writeTextFile: untouchable(),
+      stat: untouchable(),
+      listDirectory: vi.fn(async ({ path }) => {
+        expect(path).toBe('/sandbox/work/.agents/skills');
+        return null;
+      }),
+      deleteFile: untouchable(),
       stop: untouchable(),
       destroy: untouchable(),
       getPortEndpoint: untouchable(),

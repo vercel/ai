@@ -174,7 +174,6 @@ export function createFxTransport(options: {
   headers: Record<string, string>;
   turn: FxTurnState;
   responseFormat?: HarnessV1ResponseFormat;
-  save(): Promise<void>;
   onRequest(input: { requestIndex: number; modelId?: string }): void;
   beforeRelease(input: {
     requestIndex: number;
@@ -328,28 +327,8 @@ export function createFxTransport(options: {
       if (previous.status < 200 || previous.status >= 300) {
         return new Response(previous.body, { status: previous.status });
       }
-      /*
-       * Older saved Gateway turns track emitted wire frames rather than
-       * parsed output lengths. Convert that cursor once when replaying them.
-       */
-      if (!previous.emittedOutput) {
-        const output = { text: 0, reasoning: 0, finished: false };
-        for (const frame of previous.body
-          .split(/\r?\n\r?\n/)
-          .filter(Boolean)
-          .slice(0, previous.emittedParts)) {
-          const part = parseFxEvent(frame);
-          if (part?.type === 'text-delta')
-            output.text += String(part.delta ?? '').length;
-          if (part?.type === 'reasoning-delta')
-            output.reasoning += String(part.delta ?? '').length;
-          if (part?.type === 'finish') output.finished = true;
-        }
-        previous.emittedOutput = output;
-      }
       collectToolCalls({ record: previous, index });
       await options.beforeRelease({ requestIndex: index, replay: true });
-      await options.save();
       if (!active)
         throw new DOMException('fx turn is suspended.', 'AbortError');
       return new Response(previous.body, {
@@ -363,12 +342,10 @@ export function createFxTransport(options: {
       body: '',
       status: 200,
       complete: false,
-      emittedParts: 0,
       emittedOutput: { text: 0, reasoning: 0 },
       attempt: previous ? previous.attempt + 1 : 0,
     };
     options.turn.models[index] = record;
-    await options.save();
     let response: Response;
     try {
       response = await networkFetch(url, {
@@ -381,7 +358,6 @@ export function createFxTransport(options: {
       if (previous) options.turn.models[index] = previous;
       else options.turn.models.splice(index, 1);
       requestIndex--;
-      await options.save();
       throw error;
     }
     record.status = response.status;
@@ -395,13 +371,11 @@ export function createFxTransport(options: {
       if (previous) options.turn.models[index] = previous;
       else options.turn.models.splice(index, 1);
       requestIndex--;
-      await options.save();
       return response;
     }
     if (!response.ok || !response.body) {
       record.body = await response.text();
       record.complete = true;
-      await options.save();
       return new Response(record.body, {
         status: response.status,
         headers: response.headers,
@@ -454,10 +428,8 @@ export function createFxTransport(options: {
             `${protocol.label} stream ended before a terminal event.`,
           );
         record.complete = true;
-        await options.save();
         collectToolCalls({ record, index });
         await options.beforeRelease({ requestIndex: index, replay: false });
-        await options.save();
         if (!active)
           throw new DOMException('fx turn is suspended.', 'AbortError');
         if (held) await writer.write(encoder.encode(held));

@@ -87,11 +87,15 @@ export const mistralLanguageModelChatOptions = () =>
      *
      * - `'high'`: Enable reasoning
      * - `'none'`: Disable reasoning
+     * - `'medium'`: Medium reasoning effort for models that support it, e.g.
+     *   `mistral-large-4`, which accepts `'low'`, `'medium'`, and `'high'`
      * - `'low'`, `'max'`: Lowest and highest reasoning effort for models that
      *   support them, e.g. `zai-glm-5-3`, which accepts `'low'`, `'high'`, and
      *   `'max'` but not `'none'`
      */
-    reasoningEffort: z.enum(['high', 'none', 'low', 'max']).optional(),
+    reasoningEffort: z
+      .enum(['high', 'none', 'low', 'medium', 'max'])
+      .optional(),
   });
 export const mistralLanguageModelChatOptionsValidator = lazySchema(() =>
   zodSchema(mistralLanguageModelChatOptions()),

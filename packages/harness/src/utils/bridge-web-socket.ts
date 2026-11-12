@@ -1,17 +1,28 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
+import type { KeyObject } from 'node:crypto';
 import type { WebSocket } from 'ws';
 import type { z } from 'zod/v4';
 import { HarnessError } from '../errors/harness-error';
 import type { HarnessV1PortEndpoint } from '../v1';
 import { harnessV1BridgeHelloSchema } from '../v1/harness-v1-bridge-protocol';
+import {
+  createBridgeAuthProof,
+  parseBridgeAuthPrivateKey,
+} from './bridge-auth';
 import type { SandboxChannelConnectOptions } from './sandbox-channel';
 import { sleep } from './sleep';
 
 export type BridgeHello = z.infer<typeof harnessV1BridgeHelloSchema>;
 
 export interface CreateBridgeWebSocketConnectOptions {
-  /** Bridge endpoint, already authenticated with the bridge token. */
+  /** Unauthenticated bridge WebSocket endpoint. */
   endpoint: HarnessV1PortEndpoint;
+
+  /**
+   * Host-only private key from `createBridgeAuthKeyPair()`. It answers the
+   * bridge's authentication challenge on every connect and reconnect.
+   */
+  privateKey: string;
 
   /**
    * `WebSocket` class from the `ws` package. Passed in by the adapter because
@@ -43,16 +54,18 @@ const UNAUTHORIZED_CLOSE_CODE = 1008;
 /**
  * Creates the `connect` function for a bridge `SandboxChannel`.
  *
- * A connection only counts as established once the socket is open and the
- * bridge has sent `bridge-hello`. Some sandbox runtimes complete the host-side
- * WebSocket upgrade before the connection reaches the bridge process, and
- * frames sent in that gap are dropped. The bridge sends `bridge-hello` the
- * instant it accepts a connection, and sends nothing else until the host sends
- * `start` or `resume`, so no frame is lost between the handshake and the
- * channel wiring the socket.
+ * A connection only counts as established once the socket is open, the host
+ * answered the bridge's authentication challenge, and the bridge has sent
+ * `bridge-hello`. Some sandbox runtimes complete the host-side WebSocket
+ * upgrade before the connection reaches the bridge process, and frames sent in
+ * that gap are dropped. The host therefore sends nothing until the bridge sends
+ * its challenge. The bridge sends `bridge-hello` once the proof is verified,
+ * and sends nothing else until the host sends `start` or `resume`, so no frame
+ * is lost between the handshake and the channel wiring the socket.
  */
 export function createBridgeWebSocketConnect({
   endpoint,
+  privateKey,
   webSocketConstructor,
   openRetryTimeoutMs,
   startAbortSignal,
@@ -60,6 +73,7 @@ export function createBridgeWebSocketConnect({
 }: CreateBridgeWebSocketConnectOptions): (
   options: SandboxChannelConnectOptions,
 ) => Promise<WebSocket> {
+  const authPrivateKey = parseBridgeAuthPrivateKey({ privateKey });
   return async ({ abortSignal, reason }) => {
     const isInitialOpen = reason === 'open';
     const connectAbortSignal =
@@ -71,12 +85,14 @@ export function createBridgeWebSocketConnect({
       isInitialOpen && openRetryTimeoutMs != null
         ? await openBridgeWebSocketWithRetry({
             endpoint,
+            privateKey: authPrivateKey,
             webSocketConstructor,
             abortSignal: connectAbortSignal,
             retryTimeoutMs: openRetryTimeoutMs,
           })
         : await openBridgeWebSocket({
             endpoint,
+            privateKey: authPrivateKey,
             webSocketConstructor,
             abortSignal: connectAbortSignal,
             openTimeoutMs: OPEN_TIMEOUT_MS,
@@ -87,15 +103,17 @@ export function createBridgeWebSocketConnect({
   };
 }
 
-class BridgeWebSocketUnauthorizedError extends Error {}
+class BridgeWebSocketAuthenticationError extends Error {}
 
 async function openBridgeWebSocketWithRetry({
   endpoint,
+  privateKey,
   webSocketConstructor,
   abortSignal,
   retryTimeoutMs,
 }: {
   endpoint: HarnessV1PortEndpoint;
+  privateKey: KeyObject;
   webSocketConstructor: typeof WebSocket;
   abortSignal: AbortSignal;
   retryTimeoutMs: number;
@@ -110,6 +128,7 @@ async function openBridgeWebSocketWithRetry({
       const remaining = Math.max(1, deadline - Date.now());
       return await openBridgeWebSocket({
         endpoint,
+        privateKey,
         webSocketConstructor,
         abortSignal,
         openTimeoutMs: Math.min(OPEN_TIMEOUT_MS, remaining),
@@ -118,7 +137,7 @@ async function openBridgeWebSocketWithRetry({
       });
     } catch (error) {
       if (abortSignal.aborted) throw getAbortReason({ abortSignal });
-      if (error instanceof BridgeWebSocketUnauthorizedError) throw error;
+      if (error instanceof BridgeWebSocketAuthenticationError) throw error;
       lastError = error;
       const remaining = deadline - Date.now();
       if (remaining <= 0) break;
@@ -139,12 +158,14 @@ async function openBridgeWebSocketWithRetry({
 
 function openBridgeWebSocket({
   endpoint,
+  privateKey,
   webSocketConstructor,
   abortSignal,
   openTimeoutMs,
   getHelloTimeoutMs,
 }: {
   endpoint: HarnessV1PortEndpoint;
+  privateKey: KeyObject;
   webSocketConstructor: typeof WebSocket;
   abortSignal: AbortSignal;
   openTimeoutMs: number;
@@ -160,6 +181,7 @@ function openBridgeWebSocket({
       headers: endpoint.headers == null ? undefined : { ...endpoint.headers },
     });
     let opened = false;
+    let authenticated = false;
     let hello: BridgeHello | undefined;
     let settled = false;
     let openTimer: ReturnType<typeof setTimeout> | undefined;
@@ -218,6 +240,30 @@ function openBridgeWebSocket({
       tryResolve();
     };
     const onMessage = (raw: unknown) => {
+      if (settled) return;
+      if (!authenticated) {
+        let proof: string;
+        try {
+          proof = createBridgeAuthProof({
+            privateKey,
+            message: webSocketMessageToString(raw),
+          });
+        } catch {
+          fail(
+            new BridgeWebSocketAuthenticationError(
+              'The harness bridge did not send a valid authentication challenge.',
+            ),
+          );
+          return;
+        }
+        authenticated = true;
+        try {
+          ws.send(proof);
+        } catch (error) {
+          fail(error);
+        }
+        return;
+      }
       void (async () => {
         const parsed = await safeParseJSON({
           text: webSocketMessageToString(raw),
@@ -231,7 +277,7 @@ function openBridgeWebSocket({
     const onClose = (code: number) => {
       fail(
         code === UNAUTHORIZED_CLOSE_CODE
-          ? new BridgeWebSocketUnauthorizedError(
+          ? new BridgeWebSocketAuthenticationError(
               `The harness bridge rejected the WebSocket connection as unauthorized (code ${code}).`,
             )
           : new Error(

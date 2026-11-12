@@ -1048,6 +1048,31 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('high');
         });
 
+        it('should map top-level reasoning none to the lowest effort for grok-4.7', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.7',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          const result = await createModel('grok-4.7').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'none',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('low');
+          expect(result.warnings).toContainEqual({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details:
+              'reasoning "none" is not directly supported by this model. mapped to effort "low".',
+          });
+        });
+
         it('should map top-level reasoning xhigh to reasoning effort "xhigh" for grok-4.6', async () => {
           prepareJsonResponse({
             id: 'resp_123',
@@ -5133,6 +5158,59 @@ describe('XaiResponsesLanguageModel', () => {
           delta: 'Hi',
         }),
       );
+    });
+  });
+
+  describe('incomplete response handling (doGenerate)', () => {
+    it('should set finish reason to length for max_output_tokens', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        model: 'grok-4-fast-non-reasoning',
+        status: 'incomplete',
+        incomplete_details: { reason: 'max_output_tokens' },
+        output: [
+          {
+            type: 'message',
+            id: 'msg_456',
+            role: 'assistant',
+            status: 'incomplete',
+            content: [
+              { type: 'output_text', text: 'partial output', annotations: [] },
+            ],
+          },
+        ],
+        usage: { input_tokens: 100, output_tokens: 4096 },
+      });
+
+      const result = await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.finishReason).toStrictEqual({
+        unified: 'length',
+        raw: 'max_output_tokens',
+      });
+    });
+
+    it('should set finish reason to other when incomplete_details is missing', async () => {
+      prepareJsonResponse({
+        id: 'resp_123',
+        object: 'response',
+        model: 'grok-4-fast-non-reasoning',
+        status: 'incomplete',
+        output: [],
+        usage: { input_tokens: 50, output_tokens: 200 },
+      });
+
+      const result = await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.finishReason).toStrictEqual({
+        unified: 'other',
+        raw: 'incomplete',
+      });
     });
   });
 

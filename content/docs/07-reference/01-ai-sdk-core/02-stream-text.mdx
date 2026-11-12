@@ -914,14 +914,14 @@ retain the content their contracts require.
       type: 'Experimental_Steering',
       isOptional: true,
       description:
-        "Experimental steering object created with `experimental_createSteering()`. Messages sent with `steering.steer()` are added as user messages at the next step boundary, after the current step and its tool calls are done. A waiting message keeps the loop going for another step unless a stop condition is met. `steer()` resolves with `{ type: 'delivered', id, message, stepNumber }` or `{ type: 'not-delivered', id, message, reason }`. See [Steering](/docs/agents/loop-control#steering).",
+        "Experimental steering object created with `experimental_createSteering()`. Messages sent with `steering.steer()` are added as user messages at the next step boundary, after the current step and its tool calls are done. Messages sent with `steering.queue()` wait until the model finishes its current task and are added one per task. A waiting message keeps the loop going for another step unless a stop condition is met. `steer()` and `queue()` resolve with `{ type: 'delivered', id, message, stepNumber }` or `{ type: 'not-delivered', id, message, reason }`. See [Steering](/docs/agents/loop-control#steering).",
     },
     {
       name: 'experimental_download',
-      type: '(requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>) => Promise<Array<null | { data: Uint8Array; mediaType?: string }>>',
+      type: '(requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean; abortSignal?: AbortSignal }>) => Promise<Array<null | { data: Uint8Array; mediaType?: string }>>',
       isOptional: true,
       description:
-        'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
+        'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Use `createDownload({ fetch, maxBytes })` from `ai` to keep the default behavior with a custom fetch transport (e.g. `guarded-fetch` on Node.js) or size limit. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
     },
     {
       name: 'include',
@@ -1032,7 +1032,7 @@ retain the content their contracts require.
               name: 'chunk',
               type: 'TextStreamPart<TOOLS>',
               description:
-                'The stream part. This is the same union as `stream` and includes `start`, `start-step`, `text-start`, `text-delta`, `text-end`, `reasoning-start`, `reasoning-delta`, `reasoning-end`, `custom`, `source`, `file`, `reasoning-file`, `tool-call`, `tool-input-start`, `tool-input-delta`, `tool-input-end`, `tool-result`, `tool-error`, `tool-output-denied`, `tool-approval-request`, `tool-approval-response`, `finish-step`, `finish`, `abort`, `error`, and `raw`.',
+                'The stream part. This is the same union as `stream` and includes `start`, `steering-message`, `start-step`, `text-start`, `text-delta`, `text-end`, `reasoning-start`, `reasoning-delta`, `reasoning-end`, `custom`, `source`, `file`, `reasoning-file`, `tool-call`, `tool-input-start`, `tool-input-delta`, `tool-input-end`, `tool-result`, `tool-error`, `tool-output-denied`, `tool-approval-request`, `tool-approval-response`, `finish-step`, `finish`, `abort`, `error`, `raw`, and `ping`.',
               properties: [
                 {
                   type: 'TextStreamPart',
@@ -3018,6 +3018,12 @@ retain the content their contracts require.
           type: 'LanguageModelRequestMetadata',
           parameters: [
             {
+              name: 'url',
+              type: 'string',
+              isOptional: true,
+              description: 'HTTP origin reported by the provider, without URL credentials, paths, queries or fragments. Unset when unavailable.',
+            },
+            {
               name: 'messages',
               type: 'Array<ModelMessage>',
               isOptional: true,
@@ -3310,6 +3316,13 @@ retain the content their contracts require.
                   type: 'RequestMetadata',
                   parameters: [
                     {
+                      name: 'url',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'The HTTP origin reported by the provider, without URL credentials, paths, queries or fragments.',
+                    },
+                    {
                       name: 'messages',
                       type: 'Array<ModelMessage>',
                       isOptional: true,
@@ -3418,6 +3431,17 @@ retain the content their contracts require.
       description:
         'A stream with all events, including text deltas, tool calls, tool results, and errors. Well-formed mid-stream provider failures are emitted in error parts as StreamProviderError instances. You can use it as either an AsyncIterable or a ReadableStream. Only errors that stop the stream, such as network errors, are thrown.',
       properties: [
+        {
+          type: 'TextStreamPingPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'ping'",
+              description:
+                'A transient provider heartbeat. It contains no generated content, does not reset model-output timeouts, and is omitted from text and UI message streams. Providers may require an explicit opt-in.',
+            },
+          ],
+        },
         {
           type: 'TextStreamTextEndPart',
           description: 'End of a text block, including optional citations supporting that block.',
@@ -3682,6 +3706,33 @@ retain the content their contracts require.
           parameters: [
             {
               name: 'type',
+              type: "'steering-message'",
+              description:
+                'Experimental. A user message that was added to the run with `experimental_steering`. It is streamed before the `start-step` part of the step that received it.',
+            },
+            {
+              name: 'id',
+              type: 'string',
+              description: 'The id of the steering message.',
+            },
+            {
+              name: 'message',
+              type: 'UserModelMessage',
+              description: 'The user message that was added to the run.',
+            },
+            {
+              name: 'stepNumber',
+              type: 'number',
+              description:
+                'The number of the step whose model call received the message.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
               type: "'start-step'",
               description: 'Indicates the start of a new step in the stream.',
             },
@@ -3694,6 +3745,12 @@ retain the content their contracts require.
                 {
                   type: 'LanguageModelRequestMetadata',
                   parameters: [
+                    {
+                      name: 'url',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'HTTP origin reported by the provider, without URL credentials, paths, queries or fragments. Unset when unavailable.',
+                    },
                     {
                       name: 'messages',
                       type: 'Array<ModelMessage>',

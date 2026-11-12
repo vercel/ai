@@ -1,3 +1,4 @@
+import { getAmazonBedrockLanguageModelEntry } from './amazon-bedrock-model-catalog';
 import type {
   JSONObject,
   LanguageModelV4,
@@ -26,6 +27,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  resolveProviderOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -36,6 +38,7 @@ import {
 import {
   getModelCapabilities,
   sanitizeJsonSchema,
+  supportsNativeStructuredOutputSchema,
 } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import {
@@ -162,17 +165,14 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     // Parse provider options. Prefer `amazonBedrock`; fall back to legacy
     // `bedrock` key for backward compatibility.
     let amazonBedrockOptions =
-      (await parseProviderOptions({
-        provider: 'amazonBedrock',
-        providerOptions,
-        schema: amazonBedrockLanguageModelChatOptions,
-      })) ??
-      (await parseProviderOptions({
-        provider: 'bedrock',
-        providerOptions,
-        schema: amazonBedrockLanguageModelChatOptions,
-      })) ??
-      {};
+      (
+        await resolveProviderOptions({
+          providerOptions,
+          namespaces: ['amazonBedrock', 'bedrock'],
+          resolution: 'first',
+          schema: amazonBedrockLanguageModelChatOptions,
+        })
+      ).options ?? {};
 
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
@@ -242,11 +242,12 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       }
     }
 
-    const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
-    const isOpenAIModel = openAIModelId != null;
-    const isOpenAIGptOssModel =
-      openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
-    const isNovaReasoningModel = isNova2ReasoningModel(this.modelId);
+    const modelEntry = getAmazonBedrockLanguageModelEntry(this.modelId);
+    const {
+      openai: isOpenAIModel,
+      openaiGptOss: isOpenAIGptOssModel,
+      nova2Reasoning: isNovaReasoningModel,
+    } = modelEntry.requestConfig.language;
     const shouldNormalizeTemperature = !isOpenAIModel || isOpenAIGptOssModel;
 
     if (shouldNormalizeTemperature && temperature != null && temperature > 1) {
@@ -335,17 +336,15 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
           }
         }
 
-        if (hasExplicitDisabledThinking || thinkingType === 'adaptive') {
-          warnings.push({
-            type: hasExplicitDisabledThinking ? 'unsupported' : 'compatibility',
-            feature: hasExplicitDisabledThinking
-              ? 'providerOptions.amazonBedrock.reasoningConfig'
-              : 'reasoning',
-            details:
-              `thinking cannot be disabled for ${this.modelId}. ` +
-              `Using '${thinkingType}' thinking instead.`,
-          });
-        }
+        warnings.push({
+          type: hasExplicitDisabledThinking ? 'unsupported' : 'compatibility',
+          feature: hasExplicitDisabledThinking
+            ? 'providerOptions.amazonBedrock.reasoningConfig'
+            : 'reasoning',
+          details:
+            `thinking cannot be disabled for ${this.modelId}. ` +
+            `Using '${thinkingType}' thinking instead.`,
+        });
       }
 
       const effort =
@@ -423,7 +422,8 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       responseFormat.schema != null &&
       (structuredOutputMode === 'outputFormat' ||
         (structuredOutputMode === 'auto' &&
-          modelSupportsNativeStructuredOutput));
+          modelSupportsNativeStructuredOutput &&
+          supportsNativeStructuredOutputSchema(responseFormat.schema)));
 
     const useJsonInstructionForStructuredOutput =
       !useNativeStructuredOutput &&
@@ -431,7 +431,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       (rejectsForcedToolUse ||
-        (this.modelId.includes('claude-') &&
+        (modelEntry.requestConfig.language.claude &&
           (!isKnownModel || !modelSupportsStructuredOutput) &&
           !supportsNativeStructuredOutput(this.modelId) &&
           structuredOutputMode !== 'jsonTool') ||
@@ -455,7 +455,17 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
     const { toolConfig, additionalTools, toolWarnings, betas } =
       await prepareTools({
-        tools: jsonResponseTool ? [...(tools ?? []), jsonResponseTool] : tools,
+        tools: jsonResponseTool
+          ? [
+              ...(tools ?? []).filter(
+                tool =>
+                  toolChoice?.type !== 'none' &&
+                  (toolChoice?.type !== 'tool' ||
+                    tool.name === toolChoice.toolName),
+              ),
+              jsonResponseTool,
+            ]
+          : tools,
         toolChoice:
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
@@ -1721,30 +1731,42 @@ export {
   type AmazonBedrockReasoningMetadata,
 } from './amazon-bedrock-reasoning-metadata';
 
-const amazonBedrockReasoningEffortMap: Partial<
-  Record<string, 'low' | 'medium' | 'high' | 'max'>
-> = {
-  minimal: 'low',
+// Effort maps only list the supported levels. Other levels are mapped to the
+// closest supported level by mapReasoningToProviderEffort.
+const amazonBedrockReasoningEffortMap = {
   low: 'low',
   medium: 'medium',
   high: 'high',
-  xhigh: 'max',
   max: 'max',
-};
+} as const;
 
-const amazonNovaReasoningEffortMap: Partial<
-  Record<string, 'low' | 'medium' | 'high'>
-> = {
-  minimal: 'low',
+const amazonNovaReasoningEffortMap = {
   low: 'low',
   medium: 'medium',
   high: 'high',
-  xhigh: 'high',
-  max: 'high',
-};
+} as const;
+
+const openAIGptOssReasoningEffortMap = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+// The reasoning efforts of other OpenAI models are not known, so reasoning
+// values are sent directly.
+const openAIReasoningEffortMap = {
+  none: 'none',
+  minimal: 'minimal',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'xhigh',
+  max: 'max',
+} as const;
 
 function isNova2ReasoningModel(modelId: string): boolean {
-  return modelId.includes('amazon.nova-2-lite-v1:0');
+  return getAmazonBedrockLanguageModelEntry(modelId).requestConfig.language
+    .nova2Reasoning;
 }
 
 function resolveAmazonBedrockReasoningConfig({
@@ -1779,7 +1801,6 @@ function resolveAmazonBedrockReasoningConfig({
     return result;
   }
 
-  const hasPortableReasoning = reasoning !== 'none';
   const isNovaReasoningModel = isNova2ReasoningModel(modelId);
   const supportsPortableReasoning =
     isOpenAIModel || isNovaReasoningModel || reasoningConfig != null;
@@ -1794,7 +1815,12 @@ function resolveAmazonBedrockReasoningConfig({
         reasoningConfig?.maxReasoningEffort ??
         mapReasoningToProviderEffort({
           reasoning,
-          effortMap: amazonBedrockReasoningEffortMap,
+          effortMap: {
+            ...amazonBedrockReasoningEffortMap,
+            ...(capabilities.supportsXhighEffort && {
+              xhigh: 'xhigh' as const,
+            }),
+          },
           warnings,
         });
       result.reasoningConfig = {
@@ -1811,25 +1837,35 @@ function resolveAmazonBedrockReasoningConfig({
           maxReasoningBudget: capabilities.maxOutputTokens,
           warnings,
         });
-      if (budgetTokens != null) {
-        result.reasoningConfig = {
-          ...reasoningConfig,
-          type: reasoningConfig?.type ?? 'enabled',
-          budgetTokens,
-        };
-      }
+      result.reasoningConfig = {
+        ...reasoningConfig,
+        type: reasoningConfig?.type ?? 'enabled',
+        budgetTokens,
+      };
     }
-  } else if (hasPortableReasoning) {
+  } else if (reasoning === 'none' && isNovaReasoningModel) {
+    // Nova 2 reasoning is disabled unless a reasoning effort is sent, so
+    // there is nothing to add.
+  } else {
     if (supportsPortableReasoning) {
       const effort =
         reasoningConfig?.maxReasoningEffort ??
-        mapReasoningToProviderEffort({
+        // OpenAI efforts such as 'none' are sent as `reasoning_effort` even
+        // though they are not accepted in the reasoningConfig provider option.
+        (mapReasoningToProviderEffort({
           reasoning,
           effortMap: isNovaReasoningModel
             ? amazonNovaReasoningEffortMap
-            : amazonBedrockReasoningEffortMap,
+            : isOpenAIModel
+              ? getAmazonBedrockLanguageModelEntry(modelId).requestConfig
+                  .language.openaiGptOssReasoning
+                ? openAIGptOssReasoningEffortMap
+                : openAIReasoningEffortMap
+              : amazonBedrockReasoningEffortMap,
           warnings,
-        });
+        }) as NonNullable<
+          AmazonBedrockLanguageModelChatOptions['reasoningConfig']
+        >['maxReasoningEffort']);
       result.reasoningConfig = {
         ...reasoningConfig,
         ...(isNovaReasoningModel && {

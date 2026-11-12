@@ -351,6 +351,64 @@ Stream processing and event callbacks remain immediate, and the latest messages 
   </Tab>
 </Tabs>
 
+### Queueing Messages
+
+<Note>Message queueing is experimental.</Note>
+
+By default, the input is disabled while a response is in progress. With `experimental_queue`, users can keep typing: messages sent while a response is in progress wait in `experimental_queuedMessages` and are sent one at a time after each response finishes.
+
+```tsx filename="page.tsx"
+const {
+  messages,
+  experimental_queuedMessages,
+  sendMessage,
+  experimental_removeQueuedMessage,
+  experimental_sendQueuedMessageNow,
+} = useChat({
+  experimental_queue: true,
+});
+
+return (
+  <>
+    {/* messages */}
+
+    {experimental_queuedMessages.map(message => (
+      <div key={message.id}>
+        {message.parts.map(part => (part.type === 'text' ? part.text : ''))}
+        <button onClick={() => experimental_sendQueuedMessageNow(message.id)}>
+          Send now
+        </button>
+        <button onClick={() => experimental_removeQueuedMessage(message.id)}>
+          Remove
+        </button>
+      </div>
+    ))}
+
+    <form
+      onSubmit={e => {
+        e.preventDefault();
+        sendMessage({ text: input });
+        setInput('');
+      }}
+    >
+      {/* the input stays enabled while a response is in progress */}
+      <input value={input} onChange={e => setInput(e.target.value)} />
+    </form>
+  </>
+);
+```
+
+- Queued messages are sent in the order they were sent. A new message never skips the queue.
+- The queue also waits while the assistant waits for the user, e.g. a tool call that needs an approval or a client-side tool result, and continues once the result is added. Automatic follow-ups from `sendAutomaticallyWhen` are sent first.
+- An answered approval always reaches the model before the next queued message. Without `sendAutomaticallyWhen`, it is sent when the next message is sent.
+- Stopping, an error or an interrupted response pauses the queue. It resumes when the next message is sent or when you call `experimental_sendQueuedMessageNow`.
+- Editing a message or regenerating stops the response in progress and clears the queue, since the queued messages were sent after the part of the conversation that changes.
+- To edit a queued message, remove it and send the new text. It is added to the end of the queue.
+- `sendMessage` resolves once the message is queued. Use `experimental_queuedMessages` to see where it is.
+- The queue lives in memory in the chat, so it is not saved and is lost on reload.
+
+To add a message to the response that is in progress instead of waiting for it to finish, use [steering](/docs/agents/loop-control#steering) on the server.
+
 ## Event Callbacks
 
 `useChat` provides optional event callbacks that you can use to handle different stages of the chatbot lifecycle:
@@ -1205,6 +1263,14 @@ export default function Page() {
 ### File Objects
 
 You can also send files as objects along with a message. This can be useful for sending pre-uploaded files or data URLs.
+
+<Note type="warning">
+  Attachment URLs received from the client are untrusted input, even from
+  authenticated users. If the server downloads them on Node.js, pass a
+  `guarded-fetch` transport via `experimental_download: createDownload({fetch})`
+  on `streamText`. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
+</Note>
 
 ```tsx filename="app/page.tsx"
 'use client';

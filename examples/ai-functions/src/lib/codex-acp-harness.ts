@@ -3,6 +3,7 @@ import {
   createACP,
   type ACPAuthenticationMode,
   type ACPPermissionModeMapping,
+  type ACPResolveHostToolCall,
   type ACPSource,
 } from '@ai-sdk/harness-acp';
 import { commonTool, type HarnessV1PortEndpoint } from '@ai-sdk/harness';
@@ -30,6 +31,28 @@ const webSearchActionSchema = z.discriminatedUnion('type', [
 ]);
 
 const CODEX_ACP_EXECUTABLE = 'codex-acp';
+
+/*
+ * codex-acp reports MCP tool calls with a `{ server, tool, arguments }` raw
+ * input, so host tool calls are identified by the harness-owned server name.
+ */
+const resolveCodexACPHostToolCall: ACPResolveHostToolCall = ({
+  toolCall,
+  serverName,
+  toolNames,
+}) => {
+  const rawInput = toolCall.rawInput;
+  if (
+    !isRecord(rawInput) ||
+    rawInput.server !== serverName ||
+    typeof rawInput.tool !== 'string' ||
+    !toolNames.includes(rawInput.tool) ||
+    !isRecord(rawInput.arguments)
+  ) {
+    return undefined;
+  }
+  return { toolName: rawInput.tool, input: rawInput.arguments };
+};
 
 const CODEX_ACP_SOURCE = {
   type: 'npm-locked',
@@ -84,7 +107,6 @@ const codexConfigSchema = z.object({
 export type CodexACPHarnessSettings = {
   auth?: ACPAuthenticationMode;
   mcpServers?: Record<string, unknown>;
-  mintBridgeToken?: (sandboxId: string) => string;
   port?: number;
   portEndpoint?: HarnessV1PortEndpoint;
   reasoningEffort?: 'low' | 'medium' | 'high';
@@ -95,7 +117,6 @@ export type CodexACPHarnessSettings = {
 export function createCodexACP({
   auth = 'auto',
   mcpServers,
-  mintBridgeToken,
   port,
   portEndpoint,
   reasoningEffort,
@@ -113,12 +134,12 @@ export function createCodexACP({
     harnessId: 'codex-acp',
     auth,
     mcpServers,
+    resolveHostToolCall: resolveCodexACPHostToolCall,
     isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
     askUserQuestions: codexACPAskUserQuestions,
     clientCapabilities: {
       elicitation: { form: {} },
     },
-    mintBridgeToken,
     port,
     portEndpoint,
     source,
@@ -249,4 +270,8 @@ function resolveCodexACPBaseUrl({
     } catch {}
   }
   return 'https://api.openai.com/v1';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
 }

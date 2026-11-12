@@ -70,6 +70,33 @@ describe('ToolLoopAgent experimental_steering', () => {
     expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 1 });
   });
 
+  it('should deliver queued messages one task at a time in generate()', async () => {
+    const steering = createSteering();
+    const first = steering.queue('Then tell me about Tokyo.');
+    const second = steering.queue('Then tell me about Lagos.');
+    const answers = [
+      'It is sunny in Paris.',
+      'Tokyo is rainy.',
+      'Lagos is hot.',
+    ];
+    let call = 0;
+
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => textResponse(answers[call++]),
+    });
+
+    const agent = new ToolLoopAgent({ model });
+
+    const result = await agent.generate({
+      prompt: 'What is the weather in Paris?',
+      experimental_steering: steering,
+    });
+
+    expect(result.text).toBe('Lagos is hot.');
+    expect(await first).toMatchObject({ type: 'delivered', stepNumber: 1 });
+    expect(await second).toMatchObject({ type: 'delivered', stepNumber: 2 });
+  });
+
   it('should deliver messages in stream()', async () => {
     const steering = createSteering();
     let outcome: Promise<SteeringOutcome> | undefined;
@@ -104,6 +131,51 @@ describe('ToolLoopAgent experimental_steering', () => {
 
     expect(await result.text).toBe('Tokyo is rainy.');
     expect(await outcome).toMatchObject({ type: 'delivered', stepNumber: 1 });
+  });
+
+  it('should stream delivered messages in stream()', async () => {
+    const steering = createSteering();
+    let call = 0;
+
+    const model = new MockLanguageModelV4({
+      doStream: async () => {
+        if (call++ === 0) {
+          void steering.steer('Also tell me about Tokyo.', { id: 'steer-1' });
+          return { stream: convertArrayToReadableStream(textStream('Sunny.')) };
+        }
+        return {
+          stream: convertArrayToReadableStream(textStream('Tokyo is rainy.')),
+        };
+      },
+    });
+
+    const agent = new ToolLoopAgent({ model });
+
+    const result = await agent.stream({
+      prompt: 'What is the weather in Paris?',
+      experimental_steering: steering,
+    });
+
+    const steeringParts = [];
+    for await (const part of result.fullStream) {
+      if (part.type === 'steering-message') {
+        steeringParts.push(part);
+      }
+    }
+
+    expect(steeringParts).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "steer-1",
+          "message": {
+            "content": "Also tell me about Tokyo.",
+            "role": "user",
+          },
+          "stepNumber": 1,
+          "type": "steering-message",
+        },
+      ]
+    `);
   });
 
   it('should not pass the steering object to prepareCall', async () => {

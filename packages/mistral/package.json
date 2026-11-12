@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/mistral",
-  "version": "4.0.74",
+  "version": "4.0.84",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -50,12 +50,19 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vercel/ai-tsdown-config": "workspace:*",
+    "livekit-client": "^2.23.0",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
+    "livekit-client": "^2.23.0",
     "zod": "^3.25.76 || ^4.1.8"
+  },
+  "peerDependenciesMeta": {
+    "livekit-client": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=22"

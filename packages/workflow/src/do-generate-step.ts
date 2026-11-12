@@ -1,3 +1,4 @@
+import { serializeTelemetryBody } from './serializable-telemetry-body.js';
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { generateId, convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
@@ -8,6 +9,7 @@ import {
 import {
   asLanguageModelUsage,
   convertToLanguageModelPrompt,
+  convertLanguageModelContent,
   parseToolCall,
   prepareLanguageModelCallOptions,
   prepareRetries,
@@ -43,11 +45,8 @@ export async function doGenerateStep(
 
   return runModelCallWithTelemetry({
     telemetry: options.telemetry,
-    modelInit,
-    prompt,
     serializedTools,
-    options,
-    execute: async languageModelCallTelemetry => {
+    execute: async (languageModelCallTelemetry): Promise<ModelCallResult> => {
       try {
         return await generateModelCall(
           prompt,
@@ -148,19 +147,6 @@ async function generateModelCall(
     });
   });
   const responseTimeMs = Date.now() - start;
-  await languageModelCallTelemetry?.onLanguageModelCallEnd?.({
-    callId,
-    provider: model.provider,
-    modelId: response.response?.modelId ?? model.modelId,
-    finishReason: response.finishReason.unified,
-    usage: asLanguageModelUsage(response.usage),
-    content: response.content,
-    responseId: response.response?.id,
-    ...(response.providerMetadata != null
-      ? { providerMetadata: response.providerMetadata }
-      : {}),
-    performance: { responseTimeMs },
-  });
   abortSignal?.throwIfAborted();
   // Reject before parsing so tool calls are neither repaired nor executed.
   if (
@@ -222,6 +208,28 @@ async function generateModelCall(
       content: response.content,
     });
   }
+  await languageModelCallTelemetry?.onLanguageModelCallEnd?.({
+    callId,
+    provider: model.provider,
+    modelId: response.response?.modelId ?? model.modelId,
+    finishReason: response.finishReason.unified,
+    usage: asLanguageModelUsage(response.usage),
+    content: await convertLanguageModelContent({
+      content: response.content,
+      toolCalls,
+      toolOutputs: [],
+      toolApprovalRequests: [],
+      toolApprovalResponses: [],
+      tools,
+      abortSignal,
+    }),
+    responseId: response.response?.id,
+    ...(response.providerMetadata != null
+      ? { providerMetadata: response.providerMetadata }
+      : {}),
+    performance: { responseTimeMs },
+    timestamp: start + responseTimeMs,
+  });
   const providerExecutedToolResults = new Map<
     string,
     ProviderExecutedToolResult
@@ -276,6 +284,14 @@ async function generateModelCall(
     raw: {
       content,
       reasoning: [],
+      telemetryBodies: {
+        request: options.include?.requestBody
+          ? serializeTelemetryBody(response.request?.body)
+          : undefined,
+        response: options.include?.responseBody
+          ? serializeTelemetryBody(response.response?.body)
+          : undefined,
+      },
       warnings: response.warnings,
       responseMetadata: {
         id: response.response?.id ?? generateId(),
