@@ -56,8 +56,10 @@ export class InceptionChatLanguageModel
         mapReasoningToProviderEffort({
           reasoning,
           effortMap: {
-            none: 'instant',
-            minimal: 'instant',
+            ...(modelId !== 'mercury-voice' && {
+              none: 'instant',
+              minimal: 'instant',
+            }),
             low: 'low',
             medium: 'medium',
             high: 'high',

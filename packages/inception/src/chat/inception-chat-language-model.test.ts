@@ -366,6 +366,24 @@ describe('Inception chat', () => {
     );
   });
 
+  it.each(['none', 'minimal'] as const)(
+    'falls back to low for mercury-voice reasoning %s',
+    async reasoning => {
+      const voiceModel = createInception({ apiKey: 'test-key' })(
+        'mercury-voice',
+      );
+      const result = await voiceModel.doGenerate({ prompt, reasoning });
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'low',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "low".`,
+      });
+    },
+  );
+
   it('gives provider reasoning effort precedence over top-level reasoning', async () => {
     await model.doGenerate({
       prompt,
