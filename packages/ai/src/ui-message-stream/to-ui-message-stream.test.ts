@@ -958,6 +958,30 @@ describe('toUIMessageStream', () => {
       expect(warningLogger).not.toHaveBeenCalled();
     });
 
+    it('does not warn when the reasoning follows the tool error in the same step', async () => {
+      await consumeUIMessageStream([
+        startStep,
+        toolCall,
+        toolError,
+        ...reasoning,
+        testStep,
+      ]);
+
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
+    it('warns when a masked tool error precedes the first step', async () => {
+      // approved tool calls run before the first step of the next call
+      await consumeUIMessageStream([
+        toolError,
+        startStep,
+        ...reasoning,
+        testStep,
+      ]);
+
+      expect(warningLogger).toHaveBeenCalledOnce();
+    });
+
     it('warns when a masked invalid tool call is followed by reasoning from a later step', async () => {
       await consumeUIMessageStream([
         startStep,
