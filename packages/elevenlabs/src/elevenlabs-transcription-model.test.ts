@@ -679,6 +679,14 @@ describe('doStream', () => {
         ],
         language: 'en',
         durationInSeconds: 0.9,
+        providerMetadata: {
+          elevenlabs: {
+            sessionId: 'session-1',
+            committedTranscriptsWithTimestamps: [
+              { text: 'Hello world.', language_code: 'en' },
+            ],
+          },
+        },
       },
     ]);
     expect(result.response).toEqual({
@@ -732,6 +740,7 @@ describe('doStream', () => {
         segments: [],
         language: undefined,
         durationInSeconds: undefined,
+        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
       },
     ]);
     expect(result.response?.modelId).toBe('scribe_v3_live');
@@ -865,6 +874,7 @@ describe('doStream', () => {
         type: 'transcript-final',
         id: 'session-1:0',
         text: 'Hello there.',
+        providerMetadata: { elevenlabs: { segmentIndex: 0 } },
       },
       {
         type: 'finish',
@@ -874,6 +884,7 @@ describe('doStream', () => {
         durationInSeconds: undefined,
         providerMetadata: {
           elevenlabs: {
+            sessionId: 'session-1',
             diarizedTranscripts: [
               {
                 segment_index: 0,
@@ -955,6 +966,7 @@ describe('doStream', () => {
       durationInSeconds: undefined,
       providerMetadata: {
         elevenlabs: {
+          sessionId: 'session-1',
           committedTranscriptEntities: [
             { text: 'Call me at 555-0142.', entities },
           ],
@@ -1055,7 +1067,9 @@ describe('doStream', () => {
         segments: [],
         language: undefined,
         durationInSeconds: undefined,
-        providerMetadata: { elevenlabs: { editedTranscripts: [] } },
+        providerMetadata: {
+          elevenlabs: { sessionId: 'session-1', editedTranscripts: [] },
+        },
       });
     } finally {
       vi.useRealTimers();
@@ -1168,6 +1182,65 @@ describe('doStream', () => {
     }
   });
 
+  it('returns the language of each committed transcript', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v3_live').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: {
+          streaming: { includeLanguageDetection: true, multilangMode: true },
+        },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({ message_type: 'committed_transcript', text: 'Thanks, John.' });
+    ws.message({
+      message_type: 'committed_transcript_with_timestamps',
+      text: 'Thanks, John.',
+      language_code: 'en',
+      words: [{ text: 'Thanks,', start: 0, end: 0.4, type: 'word' }],
+    });
+    ws.message({ message_type: 'committed_transcript', text: 'Nos vemos.' });
+    ws.message({
+      message_type: 'committed_transcript_with_timestamps',
+      text: 'Nos vemos.',
+      language_code: 'es',
+      words: [{ text: 'Nos', start: 1, end: 1.2, type: 'word' }],
+    });
+    // The final commit has no text and is not reported.
+    ws.message({
+      message_type: 'committed_transcript_with_timestamps',
+      text: '',
+      language_code: null,
+    });
+    ws.message({ message_type: 'committed_transcript', text: '' });
+
+    expect((await partsPromise).at(-1)).toEqual({
+      type: 'finish',
+      text: 'Thanks, John. Nos vemos.',
+      segments: [],
+      language: 'es',
+      durationInSeconds: undefined,
+      providerMetadata: {
+        elevenlabs: {
+          sessionId: 'session-1',
+          committedTranscriptsWithTimestamps: [
+            { text: 'Thanks, John.', language_code: 'en' },
+            { text: 'Nos vemos.', language_code: 'es' },
+          ],
+        },
+      },
+    });
+  });
+
   it('detects language without returning timestamps unless requested', async () => {
     const result = await createElevenLabs({
       apiKey: 'test-api-key',
@@ -1215,6 +1288,14 @@ describe('doStream', () => {
         segments: [],
         language: 'es',
         durationInSeconds: undefined,
+        providerMetadata: {
+          elevenlabs: {
+            sessionId: 'session-1',
+            committedTranscriptsWithTimestamps: [
+              { text: 'Hola', language_code: 'es' },
+            ],
+          },
+        },
       },
     ]);
   });
@@ -1252,6 +1333,7 @@ describe('doStream', () => {
         segments: [],
         language: undefined,
         durationInSeconds: undefined,
+        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
       },
     ]);
   });
@@ -1295,6 +1377,7 @@ describe('doStream', () => {
         segments: [{ text: 'Hello', startSecond: 0, endSecond: 0.4 }],
         language: 'en',
         durationInSeconds: 0.4,
+        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
       },
     ]);
   });
@@ -1352,6 +1435,7 @@ describe('doStream', () => {
         segments: [],
         language: undefined,
         durationInSeconds: undefined,
+        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
       },
     ]);
   });
@@ -1394,6 +1478,7 @@ describe('doStream', () => {
         segments: [{ text: 'Legacy final', startSecond: 0, endSecond: 0.5 }],
         language: 'en',
         durationInSeconds: 0.5,
+        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
       },
     ]);
   });
@@ -1440,6 +1525,7 @@ describe('doStream', () => {
         segments: [],
         language: undefined,
         durationInSeconds: undefined,
+        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
       },
     ]);
   });

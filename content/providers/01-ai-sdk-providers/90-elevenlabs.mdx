@@ -729,6 +729,15 @@ When `includeLanguageDetection` is enabled, the provider requests that event
 internally, but only returns timestamp segments when `includeTimestamps` is also
 enabled. `filterBackgroundAudio` cannot be combined with either option.
 
+`result.language` is the language of the last committed transcript. With
+`includeLanguageDetection`, the language of each committed transcript is
+returned in `providerMetadata.elevenlabs.committedTranscriptsWithTimestamps`
+when the stream finishes, as entries with `text` and `language_code`. Use it for
+audio in more than one language.
+
+The ElevenLabs session id is returned as `providerMetadata.elevenlabs.sessionId`
+when the stream finishes.
+
 See [Transcription](/docs/ai-sdk-core/transcription) for more information about
 streaming transcription.
 
@@ -816,8 +825,10 @@ const { diarizedTranscripts } = (await result.providerMetadata).elevenlabs;
 ```
 
 With `diarize`, each `transcript-partial` part also carries draft speaker
-labels in `providerMetadata.elevenlabs.words`. To read the other events as they
-arrive, set `includeRawChunks: true` and read the `raw` parts.
+labels in `providerMetadata.elevenlabs.words`, and each `transcript-final` part
+carries `providerMetadata.elevenlabs.segmentIndex`, which matches the
+`segment_index` of its entry in `diarizedTranscripts`. To read the other events
+as they arrive, set `includeRawChunks: true` and read the `raw` parts.
 
 After the audio input ends, the stream waits up to 5 seconds for the events
 that follow the final committed transcript before it finishes.

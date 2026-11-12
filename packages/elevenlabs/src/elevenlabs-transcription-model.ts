@@ -552,6 +552,7 @@ function createElevenLabsRealtimeTranscriptionStream({
         text: string;
         words: Array<ElevenLabsRealtimeTranscriptionWord>;
       }> = [];
+      const committedTranscriptsWithTimestamps: Array<JSONObject> = [];
       const committedTranscriptEntities: Array<JSONObject> = [];
       const redactedTranscripts: Array<JSONObject> = [];
       const editedTranscripts: Array<JSONObject> = [];
@@ -589,6 +590,10 @@ function createElevenLabsRealtimeTranscriptionStream({
         if (finished) return;
         finished = true;
         const metadata: JSONObject = {
+          ...(sessionId != null && { sessionId }),
+          ...(includeLanguageDetection && {
+            committedTranscriptsWithTimestamps,
+          }),
           ...(followUpEvents.diarizedTranscripts && {
             diarizedTranscripts: diarizedTranscripts
               .filter(transcript => transcript.text.length > 0)
@@ -811,6 +816,13 @@ function createElevenLabsRealtimeTranscriptionStream({
                   type: 'transcript-final',
                   id,
                   text,
+                  // With diarization, matches the segment_index of the
+                  // diarized transcript that follows.
+                  ...(raw.segment_index != null && {
+                    providerMetadata: {
+                      elevenlabs: { segmentIndex: raw.segment_index },
+                    },
+                  }),
                 });
               }
 
@@ -841,6 +853,12 @@ function createElevenLabsRealtimeTranscriptionStream({
                   typeof word.end === 'number',
               );
               detectedLanguage = raw.language_code ?? detectedLanguage;
+              if (includeLanguageDetection && text.length > 0) {
+                committedTranscriptsWithTimestamps.push({
+                  text,
+                  language_code: raw.language_code ?? null,
+                });
+              }
 
               // Normally this is paired with the preceding committed_transcript.
               // Still handle a timestamp-only server response defensively.
