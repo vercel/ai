@@ -685,6 +685,22 @@ export type WorkflowAgentOptions<
     onToolExecutionEnd?: WorkflowAgentOnToolExecutionEndCallback<TTools>;
 
     /**
+     * Callback that is called when an error occurs. Aborts are not reported.
+     *
+     * If `onError` is also passed to `generate()` or `stream()`, both
+     * callbacks are called.
+     */
+    onError?: WorkflowAgentOnErrorCallback;
+
+    /**
+     * Callback that is called when the operation is aborted.
+     *
+     * If `onAbort` is also passed to `generate()` or `stream()`, both
+     * callbacks are called.
+     */
+    onAbort?: WorkflowAgentOnAbortCallback<TTools>;
+
+    /**
      * Prepare the parameters for the stream call.
      * Called once before the agent loop starts. Use this to transform
      * model, tools, instructions, or other settings based on runtime context.
@@ -1578,6 +1594,8 @@ export class WorkflowAgent<
   >;
   private constructorOnToolExecutionStart?: WorkflowAgentOnToolExecutionStartCallback<TBaseTools>;
   private constructorOnToolExecutionEnd?: WorkflowAgentOnToolExecutionEndCallback<TBaseTools>;
+  private constructorOnError?: WorkflowAgentOnErrorCallback;
+  private constructorOnAbort?: WorkflowAgentOnAbortCallback<TBaseTools>;
   private prepareCall?: PrepareCallCallback<TBaseTools, TRuntimeContext>;
 
   constructor(
@@ -1616,6 +1634,8 @@ export class WorkflowAgent<
       options.onStepStart ?? options.experimental_onStepStart;
     this.constructorOnToolExecutionStart = options.onToolExecutionStart;
     this.constructorOnToolExecutionEnd = options.onToolExecutionEnd;
+    this.constructorOnError = options.onError;
+    this.constructorOnAbort = options.onAbort;
     this.prepareCall = options.prepareCall;
     this.allowSystemInMessages = options.allowSystemInMessages ?? false;
 
@@ -2331,6 +2351,18 @@ export class WorkflowAgent<
         | undefined,
       options.onStepStart ?? options.experimental_onStepStart,
     );
+    // Like the other callbacks, errors thrown by `onError` and `onAbort` are
+    // ignored so that they cannot replace the error or result of the run.
+    const mergedOnError = mergeCallbacks(
+      this.constructorOnError,
+      options.onError,
+    );
+    const mergedOnAbort = mergeCallbacks(
+      this.constructorOnAbort as
+        | WorkflowAgentOnAbortCallback<TTools>
+        | undefined,
+      options.onAbort,
+    );
     // Determine effective tool choice
     const effectiveToolChoice = effectiveToolChoiceFromPrepare;
 
@@ -2584,9 +2616,7 @@ export class WorkflowAgent<
 
     // Check for abort before starting
     if (mergedGenerationSettings.abortSignal?.aborted) {
-      if (options.onAbort) {
-        await options.onAbort({ steps });
-      }
+      await mergedOnAbort({ steps });
       return {
         outcome: { status: 'aborted' },
         abortReason: abortReason(),
@@ -2653,9 +2683,7 @@ export class WorkflowAgent<
         // Check for abort during iteration
         if (mergedGenerationSettings.abortSignal?.aborted) {
           wasAborted = true;
-          if (options.onAbort) {
-            await options.onAbort({ steps });
-          }
+          await mergedOnAbort({ steps });
           break;
         }
 
@@ -3167,9 +3195,7 @@ export class WorkflowAgent<
         } else {
           finalMessages = result.value.messages;
           wasAborted = true;
-          if (options.onAbort) {
-            await options.onAbort({ steps });
-          }
+          await mergedOnAbort({ steps });
         }
       }
     } catch (error) {
@@ -3178,21 +3204,17 @@ export class WorkflowAgent<
       // Check if this is an abort error
       if (isAbortError(error)) {
         wasAborted = true;
-        if (options.onAbort) {
-          await options.onAbort({ steps });
-        }
-      } else if (options.onError) {
+        await mergedOnAbort({ steps });
+      } else {
         // Call onError for non-abort errors (including tool execution errors)
-        await options.onError({ error });
+        await mergedOnError({ error });
       }
       await telemetryDispatcher.onError?.(error);
       // Don't throw yet - we want to call onEnd first
     }
 
     if (hasTerminalError) {
-      if (options.onError) {
-        await options.onError({ error: terminalError });
-      }
+      await mergedOnError({ error: terminalError });
       await telemetryDispatcher.onError?.(terminalError);
     }
 
