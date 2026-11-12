@@ -86,6 +86,34 @@ describe('WorkflowAgent stream and core generate contracts', () => {
     expect(streamed.messages.slice(1)).toEqual(generated.responseMessages);
   });
 
+  it('returns unresolved client tool calls in both contracts', async () => {
+    const tools = {
+      weather: tool({ inputSchema: z.object({ city: z.string() }) }),
+    };
+    const generated = await new ToolLoopAgent({
+      model: createAgentModel([toolResponse()]),
+      tools,
+    }).generate({ prompt });
+    const streamed = await new WorkflowAgent({
+      model: createAgentModel([toolResponse()]),
+      tools,
+    }).stream({ prompt });
+
+    expect(streamed.steps).toHaveLength(1);
+    expect(generated.steps).toHaveLength(1);
+    expect(streamed.toolCalls).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'weather-call',
+        toolName: 'weather',
+        input: { city: 'London' },
+      },
+    ]);
+    expect(generated.toolCalls).toMatchObject(streamed.toolCalls);
+    expect(streamed.toolResults).toEqual([]);
+    expect(generated.toolResults).toEqual([]);
+  });
+
   it('passes the same conversation scope to tool execution as core', async () => {
     const responses = () => [
       toolResponse(),
@@ -131,34 +159,6 @@ describe('WorkflowAgent stream and core generate contracts', () => {
     expect(seenByCallback.core).toEqual(seen.core);
     expect(seenByCallback.generate).toEqual(seen.core);
     expect(seenByCallback.stream).toEqual(seen.core);
-  });
-
-  it('returns unresolved client tool calls in both contracts', async () => {
-    const tools = {
-      weather: tool({ inputSchema: z.object({ city: z.string() }) }),
-    };
-    const generated = await new ToolLoopAgent({
-      model: createAgentModel([toolResponse()]),
-      tools,
-    }).generate({ prompt });
-    const streamed = await new WorkflowAgent({
-      model: createAgentModel([toolResponse()]),
-      tools,
-    }).stream({ prompt });
-
-    expect(streamed.steps).toHaveLength(1);
-    expect(generated.steps).toHaveLength(1);
-    expect(streamed.toolCalls).toEqual([
-      {
-        type: 'tool-call',
-        toolCallId: 'weather-call',
-        toolName: 'weather',
-        input: { city: 'London' },
-      },
-    ]);
-    expect(generated.toolCalls).toMatchObject(streamed.toolCalls);
-    expect(streamed.toolResults).toEqual([]);
-    expect(generated.toolResults).toEqual([]);
   });
 
   it('distinguishes the core 20-step default from the unbounded Workflow stream default', async () => {
