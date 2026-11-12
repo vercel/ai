@@ -1045,7 +1045,7 @@ messages between turns, or changing the system prompt or tools between turns,
 has the same effect.
 
 UI message streams can change this content as well. When tool errors are
-redacted (`redactToolErrors`, or an `onError` that returns a different text),
+redacted (`redactToolErrors`, which defaults to `true` when you pass `onError`),
 `toUIMessageStream` sends the replacement text to the client for a failed tool
 call, while the model received the full error text during the multi-step call.
 When you convert those UI messages back with `convertToModelMessages`, the tool
