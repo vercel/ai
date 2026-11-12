@@ -159,10 +159,9 @@ abortSignal }`, where `sandbox` is the restricted sandbox session and
 - `writeProtectedPaths`: optional paths relative to the session working
   directory, such as files or directories that hold the implementation's own
   configuration, which the agent must not write to without Harness approval.
-  Under `allow-reads` and `allow-edits`, `edit`, `delete`, and `move` permission
-  requests that touch these paths always require approval. `.agents/skills` is
-  always protected. Entries must not be absolute or contain `.` or `..`
-  segments.
+  Under `allow-edits`, `edit`, `delete`, and `move` permission requests that
+  touch these paths always require approval. `.agents/skills` is always
+  protected. Entries must not be absolute or contain `.` or `..` segments.
 - `session.meta`: serializable implementation-specific metadata for session
   creation and restoration.
 - `port`: exposed bridge port override.
@@ -369,15 +368,15 @@ require Harness approval. `allow-all` retains unrestricted automatic approval.
 These checks apply to permission requests received from the ACP implementation;
 use separate sandboxes when jobs require filesystem isolation.
 
-Under `allow-reads` and `allow-edits`, `edit`, `delete`, and `move` permission
-requests that touch `.agents/skills` or a configured `writeProtectedPaths` entry
-also require Harness approval, even inside the session working directory. A
-location matches when it is a protected path, lies inside one, or is a parent
-of one. Symlinks are resolved in both directions: writes through an alias that
-points into a protected path match, as do writes to targets of symlinks inside
-protected directories. While a protected path exists, writes to hard-linked
-files also require approval. Reads of protected paths are still automatically
-approved, and `allow-all` is unaffected.
+Under `allow-edits`, `edit`, `delete`, and `move` permission requests that
+touch `.agents/skills` or a configured `writeProtectedPaths` entry also require
+Harness approval, even inside the session working directory. A location matches
+when it is a protected path, lies inside one, or is a parent of one. Symlinks
+are resolved in both directions: writes through an alias that points into a
+protected path match, as do writes to targets of symlinks inside protected
+directories. While a protected path exists, writes to hard-linked files also
+require approval. Reads of protected paths are still automatically approved,
+and `allow-all` is unaffected.
 
 ## Complete ACP Harness Implementations
 
