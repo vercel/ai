@@ -1,3 +1,4 @@
+import { quiveraiRequestDefaults } from './quiverai-model-catalog';
 import {
   NoSuchModelError,
   type ImageModelV4,
@@ -121,7 +122,7 @@ export function createQuiverAI(
     getResponseErrorMetadata: getQuiverAIResponseErrorMetadata,
     strictResponseInput: true,
     customToolId: 'quiverai.custom',
-    structuredOutputs: false,
+    structuredOutputs: quiveraiRequestDefaults.language.structuredOutputs,
     userAgentSuffix: `ai-sdk-quiverai/${VERSION}`,
   };
   const responsesProvider = createOpenResponses(responsesConfig);
