@@ -103,4 +103,10 @@ export type ElevenLabsTranscriptionAPITypes = {
    * Exactly one of `file` or `source_url` must be provided.
    */
   source_url?: string;
+
+  /**
+   * How numbers are written in the transcript: 'digits' (e.g. '42') or
+   * 'words' (e.g. 'forty-two'). Supported by scribe_v3.
+   */
+  numbers_format?: 'digits' | 'words';
 };

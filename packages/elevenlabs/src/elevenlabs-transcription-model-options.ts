@@ -19,21 +19,31 @@ export const elevenLabsTranscriptionModelOptionsSchema = lazySchema(() =>
       diarize: z.boolean().nullish().default(true),
       fileFormat: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
       sourceUrl: z.string().nullish(),
+      numbersFormat: z.enum(['digits', 'words']).nullish(),
+      secondaryLanguageCodes: z.array(z.string()).nullish(),
       streaming: z
         .object({
           commitStrategy: z
             .enum(['manual', 'vad', 'turn_prediction'])
             .nullish(),
+          diarize: z.boolean().nullish(),
           enableLogging: z.boolean().nullish(),
+          entityDetection: z.union([z.string(), z.array(z.string())]).nullish(),
+          entityRedaction: z.union([z.string(), z.array(z.string())]).nullish(),
+          entityRedactionMode: z
+            .enum(['redacted', 'entity_type', 'enumerated_entity_type'])
+            .nullish(),
           filterBackgroundAudio: z.boolean().nullish(),
           includeLanguageDetection: z.boolean().nullish(),
           includeTimestamps: z.boolean().nullish(),
           keyterms: z.array(z.string().max(20)).max(50).nullish(),
           minSilenceDurationMs: z.number().int().min(50).max(2000).nullish(),
           minSpeechDurationMs: z.number().int().min(50).max(2000).nullish(),
+          multilangMode: z.boolean().nullish(),
           noVerbatim: z.boolean().nullish(),
           previousText: z.string().nullish(),
           secondaryLanguages: z.array(z.string()).nullish(),
+          transcriptEdit: z.string().max(2000).nullish(),
           vadSilenceThresholdSecs: z.number().min(0.3).max(3).nullish(),
           vadThreshold: z.number().min(0.1).max(0.9).nullish(),
         })

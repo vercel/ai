@@ -2,6 +2,7 @@ import {
   InvalidArgumentError,
   UnsupportedFunctionalityError,
   type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
+  type JSONObject,
   type SharedV4Warning,
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
@@ -36,17 +37,26 @@ import {
 import type { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
 import type { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
 
+type ElevenLabsRealtimeTranscriptionWord = {
+  text?: string;
+  start?: number | null;
+  end?: number | null;
+  type?: string;
+  speaker_id?: string | null;
+};
+
 type ElevenLabsRealtimeTranscriptionEvent = {
   message_type?: string;
   session_id?: string;
+  segment_index?: number;
   text?: string;
   language_code?: string | null;
-  words?: Array<{
-    text?: string;
-    start?: number;
-    end?: number;
-    type?: string;
-  }> | null;
+  words?: Array<ElevenLabsRealtimeTranscriptionWord> | null;
+  entities?: Array<JSONObject> | null;
+  redacted_text?: string;
+  edited_text?: string;
+  from_speaker_id?: string;
+  to_speaker_id?: string;
   error?: string;
 };
 
@@ -74,6 +84,11 @@ const elevenLabsLateFinalizationErrorTypes = new Set([
 ]);
 
 const finalCommitGracePeriodMs = 250;
+
+// Diarized, entity, redacted, and edited transcripts follow their committed
+// transcript as separate events. An edit that cannot be produced is never
+// sent, so the wait for the final commit's events is bounded.
+const followUpEventTimeoutMs = 5000;
 
 const elevenLabsRealtimeTranscriptionModelIds = new Set([
   'scribe_v2_realtime',
@@ -170,6 +185,12 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
 
     formData.append('diarize', String(elevenlabsOptions?.diarize ?? true));
 
+    // ElevenLabs reads list fields as repeated form fields.
+    for (const languageCode of elevenlabsOptions?.secondaryLanguageCodes ??
+      []) {
+      formData.append('secondary_language_codes', languageCode);
+    }
+
     // Add provider-specific options
     if (elevenlabsOptions) {
       const transcriptionModelOptions: ElevenLabsTranscriptionAPITypes = {
@@ -179,6 +200,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
         timestamps_granularity:
           elevenlabsOptions.timestampsGranularity ?? undefined,
         file_format: elevenlabsOptions.fileFormat ?? undefined,
+        numbers_format: elevenlabsOptions.numbersFormat ?? undefined,
       };
 
       for (const key in transcriptionModelOptions) {
@@ -297,7 +319,10 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
         warnings.push({
           type: 'unsupported',
           feature: `providerOptions.elevenlabs.${option}`,
-          details: `ElevenLabs realtime transcription does not support ${option}.`,
+          details:
+            option === 'diarize'
+              ? 'ElevenLabs realtime transcription reads diarize from providerOptions.elevenlabs.streaming.diarize.'
+              : `ElevenLabs realtime transcription does not support ${option}.`,
         });
       }
     }
@@ -349,6 +374,12 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
         ),
         includeLanguageDetection:
           streamingOptions?.includeLanguageDetection === true,
+        followUpEvents: {
+          diarizedTranscripts: url.searchParams.get('diarize') === 'true',
+          committedTranscriptEntities: url.searchParams.has('entity_detection'),
+          redactedTranscripts: url.searchParams.has('entity_redaction'),
+          editedTranscripts: url.searchParams.has('transcript_edit'),
+        },
         includeRawChunks: options.includeRawChunks,
         includeTimestamps: streamingOptions?.includeTimestamps === true,
         language: elevenLabsOptions?.languageCode ?? undefined,
@@ -415,7 +446,9 @@ function buildElevenLabsRealtimeTranscriptionUrl({
 
   const parameters = {
     commit_strategy: streamingOptions?.commitStrategy,
+    diarize: streamingOptions?.diarize,
     enable_logging: streamingOptions?.enableLogging,
+    entity_redaction_mode: streamingOptions?.entityRedactionMode,
     filter_background_audio: streamingOptions?.filterBackgroundAudio,
     include_language_detection: streamingOptions?.includeLanguageDetection,
     include_timestamps: includeDetailedCommit
@@ -424,7 +457,9 @@ function buildElevenLabsRealtimeTranscriptionUrl({
     language_code: languageCode,
     min_silence_duration_ms: streamingOptions?.minSilenceDurationMs,
     min_speech_duration_ms: streamingOptions?.minSpeechDurationMs,
+    multilang_mode: streamingOptions?.multilangMode,
     no_verbatim: streamingOptions?.noVerbatim,
+    transcript_edit: streamingOptions?.transcriptEdit,
     vad_silence_threshold_secs: streamingOptions?.vadSilenceThresholdSecs,
     vad_threshold: streamingOptions?.vadThreshold,
   };
@@ -439,6 +474,12 @@ function buildElevenLabsRealtimeTranscriptionUrl({
   for (const secondaryLanguage of streamingOptions?.secondaryLanguages ?? []) {
     url.searchParams.append('secondary_languages', secondaryLanguage);
   }
+  for (const entity of [streamingOptions?.entityDetection ?? []].flat()) {
+    url.searchParams.append('entity_detection', entity);
+  }
+  for (const entity of [streamingOptions?.entityRedaction ?? []].flat()) {
+    url.searchParams.append('entity_redaction', entity);
+  }
 
   return url;
 }
@@ -446,6 +487,7 @@ function buildElevenLabsRealtimeTranscriptionUrl({
 function createElevenLabsRealtimeTranscriptionStream({
   abortSignal,
   audio,
+  followUpEvents,
   headers,
   includeLanguageDetection,
   includeRawChunks,
@@ -459,6 +501,12 @@ function createElevenLabsRealtimeTranscriptionStream({
 }: {
   abortSignal: AbortSignal | undefined;
   audio: ReadableStream<Uint8Array | string>;
+  followUpEvents: {
+    diarizedTranscripts: boolean;
+    committedTranscriptEntities: boolean;
+    redactedTranscripts: boolean;
+    editedTranscripts: boolean;
+  };
   headers: Record<string, string | undefined>;
   includeLanguageDetection: boolean;
   includeRawChunks: boolean | undefined;
@@ -486,6 +534,8 @@ function createElevenLabsRealtimeTranscriptionStream({
       let segmentIndex = 0;
       let sessionId: string | undefined;
       let committedEventCount = 0;
+      let nonEmptyCommittedEventCount = 0;
+      let followUpEventDeadline: number | undefined;
       let committedEventsAtEndOfInput = 0;
       let finalCommitEventCount: number | undefined;
       let timestampedCommitCount = 0;
@@ -497,6 +547,27 @@ function createElevenLabsRealtimeTranscriptionStream({
         endSecond: number;
       }> = [];
       const finalTexts: string[] = [];
+      const diarizedTranscripts: Array<{
+        segment_index: number | undefined;
+        text: string;
+        words: Array<ElevenLabsRealtimeTranscriptionWord>;
+      }> = [];
+      const committedTranscriptsWithTimestamps: Array<JSONObject> = [];
+      const committedTranscriptEntities: Array<JSONObject> = [];
+      const redactedTranscripts: Array<JSONObject> = [];
+      const editedTranscripts: Array<JSONObject> = [];
+
+      // ElevenLabs sends a diarized transcript for every commit, and the other
+      // events only for commits that have text.
+      const hasPendingFollowUpEvents = () =>
+        (followUpEvents.diarizedTranscripts &&
+          diarizedTranscripts.length < committedEventCount) ||
+        (followUpEvents.committedTranscriptEntities &&
+          committedTranscriptEntities.length < nonEmptyCommittedEventCount) ||
+        (followUpEvents.redactedTranscripts &&
+          redactedTranscripts.length < nonEmptyCommittedEventCount) ||
+        (followUpEvents.editedTranscripts &&
+          editedTranscripts.length < nonEmptyCommittedEventCount);
 
       cleanup = (closeCode?: number) => {
         clearTimeout(finalCommitGracePeriod);
@@ -518,20 +589,64 @@ function createElevenLabsRealtimeTranscriptionStream({
       const finish = () => {
         if (finished) return;
         finished = true;
+        const metadata: JSONObject = {
+          ...(sessionId != null && { sessionId }),
+          ...(includeLanguageDetection && {
+            committedTranscriptsWithTimestamps,
+          }),
+          ...(followUpEvents.diarizedTranscripts && {
+            diarizedTranscripts: diarizedTranscripts
+              .filter(transcript => transcript.text.length > 0)
+              .map(transcript => ({
+                ...(transcript.segment_index != null && {
+                  segment_index: transcript.segment_index,
+                }),
+                text: transcript.text,
+                words: transcript.words as Array<JSONObject>,
+              })),
+          }),
+          ...(followUpEvents.committedTranscriptEntities && {
+            committedTranscriptEntities,
+          }),
+          ...(followUpEvents.redactedTranscripts && { redactedTranscripts }),
+          ...(followUpEvents.editedTranscripts && { editedTranscripts }),
+        };
         controller.enqueue({
           type: 'finish',
           text: finalTexts.join(' ').trim(),
           segments: finalSegments,
           language: detectedLanguage,
           durationInSeconds: finalSegments.at(-1)?.endSecond,
+          ...(Object.keys(metadata).length > 0 && {
+            providerMetadata: { elevenlabs: metadata },
+          }),
         });
         controller.close();
         cleanup(1000);
       };
 
-      const scheduleFinish = () => {
+      const startFinishTimer = (deadline: number) => {
+        const remainingMs = Math.max(deadline - Date.now(), 0);
         clearTimeout(finalCommitGracePeriod);
-        finalCommitGracePeriod = setTimeout(finish, finalCommitGracePeriodMs);
+        finalCommitGracePeriod = setTimeout(
+          finish,
+          hasPendingFollowUpEvents()
+            ? remainingMs
+            : Math.min(finalCommitGracePeriodMs, remainingMs),
+        );
+      };
+
+      const scheduleFinish = () => {
+        followUpEventDeadline = Date.now() + followUpEventTimeoutMs;
+        startFinishTimer(followUpEventDeadline);
+      };
+
+      // Re-arms the timer against the deadline set by the final commit, so a
+      // follow-up event cannot extend the wait for the ones still pending.
+      const receivedFollowUpEvent = () => {
+        if (followUpEventDeadline != null) {
+          startFinishTimer(followUpEventDeadline);
+        }
       };
 
       const sendAudio = async (socket: WebSocketLike) => {
@@ -634,7 +749,57 @@ function createElevenLabsRealtimeTranscriptionStream({
                 type: 'transcript-partial',
                 id: `${sessionId ?? 'session'}:${segmentIndex}`,
                 text: raw.text ?? '',
+                // With diarization, partials carry draft speaker labels.
+                ...(raw.words != null && {
+                  providerMetadata: {
+                    elevenlabs: { words: raw.words as Array<JSONObject> },
+                  },
+                }),
               });
+              break;
+            }
+            case 'diarized_transcript': {
+              // Copied because a later speakers_merged event relabels them.
+              diarizedTranscripts.push({
+                segment_index: raw.segment_index,
+                text: raw.text ?? '',
+                words: (raw.words ?? []).map(word => ({ ...word })),
+              });
+              receivedFollowUpEvent();
+              break;
+            }
+            case 'speakers_merged': {
+              for (const transcript of diarizedTranscripts) {
+                for (const word of transcript.words) {
+                  if (word.speaker_id === raw.from_speaker_id) {
+                    word.speaker_id = raw.to_speaker_id;
+                  }
+                }
+              }
+              break;
+            }
+            case 'committed_transcript_entities': {
+              committedTranscriptEntities.push({
+                text: raw.text ?? '',
+                entities: raw.entities ?? [],
+              });
+              receivedFollowUpEvent();
+              break;
+            }
+            case 'redacted_transcript': {
+              redactedTranscripts.push({
+                text: raw.text ?? '',
+                redacted_text: raw.redacted_text ?? '',
+              });
+              receivedFollowUpEvent();
+              break;
+            }
+            case 'edited_transcript': {
+              editedTranscripts.push({
+                text: raw.text ?? '',
+                edited_text: raw.edited_text ?? '',
+              });
+              receivedFollowUpEvent();
               break;
             }
             case 'final_transcript':
@@ -644,12 +809,20 @@ function createElevenLabsRealtimeTranscriptionStream({
               const id = `${sessionId ?? 'session'}:${segmentIndex}`;
 
               if (text.length > 0) {
+                nonEmptyCommittedEventCount++;
                 finalTexts.push(text);
                 segmentIndex++;
                 controller.enqueue({
                   type: 'transcript-final',
                   id,
                   text,
+                  // With diarization, matches the segment_index of the
+                  // diarized transcript that follows.
+                  ...(raw.segment_index != null && {
+                    providerMetadata: {
+                      elevenlabs: { segmentIndex: raw.segment_index },
+                    },
+                  }),
                 });
               }
 
@@ -680,6 +853,12 @@ function createElevenLabsRealtimeTranscriptionStream({
                   typeof word.end === 'number',
               );
               detectedLanguage = raw.language_code ?? detectedLanguage;
+              if (includeLanguageDetection && text.length > 0) {
+                committedTranscriptsWithTimestamps.push({
+                  text,
+                  language_code: raw.language_code ?? null,
+                });
+              }
 
               // Normally this is paired with the preceding committed_transcript.
               // Still handle a timestamp-only server response defensively.

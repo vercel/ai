@@ -301,6 +301,51 @@ describe('doGenerate', () => {
       `);
     });
 
+    it('should pass the number format and secondary language codes', async () => {
+      let formData: FormData | undefined;
+      await createElevenLabs({
+        apiKey: 'test-api-key',
+        fetch: async (_url, init) => {
+          formData = init?.body as FormData;
+          return new Response(
+            JSON.stringify({
+              language_code: 'en',
+              language_probability: 1,
+              text: 'We expect forty-two people.',
+            }),
+            { headers: { 'content-type': 'application/json' } },
+          );
+        },
+      })
+        .transcription('scribe_v3')
+        .doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          providerOptions: {
+            elevenlabs: {
+              languageCode: 'en',
+              numbersFormat: 'words',
+              secondaryLanguageCodes: ['es', 'fr'],
+            },
+          },
+        });
+
+      expect(formData?.get('model_id')).toBe('scribe_v3');
+      expect(formData?.get('numbers_format')).toBe('words');
+      expect(formData?.getAll('secondary_language_codes')).toEqual([
+        'es',
+        'fr',
+      ]);
+    });
+
+    it('should not send the number format or secondary language codes by default', async () => {
+      await model.doGenerate({ audio: audioData, mediaType: 'audio/wav' });
+
+      const body = await server.calls[0].requestBodyMultipart;
+      expect(body).not.toHaveProperty('numbers_format');
+      expect(body).not.toHaveProperty('secondary_language_codes');
+    });
+
     it('should send source_url instead of a file when sourceUrl is set', async () => {
       const result = await model.doGenerate({
         audio: new Uint8Array(),
@@ -634,6 +679,14 @@ describe('doStream', () => {
         ],
         language: 'en',
         durationInSeconds: 0.9,
+        providerMetadata: {
+          elevenlabs: {
+            sessionId: 'session-1',
+            committedTranscriptsWithTimestamps: [
+              { text: 'Hello world.', language_code: 'en' },
+            ],
+          },
+        },
       },
     ]);
     expect(result.response).toEqual({
@@ -687,9 +740,505 @@ describe('doStream', () => {
         segments: [],
         language: undefined,
         durationInSeconds: undefined,
+        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
       },
     ]);
     expect(result.response?.modelId).toBe('scribe_v3_live');
+  });
+
+  it('passes the Scribe v3 Live session options as query parameters', async () => {
+    const provider = createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    });
+
+    const result = await provider.transcription('scribe_v3_live').doStream!({
+      audio: convertArrayToReadableStream([]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: {
+          streaming: {
+            diarize: true,
+            entityDetection: ['email_address', 'phone_number'],
+            entityRedaction: 'pii',
+            entityRedactionMode: 'entity_type',
+            multilangMode: true,
+          },
+        },
+      },
+    });
+    const url = new URL(MockWebSocket.instances[0].url);
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({
+      diarize: 'true',
+      entity_redaction: 'pii',
+      entity_redaction_mode: 'entity_type',
+      multilang_mode: 'true',
+    });
+    expect(url.searchParams.getAll('entity_detection')).toEqual([
+      'email_address',
+      'phone_number',
+    ]);
+    await result.stream.cancel();
+
+    const editResult = await provider.transcription('scribe_v3_live').doStream!(
+      {
+        audio: convertArrayToReadableStream([]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        providerOptions: {
+          elevenlabs: {
+            streaming: { transcriptEdit: 'Write dates as YYYY-MM-DD' },
+          },
+        },
+      },
+    );
+    expect(
+      new URL(MockWebSocket.instances[1].url).searchParams.get(
+        'transcript_edit',
+      ),
+    ).toBe('Write dates as YYYY-MM-DD');
+    await editResult.stream.cancel();
+  });
+
+  it('returns diarized transcripts with merged speakers in provider metadata', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v3_live').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: { streaming: { diarize: true } },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    const draftWords = [
+      { text: 'Hello', start: null, end: null, type: 'word', speaker_id: null },
+    ];
+    ws.message({
+      message_type: 'partial_transcript',
+      text: 'Hello',
+      words: draftWords,
+    });
+    ws.message({
+      message_type: 'committed_transcript',
+      text: 'Hello there.',
+      segment_index: 0,
+    });
+    ws.message({
+      message_type: 'diarized_transcript',
+      segment_index: 0,
+      text: 'Hello there.',
+      words: [
+        { text: 'Hello', start: 0, end: 0.4, type: 'word', speaker_id: null },
+        {
+          text: 'there.',
+          start: 0.5,
+          end: 0.9,
+          type: 'word',
+          speaker_id: 'speaker_1',
+        },
+      ],
+    });
+    // The final commit has no text; ElevenLabs still sends its diarized event.
+    ws.message({
+      message_type: 'committed_transcript',
+      text: '',
+      segment_index: 1,
+    });
+    ws.message({
+      message_type: 'diarized_transcript',
+      segment_index: 1,
+      text: '',
+      words: [],
+    });
+    ws.message({
+      message_type: 'speakers_merged',
+      from_speaker_id: 'speaker_1',
+      to_speaker_id: 'speaker_0',
+    });
+
+    await expect(partsPromise).resolves.toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'transcript-partial',
+        id: 'session-1:0',
+        text: 'Hello',
+        providerMetadata: { elevenlabs: { words: draftWords } },
+      },
+      {
+        type: 'transcript-final',
+        id: 'session-1:0',
+        text: 'Hello there.',
+        providerMetadata: { elevenlabs: { segmentIndex: 0 } },
+      },
+      {
+        type: 'finish',
+        text: 'Hello there.',
+        segments: [],
+        language: undefined,
+        durationInSeconds: undefined,
+        providerMetadata: {
+          elevenlabs: {
+            sessionId: 'session-1',
+            diarizedTranscripts: [
+              {
+                segment_index: 0,
+                text: 'Hello there.',
+                words: [
+                  {
+                    text: 'Hello',
+                    start: 0,
+                    end: 0.4,
+                    type: 'word',
+                    speaker_id: null,
+                  },
+                  {
+                    text: 'there.',
+                    start: 0.5,
+                    end: 0.9,
+                    type: 'word',
+                    speaker_id: 'speaker_0',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    ]);
+  });
+
+  it('waits for entity and redaction events that follow the final commit', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v3_live').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: {
+          streaming: { entityDetection: 'all', entityRedaction: 'pii' },
+        },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({
+      message_type: 'committed_transcript',
+      text: 'Call me at 555-0142.',
+    });
+    // Longer than the grace period that follows a final commit.
+    await new Promise(resolve => setTimeout(resolve, 400));
+    const entities = [
+      {
+        text: '555-0142',
+        entity_type: 'phone_number',
+        start_char: 11,
+        end_char: 19,
+      },
+    ];
+    ws.message({
+      message_type: 'committed_transcript_entities',
+      text: 'Call me at 555-0142.',
+      entities,
+    });
+    ws.message({
+      message_type: 'redacted_transcript',
+      text: 'Call me at 555-0142.',
+      redacted_text: 'Call me at {PHONE_NUMBER_0}.',
+    });
+
+    const parts = await partsPromise;
+    expect(parts.at(-1)).toEqual({
+      type: 'finish',
+      text: 'Call me at 555-0142.',
+      segments: [],
+      language: undefined,
+      durationInSeconds: undefined,
+      providerMetadata: {
+        elevenlabs: {
+          sessionId: 'session-1',
+          committedTranscriptEntities: [
+            { text: 'Call me at 555-0142.', entities },
+          ],
+          redactedTranscripts: [
+            {
+              text: 'Call me at 555-0142.',
+              redacted_text: 'Call me at {PHONE_NUMBER_0}.',
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it('returns edited transcripts in provider metadata', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v3_live').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: {
+          streaming: { transcriptEdit: 'Write dates as YYYY-MM-DD' },
+        },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({
+      message_type: 'committed_transcript',
+      text: 'We meet on the 12th of July, 2026.',
+    });
+    ws.message({
+      message_type: 'edited_transcript',
+      text: 'We meet on the 12th of July, 2026.',
+      edited_text: 'We meet on 2026-07-12.',
+    });
+
+    const parts = await partsPromise;
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      text: 'We meet on the 12th of July, 2026.',
+      providerMetadata: {
+        elevenlabs: {
+          editedTranscripts: [
+            {
+              text: 'We meet on the 12th of July, 2026.',
+              edited_text: 'We meet on 2026-07-12.',
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it('finishes after a timeout when an edited transcript never arrives', async () => {
+    vi.useFakeTimers();
+    try {
+      const result = await createElevenLabs({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      }).transcription('scribe_v3_live').doStream!({
+        audio: convertArrayToReadableStream([new Uint8Array([1])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        providerOptions: {
+          elevenlabs: {
+            streaming: { transcriptEdit: 'Write dates as YYYY-MM-DD' },
+          },
+        },
+      });
+
+      let finished = false;
+      const partsPromise = convertReadableStreamToArray(result.stream).then(
+        parts => {
+          finished = true;
+          return parts;
+        },
+      );
+      const ws = MockWebSocket.instances[0];
+      ws.open();
+      ws.message({ message_type: 'session_started', session_id: 'session-1' });
+      await vi.advanceTimersByTimeAsync(0);
+      ws.message({ message_type: 'committed_transcript', text: 'Hello' });
+
+      await vi.advanceTimersByTimeAsync(4999);
+      expect(finished).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(finished).toBe(true);
+      expect((await partsPromise).at(-1)).toEqual({
+        type: 'finish',
+        text: 'Hello',
+        segments: [],
+        language: undefined,
+        durationInSeconds: undefined,
+        providerMetadata: {
+          elevenlabs: { sessionId: 'session-1', editedTranscripts: [] },
+        },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not extend the follow-up timeout when a later event is still pending', async () => {
+    vi.useFakeTimers();
+    try {
+      const result = await createElevenLabs({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      }).transcription('scribe_v3_live').doStream!({
+        audio: convertArrayToReadableStream([new Uint8Array([1])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        providerOptions: {
+          elevenlabs: {
+            streaming: { entityDetection: 'all', entityRedaction: 'pii' },
+          },
+        },
+      });
+
+      let finished = false;
+      const partsPromise = convertReadableStreamToArray(result.stream).then(
+        parts => {
+          finished = true;
+          return parts;
+        },
+      );
+      const ws = MockWebSocket.instances[0];
+      ws.open();
+      ws.message({ message_type: 'session_started', session_id: 'session-1' });
+      await vi.advanceTimersByTimeAsync(0);
+      ws.message({ message_type: 'committed_transcript', text: 'Hello' });
+
+      // The entities arrive late and the redacted transcript never does.
+      await vi.advanceTimersByTimeAsync(4000);
+      ws.message({
+        message_type: 'committed_transcript_entities',
+        text: 'Hello',
+        entities: [],
+      });
+      await vi.advanceTimersByTimeAsync(999);
+      expect(finished).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(finished).toBe(true);
+      expect((await partsPromise).at(-1)).toMatchObject({
+        type: 'finish',
+        providerMetadata: {
+          elevenlabs: {
+            committedTranscriptEntities: [{ text: 'Hello', entities: [] }],
+            redactedTranscripts: [],
+          },
+        },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('finishes within the follow-up timeout when the last event arrives just before it', async () => {
+    vi.useFakeTimers();
+    try {
+      const result = await createElevenLabs({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      }).transcription('scribe_v3_live').doStream!({
+        audio: convertArrayToReadableStream([new Uint8Array([1])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        providerOptions: {
+          elevenlabs: {
+            streaming: { transcriptEdit: 'Write dates as YYYY-MM-DD' },
+          },
+        },
+      });
+
+      let finished = false;
+      const partsPromise = convertReadableStreamToArray(result.stream).then(
+        parts => {
+          finished = true;
+          return parts;
+        },
+      );
+      const ws = MockWebSocket.instances[0];
+      ws.open();
+      ws.message({ message_type: 'session_started', session_id: 'session-1' });
+      await vi.advanceTimersByTimeAsync(0);
+      ws.message({ message_type: 'committed_transcript', text: 'Hello' });
+
+      await vi.advanceTimersByTimeAsync(4900);
+      ws.message({
+        message_type: 'edited_transcript',
+        text: 'Hello',
+        edited_text: 'Hello',
+      });
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(finished).toBe(true);
+      expect((await partsPromise).at(-1)).toMatchObject({
+        type: 'finish',
+        providerMetadata: {
+          elevenlabs: {
+            editedTranscripts: [{ text: 'Hello', edited_text: 'Hello' }],
+          },
+        },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('returns the language of each committed transcript', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v3_live').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: {
+        elevenlabs: {
+          streaming: { includeLanguageDetection: true, multilangMode: true },
+        },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({ message_type: 'committed_transcript', text: 'Thanks, John.' });
+    ws.message({
+      message_type: 'committed_transcript_with_timestamps',
+      text: 'Thanks, John.',
+      language_code: 'en',
+      words: [{ text: 'Thanks,', start: 0, end: 0.4, type: 'word' }],
+    });
+    ws.message({ message_type: 'committed_transcript', text: 'Nos vemos.' });
+    ws.message({
+      message_type: 'committed_transcript_with_timestamps',
+      text: 'Nos vemos.',
+      language_code: 'es',
+      words: [{ text: 'Nos', start: 1, end: 1.2, type: 'word' }],
+    });
+    // The final commit has no text and is not reported.
+    ws.message({
+      message_type: 'committed_transcript_with_timestamps',
+      text: '',
+      language_code: null,
+    });
+    ws.message({ message_type: 'committed_transcript', text: '' });
+
+    expect((await partsPromise).at(-1)).toEqual({
+      type: 'finish',
+      text: 'Thanks, John. Nos vemos.',
+      segments: [],
+      language: 'es',
+      durationInSeconds: undefined,
+      providerMetadata: {
+        elevenlabs: {
+          sessionId: 'session-1',
+          committedTranscriptsWithTimestamps: [
+            { text: 'Thanks, John.', language_code: 'en' },
+            { text: 'Nos vemos.', language_code: 'es' },
+          ],
+        },
+      },
+    });
   });
 
   it('detects language without returning timestamps unless requested', async () => {
@@ -739,6 +1288,14 @@ describe('doStream', () => {
         segments: [],
         language: 'es',
         durationInSeconds: undefined,
+        providerMetadata: {
+          elevenlabs: {
+            sessionId: 'session-1',
+            committedTranscriptsWithTimestamps: [
+              { text: 'Hola', language_code: 'es' },
+            ],
+          },
+        },
       },
     ]);
   });
@@ -776,6 +1333,7 @@ describe('doStream', () => {
         segments: [],
         language: undefined,
         durationInSeconds: undefined,
+        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
       },
     ]);
   });
@@ -819,6 +1377,7 @@ describe('doStream', () => {
         segments: [{ text: 'Hello', startSecond: 0, endSecond: 0.4 }],
         language: 'en',
         durationInSeconds: 0.4,
+        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
       },
     ]);
   });
@@ -876,6 +1435,7 @@ describe('doStream', () => {
         segments: [],
         language: undefined,
         durationInSeconds: undefined,
+        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
       },
     ]);
   });
@@ -918,6 +1478,7 @@ describe('doStream', () => {
         segments: [{ text: 'Legacy final', startSecond: 0, endSecond: 0.5 }],
         language: 'en',
         durationInSeconds: 0.5,
+        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
       },
     ]);
   });
@@ -964,6 +1525,7 @@ describe('doStream', () => {
         segments: [],
         language: undefined,
         durationInSeconds: undefined,
+        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
       },
     ]);
   });
@@ -1101,16 +1663,22 @@ describe('doStream', () => {
         elevenlabs: {
           streaming: {
             commitStrategy: null,
+            diarize: null,
             enableLogging: null,
+            entityDetection: null,
+            entityRedaction: null,
+            entityRedactionMode: null,
             filterBackgroundAudio: null,
             includeLanguageDetection: null,
             includeTimestamps: null,
             keyterms: null,
             minSilenceDurationMs: null,
             minSpeechDurationMs: null,
+            multilangMode: null,
             noVerbatim: null,
             previousText: null,
             secondaryLanguages: null,
+            transcriptEdit: null,
             vadSilenceThresholdSecs: null,
             vadThreshold: null,
           },
@@ -1152,7 +1720,7 @@ describe('doStream', () => {
           type: 'unsupported',
           feature: 'providerOptions.elevenlabs.diarize',
           details:
-            'ElevenLabs realtime transcription does not support diarize.',
+            'ElevenLabs realtime transcription reads diarize from providerOptions.elevenlabs.streaming.diarize.',
         },
         {
           type: 'unsupported',

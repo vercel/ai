@@ -601,6 +601,19 @@ The following provider options are available:
   Use it for large files: ElevenLabs downloads the file itself, so pass an empty `audio` input.
   Any `audio` input is ignored when `sourceUrl` is set.
 
+- **numbersFormat** _enum_
+
+  How numbers are written in the transcript.
+  Allowed values: `'digits'` (e.g. `42`), `'words'` (e.g. `forty-two`).
+  When omitted, the model chooses the format.
+  Supported by `scribe_v3` only.
+
+- **secondaryLanguageCodes** _string[]_
+
+  ISO-639-1 or ISO-639-3 codes of other languages that may be spoken in the audio, alongside `languageCode`.
+  Can improve transcription of audio where speakers switch between languages.
+  Supported by `scribe_v3` only.
+
 ### Transcribing from a URL
 
 `transcribe()` downloads a `URL` passed as `audio` and uploads the bytes. To let
@@ -696,10 +709,12 @@ header-capable WebSocket implementation, such as `ws`, in runtimes whose native
 WebSocket constructor cannot send headers.
 
 The `streaming` provider options mirror ElevenLabs' realtime transcription
-settings: `commitStrategy`, `enableLogging`, `filterBackgroundAudio`,
+settings: `commitStrategy`, `diarize`, `enableLogging`, `entityDetection`,
+`entityRedaction`, `entityRedactionMode`, `filterBackgroundAudio`,
 `includeLanguageDetection`, `includeTimestamps`, `keyterms`,
-`minSilenceDurationMs`, `minSpeechDurationMs`, `noVerbatim`, `previousText`,
-`secondaryLanguages`, `vadSilenceThresholdSecs`, and `vadThreshold`.
+`minSilenceDurationMs`, `minSpeechDurationMs`, `multilangMode`, `noVerbatim`,
+`previousText`, `secondaryLanguages`, `transcriptEdit`,
+`vadSilenceThresholdSecs`, and `vadThreshold`.
 
 `commitStrategy` controls when ElevenLabs commits a transcript segment, which
 arrives as a `transcript-final` part:
@@ -714,8 +729,109 @@ When `includeLanguageDetection` is enabled, the provider requests that event
 internally, but only returns timestamp segments when `includeTimestamps` is also
 enabled. `filterBackgroundAudio` cannot be combined with either option.
 
+`result.language` is the language of the last committed transcript. With
+`includeLanguageDetection`, the language of each committed transcript is
+returned in `providerMetadata.elevenlabs.committedTranscriptsWithTimestamps`
+when the stream finishes, as entries with `text` and `language_code`. Use it for
+audio in more than one language.
+
+The ElevenLabs session id is returned as `providerMetadata.elevenlabs.sessionId`
+when the stream finishes.
+
 See [Transcription](/docs/ai-sdk-core/transcription) for more information about
 streaming transcription.
+
+### Scribe v3 Live Options
+
+`scribe_v3_live` supports the following `streaming` options. ElevenLabs rejects
+them for `scribe_v2_realtime`.
+
+- **diarize** _boolean_
+
+  Whether to label which speaker said each word.
+  Cannot be combined with `filterBackgroundAudio`.
+
+- **multilangMode** _boolean_
+
+  Whether to follow speakers who switch languages, including in the middle of a
+  sentence. Each language is transcribed in its own script.
+
+- **entityDetection** _string | string[]_
+
+  Detect entities in each committed transcript. Use `'all'`, a category
+  (`'pii'`, `'phi'`, `'pci'`, `'other'`, `'offensive_language'`), or specific
+  entity types such as `'email_address'`.
+
+- **entityRedaction** _string | string[]_
+
+  Redact entities from each committed transcript. Accepts the same values as
+  `entityDetection`.
+
+- **entityRedactionMode** _enum_
+
+  How redacted entities are written.
+  Allowed values: `'redacted'` (`{REDACTED}`), `'entity_type'` (`{EMAIL_ADDRESS}`),
+  `'enumerated_entity_type'` (`{EMAIL_ADDRESS_0}`).
+  Defaults to `'enumerated_entity_type'`.
+
+- **transcriptEdit** _string_
+
+  A natural-language instruction that ElevenLabs applies to each committed
+  transcript, e.g. `'Write all dates in ISO 8601 format (YYYY-MM-DD).'`.
+  At most 2000 characters. Cannot be combined with `entityDetection` or
+  `entityRedaction`. ElevenLabs bills transcript editing at a higher rate.
+
+ElevenLabs sends the results of `diarize`, `entityDetection`, `entityRedaction`,
+and `transcriptEdit` as separate events after each committed transcript. The
+`transcript-final` parts are not delayed and not changed by them: with
+`entityRedaction` or `transcriptEdit`, the `transcript-final` parts and
+`result.text` still contain the original text.
+
+The provider collects these events and returns them in
+`providerMetadata.elevenlabs` when the stream finishes:
+
+- `diarizedTranscripts`: for each committed transcript, its `segment_index`,
+  `text`, and `words`. Each word has a `speaker_id` (`speaker_0`, `speaker_1`,
+  ..., or `null` when the speaker is not identified), `start`, `end`, and
+  `type`. When ElevenLabs later reports that two speaker ids are the same
+  person, the earlier words are relabeled.
+- `committedTranscriptEntities`: for each committed transcript, its `text` and
+  the detected `entities`, each with `text`, `entity_type`, `start_char`, and
+  `end_char`.
+- `redactedTranscripts`: for each committed transcript, its `text` and
+  `redacted_text`.
+- `editedTranscripts`: for each committed transcript, its `text` and
+  `edited_text`. ElevenLabs sends no entry for a transcript it could not edit.
+
+```ts
+const result = streamTranscribe({
+  model: elevenLabs.transcription('scribe_v3_live'),
+  audio,
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+  providerOptions: {
+    elevenlabs: {
+      streaming: { diarize: true },
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-final') {
+    console.log('final:', part.text);
+  }
+}
+
+const { diarizedTranscripts } = (await result.providerMetadata).elevenlabs;
+```
+
+With `diarize`, each `transcript-partial` part also carries draft speaker
+labels in `providerMetadata.elevenlabs.words`, and each `transcript-final` part
+carries `providerMetadata.elevenlabs.segmentIndex`, which matches the
+`segment_index` of its entry in `diarizedTranscripts`. To read the other events
+as they arrive, set `includeRawChunks: true` and read the `raw` parts.
+
+After the audio input ends, the stream waits up to 5 seconds for the events
+that follow the final committed transcript before it finishes.
 
 ### Model Capabilities
 
