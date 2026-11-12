@@ -104,7 +104,8 @@
           "excludeFiles": [
             "${providerId}-realtime-model.ts",
             "${providerId}-video-model.ts",
-            "${providerId}-decision-model.ts"
+            "${providerId}-decision-model.ts",
+            "packages/scaledown/src/scaledown-extraction-model.ts"
           ]
         },
         {

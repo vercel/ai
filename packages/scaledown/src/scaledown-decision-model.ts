@@ -18,11 +18,9 @@ import {
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { convertToScaleDownDecisionState } from './convert-to-scaledown-decision-state';
-import {
-  scaledownDecisionResponseSchema,
-  scaledownFailedResponseHandler,
-} from './scaledown-decision-api';
+import { convertToScaleDownState } from './convert-to-scaledown-state';
+import { scaledownDecisionResponseSchema } from './scaledown-decision-api';
+import { scaledownFailedResponseHandler } from './scaledown-error';
 import { VERSION } from './version';
 
 export type ScaleDownDecisionModelId =
@@ -175,7 +173,7 @@ export class DecisionScaleDownModel implements DecisionModelV4 {
       ),
       body: {
         model: this.modelId,
-        state: convertToScaleDownDecisionState(state),
+        state: convertToScaleDownState(state),
         questions: nativeQuestions,
       },
       abortSignal,

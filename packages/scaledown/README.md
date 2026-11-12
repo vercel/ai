@@ -1,6 +1,6 @@
 # AI SDK - ScaleDown Provider
 
-The **[ScaleDown provider](https://ai-sdk.dev/providers/ai-sdk-providers/scaledown)** for the [AI SDK](https://ai-sdk.dev/docs) supports choice, boolean, and score questions through ScaleDown's Decisions API.
+The **[ScaleDown provider](https://ai-sdk.dev/providers/ai-sdk-providers/scaledown)** for the [AI SDK](https://ai-sdk.dev/docs) supports choice, boolean, and score questions through ScaleDown's Decisions API and text extraction through its Extract API.
 
 ## Setup
 

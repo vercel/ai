@@ -4,7 +4,7 @@ import {
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
-export function convertToScaleDownDecisionState(state: DecisionModelV4State) {
+export function convertToScaleDownState(state: DecisionModelV4State) {
   const text: string[] = [];
   let document: string | undefined;
   let documentMimeType: string | undefined;
@@ -23,7 +23,7 @@ export function convertToScaleDownDecisionState(state: DecisionModelV4State) {
     ) {
       throw new UnsupportedFunctionalityError({
         functionality:
-          'ScaleDown Decisions supports one JPEG, PNG, TIFF, or PDF document.',
+          'ScaleDown supports one JPEG, PNG, TIFF, or PDF document.',
       });
     }
     document =
