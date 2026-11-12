@@ -1,0 +1,32 @@
+---
+title: AI_ExtractionUnsupportedFieldTypeError
+description: Identify an extraction field type that a model does not support.
+---
+
+# AI_ExtractionUnsupportedFieldTypeError
+
+This experimental error identifies a field whose type is unsupported by an
+extraction model. It is exported from `ai` and `@ai-sdk/provider` as
+`Experimental_ExtractionUnsupportedFieldTypeError`. `experimental_extract`
+throws it before any provider request.
+
+## Properties
+
+- `fieldId`: The ID of the unsupported field.
+- `fieldType`: The requested field type.
+- `provider`: The provider of the extraction model.
+- `modelId`: The extraction model ID.
+- `message`: A description of the unsupported field and model. Providers can
+  supply a custom message.
+
+## Checking for this Error
+
+Use the marker-based `isInstance` check, which works across package copies:
+
+```typescript
+import { Experimental_ExtractionUnsupportedFieldTypeError as ExtractionUnsupportedFieldTypeError } from 'ai';
+
+if (ExtractionUnsupportedFieldTypeError.isInstance(error)) {
+  console.log(error.fieldId, error.fieldType, error.modelId);
+}
+```
