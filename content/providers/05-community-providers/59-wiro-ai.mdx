@@ -334,8 +334,8 @@ const { providerMetadata } = await generateText({
 console.log(providerMetadata?.wiro?.cost);
 ```
 
-Image, speech, transcription and video results also name their Wiro task in `providerMetadata.wiro.taskId`.
-Image and video results list each file under `images` and `videos`, with its `taskId`, `cost` and `url`.
+Speech, transcription and video results also name their Wiro task in `providerMetadata.wiro.taskId`.
+Image and video results list each file under `providerMetadata.wiro.images` and `providerMetadata.wiro.videos`, with its `taskId`, `cost` and `url`.
 
 ## Additional Resources
 
