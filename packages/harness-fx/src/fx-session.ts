@@ -17,8 +17,10 @@ import {
 import {
   extractHarnessPromptContent,
   getRestrictedSandboxSession,
+  isSandboxWriteProtectedPath,
 } from '@ai-sdk/harness/utils';
 import { asSchema, secureJsonParse } from '@ai-sdk/provider-utils';
+import path from 'node:path';
 import type { FxHarnessSettings } from './fx-harness';
 import { createFxMcpRuntime } from './fx-mcp';
 import { createFxRemoteOps } from './fx-remote-ops';
@@ -57,6 +59,13 @@ type FxRegisteredTool = {
   providerExecuted: boolean;
   kind: 'readonly' | 'edit' | 'bash';
 };
+
+/*
+ * Workspace paths that hold fx configuration or skills, which can run code or
+ * change the agent's behavior in later sessions. Writes to them always require
+ * host approval unless the permission mode is `allow-all`.
+ */
+const FX_WRITE_PROTECTED_PATHS = ['.agents/skills', '.fx'];
 
 function toPrompt(prompt: HarnessV1PromptTurnOptions['prompt']): FxPrompt {
   const content = extractHarnessPromptContent({ prompt });
@@ -365,6 +374,53 @@ export async function createFxSession(options: {
         },
       });
     }
+    /*
+     * Decided once per tool call and shared by the batch publication and the
+     * execution callback. A recorded approval ID means approval was already
+     * requested, including in a previous process.
+     */
+    const approvalRequirements = new Map<string, Promise<boolean>>();
+    function toolRequiresApproval(input: {
+      record: FxToolRecord;
+      providerExecuted: boolean;
+      kind: 'readonly' | 'edit' | 'bash';
+    }): Promise<boolean> {
+      const { record } = input;
+      if (!input.providerExecuted) return Promise.resolve(false);
+      if (record.approvalId != null) return Promise.resolve(true);
+      let requirement = approvalRequirements.get(record.id);
+      if (requirement == null) {
+        const permissionMode = startOpts.permissionMode ?? 'allow-all';
+        requirement = fxToolRequiresApproval({
+          permissionMode,
+          kind: input.kind,
+        })
+          ? Promise.resolve(true)
+          : permissionMode === 'allow-edits' && input.kind === 'edit'
+            ? isFxWriteProtected({ toolInput: record.input })
+            : Promise.resolve(false);
+        approvalRequirements.set(record.id, requirement);
+      }
+      return requirement;
+    }
+    async function isFxWriteProtected({
+      toolInput,
+    }: {
+      toolInput: unknown;
+    }): Promise<boolean> {
+      const filePath =
+        toolInput != null && typeof toolInput === 'object'
+          ? (toolInput as { file_path?: unknown }).file_path
+          : undefined;
+      if (typeof filePath !== 'string') return true;
+      return isSandboxWriteProtectedPath({
+        sandbox,
+        workDir: startOpts.sessionWorkDir,
+        paths: [path.posix.resolve(startOpts.sessionWorkDir, filePath)],
+        writeProtectedPaths: FX_WRITE_PROTECTED_PATHS,
+        abortSignal: signal,
+      });
+    }
     function emitToolResult(record: FxToolRecord) {
       emitOnce({
         key: `result:${record.id}`,
@@ -413,11 +469,11 @@ export async function createFxSession(options: {
         emitToolCall({ record, providerExecuted: tool.providerExecuted });
         if (
           record.status !== 'completed' &&
-          tool.providerExecuted &&
-          fxToolRequiresApproval({
-            permissionMode: startOpts.permissionMode ?? 'allow-all',
+          (await toolRequiresApproval({
+            record,
+            providerExecuted: tool.providerExecuted,
             kind: tool.kind,
-          })
+          }))
         ) {
           emitToolApproval(record);
         }
@@ -460,8 +516,9 @@ export async function createFxSession(options: {
           current.output = fxJsonValue(submission.output);
         } else {
           if (
-            fxToolRequiresApproval({
-              permissionMode: startOpts.permissionMode ?? 'allow-all',
+            await toolRequiresApproval({
+              record: current,
+              providerExecuted: input.providerExecuted,
               kind: input.kind,
             })
           ) {
