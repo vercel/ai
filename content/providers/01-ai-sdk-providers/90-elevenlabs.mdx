@@ -530,10 +530,10 @@ without audio arrives as an empty audio part carrying only `isFinalAudioForTurn`
 You can create models that call the [ElevenLabs transcription API](https://elevenlabs.io/speech-to-text)
 using the `.transcription()` factory method.
 
-The first argument is the model id e.g. `scribe_v2`.
+The first argument is the model id e.g. `scribe_v3`.
 
 ```ts
-const model = elevenLabs.transcription('scribe_v2');
+const model = elevenLabs.transcription('scribe_v3');
 ```
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format can sometimes improve transcription performance if known beforehand.
@@ -546,7 +546,7 @@ import {
 } from '@ai-sdk/elevenlabs';
 
 const result = await transcribe({
-  model: elevenLabs.transcription('scribe_v2'),
+  model: elevenLabs.transcription('scribe_v3'),
   audio: new Uint8Array([1, 2, 3, 4]),
   providerOptions: {
     elevenlabs: {
@@ -608,7 +608,7 @@ ElevenLabs fetch the file instead, pass the URL as `sourceUrl`:
 
 ```ts
 const result = await transcribe({
-  model: elevenLabs.transcription('scribe_v2'),
+  model: elevenLabs.transcription('scribe_v3'),
   audio: new Uint8Array(),
   providerOptions: {
     elevenlabs: {
@@ -643,13 +643,14 @@ timestamped word segments from `await result.segments` after the stream finishes
 | `scribe_v1`              | <Check />     | <Check /> | <Check /> | <Check /> |
 | `scribe_v1_experimental` | <Check />     | <Check /> | <Check /> | <Check /> |
 | `scribe_v2`              | <Check />     | <Check /> | <Check /> | <Check /> |
+| `scribe_v3`              | <Check />     | <Check /> | <Check /> | <Check /> |
 
 ## Streaming Transcription Models
 
 <Note type="warning">Streaming transcription is an experimental feature.</Note>
 
-Scribe v2 Realtime supports live transcription through
-`experimental_streamTranscribe`. It accepts raw PCM audio at 8, 16, 22.05, 24,
+Scribe v3 Live and Scribe v2 Realtime support live transcription through
+`experimental_streamTranscribe`. They accept raw PCM audio at 8, 16, 22.05, 24,
 44.1, or 48 kHz, or 8 kHz mu-law audio.
 
 ```ts
@@ -665,7 +666,7 @@ const elevenLabs = createElevenLabs({
 });
 
 const result = streamTranscribe({
-  model: elevenLabs.transcription('scribe_v2_realtime'),
+  model: elevenLabs.transcription('scribe_v3_live'),
   audio,
   inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
   providerOptions: {
@@ -700,6 +701,14 @@ settings: `commitStrategy`, `enableLogging`, `filterBackgroundAudio`,
 `minSilenceDurationMs`, `minSpeechDurationMs`, `noVerbatim`, `previousText`,
 `secondaryLanguages`, `vadSilenceThresholdSecs`, and `vadThreshold`.
 
+`commitStrategy` controls when ElevenLabs commits a transcript segment, which
+arrives as a `transcript-final` part:
+
+- `'manual'` (default): the provider commits once, when the audio input ends.
+- `'vad'`: ElevenLabs also commits when it detects silence.
+- `'turn_prediction'`: ElevenLabs also commits when the model predicts that the
+  speaker has finished their turn. Supported by `scribe_v3_live` only.
+
 ElevenLabs delivers detected language on its timestamp-bearing committed event.
 When `includeLanguageDetection` is enabled, the provider requests that event
 internally, but only returns timestamp segments when `includeTimestamps` is also
@@ -710,6 +719,7 @@ streaming transcription.
 
 ### Model Capabilities
 
-| Model                | Streaming Transcription | Timestamps          | Language Detection  |
-| -------------------- | ----------------------- | ------------------- | ------------------- |
-| `scribe_v2_realtime` | <Check size={18} />     | <Check size={18} /> | <Check size={18} /> |
+| Model                | Streaming Transcription | Timestamps          | Language Detection  | Turn Prediction     |
+| -------------------- | ----------------------- | ------------------- | ------------------- | ------------------- |
+| `scribe_v3_live`     | <Check size={18} />     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `scribe_v2_realtime` | <Check size={18} />     | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |

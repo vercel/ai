@@ -57,6 +57,7 @@ const elevenLabsRealtimeErrorTypes = new Set([
   'error',
   'input_error',
   'insufficient_audio_activity',
+  'invalid_request',
   'queue_overflow',
   'quota_exceeded',
   'rate_limited',
@@ -74,8 +75,13 @@ const elevenLabsLateFinalizationErrorTypes = new Set([
 
 const finalCommitGracePeriodMs = 250;
 
+const elevenLabsRealtimeTranscriptionModelIds = new Set([
+  'scribe_v2_realtime',
+  'scribe_v3_live',
+]);
+
 function isRealtimeTranscriptionModelId(modelId: string): boolean {
-  return modelId === 'scribe_v2_realtime';
+  return elevenLabsRealtimeTranscriptionModelIds.has(modelId);
 }
 
 interface ElevenLabsTranscriptionModelConfig extends ElevenLabsConfig {

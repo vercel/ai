@@ -47,7 +47,7 @@ run(async () => {
   });
 
   const result = streamTranscribe({
-    model: elevenLabs.transcription('scribe_v2_realtime'),
+    model: elevenLabs.transcription('scribe_v3_live'),
     audio,
     inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
     providerOptions: {

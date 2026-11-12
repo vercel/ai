@@ -21,7 +21,9 @@ export const elevenLabsTranscriptionModelOptionsSchema = lazySchema(() =>
       sourceUrl: z.string().nullish(),
       streaming: z
         .object({
-          commitStrategy: z.enum(['manual', 'vad']).nullish(),
+          commitStrategy: z
+            .enum(['manual', 'vad', 'turn_prediction'])
+            .nullish(),
           enableLogging: z.boolean().nullish(),
           filterBackgroundAudio: z.boolean().nullish(),
           includeLanguageDetection: z.boolean().nullish(),
