@@ -77,7 +77,9 @@ Use a provider's `extractionModel` factory:
 | Google    | `google.extractionModel('gemini-3.8-flash')`     |
 
 These adapt structured language-model output and extract every field in one
-prompt. They return `null` for missing values but no `pNull`, `confidence`,
+prompt. Anthropic sends more than 16 fields as parallel calls, see
+[Anthropic extraction models](/providers/ai-sdk-providers/anthropic#extraction-models).
+They return `null` for missing values but no `pNull`, `confidence`,
 `guess`, or `source`. Judge quality against your own labeled examples before
 choosing a model for a task.
 

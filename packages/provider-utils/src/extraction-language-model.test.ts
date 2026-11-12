@@ -42,7 +42,7 @@ const values = {
 
 function setup(
   overrides: Partial<LanguageModelV4GenerateResult> = {},
-  maxNullableFields?: number,
+  maxFieldsPerCall?: number,
 ) {
   const result: LanguageModelV4GenerateResult = {
     content: [{ type: 'text', text: JSON.stringify(values) }],
@@ -70,7 +70,7 @@ function setup(
   return {
     model: new ExtractionLanguageModel({
       model: languageModel,
-      maxNullableFields,
+      maxFieldsPerCall,
     }),
     doGenerate,
     languageModel,
@@ -348,79 +348,190 @@ it.each([
   );
 });
 
-describe('above maxNullableFields', () => {
-  const keys = Array.from({ length: 40 }, (_, i) => `f${i}`);
+describe('maxFieldsPerCall', () => {
   const manyFields = Object.fromEntries(
-    keys.map((_, i) => [`price ${i}`, { type: 'number' as const }]),
+    Array.from({ length: 40 }, (_, i) => [
+      `price ${i}`,
+      { type: 'number' as const },
+    ]),
   );
-  const output = {
-    missing: keys.filter((_, i) => i % 2 === 1),
-    values: Object.fromEntries(keys.map((key, i) => [key, i])),
-  };
 
-  it('keeps nullable properties up to the limit', async () => {
-    const { model, doGenerate } = setup(
-      {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              Object.fromEntries(keys.slice(0, 16).map(key => [key, null])),
-            ),
-          },
-        ],
-      },
-      16,
+  function answerFromPrompt(
+    call: Parameters<LanguageModelV4['doGenerate']>[0],
+  ) {
+    const message = call.prompt[1];
+    const part = message.role === 'user' ? message.content[0] : undefined;
+    const descriptions: Record<string, { id: string }> = JSON.parse(
+      part?.type === 'text' ? part.text : '{}',
+    ).fields;
+    return Object.fromEntries(
+      Object.entries(descriptions).map(([key, { id }]) => {
+        const index = Number(id.split(' ')[1]);
+        return [key, index % 2 === 0 ? index : null];
+      }),
     );
+  }
+
+  function respond(call: Parameters<LanguageModelV4['doGenerate']>[0]) {
+    return {
+      content: [
+        { type: 'text' as const, text: JSON.stringify(answerFromPrompt(call)) },
+      ],
+      finishReason: { unified: 'stop' as const, raw: 'end' },
+      usage: {
+        inputTokens: { total: 20, noCache: 20, cacheRead: 0, cacheWrite: 0 },
+        outputTokens: { total: 12, text: 12, reasoning: 0 },
+      },
+      warnings: [{ type: 'other' as const, message: 'call warning' }],
+      providerMetadata: { test: { call: true } },
+      response: { id: 'response', modelId: 'resolved' },
+    };
+  }
+
+  it('sends every field in one call by default', async () => {
+    const { model, doGenerate } = setup();
+    doGenerate.mockImplementation(async call => respond(call));
+    const result = await model.doExtract({ ...options, fields: manyFields });
+    expect(doGenerate).toHaveBeenCalledTimes(1);
+    const schema = doGenerate.mock.calls[0][0].responseFormat as {
+      schema: { properties: object };
+    };
+    expect(Object.keys(schema.schema.properties)).toHaveLength(40);
+    expect(result.answers['price 38']).toEqual({ type: 'number', value: 38 });
+  });
+
+  it('splits fields into parallel nullable calls and merges the answers', async () => {
+    const { model, doGenerate } = setup({}, 16);
+    doGenerate.mockImplementation(async call => respond(call));
+    const result = await model.doExtract({ ...options, fields: manyFields });
+
+    expect(doGenerate).toHaveBeenCalledTimes(3);
+    const sizes = doGenerate.mock.calls.map(([call]) => {
+      const format = call.responseFormat as {
+        schema: { properties: Record<string, { anyOf: unknown[] }> };
+      };
+      expect(
+        Object.values(format.schema.properties).every(
+          property => property.anyOf.length === 2,
+        ),
+      ).toBe(true);
+      return Object.keys(format.schema.properties).length;
+    });
+    expect(sizes).toEqual([16, 16, 8]);
+    expect(Object.keys(result.answers)).toEqual(Object.keys(manyFields));
+    for (let i = 0; i < 40; i++) {
+      expect(result.answers[`price ${i}`]).toEqual({
+        type: 'number',
+        value: i % 2 === 0 ? i : null,
+      });
+    }
+    expect(result.usage).toEqual({ inputTokens: 60, outputTokens: 36 });
+    expect(result.warnings).toHaveLength(3);
+    expect(result.providerMetadata).toEqual({ test: { call: true } });
+    expect(result.response).toEqual({ id: 'response', modelId: 'resolved' });
+  });
+
+  it('keeps field ids that match object prototype properties when merging', async () => {
+    const { model, doGenerate } = setup({}, 1);
+    doGenerate.mockImplementation(async call => ({
+      ...respond(call),
+      content: [{ type: 'text', text: '{"f0":"x"}' }],
+    }));
     const result = await model.doExtract({
       ...options,
-      fields: Object.fromEntries(Object.entries(manyFields).slice(0, 16)),
+      fields: Object.fromEntries([
+        ['__proto__', { type: 'text' }],
+        ['constructor', { type: 'text' }],
+      ]),
     });
-    expect(
-      JSON.stringify(doGenerate.mock.calls[0][0].responseFormat),
-    ).toContain('anyOf');
-    expect(result.answers['price 0']).toEqual({ type: 'number', value: null });
+    expect(Object.keys(result.answers)).toEqual(['__proto__', 'constructor']);
+    expect(Object.getPrototypeOf(result.answers)).toBe(Object.prototype);
   });
 
-  it('lists missing fields first in a union-free schema', async () => {
-    const { model, doGenerate } = setup(
-      { content: [{ type: 'text', text: JSON.stringify(output) }] },
-      16,
-    );
+  it('reports unknown usage when any call does not report it', async () => {
+    const { model, doGenerate } = setup({}, 16);
+    doGenerate.mockImplementation(async call => respond(call));
+    doGenerate.mockImplementationOnce(async call => ({
+      ...respond(call),
+      usage: {
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: { total: 12, text: 12, reasoning: undefined },
+      },
+    }));
     const result = await model.doExtract({ ...options, fields: manyFields });
-    const responseFormat = doGenerate.mock.calls[0][0].responseFormat;
-    expect(JSON.stringify(responseFormat)).not.toContain('anyOf');
-    expect(JSON.stringify(responseFormat)).not.toContain('"null"');
-    expect(
-      Object.keys(
-        (responseFormat as { schema: { properties: object } }).schema
-          .properties,
-      ),
-    ).toEqual(['missing', 'values']);
-    expect(result.answers['price 2']).toEqual({ type: 'number', value: 2 });
-    expect(result.answers['price 3']).toEqual({ type: 'number', value: null });
+    expect(result.usage).toEqual({ inputTokens: undefined, outputTokens: 36 });
   });
 
-  it.each([
-    ['missing values', { missing: [] }],
-    [
-      'a missing value',
-      { ...output, values: { ...output.values, f0: undefined } },
-    ],
-    ['an extra value', { ...output, values: { ...output.values, f99: 1 } }],
-    ['values as an array', { missing: [], values: [] }],
-    ['no missing list', { values: output.values }],
-    ['an unknown missing key', { ...output, missing: ['f99'] }],
-    ['a non-string missing key', { ...output, missing: [0] }],
-  ])('rejects output with %s', async (_, result) => {
-    const { model } = setup(
-      { content: [{ type: 'text', text: JSON.stringify(result) }] },
-      16,
-    );
+  it('fails the whole call and aborts sibling calls when one call fails', async () => {
+    const { model, doGenerate } = setup({}, 1);
+    const error = new Error('first call failed');
+    const signals: AbortSignal[] = [];
+    doGenerate.mockImplementation(call => {
+      signals.push(call.abortSignal!);
+      if (signals.length === 1) return Promise.reject(error);
+      return new Promise((_, reject) =>
+        call.abortSignal!.addEventListener('abort', () =>
+          reject(call.abortSignal!.reason),
+        ),
+      );
+    });
     await expect(
-      model.doExtract({ ...options, fields: manyFields }),
-    ).rejects.toBeInstanceOf(InvalidResponseDataError);
+      model.doExtract({
+        ...options,
+        fields: {
+          a: { type: 'text' },
+          b: { type: 'text' },
+          c: { type: 'text' },
+        },
+      }),
+    ).rejects.toBe(error);
+    expect(signals).toHaveLength(3);
+    expect(signals.every(signal => signal.aborted)).toBe(true);
   });
+
+  it('forwards a caller abort to every call and removes its listener', async () => {
+    const { model, doGenerate } = setup({}, 1);
+    const controller = new AbortController();
+    const removeEventListener = vi.spyOn(
+      controller.signal,
+      'removeEventListener',
+    );
+    const signals: AbortSignal[] = [];
+    doGenerate.mockImplementation(call => {
+      signals.push(call.abortSignal!);
+      return new Promise((_, reject) =>
+        call.abortSignal!.addEventListener('abort', () =>
+          reject(call.abortSignal!.reason),
+        ),
+      );
+    });
+    const reason = new Error('stopped by user');
+    const extraction = model.doExtract({
+      ...options,
+      abortSignal: controller.signal,
+      fields: { a: { type: 'text' }, b: { type: 'text' } },
+    });
+    await vi.waitFor(() => expect(signals).toHaveLength(2));
+    controller.abort(reason);
+    await expect(extraction).rejects.toBe(reason);
+    expect(signals.every(signal => signal.aborted)).toBe(true);
+    expect(removeEventListener).toHaveBeenCalledWith(
+      'abort',
+      expect.any(Function),
+    );
+  });
+
+  it.each([0, -1, 1.5, Number.NaN])(
+    'rejects maxFieldsPerCall %s',
+    maxFieldsPerCall => {
+      expect(() => setup({}, maxFieldsPerCall)).toThrow(InvalidArgumentError);
+    },
+  );
 });
 
 it('treats an empty list as no value', async () => {
@@ -507,7 +618,7 @@ it('round-trips through workflow serialization', () => {
   expect(serialized).toEqual({
     model: languageModel,
     provider: 'test.language.extraction',
-    maxNullableFields: Infinity,
+    maxFieldsPerCall: Infinity,
   });
   const restored = ExtractionLanguageModel[WORKFLOW_DESERIALIZE](serialized);
   expect(restored.provider).toBe(model.provider);

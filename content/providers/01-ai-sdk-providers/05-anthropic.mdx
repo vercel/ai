@@ -2882,5 +2882,8 @@ offsets. Image and PDF files are passed to the language model, which must
 support them. The adapter requests `reasoning: 'none'` by default and forwards
 `providerOptions.anthropic`. See [Extractions](/docs/ai-sdk-core/extractions).
 
-Anthropic limits the size of structured-output schemas, so one call supports
-about 70 fields. Split larger field maps across several calls.
+Anthropic's structured output allows at most 16 nullable properties per schema,
+so field maps with more than 16 fields are sent as parallel calls of up to 16
+fields each, and the answers are merged into one result. Usage is summed across
+the calls, and response and provider metadata come from the first call. If any
+call fails, the extraction fails and the other calls are cancelled.

@@ -149,27 +149,32 @@ it('extracts typed fields with Messages structured output', async () => {
   `);
 });
 
-it('lists missing fields separately above the 16 union parameter limit', async () => {
-  const fetch = vi.fn().mockImplementation(
-    async () =>
-      new Response(
-        JSON.stringify({
-          ...fixture,
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                missing: ['f16'],
-                values: Object.fromEntries(
-                  Array.from({ length: 17 }, (_, i) => [`f${i}`, i]),
-                ),
-              }),
-            },
-          ],
-        }),
-        { headers: { 'content-type': 'application/json' } },
-      ),
-  );
+it('splits more than 16 fields into parallel calls under the union parameter limit', async () => {
+  const fetch = vi.fn().mockImplementation(async (_url, request) => {
+    const body = JSON.parse(request.body);
+    const fieldsText = body.messages[0].content[0].text;
+    const descriptions: Record<string, { id: string }> =
+      JSON.parse(fieldsText).fields;
+    return new Response(
+      JSON.stringify({
+        ...fixture,
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              Object.fromEntries(
+                Object.entries(descriptions).map(([key, { id }]) => [
+                  key,
+                  Number(id.split(' ')[1]),
+                ]),
+              ),
+            ),
+          },
+        ],
+      }),
+      { headers: { 'content-type': 'application/json' } },
+    );
+  });
   const model = createAnthropic({
     apiKey: 'test-key',
     baseURL: 'https://example.com/v1',
@@ -183,10 +188,14 @@ it('lists missing fields separately above the 16 union parameter limit', async (
     ),
   });
 
-  const schema = JSON.parse(fetch.mock.calls[0][1].body).output_config.format
-    .schema;
-  expect(JSON.stringify(schema)).not.toContain('anyOf');
-  expect(Object.keys(schema.properties)).toEqual(['missing', 'values']);
-  expect(result.answers['price 15']).toEqual({ type: 'number', value: 15 });
-  expect(result.answers['price 16']).toEqual({ type: 'number', value: null });
+  expect(fetch).toHaveBeenCalledTimes(2);
+  const unionCounts = fetch.mock.calls.map(([, request]) => {
+    const schema = JSON.parse(request.body).output_config.format.schema;
+    return Object.values(schema.properties).filter(
+      property => (property as { anyOf?: unknown[] }).anyOf != null,
+    ).length;
+  });
+  expect(unionCounts).toEqual([16, 1]);
+  expect(result.answers['price 0']).toEqual({ type: 'number', value: 0 });
+  expect(result.answers['price 16']).toEqual({ type: 'number', value: 16 });
 });
