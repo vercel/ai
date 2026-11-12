@@ -2741,10 +2741,26 @@ class DefaultStreamTextResult<
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = () => 'An error occurred.', // masks errors except provider-executed tool execution errors
+    onError: onErrorOption,
+    redactToolErrors = onErrorOption != null,
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
+    const onError = onErrorOption ?? (() => 'An error occurred.');
+    // UI messages become the next request's history, so keep this text aligned
+    // with what the model received unless the application opts into redaction.
+    const getToolErrorText = (error: unknown) => {
+      if (redactToolErrors) {
+        return onError(error);
+      }
+
+      try {
+        return getErrorMessage(error) ?? onError(error);
+      } catch {
+        return onError(error);
+      }
+    };
+
     let outcome: UIMessageStreamOutcome = { status: 'unknown' };
     let hasFatalFailure = false;
 
@@ -3004,7 +3020,9 @@ class DefaultStreamTextResult<
                     ? { toolMetadata: part.toolMetadata }
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
-                  errorText: onError(part.error),
+                  errorText: part.providerExecuted
+                    ? onError(part.error)
+                    : getToolErrorText(part.error),
                   ...(part.title != null ? { title: part.title } : {}),
                 });
               } else {
@@ -3088,7 +3106,7 @@ class DefaultStreamTextResult<
                   ? typeof part.error === 'string'
                     ? part.error
                     : JSON.stringify(part.error)
-                  : onError(part.error),
+                  : getToolErrorText(part.error),
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
@@ -3228,6 +3246,7 @@ class DefaultStreamTextResult<
       sendFinish,
       sendStart,
       onError,
+      redactToolErrors,
       ...init
     }: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
   ) {
@@ -3243,6 +3262,7 @@ class DefaultStreamTextResult<
         sendFinish,
         sendStart,
         onError,
+        redactToolErrors,
       }),
       ...init,
     });
@@ -3266,6 +3286,7 @@ class DefaultStreamTextResult<
     sendFinish,
     sendStart,
     onError,
+    redactToolErrors,
     ...init
   }: UIMessageStreamResponseInit &
     UIMessageStreamOptions<UI_MESSAGE> = {}): Response {
@@ -3280,6 +3301,7 @@ class DefaultStreamTextResult<
         sendFinish,
         sendStart,
         onError,
+        redactToolErrors,
       }),
       ...init,
     });

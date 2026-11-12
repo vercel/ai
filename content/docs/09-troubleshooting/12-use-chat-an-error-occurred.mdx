@@ -14,6 +14,8 @@ I am using [`useChat`](/docs/reference/ai-sdk-ui/use-chat) and I get the error "
 Error messages from `streamText` are masked by default when using `toDataStreamResponse` for security reasons (secure-by-default).
 This prevents leaking sensitive information to the client.
 
+Failed tool calls keep the error text the model received by default. A custom `onError` also handles failed tool calls; set `redactToolErrors: false` to handle stream errors only. See [tool error handling](/docs/ai-sdk-ui/chatbot-tool-usage#errors).
+
 ## Solution
 
 To forward error details to the client or to log errors, use the `getErrorMessage` function when calling `toDataStreamResponse`.
@@ -42,7 +44,7 @@ const result = streamText({
 });
 
 return result.toUIMessageStreamResponse({
-  getErrorMessage: errorHandler,
+  onError: errorHandler,
 });
 ```
 
