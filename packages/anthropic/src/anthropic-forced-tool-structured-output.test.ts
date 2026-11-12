@@ -40,13 +40,17 @@ const CIRCULAR_SCHEMA: JSONSchema7 = {
 
 // Mirrors provider adapters (e.g. Bedrock, Vertex) that disable native
 // structured outputs by default.
-function createModel(modelId: string, supportsNativeStructuredOutput = false) {
+function createModel(
+  modelId: string,
+  supportsNativeStructuredOutput = false,
+  supportsStrictTools = false,
+) {
   return new AnthropicLanguageModel(modelId, {
     provider: 'test-provider.messages',
     baseURL: 'https://api.anthropic.com/v1',
     headers: { 'x-api-key': 'test-api-key' },
     supportsNativeStructuredOutput,
-    supportsStrictTools: false,
+    supportsStrictTools,
   });
 }
 
@@ -73,7 +77,12 @@ describe('structured outputs for models that reject forced tool use', () => {
     };
   }
 
-  it.each(['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-fable-5-1'])(
+  it.each([
+    'claude-sonnet-5-5',
+    'claude-opus-5-5',
+    'claude-fable-5-1',
+    'claude-fable-5-2',
+  ])(
     'uses native structured outputs for %s when the provider disables them by default',
     async modelId => {
       respondWith([{ type: 'text', text: '{"answer":"42"}' }]);
@@ -273,27 +282,32 @@ describe('structured outputs for models that reject forced tool use', () => {
         },
       );
 
-      it('preserves the beta header for tools with explicit outputFormat', async () => {
-        if (method === 'doStream') {
-          server.urls[URL].response = { type: 'stream-chunks', chunks: [] };
-        } else {
-          respondWith([{ type: 'text', text: '{}' }]);
-        }
+      it.each([false, true])(
+        'only sends the strict-tool beta with explicit outputFormat when supported (%s)',
+        async supportsStrictTools => {
+          if (method === 'doStream') {
+            server.urls[URL].response = { type: 'stream-chunks', chunks: [] };
+          } else {
+            respondWith([{ type: 'text', text: '{}' }]);
+          }
 
-        await createModel('claude-sonnet-4-5', true)[method]({
-          ...jsonCall({ type: 'object', additionalProperties: true }),
-          tools: [{ type: 'function', name: 'lookup', inputSchema: SCHEMA }],
-          providerOptions: {
-            anthropic: { structuredOutputMode: 'outputFormat' },
-          },
-        });
+          await createModel('claude-sonnet-4-5', true, supportsStrictTools)[
+            method
+          ]({
+            ...jsonCall({ type: 'object', additionalProperties: true }),
+            tools: [{ type: 'function', name: 'lookup', inputSchema: SCHEMA }],
+            providerOptions: {
+              anthropic: { structuredOutputMode: 'outputFormat' },
+            },
+          });
 
-        const body = await server.calls[0].requestBodyJson;
-        expect(body.output_config?.format).toBeDefined();
-        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
-          'structured-outputs-2025-11-13',
-        );
-      });
+          const body = await server.calls[0].requestBodyJson;
+          expect(body.output_config?.format).toBeDefined();
+          expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+            supportsStrictTools ? 'structured-outputs-2025-11-13' : undefined,
+          );
+        },
+      );
     },
   );
 });

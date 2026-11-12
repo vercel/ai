@@ -98,6 +98,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
           | 'tool-output-denied'
           | 'start-step'
           | 'finish-step'
+          | 'steering-message'
           | 'start'
           | 'abort';
       }
@@ -188,7 +189,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
  * If set and supported by the model, calls will generate deterministic results.
  * @param reasoning - Reasoning configuration for the model call.
  *
- * @param download - A function that downloads URLs as part of prompt conversion.
+ * @param download - A function that downloads URLs as part of prompt conversion and generated file URLs.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request.
  * @param includeRawChunks - Whether to include raw provider stream chunks in the model stream.
@@ -359,11 +360,11 @@ export async function streamLanguageModelCall<
   const {
     stream: languageModelStream,
     response,
-    request: rawRequest,
+    request,
   } = await executeLanguageModelCallInTelemetryContext({
     ...languageModelCallStartEvent,
-    execute: async () =>
-      await resolvedModel.doStream({
+    execute: async () => {
+      const result = await resolvedModel.doStream({
         ...callSettings,
         tools: stepTools,
         toolChoice: stepToolChoice,
@@ -373,10 +374,15 @@ export async function streamLanguageModelCall<
         abortSignal,
         headers,
         includeRawChunks,
-      }),
+      });
+      return {
+        ...result,
+        ...(result.request && {
+          request: sanitizeRequestMetadata(result.request),
+        }),
+      };
+    },
   });
-
-  const request = sanitizeRequestMetadata(rawRequest);
 
   const standardizedStream = languageModelStream.pipeThrough(
     createLanguageModelV4StreamPartToLanguageModelStreamPartTransform({
@@ -385,6 +391,7 @@ export async function streamLanguageModelCall<
       messages: standardizedPrompt.messages,
       repairToolCall,
       refineToolInput,
+      download,
       abortSignal,
       callId: effectiveCallId,
       provider: resolvedModel.provider,
@@ -415,6 +422,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   messages,
   repairToolCall,
   refineToolInput,
+  download,
   abortSignal,
   callId,
   provider,
@@ -432,6 +440,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   messages: ModelMessage[];
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   refineToolInput: ToolInputRefinement<TOOLS> | undefined;
+  download: DownloadFunction | undefined;
   abortSignal: AbortSignal | undefined;
   callId: string;
   provider: string;
@@ -606,6 +615,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           const file = new DefaultGeneratedFileWithType({
             data: await resolveGeneratedFileData({
               data: chunk.data,
+              download,
               abortSignal,
             }),
             mediaType: chunk.mediaType,

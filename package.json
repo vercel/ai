@@ -20,7 +20,6 @@
     "test:update": "turbo test:update --concurrency 16 --filter=!@example/*",
     "ci:release": "turbo clean && npm run build:packages && changeset publish",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
-    "clean-examples": "node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "check": "ultracite check",
     "fix": "ultracite fix",
     "validate:docs": "node tools/validate-properties-tables.mjs",

@@ -2,6 +2,7 @@ import {
   LanguageModelV4ProviderTool,
   type JSONSchema7,
   type LanguageModelV4Prompt,
+  type LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -90,6 +91,386 @@ const provider = createGoogle({
   generateId: () => 'test-id',
 });
 const model = provider.chat('gemini-pro');
+
+describe('completed function call and text stream order', () => {
+  // These are synthetic protocol cases, not recorded provider responses.
+  const signature = 'c3ludGhldGljLXNpZ25hdHVyZS8rPQ==';
+  const input = { query: 'example', options: { limit: 0, enabled: false } };
+  const firstCall = {
+    functionCall: { id: 'call-1', name: 'lookup', args: input },
+    thoughtSignature: signature,
+  };
+  const secondCall = {
+    functionCall: { id: 'call-2', name: 'read_theme' },
+  };
+  const call1 = `call:call-1:lookup:${JSON.stringify(input)}`;
+  const call2 = 'call:call-2:read_theme:{}';
+  const a = { text: 'A' };
+  const b = { text: 'B' };
+  const c = { text: 'C' };
+
+  const cases = [
+    {
+      name: 'one event, call between text',
+      groups: [[a, firstCall, b]],
+      expected: ['text:A', call1, 'text:B'],
+    },
+    {
+      name: 'separate events, call between text',
+      groups: [[a], [firstCall], [b]],
+      expected: ['text:A', call1, 'text:B'],
+    },
+    {
+      name: 'call before text',
+      groups: [[firstCall, a]],
+      expected: [call1, 'text:A'],
+    },
+    {
+      name: 'call after text',
+      groups: [[a, firstCall]],
+      expected: ['text:A', call1],
+    },
+    {
+      name: 'multiple calls within one event',
+      groups: [[a, firstCall, b, secondCall, c]],
+      expected: ['text:A', call1, 'text:B', call2, 'text:C'],
+    },
+    {
+      name: 'multiple calls over events',
+      groups: [[firstCall], [a, secondCall], [b]],
+      expected: [call1, 'text:A', call2, 'text:B'],
+    },
+    {
+      name: 'adjacent calls including a no-args call',
+      groups: [[firstCall, secondCall]],
+      expected: [call1, call2],
+    },
+    {
+      name: 'no-args call between text',
+      groups: [[a, secondCall, b]],
+      expected: ['text:A', call2, 'text:B'],
+    },
+    {
+      name: 'adjacent text within and across events',
+      groups: [[a, b], [c]],
+      expected: ['text:ABC'],
+    },
+  ];
+
+  function projectContent(
+    parts: Array<{
+      type: string;
+      text?: string;
+      toolCallId?: string;
+      toolName?: string;
+      input?: unknown;
+      delta?: string;
+    }>,
+  ) {
+    const result: string[] = [];
+    for (const part of parts) {
+      if (part.type === 'text' || part.type === 'text-delta') {
+        const text = part.text ?? part.delta ?? '';
+        const previous = result.at(-1);
+        if (previous?.startsWith('text:')) {
+          result[result.length - 1] = previous + text;
+        } else {
+          result.push(`text:${text}`);
+        }
+      } else if (part.type === 'tool-call') {
+        result.push(
+          `call:${part.toolCallId}:${part.toolName}:${typeof part.input === 'string' ? part.input : JSON.stringify(part.input)}`,
+        );
+      }
+    }
+    return result;
+  }
+
+  function createOrderModel(
+    providerName: string,
+    groups: Record<string, unknown>[][],
+  ) {
+    const sse = groups
+      .map(
+        (parts, index) =>
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { role: 'model', parts },
+                index: 0,
+                ...(index === groups.length - 1
+                  ? { finishReason: 'STOP' }
+                  : {}),
+              },
+            ],
+          })}\n\n`,
+      )
+      .join('');
+
+    return new GoogleLanguageModel('gemini-2.5-flash', {
+      provider: providerName,
+      baseURL: 'https://synthetic.invalid/v1beta',
+      headers: { 'x-goog-api-key': 'dummy-key' },
+      generateId: () => 'generated-call-id',
+      fetch: async () =>
+        new Response(sse, { headers: { 'content-type': 'text/event-stream' } }),
+    });
+  }
+
+  for (const providerName of ['google.generative-ai', 'google.vertex.chat']) {
+    describe(providerName, () => {
+      it.each(cases)('$name', async ({ groups, expected }) => {
+        const { stream } = await createOrderModel(
+          providerName,
+          groups,
+        ).doStream({ prompt: TEST_PROMPT });
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(events.filter(event => event.type === 'error')).toEqual([]);
+        expect(projectContent(events)).toEqual(expected);
+
+        // A completed call is a content boundary, so the text part must close.
+        let openTextId: string | undefined;
+        const textIds: string[] = [];
+        for (const event of events) {
+          if (event.type === 'text-start') {
+            expect(openTextId).toBeUndefined();
+            openTextId = event.id;
+            textIds.push(event.id);
+          } else if (event.type === 'text-delta') {
+            expect(event.id).toBe(openTextId);
+          } else if (event.type === 'text-end') {
+            expect(event.id).toBe(openTextId);
+            openTextId = undefined;
+          } else if (event.type === 'tool-call') {
+            expect(openTextId).toBeUndefined();
+          }
+        }
+        expect(openTextId).toBeUndefined();
+        expect(new Set(textIds).size).toBe(textIds.length);
+
+        const completed = events.filter(event => event.type === 'tool-call');
+        const first = completed.find(event => event.toolCallId === 'call-1');
+        if (first != null) {
+          expect(first.input).toBe(JSON.stringify(input));
+          expect(
+            first.providerMetadata?.[
+              providerName.includes('vertex') ? 'vertex' : 'google'
+            ]?.thoughtSignature,
+          ).toBe(signature);
+        }
+      });
+
+      it('preserves a completed call without a provider ID', async () => {
+        const { stream } = await createOrderModel(providerName, [
+          [a, { functionCall: { name: 'read_theme' } }, b],
+        ]).doStream({ prompt: TEST_PROMPT });
+        const events = await convertReadableStreamToArray(stream);
+        expect(projectContent(events)).toEqual([
+          'text:A',
+          'call:generated-call-id:read_theme:{}',
+          'text:B',
+        ]);
+      });
+
+      it('does not discard an opaque signature on empty text after a completed call', async () => {
+        const { stream } = await createOrderModel(providerName, [
+          [a, secondCall, { text: '', thoughtSignature: signature }],
+        ]).doStream({ prompt: TEST_PROMPT });
+        const events = await convertReadableStreamToArray(stream);
+        const metadataKey = providerName.includes('vertex')
+          ? 'vertex'
+          : 'google';
+        expect(events.filter(event => event.type === 'error')).toEqual([]);
+        const callIndex = events.findIndex(event => event.type === 'tool-call');
+        const signatureBlock = events.slice(callIndex + 1, callIndex + 4);
+        expect(signatureBlock.map(event => event.type)).toEqual([
+          'text-start',
+          'text-delta',
+          'text-end',
+        ]);
+        expect(signatureBlock[0]).toMatchObject({
+          id: '1',
+          providerMetadata: { [metadataKey]: { thoughtSignature: signature } },
+        });
+        expect(signatureBlock[1]).toMatchObject({ id: '1', delta: '' });
+        expect(signatureBlock[2]).toMatchObject({ id: '1' });
+        expect(events[callIndex]).toMatchObject({
+          toolCallId: 'call-2',
+          input: '{}',
+        });
+        expect(
+          events.some(
+            event =>
+              'providerMetadata' in event &&
+              event.providerMetadata?.[metadataKey]?.thoughtSignature ===
+                signature,
+          ),
+        ).toBe(true);
+      });
+
+      it('keeps non-streaming text and call content order', async () => {
+        const orderModel = new GoogleLanguageModel('gemini-2.5-flash', {
+          provider: providerName,
+          baseURL: 'https://synthetic.invalid/v1beta',
+          headers: { 'x-goog-api-key': 'dummy-key' },
+          generateId: () => 'generated-call-id',
+          fetch: async () =>
+            Response.json({
+              candidates: [
+                {
+                  content: {
+                    role: 'model',
+                    parts: [a, firstCall, b, secondCall, c],
+                  },
+                  finishReason: 'STOP',
+                  index: 0,
+                },
+              ],
+            }),
+        });
+        const result = await orderModel.doGenerate({ prompt: TEST_PROMPT });
+        expect(projectContent(result.content)).toEqual([
+          'text:A',
+          call1,
+          'text:B',
+          call2,
+          'text:C',
+        ]);
+      });
+
+      if (providerName.includes('vertex')) {
+        it('preserves text order around a terminal partialArgs function call', async () => {
+          const { stream } = await createOrderModel(providerName, [
+            [
+              a,
+              {
+                functionCall: {
+                  id: 'partial-complete',
+                  name: 'lookup',
+                  partialArgs: [
+                    { jsonPath: '$.query', stringValue: 'example' },
+                  ],
+                  willContinue: false,
+                },
+                thoughtSignature: signature,
+              },
+              b,
+            ],
+          ]).doStream({ prompt: TEST_PROMPT });
+          const events = await convertReadableStreamToArray(stream);
+          expect(events.filter(event => event.type === 'error')).toEqual([]);
+          const callIndex = events.findIndex(
+            event => event.type === 'tool-call',
+          );
+          expect(
+            events.slice(0, callIndex).some(event => event.type === 'text-end'),
+          ).toBe(true);
+          expect(
+            events
+              .filter(event => event.type === 'text-start')
+              .map(event => event.id),
+          ).toEqual(['0', '1']);
+          expect(projectContent(events)).toEqual([
+            'text:A',
+            'call:partial-complete:lookup:{"query":"example"}',
+            'text:B',
+          ]);
+        });
+      }
+
+      it('preserves streamed content order and opaque signature in a follow-up request', async () => {
+        const { stream } = await createOrderModel(providerName, [
+          [a, firstCall, b],
+        ]).doStream({ prompt: TEST_PROMPT });
+        const events: LanguageModelV4StreamPart[] =
+          await convertReadableStreamToArray(stream);
+        const assistantContent: Extract<
+          LanguageModelV4Prompt[number],
+          { role: 'assistant' }
+        >['content'] = [];
+        for (const event of events) {
+          if (event.type === 'text-delta') {
+            assistantContent.push({ type: 'text', text: event.delta });
+          } else if (event.type === 'tool-call') {
+            assistantContent.push({
+              type: 'tool-call',
+              toolCallId: event.toolCallId,
+              toolName: event.toolName,
+              input: JSON.parse(event.input),
+              providerOptions: event.providerMetadata,
+            });
+          }
+        }
+
+        let requestBody:
+          | {
+              contents: Array<{
+                role: string;
+                parts: Record<string, unknown>[];
+              }>;
+            }
+          | undefined;
+        const followUpModel = new GoogleLanguageModel('gemini-2.5-flash', {
+          provider: providerName,
+          baseURL: 'https://synthetic.invalid/v1beta',
+          headers: { 'x-goog-api-key': 'dummy-key' },
+          generateId: () => 'generated-call-id',
+          fetch: async (_url, init) => {
+            requestBody = JSON.parse(init?.body as string);
+            return Response.json({
+              candidates: [
+                {
+                  content: { role: 'model', parts: [{ text: 'Done' }] },
+                  finishReason: 'STOP',
+                  index: 0,
+                },
+              ],
+            });
+          },
+        });
+        await followUpModel.doGenerate({
+          prompt: [
+            ...TEST_PROMPT,
+            { role: 'assistant', content: assistantContent },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'lookup',
+                  output: { type: 'json', value: { answer: 'example' } },
+                },
+              ],
+            },
+            { role: 'user', content: [{ type: 'text', text: 'Continue' }] },
+          ],
+        });
+
+        expect(requestBody?.contents[1]).toEqual({
+          role: 'model',
+          parts: [
+            a,
+            {
+              functionCall: {
+                ...(providerName.includes('vertex') ? {} : { id: 'call-1' }),
+                name: 'lookup',
+                args: input,
+              },
+              thoughtSignature: signature,
+            },
+            b,
+          ],
+        });
+        expect(requestBody?.contents.at(-1)).toEqual({
+          role: 'user',
+          parts: [{ text: 'Continue' }],
+        });
+      });
+    });
+  }
+});
 
 const groundingMetadataSchema = getGroundingMetadataSchema();
 const urlContextMetadataSchema = getUrlContextMetadataSchema();
@@ -1646,6 +2027,7 @@ describe('doGenerate', () => {
   it('should read serviceTier from usageMetadata.serviceTier', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
+      headers: { 'x-gemini-service-tier': 'standard' },
       body: {
         candidates: [
           {
@@ -1671,6 +2053,22 @@ describe('doGenerate', () => {
 
     expect(providerMetadata?.google.serviceTier).toBe('priority');
   });
+
+  it.each(['flex', 'priority'])(
+    'should read serviceTier %s from the response header when absent from usageMetadata',
+    async serviceTier => {
+      prepareJsonResponse({
+        content: 'test response',
+        headers: { 'x-gemini-service-tier': serviceTier },
+      });
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(providerMetadata?.google.serviceTier).toBe(serviceTier);
+    },
+  );
 
   it('should expose null serviceTier in provider metadata when not present', async () => {
     prepareJsonResponse({ content: 'test response' });
@@ -6585,6 +6983,78 @@ describe('doStream', () => {
     });
   });
 
+  describe('streaming-tool-call-sparse-array-arguments', () => {
+    it('should skip streamed array indexes that leave a gap', async () => {
+      const functionCallChunk = (functionCall: Record<string, unknown>) => ({
+        candidates: [{ content: { role: 'model', parts: [{ functionCall }] } }],
+      });
+
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          functionCallChunk({ name: 't', willContinue: true }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.items[0]', stringValue: 'a' }],
+            willContinue: true,
+          }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.items[20000000]', stringValue: 'b' }],
+            willContinue: true,
+          }),
+          functionCallChunk({
+            partialArgs: [{ jsonPath: '$.items[1]', stringValue: 'c' }],
+          }),
+          {
+            candidates: [
+              {
+                content: { role: 'model', parts: [{ text: '' }] },
+                finishReason: 'STOP',
+              },
+            ],
+          },
+        ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+      };
+
+      const vertexModel = new GoogleLanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await vertexModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        tools: [
+          {
+            type: 'function',
+            name: 't',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        providerOptions: {
+          vertex: {
+            streamFunctionCallArguments: true,
+          },
+        },
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const input = events
+        .filter(e => e.type === 'tool-input-delta')
+        .map(e => e.delta)
+        .join('');
+      const toolCalls = events.filter(e => e.type === 'tool-call');
+
+      const expectedInput = '{"items":["a","c"]}';
+      expect(toolCalls.map(c => c.input.length)).toEqual([
+        expectedInput.length,
+      ]);
+      expect(toolCalls.map(c => c.input)).toEqual([expectedInput]);
+      expect(input).toBe(expectedInput);
+    });
+  });
+
   describe('streaming-no-args-tool-call', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('google-stream-no-args-tool-call');
@@ -7328,10 +7798,9 @@ describe('doStream', () => {
   });
 
   it('should read serviceTier from chunk usageMetadata', async () => {
-    // Gemini streaming does not set the x-gemini-service-tier response header
-    // but does include serviceTier in each chunk's usageMetadata.
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
+      headers: { 'x-gemini-service-tier': 'standard' },
       chunks: [
         `data: ${JSON.stringify({
           candidates: [
@@ -7363,6 +7832,25 @@ describe('doStream', () => {
         finishEvent.providerMetadata?.google.serviceTier,
     ).toBe('priority');
   });
+
+  it.each(['flex', 'priority'])(
+    'should read serviceTier %s from the stream response header when absent from usageMetadata',
+    async serviceTier => {
+      prepareStreamResponse({
+        content: ['test'],
+        headers: { 'x-gemini-service-tier': serviceTier },
+      });
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const events = await convertReadableStreamToArray(stream);
+      const finishEvent = events.find(event => event.type === 'finish');
+
+      expect(
+        finishEvent?.type === 'finish' &&
+          finishEvent.providerMetadata?.google.serviceTier,
+      ).toBe(serviceTier);
+    },
+  );
 
   it('should expose the continuationToken from the final chunk on finish', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
@@ -8568,6 +9056,212 @@ describe('doStream', () => {
       ]
     `);
   });
+
+  it('should stream document sources from File Search and RAG retrievedContext', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'The total is $42.' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                groundingChunks: [
+                  {
+                    retrievedContext: {
+                      text: 'Invoice total is $42.',
+                      fileSearchStore: 'fileSearchStores/invoices-store',
+                      title: 'invoice-2026.pdf',
+                    },
+                  },
+                  {
+                    retrievedContext: {
+                      uri: 'gs://bucket/reports/annual.pdf',
+                      title: 'Annual report',
+                      text: 'Revenue grew.',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "filename": "invoices-store",
+          "id": "test-id",
+          "mediaType": "application/octet-stream",
+          "sourceType": "document",
+          "title": "invoice-2026.pdf",
+          "type": "source",
+        },
+        {
+          "filename": "annual.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "sourceType": "document",
+          "title": "Annual report",
+          "type": "source",
+        },
+      ]
+    `);
+  });
+
+  it('should deduplicate document sources across chunks', async () => {
+    const groundingMetadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            text: 'Invoice total is $42.',
+            fileSearchStore: 'fileSearchStores/invoices-store',
+            title: 'invoice-2026.pdf',
+          },
+        },
+      ],
+    };
+
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'first chunk' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'final chunk' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata,
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toHaveLength(1);
+  });
+
+  it.each([
+    {
+      name: 'different RAG paths with the same title and filename',
+      retrievedContexts: [
+        { uri: 'gs://bucket/2025/annual.pdf', title: 'Annual report' },
+        { uri: 'gs://bucket/2026/annual.pdf', title: 'Annual report' },
+      ],
+      expectedSourceCount: 2,
+    },
+    {
+      name: 'the same RAG URI with different titles',
+      retrievedContexts: [
+        { uri: 'gs://bucket/annual.pdf', title: 'Annual report' },
+        { uri: 'gs://bucket/annual.pdf', title: 'Updated report' },
+      ],
+      expectedSourceCount: 1,
+    },
+    {
+      name: 'different File Search stores with the same basename',
+      retrievedContexts: [
+        {
+          fileSearchStore: 'projects/a/fileSearchStores/invoices',
+          title: 'Invoice',
+        },
+        {
+          fileSearchStore: 'projects/b/fileSearchStores/invoices',
+          title: 'Invoice',
+        },
+      ],
+      expectedSourceCount: 2,
+    },
+    {
+      name: 'File Search store names and titles containing colons',
+      retrievedContexts: [
+        {
+          fileSearchStore: 'fileSearchStores/invoices',
+          title: 'Report:2026',
+        },
+        {
+          fileSearchStore: 'fileSearchStores/2026:invoices',
+          title: 'Report',
+        },
+      ],
+      expectedSourceCount: 2,
+    },
+    {
+      name: 'different document titles in the same File Search store',
+      retrievedContexts: [
+        { fileSearchStore: 'fileSearchStores/invoices', title: 'Invoice A' },
+        { fileSearchStore: 'fileSearchStores/invoices', title: 'Invoice B' },
+      ],
+      expectedSourceCount: 2,
+    },
+    {
+      name: 'RAG and File Search documents with the same title and filename',
+      retrievedContexts: [
+        { uri: 'gs://bucket/annual.pdf', title: 'Annual report' },
+        {
+          fileSearchStore: 'fileSearchStores/annual.pdf',
+          title: 'Annual report',
+        },
+      ],
+      expectedSourceCount: 2,
+    },
+  ])(
+    'should preserve document source identities: $name',
+    async ({ retrievedContexts, expectedSourceCount }) => {
+      prepareStreamResponse({
+        content: ['first chunk', 'final chunk'],
+        groundingMetadata: {
+          groundingChunks: retrievedContexts.map(retrievedContext => ({
+            retrievedContext,
+          })),
+        },
+      });
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const events = await convertReadableStreamToArray(stream);
+      const sourceEvents = events.filter(event => event.type === 'source');
+
+      expect(sourceEvents).toHaveLength(expectedSourceCount);
+      expect(
+        sourceEvents.every(source => source.sourceType === 'document'),
+      ).toBe(true);
+    },
+  );
 
   it('should stream files', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {

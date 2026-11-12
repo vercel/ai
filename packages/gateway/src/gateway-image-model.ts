@@ -109,7 +109,7 @@ export class GatewayImageModel implements ImageModelV4 {
           n,
           ...(size && { size }),
           ...(aspectRatio && { aspectRatio }),
-          ...(seed && { seed }),
+          ...(seed != null && { seed }),
           ...(requestProviderOptions && {
             providerOptions: requestProviderOptions,
           }),
@@ -199,23 +199,24 @@ function toImageModelImages(
 }
 
 const providerMetadataEntrySchema = () =>
-  z
-    .object({
-      images: z.array(z.unknown()).optional(),
-    })
-    .catchall(z.unknown());
+  z.catchall(
+    z.object({
+      images: z.optional(z.array(z.unknown())),
+    }),
+    z.unknown(),
+  );
 
 const gatewayImageWarningSchema = () =>
   z.discriminatedUnion('type', [
     z.object({
       type: z.literal('unsupported'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('compatibility'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('deprecated'),
@@ -230,9 +231,9 @@ const gatewayImageWarningSchema = () =>
 
 const gatewayImageUsageSchema = () =>
   z.object({
-    inputTokens: z.number().nullish(),
-    outputTokens: z.number().nullish(),
-    totalTokens: z.number().nullish(),
+    inputTokens: z.nullish(z.number()),
+    outputTokens: z.nullish(z.number()),
+    totalTokens: z.nullish(z.number()),
   });
 
 const gatewayImageResponseSchema = lazySchema(() =>
@@ -242,12 +243,12 @@ const gatewayImageResponseSchema = lazySchema(() =>
       // response is read (`experimental_binaryFields`), see
       // `toImageModelImages`.
       images: z.array(z.union([z.string(), z.instanceof(Uint8Array)])),
-      isRetryable: z.boolean().optional(),
-      warnings: z.array(gatewayImageWarningSchema()).optional(),
-      providerMetadata: z
-        .record(z.string(), providerMetadataEntrySchema())
-        .optional(),
-      usage: gatewayImageUsageSchema().optional(),
+      isRetryable: z.optional(z.boolean()),
+      warnings: z.optional(z.array(gatewayImageWarningSchema())),
+      providerMetadata: z.optional(
+        z.record(z.string(), providerMetadataEntrySchema()),
+      ),
+      usage: z.optional(gatewayImageUsageSchema()),
     }),
   ),
 );

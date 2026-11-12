@@ -1,3 +1,4 @@
+import { redactToolDefinition } from './redact-tool-definition';
 import {
   context,
   metrics,
@@ -1085,7 +1086,8 @@ export class OpenTelemetry implements Telemetry {
 
     const { telemetry } = state;
     const providerName = mapProviderName(event.provider);
-    state.inferenceToolDefinitions = event.tools;
+    const toolDefinitions = event.tools?.map(redactToolDefinition);
+    state.inferenceToolDefinitions = toolDefinitions;
     state.inferenceMetrics = {
       startTime: performance.now(),
       startTimestamp: getEventTimestamp(event),
@@ -1135,7 +1137,8 @@ export class OpenTelemetry implements Telemetry {
         },
       },
       'gen_ai.tool.definitions': {
-        input: () => (event.tools ? JSON.stringify(event.tools) : undefined),
+        input: () =>
+          toolDefinitions ? JSON.stringify(toolDefinitions) : undefined,
       },
     });
 

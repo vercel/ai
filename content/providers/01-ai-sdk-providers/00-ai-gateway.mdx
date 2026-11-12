@@ -568,6 +568,8 @@ const result = streamSpeech({
 
 ## Realtime Models
 
+For a trusted [server-owned connection](/docs/ai-sdk-core/realtime#server-owned-connections), `getServerWebSocketConfig()` reuses Gateway HTTP authentication, protocol, team and custom headers. Only the conversation intent is supported. The identity codec passes through normalized usage only when the Gateway route includes it in its events; credentials in connection settings remain on your server.
+
 <Note type="warning">
   Realtime support is experimental and the API may change in patch releases.
 </Note>
@@ -810,6 +812,9 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 
 - **id** _string_ - The generation ID
 - **totalCost** _number_ - Total cost in USD
+- **marketCost** _number (optional)_ - Market cost in USD, excluding surcharges
+- **surchargeCost** _number (optional)_ - Total surcharges applied in USD
+- **gatewayCost** _number (optional)_ - Total amount debited in USD
 - **upstreamInferenceCost** _number_ - Upstream inference cost in USD (relevant for BYOK)
 - **usage** _number_ - Usage cost in USD (same as totalCost)
 - **createdAt** _string_ - ISO 8601 timestamp when the generation was created
@@ -826,6 +831,11 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 - **cachedTokens** _number_ - Cached tokens used (if applicable)
 - **cacheCreationTokens** _number_ - Cache creation input tokens
 - **billableWebSearchCalls** _number_ - Number of billable web search calls
+
+The optional cost breakdown fields contain the values reported by AI Gateway.
+Fields that are missing or `null` in the API response are omitted from the result,
+so unavailable costs remain distinct from a reported cost of zero. The SDK does
+not calculate these fields from other costs.
 
 ## Examples
 
@@ -1246,7 +1256,7 @@ console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
 console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
 ```
 
-Configure the search with effort, source selection, and localization defaults. These defaults override values the model includes in a tool call:
+Configure the search with effort, source selection, and localization defaults. These defaults override values the model includes in a tool call. `variableCost`, `maxVariableCostUsd`, and `extraBody` are developer-only: the model can't see or set them.
 
 ```ts
 import { gateway, generateText } from 'ai';
@@ -1301,6 +1311,43 @@ The Tako Search tool supports these optional configuration options:
 - **timezone** _string_ - IANA timezone, such as `'America/New_York'`.
 - **outputSettings** _object_ - Card rendering controls. `forceRefresh` is available only with `'instant'` effort.
 - **includeRelated** _number_ - Number of related search suggestions to include (1-20).
+- **variableCost** _boolean_ - Serve data from sources priced per unit, such as web traffic and SEO. Each such card adds a charge, and the total per call is capped by `maxVariableCostUsd`. Defaults to `true`. Set it to `false` to opt out; those cards then come back as placeholders. Only searches that include the data index (`sources.data` set, or `sources` omitted) return these cards.
+- **maxVariableCostUsd** _number | null_ - The most one search call can be charged in variable cost, in USD.
+  - Defaults to `0.25`, and `null` removes the cap.
+  - Tako checks each card's maximum charge (`content.export_pricing.variable_cost_max_usd`) in rank order. A card that doesn't fit comes back as a placeholder with `reason: 'over_cap'`, even if its actual charge would have fit.
+  - `0` returns only the cards whose charge the base price already covers.
+  - It can't be combined with `variableCost: false`.
+- **extraBody** _Record&lt;string, unknown&gt;_ - Extra Tako request fields, in snake_case, deep-merged into the request body last. Objects merge, and scalars and arrays replace. Use it for Tako parameters this tool doesn't model yet. Its limits:
+  - It can't set a field the tool already models, including the `sources.data` variable-cost fields. The gateway answers `invalid_input`.
+  - Tako rejects unknown keys, so a typo comes back as an `api_error`.
+  - It's limited to 16,384 serialized characters.
+
+When Tako withholds a card's data, it returns a placeholder card instead. A placeholder keeps its title and a description but carries no data. `placeholder.withheld_source` names the source, and `placeholder.reason` is `'not_served'` (variable cost is off, or the account isn't served that source) or `'over_cap'`. `usage.variable_cost.cost_usd` reports the variable-cost charge for the call:
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5.4-nano',
+  prompt: 'How much monthly web traffic does vercel.com get?',
+  tools: {
+    tako_search: gateway.tools.takoSearch({
+      sources: { data: {}, web: {} },
+      maxVariableCostUsd: 0.1,
+    }),
+  },
+});
+
+for (const toolResult of result.toolResults) {
+  if (toolResult.dynamic || 'error' in toolResult.output) continue;
+  for (const card of toolResult.output.cards ?? []) {
+    if (card.placeholder) {
+      const reason = card.placeholder.reason ?? 'not_served';
+      console.log(`Withheld (${reason}):`, card.title);
+    }
+  }
+}
+```
 
 For precise entity matching, quote a phrase in the query and optionally append a label: `"Tesla":PRODUCT price`. Tako treats the quoted phrase as one entity before searching.
 
@@ -1744,6 +1791,10 @@ The following gateway provider options are available:
 - **disallowPromptTraining** _boolean_
 
   Restricts routing to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers that do not train on prompt data will be used. If there are no providers available for the model that disallow prompt training, the request will fail.
+
+- **headquarters** _string[]_
+
+  Restricts routing to providers whose parent company is headquartered in the listed countries, given as ISO 3166-1 alpha-2 codes (for example `['US', 'DE']`). To exclude countries instead, prefix every code with `!`, as in `['!US']`. A list can't mix allowed and excluded countries. The filter applies to both BYOK and system credentials, since it's about the provider rather than the credential. Providers without a recorded headquarters country are always excluded. If no provider for the model is headquartered in an allowed country, the request fails.
 
 - **quotaEntityId** _string_
 

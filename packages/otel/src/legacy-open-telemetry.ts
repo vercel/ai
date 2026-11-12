@@ -1,3 +1,4 @@
+import { redactToolDefinition } from './redact-tool-definition';
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import type { Context as AISDKContext } from '@ai-sdk/provider-utils';
 import {
@@ -664,7 +665,10 @@ export class LegacyOpenTelemetry implements Telemetry {
             : undefined,
       },
       'ai.prompt.tools': {
-        input: () => event.stepTools?.map(tool => JSON.stringify(tool)),
+        input: () =>
+          event.stepTools?.map(tool =>
+            JSON.stringify(redactToolDefinition(tool)),
+          ),
       },
       'ai.prompt.toolChoice': {
         input: () =>

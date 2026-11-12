@@ -124,6 +124,15 @@ Some Mistral chat models support tool calls.
 const model = mistral('mistral-large-latest');
 ```
 
+For Chat Completions models, set
+`toolChoice: { type: 'tool', toolName: 'weather' }` to request a specific function
+from your `tools` definitions. The provider sends Mistral's native function choice
+and keeps all function definitions in the request. This works with both
+`generateText` and `streamText`. Use a model that supports tool calling.
+
+See [tool choice](/docs/ai-sdk-core/tools-and-tool-calling#tool-choice) for the
+shared API. The `mistral.conversation()` API handles tool selection separately.
+
 Mistral chat models also support additional model settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument and utilize `MistralLanguageModelChatOptions` for typing:
 
@@ -299,6 +308,7 @@ console.log('ANSWER:', result.text);
 ```
 
 Most Mistral reasoning models support `'high'` and `'none'` as effort levels.
+On the Chat API, `mistral-large-4` and `mistral-large-4-0` support `'low'`, `'medium'`, and `'high'` and cannot disable reasoning. For these models, `reasoning: 'none'` maps to `'low'` with a compatibility warning; `reasoning: 'medium'` is preserved. You can also set `providerOptions.mistral.reasoningEffort: 'medium'` directly.
 GLM-5.3 models (`zai-glm-5-3`, `zai-glm-5-3-flash`, `zai-glm-5`, `zai-glm-latest`) support `'low'`, `'high'`, and `'max'` and cannot disable reasoning.
 
 ### Example

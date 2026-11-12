@@ -5,6 +5,7 @@ import {
   type OAuthClientProvider,
   type OAuthTokens,
 } from '@ai-sdk/mcp';
+import { createGuardedFetch } from 'guarded-fetch';
 import { createServer } from 'node:http';
 
 /**
@@ -130,31 +131,44 @@ export async function getMCPToken(
 ): Promise<string> {
   const authProvider = new MinimalOAuthProvider(port);
 
-  // Start authorization flow
-  const result = await auth(authProvider, { serverUrl: new URL(serverUrl) });
+  // On server runtimes, OAuth discovery requires a fetch with connect-time DNS
+  // validation when the authorization server is on a different origin than
+  // the MCP server.
+  const fetchFn = createGuardedFetch();
 
-  if (result === 'AUTHORIZED') {
-    const tokens = await authProvider.tokens();
-    if (tokens?.access_token) {
-      console.log('Already authorized!\n');
-      return tokens.access_token;
+  try {
+    // Start authorization flow
+    const result = await auth(authProvider, {
+      serverUrl: new URL(serverUrl),
+      fetchFn,
+    });
+
+    if (result === 'AUTHORIZED') {
+      const tokens = await authProvider.tokens();
+      if (tokens?.access_token) {
+        console.log('Already authorized!\n');
+        return tokens.access_token;
+      }
     }
+
+    // Wait for user to authorize in browser
+    const authorizationCode = await waitForAuthorizationCode(port);
+
+    // Complete authorization with the code
+    await auth(authProvider, {
+      serverUrl: new URL(serverUrl),
+      authorizationCode,
+      fetchFn,
+    });
+
+    const tokens = await authProvider.tokens();
+    if (!tokens?.access_token) {
+      throw new Error('Failed to obtain access token');
+    }
+
+    console.log('Authorization successful!\n');
+    return tokens.access_token;
+  } finally {
+    await fetchFn.close();
   }
-
-  // Wait for user to authorize in browser
-  const authorizationCode = await waitForAuthorizationCode(port);
-
-  // Complete authorization with the code
-  await auth(authProvider, {
-    serverUrl: new URL(serverUrl),
-    authorizationCode,
-  });
-
-  const tokens = await authProvider.tokens();
-  if (!tokens?.access_token) {
-    throw new Error('Failed to obtain access token');
-  }
-
-  console.log('Authorization successful!\n');
-  return tokens.access_token;
 }

@@ -1,3 +1,4 @@
+import type { SerializableTelemetryBody } from './serializable-telemetry-body.js';
 import type {
   JSONObject,
   LanguageModelV4CallOptions,
@@ -18,11 +19,7 @@ import type {
   ToolChoice,
   ToolSet,
 } from 'ai';
-import type {
-  DownloadFunction,
-  ProviderOptions,
-  StreamTextTransform,
-} from './workflow-agent.js';
+import type { DownloadFunction, ProviderOptions } from './workflow-agent.js';
 
 export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
   | LanguageModelStreamPart<TTools>
@@ -78,9 +75,6 @@ export interface ModelCallOptions {
     requestMessages?: boolean;
   };
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
-  experimental_transform?:
-    | StreamTextTransform<ToolSet>
-    | Array<StreamTextTransform<ToolSet>>;
   /**
    * Set when globally registered integrations are not available in the
    * workflow body. The model step then runs the provider call in the
@@ -205,6 +199,11 @@ export interface ModelCallRawResult {
     text: string;
     providerMetadata?: SharedV4ProviderMetadata;
   }>;
+  /** Provider-owned views of included bodies, retained across the step return. */
+  telemetryBodies?: {
+    request?: SerializableTelemetryBody;
+    response?: SerializableTelemetryBody;
+  };
   responseMetadata?: {
     id?: string;
     timestamp?: Date;

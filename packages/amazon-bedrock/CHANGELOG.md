@@ -1,5 +1,119 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.139
+
+### Patch Changes
+
+- Updated dependencies [5a645e9]
+  - @ai-sdk/openai@4.0.115
+
+## 5.0.138
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/anthropic@4.0.102
+  - @ai-sdk/openai@4.0.114
+
+## 5.0.137
+
+### Patch Changes
+
+- Updated dependencies [22b8158]
+- Updated dependencies [88b9575]
+  - @ai-sdk/openai@4.0.113
+  - @ai-sdk/provider-utils@5.0.78
+  - @ai-sdk/anthropic@4.0.101
+
+## 5.0.136
+
+### Patch Changes
+
+- 8420810: feat(anthropic): add Claude Fable 5.2 support
+
+  - add the `claude-fable-5-2` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-fable-5-2`, `us.anthropic.claude-fable-5-2`, and `global.anthropic.claude-fable-5-2` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-fable-5.2` to `@ai-sdk/gateway`
+  - recognize `claude-fable-5-2` as a known model with the same capabilities as `claude-fable-5-1`: 128k max output tokens, always-on adaptive thinking, all five effort levels, no sampling parameters, and no forced tool use
+
+- Updated dependencies [8420810]
+- Updated dependencies [9f37b45]
+  - @ai-sdk/anthropic@4.0.100
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/openai@4.0.112
+
+## 5.0.135
+
+### Patch Changes
+
+- 6400cf8: Add `resolveProviderOptions` to parse provider options that a model accepts under several `providerOptions` keys, either as aliases (`first`) or merged in order (`merge`), and use it for the existing multi-key lookups in the OpenAI, OpenAI-compatible, Anthropic, Google, and Amazon Bedrock models. Resolution behavior for these models is unchanged.
+- Updated dependencies [a161c0a]
+- Updated dependencies [6400cf8]
+- Updated dependencies [ba302a1]
+- Updated dependencies [f608c05]
+- Updated dependencies [5ab7ff1]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [b3088a7]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/anthropic@4.0.99
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/openai@4.0.111
+  - @ai-sdk/provider@4.0.37
+
+## 5.0.134
+
+### Patch Changes
+
+- 067dd77: Refactor Amazon Bedrock model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export the Anthropic catalog capability helper under its compatibility name for Bedrock to reuse. Request behavior is unchanged.
+- Updated dependencies [067dd77]
+- Updated dependencies [25240d9]
+- Updated dependencies [457dc40]
+- Updated dependencies [c6efa4b]
+- Updated dependencies [6b101ac]
+- Updated dependencies [f6dbf04]
+- Updated dependencies [646a7e3]
+- Updated dependencies [6b97088]
+  - @ai-sdk/anthropic@4.0.98
+  - @ai-sdk/openai@4.0.110
+
+## 5.0.133
+
+### Patch Changes
+
+- fd7e8a7: Preserve the order of text and complete function calls in streamed Google responses, including standalone thought signatures on empty text or reasoning parts.
+
+  Keep provider metadata on empty text parts when converting results to response messages so it can be passed back in subsequent requests.
+
+  Omit foreign-provider empty signature text when replaying history through Anthropic or Bedrock, preserving Bedrock’s existing native reasoning-history handling.
+
+- ef2dfb5: fix: pass through `seed: 0` instead of dropping it in image and video models. KlingAI now reports `seed: 0` as an unsupported setting like any other seed.
+- 934100c: Report the actual OpenAI Chat HTTP endpoint (also used by Azure Chat and Bedrock Mantle Chat) through optional request metadata and model-call end events. Record its host and port on OpenTelemetry chat spans without exposing URL credentials, paths, queries, or fragments. Expose only the sanitized HTTP origin in text and object generation results and step/finish callbacks. Providers that do not report an endpoint leave these attributes unset.
+- Updated dependencies [27528db]
+- Updated dependencies [7bb309d]
+- Updated dependencies [7a90522]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [8291ccf]
+- Updated dependencies [6549344]
+- Updated dependencies [5f9bb8e]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [243bf22]
+- Updated dependencies [5cc6d28]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4b8f00e]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+- Updated dependencies [8b11ff6]
+  - @ai-sdk/openai@4.0.109
+  - @ai-sdk/anthropic@4.0.97
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 5.0.132
 
 ### Patch Changes

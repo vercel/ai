@@ -1,5 +1,81 @@
 # @ai-sdk/minimax
 
+## 3.0.79
+
+### Patch Changes
+
+- c4c8523: Add MiniMax H3 Image and H3 Image Highspeed support for text-to-image generation and image editing, including output controls and token usage details.
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/anthropic@4.0.102
+
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+  - @ai-sdk/anthropic@4.0.101
+
+## 3.0.77
+
+### Patch Changes
+
+- Updated dependencies [8420810]
+- Updated dependencies [9f37b45]
+  - @ai-sdk/anthropic@4.0.100
+  - @ai-sdk/provider-utils@5.0.77
+
+## 3.0.76
+
+### Patch Changes
+
+- Updated dependencies [a161c0a]
+- Updated dependencies [6400cf8]
+- Updated dependencies [ba302a1]
+- Updated dependencies [f608c05]
+- Updated dependencies [5ab7ff1]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [b3088a7]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/anthropic@4.0.99
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 3.0.75
+
+### Patch Changes
+
+- a92d2d7: Refactor MiniMax model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+- Updated dependencies [067dd77]
+- Updated dependencies [25240d9]
+- Updated dependencies [457dc40]
+- Updated dependencies [6b101ac]
+  - @ai-sdk/anthropic@4.0.98
+
+## 3.0.74
+
+### Patch Changes
+
+- 8291ccf: Add MiniMax `serviceTier` support for `standard` and `priority` admission. Omit tiers belonging to another known provider with an unsupported-setting warning instead of forwarding incompatible values. Expose the applied `serviceTier`, when returned, in Anthropic-compatible generation, stream and batch metadata without changing existing metadata construction types.
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [8291ccf]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4b8f00e]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+- Updated dependencies [8b11ff6]
+  - @ai-sdk/anthropic@4.0.97
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 3.0.73
 
 ### Patch Changes

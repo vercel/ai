@@ -1,5 +1,98 @@
 # @ai-sdk/workflow
 
+## 2.0.102
+
+### Patch Changes
+
+- efd2905: fix(workflow): End the final step's telemetry when streaming stops on a client-side tool, preserving the step span and its model call in the agent trace.
+- Updated dependencies [91a67c2]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+
+## 2.0.101
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - @ai-sdk/provider-utils@5.0.79
+  - ai@7.0.169
+
+## 2.0.100
+
+### Patch Changes
+
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+- Updated dependencies [88b9575]
+  - ai@7.0.168
+  - @ai-sdk/provider-utils@5.0.78
+
+## 2.0.99
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+- Updated dependencies [9f37b45]
+- Updated dependencies [404ce3b]
+  - @ai-sdk/provider-utils@5.0.77
+  - ai@7.0.167
+
+## 2.0.98
+
+### Patch Changes
+
+- ai@7.0.166
+
+## 2.0.97
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [883fcde]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [6d21e8e]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - ai@7.0.165
+  - @ai-sdk/provider@4.0.37
+
+## 2.0.96
+
+### Patch Changes
+
+- ai@7.0.164
+
+## 2.0.95
+
+### Patch Changes
+
+- 85b920f: feat(workflow): remove `experimental_transform` from `WorkflowAgent.stream()`
+
+  Stream transforms cannot reliably run across workflow step boundaries, so the option has been removed along with the `StreamTextTransform` type export.
+
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 2.0.94
 
 ### Patch Changes

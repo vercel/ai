@@ -1,5 +1,104 @@
 # @ai-sdk/harness
 
+## 1.0.181
+
+### Patch Changes
+
+- Updated dependencies [91a67c2]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+
+## 1.0.180
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - @ai-sdk/provider-utils@5.0.79
+  - ai@7.0.169
+
+## 1.0.179
+
+### Patch Changes
+
+- c849d37: feat(harness): use public-key cryptography instead of token for sandbox bridge communication
+- 7f1c01e: feat(harness): export `encodeHarnessPathSegment` helper
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+- Updated dependencies [88b9575]
+  - ai@7.0.168
+  - @ai-sdk/provider-utils@5.0.78
+
+## 1.0.178
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+- Updated dependencies [404ce3b]
+  - @ai-sdk/provider-utils@5.0.77
+  - ai@7.0.167
+
+## 1.0.177
+
+### Patch Changes
+
+- ai@7.0.166
+
+## 1.0.176
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [883fcde]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [6d21e8e]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - ai@7.0.165
+  - @ai-sdk/provider@4.0.37
+
+## 1.0.175
+
+### Patch Changes
+
+- 8e8033a: fix(harness): avoid deadlock on host tool approval pauses
+- a54f0fd: fix(harness): abort a running turn when its host disconnects for good
+  - ai@7.0.164
+
+## 1.0.174
+
+### Patch Changes
+
+- 3bf70f8: Recover Claude Code turn starts lost on a dropped WebSocket connection using idempotent start identifiers. Bound the wait for the first turn event with `turnStartTimeoutMs` (120 seconds by default), and fail safely when reconnecting to an older bridge that has not accepted the start.
+
+  Preserve first delivery of turns submitted during an idle reconnect, including on older bridges, without sending duplicate starts or treating an unsent start as lost.
+
+  Clean up failed initial sends without leaving a delayed unhandled rejection, and replay pending steering only after the recovered start.
+
+  `SandboxChannel.send` accepts `queueIfDisconnected: false` for callers that own reconnect replay; discarded frames do not invoke `onSent`. The default continues queueing frames.
+
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 1.0.173
 
 ### Patch Changes

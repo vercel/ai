@@ -308,6 +308,32 @@ describe('ReplicateVideoModel', () => {
       });
     });
 
+    it('should pass seed when it is 0', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        onRequest: (url, body) => {
+          if (
+            url.includes('/predictions') &&
+            !url.includes('test-prediction')
+          ) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doStart({
+        ...defaultOptions,
+        seed: 0,
+      });
+
+      expect(capturedBody).toMatchObject({
+        input: {
+          prompt,
+          seed: 0,
+        },
+      });
+    });
+
     it('should pass aspect ratio when provided', async () => {
       let capturedBody: unknown;
       const model = createMockModel({

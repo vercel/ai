@@ -14,7 +14,10 @@ import { z } from 'zod/v4';
  * payload, which carries Claude SDK configuration.
  */
 
-export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
+export const outboundMessageSchema = z.intersection(
+  harnessV1BridgeOutboundMessageSchema,
+  z.object({ startId: z.string().optional() }),
+);
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 const thinkingDisplaySchema = z.enum(['summarized', 'omitted']).optional();
@@ -45,7 +48,9 @@ export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   maxTurns: z.number().optional(),
   skillOverrides: skillOverridesSchema.optional(),
   maxBudgetUsd: z.number().optional(),
+  additionalDirectories: z.array(z.string()).optional(),
   strictMcpConfig: z.boolean().optional(),
+  autoMode: z.boolean().optional(),
   questionTimeoutMs: z.number().optional(),
   excludeDynamicSections: z.boolean().optional(),
   agentProgressSummaries: z.boolean().optional(),

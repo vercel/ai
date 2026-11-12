@@ -189,6 +189,11 @@ Supported native tools are `web_search`, `fetch_url`, `people_search`,
 preconfigured tools that remain enabled; the `tools` option can add explicit
 tools or supply tools when using a direct model ID.
 
+Set the top-level `toolChoice` option to `'none'` to disable all tools. This
+omits AI SDK function tools and native tools from the request, including MCP
+and connector configurations, and sets `max_tool_calls: 0` to disable preset
+tools. This overrides `providerOptions.perplexity.max_tool_calls`.
+
 Search and fetch results are exposed as AI SDK sources. Other native tool traces,
 including finance, sandbox, and MCP results, are available in `response.body`
 and raw stream chunks (`include: { rawChunks: true }`). They are not exposed as
@@ -468,10 +473,14 @@ The following optional provider options are available for embedding models:
 
 ### Embedding Model Capabilities
 
+{/* model-capabilities:perplexity-embedding:start */}
+
 | Model                | Dimensions | Max Values Per Call |
 | -------------------- | ---------- | ------------------- |
 | `pplx-embed-v1-0.6b` | 1024       | 512                 |
 | `pplx-embed-v1-4b`   | 2560       | 512                 |
+
+{/* model-capabilities:perplexity-embedding:end */}
 
 ## Decision Models
 
@@ -605,7 +614,26 @@ Decision models have no Perplexity-specific provider options. Entries passed in
 to the API. Use the standard `abortSignal`, `headers`, and `maxRetries` options on
 `decide` for cancellation, request headers, and retries.
 
+### Decision Model Capabilities
+
+{/* model-capabilities:perplexity-decision:start */}
+
+| Model                                  | Boolean   | Choice    | Score     | Box       | Image Input | Reasoning | Max Output Tokens |
+| -------------------------------------- | --------- | --------- | --------- | --------- | ----------- | --------- | ----------------- |
+| `pplx-decider-v1.2`                    | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `pplx-decider-flash-v1.2`              | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `pplx-decider-latest`                  | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `pplx-decider-flash-latest`            | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `perplexity/pplx-decider-latest`       | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `perplexity/pplx-decider-flash-latest` | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `pplx-decider-v1.1-27b`                | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+| `pplx-decider-v1-27b`                  | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+
+{/* model-capabilities:perplexity-decision:end */}
+
 ## Model Capabilities
+
+{/* model-capabilities:perplexity-language:start */}
 
 | Model    | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | -------- | ----------- | ----------------- | ---------- | -------------- |
@@ -614,6 +642,8 @@ to the API. Use the standard `abortSignal`, `headers`, and `maxRetries` options 
 | `medium` | <Check />   | <Check />         | <Check />  | <Check />      |
 | `high`   | <Check />   | <Check />         | <Check />  | <Check />      |
 | `xhigh`  | <Check />   | <Check />         | <Check />  | <Check />      |
+
+{/* model-capabilities:perplexity-language:end */}
 
 <Note>
   Please see the [Perplexity docs](https://docs.perplexity.ai) for detailed API

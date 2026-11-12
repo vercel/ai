@@ -109,6 +109,11 @@ Settings:
 - `mcpServers`: MCP server definitions keyed by server name.
 - `port`: ACP bridge port override.
 - `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
+- `hostDisconnectTimeoutMs`: aborts a running turn when the host disconnects
+  and no host reconnects within this many milliseconds. A suspended turn is
+  not aborted. When unset, a turn keeps running in the sandbox after its host
+  disconnects, including when the host process is gone for good, until the
+  turn finishes or the sandbox stops.
 - `reconnect`: reconnect timing after an established bridge WebSocket
   connection drops. `maxElapsedMs` controls the total retry window, including
   connection establishment and backoff delays, and defaults to 30 seconds.
@@ -116,10 +121,9 @@ Settings:
   2 seconds. These retries use exponential backoff and are separate from
   `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
   bridge endpoint is permanently unavailable.
-- `mintBridgeToken`: synchronous function that receives the sandbox id and
-  returns the ACP bridge authentication token. By default, the adapter generates
-  a random 32-byte token. Custom implementations must return a suitably secret
-  token.
+- `mintBridgeToken`: deprecated and ignored. Passing it logs a warning. The
+  adapter generates a key pair for each bridge, passes only the public key into
+  the sandbox, and keeps the private key in host-side resume state.
 
 The adapter pins the Grok Build CLI and ACP launch command. These implementation
 details cannot be overridden through `createGrokBuild()`.
@@ -212,12 +216,21 @@ Grok Build does not advertise ACP session modes for its permission behavior.
 When Grok sends an ACP permission request, the ACP harness applies the
 configured Harness `permissionMode` based on the tool kind. Under `allow-reads`
 and `allow-edits`, file operations are automatically approved only when every
-declared location resolves within the session working directory. Grok may
-handle safe built-in operations internally without sending a permission
-request.
+declared location resolves within the session working directory. Reads outside
+that directory require user approval; `allow-all` automatically approves them.
 
 ## Known Limitations
 
+- Grok Build 1.0.49 omits `locations` from native read permission requests,
+  even when tool updates include them. Under `allow-reads` and `allow-edits`,
+  these reads require user approval even inside the working directory because
+  ACP cannot verify their locations. `allow-all` still approves them
+  automatically.
+- Grok Build does not allow toggling whether to discover project-level skills
+  and `AGENTS.md` files individually from project-level configuration and hooks.
+  Since the adapter disables reading project-level configuration and hooks for
+  security reasons, it means Grok Build will not discover project-level skills
+  and `AGENTS.md` instructions natively.
 - ACP v1 does not expose model-step boundaries or per-step usage. The adapter
   infers boundaries and reports unknown per-step usage when Grok does not
   provide totals.
@@ -225,9 +238,6 @@ request.
 - ACP v1 has no portable built-in tool filtering API. Filtering host tools is
   supported, but filtering Grok built-ins throws an unsupported-capability
   error.
-- Grok Build does not currently support built-in tool approval requests. Use
-  `permissionMode: 'allow-all'` with this adapter. Host-executed AI SDK tool
-  approvals still work.
 - A changed host-tool catalog requires Grok Build to refresh its ACP MCP tool
   list. If the agent retains stale tools, the turn fails explicitly.
 - Custom `headers` are not natively supported and only applied via

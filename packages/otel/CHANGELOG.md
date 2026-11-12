@@ -1,5 +1,86 @@
 # @ai-sdk/otel
 
+## 1.0.170
+
+### Patch Changes
+
+- Updated dependencies [91a67c2]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+
+## 1.0.169
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - ai@7.0.169
+
+## 1.0.168
+
+### Patch Changes
+
+- a41a6cf: Restore credential redaction for unannotated OpenAI MCP, Code Interpreter, and shell tool definitions in both OpenTelemetry integrations. This preserves protection for older providers and plain provider tool definitions without changing application or provider arguments.
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+  - ai@7.0.168
+
+## 1.0.167
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+- Updated dependencies [9f37b45]
+- Updated dependencies [404ce3b]
+  - ai@7.0.167
+
+## 1.0.166
+
+### Patch Changes
+
+- 382d0b8: Export the GenAI message and system instruction formatting helpers and their output types for reuse outside the telemetry integration.
+  - ai@7.0.166
+
+## 1.0.165
+
+### Patch Changes
+
+- Updated dependencies [883fcde]
+- Updated dependencies [6d21e8e]
+- Updated dependencies [c70adf6]
+  - ai@7.0.165
+  - @ai-sdk/provider@4.0.37
+
+## 1.0.164
+
+### Patch Changes
+
+- ai@7.0.164
+
+## 1.0.163
+
+### Patch Changes
+
+- 934100c: Report the actual OpenAI Chat HTTP endpoint (also used by Azure Chat and Bedrock Mantle Chat) through optional request metadata and model-call end events. Record its host and port on OpenTelemetry chat spans without exposing URL credentials, paths, queries, or fragments. Expose only the sanitized HTTP origin in text and object generation results and step/finish callbacks. Providers that do not report an endpoint leave these attributes unset.
+- 7bb309d: Redact Code Interpreter and shell domain secret values, plus MCP authorization and header values, from tool definitions exported by both telemetry integrations, while preserving the credentials in provider requests. Azure tools that share these definitions receive the same redaction.
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+  - @ai-sdk/provider@4.0.36
+
 ## 1.0.162
 
 ### Patch Changes

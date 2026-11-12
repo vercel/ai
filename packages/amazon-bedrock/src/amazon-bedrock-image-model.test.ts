@@ -104,6 +104,22 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should pass seed when it is 0', async () => {
+    await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: 0,
+      providerOptions: {},
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.imageGenerationConfig).toHaveProperty('seed', 0);
+  });
+
   it('should accept the new `amazonBedrock` providerOptions key', async () => {
     await model.doGenerate({
       prompt,

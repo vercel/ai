@@ -1,5 +1,83 @@
 # @ai-sdk/anthropic
 
+## 4.0.102
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 4.0.101
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 4.0.100
+
+### Patch Changes
+
+- 8420810: feat(anthropic): add Claude Fable 5.2 support
+
+  - add the `claude-fable-5-2` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-fable-5-2`, `us.anthropic.claude-fable-5-2`, and `global.anthropic.claude-fable-5-2` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-fable-5.2` to `@ai-sdk/gateway`
+  - recognize `claude-fable-5-2` as a known model with the same capabilities as `claude-fable-5-1`: 128k max output tokens, always-on adaptive thinking, all five effort levels, no sampling parameters, and no forced tool use
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 4.0.99
+
+### Patch Changes
+
+- a161c0a: Keep computer toolset actions tied to the returned member name and reject disabled or unavailable members before emitting tool calls. Apply member configuration to local input validation and reject malformed or non-object member input.
+- 6400cf8: Add `resolveProviderOptions` to parse provider options that a model accepts under several `providerOptions` keys, either as aliases (`first`) or merged in order (`merge`), and use it for the existing multi-key lookups in the OpenAI, OpenAI-compatible, Anthropic, Google, and Amazon Bedrock models. Resolution behavior for these models is unchanged.
+- ba302a1: Reject conflicting inline tool additions when a named tool choice falls back to auto or the internal JSON response tool limits available application tools, including definitions replayed from conversation history.
+- 5ab7ff1: Disable MCP connector tools when structured output falls back to the JSON response tool and the caller selects no tools or a named application tool, and when a named application tool choice falls back to automatic tool selection.
+- b3088a7: Preserve warning-only handling of ignored inline tool additions on the initial system message when named tool choice falls back or the JSON response tool is used. Validate tool-choice restrictions only for inline definitions emitted in the outgoing request.
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 4.0.98
+
+### Patch Changes
+
+- 067dd77: Refactor Amazon Bedrock model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export the Anthropic catalog capability helper under its compatibility name for Bedrock to reuse. Request behavior is unchanged.
+- 25240d9: Refactor Anthropic AWS model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export Anthropic catalog metadata internally for Anthropic AWS to reuse. Request behavior is unchanged.
+- 457dc40: feat(anthropic): support adding tools by value in mid-conversation `toolChanges` (`inline-tools-2026-09-15`)
+- 6b101ac: Add support for creating and continuing Anthropic message threads, including automatic beta headers and thread error details for application-managed recovery.
+
+## 4.0.97
+
+### Patch Changes
+
+- fd7e8a7: Preserve the order of text and complete function calls in streamed Google responses, including standalone thought signatures on empty text or reasoning parts.
+
+  Keep provider metadata on empty text parts when converting results to response messages so it can be passed back in subsequent requests.
+
+  Omit foreign-provider empty signature text when replaying history through Anthropic or Bedrock, preserving Bedrock’s existing native reasoning-history handling.
+
+- 8291ccf: Add MiniMax `serviceTier` support for `standard` and `priority` admission. Omit tiers belonging to another known provider with an unsupported-setting warning instead of forwarding incompatible values. Expose the applied `serviceTier`, when returned, in Anthropic-compatible generation, stream and batch metadata without changing existing metadata construction types.
+- 9754014: Add typed streaming heartbeat parts. Anthropic emits them only with `includePings: true` (disabled by default), without requiring raw chunks. Core forwards pings through stream retries without storing them as generated content or sending them to UI message streams. Consumers with exhaustive stream-part switches must handle the new `ping` union variant when upgrading, even when the opt-in is disabled. Typed pings do not flush partial words during stream smoothing.
+- 4b8f00e: Add a `supportsNativeStructuredOutput` opt-in to the Vertex Anthropic provider so `auto` can use native structured output for Claude 4.5 and newer when enabled by Google Cloud policy. Keep tool emulation as the default and avoid adding the structured-output beta header for providers without strict tool support.
+- 8b11ff6: Support deleting files, retrieving metadata, and streaming downloads of generated files through the Anthropic Files API. Metadata reads and uploads expose consistent media type, size, creation time, expiration, and provider metadata when available. Downloads preserve Anthropic’s restriction to files generated by tools or skills.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 4.0.96
 
 ### Patch Changes

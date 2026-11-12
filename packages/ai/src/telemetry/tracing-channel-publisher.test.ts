@@ -1,3 +1,4 @@
+import { withTelemetryRedaction } from '@ai-sdk/provider-utils';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AI_SDK_TELEMETRY_TRACING_CHANNEL } from './tracing-channel';
@@ -108,5 +109,54 @@ describe.runIf(runningOnNode)(
         unsubscribe();
       }
     });
+
+    it.each([true, false])(
+      'redacts long-lived completion metadata with recordResult=%s',
+      async recordResult => {
+        vi.mocked(isNodeRuntime).mockReturnValue(true);
+        const result = {
+          request: {
+            body: withTelemetryRedaction(
+              { credential: 'test-token' },
+              value => ({ ...value, credential: '[redacted]' }),
+            ),
+          },
+        };
+        const asyncEnd = vi.fn();
+        const channel = diagnosticsChannel.tracingChannel(
+          AI_SDK_TELEMETRY_TRACING_CHANNEL,
+        );
+        const subscribers = {
+          start() {},
+          end() {},
+          asyncStart() {},
+          asyncEnd,
+          error() {},
+        };
+        channel.subscribe(subscribers);
+        try {
+          const completion = Promise.resolve(result);
+          openTelemetryChannelSpanContext({
+            message: { type: 'streamText', event: {} },
+            completion,
+            recordResult,
+          });
+          await completion;
+          expect(asyncEnd).toHaveBeenCalledOnce();
+          expect(asyncEnd.mock.calls[0][0].result).toEqual(
+            recordResult
+              ? {
+                  request: {
+                    body: { credential: '[redacted]' },
+                  },
+                }
+              : undefined,
+          );
+          expect(result.request.body.credential).toBe('test-token');
+        } finally {
+          channel.unsubscribe(subscribers);
+        }
+      },
+    );
   },
 );

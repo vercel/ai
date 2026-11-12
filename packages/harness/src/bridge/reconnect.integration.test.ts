@@ -9,12 +9,17 @@
 
 import { createConnection, createServer, type Socket } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
-import { WebSocket } from 'ws';
+import { WebSocket, type RawData } from 'ws';
 import { z } from 'zod/v4';
 import { runBridge, type BridgeHandle, type BridgeTurn } from './index';
 import { SandboxChannel } from '../utils/sandbox-channel';
+import {
+  createBridgeAuthKeyPair,
+  createBridgeAuthProof,
+  parseBridgeAuthPrivateKey,
+} from '../utils/bridge-auth';
 
-const TOKEN = 'integ-token';
+const BRIDGE_AUTH = createBridgeAuthKeyPair();
 const outboundSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('bridge-hello'),
@@ -44,7 +49,7 @@ async function startBridge(
     bridgeType: 'test',
     bridgeStateDir: `${process.env.TMPDIR ?? '/tmp'}/harness-reconnect-${Math.floor(performance.now())}`,
     port: 0,
-    token: TOKEN,
+    publicKey: BRIDGE_AUTH.publicKey,
     onStart,
     onExit: () => {},
   });
@@ -67,15 +72,16 @@ describe('SandboxChannel ↔ runBridge reconnect', () => {
       turn.emit({ type: 'finish' }); // seq 4
     });
 
-    const url = `ws://127.0.0.1:${handle.port}/?agent_bridge_token=${TOKEN}`;
+    const url = `ws://127.0.0.1:${handle.port}/`;
     const sockets: WebSocket[] = [];
-    const connect = () =>
-      new Promise<WebSocket>((resolve, reject) => {
-        const ws = new WebSocket(url);
-        sockets.push(ws);
-        ws.on('open', () => resolve(ws));
-        ws.on('error', reject);
+    const connect = async () => {
+      const ws = await openAuthenticatedBridgeWebSocket({
+        url,
+        privateKey: BRIDGE_AUTH.privateKey,
       });
+      sockets.push(ws);
+      return ws;
+    };
 
     const debug: string[] = [];
     const channel = new SandboxChannel<Outbound, Inbound>({
@@ -186,15 +192,14 @@ describe('SandboxChannel ↔ runBridge reconnect', () => {
       | { type: 'finish' },
       Inbound | { type: 'tool-result'; toolCallId: string; output: number }
     >({
-      connect: () =>
-        new Promise<WebSocket>((resolve, reject) => {
-          const socket = new WebSocket(
-            `ws://127.0.0.1:${port}/?agent_bridge_token=${TOKEN}`,
-          );
-          sockets.push(socket);
-          socket.once('open', () => resolve(socket));
-          socket.once('error', reject);
-        }),
+      connect: async () => {
+        const socket = await openAuthenticatedBridgeWebSocket({
+          url: `ws://127.0.0.1:${port}/`,
+          privateKey: BRIDGE_AUTH.privateKey,
+        });
+        sockets.push(socket);
+        return socket;
+      },
       outboundSchema: z.discriminatedUnion('type', [
         z.object({ type: z.literal('bridge-hello') }),
         z.object({ type: z.literal('tool-call'), toolCallId: z.string() }),
@@ -303,12 +308,11 @@ describe('SandboxChannel ↔ runBridge reconnect', () => {
       turn.emit({ type: 'finish' }); // seq 5
     });
 
-    const url = `ws://127.0.0.1:${handle.port}/?agent_bridge_token=${TOKEN}`;
+    const url = `ws://127.0.0.1:${handle.port}/`;
     const connect = () =>
-      new Promise<WebSocket>((resolve, reject) => {
-        const ws = new WebSocket(url);
-        ws.on('open', () => resolve(ws));
-        ws.on('error', reject);
+      openAuthenticatedBridgeWebSocket({
+        url,
+        privateKey: BRIDGE_AUTH.privateKey,
       });
 
     // ── Slice 1: open, start, receive the first two deltas, then suspend. ──
@@ -364,4 +368,44 @@ async function waitUntil(pred: () => boolean, timeoutMs = 2000): Promise<void> {
       throw new Error('waitUntil timed out');
     await new Promise(r => setTimeout(r, 5));
   }
+}
+
+/**
+ * Opens a raw bridge WebSocket and answers its authentication challenge.
+ * Resolves right after the proof is sent, so the caller still receives the
+ * `bridge-hello` frame that the bridge sends once the proof is verified.
+ */
+function openAuthenticatedBridgeWebSocket({
+  url,
+  privateKey,
+}: {
+  url: string;
+  privateKey: string;
+}): Promise<WebSocket> {
+  const key = parseBridgeAuthPrivateKey({ privateKey });
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    ws.once('error', reject);
+    ws.once('message', (raw: RawData) => {
+      try {
+        ws.send(
+          createBridgeAuthProof({
+            privateKey: key,
+            message: rawDataToString(raw),
+          }),
+        );
+        ws.off('error', reject);
+        resolve(ws);
+      } catch (error) {
+        ws.terminate();
+        reject(error);
+      }
+    });
+  });
+}
+
+function rawDataToString(raw: RawData): string {
+  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
+  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
+  return Buffer.from(raw).toString('utf8');
 }

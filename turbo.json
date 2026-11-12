@@ -1,6 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": ["CI", "PORT"],
+  "globalPassThroughEnv": ["pnpm_config_verify_deps_before_run"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -55,6 +56,11 @@
         "SENTRY_AUTH_TOKEN",
         "SENTRY_ORG",
         "SENTRY_PROJECT",
+        "TENCENTCLOUD_SECRET_ID",
+        "TENCENTCLOUD_SECRET_KEY",
+        "TENCENTCLOUD_SESSION_TOKEN",
+        "TENCENTCLOUD_VOD_SUB_APP_ID",
+        "TENCENT_TOKENHUB_API_KEY",
         "TOGETHER_API_KEY",
         "TOGETHER_AI_API_KEY",
         "TOPAZ_API_KEY",
@@ -83,8 +89,7 @@
     },
     "test": {
       "dependsOn": ["^build", "build"],
-      "env": ["SKIP_RSC_E2E", "VITEST_MAX_WORKERS", "TEST_NODE_VERSION"],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/setup-download-fetch.node.js"]
+      "env": ["SKIP_RSC_E2E", "VITEST_MAX_WORKERS", "TEST_NODE_VERSION"]
     },
     "test:e2e:ci": {
       "env": ["SKIP_RSC_E2E"]

@@ -98,6 +98,48 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     },
   );
 
+  describe('labels', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('basic');
+    });
+
+    it.each([
+      {},
+      { application: 'example', safety_identifier: 'opaque_user_123' },
+    ])('forwards labels %j as top-level request metadata', async labels => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { labels, store: false } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        labels,
+        store: false,
+      });
+    });
+
+    it.each([undefined, null])('omits labels when set to %j', async labels => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { labels } },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'labels',
+      );
+    });
+
+    it('rejects labels with non-string values before sending a request', async () => {
+      await expect(
+        model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { google: { labels: { invalid: 42 } } },
+        }),
+      ).rejects.toThrow();
+      expect(server.calls).toHaveLength(0);
+    });
+  });
+
   describe('basic text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('basic');
@@ -2447,6 +2489,40 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       const body = await server.calls[0].requestBodyJson;
       expect(body).not.toHaveProperty('tools');
       expect(body.generation_config?.tool_choice).toBeUndefined();
+    },
+  );
+
+  it.each([
+    {},
+    { application: 'example', safety_identifier: 'opaque_user_123' },
+  ])('forwards labels %j on streaming requests', async labels => {
+    prepareChunksFixtureResponse('basic');
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: { google: { labels, store: false } },
+    });
+    await convertReadableStreamToArray(stream);
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      labels,
+      store: false,
+      stream: true,
+    });
+  });
+
+  it.each([undefined, null])(
+    'omits labels set to %j on streaming requests',
+    async labels => {
+      prepareChunksFixtureResponse('basic');
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: { google: { labels } },
+      });
+      await convertReadableStreamToArray(stream);
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'labels',
+      );
     },
   );
 

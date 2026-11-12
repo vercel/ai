@@ -62,12 +62,23 @@ export type GitHubCopilotHarnessSettings = {
   readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
   /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
+  /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
    * backoff delays. Defaults to 30 seconds with exponential backoff from 50
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
+  // TODO: Remove in the next major version.
+  /**
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
+   */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
@@ -275,6 +286,11 @@ export function createGitHubCopilot(
       pnpmWorkspaceYaml: __GITHUB_COPILOT_BRIDGE_PNPM_WORKSPACE_YAML__,
     },
     executable: 'copilot',
+    /*
+     * GitHub Copilot CLI does not expose an option to disable project-level
+     * configuration. This ACP integration cannot isolate repository-owned
+     * configuration, so working directory contents must be trusted.
+     */
     args: [
       '--acp',
       '--stdio',
@@ -494,6 +510,7 @@ export function createGitHubCopilot(
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
     reconnect: settings.reconnect,
     mintBridgeToken: settings.mintBridgeToken,
   });

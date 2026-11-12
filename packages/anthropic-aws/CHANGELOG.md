@@ -1,5 +1,80 @@
 # @ai-sdk/anthropic-aws
 
+## 2.0.95
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/anthropic@4.0.102
+
+## 2.0.94
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+  - @ai-sdk/anthropic@4.0.101
+
+## 2.0.93
+
+### Patch Changes
+
+- Updated dependencies [8420810]
+- Updated dependencies [9f37b45]
+  - @ai-sdk/anthropic@4.0.100
+  - @ai-sdk/provider-utils@5.0.77
+
+## 2.0.92
+
+### Patch Changes
+
+- Updated dependencies [a161c0a]
+- Updated dependencies [6400cf8]
+- Updated dependencies [ba302a1]
+- Updated dependencies [f608c05]
+- Updated dependencies [5ab7ff1]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [b3088a7]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/anthropic@4.0.99
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 2.0.91
+
+### Patch Changes
+
+- 25240d9: Refactor Anthropic AWS model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export Anthropic catalog metadata internally for Anthropic AWS to reuse. Request behavior is unchanged.
+- 6b101ac: Add support for creating and continuing Anthropic message threads, including automatic beta headers and thread error details for application-managed recovery.
+- Updated dependencies [067dd77]
+- Updated dependencies [25240d9]
+- Updated dependencies [457dc40]
+- Updated dependencies [6b101ac]
+  - @ai-sdk/anthropic@4.0.98
+
+## 2.0.90
+
+### Patch Changes
+
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [8291ccf]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4b8f00e]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+- Updated dependencies [8b11ff6]
+  - @ai-sdk/anthropic@4.0.97
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
 ## 2.0.89
 
 ### Patch Changes

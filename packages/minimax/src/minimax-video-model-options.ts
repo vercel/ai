@@ -1,3 +1,4 @@
+import { minimaxVideoResolutions } from './minimax-model-catalog-config';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
@@ -18,7 +19,7 @@ export const minimaxVideoRatios = [
  * Output resolutions supported by MiniMax video models. Availability depends
  * on the selected model.
  */
-export const minimaxVideoResolutions = ['480P', '768P', '2K'] as const;
+export { minimaxVideoResolutions } from './minimax-model-catalog-config';
 
 /**
  * Provider options for MiniMax video generation.
