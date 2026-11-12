@@ -1048,6 +1048,7 @@ describe('doStream', () => {
       expect(finished).toBe(false);
 
       await vi.advanceTimersByTimeAsync(1);
+      expect(finished).toBe(true);
       expect((await partsPromise).at(-1)).toEqual({
         type: 'finish',
         text: 'Hello',
@@ -1055,6 +1056,112 @@ describe('doStream', () => {
         language: undefined,
         durationInSeconds: undefined,
         providerMetadata: { elevenlabs: { editedTranscripts: [] } },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not extend the follow-up timeout when a later event is still pending', async () => {
+    vi.useFakeTimers();
+    try {
+      const result = await createElevenLabs({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      }).transcription('scribe_v3_live').doStream!({
+        audio: convertArrayToReadableStream([new Uint8Array([1])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        providerOptions: {
+          elevenlabs: {
+            streaming: { entityDetection: 'all', entityRedaction: 'pii' },
+          },
+        },
+      });
+
+      let finished = false;
+      const partsPromise = convertReadableStreamToArray(result.stream).then(
+        parts => {
+          finished = true;
+          return parts;
+        },
+      );
+      const ws = MockWebSocket.instances[0];
+      ws.open();
+      ws.message({ message_type: 'session_started', session_id: 'session-1' });
+      await vi.advanceTimersByTimeAsync(0);
+      ws.message({ message_type: 'committed_transcript', text: 'Hello' });
+
+      // The entities arrive late and the redacted transcript never does.
+      await vi.advanceTimersByTimeAsync(4000);
+      ws.message({
+        message_type: 'committed_transcript_entities',
+        text: 'Hello',
+        entities: [],
+      });
+      await vi.advanceTimersByTimeAsync(999);
+      expect(finished).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(finished).toBe(true);
+      expect((await partsPromise).at(-1)).toMatchObject({
+        type: 'finish',
+        providerMetadata: {
+          elevenlabs: {
+            committedTranscriptEntities: [{ text: 'Hello', entities: [] }],
+            redactedTranscripts: [],
+          },
+        },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('finishes within the follow-up timeout when the last event arrives just before it', async () => {
+    vi.useFakeTimers();
+    try {
+      const result = await createElevenLabs({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      }).transcription('scribe_v3_live').doStream!({
+        audio: convertArrayToReadableStream([new Uint8Array([1])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        providerOptions: {
+          elevenlabs: {
+            streaming: { transcriptEdit: 'Write dates as YYYY-MM-DD' },
+          },
+        },
+      });
+
+      let finished = false;
+      const partsPromise = convertReadableStreamToArray(result.stream).then(
+        parts => {
+          finished = true;
+          return parts;
+        },
+      );
+      const ws = MockWebSocket.instances[0];
+      ws.open();
+      ws.message({ message_type: 'session_started', session_id: 'session-1' });
+      await vi.advanceTimersByTimeAsync(0);
+      ws.message({ message_type: 'committed_transcript', text: 'Hello' });
+
+      await vi.advanceTimersByTimeAsync(4900);
+      ws.message({
+        message_type: 'edited_transcript',
+        text: 'Hello',
+        edited_text: 'Hello',
+      });
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(finished).toBe(true);
+      expect((await partsPromise).at(-1)).toMatchObject({
+        type: 'finish',
+        providerMetadata: {
+          elevenlabs: {
+            editedTranscripts: [{ text: 'Hello', edited_text: 'Hello' }],
+          },
+        },
       });
     } finally {
       vi.useRealTimers();

@@ -535,7 +535,7 @@ function createElevenLabsRealtimeTranscriptionStream({
       let sessionId: string | undefined;
       let committedEventCount = 0;
       let nonEmptyCommittedEventCount = 0;
-      let finishScheduled = false;
+      let followUpEventDeadline: number | undefined;
       let committedEventsAtEndOfInput = 0;
       let finalCommitEventCount: number | undefined;
       let timestampedCommitCount = 0;
@@ -620,19 +620,28 @@ function createElevenLabsRealtimeTranscriptionStream({
         cleanup(1000);
       };
 
-      const scheduleFinish = () => {
-        finishScheduled = true;
+      const startFinishTimer = (deadline: number) => {
+        const remainingMs = Math.max(deadline - Date.now(), 0);
         clearTimeout(finalCommitGracePeriod);
         finalCommitGracePeriod = setTimeout(
           finish,
           hasPendingFollowUpEvents()
-            ? followUpEventTimeoutMs
-            : finalCommitGracePeriodMs,
+            ? remainingMs
+            : Math.min(finalCommitGracePeriodMs, remainingMs),
         );
       };
 
+      const scheduleFinish = () => {
+        followUpEventDeadline = Date.now() + followUpEventTimeoutMs;
+        startFinishTimer(followUpEventDeadline);
+      };
+
+      // Re-arms the timer against the deadline set by the final commit, so a
+      // follow-up event cannot extend the wait for the ones still pending.
       const receivedFollowUpEvent = () => {
-        if (finishScheduled) scheduleFinish();
+        if (followUpEventDeadline != null) {
+          startFinishTimer(followUpEventDeadline);
+        }
       };
 
       const sendAudio = async (socket: WebSocketLike) => {
