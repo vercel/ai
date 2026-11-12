@@ -5,6 +5,8 @@ export { APICallError } from './api-call-error';
 export { EmptyResponseBodyError } from './empty-response-body-error';
 export { DecisionRefusalError as Experimental_DecisionRefusalError } from './decision-refusal-error';
 export { DecisionUnsupportedQuestionTypeError as Experimental_DecisionUnsupportedQuestionTypeError } from './decision-unsupported-question-type-error';
+export { ExtractionRefusalError as Experimental_ExtractionRefusalError } from './extraction-refusal-error';
+export { ExtractionUnsupportedFieldTypeError as Experimental_ExtractionUnsupportedFieldTypeError } from './extraction-unsupported-field-type-error';
 export { getErrorMessage } from './get-error-message';
 export { InvalidArgumentError } from './invalid-argument-error';
 export { InvalidPromptError } from './invalid-prompt-error';
