@@ -54,9 +54,9 @@ class MockWebSocket {
     this.onmessage?.({ data: JSON.stringify(value) });
   }
 
-  remoteClose() {
+  remoteClose(event: { code?: number; reason?: string } = {}) {
     this.readyState = 3;
-    this.onclose?.({});
+    this.onclose?.(event);
   }
 
   error() {
@@ -265,8 +265,46 @@ describe('doGenerate', () => {
               speaker_id: 'speaker_1',
             },
           ],
+          languageProbability: 1,
         },
       });
+    });
+
+    it('should return the language probability, transcription id, and word log probabilities', async () => {
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.providerMetadata?.elevenlabs).toMatchObject({
+        languageProbability: 0.8905608654022217,
+        transcriptionId: 'dRgXxwt3SzzliHA3nDAQ',
+        words: expect.arrayContaining([
+          expect.objectContaining({ text: 'Hello', logprob: 0 }),
+        ]),
+      });
+    });
+
+    it('should report the character cost header as usage', async () => {
+      prepareJsonFixtureResponse('elevenlabs-transcription', {
+        'character-cost': '7',
+      });
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.usage).toEqual({ characterCost: 7 });
+    });
+
+    it('should not report usage without the character cost header', async () => {
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result.usage).toBeUndefined();
     });
 
     it('should pass provider options correctly', async () => {
@@ -683,7 +721,15 @@ describe('doStream', () => {
           elevenlabs: {
             sessionId: 'session-1',
             committedTranscriptsWithTimestamps: [
-              { text: 'Hello world.', language_code: 'en' },
+              {
+                text: 'Hello world.',
+                language_code: 'en',
+                words: [
+                  { text: 'Hello', start: 0, end: 0.4, type: 'word' },
+                  { text: ' ', start: 0.4, end: 0.45, type: 'spacing' },
+                  { text: 'world.', start: 0.45, end: 0.9, type: 'word' },
+                ],
+              },
             ],
           },
         },
@@ -1333,7 +1379,12 @@ describe('doStream', () => {
         segments: [],
         language: undefined,
         durationInSeconds: undefined,
-        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
+        providerMetadata: {
+          elevenlabs: {
+            sessionId: 'session-1',
+            committedTranscriptsWithTimestamps: [],
+          },
+        },
       },
     ]);
   });
@@ -1377,7 +1428,18 @@ describe('doStream', () => {
         segments: [{ text: 'Hello', startSecond: 0, endSecond: 0.4 }],
         language: 'en',
         durationInSeconds: 0.4,
-        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
+        providerMetadata: {
+          elevenlabs: {
+            sessionId: 'session-1',
+            committedTranscriptsWithTimestamps: [
+              {
+                text: 'Hello',
+                language_code: 'en',
+                words: [{ text: 'Hello', start: 0, end: 0.4, type: 'word' }],
+              },
+            ],
+          },
+        },
       },
     ]);
   });
@@ -1478,7 +1540,20 @@ describe('doStream', () => {
         segments: [{ text: 'Legacy final', startSecond: 0, endSecond: 0.5 }],
         language: 'en',
         durationInSeconds: 0.5,
-        providerMetadata: { elevenlabs: { sessionId: 'session-1' } },
+        providerMetadata: {
+          elevenlabs: {
+            sessionId: 'session-1',
+            committedTranscriptsWithTimestamps: [
+              {
+                text: 'Legacy final',
+                language_code: 'en',
+                words: [
+                  { text: 'Legacy final', start: 0, end: 0.5, type: 'word' },
+                ],
+              },
+            ],
+          },
+        },
       },
     ]);
   });
@@ -1547,6 +1622,26 @@ describe('doStream', () => {
 
     await expect(partsPromise).rejects.toThrow(
       'ElevenLabs realtime transcription stream closed before completion',
+    );
+  });
+
+  it('includes the close code and reason when the upstream closes early', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v3_live').doStream!({
+      audio: new ReadableStream<Uint8Array>(),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    ws.remoteClose({ code: 1011, reason: 'internal error' });
+
+    await expect(partsPromise).rejects.toThrow(
+      'ElevenLabs realtime transcription stream closed before completion (code 1011: internal error).',
     );
   });
 
@@ -1749,6 +1844,105 @@ describe('doStream', () => {
     ws.message({ message_type: 'quota_exceeded', error: 'quota exhausted' });
     await assertion;
     expect(ws.close).toHaveBeenCalled();
+  });
+
+  it.each([
+    { messageType: 'auth_error', isRetryable: false },
+    { messageType: 'invalid_request', isRetryable: false },
+    { messageType: 'rate_limited', isRetryable: true },
+    { messageType: 'queue_overflow', isRetryable: true },
+    { messageType: 'resource_exhausted', isRetryable: true },
+  ])(
+    'errors with an API call error that carries the $messageType event',
+    async ({ messageType, isRetryable }) => {
+      const result = await createElevenLabs({
+        apiKey: 'test-api-key',
+        webSocket: MockWebSocket,
+      }).transcription('scribe_v3_live').doStream!({
+        audio: convertArrayToReadableStream([new Uint8Array([1])]),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      });
+
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      const ws = MockWebSocket.instances[0];
+      ws.open();
+      const event = { message_type: messageType, error: 'Provider message.' };
+      const assertion = partsPromise.then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      ws.message(event);
+      const error = await assertion;
+
+      expect(APICallError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        message: 'Provider message.',
+        url: 'wss://api.elevenlabs.io/v1/speech-to-text/realtime?model_id=scribe_v3_live&audio_format=pcm_16000',
+        data: event,
+        responseBody: JSON.stringify(event),
+        isRetryable,
+      });
+    },
+  );
+
+  it('returns provider warnings in provider metadata', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v3_live').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({ message_type: 'warning', warning: 'Provider warning.' });
+    ws.message({ message_type: 'committed_transcript', text: 'Hello' });
+
+    expect((await partsPromise).at(-1)).toMatchObject({
+      type: 'finish',
+      providerMetadata: {
+        elevenlabs: {
+          sessionId: 'session-1',
+          warnings: ['Provider warning.'],
+        },
+      },
+    });
+  });
+
+  it('returns the turn probability of partial transcripts', async () => {
+    const result = await createElevenLabs({
+      apiKey: 'test-api-key',
+      webSocket: MockWebSocket,
+    }).transcription('scribe_v3_live').doStream!({
+      audio: convertArrayToReadableStream([new Uint8Array([1])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    ws.message({ message_type: 'session_started', session_id: 'session-1' });
+    await flush();
+    ws.message({
+      message_type: 'partial_transcript',
+      text: 'My phone number is 415',
+      turn_probability: 0.08,
+    });
+    ws.message({
+      message_type: 'committed_transcript',
+      text: 'My phone number is 415 555 0142.',
+    });
+
+    expect((await partsPromise)[1]).toEqual({
+      type: 'transcript-partial',
+      id: 'session-1:0',
+      text: 'My phone number is 415',
+      providerMetadata: { elevenlabs: { turnProbability: 0.08 } },
+    });
   });
 
   it('errors the stream when the provider rejects the session configuration', async () => {

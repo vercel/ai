@@ -1,4 +1,5 @@
 import {
+  APICallError,
   InvalidArgumentError,
   UnsupportedFunctionalityError,
   type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
@@ -57,6 +58,8 @@ type ElevenLabsRealtimeTranscriptionEvent = {
   edited_text?: string;
   from_speaker_id?: string;
   to_speaker_id?: string;
+  turn_probability?: number;
+  warning?: string;
   error?: string;
 };
 
@@ -81,6 +84,14 @@ const elevenLabsLateFinalizationErrorTypes = new Set([
   'commit_throttled',
   'input_error',
   'insufficient_audio_activity',
+]);
+
+// Error types that ElevenLabs describes as capacity limits, where the same
+// request can succeed later.
+const elevenLabsRetryableRealtimeErrorTypes = new Set([
+  'queue_overflow',
+  'rate_limited',
+  'resource_exhausted',
 ]);
 
 const finalCommitGracePeriodMs = 250;
@@ -254,6 +265,13 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
       fetch: this.config.fetch,
     });
 
+    // ElevenLabs reports the cost of the request in a response header.
+    const characterCostHeader = responseHeaders?.['character-cost'];
+    const characterCost =
+      characterCostHeader != null && characterCostHeader !== ''
+        ? Number(characterCostHeader)
+        : undefined;
+
     return {
       text: response.text,
       segments:
@@ -274,13 +292,17 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
         headers: responseHeaders,
         body: rawResponse,
       },
-      ...(response.words != null && {
-        providerMetadata: {
-          elevenlabs: {
-            words: response.words,
-          },
+      ...(characterCost != null &&
+        Number.isFinite(characterCost) && { usage: { characterCost } }),
+      providerMetadata: {
+        elevenlabs: {
+          ...(response.words != null && { words: response.words }),
+          languageProbability: response.language_probability,
+          ...(response.transcription_id != null && {
+            transcriptionId: response.transcription_id,
+          }),
         },
-      }),
+      },
     };
   }
 
@@ -553,6 +575,7 @@ function createElevenLabsRealtimeTranscriptionStream({
         words: Array<ElevenLabsRealtimeTranscriptionWord>;
       }> = [];
       const committedTranscriptsWithTimestamps: Array<JSONObject> = [];
+      const providerWarnings: string[] = [];
       const committedTranscriptEntities: Array<JSONObject> = [];
       const redactedTranscripts: Array<JSONObject> = [];
       const editedTranscripts: Array<JSONObject> = [];
@@ -591,9 +614,8 @@ function createElevenLabsRealtimeTranscriptionStream({
         finished = true;
         const metadata: JSONObject = {
           ...(sessionId != null && { sessionId }),
-          ...(includeLanguageDetection && {
-            committedTranscriptsWithTimestamps,
-          }),
+          ...(providerWarnings.length > 0 && { warnings: providerWarnings }),
+          ...(expectDetailedCommit && { committedTranscriptsWithTimestamps }),
           ...(followUpEvents.diarizedTranscripts && {
             diarizedTranscripts: diarizedTranscripts
               .filter(transcript => transcript.text.length > 0)
@@ -692,15 +714,23 @@ function createElevenLabsRealtimeTranscriptionStream({
         abortSignal,
         headers,
         onAbort: finishWithError,
-        onClose: () => {
+        onClose: ({ code, reason }) => {
           if (finished) return;
           if (endOfInput && receivedPostInputCommit) {
             finish();
             return;
           }
+          const closeInfo = [
+            code != null ? `code ${code}` : undefined,
+            reason != null && reason !== '' ? reason : undefined,
+          ]
+            .filter(part => part != null)
+            .join(': ');
           finishWithError(
             new Error(
-              'ElevenLabs realtime transcription stream closed before completion.',
+              `ElevenLabs realtime transcription stream closed before completion${
+                closeInfo === '' ? '' : ` (${closeInfo})`
+              }.`,
             ),
           );
         },
@@ -726,8 +756,19 @@ function createElevenLabsRealtimeTranscriptionStream({
               finish();
               return;
             }
+            // The event is the provider's error response: its message_type
+            // tells apart e.g. auth_error, rate_limited, and invalid_request.
             finishWithError(
-              new Error(raw.error ?? 'ElevenLabs realtime transcription error'),
+              new APICallError({
+                message: raw.error ?? 'ElevenLabs realtime transcription error',
+                url: url.toString(),
+                requestBodyValues: undefined,
+                responseBody: text,
+                data: raw,
+                isRetryable: elevenLabsRetryableRealtimeErrorTypes.has(
+                  raw.message_type,
+                ),
+              }),
             );
             return;
           }
@@ -749,13 +790,28 @@ function createElevenLabsRealtimeTranscriptionStream({
                 type: 'transcript-partial',
                 id: `${sessionId ?? 'session'}:${segmentIndex}`,
                 text: raw.text ?? '',
-                // With diarization, partials carry draft speaker labels.
-                ...(raw.words != null && {
+                // Scribe v3 Live reports the probability that the speaker has
+                // finished their turn and, with diarization, draft speaker
+                // labels.
+                ...((raw.words != null || raw.turn_probability != null) && {
                   providerMetadata: {
-                    elevenlabs: { words: raw.words as Array<JSONObject> },
+                    elevenlabs: {
+                      ...(raw.words != null && {
+                        words: raw.words as Array<JSONObject>,
+                      }),
+                      ...(raw.turn_probability != null && {
+                        turnProbability: raw.turn_probability,
+                      }),
+                    },
                   },
                 }),
               });
+              break;
+            }
+            case 'warning': {
+              if (raw.warning != null) {
+                providerWarnings.push(raw.warning);
+              }
               break;
             }
             case 'diarized_transcript': {
@@ -853,10 +909,13 @@ function createElevenLabsRealtimeTranscriptionStream({
                   typeof word.end === 'number',
               );
               detectedLanguage = raw.language_code ?? detectedLanguage;
-              if (includeLanguageDetection && text.length > 0) {
+              if (text.length > 0) {
                 committedTranscriptsWithTimestamps.push({
                   text,
                   language_code: raw.language_code ?? null,
+                  ...(includeTimestamps && {
+                    words: words as Array<JSONObject>,
+                  }),
                 });
               }
 
@@ -939,6 +998,7 @@ const elevenlabsTranscriptionResponseSchema = lazySchema(() =>
       language_code: z.string(),
       language_probability: z.number(),
       text: z.string(),
+      transcription_id: z.string().nullish(),
       words: z
         .array(
           z.object({
@@ -947,6 +1007,7 @@ const elevenlabsTranscriptionResponseSchema = lazySchema(() =>
             start: z.number().nullish(),
             end: z.number().nullish(),
             speaker_id: z.string().nullish(),
+            logprob: z.number().nullish(),
             characters: z
               .array(
                 z.object({

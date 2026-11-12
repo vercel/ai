@@ -77,7 +77,12 @@ run(async () => {
   // Each committed turn arrives as a transcript-final part.
   for await (const part of result.fullStream) {
     if (part.type === 'transcript-partial') {
-      console.log('partial:', part.text);
+      // The probability that the speaker has finished their turn.
+      console.log(
+        'partial:',
+        part.text,
+        part.providerMetadata?.elevenlabs?.turnProbability,
+      );
     }
 
     if (part.type === 'transcript-final') {

@@ -612,6 +612,7 @@ The following provider options are available:
 
   ISO-639-1 or ISO-639-3 codes of other languages that may be spoken in the audio, alongside `languageCode`.
   Can improve transcription of audio where speakers switch between languages.
+  ElevenLabs skips codes it does not recognize without reporting an error.
   Supported by `scribe_v3` only.
 
 ### Transcribing from a URL
@@ -644,10 +645,21 @@ providerOptions: {
 ```
 
 `result.providerMetadata.elevenlabs.words` preserves each token's native
-`start`, `end`, `type`, `speaker_id`, and optional `characters` array. Each
-character has `text`, `start`, and `end`; these times are in seconds.
+`start`, `end`, `type`, `speaker_id`, `logprob`, and optional `characters`
+array. Each character has `text`, `start`, and `end`; these times are in
+seconds. `logprob` is the log of the probability with which the token was
+predicted.
 For realtime Scribe, set `streaming.includeTimestamps: true` and read the
 timestamped word segments from `await result.segments` after the stream finishes.
+
+`result.providerMetadata.elevenlabs` also contains `languageProbability`, the
+confidence of the detected language from 0 to 1, and `transcriptionId`, the
+ElevenLabs id of the transcript.
+
+ElevenLabs reports the cost of a request in its `character-cost` response
+header. The provider passes it on as `usage.characterCost`, which
+[telemetry integrations](/docs/ai-sdk-core/telemetry) receive. The header is
+also available in `result.responses[0].headers`.
 
 ### Model Capabilities
 
@@ -724,19 +736,49 @@ arrives as a `transcript-final` part:
 - `'turn_prediction'`: ElevenLabs also commits when the model predicts that the
   speaker has finished their turn. Supported by `scribe_v3_live` only.
 
+`scribe_v3_live` reports the estimated probability that the speaker has finished
+their turn on every `transcript-partial` part, as
+`providerMetadata.elevenlabs.turnProbability`, with every commit strategy.
+
 ElevenLabs delivers detected language on its timestamp-bearing committed event.
 When `includeLanguageDetection` is enabled, the provider requests that event
 internally, but only returns timestamp segments when `includeTimestamps` is also
 enabled. `filterBackgroundAudio` cannot be combined with either option.
 
 `result.language` is the language of the last committed transcript. With
-`includeLanguageDetection`, the language of each committed transcript is
+`includeTimestamps` or `includeLanguageDetection`, each committed transcript is
 returned in `providerMetadata.elevenlabs.committedTranscriptsWithTimestamps`
-when the stream finishes, as entries with `text` and `language_code`. Use it for
-audio in more than one language.
+when the stream finishes, as entries with `text` and `language_code`. Use
+`language_code` for audio in more than one language; it is `null` without
+`includeLanguageDetection`. With `includeTimestamps`, each entry also has
+`words`, which preserve each token's native `start`, `end`, `type`, `logprob`,
+and `characters`.
 
-The ElevenLabs session id is returned as `providerMetadata.elevenlabs.sessionId`
-when the stream finishes.
+The finish metadata also contains `sessionId`, the ElevenLabs session id, and
+`warnings`, the warnings ElevenLabs sent during the session, if any.
+
+### Realtime Errors
+
+When ElevenLabs reports an error on the realtime connection, the stream fails
+with an `APICallError` whose message is the ElevenLabs error message.
+`error.data.message_type` is the ElevenLabs error type, such as `auth_error`,
+`invalid_request`, `quota_exceeded`, or `rate_limited`. `error.isRetryable` is
+`true` for `rate_limited`, `queue_overflow`, and `resource_exhausted`.
+
+```ts
+import { APICallError } from 'ai';
+
+try {
+  for await (const part of result.fullStream) {
+    // ...
+  }
+} catch (error) {
+  if (APICallError.isInstance(error)) {
+    const { message_type } = error.data as { message_type: string };
+    console.error(message_type, error.message);
+  }
+}
+```
 
 See [Transcription](/docs/ai-sdk-core/transcription) for more information about
 streaming transcription.
