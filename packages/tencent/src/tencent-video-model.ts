@@ -1,3 +1,4 @@
+import { getTencentVideoModelEntry } from './tencent-model-catalog';
 import {
   AISDKError,
   NoSuchModelError,
@@ -82,7 +83,8 @@ type DoStatusOptions = Parameters<NonNullable<VideoModelV4['doStatus']>>[0];
 
 export class TencentVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxVideosPerCall = 1;
+  readonly maxVideosPerCall = getTencentVideoModelEntry(this.modelId)
+    .capabilities.video.maxVideosPerCall;
 
   private readonly parsedModelId: ParsedTencentVideoModelId;
 
