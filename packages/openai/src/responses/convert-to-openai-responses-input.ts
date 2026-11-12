@@ -1559,6 +1559,20 @@ export async function convertToOpenAIResponsesInput({
                     }))
                   : serializedToolOutputs.join('\n'),
               });
+
+              for (const result of parallelToolResultGroup.results) {
+                const additionalTools = await parseToolResultAdditionalTools({
+                  providerOptions: result.providerOptions,
+                  providerOptionsName,
+                });
+                if (additionalTools?.length) {
+                  input.push({
+                    type: 'additional_tools',
+                    role: 'developer',
+                    tools: additionalTools,
+                  });
+                }
+              }
             }
             continue;
           }
@@ -1865,16 +1879,15 @@ export async function convertToOpenAIResponsesInput({
             ...(caller != null && { caller }),
           });
 
-          const options = await parseProviderOptions({
-            provider: providerOptionsName,
+          const additionalTools = await parseToolResultAdditionalTools({
             providerOptions: part.providerOptions,
-            schema: openaiResponsesToolResultOptionsSchema,
+            providerOptionsName,
           });
-          if (options?.additionalTools?.length) {
+          if (additionalTools?.length) {
             input.push({
               type: 'additional_tools',
               role: 'developer',
-              tools: options.additionalTools,
+              tools: additionalTools,
             });
           }
         }
@@ -1927,3 +1940,26 @@ const openaiResponsesReasoningProviderOptionsSchema = lazySchema(() =>
 export type OpenAIResponsesReasoningProviderOptions = InferSchema<
   typeof openaiResponsesReasoningProviderOptionsSchema
 >;
+
+async function parseToolResultAdditionalTools({
+  providerOptions,
+  providerOptionsName,
+}: {
+  providerOptions: SharedV4ProviderOptions | undefined;
+  providerOptionsName: string;
+}) {
+  const options = await parseProviderOptions({
+    provider: providerOptionsName,
+    providerOptions,
+    schema: openaiResponsesToolResultOptionsSchema,
+  });
+  if (options?.additionalTools != null || providerOptionsName === 'openai') {
+    return options?.additionalTools;
+  }
+  const openaiOptions = await parseProviderOptions({
+    provider: 'openai',
+    providerOptions,
+    schema: openaiResponsesToolResultOptionsSchema,
+  });
+  return openaiOptions?.additionalTools;
+}
