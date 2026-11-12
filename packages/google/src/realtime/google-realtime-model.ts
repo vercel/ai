@@ -3,11 +3,15 @@ import type {
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ClientSecretOptions as RealtimeModelV4ClientSecretOptions,
   Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
+  Experimental_RealtimeModelV4ServerConnection as RealtimeModelV4ServerConnection,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
 import {
   resolve,
+  resolveWith,
+  removeUndefinedEntries,
   type Resolvable,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -23,6 +27,13 @@ import {
 const realtimeWebSocketPath =
   'google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
 
+// Server-side connections use the unconstrained Bidi endpoint: a trusted server
+// holds the API key and sends the session `setup` over the socket, rather than
+// baking it into an ephemeral token at mint time (which the constrained
+// endpoint requires).
+const realtimeServerWebSocketPath =
+  'google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+
 function getAuthTokensURL(baseURL: string): string {
   const url = getRealtimeBaseURL(baseURL);
   url.pathname = `${url.pathname.replace(/\/$/, '')}/v1alpha/auth_tokens`;
@@ -31,6 +42,13 @@ function getAuthTokensURL(baseURL: string): string {
 
 function getWebSocketURL(baseURL: string): string {
   return getRealtimeWebSocketURL(baseURL, realtimeWebSocketPath).toString();
+}
+
+function getServerWebSocketURL(baseURL: string): string {
+  const url = getRealtimeBaseURL(baseURL);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.pathname = `${url.pathname.replace(/\/$/, '')}/ws/${realtimeServerWebSocketPath}`;
+  return url.toString();
 }
 
 export type GoogleRealtimeModelConfig = {
@@ -42,6 +60,11 @@ export type GoogleRealtimeModelConfig = {
 
 export class GoogleRealtimeModel implements RealtimeModelV4 {
   readonly specificationVersion = 'v4' as const;
+  readonly capabilities = {
+    conversation: 'turn-based',
+    transports: ['websocket'],
+    connections: ['client-secret-websocket', 'server-websocket'],
+  } as const;
   readonly provider: string;
   readonly modelId: string;
 
@@ -132,21 +155,56 @@ export class GoogleRealtimeModel implements RealtimeModelV4 {
     };
   }
 
+  getServerWebSocketConfig(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }):
+    | RealtimeModelV4ServerConnection
+    | PromiseLike<RealtimeModelV4ServerConnection> {
+    // Gemini Live exposes only the conversational endpoint; fail fast instead
+    // of silently downgrading unsupported intents.
+    this.assertConversationIntent(options);
+    return resolveWith(this.config.headers, headers => ({
+      url: getServerWebSocketURL(this.config.baseURL),
+      headers: removeUndefinedEntries(headers),
+    }));
+  }
+
+  private assertConversationIntent(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): void {
+    if (options?.intent != null && options.intent !== 'conversation') {
+      throw new Error(
+        `Google realtime does not support the '${options.intent}' session intent.`,
+      );
+    }
+  }
+
   parseServerEvent(
     raw: unknown,
   ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[] {
     return this.mapper.parseServerEvent(raw);
   }
 
+  createServerEventParser(): ReturnType<
+    NonNullable<RealtimeModelV4['createServerEventParser']>
+  > {
+    const mapper = new GoogleRealtimeEventMapper();
+    return raw => mapper.parseServerEvent(raw);
+  }
+
   serializeClientEvent(
     event: RealtimeModelV4ClientEvent,
+    options?: { intent?: RealtimeModelV4SessionIntent },
   ): ReturnType<RealtimeModelV4['serializeClientEvent']> {
+    this.assertConversationIntent(options);
     return this.mapper.serializeClientEvent(event, this.modelId);
   }
 
   buildSessionConfig(
     config: RealtimeModelV4SessionConfig,
+    options?: { intent?: RealtimeModelV4SessionIntent },
   ): Record<string, unknown> {
+    this.assertConversationIntent(options);
     return buildGoogleSessionConfig(config, this.modelId);
   }
 }

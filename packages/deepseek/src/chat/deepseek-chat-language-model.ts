@@ -47,8 +47,8 @@ import {
 } from './deepseek-chat-language-model-options';
 import { prepareTools } from './deepseek-prepare-tools';
 import { getResponseMetadata } from './get-response-metadata';
-import { isDeepSeekV4Model } from './is-deepseek-v4-model';
 import { mapDeepSeekFinishReason } from './map-deepseek-finish-reason';
+import { getDeepSeekLanguageModelEntry } from '../deepseek-model-catalog';
 
 export type DeepSeekChatConfig = {
   provider: string;
@@ -250,10 +250,12 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         schema: deepseekLanguageModelChatOptions,
       })) ?? {};
 
-    const supportsStructuredOutputs =
-      this.config.supportsStructuredOutputs === true;
-    const supportsPenaltySampling =
-      this.config.supportsPenaltySampling === true;
+    const { language: capabilities } = getDeepSeekLanguageModelEntry(
+      this.modelId,
+      this.config,
+    ).capabilities;
+    const supportsStructuredOutputs = capabilities.structuredOutput.jsonSchema;
+    const supportsPenaltySampling = capabilities.sampling.penalties;
 
     const { messages, warnings } = await convertToDeepSeekChatMessages({
       prompt,
@@ -261,7 +263,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       modelId: this.modelId,
       providerOptionsName: this.providerOptionsName,
       supportsAssistantPrefixCompletion:
-        this.config.supportsAssistantPrefixCompletion,
+        capabilities.endpoints.assistantPrefixCompletion,
       supportsStructuredOutputs,
     });
     const allWarnings: SharedV4Warning[] = [...warnings];
@@ -299,7 +301,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     } = prepareTools({
       tools,
       toolChoice,
-      supportsStrictToolCalls: this.config.supportsStrictToolCalls,
+      supportsStrictToolCalls:
+        capabilities.tools.strict === 'unknown'
+          ? undefined
+          : capabilities.tools.strict,
     });
 
     const thinkingType = deepseekOptions.thinking?.type;
@@ -312,21 +317,18 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const thinking =
-      this.config.supportsThinking === false
-        ? undefined
-        : thinkingType != null
-          ? { type: thinkingType === 'adaptive' ? 'enabled' : thinkingType }
-          : isCustomReasoning(reasoning)
-            ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
-            : undefined;
+    const thinking = !capabilities.reasoning.configurable
+      ? undefined
+      : thinkingType != null
+        ? { type: thinkingType === 'adaptive' ? 'enabled' : thinkingType }
+        : isCustomReasoning(reasoning)
+          ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
+          : undefined;
 
     const isThinkingEnabled =
-      this.config.supportsThinking !== false &&
+      capabilities.reasoning.configurable &&
       thinking?.type !== 'disabled' &&
-      (thinking != null ||
-        this.modelId === 'deepseek-reasoner' ||
-        isDeepSeekV4Model(this.modelId));
+      (thinking != null || capabilities.reasoning.enabledByDefault);
 
     if (isThinkingEnabled && temperature != null) {
       allWarnings.push({

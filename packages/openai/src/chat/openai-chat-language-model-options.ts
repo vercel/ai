@@ -232,3 +232,16 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
 export type OpenAILanguageModelChatOptions = InferSchema<
   typeof openaiLanguageModelChatOptions
 >;
+
+export const openaiChatMessageProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /** The participant name on a system, developer, user, or assistant message. */
+      name: z.string().optional(),
+    }),
+  ),
+);
+
+export type OpenAIChatMessageProviderOptions = InferSchema<
+  typeof openaiChatMessageProviderOptions
+>;

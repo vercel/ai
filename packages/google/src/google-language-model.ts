@@ -24,9 +24,9 @@ import {
   lazySchema,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
-  parseProviderOptions,
   postJsonToApi,
   resolve,
+  resolveProviderOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -51,6 +51,7 @@ import { getModelPath } from './get-model-path';
 import {
   getGoogleErrorSchema,
   googleFailedResponseHandler,
+  mapGoogleErrorStatusToHttpStatusCode,
 } from './google-error';
 import { sanitizeResponseJsonSchema } from './sanitize-response-json-schema';
 import {
@@ -100,6 +101,8 @@ export type GoogleLanguageModelConfig = {
   downloadToolResultFiles?: {
     maxBytes: number;
     supportsGoogleCloudStorageUrls?: boolean;
+    /** Transport for untrusted file URLs, without provider authentication. */
+    fetch?: FetchFunction;
   };
 };
 
@@ -178,25 +181,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       ? (['googleVertex', 'vertex'] as const)
       : (['google'] as const);
 
-    let googleOptions: GoogleLanguageModelOptions | undefined;
-    for (const name of providerOptionsNames) {
-      googleOptions = await parseProviderOptions({
-        provider: name,
+    // The first present namespace wins as a whole. A Vertex provider also
+    // falls back to the `google` key (e.g. via the AI Gateway).
+    const { options: googleOptions } =
+      await resolveProviderOptions<GoogleLanguageModelOptions>({
         providerOptions,
+        namespaces: [...providerOptionsNames, 'google'],
+        resolution: 'first',
         schema: googleLanguageModelOptions,
       });
-      if (googleOptions != null) break;
-    }
-
-    // Cross-namespace fallback: a Vertex provider may receive options under
-    // the `google` key (e.g. via the AI Gateway).
-    if (googleOptions == null && !providerOptionsNames.includes('google')) {
-      googleOptions = await parseProviderOptions({
-        provider: 'google',
-        providerOptions,
-        schema: googleLanguageModelOptions,
-      });
-    }
 
     // Add warning if Vertex rag tools are used with a non-Vertex Google provider
     const isVertexProvider = config.provider.startsWith('google.vertex.');
@@ -326,6 +319,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       ? await downloadToolResultFiles(prompt, {
           abortSignal,
           maxBytes: config.downloadToolResultFiles.maxBytes,
+          fetch: config.downloadToolResultFiles.fetch,
           supportedUrls: supportedFunctionResponseUrls,
         })
       : prompt;
@@ -467,7 +461,13 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     options: LanguageModelV4CallOptions,
     { isStreaming = false }: { isStreaming?: boolean } = {},
   ) {
-    const { responseFormat, tools, toolChoice } = options;
+    const { responseFormat, toolChoice } = options;
+    // Enforce the caller's tool choice before the JSON response fallback can
+    // replace it with a forced call to the synthetic response tool.
+    const tools =
+      toolChoice?.type === 'none'
+        ? options.tools?.filter(tool => tool.type === 'function')
+        : options.tools;
     const entry = getGoogleLanguageModelEntry(this.modelId);
     const { structuredOutput } = entry.capabilities.language;
     let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
@@ -521,6 +521,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   static convertGenerateContentResponse({
     config,
     response,
+    responseHeaders,
     warnings,
     providerOptionsNames,
     toolNameMapping,
@@ -530,6 +531,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   }: {
     config: GoogleLanguageModelConfig;
     response: InferSchema<typeof responseSchema>;
+    responseHeaders?: Record<string, string>;
     warnings: SharedV4Warning[];
     providerOptionsNames: readonly string[];
     toolNameMapping?: ReturnType<typeof createToolNameMapping>;
@@ -733,7 +735,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         safetyRatings: candidate?.safetyRatings ?? null,
         usageMetadata: usageMetadata ?? null,
         finishMessage: candidate?.finishMessage ?? null,
-        serviceTier: usageMetadata?.serviceTier ?? null,
+        serviceTier:
+          usageMetadata?.serviceTier ??
+          responseHeaders?.['x-gemini-service-tier'] ??
+          null,
         ...(candidate?.continuationToken != null
           ? { continuationToken: candidate.continuationToken }
           : {}),
@@ -835,6 +840,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     const lastResult = GoogleLanguageModel.convertGenerateContentResponse({
       config: this.config,
       response: { ...response, usageMetadata },
+      responseHeaders,
       warnings,
       providerOptionsNames,
       toolNameMapping,
@@ -956,7 +962,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     let blockCounter = 0;
 
     // Track emitted sources to prevent duplicates
-    const emittedSourceUrls = new Set<string>();
+    const emittedSourceKeys = new Set<string>();
     // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
@@ -975,6 +981,19 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       const active = activeStreamingToolCalls.pop();
       if (active == null) {
         return;
+      }
+
+      // Finalized partial-argument calls also separate surrounding blocks.
+      if (currentTextBlockId !== null) {
+        controller.enqueue({ type: 'text-end', id: currentTextBlockId });
+        currentTextBlockId = null;
+      }
+      if (currentReasoningBlockId !== null) {
+        controller.enqueue({
+          type: 'reasoning-end',
+          id: currentReasoningBlockId,
+        });
+        currentReasoningBlockId = null;
       }
 
       const { finalJSON, closingDelta } = active.accumulator.finalize();
@@ -1040,19 +1059,22 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             if (value.error != null) {
               finishReason = { unified: 'error', raw: undefined };
               const error = value.error;
+              const statusCode =
+                error.code ??
+                mapGoogleErrorStatusToHttpStatusCode(error.status);
               controller.enqueue({
                 type: 'error',
                 error: createProviderStreamError({
                   message: error.message,
                   type: error.status,
                   code: error.code ?? undefined,
-                  statusCode: error.code ?? undefined,
+                  statusCode,
                   isRetryable:
-                    error.code != null &&
-                    (error.code === 408 ||
-                      error.code === 409 ||
-                      error.code === 429 ||
-                      error.code >= 500),
+                    statusCode != null &&
+                    (statusCode === 408 ||
+                      statusCode === 409 ||
+                      statusCode === 429 ||
+                      statusCode >= 500),
                   data: error,
                 }),
               });
@@ -1121,16 +1143,11 @@ export class GoogleLanguageModel implements LanguageModelV4 {
             const sources = extractSources({
               groundingMetadata: candidate.groundingMetadata,
               generateId,
+              emittedSourceKeys,
             });
             if (sources != null) {
               for (const source of sources) {
-                if (
-                  source.sourceType === 'url' &&
-                  !emittedSourceUrls.has(source.url)
-                ) {
-                  emittedSourceUrls.add(source.url);
-                  controller.enqueue(source);
-                }
+                controller.enqueue(source);
               }
             }
 
@@ -1178,16 +1195,40 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     : undefined;
 
                   if (part.text.length === 0) {
-                    if (
-                      thoughtSignatureMetadata != null &&
-                      currentTextBlockId !== null
-                    ) {
-                      controller.enqueue({
-                        type: 'text-delta',
-                        id: currentTextBlockId,
-                        delta: '',
-                        providerMetadata: thoughtSignatureMetadata,
-                      });
+                    if (thoughtSignatureMetadata != null) {
+                      if (currentTextBlockId !== null) {
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id: currentTextBlockId,
+                          delta: '',
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                      } else {
+                        if (currentReasoningBlockId !== null) {
+                          controller.enqueue({
+                            type: 'reasoning-end',
+                            id: currentReasoningBlockId,
+                          });
+                          currentReasoningBlockId = null;
+                        }
+
+                        // Keep the signature in position without merging later content.
+                        const id = String(blockCounter++);
+                        const type =
+                          part.thought === true ? 'reasoning' : 'text';
+                        controller.enqueue({
+                          type: `${type}-start`,
+                          id,
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                        controller.enqueue({
+                          type: `${type}-delta`,
+                          id,
+                          delta: '',
+                          providerMetadata: thoughtSignatureMetadata,
+                        });
+                        controller.enqueue({ type: `${type}-end`, id });
+                      }
                     }
                   } else if (part.thought === true) {
                     // End any active text block before starting reasoning
@@ -1312,67 +1353,108 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                     providerMetadata: serverMeta,
                   });
                   lastServerToolCallId = undefined;
-                }
-              }
+                } else if ('functionCall' in part) {
+                  const providerMeta = part.thoughtSignature
+                    ? wrapProviderMetadata({
+                        thoughtSignature: part.thoughtSignature,
+                      })
+                    : undefined;
 
-              // Handle streaming and complete function calls
-              for (const part of parts) {
-                if (!('functionCall' in part)) continue;
+                  const isStreamingChunk =
+                    part.functionCall.partialArgs != null ||
+                    (part.functionCall.name != null &&
+                      part.functionCall.willContinue === true);
+                  const isTerminalChunk =
+                    part.functionCall.name == null &&
+                    part.functionCall.args == null &&
+                    part.functionCall.partialArgs == null &&
+                    part.functionCall.willContinue == null;
+                  const isCompleteCall =
+                    part.functionCall.name != null &&
+                    part.functionCall.args != null &&
+                    part.functionCall.partialArgs == null;
+                  // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
+                  // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
+                  const isNoArgsCompleteCall =
+                    part.functionCall.name != null &&
+                    part.functionCall.args == null &&
+                    part.functionCall.partialArgs == null &&
+                    part.functionCall.willContinue !== true;
 
-                const providerMeta = part.thoughtSignature
-                  ? wrapProviderMetadata({
-                      thoughtSignature: part.thoughtSignature,
-                    })
-                  : undefined;
+                  if (
+                    !isStreamingChunk &&
+                    (isCompleteCall || isNoArgsCompleteCall)
+                  ) {
+                    if (currentTextBlockId !== null) {
+                      controller.enqueue({
+                        type: 'text-end',
+                        id: currentTextBlockId,
+                      });
+                      currentTextBlockId = null;
+                    }
+                    if (currentReasoningBlockId !== null) {
+                      controller.enqueue({
+                        type: 'reasoning-end',
+                        id: currentReasoningBlockId,
+                      });
+                      currentReasoningBlockId = null;
+                    }
+                  }
 
-                const isStreamingChunk =
-                  part.functionCall.partialArgs != null ||
-                  (part.functionCall.name != null &&
-                    part.functionCall.willContinue === true);
-                const isTerminalChunk =
-                  part.functionCall.name == null &&
-                  part.functionCall.args == null &&
-                  part.functionCall.partialArgs == null &&
-                  part.functionCall.willContinue == null;
-                const isCompleteCall =
-                  part.functionCall.name != null &&
-                  part.functionCall.args != null &&
-                  part.functionCall.partialArgs == null;
-                // Single-chunk no-args call: `{ name: 'X' }` with no `args`,
-                // `partialArgs`, or `willContinue`. Carries `thoughtSignature`.
-                const isNoArgsCompleteCall =
-                  part.functionCall.name != null &&
-                  part.functionCall.args == null &&
-                  part.functionCall.partialArgs == null &&
-                  part.functionCall.willContinue !== true;
+                  if (isStreamingChunk) {
+                    if (part.functionCall.name != null) {
+                      const toolCallId = part.functionCall.id || generateId();
+                      const accumulator = new GoogleJSONAccumulator();
+                      activeStreamingToolCalls.push({
+                        toolCallId,
+                        toolName: part.functionCall.name,
+                        accumulator,
+                        providerMetadata: providerMeta,
+                      });
 
-                if (isStreamingChunk) {
-                  if (part.functionCall.name != null) {
-                    const toolCallId = part.functionCall.id || generateId();
-                    const accumulator = new GoogleJSONAccumulator();
-                    activeStreamingToolCalls.push({
-                      toolCallId,
-                      toolName: part.functionCall.name,
-                      accumulator,
-                      providerMetadata: providerMeta,
-                    });
+                      controller.enqueue({
+                        type: 'tool-input-start',
+                        id: toolCallId,
+                        toolName: part.functionCall.name,
+                        providerMetadata: providerMeta,
+                      });
 
-                    controller.enqueue({
-                      type: 'tool-input-start',
-                      id: toolCallId,
-                      toolName: part.functionCall.name,
-                      providerMetadata: providerMeta,
-                    });
-
-                    if (part.functionCall.partialArgs != null) {
+                      if (part.functionCall.partialArgs != null) {
+                        const partialArgs = part.functionCall
+                          .partialArgs as PartialArg[];
+                        const { textDelta } =
+                          accumulator.processPartialArgs(partialArgs);
+                        if (textDelta.length > 0) {
+                          controller.enqueue({
+                            type: 'tool-input-delta',
+                            id: toolCallId,
+                            delta: textDelta,
+                            providerMetadata: providerMeta,
+                          });
+                        }
+                        if (
+                          part.functionCall.willContinue !== true &&
+                          partialArgs.every(arg => arg.willContinue !== true)
+                        ) {
+                          finishActiveStreamingToolCall(controller);
+                        }
+                      }
+                    } else if (
+                      part.functionCall.partialArgs != null &&
+                      activeStreamingToolCalls.length > 0
+                    ) {
+                      const active =
+                        activeStreamingToolCalls[
+                          activeStreamingToolCalls.length - 1
+                        ];
                       const partialArgs = part.functionCall
                         .partialArgs as PartialArg[];
                       const { textDelta } =
-                        accumulator.processPartialArgs(partialArgs);
+                        active.accumulator.processPartialArgs(partialArgs);
                       if (textDelta.length > 0) {
                         controller.enqueue({
                           type: 'tool-input-delta',
-                          id: toolCallId,
+                          id: active.toolCallId,
                           delta: textDelta,
                           providerMetadata: providerMeta,
                         });
@@ -1385,100 +1467,74 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                       }
                     }
                   } else if (
-                    part.functionCall.partialArgs != null &&
+                    isTerminalChunk &&
                     activeStreamingToolCalls.length > 0
                   ) {
-                    const active =
-                      activeStreamingToolCalls[
-                        activeStreamingToolCalls.length - 1
-                      ];
-                    const partialArgs = part.functionCall
-                      .partialArgs as PartialArg[];
-                    const { textDelta } =
-                      active.accumulator.processPartialArgs(partialArgs);
-                    if (textDelta.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: active.toolCallId,
-                        delta: textDelta,
-                        providerMetadata: providerMeta,
-                      });
-                    }
-                    if (
-                      part.functionCall.willContinue !== true &&
-                      partialArgs.every(arg => arg.willContinue !== true)
-                    ) {
-                      finishActiveStreamingToolCall(controller);
-                    }
+                    finishActiveStreamingToolCall(controller);
+                  } else if (isCompleteCall) {
+                    const toolCallId = part.functionCall.id || generateId();
+                    const toolName = part.functionCall.name!;
+                    const args =
+                      typeof part.functionCall.args === 'string'
+                        ? part.functionCall.args
+                        : JSON.stringify(part.functionCall.args ?? {});
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallId,
+                      toolName,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: toolCallId,
+                      delta: args,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCallId,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId,
+                      toolName,
+                      input: args,
+                      providerMetadata: providerMeta,
+                    });
+
+                    hasToolCalls = true;
+                  } else if (isNoArgsCompleteCall) {
+                    const toolCallId = part.functionCall.id || generateId();
+                    const toolName = part.functionCall.name!;
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallId,
+                      toolName,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: toolCallId,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId,
+                      toolName,
+                      input: '{}',
+                      providerMetadata: providerMeta,
+                    });
+
+                    hasToolCalls = true;
                   }
-                } else if (
-                  isTerminalChunk &&
-                  activeStreamingToolCalls.length > 0
-                ) {
-                  finishActiveStreamingToolCall(controller);
-                } else if (isCompleteCall) {
-                  const toolCallId = part.functionCall.id || generateId();
-                  const toolName = part.functionCall.name!;
-                  const args =
-                    typeof part.functionCall.args === 'string'
-                      ? part.functionCall.args
-                      : JSON.stringify(part.functionCall.args ?? {});
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallId,
-                    toolName,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: toolCallId,
-                    delta: args,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCallId,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId,
-                    toolName,
-                    input: args,
-                    providerMetadata: providerMeta,
-                  });
-
-                  hasToolCalls = true;
-                } else if (isNoArgsCompleteCall) {
-                  const toolCallId = part.functionCall.id || generateId();
-                  const toolName = part.functionCall.name!;
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallId,
-                    toolName,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCallId,
-                    providerMetadata: providerMeta,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId,
-                    toolName,
-                    input: '{}',
-                    providerMetadata: providerMeta,
-                  });
-
-                  hasToolCalls = true;
                 }
               }
             }
@@ -1539,7 +1595,10 @@ export class GoogleLanguageModel implements LanguageModelV4 {
                 safetyRatings: lastSafetyRatings,
                 usageMetadata: usage ?? null,
                 finishMessage: lastFinishMessage,
-                serviceTier: usage?.serviceTier ?? null,
+                serviceTier:
+                  usage?.serviceTier ??
+                  responseHeaders?.['x-gemini-service-tier'] ??
+                  null,
                 // Only surface the token when the response stopped early
                 // (budget used up, or continuing failed), not for the
                 // checkpoint tokens of a stream that finished normally.
@@ -1668,9 +1727,11 @@ function resolveGemini25ThinkingConfig({
 function extractSources({
   groundingMetadata,
   generateId,
+  emittedSourceKeys,
 }: {
   groundingMetadata: GroundingMetadataSchema | undefined | null;
   generateId: () => string;
+  emittedSourceKeys?: Set<string>;
 }): undefined | LanguageModelV4Source[] {
   if (!groundingMetadata?.groundingChunks) {
     return undefined;
@@ -1678,27 +1739,42 @@ function extractSources({
 
   const sources: LanguageModelV4Source[] = [];
 
+  const addSource = (source: LanguageModelV4Source, key: string) => {
+    if (emittedSourceKeys?.has(key)) {
+      return;
+    }
+
+    emittedSourceKeys?.add(key);
+    sources.push(source);
+  };
+
   for (const chunk of groundingMetadata.groundingChunks) {
     if (chunk.web != null) {
       // Handle web chunks as URL sources
-      sources.push({
-        type: 'source',
-        sourceType: 'url',
-        id: generateId(),
-        url: chunk.web.uri,
-        title: chunk.web.title ?? undefined,
-      });
+      addSource(
+        {
+          type: 'source',
+          sourceType: 'url',
+          id: generateId(),
+          url: chunk.web.uri,
+          title: chunk.web.title ?? undefined,
+        },
+        JSON.stringify(['url', chunk.web.uri]),
+      );
     } else if (chunk.image != null) {
       // Handle image chunks as image sources
-      sources.push({
-        type: 'source',
-        sourceType: 'url',
-        id: generateId(),
-        // Google requires attribution to the source URI, not the actual image URI.
-        // TODO: add another type in v7 to allow both the image and source URL to be included separately
-        url: chunk.image.sourceUri,
-        title: chunk.image.title ?? undefined,
-      });
+      addSource(
+        {
+          type: 'source',
+          sourceType: 'url',
+          id: generateId(),
+          // Google requires attribution to the source URI, not the actual image URI.
+          // TODO: add another type in v7 to allow both the image and source URL to be included separately
+          url: chunk.image.sourceUri,
+          title: chunk.image.title ?? undefined,
+        },
+        JSON.stringify(['url', chunk.image.sourceUri]),
+      );
     } else if (chunk.retrievedContext != null) {
       // Handle retrievedContext chunks from RAG operations
       const uri = chunk.retrievedContext.uri;
@@ -1706,13 +1782,16 @@ function extractSources({
 
       if (uri && (uri.startsWith('http://') || uri.startsWith('https://'))) {
         // Old format: Google Search with HTTP/HTTPS URL
-        sources.push({
-          type: 'source',
-          sourceType: 'url',
-          id: generateId(),
-          url: uri,
-          title: chunk.retrievedContext.title ?? undefined,
-        });
+        addSource(
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: generateId(),
+            url: uri,
+            title: chunk.retrievedContext.title ?? undefined,
+          },
+          JSON.stringify(['url', uri]),
+        );
       } else if (uri) {
         // Old format: Document with file path (gs://, etc.)
         const title = chunk.retrievedContext.title ?? 'Unknown Document';
@@ -1739,35 +1818,44 @@ function extractSources({
           filename = uri.split('/').pop();
         }
 
-        sources.push({
-          type: 'source',
-          sourceType: 'document',
-          id: generateId(),
-          mediaType,
-          title,
-          filename,
-        });
+        addSource(
+          {
+            type: 'source',
+            sourceType: 'document',
+            id: generateId(),
+            mediaType,
+            title,
+            filename,
+          },
+          JSON.stringify(['document', uri]),
+        );
       } else if (fileSearchStore) {
         // New format: File Search with fileSearchStore (no uri)
         const title = chunk.retrievedContext.title ?? 'Unknown Document';
-        sources.push({
-          type: 'source',
-          sourceType: 'document',
-          id: generateId(),
-          mediaType: 'application/octet-stream',
-          title,
-          filename: fileSearchStore.split('/').pop(),
-        });
+        addSource(
+          {
+            type: 'source',
+            sourceType: 'document',
+            id: generateId(),
+            mediaType: 'application/octet-stream',
+            title,
+            filename: fileSearchStore.split('/').pop(),
+          },
+          JSON.stringify(['file-search', fileSearchStore, title]),
+        );
       }
     } else if (chunk.maps != null) {
       if (chunk.maps.uri) {
-        sources.push({
-          type: 'source',
-          sourceType: 'url',
-          id: generateId(),
-          url: chunk.maps.uri,
-          title: chunk.maps.title ?? undefined,
-        });
+        addSource(
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: generateId(),
+            url: chunk.maps.uri,
+            title: chunk.maps.title ?? undefined,
+          },
+          JSON.stringify(['url', chunk.maps.uri]),
+        );
       }
     }
   }

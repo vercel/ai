@@ -1,5 +1,142 @@
 # @ai-sdk/harness-fx
 
+## 1.0.97
+
+### Patch Changes
+
+- Updated dependencies [6309382]
+  - @ai-sdk/mcp@2.0.97
+  - @ai-sdk/harness@1.0.181
+
+## 1.0.96
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [6141e6f]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/mcp@2.0.96
+  - @ai-sdk/harness@1.0.180
+
+## 1.0.95
+
+### Patch Changes
+
+- 0fc1f13: chore(harness): update harness adapter underlying SDKs to their latest releases
+- 3647c6a: feat(harness-fx): add configurable `sessionStorage?: FxSessionStorage` and as fallback keep session data exclusively in memory and resume state
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/mcp@2.0.95
+  - @ai-sdk/provider-utils@5.0.78
+
+## 1.0.94
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/harness@1.0.178
+  - @ai-sdk/mcp@2.0.94
+
+## 1.0.93
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.92
+
+### Patch Changes
+
+- Updated dependencies [dc0f7f2]
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/mcp@2.0.93
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/harness@1.0.176
+
+## 1.0.91
+
+### Patch Changes
+
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+- Updated dependencies [ae13fce]
+  - @ai-sdk/harness@1.0.175
+  - @ai-sdk/mcp@2.0.92
+
+## 1.0.90
+
+### Patch Changes
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+  - @ai-sdk/mcp@2.0.91
+
+## 1.0.89
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+  - @ai-sdk/mcp@2.0.90
+
+## 1.0.88
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+  - @ai-sdk/mcp@2.0.89
+
+## 1.0.87
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.171
+
+## 1.0.86
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.170
+
+## 1.0.85
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [c3af430]
+- Updated dependencies [1afa510]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/mcp@2.0.88
+  - @ai-sdk/provider@4.0.35
+  - @ai-sdk/harness@1.0.169
+
 ## 1.0.84
 
 ### Patch Changes

@@ -1,3 +1,4 @@
+import { openaiCompatibleRequestDefaults } from '../openai-compatible-model-catalog';
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
@@ -58,11 +59,17 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
   }
 
   get maxEmbeddingsPerCall(): number {
-    return this.config.maxEmbeddingsPerCall ?? 2048;
+    return (
+      this.config.maxEmbeddingsPerCall ??
+      openaiCompatibleRequestDefaults.embedding.maxEmbeddingsPerCall
+    );
   }
 
   get supportsParallelCalls(): boolean {
-    return this.config.supportsParallelCalls ?? true;
+    return (
+      this.config.supportsParallelCalls ??
+      openaiCompatibleRequestDefaults.embedding.supportsParallelCalls
+    );
   }
 
   static [WORKFLOW_SERIALIZE](model: OpenAICompatibleEmbeddingModel) {

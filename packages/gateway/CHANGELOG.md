@@ -1,5 +1,155 @@
 # @ai-sdk/gateway
 
+## 4.0.143
+
+### Patch Changes
+
+- eaeb37e: chore(provider/gateway): update gateway model settings files
+
+## 4.0.142
+
+### Patch Changes
+
+- c160b74: Add support for the `gemini-4-carbon` model with the same capabilities as `gemini-4-argon`.
+- 4311fa1: Use Zod Mini for internal validation schemas to reduce bundle size while preserving the public message schemas' classic Zod methods, error messages, and compatibility with supported Zod 3 and Zod 4 versions.
+- 838dd53: fix(provider/gateway): restore `export_pricing.free_rows` on `takoSearch` results as a deprecated optional field, so code that reads it compiles again. Tako always sends 0 and will stop sending it.
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 4.0.141
+
+### Patch Changes
+
+- 5497ff7: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 4.0.140
+
+### Patch Changes
+
+- 8420810: feat(anthropic): add Claude Fable 5.2 support
+
+  - add the `claude-fable-5-2` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-fable-5-2`, `us.anthropic.claude-fable-5-2`, and `global.anthropic.claude-fable-5-2` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-fable-5.2` to `@ai-sdk/gateway`
+  - recognize `claude-fable-5-2` as a known model with the same capabilities as `claude-fable-5-1`: 128k max output tokens, always-on adaptive thinking, all five effort levels, no sampling parameters, and no forced tool use
+
+- 6d65092: Add `meta/muse-ember` to the available language model IDs.
+- 0e869b4: feat(provider/gateway): add developer-only `variableCost`, `maxVariableCostUsd` and `extraBody` options to `takoSearch`, and type Tako placeholder cards, `relevance_score`, premium and variable-cost pricing fields, and `usage.variable_cost`. Remove the deprecated `export_pricing.free_rows` from the published types and schema; Tako always sends 0 and will drop it. Code that reads it must be updated, though the value still passes through at runtime while Tako sends it.
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 4.0.139
+
+### Patch Changes
+
+- 44db225: feat(provider/gateway): type the headquarters provider option
+
+## 4.0.138
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 4.0.137
+
+### Patch Changes
+
+- bace553: chore(provider/gateway): update gateway model settings files
+- 6737c77: docs(provider/gateway): document the OIDC auth fallback in `apiKey` JSDoc and README
+- bb4e2d0: chore(provider/gateway): update gateway model settings files
+
+## 4.0.136
+
+### Patch Changes
+
+- 722d4a9: chore(provider/gateway): update gateway model settings files
+- acea2b5: chore(provider/gateway): update gateway model settings files
+- 89aff56: Add opt-in streaming decoding of large generated images to reduce peak memory.
+
+  Set `providerOptions.gateway.experimental_streamingImageDecoding` to `true` to decode canonical base64 images of at least 64 KiB while reading the response. Extracted images are returned as `Uint8Array`; smaller images stay base64 strings, and mixed results are normalized to bytes. The client option is not forwarded to the service.
+
+  Default behavior preserves the API's base64 representation. Opting in changes the model result representation and replaces large image data with placeholders in validation errors. Accessing `GeneratedFile.base64` can require re-encoding the extracted bytes.
+
+- 41465fd: Preserve optional normalized word timings returned by transcription responses and warn when shared timestampGranularities requests are not forwarded by the gateway adapter.
+- 2e44144: Accept explicit uploaded-video outcomes in video generation and status responses.
+- ef2dfb5: fix: pass through `seed: 0` instead of dropping it in image and video models. KlingAI now reports `seed: 0` as an unsupported setting like any other seed.
+- 892af4d: feat (provider/gateway): implement server-side realtime connection descriptors
+
+  `GatewayRealtimeModel` now implements `getServerWebSocketConfig()`, returning the AI Gateway realtime WebSocket URL plus `Authorization` header auth and optional team scoping for trusted server-side clients. Unsupported endpoint intents are rejected on the normalized realtime route.
+
+  Server WebSockets reuse HTTP authentication, protocol, team and custom headers, including OIDC auth-method metadata.
+
+- 32acf43: Add marketCost, surchargeCost, and gatewayCost fields to getGenerationInfo() results, surfacing the corresponding fields from the AI Gateway generation lookup API.
+
+  The cost breakdown fields are optional and omitted when unavailable, preserving compatibility with older responses and distinguishing missing data from a zero cost.
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 4.0.135
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 4.0.134
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 4.0.133
+
+### Patch Changes
+
+- 2099d45: feat(provider/gateway): add DeepSeek Search and Fetch tools
+
+  Share lazy tool-error validation across DeepSeek, Parallel, and Tako while preserving additional error fields.
+
+  Tako tool errors also accept `gateway_rate_limit` and `unknown`; exhaustive error switches may need to handle these cases. Parallel and Tako errors gain optional `retryAfter` and `statusText` fields.
+
+- d05ff62: chore(provider/gateway): update gateway model settings files
+
+## 4.0.132
+
+### Patch Changes
+
+- cbc9ac0: chore(provider/gateway): update gateway model settings files
+
+## 4.0.131
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- f850782: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
 ## 4.0.130
 
 ### Patch Changes

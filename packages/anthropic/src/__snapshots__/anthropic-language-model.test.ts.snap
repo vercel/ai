@@ -16,6 +16,7 @@ exports[`AnthropicLanguageModel > doGenerate > agent skills > should expose cont
     },
     "contextManagement": null,
     "iterations": null,
+    "serviceTier": "standard",
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -46,6 +47,7 @@ exports[`AnthropicLanguageModel > doGenerate > code execution 20250825 > should 
     },
     "contextManagement": null,
     "iterations": null,
+    "serviceTier": "standard",
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -296,6 +298,7 @@ Both files have been exported and are ready for download!",
       },
       "contextManagement": null,
       "iterations": null,
+      "serviceTier": "standard",
       "stopSequence": null,
       "usage": {
         "cache_creation": {
@@ -5366,6 +5369,7 @@ The presentation has",
         },
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -10456,6 +10460,7 @@ Both",
         },
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -11800,6 +11805,7 @@ The Fibonacci sequence starts with 0, ",
         },
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -13139,6 +13145,7 @@ The Fibonacci sequence starts with 0, ",
         },
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -13810,6 +13817,7 @@ exports[`AnthropicLanguageModel > doStream > json schema response format with ou
         "container": null,
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -13953,6 +13961,7 @@ It simply echoed back",
         "container": null,
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -14887,6 +14896,7 @@ exports[`AnthropicLanguageModel > doStream > programmatic tool calling > with fi
         },
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -16684,6 +16694,7 @@ The",
         "container": null,
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -16936,6 +16947,7 @@ exports[`AnthropicLanguageModel > doStream > tool search tool > bm25 variant > s
         "container": null,
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -17069,6 +17081,7 @@ exports[`AnthropicLanguageModel > doStream > tool search tool > bm25 variant > s
         "container": null,
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -17317,6 +17330,7 @@ exports[`AnthropicLanguageModel > doStream > tool search tool > regex variant > 
         "container": null,
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -17479,6 +17493,7 @@ The weather in",
         "container": null,
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -17849,6 +17864,7 @@ This domain is for use in documentation examples without needing permission. Avo
         },
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -18297,6 +18313,7 @@ The page also discusses",
         "container": null,
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -19514,6 +19531,7 @@ The main tech story today appears to be Apple's significant",
         "container": null,
         "contextManagement": null,
         "iterations": null,
+        "serviceTier": "standard",
         "stopSequence": null,
         "usage": {
           "cache_creation": {

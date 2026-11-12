@@ -14,7 +14,10 @@ import { z } from 'zod/v4';
  * payload, which carries Claude SDK configuration.
  */
 
-export const outboundMessageSchema = harnessV1BridgeOutboundMessageSchema;
+export const outboundMessageSchema = z.intersection(
+  harnessV1BridgeOutboundMessageSchema,
+  z.object({ startId: z.string().optional() }),
+);
 export type OutboundMessage = z.infer<typeof outboundMessageSchema>;
 
 const thinkingDisplaySchema = z.enum(['summarized', 'omitted']).optional();
@@ -31,14 +34,23 @@ const thinkingSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('disabled') }),
 ]);
 
+const skillOverridesSchema = z.record(
+  z.string(),
+  z.enum(['on', 'name-only', 'user-invocable-only', 'off']),
+);
+
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   prompt: harnessPromptContentSchema,
+  readableSkillRoots: z.array(z.string()).optional(),
   instructions: z.string().optional(),
   thinking: thinkingSchema,
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
   maxTurns: z.number().optional(),
+  skillOverrides: skillOverridesSchema.optional(),
   maxBudgetUsd: z.number().optional(),
+  additionalDirectories: z.array(z.string()).optional(),
   strictMcpConfig: z.boolean().optional(),
+  autoMode: z.boolean().optional(),
   questionTimeoutMs: z.number().optional(),
   excludeDynamicSections: z.boolean().optional(),
   agentProgressSummaries: z.boolean().optional(),

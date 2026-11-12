@@ -19,8 +19,8 @@ import {
   createJsonResponseHandler,
   generateId,
   isCustomReasoning,
-  parseProviderOptions,
   postJsonToApi,
+  resolveProviderOptions,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -52,6 +52,15 @@ import {
 } from './openai-chat-language-model-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
+
+type OpenAIChatLogprob = NonNullable<
+  NonNullable<
+    Extract<
+      OpenAIChatChunk,
+      { choices: unknown }
+    >['choices'][number]['logprobs']
+  >['content']
+>[number];
 
 type OpenAIChatConfig = {
   provider: string;
@@ -114,13 +123,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
 
-    // Parse provider options
+    // `openai` and the Azure key are merged; the Azure key wins (like Azure
+    // completion models).
+    const providerOptionsNames = this.config.provider.includes('azure')
+      ? (['openai', 'azure'] as const)
+      : (['openai'] as const);
     const openaiOptions =
-      (await parseProviderOptions({
-        provider: 'openai',
-        providerOptions,
-        schema: openaiLanguageModelChatOptions,
-      })) ?? {};
+      (
+        await resolveProviderOptions({
+          providerOptions,
+          namespaces: providerOptionsNames,
+          resolution: 'merge',
+          schema: openaiLanguageModelChatOptions,
+        })
+      ).options ?? {};
 
     const {
       capabilities: { language: modelCapabilities },
@@ -169,7 +185,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     // reasoningSummary is a Responses API option that the chat options schema strips,
     // so check the raw provider options to avoid silently ignoring it:
-    if (providerOptions?.openai?.reasoningSummary != null) {
+    if (
+      providerOptionsNames.some(
+        name => providerOptions?.[name]?.reasoningSummary != null,
+      )
+    ) {
       warnings.push({
         type: 'unsupported',
         feature: 'reasoningSummary',
@@ -178,16 +198,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
-      {
+    const { messages, warnings: messageWarnings } =
+      await convertToOpenAIChatMessages({
         prompt,
         systemMessageMode:
           openaiOptions.systemMessageMode ??
           (isReasoningModel
             ? 'developer'
             : modelRequestConfig.systemMessageMode),
-      },
-    );
+      });
 
     warnings.push(...messageWarnings);
 
@@ -414,16 +433,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
+    const url = this.config.url({
+      path: '/chat/completions',
+      modelId: this.config.requestModelId ?? this.modelId,
+    });
 
     const {
       responseHeaders,
       value: response,
       rawValue: rawResponse,
     } = await postJsonToApi({
-      url: this.config.url({
-        path: '/chat/completions',
-        modelId: this.config.requestModelId ?? this.modelId,
-      }),
+      url,
       headers: combineHeaders(
         await resolve(this.config.headers),
         options.headers,
@@ -447,13 +467,22 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     const content: Array<LanguageModelV4Content> = [];
 
-    // text content:
+    // text content. When the model refuses to answer, the API returns the
+    // refusal in `refusal` and sets `content` to null, so surface it as text
+    // instead of dropping it. Content and refusal are both returned when the
+    // model refuses after answering, so keep both:
     const text =
       choice.message.content != null && choice.message.content.length > 0
         ? choice.message.content
         : choice.message.audio?.transcript;
     if (text != null && text.length > 0) {
       content.push({ type: 'text', text });
+    }
+
+    const refusal = choice.message.refusal;
+    const hasRefusal = refusal != null && refusal.length > 0;
+    if (hasRefusal) {
+      content.push({ type: 'text', text: refusal });
     }
 
     // tool calls:
@@ -488,18 +517,29 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       providerMetadata.openai.rejectedPredictionTokens =
         completionTokenDetails?.rejected_prediction_tokens;
     }
-    if (choice.logprobs?.content != null) {
-      providerMetadata.openai.logprobs = choice.logprobs.content;
+    // logprobs either follow the text content (content) or the refusal, so
+    // combine them in the order the text is emitted above. Explicitly empty
+    // logprobs are reported as an empty array, as before:
+    const contentLogprobs = choice.logprobs?.content;
+    const refusalLogprobs = choice.logprobs?.refusal;
+    if (contentLogprobs != null || refusalLogprobs != null) {
+      providerMetadata.openai.logprobs = [
+        ...(contentLogprobs ?? []),
+        ...(refusalLogprobs ?? []),
+      ];
     }
 
     return {
       content,
       finishReason: {
-        unified: mapOpenAIFinishReason(choice.finish_reason),
+        unified: mapOpenAIFinishReason({
+          finishReason: choice.finish_reason,
+          hasRefusal,
+        }),
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertOpenAIChatUsage(response.usage),
-      request: { body },
+      request: { body, url },
       response: {
         ...getResponseMetadata(response),
         headers: responseHeaders,
@@ -562,6 +602,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     let usage: OpenAIChatUsage | undefined = undefined;
     let metadataExtracted = false;
     let isActiveText = false;
+    let hasRefusal = false;
+    let rawFinishReason: string | undefined = undefined;
+    let hasLogprobs = false;
+
+    // logprobs of all streamed chunks (content token logprobs followed by
+    // refusal token logprobs), collected across chunks:
+    const streamedLogprobs: OpenAIChatLogprob[] = [];
 
     const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
 
@@ -587,6 +634,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = { unified: 'error', raw: undefined };
+              rawFinishReason = undefined;
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -596,6 +644,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
             // handle error chunks:
             if ('error' in value) {
               finishReason = { unified: 'error', raw: undefined };
+              rawFinishReason = undefined;
               controller.enqueue({
                 type: 'error',
                 error:
@@ -639,15 +688,29 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
             const choice = value.choices[0];
 
+            // store the raw finish reason and map it in `flush`, after all
+            // chunks have been read: some servers send the last delta (which
+            // can contain a refusal) in the same chunk as the finish reason,
+            // and a refusal turns `stop` into `content-filter`:
             if (choice?.finish_reason != null) {
-              finishReason = {
-                unified: mapOpenAIFinishReason(choice.finish_reason),
-                raw: choice.finish_reason,
-              };
+              rawFinishReason = choice.finish_reason;
             }
 
-            if (choice?.logprobs?.content != null) {
-              providerMetadata.openai.logprobs = choice.logprobs.content;
+            // logprobs either follow the text content (content) or the refusal.
+            // They are streamed token by token, so collect the logprobs of all
+            // chunks (content logprobs followed by refusal logprobs) and report
+            // the complete list at the end of the stream:
+            if (choice?.logprobs != null) {
+              const contentLogprobs = choice.logprobs.content;
+              const refusalLogprobs = choice.logprobs.refusal;
+
+              if (contentLogprobs != null || refusalLogprobs != null) {
+                hasLogprobs = true;
+                streamedLogprobs.push(
+                  ...(contentLogprobs ?? []),
+                  ...(refusalLogprobs ?? []),
+                );
+              }
             }
 
             if (choice?.delta == null) {
@@ -656,7 +719,24 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
             const delta = choice.delta;
 
-            if (delta.content != null) {
+            // When the model refuses to answer, the API streams the refusal in
+            // `refusal` instead of `content`. Content and refusal deltas can
+            // both occur, so append each to the same text part instead of
+            // dropping one:
+            const textDeltas: string[] = [];
+            if (delta.content != null && delta.content.length > 0) {
+              textDeltas.push(delta.content);
+            }
+            if (delta.refusal != null && delta.refusal.length > 0) {
+              hasRefusal = true;
+              textDeltas.push(delta.refusal);
+            }
+            // empty `content: ""` deltas keep their previous behavior:
+            if (textDeltas.length === 0 && delta.content === '') {
+              textDeltas.push(delta.content);
+            }
+
+            for (const textDelta of textDeltas) {
               if (!isActiveText) {
                 controller.enqueue({ type: 'text-start', id: '0' });
                 isActiveText = true;
@@ -665,7 +745,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({
                 type: 'text-delta',
                 id: '0',
-                delta: delta.content,
+                delta: textDelta,
               });
             }
 
@@ -696,6 +776,25 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
             toolCallTracker.flush();
 
+            // map the stored finish reason now that all deltas (including
+            // refusals that arrived in the same chunk as the finish reason)
+            // have been read:
+            if (rawFinishReason != null) {
+              finishReason = {
+                unified: mapOpenAIFinishReason({
+                  finishReason: rawFinishReason,
+                  hasRefusal,
+                }),
+                raw: rawFinishReason,
+              };
+            }
+
+            // report the logprobs of all streamed chunks (content logprobs
+            // followed by refusal logprobs), not only the last chunk:
+            if (hasLogprobs) {
+              providerMetadata.openai.logprobs = streamedLogprobs;
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -705,7 +804,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
           },
         }),
       ),
-      request: { body },
+      request: { body, url },
       response: { headers: responseHeaders },
     };
 
@@ -723,6 +822,7 @@ function isOpenAIChatOutputChunk(chunk: OpenAIChatChunk): boolean {
 
     return (
       (delta?.content != null && delta.content.length > 0) ||
+      (delta?.refusal != null && delta.refusal.length > 0) ||
       (delta?.tool_calls != null && delta.tool_calls.length > 0) ||
       (delta?.annotations != null && delta.annotations.length > 0)
     );

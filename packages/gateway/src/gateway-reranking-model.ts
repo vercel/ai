@@ -108,12 +108,12 @@ const gatewayRerankingWarningSchema = () =>
     z.object({
       type: z.literal('unsupported'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('compatibility'),
       feature: z.string(),
-      details: z.string().optional(),
+      details: z.optional(z.string()),
     }),
     z.object({
       type: z.literal('deprecated'),
@@ -135,10 +135,10 @@ const gatewayRerankingResponseSchema = lazySchema(() =>
           relevanceScore: z.number(),
         }),
       ),
-      warnings: z.array(gatewayRerankingWarningSchema()).optional(),
-      providerMetadata: z
-        .record(z.string(), z.record(z.string(), z.unknown()))
-        .optional(),
+      warnings: z.optional(z.array(gatewayRerankingWarningSchema())),
+      providerMetadata: z.optional(
+        z.record(z.string(), z.record(z.string(), z.unknown())),
+      ),
     }),
   ),
 );

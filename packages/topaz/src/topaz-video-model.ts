@@ -1,3 +1,4 @@
+import { topazVideoCapabilities } from './topaz-model-catalog';
 import {
   APICallError,
   InvalidArgumentError,
@@ -14,14 +15,13 @@ import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  fetchWithValidatedEndpoint,
   getFromApi,
-  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   removeUndefinedEntries,
   resolve,
   serializeModelOptions,
-  validateDownloadUrl,
   withUserAgentSuffix,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -92,7 +92,7 @@ const containerMediaTypes: Record<string, string> = {
  */
 export class TopazVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxVideosPerCall = 1;
+  readonly maxVideosPerCall = topazVideoCapabilities.maxVideosPerCall;
 
   get provider(): string {
     return this.config.provider;
@@ -461,23 +461,22 @@ export class TopazVideoModel implements VideoModelV4 {
       });
     }
 
-    // The upload URL comes from the Topaz response body. `getFromApi` cannot
-    // be used for a PUT, so the same trust decision is made explicitly here:
-    // validate unless the URL points back at the configured base URL, and
-    // never attach the API key (presigned URLs carry their own credentials).
-    if (!isSameOrigin(url, this.config.baseURL)) {
-      validateDownloadUrl(url);
-    }
-
-    const fetchImpl = this.config.fetch ?? globalThis.fetch;
-    const response = await fetchImpl(url, {
-      method: 'PUT',
-      headers: withUserAgentSuffix(
-        { 'Content-Type': contentType },
-        `ai-sdk-topaz/${VERSION}`,
-      ) as HeadersInit,
-      body: bytes as BodyInit,
-      signal: abortSignal,
+    // Validate response-supplied upload URLs and reject redirects before the
+    // video body can be replayed to another destination. Presigned URLs carry
+    // their own credentials, so never attach the API key.
+    const response = await fetchWithValidatedEndpoint({
+      url,
+      trustedOrigin: this.config.baseURL,
+      fetch: this.config.fetch,
+      init: {
+        method: 'PUT',
+        headers: withUserAgentSuffix(
+          { 'Content-Type': contentType },
+          `ai-sdk-topaz/${VERSION}`,
+        ) as HeadersInit,
+        body: bytes as BodyInit,
+        signal: abortSignal,
+      },
     });
 
     if (!response.ok) {

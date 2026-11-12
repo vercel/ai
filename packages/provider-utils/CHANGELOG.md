@@ -1,5 +1,81 @@
 # @ai-sdk/provider-utils
 
+## 5.0.79
+
+### Patch Changes
+
+- 4311fa1: Infer Zod 3 schemas through Standard Schema to prevent recursive type comparisons between installed Zod versions, preserving tool input and streamed output inference.
+- 4311fa1: Use Zod Mini for internal validation schemas to reduce bundle size while preserving the public message schemas' classic Zod methods, error messages, and compatibility with supported Zod 3 and Zod 4 versions.
+
+## 5.0.78
+
+### Patch Changes
+
+- 88b9575: Require a DNS-pinned fetch for untrusted MCP OAuth discovery and metadata-derived token/registration URLs on server runtimes without a protected default transport. Preserve developer-configured endpoints and allow explicitly supplied fetch implementations that provide equivalent connect-time validation. Browser workers without a DOM follow the same explicit custom-fetch requirement.
+
+## 5.0.77
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+
+## 5.0.76
+
+### Patch Changes
+
+- 6400cf8: Add `resolveProviderOptions` to parse provider options that a model accepts under several `providerOptions` keys, either as aliases (`first`) or merged in order (`merge`), and use it for the existing multi-key lookups in the OpenAI, OpenAI-compatible, Anthropic, Google, and Amazon Bedrock models. Resolution behavior for these models is unchanged.
+- f608c05: Reject HTTPS-to-HTTP redirects in validated downloads before requesting the insecure target, including when it matches a configured trusted origin.
+- cab9c1f: Return undefined instead of throwing when detectMediaType receives an unsupported topLevelType that matches an inherited object property.
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider@4.0.37
+
+## 5.0.75
+
+### Patch Changes
+
+- 89aff56: feat(provider-utils): add an `experimental_binaryFields` option to `createJsonResponseHandler`
+
+  Providers whose JSON responses carry large base64 strings (images, files) can list their paths, e.g. `createJsonResponseHandler(schema, { experimental_binaryFields: ['images[*]'] })`. The body is then read as a stream and canonical base64 strings of 64 KiB and more are decoded to `Uint8Array` while they arrive, instead of holding about four copies of the body in memory (chunks, concatenated bytes, text, parsed string). `rawValue`, validation errors and `APICallError.responseBody` contain a short placeholder string instead of the data. Handlers without the option are unchanged. `readResponseWithSizeLimit` accepts an optional `onChunk` callback that receives each chunk instead of the chunks being collected.
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+
+## 5.0.74
+
+### Patch Changes
+
+- fa15312: Raise the minimum Undici version to 7.29.1 to include the fix for CVE-2026-84961.
+
+## 5.0.73
+
+### Patch Changes
+
+- 51ca5b7: fix(provider-utils): support cross-realm Uint8Array and ArrayBuffer in uint8-utils and inline file data conversion
+- dc6f1c3: fix(provider-utils): decode base64 into a preallocated Uint8Array to avoid ~25x transient memory and long event-loop blocking on large files
+- 4ae6986: Add `stringifyWithBigIntAndCycles` for provider tool serialization that converts BigInt values to decimal strings and replaces ancestor cycles while preserving shared references and `toJSON` behavior.
+
+## 5.0.72
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- 5c247e9: feat(sandbox): add `stat`, `listDirectory`, and `deleteFile` to `Experimental_SandboxSession`, and specify that relative paths in every method resolve against the directory `run` and `spawn` start in
+
+  The just-bash and Vercel Sandbox adapters implement the new methods. Both now resolve a relative `workingDirectory` for `run` and `spawn` against the sandbox's working directory, and the just-bash adapter rejects writes to a directory instead of replacing it with a file.
+
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider@4.0.35
+
 ## 5.0.71
 
 ### Patch Changes

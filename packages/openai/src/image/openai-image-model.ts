@@ -1,7 +1,8 @@
-import type {
-  ImageModelV4,
-  ImageModelV4File,
-  SharedV4Warning,
+import {
+  InvalidArgumentError,
+  type ImageModelV4,
+  type ImageModelV4File,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   resolve,
@@ -16,6 +17,7 @@ import {
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
+  type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
@@ -30,6 +32,8 @@ import {
   type OpenAIImageModelId,
 } from './openai-image-model-options';
 interface OpenAIImageModelConfig extends OpenAIConfig {
+  /** Transport for untrusted file URLs, without provider authentication. */
+  downloadFetch?: FetchFunction;
   imageInputCapabilities?: {
     supportsFileInputs: boolean | undefined;
     supportsMaskInputs: boolean | undefined;
@@ -128,6 +132,13 @@ export class OpenAIImageModel implements ImageModelV4 {
           schema: openaiImageModelEditOptions,
         })) ?? {};
 
+      if (mask != null && openaiOptions.markup != null) {
+        throw new InvalidArgumentError({
+          argument: 'providerOptions.openai.markup',
+          message: '`markup` cannot be combined with `mask`.',
+        });
+      }
+
       const { value: response, responseHeaders } = await postFormDataToApi({
         url: this.config.url({
           path: '/images/edits',
@@ -152,18 +163,39 @@ export class OpenAIImageModel implements ImageModelV4 {
                     ],
                     { type: file.mediaType },
                   )
-                : downloadBlob(file.url, { abortSignal }),
+                : downloadBlob(file.url, {
+                    abortSignal,
+                    fetch: this.config.downloadFetch ?? this.config.fetch,
+                  }),
             ),
           ),
-          mask: mask != null ? await fileToBlob(mask, abortSignal) : undefined,
+          mask:
+            mask != null
+              ? await fileToBlob(
+                  mask,
+                  abortSignal,
+                  this.config.downloadFetch ?? this.config.fetch,
+                )
+              : undefined,
+          markup:
+            openaiOptions.markup != null
+              ? await markupToBlob(
+                  openaiOptions.markup,
+                  abortSignal,
+                  this.config.downloadFetch ?? this.config.fetch,
+                )
+              : undefined,
           n,
           size,
           quality: openaiOptions.quality,
           background: openaiOptions.background,
           output_format: openaiOptions.outputFormat,
           output_compression: openaiOptions.outputCompression,
+          complexity: openaiOptions.complexity,
           input_fidelity: openaiOptions.inputFidelity,
+          moderation: openaiOptions.moderation,
           user: openaiOptions.user,
+          safety_identifier: openaiOptions.safetyIdentifier,
         }),
         failedResponseHandler: openaiFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
@@ -235,7 +267,11 @@ export class OpenAIImageModel implements ImageModelV4 {
         moderation: openaiOptions.moderation,
         output_format: openaiOptions.outputFormat,
         output_compression: openaiOptions.outputCompression,
+        complexity: openaiOptions.complexity,
+        frame_count: openaiOptions.frameCount,
+        frame_duration_ms: openaiOptions.frameDurationMs,
         user: openaiOptions.user,
+        safety_identifier: openaiOptions.safetyIdentifier,
         ...(!hasDefaultResponseFormat(this.modelId)
           ? { response_format: 'b64_json' }
           : {}),
@@ -326,24 +362,52 @@ type OpenAIImageEditInput = {
   prompt?: string;
   image: Blob | Blob[];
   mask?: Blob;
+  markup?: Blob;
   n?: number;
   size?: `${number}x${number}`;
   quality?: OpenAIImageModelEditOptions['quality'];
   background?: OpenAIImageModelEditOptions['background'];
   output_format?: OpenAIImageModelEditOptions['outputFormat'];
   output_compression?: OpenAIImageModelEditOptions['outputCompression'];
+  complexity?: OpenAIImageModelEditOptions['complexity'];
   input_fidelity?: OpenAIImageModelEditOptions['inputFidelity'];
+  moderation?: OpenAIImageModelEditOptions['moderation'];
   user?: OpenAIImageModelEditOptions['user'];
+  safety_identifier?: OpenAIImageModelEditOptions['safetyIdentifier'];
 };
+
+async function markupToBlob(
+  markup: string,
+  abortSignal: AbortSignal | undefined,
+  fetch: FetchFunction | undefined,
+): Promise<Blob> {
+  const dataUrl = /^data:([^;,]*)(;base64)?,(.*)$/s.exec(markup);
+
+  if (dataUrl == null) {
+    return downloadBlob(markup, { abortSignal, fetch });
+  }
+
+  if (dataUrl[2] == null) {
+    throw new InvalidArgumentError({
+      argument: 'providerOptions.openai.markup',
+      message: '`markup` data URLs must be base64 encoded.',
+    });
+  }
+
+  return new Blob([convertBase64ToUint8Array(dataUrl[3]) as BlobPart], {
+    type: dataUrl[1] || 'image/png',
+  });
+}
 
 async function fileToBlob(
   file: ImageModelV4File | undefined,
   abortSignal: AbortSignal | undefined,
+  fetch: FetchFunction | undefined,
 ): Promise<Blob | undefined> {
   if (!file) return undefined;
 
   if (file.type === 'url') {
-    return downloadBlob(file.url, { abortSignal });
+    return downloadBlob(file.url, { abortSignal, fetch });
   }
 
   const data =

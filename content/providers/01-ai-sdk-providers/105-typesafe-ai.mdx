@@ -142,23 +142,35 @@ directly. See [model aliases and registries](/docs/ai-sdk-core/decisions#model-a
 
 The provider includes these model IDs and aliases:
 
-| Model ID      | Description                                       |
+{/* model-capabilities:typesafe-ai-models:start */}
+
+| Model         | Description                                       |
 | ------------- | ------------------------------------------------- |
 | `jev-1.13.0`  | Jev 1.13 release.                                 |
 | `jev-1.14.0`  | Jev 1.14 release.                                 |
 | `jev-latest`  | Alias for the latest stable release.              |
 | `jev-preview` | Alias for the latest release, including previews. |
 
-| Question  | Native TypeSafe primitive | Limits and semantics                                                  |
-| --------- | ------------------------- | --------------------------------------------------------------------- |
-| `choice`  | Choice                    | 1–255 options; selected option and full probabilities.                |
-| `score`   | Score                     | 2–10 ordered rubric levels; fractional score and full probabilities.  |
-| `box`     | Box                       | Four normalized image edges; requires Jev 1.14 or later and an image. |
-| `boolean` | Noul                      | Required model-estimated probability of true.                         |
+{/* model-capabilities:typesafe-ai-models:end */}
+
+| Question  | Native TypeSafe primitive | Limits and semantics                                                          |
+| --------- | ------------------------- | ----------------------------------------------------------------------------- |
+| `choice`  | Choice                    | 1–255 options; selected option and full probabilities.                        |
+| `score`   | Score                     | 1–10 non-null ordered rubric levels; fractional score and full probabilities. |
+| `box`     | Box                       | Four normalized image edges; requires Jev 1.14 or later and an image.         |
+| `boolean` | Noul                      | Required model-estimated probability of true.                                 |
 
 State, instructions, and descriptions accept JSON objects and arrays in addition
-to strings. Descriptions may be `null`. Boolean true/false criteria are optional.
+to strings. Choice descriptions and Boolean true/false descriptions may be `null`;
+Score levels must be non-null. Boolean criteria are optional and may be `null`.
 The SDK uses the neutral name `boolean` and maps it to TypeSafe's `noul` field.
+Instructions may be omitted or `null` for every question type. A Boolean question
+without instructions still needs at least one non-null true/false description.
+
+A single Score level returns score `0` with probability `1`.
+Primitive values in JSON state parts, such as `{ type: 'json', value: true }`,
+are serialized as JSON text. A single string, object, or array JSON state part is
+sent as its native value.
 
 ### Box questions
 
@@ -169,6 +181,9 @@ questions: {
   target: { type: 'box', instructions: 'The cat in the image' },
 }
 ```
+
+Instructions are optional and may be `null`; include them to specify the target
+when the state does not make it clear.
 
 Send an image in `state` as shown below. The answer has
 `type: 'box'` and a `box` object with `top`, `bottom`, `left`, and `right`.
@@ -294,9 +309,14 @@ checking distribution sums and weighted means. The returned values are preserved
 unchanged; rounding means probabilities may not add up to exactly one.
 
 Confidence is a separate TypeSafe statistic, available under
-`result.providerMetadata.typesafe.confidence[questionId]` for Choice and Score
+`result.providerMetadata.typesafe.confidence[questionId]` for Choice, Score, and Box
 answers. Boolean probability always means P(true), not confidence in either
 outcome. Choose decision thresholds in application code.
+
+Score legends are available at
+`result.providerMetadata?.typesafe?.legend[questionId]`. Each legend maps
+zero-based level indices to their descriptions, preserving structured JSON
+objects and arrays. Missing or null legends are omitted from the metadata map.
 
 ### Errors and retries
 
@@ -311,3 +331,28 @@ embedding, and image model factories throw `NoSuchModelError`.
 
 Decision models support workflow serialization. A custom fetch function is not
 serialized; restored models use the default fetch implementation.
+
+### Decision Model Capabilities
+
+{/* model-capabilities:typesafe-ai-decision:start */}
+
+| Model         | Boolean   | Choice    | Score     | Box       | Image Input | Reasoning | Max Output Tokens |
+| ------------- | --------- | --------- | --------- | --------- | ----------- | --------- | ----------------- |
+| `jev-1.13.0`  | <Check /> | <Check /> | <Check /> | <Check /> | <Check />   | <Cross /> | <Cross />         |
+| `jev-1.14.0`  | <Check /> | <Check /> | <Check /> | <Check /> | <Check />   | <Cross /> | <Cross />         |
+| `jev-latest`  | <Check /> | <Check /> | <Check /> | <Check /> | <Check />   | <Cross /> | <Cross />         |
+| `jev-preview` | <Check /> | <Check /> | <Check /> | <Check /> | <Check />   | <Cross /> | <Cross />         |
+
+{/* model-capabilities:typesafe-ai-decision:end */}
+
+### Provider Option Catalog
+
+{/* model-capabilities:typesafe-ai-provider-options:start */}
+
+| Operation | Option            | Description                                                                                                                            |
+| --------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| decision  | `longContext`     | Enable experimental long context mode with 262k tokens per request and per question; slower and less accurate than default mode.       |
+| decision  | `reference`       | Image file parts only: asset reference used to place the image in state, instructions, or criteria. Defaults to a generated unique ID. |
+| decision  | `insertReference` | Image file parts only: whether to insert the asset reference into state. False requires an explicit reference.                         |
+
+{/* model-capabilities:typesafe-ai-provider-options:end */}

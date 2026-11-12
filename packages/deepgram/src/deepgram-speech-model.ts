@@ -1,4 +1,9 @@
-import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import { getDeepgramSpeechModelEntry } from './deepgram-model-catalog';
+import {
+  InvalidArgumentError,
+  type SpeechModelV4,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
 import {
   resolve,
   combineHeaders,
@@ -23,7 +28,6 @@ interface DeepgramSpeechModelConfig extends DeepgramConfig {
 // Deepgram embeds voice and language in the model ID
 // (`<family>-<voice>-<language>`, e.g. `aura-2-thalia-en`). Bare family IDs
 // compose the upstream model ID from the voice and language call options.
-const VOICE_FAMILY_IDS = new Set<string>(['aura', 'aura-2']);
 
 export class DeepgramSpeechModel implements SpeechModelV4 {
   readonly specificationVersion = 'v4';
@@ -69,10 +73,32 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
       schema: deepgramSpeechModelOptionsSchema,
     });
 
+    // With a `callback` URL Deepgram processes the request asynchronously and
+    // answers with a JSON acknowledgement (`{"request_id": "..."}`) instead of
+    // audio, so the audio can never be returned from `generateSpeech`.
+    if (deepgramOptions?.callback != null) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.deepgram.callback',
+        message:
+          'Deepgram processes speech requests with a `callback` URL asynchronously: it returns a JSON acknowledgement instead of audio and delivers the audio to the callback URL. `generateSpeech` requires the audio response, so `providerOptions.deepgram.callback` is not supported. Remove the option to receive the audio, or call the Deepgram REST API directly when you need asynchronous callback delivery.',
+      });
+    }
+
+    if (deepgramOptions?.callbackMethod != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.deepgram.callbackMethod',
+        details:
+          'providerOptions.deepgram.callbackMethod is only used together with `callback`, which is not supported by the AI SDK. Callback method was ignored.',
+      });
+    }
+
     // Compose the upstream model ID from voice/language when a bare voice
     // family ID is used; full voice IDs (e.g. `aura-2-thalia-en`) pass through.
     let upstreamModelId: string = this.modelId;
-    if (VOICE_FAMILY_IDS.has(this.modelId)) {
+    if (
+      getDeepgramSpeechModelEntry(this.modelId).requestConfig.speech.voiceFamily
+    ) {
       const trimmedVoice = voice?.trim();
       if (!trimmedVoice) {
         throw new Error(
@@ -411,12 +437,6 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
         }
       }
 
-      if (deepgramOptions.callback) {
-        queryParams.callback = deepgramOptions.callback;
-      }
-      if (deepgramOptions.callbackMethod) {
-        queryParams.callback_method = deepgramOptions.callbackMethod;
-      }
       if (deepgramOptions.mipOptOut != null) {
         queryParams.mip_opt_out = String(deepgramOptions.mipOptOut);
       }

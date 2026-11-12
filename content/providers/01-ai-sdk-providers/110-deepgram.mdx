@@ -97,6 +97,12 @@ You can use the following optional settings to customize the Deepgram provider i
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **webSocket** _WebSocketConstructor_
+
+  Custom WebSocket implementation for streaming transcription. Defaults to the
+  global `WebSocket`. Use a header-capable implementation such as `ws` when you
+  need to forward custom HTTP headers during the handshake.
+
 ## Speech Models
 
 You can create models that call the [Deepgram text-to-speech API](https://developers.deepgram.com/docs/text-to-speech)
@@ -175,14 +181,17 @@ The following provider options are available:
 
 - **callback** _string_
 
-  URL to which Deepgram will make a callback request with the audio.
-  Optional.
+  Not supported. Deepgram processes requests with a callback URL asynchronously
+  and answers with a JSON acknowledgement (`{ "request_id": "..." }`) instead of
+  audio, so `generateSpeech` rejects this option with an `InvalidArgumentError`.
+  Call the Deepgram REST API directly when you need asynchronous callback
+  delivery.
 
 - **callbackMethod** _enum_
 
-  HTTP method for the callback request.
-  Allowed values: `'POST'`, `'PUT'`.
-  Optional.
+  Not supported. Only used together with `callback`, which `generateSpeech`
+  rejects. Allowed values: `'POST'`, `'PUT'`. The option is ignored with an
+  `unsupported` warning.
 
 - **mipOptOut** _boolean_
 
@@ -346,10 +355,164 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                                                                                              | Transcription | Duration  | Segments  | Language  |
-| -------------------------------------------------------------------------------------------------- | ------------- | --------- | --------- | --------- |
-| `nova-3` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#nova-3))     | <Check />     | <Check /> | <Check /> | <Cross /> |
-| `nova-2` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#nova-2))     | <Check />     | <Check /> | <Check /> | <Cross /> |
-| `nova` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#nova))         | <Check />     | <Check /> | <Check /> | <Cross /> |
-| `enhanced` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#enhanced)) | <Check />     | <Check /> | <Check /> | <Cross /> |
-| `base` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#base))         | <Check />     | <Check /> | <Check /> | <Cross /> |
+{/* model-capabilities:deepgram-transcription:start */}
+
+| Model                     | Transcription | Streaming | Duration  | Segments  | Language                                                                                                   |
+| ------------------------- | ------------- | --------- | --------- | --------- | ---------------------------------------------------------------------------------------------------------- |
+| `base`                    | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `base-general`            | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `base-meeting`            | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `base-phonecall`          | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `base-finance`            | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `base-conversationalai`   | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `base-voicemail`          | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `base-video`              | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `enhanced`                | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `enhanced-general`        | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `enhanced-meeting`        | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `enhanced-phonecall`      | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `enhanced-finance`        | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova`                    | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-general`            | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-phonecall`          | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-medical`            | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-2`                  | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-2-general`          | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-2-meeting`          | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-2-phonecall`        | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-2-finance`          | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-2-conversationalai` | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-2-voicemail`        | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-2-video`            | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-2-medical`          | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-2-drivethru`        | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-2-automotive`       | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-2-atc`              | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-3`                  | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-3-general`          | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+| `nova-3-medical`          | <Check />     | <Check /> | <Check /> | <Check /> | Conditional: Returned when automatic language detection is enabled and the API supplies detected_language. |
+
+{/* model-capabilities:deepgram-transcription:end */}
+
+## Streaming Transcription
+
+Use `experimental_streamTranscribe` with Nova models to transcribe live audio
+through Deepgram's [`/v1/listen` WebSocket API](https://developers.deepgram.com/reference/speech-to-text/listen-streaming):
+
+```ts
+import { deepgram } from '@ai-sdk/deepgram';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+
+const result = streamTranscribe({
+  model: deepgram.transcription('nova-3'),
+  audio: audioStream, // ReadableStream<Uint8Array | string>
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+  providerOptions: {
+    deepgram: {
+      language: 'en',
+      streaming: { interimResults: true, endpointing: 300 },
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-partial' || part.type === 'transcript-final') {
+    console.log(part.type, part.text);
+  }
+}
+
+console.log(await result.text);
+console.log(await result.segments);
+console.log(await result.durationInSeconds);
+```
+
+Input chunks contain raw 16-bit little-endian PCM (`audio/pcm`), G.711 μ-law
+(`audio/pcmu`), or G.711 A-law (`audio/pcma`). Set `rate` to the actual sample
+rate. Strings contain base64-encoded audio. Closing the audio input flushes the
+remaining transcript before the result finishes. Idle input connections send
+keepalive messages, and cancellation closes the socket and cancels the audio
+source.
+
+The provider authenticates with WebSocket subprotocols when using a Deepgram API
+key, so native WebSockets work without custom headers. Keep long-lived API keys
+on the server. Flux models use a separate `/v2/listen` protocol and are not
+supported by this implementation.
+
+To authenticate with a short-lived token, use the Bearer scheme:
+
+```ts
+const deepgram = createDeepgram({
+  apiKey: temporaryToken,
+  headers: { authorization: `Bearer ${temporaryToken}` },
+});
+```
+
+Live transcription supports `language`, `smartFormat`, `punctuate`, `diarize`,
+`fillerWords`, `redact`, `replace`, `search`, and `keyterm`. Batch-only settings
+produce warnings. The optional `providerOptions.deepgram.streaming` object
+accepts:
+
+- **interimResults** _boolean_: emit revisable partial transcripts (default `false`).
+- **endpointing** _number | false_: silence duration in milliseconds before
+  finalizing an utterance; `false` disables endpointing.
+- **channels** _number_: number of interleaved audio channels (default `1`).
+- **multichannel** _boolean_: transcribe each channel independently.
+- **vadEvents** _boolean_: include speech-start events when `includeRawChunks` is enabled.
+- **utteranceEndMs** _number_: silence duration in milliseconds before an
+  utterance-end event; at least `1000`, used with `interimResults`.
+
+Final transcript parts contain channel indices and timing. Aggregate text and
+segments combine all channels in chronological order; consume `fullStream` when
+you need each segment's channel index. Word timings appear in `result.segments`, and Deepgram's reported duration appears in
+`result.durationInSeconds`. Native usage (`{ seconds: duration }`) is forwarded
+to the `experimental_onStreamTranscriptionEnd` telemetry callback. The
+`providerMetadata.deepgram.speechFinal` flag indicates an utterance boundary.
+Enable `includeRawChunks` for complete provider events, including request IDs,
+speaker labels, and utterance-end events.
+
+### Speech Model Capabilities
+
+{/* model-capabilities:deepgram-speech:start */}
+
+| Model    | Instructions |
+| -------- | ------------ |
+| `aura`   | <Cross />    |
+| `aura-2` | <Cross />    |
+
+{/* model-capabilities:deepgram-speech:end */}
+
+### Provider Option Catalog
+
+{/* model-capabilities:deepgram-provider-options:start */}
+
+| Operation     | Option           | Description                                                                                                                                                                             |
+| ------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| speech        | `bitRate`        | Bitrate of the audio in bits per second. Can be a number or predefined enum value.                                                                                                      |
+| speech        | `container`      | Container format for the output audio (mp3, wav, etc.).                                                                                                                                 |
+| speech        | `encoding`       | Encoding type for the audio output (linear16, mulaw, alaw, etc.).                                                                                                                       |
+| speech        | `sampleRate`     | Sample rate for the output audio in Hz (8000, 16000, 24000, 44100, 48000).                                                                                                              |
+| speech        | `callback`       | URL to which Deepgram would deliver the audio asynchronously. Deepgram answers callback requests with a JSON acknowledgement instead of audio, so `generateSpeech` rejects this option. |
+| speech        | `callbackMethod` | HTTP method by which the callback request will be made (POST or PUT).                                                                                                                   |
+| speech        | `mipOptOut`      | Opts out requests from the Deepgram Model Improvement Program.                                                                                                                          |
+| speech        | `tag`            | Label your requests for the purpose of identification during usage reporting.                                                                                                           |
+| transcription | `language`       | Language to use for transcription. If not specified, Deepgram defaults to English. Use `detectLanguage: true` to enable automatic language detection.                                   |
+| transcription | `detectLanguage` | Whether to enable automatic language detection. When true, Deepgram will detect the language of the audio.                                                                              |
+| transcription | `smartFormat`    | Whether to use smart formatting, which formats written-out numbers, dates, times, etc.                                                                                                  |
+| transcription | `punctuate`      | Whether to add punctuation to the transcript.                                                                                                                                           |
+| transcription | `paragraphs`     | Whether to format the transcript into paragraphs.                                                                                                                                       |
+| transcription | `summarize`      | Whether to generate a summary of the transcript. Use 'v2' for the latest version or false to disable.                                                                                   |
+| transcription | `topics`         | Whether to identify topics in the transcript.                                                                                                                                           |
+| transcription | `intents`        | Whether to identify intents in the transcript.                                                                                                                                          |
+| transcription | `sentiment`      | Whether to analyze sentiment in the transcript.                                                                                                                                         |
+| transcription | `detectEntities` | Whether to detect and tag named entities in the transcript.                                                                                                                             |
+| transcription | `redact`         | Specify terms or patterns to redact from the transcript. Can be a string or array of strings.                                                                                           |
+| transcription | `replace`        | String to replace redacted content with.                                                                                                                                                |
+| transcription | `search`         | Term or phrase to search for in the transcript.                                                                                                                                         |
+| transcription | `keyterm`        | Key term to identify in the transcript.                                                                                                                                                 |
+| transcription | `diarize`        | Whether to identify different speakers in the audio.                                                                                                                                    |
+| transcription | `utterances`     | Whether to segment the transcript into utterances.                                                                                                                                      |
+| transcription | `uttSplit`       | Minimum duration of silence (in seconds) to trigger a new utterance.                                                                                                                    |
+| transcription | `fillerWords`    | Whether to include filler words (um, uh, etc.) in the transcript.                                                                                                                       |
+| transcription | `streaming`      | Options for live transcription over the /v1/listen WebSocket.                                                                                                                           |
+
+{/* model-capabilities:deepgram-provider-options:end */}

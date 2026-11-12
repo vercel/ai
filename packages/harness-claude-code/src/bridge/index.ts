@@ -55,6 +55,7 @@ import {
   type ClaudeMessage,
 } from './create-emit-stream-event';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
+import { areFileToolPathsTrusted } from './permission-paths';
 import {
   resolveInactiveNativeTools,
   resolveNativeTools,
@@ -152,7 +153,44 @@ let lastClaudeSessionId: string | undefined;
 await runBridge<StartMessage>({
   bridgeType: 'claude-code',
   bridgeStateDir,
-  onStart: runTurn,
+  ...(args.hostDisconnectTimeoutMs !== undefined
+    ? { hostDisconnectTimeoutMs: args.hostDisconnectTimeoutMs }
+    : {}),
+  onStart: async (start, turn) => {
+    const emit: BridgeTurn['emit'] = event => {
+      if (turn.abortSignal.aborted) return;
+      turn.emit({
+        ...event,
+        ...(start.startId == null ? {} : { startId: start.startId }),
+      });
+    };
+    /*
+     * The shared emitError closes over its own emitter, so wrapping turn.emit
+     * cannot attach startId to errors or suppress them after abort. Duplicating
+     * its stderr logging and error serialization here is an adapter-local
+     * workaround to keep errors scoped to their turn without changing the
+     * shared bridge. Keep this duplication aligned with shared error handling.
+     */
+    const emitError: BridgeTurn['emitError'] = ({ error, message }) => {
+      if (turn.abortSignal.aborted) return;
+      console.error(
+        `[harness:claude-code:error] ${message ?? 'bridge error'}:`,
+        error,
+      );
+      emit({
+        type: 'error',
+        error:
+          error instanceof Error
+            ? { name: error.name, message: error.message, stack: error.stack }
+            : error,
+      });
+    };
+    try {
+      await runTurn(start, { ...turn, emit, emitError });
+    } catch (error) {
+      emitError({ error, message: 'claude-code turn failed' });
+    }
+  },
   // Claude Code's conversation state lives in the runtime's own store, keyed
   // by working directory. The resume payload names the exact conversation so a
   // later resume does not have to fall back to "most recent in this workdir".
@@ -173,11 +211,15 @@ function createPermissionOptions(input: {
   approvalRequestedToolUseIds: Set<string>;
   emittedToolCallIds: Set<string>;
   approvalDecisions: Map<string, { approved: boolean; reason?: string }>;
+  toolCwds: Map<string, string>;
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
+  const autoMode =
+    input.start.autoMode === true && permissionMode !== 'allow-all';
   const inactiveNativeTools = new Set(input.inactiveNativeTools);
   const permissionSettings = createPermissionSettings({
     permissionMode,
+    autoMode,
     inactiveNativeTools,
   });
 
@@ -185,9 +227,14 @@ function createPermissionOptions(input: {
     permissionMode:
       permissionMode === 'allow-all'
         ? 'bypassPermissions'
-        : permissionMode === 'allow-edits'
-          ? 'acceptEdits'
-          : 'default',
+        : autoMode
+          ? 'auto'
+          : permissionMode === 'allow-edits'
+            ? 'acceptEdits'
+            : 'default',
+    // Host tools are authorized by HarnessAgent's toolApproval, not the
+    // Claude Code classifier. Do not allow unrelated MCP servers here.
+    ...(autoMode ? { allowedTools: ['mcp__harness-tools__*'] } : {}),
     allowDangerouslySkipPermissions: permissionMode === 'allow-all',
     ...(permissionSettings ? { settings: permissionSettings } : {}),
   };
@@ -210,10 +257,21 @@ function createPermissionOptions(input: {
     canUseTool: async (
       toolName: string,
       toolInput: Record<string, unknown>,
-      options: { toolUseID: string },
+      options: { toolUseID: string; blockedPath?: string },
     ) => {
       if (
-        !needsHostApproval({ toolName, permissionMode, inactiveNativeTools })
+        toolName.startsWith('mcp__harness-tools__') ||
+        (!autoMode &&
+          !(await needsHostApproval({
+            toolName,
+            toolInput,
+            permissionMode,
+            inactiveNativeTools,
+            cwd: input.toolCwds.get(options.toolUseID) ?? '',
+            readableSkillRoots: input.start.readableSkillRoots ?? [],
+            additionalDirectories: input.start.additionalDirectories ?? [],
+            blockedPath: options.blockedPath,
+          })))
       ) {
         return { behavior: 'allow', updatedInput: toolInput };
       }
@@ -349,17 +407,19 @@ function createQuestionPreToolUseHook(input: {
 
 function createPermissionSettings(input: {
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
+  autoMode: boolean;
   inactiveNativeTools: ReadonlySet<string>;
 }): Record<string, unknown> | undefined {
   const askRules = new Set<string>();
   for (const [nativeName, kind] of Object.entries(NATIVE_TOOL_KINDS)) {
     if (
       input.inactiveNativeTools.has(nativeName) ||
-      (input.permissionMode === 'allow-reads'
-        ? kind === 'edit' || kind === 'bash'
-        : input.permissionMode === 'allow-edits'
-          ? kind === 'bash'
-          : false)
+      (!input.autoMode &&
+        (input.permissionMode === 'allow-reads'
+          ? kind === 'edit' || kind === 'bash'
+          : input.permissionMode === 'allow-edits'
+            ? kind === 'bash'
+            : false))
     ) {
       askRules.add(`${nativeName}(*)`);
     }
@@ -373,19 +433,111 @@ function createPermissionSettings(input: {
   };
 }
 
-function needsHostApproval(input: {
+/**
+ * Claude Code picks a model's output limit, system prompt and default effort
+ * from its own reading of the model id, and misreads AI Gateway ids with a
+ * dotted version such as `anthropic/claude-opus-5.5`. `modelOverrides` maps
+ * the id Claude Code expects (`claude-opus-5-5`) to the gateway id, which
+ * stays the id sent to the gateway.
+ */
+function toGatewayModelOverride(
+  model: string | undefined,
+): Record<string, string> | undefined {
+  if (!model?.startsWith('anthropic/')) return undefined;
+  // Claude Code matches the value against the model id, suffix included, so a
+  // suffix such as `[1m]` stays on the value.
+  const id = model.slice('anthropic/'.length).replace(/\[[^\]]*\]$/, '');
+  return id.includes('.') ? { [id.replace(/\./g, '-')]: model } : undefined;
+}
+
+/**
+ * The `ANTHROPIC_DEFAULT_*_MODEL` variables point Claude Code's model aliases
+ * at other ids and `CLAUDE_CODE_SUBAGENT_MODEL` sets the model of subagents,
+ * which it misreads the same way. `model` comes last so that its entry wins a
+ * key it shares with one of them.
+ */
+function createGatewayModelOverrides(
+  model: string | undefined,
+  env: Record<string, string | undefined>,
+): Record<string, string> | undefined {
+  const overrides = {
+    ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_OPUS_MODEL),
+    ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_SONNET_MODEL),
+    ...toGatewayModelOverride(env.ANTHROPIC_DEFAULT_HAIKU_MODEL),
+    ...toGatewayModelOverride(env.CLAUDE_CODE_SUBAGENT_MODEL),
+    ...toGatewayModelOverride(model),
+  };
+  return Object.keys(overrides).length > 0 ? overrides : undefined;
+}
+
+async function needsHostApproval(input: {
   toolName: string;
+  toolInput: unknown;
+  cwd: string;
+  readableSkillRoots: readonly string[];
+  additionalDirectories: readonly string[];
+  blockedPath?: string;
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
   inactiveNativeTools: ReadonlySet<string>;
-}): boolean {
+}): Promise<boolean> {
   if (input.toolName.startsWith('mcp__harness-tools__')) return false;
-  return (
+  if (
     input.inactiveNativeTools.has(input.toolName) ||
     nativeToolRequiresApproval({
       nativeName: input.toolName,
       permissionMode: input.permissionMode,
     })
-  );
+  )
+    return true;
+  const args =
+    input.toolInput != null && typeof input.toolInput === 'object'
+      ? (input.toolInput as Record<string, unknown>)
+      : {};
+  let paths: unknown[];
+  let access: 'read' | 'write';
+  if (
+    input.toolName === 'Glob' &&
+    (typeof args.pattern !== 'string' ||
+      /\.\.|[{}()[\]]/.test(args.pattern) ||
+      args.pattern.includes('\\') ||
+      args.pattern.startsWith('/'))
+  )
+    return true;
+  switch (input.toolName) {
+    case 'Read':
+      paths = [args.file_path];
+      access = 'read';
+      break;
+    case 'Write':
+    case 'Edit':
+      paths = [args.file_path];
+      access = 'write';
+      break;
+    case 'NotebookEdit':
+      paths = [args.notebook_path];
+      access = 'write';
+      break;
+    case 'Glob':
+    case 'Grep':
+      paths = [args.path ?? input.cwd];
+      access = 'read';
+      break;
+    default:
+      if (input.blockedPath == null) return false;
+      paths = [];
+      access = 'read';
+  }
+  if (input.blockedPath != null) paths.push(input.blockedPath);
+  if (!paths.every((value): value is string => typeof value === 'string'))
+    return true;
+  return !(await areFileToolPathsTrusted({
+    workDir: workdir!,
+    cwd: input.cwd,
+    paths,
+    access,
+    readableSkillRoots: input.readableSkillRoots,
+    additionalDirectories: input.additionalDirectories,
+  }));
 }
 
 /*
@@ -401,8 +553,12 @@ function createApprovalPreToolUseHook(input: {
   decisions: Map<string, { approved: boolean; reason?: string }>;
   deferredToolUseIds: Set<string>;
   nativeToolCallNames: Map<string, string>;
+  readableSkillRoots: readonly string[];
+  additionalDirectories: readonly string[];
+  toolCwds: Map<string, string>;
 }): HookCallback {
   return async (hookInput, toolUseID): Promise<HookJSONOutput> => {
+    if (hookInput.hook_event_name !== 'PreToolUse') return {};
     const toolName = (hookInput as { tool_name?: unknown }).tool_name;
     if (
       toolUseID == null ||
@@ -411,6 +567,7 @@ function createApprovalPreToolUseHook(input: {
     ) {
       return {};
     }
+    input.toolCwds.set(toolUseID, hookInput.cwd);
     const decision = input.decisions.get(toolUseID);
     if (decision != null) {
       // A bridge that resumes another bridge's deferred call never saw its
@@ -430,11 +587,15 @@ function createApprovalPreToolUseHook(input: {
       };
     }
     if (
-      !needsHostApproval({
+      !(await needsHostApproval({
         toolName,
+        toolInput: hookInput.tool_input,
+        cwd: hookInput.cwd,
+        readableSkillRoots: input.readableSkillRoots,
+        additionalDirectories: input.additionalDirectories,
         permissionMode: input.permissionMode,
         inactiveNativeTools: input.inactiveNativeTools,
-      })
+      }))
     ) {
       return {};
     }
@@ -453,13 +614,28 @@ function nativeToolRequiresApproval(input: {
   permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
 }): boolean {
   if (input.permissionMode === 'allow-all') return false;
+  if (
+    input.nativeName === 'EnterWorktree' ||
+    input.nativeName === 'ExitWorktree'
+  )
+    return true;
+  if (!(input.nativeName in NATIVE_TOOL_KINDS)) return true;
   const kind = NATIVE_TOOL_KINDS[input.nativeName] ?? 'edit';
   if (input.permissionMode === 'allow-edits') return kind === 'bash';
   return kind === 'edit' || kind === 'bash';
 }
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
-  const emit: Emit = msg => turn.emit(msg as BridgeEvent);
+  /*
+   * The host settles an aborted turn before its query finishes interrupting.
+   * Keep draining the query for graceful shutdown, but do not send its remaining
+   * events to listeners that may already belong to the next turn.
+   */
+  const emit: Emit = msg => {
+    if (!turn.abortSignal.aborted) {
+      turn.emit(msg as BridgeEvent);
+    }
+  };
 
   // Local controller for the Claude query. Aborted either by the host (via the
   // shared runtime's `turn.abortSignal`) or by us on a terminal error.
@@ -636,7 +812,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     string,
     { approved: boolean; reason?: string }
   >();
+  const toolCwds = new Map<string, string>();
   const permissionOptions = createPermissionOptions({
+    toolCwds,
     approvalDecisions,
     start,
     inactiveNativeTools,
@@ -650,14 +828,26 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
     emittedToolCallIds: streamEventState.emittedToolCallIds,
   });
+  const sdkEnv = { ...procEnv, ...start.env };
+  const modelOverrides = createGatewayModelOverrides(start.model, sdkEnv);
   const deferredToolUseIds = new Set<string>();
   const approvalPreToolUseHook = createApprovalPreToolUseHook({
+    toolCwds,
+    readableSkillRoots: start.readableSkillRoots ?? [],
+    additionalDirectories: start.additionalDirectories ?? [],
     permissionMode,
     inactiveNativeTools: new Set(inactiveNativeTools),
     decisions: approvalDecisions,
     deferredToolUseIds,
     nativeToolCallNames: streamEventState.nativeToolCallNames,
   });
+  const settings = {
+    ...(permissionOptions.settings as Record<string, unknown> | undefined),
+    ...(start.skillOverrides !== undefined
+      ? { skillOverrides: start.skillOverrides }
+      : {}),
+    ...(modelOverrides ? { modelOverrides } : {}),
+  };
   const questionPreToolUseHook = createQuestionPreToolUseHook({
     turn,
     emit,
@@ -676,6 +866,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(start.maxBudgetUsd !== undefined
         ? { maxBudgetUsd: start.maxBudgetUsd }
         : {}),
+      ...(start.additionalDirectories !== undefined
+        ? { additionalDirectories: start.additionalDirectories }
+        : {}),
       ...(start.strictMcpConfig !== undefined
         ? { strictMcpConfig: start.strictMcpConfig }
         : {}),
@@ -685,7 +878,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       ...(start.forwardSubagentText !== undefined
         ? { forwardSubagentText: start.forwardSubagentText }
         : {}),
-      ...(start.env !== undefined ? { env: { ...procEnv, ...start.env } } : {}),
+      ...(start.env !== undefined ? { env: sdkEnv } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
       ...(inactiveNativeTools.length > 0
@@ -711,7 +904,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       // `compaction` event; return an empty output so compaction proceeds.
       hooks: {
         PreToolUse: [
-          ...(permissionMode === 'allow-all'
+          ...(permissionMode === 'allow-all' || start.autoMode === true
             ? []
             : [{ hooks: [approvalPreToolUseHook] }]),
           {
@@ -754,9 +947,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           ? { continue: true }
           : {}),
       ...permissionOptions,
+      ...(Object.keys(settings).length > 0 ? { settings } : {}),
       mcpServers,
+      settingSources: ['user'],
       cwd: workdir,
-      abortSignal: abortCtl.signal,
+      abortController: abortCtl,
     },
   };
   let deferredToolUseId = start.deferredToolUseId;
@@ -1345,13 +1540,23 @@ function addUsage(
 function parseArgs(args: string[]): {
   workdir?: string;
   bridgeStateDir?: string;
+  hostDisconnectTimeoutMs?: number;
 } {
-  const out: { workdir?: string; bridgeStateDir?: string } = {};
+  const out: {
+    workdir?: string;
+    bridgeStateDir?: string;
+    hostDisconnectTimeoutMs?: number;
+  } = {};
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--workdir' && i + 1 < args.length) {
       out.workdir = args[++i];
     } else if (args[i] === '--bridge-state-dir' && i + 1 < args.length) {
       out.bridgeStateDir = args[++i];
+    } else if (
+      args[i] === '--host-disconnect-timeout-ms' &&
+      i + 1 < args.length
+    ) {
+      out.hostDisconnectTimeoutMs = Number(args[++i]);
     }
   }
   return out;

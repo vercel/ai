@@ -1,5 +1,211 @@
 # ai
 
+## 7.0.170
+
+### Patch Changes
+
+- 91a67c2: Fix excessive CPU usage when streaming long arrays with `Output.array` or `streamObject`. Parse and validate completed elements incrementally instead of repeatedly processing the entire accumulated array on every text chunk.
+- 84b1cb0: Cancel pending send-now operations when a later stop or dispose occurs, preventing an abandoned chat's queued messages and history from being sent through a replacement transport.
+- Updated dependencies [eaeb37e]
+  - @ai-sdk/gateway@4.0.143
+
+## 7.0.169
+
+### Patch Changes
+
+- 4311fa1: Use Zod Mini for internal validation schemas to reduce bundle size while preserving the public message schemas' classic Zod methods, error messages, and compatibility with supported Zod 3 and Zod 4 versions.
+- d9dd2b7: keep the request options when the useChat queue sends a tool approval first, and hold the queue while an async sendAutomaticallyWhen decides
+- Updated dependencies [4311fa1]
+- Updated dependencies [c160b74]
+- Updated dependencies [4311fa1]
+- Updated dependencies [838dd53]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/gateway@4.0.142
+
+## 7.0.168
+
+### Patch Changes
+
+- 65aa669: add experimental_queue to useChat to queue messages sent while a response is in progress
+- 8585d7e: fix(ai): call `toUIMessageStream` `onError` once per invalid tool call
+- Updated dependencies [5497ff7]
+- Updated dependencies [88b9575]
+  - @ai-sdk/gateway@4.0.141
+  - @ai-sdk/provider-utils@5.0.78
+
+## 7.0.167
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+- 404ce3b: Redact OpenAI Code Interpreter and shell domain secrets and MCP credentials from telemetry events and tracing results, including raw request metadata, while preserving provider requests and application results.
+- Updated dependencies [8420810]
+- Updated dependencies [6d65092]
+- Updated dependencies [9f37b45]
+- Updated dependencies [0e869b4]
+  - @ai-sdk/gateway@4.0.140
+  - @ai-sdk/provider-utils@5.0.77
+
+## 7.0.166
+
+### Patch Changes
+
+- Updated dependencies [44db225]
+  - @ai-sdk/gateway@4.0.139
+
+## 7.0.165
+
+### Patch Changes
+
+- 883fcde: remove transcription word timings from telemetry when recordOutputs is false
+- 6d21e8e: Sanitize provider request URLs before text generation results reach telemetry integrations and tracing subscribers, preventing endpoint credentials from being exposed.
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+  - @ai-sdk/gateway@4.0.138
+
+## 7.0.164
+
+### Patch Changes
+
+- Updated dependencies [bace553]
+- Updated dependencies [6737c77]
+- Updated dependencies [bb4e2d0]
+  - @ai-sdk/gateway@4.0.137
+
+## 7.0.163
+
+### Patch Changes
+
+- 5d18351: fix(ai): detect downloaded audio types from bytes when servers return a generic or non-audio content type such as application/octet-stream
+- 8da48db: Respect `recordInputs` and `recordOutputs` when delivering telemetry events to integrations and the `ai:telemetry` channel. Filter nested content and omit raw span results when content recording is disabled, while preserving application results.
+- fd7e8a7: Preserve the order of text and complete function calls in streamed Google responses, including standalone thought signatures on empty text or reasoning parts.
+
+  Keep provider metadata on empty text parts when converting results to response messages so it can be passed back in subsequent requests.
+
+  Omit foreign-provider empty signature text when replaying history through Anthropic or Bedrock, preserving Bedrock’s existing native reasoning-history handling.
+
+- 36802d4: Support native URL transcription with an optional provider capability, keeping existing file-generation contracts unchanged. Groq sends HTTP(S) audio URLs through its `url` parameter without downloading and re-uploading them, avoiding the attachment upload limit. Supplying a custom `download` function retains local download behavior.
+
+  For telemetry integrations, `TranscriptionEndEvent.audio.byteLength` and `audio.mediaType` can now be `undefined` when a provider fetches the audio URL natively. Check for missing values before using them as a number or string. Downloaded and inline audio continue to report their metadata; streaming transcription metadata is unchanged.
+
+  Strip media fragments before sending URLs to Groq. If Groq rejects a redirect, fall back to the existing secure local downloader and file upload rather than failing previously working URL inputs. Other provider errors are preserved.
+
+- 933dae3: fix (ai): download deprecated `file-url` and `image-url` tool result content
+
+  Tool result content parts that use the deprecated `file-url` and `image-url`
+  types were converted to `file` parts with `{ type: 'url' }` data, but they were
+  never passed to the download function. When the model does not support the URL,
+  the provider received a bare URL instead of the file contents, even though the
+  replacement `file` part with `{ type: 'url' }` data was downloaded and inlined.
+
+  Downloaded legacy URL parts now use the same media type normalization as file
+  parts, resolving generic types from the response header or image bytes.
+  Legacy base64 data URLs also normalize to inline data with the media type from
+  their data URL, matching replacement file parts.
+
+- e0143b0: feat(ai): support provider-owned realtime transports
+
+  Add an optional `createTransport` interface and `provider` connection capability.
+
+- 934100c: Report the actual OpenAI Chat HTTP endpoint (also used by Azure Chat and Bedrock Mantle Chat) through optional request metadata and model-call end events. Record its host and port on OpenTelemetry chat spans without exposing URL credentials, paths, queries, or fragments. Expose only the sanitized HTTP origin in text and object generation results and step/finish callbacks. Providers that do not report an endpoint leave these attributes unset.
+- c389374: fix(ai): infer union output types when passing a union of schemas to `Output.object` and `Output.array`
+
+  Previously, passing a schema whose type is a union of schemas (e.g. a schema selected from a map at runtime) failed to type-check because the output type was inferred from the first union member only. The output type is now inferred as the union of the schemas' output types.
+
+- 892af4d: feat (ai): re-export realtime server-connection and usage types
+
+  Adds `Experimental_RealtimeServerConnection`, `Experimental_RealtimeSessionIntent`, and `Experimental_RealtimeUsage` aliases for the new experimental `RealtimeModelV4` server-side spec types.
+
+- 1a1da8d: stream steering messages to the ui and keep them in converted messages
+- 41465fd: Expose optional transcription word timings separately from segments and accept shared timestampGranularities. Explicit provider timing settings take precedence. OpenAI now sends timestamp_granularities only with verbose_json and warns when a requested timing is unavailable or excluded.
+- 9754014: Add typed streaming heartbeat parts. Anthropic emits them only with `includePings: true` (disabled by default), without requiring raw chunks. Core forwards pings through stream retries without storing them as generated content or sending them to UI message streams. Consumers with exhaustive stream-part switches must handle the new `ping` union variant when upgrading, even when the opt-in is disabled. Typed pings do not flush partial words during stream smoothing.
+- 2e44144: Represent videos delivered directly to caller-managed storage with an explicit uploaded outcome. Video generation reports `uploadedVideos` without downloading or synthesizing video bytes; access `video` only when `videos` is nonempty.
+- Updated dependencies [722d4a9]
+- Updated dependencies [acea2b5]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [2e44144]
+- Updated dependencies [36802d4]
+- Updated dependencies [ef2dfb5]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [32acf43]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/gateway@4.0.136
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 7.0.162
+
+### Patch Changes
+
+- 857ca45: Restore server-defined tool metadata, dynamic status, and title when validating tool approval continuations so approval policies receive the same tool definition fields as new model calls.
+- 4d6d830: Support a single telemetry operation for durable `WorkflowAgent` runs, including the prompt, final output, steps, and tools. Events recorded in the workflow are reported on completion or suspension with their original timestamps. For OpenTelemetry, pass the same `OpenTelemetryIdGenerator` instance as the tracer provider's `idGenerator` and `sampler` and as `new OpenTelemetry({ durable })`. This explicit bridge carries parent trace context and sampling across steps, reports model spans live with provider requests nested beneath them, and reconstructs the enclosing `invoke_agent` tree when the run completes. Without the bridge, existing live per-model tracing is preserved. Add typed experimental durable context hooks for telemetry integrations; remove reliance on process-global ID-generator detection.
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/gateway@4.0.135
+
+## 7.0.161
+
+### Patch Changes
+
+- 51ca5b7: fix(ai): support cross-realm Uint8Array and ArrayBuffer in DefaultGeneratedFile
+- 51ca5b7: fix(ai): handle cross-realm Uint8Array and ArrayBuffer in data-content and file-part-data
+- 51ca5b7: fix(ai): support cross-realm binary buffers and circular structures in cloneModelMessages
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/gateway@4.0.134
+
+## 7.0.160
+
+### Patch Changes
+
+- a71172d: fix(ai): clarify inverted smoothStream prefix error message
+- cf27969: add steering.queue() to send a message once the current task is done
+- 17b6923: fix(ai): validate streamed data parts against `dataPartSchemas`
+
+  `processUIMessageStream` looked up `dataPartSchemas` by the full chunk type (`data-weather`) instead of the bare part name (`weather`), so `useChat` / `Chat` never validated streamed data parts. Invalid data parts now raise a `TypeValidationError`.
+
+- Updated dependencies [2099d45]
+- Updated dependencies [d05ff62]
+  - @ai-sdk/gateway@4.0.133
+
+## 7.0.159
+
+### Patch Changes
+
+- Updated dependencies [cbc9ac0]
+  - @ai-sdk/gateway@4.0.132
+
+## 7.0.158
+
+### Patch Changes
+
+- 8ba3a5c: fix(ai): repair partial JSON that ends with a minus sign at the start of an array
+- 5c247e9: feat(sandbox): add `stat`, `listDirectory`, and `deleteFile` to `Experimental_SandboxSession`, and specify that relative paths in every method resolve against the directory `run` and `spawn` start in
+
+  The just-bash and Vercel Sandbox adapters implement the new methods. Both now resolve a relative `workingDirectory` for `run` and `spawn` against the sandbox's working directory, and the just-bash adapter rejects writes to a directory instead of replacing it with a file.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [f850782]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/gateway@4.0.131
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
 ## 7.0.157
 
 ### Patch Changes

@@ -1,5 +1,5 @@
 import type { SharedV4ProviderMetadata } from '@ai-sdk/provider';
-import { z, type ZodType } from '../util/zod';
+import { z, type ZodType } from '../util/classic-zod';
 import { jsonValueSchema } from './json-value';
 
 /**

@@ -39,7 +39,10 @@ import {
   type PiHarnessExtensionSession,
 } from './pi-session';
 import { truncatePiToolOutputHead } from './pi-tool-result';
-import { createThrowingSandboxSession } from './test-helpers';
+import {
+  createEmptyRepositorySandboxSession,
+  mockCanonicalPathResolution,
+} from './test-helpers';
 
 type FakePiTool = Pick<ToolDefinition, 'name' | 'execute'>;
 type FakeExtensionsResult = {
@@ -48,6 +51,9 @@ type FakeExtensionsResult = {
   readonly runtime: object;
 };
 type ResourceLoaderOptions = {
+  readonly agentsFilesOverride?: (base: {
+    agentsFiles: Array<{ path: string; content: string }>;
+  }) => { agentsFiles: Array<{ path: string; content: string }> };
   readonly appendSystemPromptOverride?: (base: string[]) => string[];
   readonly extensionFactories?: Array<ExtensionFactory>;
   readonly extensionsOverride?: (
@@ -1008,6 +1014,225 @@ describe('createPiSession', () => {
     expect(emit.mock.calls.map(([part]) => part.type)).not.toContain('error');
   });
 
+  it.each([false, true])(
+    'loads repository instructions and skills from the sandbox (isResume: %s)',
+    async isResume => {
+      piMock.session = createFakePiSession().session;
+      const sandboxSession = createSandboxSession({
+        files: {
+          '/sandbox/work/AGENTS.md': 'Always respond in French.',
+          '/sandbox/work/.agents/skills/get-stock-price/SKILL.md':
+            '---\nname: get-stock-price\ndescription: Look up a stock price\n---\nGOOG: 123.45 USD',
+        },
+      });
+      const session = await createPiSession({
+        sessionId: `session-repository-resources-${isResume}`,
+        sandboxSession,
+        sessionWorkDir: '/sandbox/work',
+        settings: {},
+        clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+        isResume,
+      });
+
+      try {
+        expect(sandboxSession.readTextFile).not.toHaveBeenCalled();
+        const control = await session.doPromptTurn({
+          skills: [],
+          prompt: '/skill:get-stock-price',
+          instructions: 'Be concise.',
+          tools: [],
+          emit: vi.fn(),
+        });
+        await control.done;
+
+        const loader = piMock.resourceLoaderOptions.at(-1)!;
+        expect(loader.agentsFilesOverride?.({ agentsFiles: [] })).toEqual({
+          agentsFiles: [
+            {
+              path: '/sandbox/work/AGENTS.md',
+              content: 'Always respond in French.',
+            },
+          ],
+        });
+        expect(loader.appendSystemPromptOverride?.([])).toEqual([
+          'Be concise.',
+        ]);
+        expect(
+          loader.skillsOverride?.({ skills: [], diagnostics: [] }),
+        ).toEqual({
+          skills: [
+            {
+              name: 'get-stock-price',
+              description: 'Look up a stock price',
+              filePath: '/sandbox/work/.agents/skills/get-stock-price/SKILL.md',
+              baseDir: '/sandbox/work/.agents/skills/get-stock-price',
+              sourceInfo: {
+                path: '/sandbox/work/.agents/skills/get-stock-price/SKILL.md',
+                source: 'local',
+                scope: 'project',
+                origin: 'top-level',
+                baseDir: '/sandbox/work/.agents/skills/get-stock-price',
+              },
+              disableModelInvocation: false,
+            },
+          ],
+          diagnostics: [],
+        });
+        expect(piMock.session.prompt).toHaveBeenCalledWith(
+          '<skill name="get-stock-price" location="/sandbox/work/.agents/skills/get-stock-price/SKILL.md">\nReferences are relative to /sandbox/work/.agents/skills/get-stock-price.\n\nGOOG: 123.45 USD\n</skill>',
+          { images: [] },
+        );
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
+
+  it('refreshes repository resources without restarting extensions', async () => {
+    const factory = vi.fn();
+    const fake = createFakePiSession();
+    const setActiveToolsByName = vi.fn();
+    piMock.session = Object.assign(fake.session, {
+      getActiveToolNames: () => ['read'],
+      setActiveToolsByName,
+    });
+    const agentsPath = '/sandbox/work/AGENTS.md';
+    const skillPath = '/sandbox/work/.agents/skills/stock-price/SKILL.md';
+    const sandboxSession = createSandboxSession({
+      files: {
+        [agentsPath]: 'Answer in French.',
+        [skillPath]: '---\ndescription: Initial prices\n---\nGOOG: 123.45 USD',
+      },
+    });
+    const session = await createPi({ extensionFactories: [factory] }).doStart({
+      sessionId: 'session-repository-resource-refresh',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+    const loader = piMock.resourceLoaderOptions.at(-1)!;
+    const runTurn = async () => {
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'Look up a stock price.',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+    };
+
+    try {
+      await runTurn();
+      expect(setActiveToolsByName).not.toHaveBeenCalled();
+      await sandboxSession.writeTextFile({
+        path: agentsPath,
+        content: 'Answer in German.',
+      });
+      await sandboxSession.writeTextFile({
+        path: skillPath,
+        content: '---\ndescription: Updated prices\n---\nGOOG: 234.56 USD',
+      });
+      await runTurn();
+      expect(loader.agentsFilesOverride?.({ agentsFiles: [] })).toEqual({
+        agentsFiles: [{ path: agentsPath, content: 'Answer in German.' }],
+      });
+      expect(
+        loader.skillsOverride?.({ skills: [], diagnostics: [] }).skills[0]
+          ?.description,
+      ).toBe('Updated prices');
+      expect(setActiveToolsByName).toHaveBeenCalledWith(['read']);
+
+      await sandboxSession.deleteFile({ path: agentsPath });
+      await sandboxSession.deleteFile({ path: skillPath });
+      await runTurn();
+      expect(loader.agentsFilesOverride?.({ agentsFiles: [] })).toEqual({
+        agentsFiles: [],
+      });
+      expect(loader.skillsOverride?.({ skills: [], diagnostics: [] })).toEqual({
+        skills: [],
+        diagnostics: [],
+      });
+      expect(setActiveToolsByName).toHaveBeenCalledTimes(2);
+      expect(factory).toHaveBeenCalledOnce();
+      expect(piMock.createAgentSession).toHaveBeenCalledOnce();
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
+  it('keeps configured and harness skills ahead of repository skills', async () => {
+    piMock.session = createFakePiSession().session;
+    const sandboxSession = createSandboxSession({
+      files: Object.fromEntries(
+        ['configured', 'harness', 'repository'].map(name => [
+          `/sandbox/work/.agents/skills/${name}/SKILL.md`,
+          `---\nname: ${name}\ndescription: Repository skill\n---\nInstructions`,
+        ]),
+      ),
+    });
+    const session = await createPi({
+      resources: {
+        skills: [
+          {
+            name: 'configured',
+            description: 'Configured skill',
+            filePath: '/sandbox/configured/SKILL.md',
+          },
+        ],
+      },
+    }).doStart({
+      sessionId: 'session-repository-skill-precedence',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+    });
+
+    try {
+      const control = await session.doPromptTurn({
+        skills: [
+          {
+            name: 'harness',
+            description: 'Harness skill',
+            content: 'Instructions',
+          },
+        ],
+        prompt: 'Hello.',
+        tools: [],
+        emit: vi.fn(),
+      });
+      await control.done;
+      const skills = piMock.resourceLoaderOptions.at(-1)?.skillsOverride?.({
+        skills: [],
+        diagnostics: [],
+      }).skills;
+      expect(
+        skills?.map(({ name, description, filePath }) => ({
+          name,
+          description,
+          filePath,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "description": "Configured skill",
+            "filePath": "/sandbox/configured/SKILL.md",
+            "name": "configured",
+          },
+          {
+            "description": "Harness skill",
+            "filePath": "/sandbox/home/.agents/skills/harness/SKILL.md",
+            "name": "harness",
+          },
+          {
+            "description": "Repository skill",
+            "filePath": "/sandbox/work/.agents/skills/repository/SKILL.md",
+            "name": "repository",
+          },
+        ]
+      `);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('materializes skills under sandbox HOME on prompt turn', async () => {
     piMock.session = {
       abort: vi.fn(async () => {}),
@@ -1062,7 +1287,7 @@ describe('createPiSession', () => {
     }
   });
 
-  it('removes materialized skills once, then leaves the sandbox alone', async () => {
+  it('removes materialized skills once without further skill writes', async () => {
     piMock.session = createFakePiSession().session;
     const sandboxSession = createSandboxSession();
     const session = await createPiSession({
@@ -1101,8 +1326,20 @@ describe('createPiSession', () => {
       vi.mocked(sandboxSession.run).mockClear();
       vi.mocked(sandboxSession.readTextFile).mockClear();
       await runTurn([]);
-      expect(sandboxSession.run).not.toHaveBeenCalled();
-      expect(sandboxSession.readTextFile).not.toHaveBeenCalled();
+      expect(vi.mocked(sandboxSession.run).mock.calls.length).toBeGreaterThan(
+        0,
+      );
+      expect(
+        vi
+          .mocked(sandboxSession.run)
+          .mock.calls.every(([{ command }]) =>
+            command.includes('realpath_marker'),
+          ),
+      ).toBe(true);
+      expect(sandboxSession.readTextFile).toHaveBeenCalledOnce();
+      expect(sandboxSession.readTextFile).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/sandbox/work/AGENTS.md' }),
+      );
     } finally {
       await session.doDestroy();
     }
@@ -1159,7 +1396,16 @@ describe('createPiSession', () => {
     try {
       vi.mocked(sandboxSession.run).mockClear();
       await runTurn(second, []);
-      expect(sandboxSession.run).not.toHaveBeenCalled();
+      expect(vi.mocked(sandboxSession.run).mock.calls.length).toBeGreaterThan(
+        0,
+      );
+      expect(
+        vi
+          .mocked(sandboxSession.run)
+          .mock.calls.every(([{ command }]) =>
+            command.includes('realpath_marker'),
+          ),
+      ).toBe(true);
 
       readTool = true;
       await runTurn(second, []);
@@ -1319,6 +1565,9 @@ describe('createPiSession', () => {
         prompt: 'Weather in Paris?',
         tools: [],
         emit: vi.fn(),
+      });
+      await vi.waitFor(() => {
+        expect(piMock.session!.prompt).toHaveBeenCalledOnce();
       });
       await control.submitUserMessage?.('/skill:demo-skill');
       await control.submitUserMessage?.('/skill:missing');
@@ -1507,15 +1756,22 @@ describe('createPiSession', () => {
     const alias = '/sandbox/home/blocked';
     const sandboxSession = createSandboxSession();
     const run = vi.mocked(sandboxSession.run);
-    run.mockImplementation(async ({ command }) => ({
-      stdout: command.startsWith(`target='${alias}'`)
-        ? '__PI_REALPATH_FAILED__\n'
-        : command === 'printf "%s" "$HOME"'
-          ? '/sandbox/home'
-          : '',
-      stderr: '',
-      exitCode: command.startsWith(`target='${alias}'`) ? 3 : 0,
-    }));
+    run.mockImplementation(async ({ command }) => {
+      if (command.startsWith(`target='${alias}'`)) {
+        return {
+          stdout: '__PI_REALPATH_FAILED__\n',
+          stderr: '',
+          exitCode: 3,
+        };
+      }
+      return (
+        mockCanonicalPathResolution({ command }) ?? {
+          stdout: command === 'printf "%s" "$HOME"' ? '/sandbox/home' : '',
+          stderr: '',
+          exitCode: 0,
+        }
+      );
+    });
     const readErrors: unknown[] = [];
     piMock.session = createFakePiSession({
       promptImplementation: async () => {
@@ -1551,15 +1807,15 @@ describe('createPiSession', () => {
         run.mock.calls.filter(([{ command }]) =>
           command.startsWith(`target='${alias}'`),
         ),
-      ).toHaveLength(2);
+      ).toHaveLength(3);
       expect(sandboxSession.readBinaryFile).not.toHaveBeenCalled();
     } finally {
       await session.doDestroy();
     }
   });
 
-  it('starts and runs a chat-only turn without touching the sandbox', async () => {
-    const sandboxSession = createThrowingSandboxSession();
+  it('starts and runs a chat-only turn only reading repository resources', async () => {
+    const sandboxSession = createEmptyRepositorySandboxSession();
     const { session: fakePiSession, prompt } = createFakePiSession();
     piMock.session = fakePiSession;
 
@@ -1578,11 +1834,11 @@ describe('createPiSession', () => {
     await session.doStop();
 
     expect(prompt).toHaveBeenCalledExactlyOnceWith('Hello.', { images: [] });
-    expectSandboxUntouched(sandboxSession);
+    expectOnlyRepositoryResourcesRead(sandboxSession);
   });
 
-  it('resumes a session from lifecycle data without touching the sandbox', async () => {
-    const sandboxSession = createThrowingSandboxSession();
+  it('resumes a session from lifecycle data only reading repository resources', async () => {
+    const sandboxSession = createEmptyRepositorySandboxSession();
     const answer = assistantText('PELICAN noted.', 'stop');
     piMock.session = createFakePiSession({
       promptImplementation: async text => {
@@ -1642,11 +1898,11 @@ describe('createPiSession', () => {
     expect(prompt).toHaveBeenCalledExactlyOnceWith('Which word?', {
       images: [],
     });
-    expectSandboxUntouched(sandboxSession);
+    expectOnlyRepositoryResourcesRead(sandboxSession);
   });
 
   it('continues a suspended turn across a slice from entries that end in an aborted assistant message', async () => {
-    const sandboxSession = createThrowingSandboxSession();
+    const sandboxSession = createEmptyRepositorySandboxSession();
     const promptStarted = createDeferred<void>();
     const aborted = createDeferred<void>();
     const partialAnswer = assistantText('Half an ans', 'aborted');
@@ -1712,7 +1968,7 @@ describe('createPiSession', () => {
       [{ ...sessionHeader, id: 'session-slice' }, ...entries.slice(1)],
     );
     expect(prompt).toHaveBeenCalledExactlyOnceWith('', { images: [] });
-    expectSandboxUntouched(sandboxSession);
+    expectOnlyRepositoryResourcesRead(sandboxSession);
   });
 
   it('keeps the journal session id when resuming under an id Pi does not accept', async () => {
@@ -1720,7 +1976,7 @@ describe('createPiSession', () => {
     piMock.session = createFakePiSession().session;
     const session = await createPiSession({
       sessionId: '2026-05-29T17:54:27',
-      sandboxSession: createThrowingSandboxSession(),
+      sandboxSession: createEmptyRepositorySandboxSession(),
       sessionWorkDir: '/sandbox/work',
       settings: {},
       clientApp: 'ai-sdk-harness-pi/0.0.0-test',
@@ -1745,7 +2001,7 @@ describe('createPiSession', () => {
 
     const direct = await createPi().doStart({
       sessionId: 'session-legacy-direct',
-      sandboxSession: createThrowingSandboxSession(),
+      sandboxSession: createEmptyRepositorySandboxSession(),
       sessionWorkDir: '/sandbox/work',
       resumeFrom,
     });
@@ -1783,7 +2039,7 @@ describe('createPiSession', () => {
   });
 
   it('keeps the conversation when a changed tool set rebuilds the Pi session', async () => {
-    const sandboxSession = createThrowingSandboxSession();
+    const sandboxSession = createEmptyRepositorySandboxSession();
     piMock.session = createFakePiSession().session;
     const session = await createPiSession({
       sessionId: 'session-tool-set-change',
@@ -1811,7 +2067,7 @@ describe('createPiSession', () => {
     expect(piMock.createAgentSession).toHaveBeenCalledTimes(2);
     expect(piMock.sessionManagerInMemory).toHaveBeenCalledOnce();
     expect(piMock.sessionManagers[1]).toBe(piMock.sessionManagers[0]);
-    expectSandboxUntouched(sandboxSession);
+    expectOnlyRepositoryResourcesRead(sandboxSession);
   });
 
   it('keeps native reads inside the workspace without fileToolPathPolicy', async () => {
@@ -2000,6 +2256,9 @@ describe('createPiSession', () => {
         prompt: 'Weather in Paris?',
         tools: [],
         emit: vi.fn(),
+      });
+      await vi.waitFor(() => {
+        expect(piMock.session!.prompt).toHaveBeenCalledOnce();
       });
       await control.submitUserMessage?.('Actually, Paris, Texas.');
 
@@ -2541,7 +2800,7 @@ describe('createPiSession', () => {
 
     const session = await createPiSession({
       sessionId: 'session-cold-resume-compaction',
-      sandboxSession: createThrowingSandboxSession(),
+      sandboxSession: createEmptyRepositorySandboxSession(),
       sessionWorkDir: '/sandbox/work',
       settings: {},
       clientApp: 'ai-sdk-harness-pi/0.0.0-test',
@@ -2578,6 +2837,92 @@ describe('createPiSession', () => {
       await session.doDestroy();
     }
   });
+
+  it.each([1, 2])(
+    'streams %i compactions between turns once on the next turn',
+    async count => {
+      let compactionCount = 0;
+      let emitPiEvent: ((event: unknown) => void) | undefined;
+      const fakePi = createFakePiSession();
+      fakePi.session.subscribe = vi.fn(subscriber => {
+        emitPiEvent = subscriber;
+        return () => {};
+      });
+      fakePi.session.compact = vi.fn(async () => {
+        const result = {
+          summary: `Summary ${++compactionCount}`,
+          tokensBefore: 4096 + compactionCount,
+          firstKeptEntryId: 'entry-1',
+        };
+        emitPiEvent?.({ type: 'compaction_end', reason: 'manual', result });
+        return result;
+      });
+      piMock.session = fakePi.session;
+
+      const session = await createPiSession({
+        sessionId: 'session-compaction-between-turns',
+        isResume: false,
+        sandboxSession: createEmptyRepositorySandboxSession(),
+        sessionWorkDir: '/sandbox/work',
+        settings: {},
+        clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      });
+
+      try {
+        const turn1Emitted: HarnessV1StreamPart[] = [];
+        const turn1 = await session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: 'first turn',
+          emit: part => turn1Emitted.push(part),
+        });
+        await turn1.done;
+
+        for (let i = 0; i < count; i++)
+          await session.doCompact('Preserve decisions so far.');
+
+        const turn2Emitted: HarnessV1StreamPart[] = [];
+        const turn2 = await session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: 'second turn',
+          emit: part => turn2Emitted.push(part),
+        });
+        await turn2.done;
+
+        expect(turn2Emitted.slice(0, count + 1).map(part => part.type)).toEqual(
+          ['stream-start', ...Array(count).fill('compaction')],
+        );
+        const compactions = turn2Emitted.filter(
+          part => part.type === 'compaction',
+        );
+        expect(compactions).toEqual(
+          Array.from({ length: count }, (_, index) => ({
+            type: 'compaction',
+            trigger: 'manual',
+            summary: `Summary ${index + 1}`,
+            tokensBefore: 4097 + index,
+          })),
+        );
+        expect(turn1Emitted.some(part => part.type === 'compaction')).toBe(
+          false,
+        );
+        const turn3Emitted: HarnessV1StreamPart[] = [];
+        const turn3 = await session.doPromptTurn({
+          skills: [],
+          tools: [],
+          prompt: 'third turn',
+          emit: part => turn3Emitted.push(part),
+        });
+        await turn3.done;
+        expect(turn3Emitted.some(part => part.type === 'compaction')).toBe(
+          false,
+        );
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
 
   it('appends instructions without changing the user prompt or reloading MCP extensions', async () => {
     const prompt = vi.fn(async () => {});
@@ -3722,7 +4067,7 @@ describe('createPiSession', () => {
     ]);
     piMock.sessionManagerInMemory.mockImplementation(() => journal);
 
-    const sandboxSession = createThrowingSandboxSession();
+    const sandboxSession = createEmptyRepositorySandboxSession();
     const session = await createPiSession({
       sessionId: 'session-cross-process-resolved',
       sandboxSession,
@@ -4052,6 +4397,57 @@ describe('createPiSession', () => {
     );
     expect(SettingsManager.create).not.toHaveBeenCalled();
   });
+
+  describe('host root', () => {
+    const piBaseDir = path.join(tmpdir(), 'ai-sdk-harness', 'pi');
+    const startSession = (sessionId: string) =>
+      createPiSession({
+        sessionId,
+        sandboxSession: createSandboxSession(),
+        sessionWorkDir: '/sandbox/work',
+        settings: {},
+        clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+        isResume: false,
+      });
+
+    it.each([
+      ['..', '%2E%2E', 'pi-host-root-sentinel-dot-dot'],
+      ['.', '%2E', 'pi-host-root-sentinel-dot'],
+    ])(
+      'keeps the host root of session %j inside the Pi directory',
+      async (sessionId, segment, sentinelId) => {
+        const sentinelRoot = path.join(piBaseDir, sentinelId);
+        const sentinel = await startSession(sentinelId);
+        expect(existsSync(sentinelRoot)).toBe(true);
+
+        const session = await startSession(sessionId);
+        const sessionRoot = path.join(piBaseDir, segment);
+        expect(existsSync(sessionRoot)).toBe(true);
+
+        await session.doDestroy();
+
+        expect(existsSync(sessionRoot)).toBe(false);
+        expect(existsSync(sentinelRoot)).toBe(true);
+        expect(existsSync(piBaseDir)).toBe(true);
+        await sentinel.doDestroy();
+      },
+    );
+
+    it('keeps distinct host roots for session IDs that differ only by separators', async () => {
+      const first = await startSession('pi-host-root/collision');
+      const second = await startSession('pi-host-root-collision');
+      const firstRoot = path.join(piBaseDir, 'pi-host-root%2Fcollision');
+      const secondRoot = path.join(piBaseDir, 'pi-host-root-collision');
+      expect(existsSync(firstRoot)).toBe(true);
+      expect(existsSync(secondRoot)).toBe(true);
+
+      await first.doDestroy();
+
+      expect(existsSync(firstRoot)).toBe(false);
+      expect(existsSync(secondRoot)).toBe(true);
+      await second.doDestroy();
+    });
+  });
 });
 
 function createDeferred<T>() {
@@ -4193,7 +4589,7 @@ async function startDeferredCrossProcessRerun({
   );
   const session = await createPiSession({
     sessionId,
-    sandboxSession: createThrowingSandboxSession(),
+    sandboxSession: createEmptyRepositorySandboxSession(),
     sessionWorkDir: '/sandbox/work',
     settings: {},
     clientApp: 'ai-sdk-harness-pi/0.0.0-test',
@@ -4317,8 +4713,12 @@ function assistantMessageWithToolCalls(
   } as unknown as PiAssistantMessage;
 }
 
-function createSandboxSession(): HarnessV1NetworkSandboxSession {
-  const textFiles = new Map<string, string>();
+function createSandboxSession({
+  files = {},
+}: {
+  files?: Readonly<Record<string, string>>;
+} = {}): HarnessV1NetworkSandboxSession {
+  const textFiles = new Map(Object.entries(files));
   const sandbox = {
     id: 'sandbox',
     defaultWorkingDirectory: '/sandbox',
@@ -4330,8 +4730,25 @@ function createSandboxSession(): HarnessV1NetworkSandboxSession {
     readTextFile: vi.fn(async ({ path }: { path: string }) =>
       textFiles.get(path),
     ),
+    listDirectory: vi.fn(async ({ path: directory }: { path: string }) => {
+      const entries = new Map<string, 'file' | 'directory'>();
+      for (const filePath of textFiles.keys()) {
+        if (!filePath.startsWith(`${directory}/`)) continue;
+        const [name, ...rest] = filePath.slice(directory.length + 1).split('/');
+        entries.set(name!, rest.length === 0 ? 'file' : 'directory');
+      }
+      return entries.size === 0
+        ? null
+        : Array.from(entries, ([name, type]) => ({ name, type }));
+    }),
+    deleteFile: vi.fn(async ({ path }: { path: string }) =>
+      textFiles.delete(path),
+    ),
     restricted: vi.fn(() => sandbox),
     run: vi.fn(async ({ command }: { command: string }) => {
+      const pathResolution = mockCanonicalPathResolution({ command });
+      if (pathResolution != null) return pathResolution;
+
       const manifestMove = command.match(/^mv -f '([^']+)' '([^']+)'$/);
       if (manifestMove != null) {
         const content = textFiles.get(manifestMove[1]!);
@@ -4354,15 +4771,15 @@ function createSandboxSession(): HarnessV1NetworkSandboxSession {
   return sandbox as unknown as HarnessV1NetworkSandboxSession;
 }
 
-function expectSandboxUntouched(
+function expectOnlyRepositoryResourcesRead(
   sandboxSession: HarnessV1NetworkSandboxSession,
 ): void {
+  expect(sandboxSession.readTextFile).toHaveBeenCalled();
+  expect(sandboxSession.listDirectory).toHaveBeenCalled();
   for (const method of [
-    sandboxSession.run,
     sandboxSession.spawn,
     sandboxSession.readFile,
     sandboxSession.readBinaryFile,
-    sandboxSession.readTextFile,
     sandboxSession.writeFile,
     sandboxSession.writeBinaryFile,
     sandboxSession.writeTextFile,
@@ -4372,5 +4789,8 @@ function expectSandboxUntouched(
     sandboxSession.getPortUrl,
   ]) {
     expect(method).not.toHaveBeenCalled();
+  }
+  for (const [{ command }] of vi.mocked(sandboxSession.run).mock.calls) {
+    expect(command).toContain('realpath_marker');
   }
 }
