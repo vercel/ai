@@ -1,9 +1,10 @@
+import { getErrorMessage } from '@ai-sdk/provider';
 import { DelayedPromise } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
 import type { LanguageModelUsage } from '../types/usage';
 import type { UIMessage } from '../ui/ui-messages';
@@ -813,6 +814,232 @@ describe('toUIMessageStream', () => {
     expect(onEnd.mock.calls[0][0].outcome).toEqual({
       status: 'failed',
       error: conversionError,
+    });
+  });
+
+  describe('tool error text mismatch warning', () => {
+    const warningLogger = vi.fn();
+
+    beforeEach(() => {
+      warningLogger.mockClear();
+      globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+    });
+
+    afterEach(() => {
+      delete globalThis.AI_SDK_LOG_WARNINGS;
+    });
+
+    const startStep: TextStreamPart<{}> = {
+      type: 'start-step',
+      request: {},
+      warnings: [],
+    };
+
+    const toolCall: TextStreamPart<{}> = {
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'test-tool',
+      input: { value: 'valid' },
+      dynamic: true,
+    };
+
+    const toolError: TextStreamPart<{}> = {
+      type: 'tool-error',
+      toolCallId: 'call-1',
+      toolName: 'test-tool',
+      input: { value: 'valid' },
+      error: new Error('execution failed'),
+      dynamic: true,
+    };
+
+    const reasoning: TextStreamPart<{}>[] = [
+      { type: 'reasoning-start', id: 'r1' },
+      { type: 'reasoning-delta', id: 'r1', text: 'thinking' },
+      { type: 'reasoning-end', id: 'r1' },
+    ];
+
+    // the tool call fails in the first step and the model reasons about the
+    // tool error in the second step
+    const toolErrorThenReasoning: TextStreamPart<{}>[] = [
+      startStep,
+      toolCall,
+      toolError,
+      testStep,
+      startStep,
+      ...reasoning,
+      testStep,
+    ];
+
+    async function consumeUIMessageStream(
+      parts: TextStreamPart<{}>[],
+      options: Pick<
+        Parameters<typeof toUIMessageStream>[0],
+        'onError' | 'sendReasoning'
+      > = {},
+    ) {
+      await convertReadableStreamToArray(
+        toUIMessageStream({
+          stream: convertArrayToReadableStream(parts),
+          tools: undefined,
+          ...options,
+        }),
+      );
+    }
+
+    it('warns when a masked tool error is followed by reasoning from a later step', async () => {
+      await consumeUIMessageStream(toolErrorThenReasoning);
+
+      expect(warningLogger).toHaveBeenCalledOnce();
+      expect(warningLogger).toHaveBeenCalledWith({
+        warnings: [
+          {
+            type: 'other',
+            message: expect.stringContaining(
+              'The error text sent to the UI for tool call "call-1" differs from the error text the model received',
+            ),
+          },
+        ],
+      });
+    });
+
+    it('warns once per stream', async () => {
+      await consumeUIMessageStream([
+        ...toolErrorThenReasoning,
+        startStep,
+        { ...toolCall, toolCallId: 'call-2' },
+        { ...toolError, toolCallId: 'call-2' },
+        testStep,
+        startStep,
+        ...reasoning,
+        testStep,
+      ]);
+
+      expect(warningLogger).toHaveBeenCalledOnce();
+    });
+
+    it('warns when onError returns a text that differs from the text the model received', async () => {
+      await consumeUIMessageStream(toolErrorThenReasoning, {
+        onError: error => (error as Error).message,
+      });
+
+      expect(warningLogger).toHaveBeenCalledOnce();
+    });
+
+    it('does not warn when onError returns the text the model received', async () => {
+      await consumeUIMessageStream(toolErrorThenReasoning, {
+        onError: getErrorMessage,
+      });
+
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
+    it('does not warn when reasoning is not sent', async () => {
+      await consumeUIMessageStream(toolErrorThenReasoning, {
+        sendReasoning: false,
+      });
+
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
+    it('does not warn when the reasoning precedes the tool error', async () => {
+      await consumeUIMessageStream([
+        startStep,
+        ...reasoning,
+        toolCall,
+        toolError,
+        testStep,
+        startStep,
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', text: 'The tool failed.' },
+        { type: 'text-end', id: 't1' },
+        testStep,
+      ]);
+
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
+    it('does not warn when the reasoning follows the tool error in the same step', async () => {
+      await consumeUIMessageStream([
+        startStep,
+        toolCall,
+        toolError,
+        ...reasoning,
+        testStep,
+      ]);
+
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
+    it('warns when a masked tool error precedes the first step', async () => {
+      // approved tool calls run before the first step of the next call
+      await consumeUIMessageStream([
+        toolError,
+        startStep,
+        ...reasoning,
+        testStep,
+      ]);
+
+      expect(warningLogger).toHaveBeenCalledOnce();
+    });
+
+    it('warns when a masked invalid tool call is followed by reasoning from a later step', async () => {
+      await consumeUIMessageStream([
+        startStep,
+        {
+          ...toolCall,
+          invalid: true,
+          error: new Error('invalid tool input'),
+        },
+        { ...toolError, error: 'Error: invalid tool input' },
+        testStep,
+        startStep,
+        ...reasoning,
+        testStep,
+      ]);
+
+      expect(warningLogger).toHaveBeenCalledOnce();
+    });
+
+    it('does not fail the stream when the tool error cannot be serialized', async () => {
+      const circularError: { self?: unknown } = {};
+      circularError.self = circularError;
+
+      const chunks = await convertReadableStreamToArray(
+        toUIMessageStream({
+          stream: convertArrayToReadableStream([
+            startStep,
+            toolCall,
+            { ...toolError, error: circularError },
+            testStep,
+            startStep,
+            ...reasoning,
+            testStep,
+          ]),
+          tools: undefined,
+        }),
+      );
+
+      expect(chunks).toContainEqual({
+        type: 'tool-output-error',
+        toolCallId: 'call-1',
+        dynamic: true,
+        errorText: 'An error occurred.',
+      });
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
+    it('does not warn for provider-executed tool errors', async () => {
+      await consumeUIMessageStream([
+        startStep,
+        { ...toolCall, providerExecuted: true },
+        { ...toolError, error: 'provider error', providerExecuted: true },
+        testStep,
+        startStep,
+        ...reasoning,
+        testStep,
+      ]);
+
+      expect(warningLogger).not.toHaveBeenCalled();
     });
   });
 });

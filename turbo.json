@@ -89,8 +89,7 @@
     },
     "test": {
       "dependsOn": ["^build", "build"],
-      "env": ["SKIP_RSC_E2E", "VITEST_MAX_WORKERS", "TEST_NODE_VERSION"],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/setup-download-fetch.node.js"]
+      "env": ["SKIP_RSC_E2E", "VITEST_MAX_WORKERS", "TEST_NODE_VERSION"]
     },
     "test:e2e:ci": {
       "env": ["SKIP_RSC_E2E"]

@@ -415,6 +415,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      guarded-fetch:
+        specifier: ^0.3.0
+        version: 0.3.0
       lucide-react:
         specifier: ^0.545.0
         version: 0.545.0(react@18.3.1)
@@ -779,6 +782,9 @@ importers:
       google-auth-library:
         specifier: ^9.15.1
         version: 9.15.1(encoding@0.1.13)(supports-color@8.1.1)
+      guarded-fetch:
+        specifier: ^0.3.0
+        version: 0.3.0
       image-type:
         specifier: ^5.2.0
         version: 5.2.0
@@ -1167,6 +1173,9 @@ importers:
       express:
         specifier: 5.0.1
         version: 5.0.1(supports-color@10.2.2)
+      guarded-fetch:
+        specifier: ^0.3.0
+        version: 0.3.0
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -4286,9 +4295,6 @@ importers:
       eventsource-parser:
         specifier: ^3.0.8
         version: 3.0.8
-      undici:
-        specifier: ^7.29.1
-        version: 7.29.1
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -18357,6 +18363,10 @@ packages:
     resolution: {integrity: sha512-pCcEwRi+TKpMlxAQObHDQ56KawURgyAf6jtIY046fJ5tIv3zDe/LEIubckAO8fj6JnAxLdmWkUfNyulQ2iKdEw==}
     engines: {node: '>=14.0.0'}
 
+  guarded-fetch@0.3.0:
+    resolution: {integrity: sha512-R5qi/Y+EJYslzFaARJfoJr7251JN4rR/PKf/haJD5WDwLaV47LAQ6PtLg2ST7r31knyNrzzn791EZiS4h5EBoQ==}
+    engines: {node: '>=20.19'}
+
   gzip-size@7.0.0:
     resolution: {integrity: sha512-O1Ld7Dr+nqPnmGpdhzLmMTQ4vAsD+rHwMm1NLUmoUFFymBOMKxCCrtDxqdBRYXdeEPEi3SyoR4TizJLQrnKBNA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
@@ -18800,6 +18810,10 @@ packages:
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
     engines: {node: '>= 0.10'}
+
+  ipaddr.js@2.2.0:
+    resolution: {integrity: sha512-Ag3wB2o37wslZS19hZqorUnrnzSkpOVy+IiiDEiTqNubEYpYuHWIf6K4psgN2ZWKExS4xhVCrRVfb/wfW8fWJA==}
+    engines: {node: '>= 10'}
 
   ipaddr.js@2.4.0:
     resolution: {integrity: sha512-9VGk3HGanVE6JoZXHiCpnGy5X0jYDnN4EA4lntFPj+1vIWlFhIylq2CrrCOJH9EAhc5CYhq18F2Av2tgoAPsYQ==}
@@ -24026,6 +24040,10 @@ packages:
 
   undici@7.30.0:
     resolution: {integrity: sha512-dkrQXeHSaoamnItlYbmzG0wFYrM0ZwDxCIg0A7aKjTyyhh9svRzCNFEzV+Vm05/yehjCzjDZ31KXfGEjYSztDQ==}
+    engines: {node: '>=20.18.1'}
+
+  undici@7.30.1:
+    resolution: {integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg==}
     engines: {node: '>=20.18.1'}
 
   undici@8.12.3:
@@ -42932,6 +42950,11 @@ snapshots:
       - encoding
       - supports-color
 
+  guarded-fetch@0.3.0:
+    dependencies:
+      ipaddr.js: 2.2.0
+      undici: 7.30.1
+
   gzip-size@7.0.0:
     dependencies:
       duplexer: 0.1.2
@@ -43566,6 +43589,8 @@ snapshots:
   ip-address@10.7.3: {}
 
   ipaddr.js@1.9.1: {}
+
+  ipaddr.js@2.2.0: {}
 
   ipaddr.js@2.4.0: {}
 
@@ -51010,6 +51035,8 @@ snapshots:
   undici@7.29.1: {}
 
   undici@7.30.0: {}
+
+  undici@7.30.1: {}
 
   undici@8.12.3: {}
 

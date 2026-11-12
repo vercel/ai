@@ -55,7 +55,13 @@ function isNumber(
 }
 
 function isDenseArray(value: unknown): value is unknown[] {
-  return Array.isArray(value) && Object.keys(value).length === value.length;
+  if (!Array.isArray(value) || Object.keys(value).length !== value.length) {
+    return false;
+  }
+  for (let index = 0; index < value.length; index++) {
+    if (!Object.hasOwn(value, index)) return false;
+  }
+  return true;
 }
 
 function isValue(field: ValueField, value: unknown): boolean {
