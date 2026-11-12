@@ -2434,6 +2434,74 @@ describe('runPrompt host tool input validation', () => {
     expect(JSON.stringify(parts)).not.toContain('host-secret');
   });
 
+  test.each(['toUIMessageStream', 'toUIMessageStreamResponse'] as const)(
+    'redacts a host tool error in %s when redactToolErrors is true',
+    async method => {
+      const failing = tool({
+        inputSchema: z.object({}),
+        execute: async (): Promise<string> => {
+          throw new Error('host tool failed');
+        },
+      });
+      const askUser = tool({ inputSchema: z.object({}) });
+      const { result, done } = runPrompt({
+        harness,
+        // The turn pauses for the client-side tool, so the harness reports
+        // the host tool outcome itself.
+        session: fakeSession([
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'failing',
+            input: '{}',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'c2',
+            toolName: 'askUser',
+            input: '{}',
+          },
+          ...finishEvents,
+        ]),
+        prompt: 'go',
+        instructions: undefined,
+        tools: { failing, askUser },
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: undefined,
+      });
+      const bodyPromise = (async () => {
+        if (method === 'toUIMessageStreamResponse') {
+          return await result
+            .toUIMessageStreamResponse({ redactToolErrors: true })
+            .text();
+        }
+        const chunks: unknown[] = [];
+        for await (const chunk of result.toUIMessageStream({
+          redactToolErrors: true,
+        })) {
+          chunks.push(chunk);
+        }
+        return JSON.stringify(chunks);
+      })();
+      const parts: TextStreamPart<ToolSet>[] = [];
+      for await (const part of result.fullStream) parts.push(part);
+      const body = await bodyPromise;
+      await done;
+
+      expect(parts.filter(part => part.type === 'tool-error')).toEqual([
+        expect.objectContaining({
+          toolCallId: 'c1',
+          error: expect.objectContaining({ message: 'host tool failed' }),
+        }),
+      ]);
+      expect(body).toContain('"errorText":"An error occurred."');
+      expect(body).not.toContain('host tool failed');
+    },
+  );
+
   test('reports a rejected host call without an adapter echo in the step and UI stream', async () => {
     const execute = vi.fn(async () => 'not reached');
     const restricted = tool({
