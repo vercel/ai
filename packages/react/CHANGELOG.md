@@ -1,5 +1,17 @@
 # @ai-sdk/react
 
+## 4.0.174
+
+### Patch Changes
+
+- 37dfe49: Allow MCP Apps to load scripts and styles from origins declared in `resourceDomains`.
+- 6309382: Add support for `baseUriDomains` in MCP App CSP metadata.
+- Updated dependencies [91a67c2]
+- Updated dependencies [6309382]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+  - @ai-sdk/mcp@2.0.97
+
 ## 4.0.173
 
 ### Patch Changes

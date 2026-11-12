@@ -1,5 +1,14 @@
 # ai
 
+## 7.0.170
+
+### Patch Changes
+
+- 91a67c2: Fix excessive CPU usage when streaming long arrays with `Output.array` or `streamObject`. Parse and validate completed elements incrementally instead of repeatedly processing the entire accumulated array on every text chunk.
+- 84b1cb0: Cancel pending send-now operations when a later stop or dispose occurs, preventing an abandoned chat's queued messages and history from being sent through a replacement transport.
+- Updated dependencies [eaeb37e]
+  - @ai-sdk/gateway@4.0.143
+
 ## 7.0.169
 
 ### Patch Changes

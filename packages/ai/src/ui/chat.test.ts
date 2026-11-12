@@ -6658,6 +6658,53 @@ describe('Chat', () => {
       },
     );
 
+    it.each(['stop', 'dispose'] as const)(
+      'should cancel a pending send-now operation on a later %s',
+      async cancel => {
+        const callbackStarted = createResolvablePromise<void>();
+        const callbackCanFinish = createResolvablePromise<void>();
+        const sendMessages = vi.fn(async () =>
+          convertArrayToReadableStream<UIMessageChunk>([
+            { type: 'start' },
+            { type: 'start-step' },
+            {
+              type: 'tool-input-available',
+              toolCallId: 'call-1',
+              toolName: 'getLocation',
+              input: {},
+            },
+            { type: 'finish-step' },
+            { type: 'finish' },
+          ]),
+        );
+        const chat = createQueueChat(
+          { sendMessages, reconnectToStream: async () => null },
+          {
+            onToolCall: async () => {
+              callbackStarted.resolve();
+              await callbackCanFinish.promise;
+            },
+          },
+        );
+
+        const sent = chat.sendMessage({ text: 'first' });
+        await callbackStarted.promise;
+        await chat.sendMessage({ text: 'second' });
+        const queuedId = chat.experimental_queuedMessages[0].id;
+        const sendingNow = chat.experimental_sendQueuedMessageNow(queuedId);
+        const cancelled = chat[cancel]();
+
+        callbackCanFinish.resolve();
+        await Promise.all([sent, sendingNow, cancelled]);
+
+        expect(sendMessages).toHaveBeenCalledOnce();
+        expect(chat.experimental_queuedMessages.map(getMessageText)).toEqual([
+          'second',
+        ]);
+        expect(conversation(chat)).toEqual(['user: first', 'assistant: ']);
+      },
+    );
+
     it('should send a queued message now while sendAutomaticallyWhen decides', async () => {
       const { transport, requests, answer, waitForRequest } =
         createQueueTransport();
