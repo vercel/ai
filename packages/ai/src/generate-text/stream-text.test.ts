@@ -9660,7 +9660,7 @@ describe('streamText', () => {
                 "type": "tool-input-available",
               },
               {
-                "errorText": "An error occurred.",
+                "errorText": "ERROR",
                 "providerExecuted": true,
                 "toolCallId": "call-2",
                 "type": "tool-output-error",
@@ -10908,7 +10908,7 @@ describe('streamText', () => {
               "type": "tool-input-available",
             },
             {
-              "errorText": "An error occurred.",
+              "errorText": "test error",
               "toolCallId": "call-1",
               "type": "tool-output-error",
             },
@@ -10921,6 +10921,83 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+    describe('redactToolErrors', () => {
+      it('should redact tool errors in toUIMessageStream', async () => {
+        const chunks = await convertReadableStreamToArray(
+          result.toUIMessageStream({ redactToolErrors: true }),
+        );
+
+        expect(
+          chunks.filter(chunk => chunk.type === 'tool-output-error'),
+        ).toEqual([
+          {
+            type: 'tool-output-error',
+            toolCallId: 'call-1',
+            errorText: 'An error occurred.',
+          },
+        ]);
+      });
+
+      it('should redact tool errors in toUIMessageStreamResponse', async () => {
+        const response = result.toUIMessageStreamResponse({
+          redactToolErrors: true,
+        });
+        const body = (await convertResponseStreamToArray(response)).join('');
+
+        expect(body).toContain('"errorText":"An error occurred."');
+        expect(body).not.toContain('test error');
+      });
+
+      it('should redact tool errors in pipeUIMessageStreamToResponse', async () => {
+        const mockResponse = createMockServerResponse();
+
+        result.pipeUIMessageStreamToResponse(mockResponse, {
+          redactToolErrors: true,
+        });
+
+        await mockResponse.waitForEnd();
+
+        const body = mockResponse.getDecodedChunks().join('');
+
+        expect(body).toContain('"errorText":"An error occurred."');
+        expect(body).not.toContain('test error');
+      });
+
+      it('should keep the provided onError behavior by default', async () => {
+        const chunks = await convertReadableStreamToArray(
+          result.toUIMessageStream({ onError: () => 'safe error' }),
+        );
+
+        expect(
+          chunks.filter(chunk => chunk.type === 'tool-output-error'),
+        ).toEqual([
+          {
+            type: 'tool-output-error',
+            toolCallId: 'call-1',
+            errorText: 'safe error',
+          },
+        ]);
+      });
+
+      it('should use model error text when redaction is disabled', async () => {
+        const chunks = await convertReadableStreamToArray(
+          result.toUIMessageStream({
+            onError: () => 'safe error',
+            redactToolErrors: false,
+          }),
+        );
+
+        expect(
+          chunks.filter(chunk => chunk.type === 'tool-output-error'),
+        ).toEqual([
+          {
+            type: 'tool-output-error',
+            toolCallId: 'call-1',
+            errorText: 'test error',
+          },
+        ]);
+      });
     });
   });
 
@@ -14211,7 +14288,17 @@ describe('streamText', () => {
                 "type": "tool-input-delta",
               },
               {
-                "errorText": "An error occurred.",
+                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]",
                 "input": {
                   "cities": "San Francisco",
                 },
@@ -14220,7 +14307,17 @@ describe('streamText', () => {
                 "type": "tool-input-error",
               },
               {
-                "errorText": "An error occurred.",
+                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]",
                 "toolCallId": "call-1",
                 "type": "tool-output-error",
               },

@@ -1767,10 +1767,26 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
+    onError: onErrorOption,
+    redactToolErrors = onErrorOption != null,
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
+    const onError = onErrorOption ?? (() => 'An error occurred.');
+    // UI messages become the next request's history, so keep this text aligned
+    // with what the model received unless the application opts into redaction.
+    const getToolErrorText = (error: unknown) => {
+      if (redactToolErrors) {
+        return onError(error);
+      }
+
+      try {
+        return getErrorMessage(error) ?? onError(error);
+      } catch {
+        return onError(error);
+      }
+    };
+
     let outcome: UIMessageStreamOutcome = { status: 'unknown' };
     let hasFatalFailure = false;
 
@@ -2016,7 +2032,9 @@ However, the LLM results are expected to be small enough to not cause issues.
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
                   ...(dynamic != null ? { dynamic } : {}),
-                  errorText: onError(part.error),
+                  errorText: part.providerExecuted
+                    ? onError(part.error)
+                    : getToolErrorText(part.error),
                 });
               } else {
                 controller.enqueue({
@@ -2061,7 +2079,11 @@ However, the LLM results are expected to be small enough to not cause issues.
               controller.enqueue({
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,
-                errorText: onError(part.error),
+                errorText: part.providerExecuted
+                  ? typeof part.error === 'string'
+                    ? part.error
+                    : JSON.stringify(part.error)
+                  : getToolErrorText(part.error),
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
                   : {}),
@@ -2237,6 +2259,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendFinish,
       sendStart,
       onError,
+      redactToolErrors,
       ...init
     }: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
   ) {
@@ -2252,6 +2275,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         sendFinish,
         sendStart,
         onError,
+        redactToolErrors,
       }),
       ...init,
     });
@@ -2275,6 +2299,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendFinish,
     sendStart,
     onError,
+    redactToolErrors,
     ...init
   }: UIMessageStreamResponseInit &
     UIMessageStreamOptions<UI_MESSAGE> = {}): Response {
@@ -2289,6 +2314,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         sendFinish,
         sendStart,
         onError,
+        redactToolErrors,
       }),
       ...init,
     });
