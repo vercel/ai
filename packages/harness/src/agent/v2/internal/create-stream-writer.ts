@@ -5,9 +5,9 @@ import {
   parseJSON,
 } from '@ai-sdk/provider-utils';
 import type { World } from '@workflow/world';
+import type { HarnessAgentSession } from '../harness-agent-session';
 import type {
   HarnessAgentStreamPartRecord,
-  HarnessAgentStreamRecord,
   HarnessAgentStreamPart,
   HarnessAgentStreamWriter,
 } from './types';
@@ -23,17 +23,9 @@ function encodeRecord(options: {
   /**
    * Record to encode.
    */
-  record: HarnessAgentStreamRecord;
+  record: HarnessAgentStreamPartRecord;
 }): string {
   const { record } = options;
-  if (Object.hasOwn(record, 'withdraw')) {
-    return (
-      JSON.stringify({
-        version: STREAM_RECORD_VERSION,
-        withdraw: record.withdraw,
-      }) + '\n'
-    );
-  }
   const encoded: {
     version: number;
     part: JSONValue;
@@ -71,16 +63,17 @@ export function createStreamWriter(options: {
    */
   world: World;
   /**
-   * World run associated with the session.
+   * Session whose run and stream the writer writes to.
    */
-  runId: string;
+  session: HarnessAgentSession;
   /**
    * Abort signal of the drive that owns this writer.
    */
   abortSignal: AbortSignal;
 }): HarnessAgentStreamWriter {
-  const { world, runId, abortSignal } = options;
-  const name = runId + '_harness_agent_stream';
+  const { world, session, abortSignal } = options;
+  const { runId } = session;
+  const name = session.getStreamName();
   let buffer = '';
   let sending: Promise<void> | undefined;
   let closing: Promise<void> | undefined;
@@ -113,7 +106,7 @@ export function createStreamWriter(options: {
    * Buffers an encoded record, unless the writer was closed or the drive
    * aborted, and starts sending if no send is running.
    */
-  function push(record: HarnessAgentStreamRecord): void {
+  function push(record: HarnessAgentStreamPartRecord): void {
     if (closing != null || abortSignal.aborted) return;
     buffer += encodeRecord({ record });
     sending ??= send();
@@ -141,7 +134,7 @@ export function createStreamWriter(options: {
     },
 
     withdraw({ startIds }) {
-      push({ withdraw: [...startIds] });
+      push({ part: { type: 'withdraw', startIds: [...startIds] } });
     },
 
     flush,
@@ -173,8 +166,8 @@ export async function decodeStreamRecords(options: {
    * Stream text, possibly spanning several chunks.
    */
   text: string;
-}): Promise<HarnessAgentStreamRecord[]> {
-  const records: HarnessAgentStreamRecord[] = [];
+}): Promise<HarnessAgentStreamPartRecord[]> {
+  const records: HarnessAgentStreamPartRecord[] = [];
   for (const text of options.text.split('\n')) {
     if (text === '') continue;
     const parsed = await parseJSON({ text });
@@ -184,17 +177,6 @@ export async function decodeStreamRecords(options: {
     const envelope = parsed as Record<string, JSONValue>;
     if (envelope.version !== STREAM_RECORD_VERSION) {
       throw new Error('HarnessAgentStream: invalid or unsupported record.');
-    }
-    if (Object.hasOwn(envelope, 'withdraw')) {
-      const { withdraw } = envelope;
-      if (
-        !Array.isArray(withdraw) ||
-        !withdraw.every(startId => typeof startId === 'string')
-      ) {
-        throw new Error('HarnessAgentStream: invalid withdraw record.');
-      }
-      records.push({ withdraw: withdraw as string[] });
-      continue;
     }
     const { startId, key } = envelope;
     if (

@@ -5,6 +5,7 @@ import { isValidHarnessAgentLogEvent } from './is-valid-harness-agent-log-event'
 describe('isValidHarnessAgentLogEvent', () => {
   test.each([
     'submission',
+    'turn-start',
     'effect-start',
     'effect-progress',
     'effect-end',

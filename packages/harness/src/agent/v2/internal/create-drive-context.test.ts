@@ -52,6 +52,11 @@ const allEvents: HarnessAgentLogEvent[] = [
     },
   },
   {
+    type: 'turn-start',
+    id: 'turn-start:prompt-1',
+    data: { submissionId: 'prompt-1' },
+  },
+  {
     type: 'effect-start',
     id: 'start-1',
     data: {
@@ -127,7 +132,6 @@ async function setup(options?: {
   sandboxSession?: SandboxSession | HarnessV2NetworkSandboxSession;
   sessionId?: string;
   workDir?: string;
-  deadline?: number;
 }) {
   const world = new InMemoryWorld();
   await world.events.create(runId, {
@@ -145,6 +149,8 @@ async function setup(options?: {
   const session: HarnessAgentSession = {
     sessionId: options?.sessionId ?? 'session-1',
     sandboxId: 'sandbox-1',
+    runId,
+    getStreamName: () => runId + '_harness_agent',
     setSandboxSessionResolver: () => {},
     getSandboxSession,
   };
@@ -171,9 +177,8 @@ async function setup(options?: {
     gateBuiltinTool,
     harnessId: 'mock-harness',
     workDir: options?.workDir,
-    abortSignal: abortController.signal,
+    stopAbortSignal: abortController.signal,
     yieldAbortSignal: yieldController.signal,
-    deadline: options?.deadline,
   });
   return {
     log,
@@ -212,16 +217,8 @@ describe('createDriveContext', () => {
     expect(context.gateBuiltinTool).toBe(gateBuiltinTool);
     expect(context.finishStep).toBe(finishStep);
     expect(context.finishTurn).toBe(finishTurn);
-    expect(context.abortSignal).toBe(abortController.signal);
+    expect(context.stopAbortSignal).toBe(abortController.signal);
     expect(context.yieldAbortSignal).toBe(yieldController.signal);
-  });
-
-  test('includes the deadline only when provided', async () => {
-    const withoutDeadline = await setup();
-    const withDeadline = await setup({ deadline: 1234 });
-
-    expect(Object.hasOwn(withoutDeadline.context, 'deadline')).toBe(false);
-    expect(withDeadline.context.deadline).toBe(1234);
   });
 
   test('builds unsafeEmit from the writer', async () => {
@@ -275,7 +272,7 @@ describe('createDriveContext', () => {
       const { log, context } = await setup();
       await log.append(allEvents[0]);
       const { position } = await context.log.read();
-      await log.append(allEvents[6]);
+      await log.append(allEvents[7]);
 
       const result = await context.log.read({ after: position });
 

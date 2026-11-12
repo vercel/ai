@@ -10,12 +10,36 @@ import {
 } from './harness-agent-session';
 
 describe('DefaultHarnessAgentSession', () => {
+  test('derives the stream name from a Workflow run ID', () => {
+    const session = new DefaultHarnessAgentSession({
+      sessionId: 'session-id',
+      sandboxId: 'sandbox-id',
+      runId: 'wrun_01ABC',
+    });
+
+    expect(session.getStreamName()).toBe('strm_01ABC_harness_agent');
+  });
+
+  test('keeps the stream name after serialization', () => {
+    const session = new DefaultHarnessAgentSession({
+      sessionId: 'session-id',
+      sandboxId: 'sandbox-id',
+      runId: 'wrun_01ABC',
+    });
+    const restored = DefaultHarnessAgentSession[WORKFLOW_DESERIALIZE](
+      DefaultHarnessAgentSession[WORKFLOW_SERIALIZE](session),
+    );
+
+    expect(restored.getStreamName()).toBe(session.getStreamName());
+  });
+
   test('returns a supplied sandbox session without resolving it', async () => {
     const sandboxSession = {} as SandboxSession;
     const resolver = vi.fn(async () => ({}) as SandboxSession);
     const session = new DefaultHarnessAgentSession({
       sessionId: 'session-id',
       sandboxId: 'sandbox-id',
+      runId: 'run-id',
       sandboxSession,
     });
     session.setSandboxSessionResolver(resolver);
@@ -30,6 +54,7 @@ describe('DefaultHarnessAgentSession', () => {
     const session = new DefaultHarnessAgentSession({
       sessionId: 'session-id',
       sandboxId: 'sandbox-id',
+      runId: 'run-id',
     });
     session.setSandboxSessionResolver(resolver);
 
@@ -46,6 +71,7 @@ describe('DefaultHarnessAgentSession', () => {
     const session = new DefaultHarnessAgentSession({
       sessionId: 'session-id',
       sandboxId: 'sandbox-id',
+      runId: 'run-id',
     });
     const sandboxSession = {} as SandboxSession;
     let resolutionAbortSignal: AbortSignal | undefined;
@@ -97,6 +123,7 @@ describe('DefaultHarnessAgentSession', () => {
     const session = new DefaultHarnessAgentSession({
       sessionId: 'session-id',
       sandboxId: 'sandbox-id',
+      runId: 'run-id',
       sandboxSession,
     });
     session.setSandboxSessionResolver(async () => sandboxSession);
@@ -105,6 +132,7 @@ describe('DefaultHarnessAgentSession', () => {
     expect(serialized).toEqual({
       sessionId: 'session-id',
       sandboxId: 'sandbox-id',
+      runId: 'run-id',
     });
 
     const restored =

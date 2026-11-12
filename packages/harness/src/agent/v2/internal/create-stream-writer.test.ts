@@ -1,6 +1,7 @@
 import type { SerializableValue } from '@ai-sdk/provider';
 import { DelayedPromise } from '@ai-sdk/provider-utils';
 import { describe, expect, test, vi } from 'vitest';
+import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
 import {
   createStreamWriter,
@@ -9,7 +10,12 @@ import {
 import type { HarnessAgentStreamPart } from './types';
 
 const runId = 'stream-session';
-const streamName = runId + '_harness_agent_stream';
+const session = new DefaultHarnessAgentSession({
+  sessionId: 'session-1',
+  sandboxId: 'sandbox-1',
+  runId,
+});
+const streamName = session.getStreamName();
 
 function part(delta: string): HarnessAgentStreamPart {
   return { type: 'text-delta', id: 'text', delta };
@@ -20,7 +26,7 @@ function setup() {
   const abortController = new AbortController();
   const writer = createStreamWriter({
     world,
-    runId,
+    session,
     abortSignal: abortController.signal,
   });
   return { world, abortController, writer };
@@ -170,12 +176,12 @@ describe('createStreamWriter', () => {
     expect(await readRecords(world)).toEqual([{ part: part('a') }]);
   });
 
-  test('writes withdraw records', async () => {
+  test('writes withdraw parts', async () => {
     const { world, writer } = setup();
     writer.withdraw({ startIds: ['start-1', 'start-2'] });
     await writer.flush();
     expect(await readRecords(world)).toEqual([
-      { withdraw: ['start-1', 'start-2'] },
+      { part: { type: 'withdraw', startIds: ['start-1', 'start-2'] } },
     ]);
   });
 
@@ -199,22 +205,21 @@ describe('decodeStreamRecords', () => {
     expect(
       await decodeStreamRecords({
         text:
-          '{"version":1,"withdraw":["a"]}\n\n' +
+          '{"version":1,"part":{"type":"withdraw","startIds":["a"]}}\n\n' +
           '{"version":1,"part":{"type":"reset-step"},"startId":"s"}\n\n',
       }),
     ).toEqual([
-      { withdraw: ['a'] },
+      { part: { type: 'withdraw', startIds: ['a'] } },
       { part: { type: 'reset-step' }, startId: 's' },
     ]);
   });
 
   test.each([
     ['malformed JSON', 'not json\n'],
-    ['an unknown version', '{"version":2,"withdraw":[]}\n'],
+    ['an unknown version', '{"version":2,"part":{"type":"reset-step"}}\n'],
     ['a missing part', '{"version":1,"startId":"s"}\n'],
     ['an invalid tag', '{"version":1,"part":{"type":"reset-step"},"key":1}\n'],
     ['a part without a type', '{"version":1,"part":{}}\n'],
-    ['invalid withdraw IDs', '{"version":1,"withdraw":[1]}\n'],
   ])('rejects %s', async (_, text) => {
     await expect(decodeStreamRecords({ text })).rejects.toThrow();
   });

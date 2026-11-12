@@ -105,9 +105,12 @@ test('uses the AI SDK tool result output as the model output', () => {
   expectTypeOf<HarnessV2ToolResultOutput>().toEqualTypeOf<ToolResultOutput>();
 });
 
-test('keeps finish events internal to the agent', () => {
+test('keeps turn start and finish events internal to the agent', () => {
   expectTypeOf<
-    Extract<HarnessV2LogEvent, { type: 'finish-step' | 'finish-turn' }>
+    Extract<
+      HarnessV2LogEvent,
+      { type: 'turn-start' | 'finish-step' | 'finish-turn' }
+    >
   >().toBeNever();
 });
 
@@ -127,9 +130,9 @@ test('keeps progress events internal to the agent', () => {
   }>();
 });
 
-test('keeps step and turn finish parts out of the adapter stream parts', () => {
+test('keeps turn boundary parts out of the adapter stream parts', () => {
   expectTypeOf<
-    Extract<HarnessV2StreamPart, { type: 'finish-step' | 'finish' }>
+    Extract<HarnessV2StreamPart, { type: 'start' | 'finish-step' | 'finish' }>
   >().toBeNever();
   expectTypeOf<
     Parameters<HarnessV2DriveContext['unsafeEmit']>[0]
@@ -142,7 +145,10 @@ test('keeps step and turn finish parts out of the adapter stream parts', () => {
 test('copies every adapter stream part into the agent stream parts', () => {
   expectTypeOf<HarnessV2StreamPart>().toMatchTypeOf<HarnessAgentStreamPart>();
   expectTypeOf<
-    Exclude<HarnessAgentStreamPart, { type: 'finish-step' | 'finish' }>
+    Exclude<
+      HarnessAgentStreamPart,
+      { type: 'start' | 'finish-step' | 'finish' | 'withdraw' | 'yield' }
+    >
   >().toEqualTypeOf<HarnessV2StreamPart>();
 });
 

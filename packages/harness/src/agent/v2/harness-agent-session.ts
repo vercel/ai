@@ -30,6 +30,21 @@ export type HarnessAgentSession = {
   readonly sandboxId: string;
 
   /**
+   * ID of the World run that holds the session's log and stream. A session
+   * always maps to exactly one run, created with the session; the World mints
+   * its ID, independent of `sessionId`.
+   */
+  readonly runId: string;
+
+  /**
+   * Returns the name of the World stream that holds the stream parts
+   * HarnessAgent emits for this session. Must return the same name on every
+   * call, including after the session is serialized and restored, and must
+   * not be shared with any other session.
+   */
+  getStreamName(): string;
+
+  /**
    * Rebinds lazy lookup to the current agent and aborts any in-progress lookup.
    */
   setSandboxSessionResolver(
@@ -51,6 +66,7 @@ export type HarnessAgentSession = {
 export class DefaultHarnessAgentSession implements HarnessAgentSession {
   readonly sessionId: string;
   readonly sandboxId: string;
+  readonly runId: string;
   private sandboxSession:
     | SandboxSession
     | HarnessV2NetworkSandboxSession
@@ -70,6 +86,7 @@ export class DefaultHarnessAgentSession implements HarnessAgentSession {
     return {
       sessionId: session.sessionId,
       sandboxId: session.sandboxId,
+      runId: session.runId,
     };
   }
 
@@ -79,6 +96,7 @@ export class DefaultHarnessAgentSession implements HarnessAgentSession {
   static [WORKFLOW_DESERIALIZE](data: {
     sessionId: string;
     sandboxId: string;
+    runId: string;
   }) {
     return new DefaultHarnessAgentSession(data);
   }
@@ -89,11 +107,21 @@ export class DefaultHarnessAgentSession implements HarnessAgentSession {
   constructor(options: {
     sessionId: string;
     sandboxId: string;
+    runId: string;
     sandboxSession?: SandboxSession | HarnessV2NetworkSandboxSession;
   }) {
     this.sessionId = options.sessionId;
     this.sandboxId = options.sandboxId;
+    this.runId = options.runId;
     this.sandboxSession = options.sandboxSession;
+  }
+
+  /**
+   * Derives the stream name from the run ID, following the Workflow convention
+   * of naming a run's streams `strm_<id>_<suffix>`.
+   */
+  getStreamName(): string {
+    return this.runId.replace(/^wrun_/, 'strm_') + '_harness_agent';
   }
 
   /**

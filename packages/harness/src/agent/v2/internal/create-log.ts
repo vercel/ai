@@ -221,8 +221,9 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
   }
 
   /**
-   * Delivers newly folded canonical events. Listener failures cannot turn a
-   * durable append into a failure or prevent other registrations being called.
+   * Passes events that were just added to the log's in-memory copy to the
+   * registered listeners. A failing listener can neither make a durable
+   * append fail nor keep other listeners from being called.
    */
   function notify(options: {
     /**
@@ -260,6 +261,8 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
   /**
    * Validates an entire page before committing its prefix or cursor. A failed
    * decode therefore leaves that page available to every subsequent refresh.
+   * The page's new events are then added to the in-memory copy of the log
+   * and passed to the listeners.
    */
   async function foldPage(options: {
     /**
@@ -297,7 +300,9 @@ export function createLog({ world, runId }: CreateLogOptions): HarnessAgentLog {
   }
 
   /**
-   * Fetches and folds successive complete pages, retaining the tail cursor.
+   * Fetches pages of World events until the end and adds each page's new
+   * events to the in-memory copy of the log, keeping the cursor of the last
+   * page.
    */
   async function refreshUnlocked(): Promise<void> {
     for (;;) {

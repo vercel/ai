@@ -202,17 +202,12 @@ export function createDriveContext(options: {
   /**
    * Aborts when the drive must stop at once.
    */
-  abortSignal: AbortSignal;
+  stopAbortSignal: AbortSignal;
 
   /**
    * Aborts when the drive should stop at the next safe point.
    */
   yieldAbortSignal: AbortSignal;
-
-  /**
-   * End of the drive's time budget (epoch ms), if known.
-   */
-  deadline?: number;
 }): HarnessV2DriveContext {
   const {
     session,
@@ -225,9 +220,8 @@ export function createDriveContext(options: {
     gateBuiltinTool,
     harnessId,
     workDir,
-    abortSignal,
+    stopAbortSignal,
     yieldAbortSignal,
-    deadline,
   } = options;
 
   let sandbox: ReturnType<HarnessV2DriveContext['sandbox']> | undefined;
@@ -244,13 +238,13 @@ export function createDriveContext(options: {
       harnessId,
       sessionId: session.sessionId,
       workDir,
-      abortSignal,
+      abortSignal: stopAbortSignal,
     });
     return { session: sandboxSession, workDir: sessionWorkDir };
   }
 
-  const context: HarnessV2DriveContext = {
-    log: adaptHarnessV2Log({ log, abortSignal }),
+  return {
+    log: adaptHarnessV2Log({ log, abortSignal: stopAbortSignal }),
     effect,
     executeHostTool,
     gateBuiltinTool,
@@ -267,11 +261,9 @@ export function createDriveContext(options: {
     finishStep,
     finishTurn,
     unsafeEmit: part => writer.unsafeEmit(part),
-    abortSignal,
+    stopAbortSignal,
     yieldAbortSignal,
   };
-  if (deadline != null) context.deadline = deadline;
-  return context;
 }
 
 /**

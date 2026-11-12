@@ -4,6 +4,7 @@ import { afterEach, describe, expect, test } from 'vitest';
 import { z } from 'zod/v4';
 import type { HarnessV2ToolGateOutput } from '../../../v2/harness-v2-drive-context';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
+import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
 import { createEffectFunction } from './create-effect-function';
 import { createGateBuiltinToolFunction } from './create-gate-builtin-tool-function';
@@ -15,7 +16,7 @@ import {
 import type {
   HarnessAgentGateBuiltinToolFunction,
   HarnessAgentLog,
-  HarnessAgentStreamRecord,
+  HarnessAgentStreamPartRecord,
 } from './types';
 
 const abortControllers = new Set<AbortController>();
@@ -26,6 +27,11 @@ afterEach(() => {
 });
 
 const runId = 'builtin-tool-session';
+const session = new DefaultHarnessAgentSession({
+  sessionId: 'session-1',
+  sandboxId: 'sandbox-1',
+  runId,
+});
 
 const builtinTools: ToolSet = {
   Bash: tool({ inputSchema: z.object({ command: z.string() }) }),
@@ -49,10 +55,11 @@ function createDrive(options: { world: InMemoryWorld; log: HarnessAgentLog }): {
   abortControllers.add(abortController);
   const effect = createEffectFunction({
     log: options.log,
-    abortSignal: abortController.signal,
+    stopAbortSignal: abortController.signal,
+    yieldAbortSignal: new AbortController().signal,
     writer: createStreamWriter({
       world: options.world,
-      runId,
+      session,
       abortSignal: abortController.signal,
     }),
   });
@@ -80,15 +87,13 @@ async function setup() {
 async function readParts(options: { world: InMemoryWorld }) {
   const { data } = await options.world.streams.getChunks(
     runId,
-    runId + '_harness_agent_stream',
+    session.getStreamName(),
     { limit: 1000 },
   );
-  const records: HarnessAgentStreamRecord[] = await decodeStreamRecords({
+  const records: HarnessAgentStreamPartRecord[] = await decodeStreamRecords({
     text: data.map(chunk => new TextDecoder().decode(chunk.data)).join(''),
   });
-  return records.flatMap(record =>
-    Object.hasOwn(record, 'part') ? [record.part] : [],
-  );
+  return records.map(record => record.part);
 }
 
 /**

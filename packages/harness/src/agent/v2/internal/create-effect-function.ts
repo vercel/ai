@@ -21,6 +21,21 @@ import type {
 } from './types';
 
 /**
+ * Log event types the effect function reads. Effect events tell it which
+ * effects ran and what they returned; submissions, turn starts and turn
+ * finishes tell it which prompts exist, which of them already started a turn,
+ * and whether the latest turn finished. It ignores all other types.
+ */
+const effectEventTypes: HarnessAgentLogEvent['type'][] = [
+  'submission',
+  'turn-start',
+  'finish-turn',
+  'effect-start',
+  'effect-progress',
+  'effect-end',
+];
+
+/**
  * One accepted effect attempt reconstructed from committed log events.
  */
 type EffectRecord = {
@@ -120,7 +135,8 @@ async function executeCallback(options: {
    */
   emit: HarnessV2EffectContext['emit'];
   /**
-   * Rejects execution if committed events could not be folded into records.
+   * Throws if the effect records could not be updated from a committed event,
+   * so a callback never runs based on incomplete records.
    */
   checkState: () => void;
   /**
@@ -234,10 +250,27 @@ async function executeCallback(options: {
  * Cancellation is cooperative; callback rebuild errors record interruption
  * before propagating, while serialization and persistence failures reject.
  * Records are reconstructed once and updated by a log subscription. The caller
- * must abort the drive signal when the drive ends to release that subscription;
+ * must abort `stopAbortSignal` when the drive ends to release that subscription;
  * active effects retain it until their interruption persistence has settled.
  * Each executed attempt's callback emits through the stream writer, tagged with
  * its start ID; the writer is flushed before the attempt's end is committed.
+ *
+ * Once `yieldAbortSignal` fired, no new attempt starts: the call
+ * returns `{ type: 'interrupted', retryable: true }` without recording
+ * anything, since nothing ran. Recorded terminal outputs still replay.
+ *
+ * Turns start here: before appending a new attempt's `effect-start`, a
+ * delivered `prompt` submission without a `turn-start` event gets one (ID
+ * `turn-start:${submissionId}`), and the `start` stream part is emitted under
+ * that key if the append was new. The turn therefore starts before the first
+ * effect that hands its prompt to the model. Steer submissions and unknown
+ * submission IDs never start a turn.
+ *
+ * Only one turn runs at a time: a prompt submitted while a turn is running
+ * waits until that turn finished. A new attempt therefore rejects with
+ * `HarnessInvalidDriveStateError`, without writing anything, if it delivers
+ * more than one prompt that has not started a turn, or a prompt while the
+ * latest turn has not finished.
  */
 export function createEffectFunction(options: {
   /**
@@ -245,15 +278,21 @@ export function createEffectFunction(options: {
    */
   log: HarnessAgentLog;
   /**
-   * Cancellation signal for this drive, passed unchanged to callbacks.
+   * Signal of the drive asking it to stop at once, passed unchanged to
+   * callbacks as their `abortSignal`.
    */
-  abortSignal: AbortSignal;
+  stopAbortSignal: AbortSignal;
+  /**
+   * Signal of the drive asking it to stop at the next safe point. Once it
+   * fired, no new attempt starts.
+   */
+  yieldAbortSignal: AbortSignal;
   /**
    * Writer for the session's stream, used by each attempt's `emit`.
    */
   writer: HarnessAgentStreamWriter;
 }): HarnessAgentEffectFunction {
-  const { log, abortSignal, writer } = options;
+  const { log, stopAbortSignal, yieldAbortSignal, writer } = options;
 
   /**
    * Effect keys with active invocations in this drive, including initialization
@@ -275,6 +314,34 @@ export function createEffectFunction(options: {
    * also lets late events be identified and ignored once an attempt is superseded.
    */
   const byStartId = new Map<string, EffectRecord>();
+
+  /**
+   * IDs of all `prompt` submissions seen so far.
+   */
+  const prompts = new Set<string>();
+
+  /**
+   * Submission IDs of all turns with a committed `turn-start` event.
+   */
+  const startedTurns = new Set<string>();
+
+  /**
+   * Submission IDs of all turns with a committed `finish-turn` event.
+   */
+  const finishedTurns = new Set<string>();
+
+  /**
+   * Submission ID of the turn with the latest committed `turn-start` event.
+   */
+  let latestTurn: string | undefined;
+
+  /**
+   * Submission ID of the turn whose `turn-start` event is being appended by
+   * this effect function, until that append settled. Counts as an unfinished
+   * turn, so a concurrent effect cannot start another turn meanwhile.
+   */
+  let startingTurn: string | undefined;
+
   const pendingEvents: HarnessAgentLogEvent[] = [];
   let initialized = false;
   let initialization: Promise<void> | undefined;
@@ -283,11 +350,11 @@ export function createEffectFunction(options: {
   let unsubscribed = false;
 
   const unsubscribe = log.onAppend({
-    config: { types: ['effect-start', 'effect-progress', 'effect-end'] },
+    config: { types: effectEventTypes },
     listener(event) {
       if (stateFailed) return;
       try {
-        if (initialized) applyEffectEvent({ event });
+        if (initialized) applyEvent({ event });
         else pendingEvents.push(event);
       } catch (error) {
         stateFailed = true;
@@ -296,7 +363,9 @@ export function createEffectFunction(options: {
     },
   });
 
-  abortSignal.addEventListener('abort', unsubscribeIfFinished, { once: true });
+  stopAbortSignal.addEventListener('abort', unsubscribeIfFinished, {
+    once: true,
+  });
   unsubscribeIfFinished();
 
   /**
@@ -304,80 +373,108 @@ export function createEffectFunction(options: {
    * settled, so interruption writes still update their accepted records.
    */
   function unsubscribeIfFinished(): void {
-    if (!abortSignal.aborted || running.size !== 0 || unsubscribed) return;
+    if (!stopAbortSignal.aborted || running.size !== 0 || unsubscribed) return;
     unsubscribed = true;
     unsubscribe();
-    abortSignal.removeEventListener('abort', unsubscribeIfFinished);
+    stopAbortSignal.removeEventListener('abort', unsubscribeIfFinished);
   }
 
   /**
-   * Propagates a fold failure that the log isolated from its durable writes.
-   * Incomplete records must never authorize callback execution or persistence.
+   * Throws the error that occurred earlier while updating the in-memory
+   * records from a log event. The log keeps such an error from failing its
+   * own writes, so it is rethrown here instead: incomplete records must never
+   * allow running a callback or writing to the log.
    */
   function checkState(): void {
     if (stateFailed) throw stateError;
   }
 
   /**
-   * Applies newly committed events to retained attempts in log order. The first
-   * eligible start and first end win; late events for ended or superseded
-   * attempts are inert. Reading an unfinished attempt does not establish that
-   * its process stopped. Only committed events may update retained records.
+   * Applies a committed event, in log order, to the state this function keeps:
+   *
+   * - `submission`, `turn-start` and `finish-turn` events update the turn
+   *   state (`prompts`, `startedTurns`, `latestTurn` and `finishedTurns`),
+   *   used to start turns.
+   * - Effect events update the retained attempts. The first eligible start
+   *   and first end win; late events for ended or superseded attempts are
+   *   inert. Reading an unfinished attempt does not establish that its
+   *   process stopped.
+   *
+   * Only committed events may update this state.
    */
-  function applyEffectEvent(options: {
+  function applyEvent(options: {
     /**
      * Committed event to apply in log order.
      */
     event: HarnessAgentLogEvent;
   }): void {
     const { event } = options;
-    if (event.type === 'effect-start') {
-      const previous = byKey.get(event.data.key);
-      if (
-        event.data.attempt !== (previous?.start.data.attempt ?? 0) + 1 ||
-        (previous != null && !canRetry(previous))
-      ) {
-        return;
+    switch (event.type) {
+      case 'submission':
+        if (event.data.type === 'prompt') prompts.add(event.id);
+        break;
+
+      case 'turn-start':
+        startedTurns.add(event.data.submissionId);
+        latestTurn = event.data.submissionId;
+        break;
+
+      case 'finish-turn':
+        finishedTurns.add(event.data.submissionId);
+        break;
+
+      case 'effect-start': {
+        const previous = byKey.get(event.data.key);
+        if (
+          event.data.attempt !== (previous?.start.data.attempt ?? 0) + 1 ||
+          (previous != null && !canRetry(previous))
+        ) {
+          break;
+        }
+        const attempt: EffectRecord = { start: event };
+        byKey.set(event.data.key, attempt);
+        byStartId.set(event.id, attempt);
+        break;
       }
-      const attempt: EffectRecord = { start: event };
-      byKey.set(event.data.key, attempt);
-      byStartId.set(event.id, attempt);
-    } else if (
-      event.type === 'effect-progress' ||
-      event.type === 'effect-end'
-    ) {
-      const attempt = byStartId.get(event.data.startId);
-      if (
-        attempt == null ||
-        attempt.output != null ||
-        byKey.get(attempt.start.data.key) !== attempt
-      ) {
-        return;
+
+      case 'effect-progress':
+      case 'effect-end': {
+        const attempt = byStartId.get(event.data.startId);
+        if (
+          attempt == null ||
+          attempt.output != null ||
+          byKey.get(attempt.start.data.key) !== attempt
+        ) {
+          break;
+        }
+        if (event.type === 'effect-progress') attempt.progress = event;
+        else attempt.output = event.data.output;
+        break;
       }
-      if (event.type === 'effect-progress') attempt.progress = event;
-      else attempt.output = event.data.output;
+
+      default:
     }
   }
 
   /**
-   * Loads history once for concurrent callers, then reconciles notifications
-   * buffered since registration without folding overlapping events twice.
-   * Failed reads leave records untouched and notifications available for retry;
-   * a fold failure instead makes this factory unusable.
+   * Reads the log once, shared by concurrent callers, and applies its events
+   * to the in-memory records. Events received through the subscription
+   * before the read finished are applied afterwards, skipping those the read
+   * already returned, so no event is applied twice. A failed read leaves the
+   * records untouched and can be retried; an error while applying an event
+   * makes this effect function unusable.
    */
   function initialize(): Promise<void> {
     if (initialization) return initialization;
     initialization = (async () => {
       checkState();
-      const batch = await log.read({
-        types: ['effect-start', 'effect-progress', 'effect-end'],
-      });
+      const batch = await log.read({ types: effectEventTypes });
       checkState();
       try {
         const historyIds = new Set(batch.events.map(event => event.id));
-        for (const event of batch.events) applyEffectEvent({ event });
+        for (const event of batch.events) applyEvent({ event });
         for (const event of pendingEvents) {
-          if (!historyIds.has(event.id)) applyEffectEvent({ event });
+          if (!historyIds.has(event.id)) applyEvent({ event });
         }
         pendingEvents.length = 0;
         initialized = true;
@@ -423,7 +520,7 @@ export function createEffectFunction(options: {
       data: {
         startId: options.startId,
         output:
-          options.output.type === 'interrupted' || abortSignal.aborted
+          options.output.type === 'interrupted' || stopAbortSignal.aborted
             ? interruption(attempt)
             : options.output,
       },
@@ -436,6 +533,63 @@ export function createEffectFunction(options: {
       });
     }
     return output;
+  }
+
+  /**
+   * Starts the turn of the `prompt` submission among the given ones that has
+   * no `turn-start` event yet, if there is one. Appends are first-wins, so a
+   * turn whose start another drive already committed is not started again,
+   * and the `start` part is only emitted for a new append.
+   *
+   * A session runs one turn at a time, and each turn starts with exactly one
+   * prompt; prompts submitted meanwhile wait until the turn finished. So this
+   * rejects with `HarnessInvalidDriveStateError`, before writing anything, if
+   * the given submissions include more than one prompt without a turn, or if
+   * the latest turn has not finished yet.
+   */
+  async function maybeStartTurn(options: {
+    /**
+     * Submissions delivered by the attempt about to start.
+     */
+    submissionIds: readonly string[];
+  }): Promise<void> {
+    const waiting = options.submissionIds.filter(
+      submissionId =>
+        prompts.has(submissionId) && !startedTurns.has(submissionId),
+    );
+    if (waiting.length === 0) return;
+    if (waiting.length > 1) {
+      throw new HarnessInvalidDriveStateError({
+        message:
+          'HarnessAgent.effect: an effect can start at most one turn, but it delivers more than one prompt that has not started a turn.',
+      });
+    }
+    if (
+      startingTurn != null ||
+      (latestTurn != null && !finishedTurns.has(latestTurn))
+    ) {
+      throw new HarnessInvalidDriveStateError({
+        message:
+          'HarnessAgent.effect: a prompt cannot start a turn while the previous turn has not finished.',
+      });
+    }
+
+    const [submissionId] = waiting;
+    const id = `turn-start:${submissionId}`;
+    startingTurn = submissionId;
+    try {
+      const appended = await log.append({
+        type: 'turn-start',
+        id,
+        data: { submissionId },
+      });
+      checkState();
+      startedTurns.add(submissionId);
+      latestTurn = submissionId;
+      if (appended) writer.emit({ part: { type: 'start' }, key: id });
+    } finally {
+      startingTurn = undefined;
+    }
   }
 
   /**
@@ -461,7 +615,7 @@ export function createEffectFunction(options: {
           value: previous.output,
         }) as HarnessV2EffectOutput<T>;
       }
-      if (abortSignal.aborted) {
+      if (stopAbortSignal.aborted) {
         return { type: 'interrupted', retryable: options.replay === 'safe' };
       }
       if (previous != null && !canRetry(previous)) {
@@ -469,6 +623,9 @@ export function createEffectFunction(options: {
           message:
             'HarnessAgent.effect: the unfinished attempt requires recovery.',
         });
+      }
+      if (yieldAbortSignal.aborted) {
+        return { type: 'interrupted', retryable: true };
       }
 
       const start: EffectRecord['start'] = {
@@ -485,6 +642,9 @@ export function createEffectFunction(options: {
             : (previous?.start.data.deliveredSubmissionIds ?? []),
         },
       };
+      await maybeStartTurn({
+        submissionIds: start.data.deliveredSubmissionIds,
+      });
       await log.append(start);
       checkState();
       const attempt = byStartId.get(start.id);
@@ -517,7 +677,7 @@ export function createEffectFunction(options: {
       try {
         result = await executeCallback({
           log,
-          abortSignal,
+          abortSignal: stopAbortSignal,
           attempt,
           emit: part => {
             if (emitting) writer.emit({ part, startId: start.id });

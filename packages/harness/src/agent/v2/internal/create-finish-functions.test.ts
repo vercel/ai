@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { HarnessInvalidDriveStateError } from '../../../errors/harness-invalid-drive-state-error';
+import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
 import { createFinishFunctions } from './create-finish-functions';
 import { createLog } from './create-log';
@@ -21,6 +22,11 @@ afterEach(() => {
 });
 
 const runId = 'finish-session';
+const session = new DefaultHarnessAgentSession({
+  sessionId: 'session-1',
+  sandboxId: 'sandbox-1',
+  runId,
+});
 
 const usage = {
   inputTokens: {
@@ -45,7 +51,7 @@ async function setup() {
   abortControllers.add(abortController);
   const writer = createStreamWriter({
     world,
-    runId,
+    session,
     abortSignal: abortController.signal,
   });
   const { finishStep, finishTurn } = createFinishFunctions({
@@ -99,13 +105,29 @@ async function deliver(options: {
 }
 
 /**
- * Appends a prompt submission and an effect start delivering it.
+ * Appends a `turn-start` event for the given submission.
+ */
+async function startTurn(options: {
+  log: HarnessAgentLog;
+  submissionId: string;
+}): Promise<void> {
+  await options.log.append({
+    type: 'turn-start',
+    id: `turn-start:${options.submissionId}`,
+    data: { submissionId: options.submissionId },
+  });
+}
+
+/**
+ * Appends a prompt submission, a `turn-start` event and an effect start
+ * delivering it.
  */
 async function deliverPrompt(options: {
   log: HarnessAgentLog;
   submissionId: string;
 }): Promise<void> {
   await submit(options);
+  await startTurn(options);
   await deliver({
     log: options.log,
     startId: `start:${options.submissionId}`,
@@ -120,7 +142,7 @@ async function readStream(options: {
   await options.writer.flush();
   const { data } = await options.world.streams.getChunks(
     runId,
-    runId + '_harness_agent_stream',
+    session.getStreamName(),
     { limit: 1000 },
   );
   return decodeStreamRecords({
@@ -132,9 +154,7 @@ async function readStreamKeys(options: {
   world: InMemoryWorld;
   writer: HarnessAgentStreamWriter;
 }) {
-  return (await readStream(options)).map(record =>
-    Object.hasOwn(record, 'key') ? record.key : undefined,
-  );
+  return (await readStream(options)).map(record => record.key);
 }
 
 async function readEventIds(options: {
@@ -361,14 +381,14 @@ describe('createFinishFunctions', () => {
       expect(await readStream({ world, writer })).toHaveLength(1);
     });
 
-    test('finishes the next turn once its prompt was delivered', async () => {
+    test('finishes the next turn once it started', async () => {
       const { log, finishTurn } = await setup();
       await deliverPrompt({ log, submissionId: 'p1' });
       await finishTurn({ finishReason, totalUsage: usage });
       await submit({ log, submissionId: 'p2' });
 
       await finishTurn({ finishReason, totalUsage: usage });
-      await deliver({ log, startId: 'start:p2', submissionIds: ['p2'] });
+      await startTurn({ log, submissionId: 'p2' });
       await finishTurn({ finishReason, totalUsage: usage });
 
       expect(await readEventIds({ log, type: 'finish-turn' })).toEqual([
@@ -377,8 +397,10 @@ describe('createFinishFunctions', () => {
       ]);
     });
 
-    test('rejects a finish before any prompt was delivered', async () => {
+    test('rejects a finish before any turn started', async () => {
       const { log, finishTurn } = await setup();
+      await submit({ log, submissionId: 'p1' });
+      await deliver({ log, startId: 's1', submissionIds: ['p1'] });
 
       await expect(
         finishTurn({ finishReason, totalUsage: usage }),
@@ -398,12 +420,13 @@ describe('createFinishFunctions', () => {
   });
 
   describe('turn tracking', () => {
-    test('ignores steers and undelivered prompts', async () => {
+    test('ignores submissions and deliveries without a turn start', async () => {
       const { log, finishTurn } = await setup();
       await deliverPrompt({ log, submissionId: 'p1' });
       await submit({ log, submissionId: 'steer', type: 'steer' });
       await deliver({ log, startId: 's2', submissionIds: ['steer'] });
       await submit({ log, submissionId: 'p2' });
+      await deliver({ log, startId: 's3', submissionIds: ['p2'] });
 
       await finishTurn({ finishReason, totalUsage: usage });
 
@@ -412,22 +435,21 @@ describe('createFinishFunctions', () => {
       ]);
     });
 
-    test('orders prompts by their first delivery, not by retried deliveries', async () => {
+    test('follows the latest turn start', async () => {
       const { log, finishTurn } = await setup();
       await submit({ log, submissionId: 'p1' });
       await submit({ log, submissionId: 'p2' });
-      await deliver({ log, startId: 's1', submissionIds: ['p1'] });
-      await deliver({ log, startId: 's2', submissionIds: ['p2'] });
-      await deliver({ log, startId: 's3', submissionIds: ['p1'] });
+      await startTurn({ log, submissionId: 'p2' });
+      await startTurn({ log, submissionId: 'p1' });
 
       await finishTurn({ finishReason, totalUsage: usage });
 
       expect(await readEventIds({ log, type: 'finish-turn' })).toEqual([
-        'finish-turn:p2',
+        'finish-turn:p1',
       ]);
     });
 
-    test('reads the log once and folds later events through onAppend', async () => {
+    test('reads the log once and applies later events from onAppend', async () => {
       const { log, finishStep, finishTurn } = await setup();
       const read = vi.spyOn(log, 'read');
       await deliverPrompt({ log, submissionId: 'p1' });

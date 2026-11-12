@@ -181,6 +181,12 @@ type HarnessV2Effect = {
    * Ids of the submissions whose user messages this effect hands to the model
    * or runtime for the first time. After that, a submission can no longer be
    * withdrawn, and a delivered `prompt` starts a turn.
+   *
+   * Only one turn runs at a time, and each turn starts with one prompt: a
+   * prompt submitted while a turn is running waits until that turn finished.
+   * So an effect may deliver at most one prompt that has not started a turn
+   * yet, and only once the previous turn finished. Otherwise `effect()`
+   * rejects with `HarnessInvalidDriveStateError` without recording anything.
    */
   readonly deliveredSubmissionIds: readonly string[];
   readonly output?: HarnessV2EffectOutput;
@@ -487,7 +493,7 @@ interface HarnessV2DriveContext {
    * eligible start and first end win, and late events cannot change them.
    *
    * Never rejects with the outcome of `fn`: a thrown error becomes an `error`
-   * output, and an abort of `abortSignal` becomes an `interrupted` output, so
+   * output, and an abort of `stopAbortSignal` becomes an `interrupted` output, so
    * the first run and a replay return the same shape. The only exception is
    * `HarnessInvalidDriveStateError` thrown from `fn`, which records an
    * interruption before propagating to the agent. Serialization and storage
@@ -553,9 +559,8 @@ interface HarnessV2DriveContext {
    *
    * The agent records the step in the log and emits `finish-step` only on the
    * first call for that `stepNumber` in the turn; a call replayed after a
-   * crash records and emits nothing. It resolves once the step is recorded
-   * and `stopWhen` was evaluated (which may abort `yieldRequested`), so the
-   * harness must await it before starting the next step.
+   * crash records and emits nothing. It resolves once the step is recorded,
+   * so the harness must await it before starting the next step.
    */
   finishStep(options: {
     stepNumber: number;
@@ -589,21 +594,22 @@ interface HarnessV2DriveContext {
    */
   unsafeEmit(part: HarnessV2StreamPart): void;
   /**
-   * Aborts when the drive must stop at once: preemption, a refused write, or
-   * cancellation. The harness must stop its runtime and write nothing more.
+   * Fires when this drive must stop right away, e.g. because it ended, another
+   * drive took over the session, or the turn was cancelled. Stop all work
+   * immediately and write nothing more.
    */
-  abortSignal: AbortSignal;
+  stopAbortSignal: AbortSignal;
   /**
-   * Aborts when the agent wants the drive to stop at the next safe point, e.g.
-   * for `stopWhen`, an approaching deadline, or a handover to the queue.
+   * Fires when this drive is running out of time (see "Drive deadline" below).
+   * Let the work that is already running finish, start nothing new, and
+   * return from `drive()`. The turn is not over: a later drive picks it up
+   * where this one stopped.
+   *
+   * Once it fired, `effect()` no longer starts new work (it returns a
+   * retryable `interrupted` output instead, while already recorded outputs
+   * still replay), and `gateBuiltinTool()` denies new tool calls.
    */
-  yieldRequested: AbortSignal;
-  /**
-   * When this drive's time budget ends (epoch ms), if known. Used to bound
-   * work outside the log that a signal cannot stop, such as a sandbox
-   * command's timeout, or whether a runtime restart still fits.
-   */
-  deadline?: number;
+  yieldAbortSignal: AbortSignal;
 }
 ```
 
@@ -679,6 +685,14 @@ const result = agent.stream({ prompt, session });
 - Whether the log is included depends on the engine having created the `InMemoryWorld` (or a capability the World declares), not on an `instanceof` check.
 - No concurrency protection (like V1): two processes resuming the same state diverge.
 - Out of scope for now: incremental reads, moving a session between non-durable and durable mode, keeping the sandbox in sync with a restored older state.
+
+### Drive deadline
+
+- A drive can only run for as long as the process hosting it is allowed to run. A World can report that limit through `getRuntimeDeadline()`, e.g. the maximum duration of the serverless function that runs the drive. A World without such a limit, like `InMemoryWorld`, reports none.
+- At the start of every drive, the engine asks the World for its runtime deadline. If there is one, the engine fires the drive's `yieldAbortSignal` a safety margin (currently 15 seconds) before it, so that running work can finish and its outcome is recorded in the log before the process is terminated. The turn then continues in a later drive.
+- If the World reports no deadline, `yieldAbortSignal` never fires for this reason.
+- Adapters never see the deadline itself, only `yieldAbortSignal`. If an adapter ever needs to know the remaining time up front (e.g. to set the timeout of a sandbox command), the deadline can be added to the drive context then.
+- `stopAbortSignal` is independent of the deadline.
 
 ## Open questions
 
@@ -777,33 +791,43 @@ After a crash, a new drive reruns the harness from the log. Any stream part emit
 
 | Output                                                      | API                               | Replay-safe because                                                                                                 |
 | ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Turn start (`start`)                                        | Engine only, inside `effect()`    | The engine appends a `turn-start` log event keyed by the prompt submission, and emits only when that append was new |
 | Content parts (text, reasoning, tool parts)                 | `effectContext.emit()`            | A replayed effect does not run its callback; after a crash, the engine withdraws the output of interrupted attempts |
 | Step end (`finish-step`)                                    | `finishStep({ stepNumber, ... })` | The engine appends a log event keyed by the turn and `stepNumber`, and emits only when that append was new          |
 | Turn end (`finish`)                                         | `finishTurn({ ... })`             | Same, keyed by the prompt submission that started the turn                                                          |
 | Output of a runtime that cannot run steps inside `effect()` | `unsafeEmit()`                    | Undesirable exception: the harness must never emit already emitted parts again                                      |
 
-- `HarnessV2StreamPart` has no `finish-step` and `finish` variants, since a harness must never emit them manually. The engine-only `HarnessAgentStreamPart` is a full copy of `HarnessV2StreamPart` that additionally contains them; it is what the engine's writer emits, with the finish parts produced only through `finishStep()` and `finishTurn()`.
-- `finishStep()` is awaited by the harness, which gives the engine its hold point: it records the step and evaluates `stopWhen` before the next step starts.
+- `HarnessV2StreamPart` has no `start`, `finish-step` and `finish` variants, since a harness must never emit them manually. The engine-only `HarnessAgentStreamPart` is a full copy of `HarnessV2StreamPart` that additionally contains them; it is what the engine's writer emits, with the `start` part produced only by the engine when a turn starts, and the finish parts only through `finishStep()` and `finishTurn()`.
+- A turn is started by a `prompt` submission. The engine starts it inside `effect()`: right before appending the `effect-start` of a new attempt, it appends a `turn-start` event (ID `turn-start:${submissionId}`) for the `prompt` submission listed in the attempt's `deliveredSubmissionIds` that has none yet, and emits the `start` part keyed by that ID if the append was new. A retried attempt or a later delivery of the same submission starts nothing; steer submissions never start a turn. Adapters do nothing beyond listing delivered submissions in `deliveredSubmissionIds`, and `turn-start` events are hidden from the adapter-facing log.
+- Only one turn runs at a time. A prompt can be submitted while a turn is running, but it waits until that turn finished; content for the running turn is a steer. So a new attempt that delivers more than one prompt without a turn, or a prompt while the latest turn has not finished, rejects with `HarnessInvalidDriveStateError` before anything is recorded. As with any error the adapter does not handle, the drive then fails, and the running turn, if any, is finished with `finishReason: 'error'`.
+- `finishStep()` is awaited by the harness, which gives the engine its hold point before the next step starts.
 - Finish calls follow the same first-wins rule as effects: if the step or turn is already recorded, the call records and emits nothing, without comparing its options to the recorded ones.
 - Both finish calls are recorded in the log as engine-internal events (`finish-step` and `finish-turn` in `HarnessAgentLogEvent`), which is the source of truth; the stream parts are only emitted after a new append. The events store the call's options plus the turn's `submissionId`.
-- A session has at most one turn at a time, so the engine identifies it without input from the adapter: the current turn is the one started by the latest delivered `prompt` submission (delivered meaning listed in a committed `effect-start`'s `deliveredSubmissionIds`), whether that turn is finished or not. A finished turn stays current until the next prompt is delivered, so a drive that re-enters a finished turn's last step resolves its replayed finish calls to that turn.
+- A session has at most one turn at a time, so the engine identifies it without input from the adapter: the current turn is the one of the latest `turn-start` event, whether that turn is finished or not. A finished turn stays current until the next turn starts, so a drive that re-enters a finished turn's last step resolves its replayed finish calls to that turn.
 - Log event IDs, which double as the stream record keys, are `finish-step:${submissionId}:${stepNumber}` and `finish-turn:${submissionId}`.
-- `finishStep()` checks `stepNumber` (a non-negative integer) against the steps recorded for the current turn: lower is a replay, equal is a new step. A higher number, a new step for a finished turn, or a call before any prompt was delivered rejects with `HarnessInvalidDriveStateError`. `finishTurn()` on a finished turn is a replay; before any prompt was delivered it rejects. `finishTurn()` does not check that the turn's steps were finished.
+- `finishStep()` checks `stepNumber` (a non-negative integer) against the steps recorded for the current turn: lower is a replay, equal is a new step. A higher number, a new step for a finished turn, or a call before any turn started rejects with `HarnessInvalidDriveStateError`. `finishTurn()` on a finished turn is a replay; before any turn started it rejects. `finishTurn()` does not check that the turn's steps were finished.
 - Limit: an adapter that replays finish calls of turns older than the current one would misattribute them. Adapters must therefore rebuild from the log and re-enter at most the latest step, never replaying older turns.
-- `stopWhen` is not evaluated yet: `finishStep()` resolves once the step is recorded.
-- Crash between the log append and the stream write of a finish part: at the start of every drive, the engine re-emits the latest recorded finish parts, each tagged with its key: the latest `finish-step` of an unfinished turn, and the `finish` of the latest turn if it is finished. The engine cannot tell whether the original write landed, so readers deduplicate parts by key.
+- Crash between the log append and the stream write of a turn boundary part: the part is lost. Re-emitting it is part of recovery, which is not implemented yet.
 - Crash recovery truncates, scoped to interrupted attempts, following the same approach as truncating a cut-off reply to its committed length:
-  - At the start of a drive in an unfinished turn, the drive finds the interrupted attempts in the log (an `effect-start` without `effect-end`, or an end with `interrupted` output) and writes an engine-only withdraw record listing their `startId`s. It does not emit `reset-step` and does not read the stream. Withdrawing an attempt again has no further effect.
+  - At the start of a drive in an unfinished turn, the drive finds the interrupted attempts in the log (an `effect-start` without `effect-end`, or an end with `interrupted` output) and emits an engine-only `withdraw` part listing their `startId`s. It does not emit `reset-step` and does not read the stream. Withdrawing an attempt again has no further effect.
   - The engine's stream reader computes what to drop from what it delivered for the withdrawn attempts: it counts text and reasoning characters separately and emits a consumer-facing truncation part that drops that many characters off the end of each kind. It also drops any later records of withdrawn attempts, which covers late writes from the dead process.
   - Consumers drop tool inputs without a matching `tool-call` when they receive the truncation part.
   - The truncation part's name and shape are decided with the consumer stream translation.
   - Limits: truncating from the end assumes withdrawn text and reasoning come last, which holds because model calls in a turn run one after another. `unsafeEmit()` output cannot be withdrawn.
   - Harness adapters are not involved: the engine has the attempt identities (log) and the attempt-tagged records (stream).
-- Reader cursors are positioned relative to the turn's start chunk. A resumed reader re-reads from there, using the skipped records only to rebuild which attempt produced which part.
+- For now, `generate()` and `stream()` reject while a turn of the session is running: while another call for the session is in progress in this process, or while the session's log shows a turn that has not finished or a prompt that has not started its turn. Eventually, such a call will queue its prompt instead. The in-process check only covers calls in the same process; making sure that only one drive changes a session across processes comes with queueing, recovery and fencing.
+- Each call starts one drive, and reads the session's World stream from the position it had before the call appended its `prompt` submission. Since no other turn can run meanwhile, everything from there on is output of the call's turn. The result reads until the drive ended and everything it wrote was read, and is decided by what the stream contains:
+  - a `finish` part: the turn finished.
+  - a `yield` part: the drive ran out of time, and the result ends without a `finish` part and without an error. The turn continues in a later drive.
+  - neither: the result ends with an error.
+  - Parts after a `finish` or `yield` part are dropped. `withdraw` parts are ignored until recovery is implemented.
+- A call's `abortSignal` is a local control: it only ends that call's result (with an `abort` part), while the turn continues. It is never stored or passed to a drive.
+- A drive fails when the harness or the engine throws. If the current turn started and is unfinished, the engine emits an `error` part and finishes the turn with `finishReason: 'error'`. Otherwise there is no turn to report the error in, so the drive rejects with the original error, which `generate()` rejects with and `stream()` emits as an `error` part.
+- A drive that returns after its `yieldAbortSignal` fired emits an engine-only `yield` part.
 - `reset-step` remains for runtime retries within a running drive.
 - Writes are in strict order: one World write in flight per writer, the same model as the Workflow runtime's stream writer behind `@ai-sdk/workflow`. Stream order is what `reset-step`, finish parts and reader-side attribution depend on.
 
-The engine implements all of this on one internal stream writer per drive, created by `createStreamWriter()`, writing to one World stream per session. Stream records carry the engine-only tags (`startId`, `key`) in an envelope around the part, or are engine-only withdraw records; adapters never see or pass them:
+The engine implements all of this on one internal stream writer per drive, created by `createStreamWriter()`, writing to one World stream per session, named by `session.getStreamName()`. Every stream record is a part record (`HarnessAgentStreamPartRecord`): a part plus the engine-only tags (`startId`, `key`). The engine-only `withdraw` and `yield` parts are `HarnessAgentStreamPart` variants like the finish parts. Adapters never see or pass the tags or these parts:
 
 ```ts
 type HarnessAgentStreamWriter = {
@@ -820,7 +844,7 @@ type HarnessAgentStreamWriter = {
   ): void;
   /** Untagged part (the drive context's `unsafeEmit()`); never withdrawable. */
   unsafeEmit(part: HarnessAgentStreamPart): void;
-  /** Engine-only withdraw record withdrawing the output of these attempts. */
+  /** Engine-only `withdraw` part withdrawing the output of these attempts. */
   withdraw(options: { startIds: readonly string[] }): void;
   /** Resolves once every write issued so far has landed or failed. */
   flush(): Promise<void>;
@@ -830,7 +854,7 @@ type HarnessAgentStreamWriter = {
 ```
 
 - `effectContext.emit` is built by `createEffectFunction()` per attempt, as `writer.emit({ part, startId })`, and drops parts once the attempt ended. The writer is flushed before the attempt's end is committed, so a committed end implies its parts were written or failed.
-- The drive context's `unsafeEmit` is built where the drive context is assembled, as `writer.unsafeEmit(part)`, fenced by the drive's `abortSignal`.
+- The drive context's `unsafeEmit` is built where the drive context is assembled, as `writer.unsafeEmit(part)`, fenced by the drive's `stopAbortSignal`.
 - `finishStep()` and `finishTurn()` are built together by `createFinishFunctions()`, which reads the log once per drive and keeps their shared turn state current via `onAppend`, so calls never read the log. They call `writer.emit({ part, key })` after their log append returned `true`, with the step key or turn key as `key`.
 
 ### Error representation (`HarnessV2EffectError`)

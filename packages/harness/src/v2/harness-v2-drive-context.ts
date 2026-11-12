@@ -346,17 +346,19 @@ export interface HarnessV2DriveContext {
   unsafeEmit(part: HarnessV2StreamPart): void;
 
   /**
-   * Aborts work when the session or current drive attempt is cancelled.
+   * Fires when this drive must stop right away, e.g. because it ended. Stop
+   * all work immediately and write nothing more.
    */
-  abortSignal: AbortSignal;
+  stopAbortSignal: AbortSignal;
 
   /**
-   * Signals that the host requests the harness to yield control.
+   * Fires when this drive is running out of time. Let the work that is
+   * already running finish, start nothing new, and return from `drive()`.
+   * The turn is not over: a later drive picks it up where this one stopped.
+   *
+   * Once it fired, `effect()` no longer starts new work (it returns a
+   * retryable `interrupted` output instead, while already recorded outputs
+   * still replay), and `gateBuiltinTool()` denies new tool calls.
    */
   yieldAbortSignal: AbortSignal;
-
-  /**
-   * Optional deadline imposed on the current drive attempt.
-   */
-  deadline?: number;
 }

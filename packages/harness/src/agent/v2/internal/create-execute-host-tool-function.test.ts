@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
+import { DefaultHarnessAgentSession } from '../harness-agent-session';
 import { InMemoryWorld } from '../in-memory-world';
 import { createEffectFunction } from './create-effect-function';
 import { createExecuteHostToolFunction } from './create-execute-host-tool-function';
@@ -19,7 +20,7 @@ import {
 import type {
   HarnessAgentExecuteHostToolFunction,
   HarnessAgentLog,
-  HarnessAgentStreamRecord,
+  HarnessAgentStreamPartRecord,
 } from './types';
 
 const abortControllers = new Set<AbortController>();
@@ -30,6 +31,11 @@ afterEach(() => {
 });
 
 const runId = 'host-tool-session';
+const session = new DefaultHarnessAgentSession({
+  sessionId: 'session-1',
+  sandboxId: 'sandbox-1',
+  runId,
+});
 
 const sandboxSession = { description: 'sandbox' } as SandboxSession;
 
@@ -49,12 +55,13 @@ function createDrive(options: {
   abortControllers.add(abortController);
   const writer = createStreamWriter({
     world: options.world,
-    runId,
+    session,
     abortSignal: abortController.signal,
   });
   const effect = createEffectFunction({
     log: options.log,
-    abortSignal: abortController.signal,
+    stopAbortSignal: abortController.signal,
+    yieldAbortSignal: new AbortController().signal,
     writer,
   });
   const getSandboxSession = vi.fn(async () => sandboxSession);
@@ -81,10 +88,10 @@ async function setup(options: { tools: ToolSet }) {
  */
 async function readStream(options: {
   world: InMemoryWorld;
-}): Promise<HarnessAgentStreamRecord[]> {
+}): Promise<HarnessAgentStreamPartRecord[]> {
   const { data } = await options.world.streams.getChunks(
     runId,
-    runId + '_harness_agent_stream',
+    session.getStreamName(),
     { limit: 1000 },
   );
   return decodeStreamRecords({

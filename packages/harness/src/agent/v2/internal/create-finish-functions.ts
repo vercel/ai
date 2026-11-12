@@ -14,11 +14,11 @@ import type {
 } from './types';
 
 /**
- * Log event types folded into the turn state.
+ * Log event types the finish functions read to track the turn state. They
+ * ignore all other types.
  */
 const turnEventTypes: HarnessAgentLogEvent['type'][] = [
-  'submission',
-  'effect-start',
+  'turn-start',
   'finish-step',
   'finish-turn',
 ];
@@ -27,13 +27,11 @@ const turnEventTypes: HarnessAgentLogEvent['type'][] = [
  * Creates the drive context's `finishStep()` and `finishTurn()`, which share
  * one view of the session's turns.
  *
- * The current turn is the one started by the latest delivered `prompt`
- * submission, whether that turn is finished or not. A submission counts as
- * delivered once a committed `effect-start` lists it in
- * `deliveredSubmissionIds`; its position is that of its first delivery, since
- * retried attempts repeat the IDs their previous attempt delivered. A session
- * has at most one turn at a time, so a finished turn stays current until the
- * next prompt is delivered, and finish calls replayed by a later drive still
+ * The current turn is the one of the latest `turn-start` event, whether that
+ * turn is finished or not. The effect function writes that event right before
+ * the `effect-start` that first delivers the turn's `prompt` submission. A
+ * session has at most one turn at a time, so a finished turn stays current
+ * until the next turn starts, and finish calls replayed by a later drive still
  * resolve to it.
  *
  * The turn state is loaded with one log read on first use and then kept
@@ -70,16 +68,6 @@ export function createFinishFunctions(options: {
   finishTurn: HarnessAgentFinishTurnFunction;
 } {
   const { log, writer, abortSignal } = options;
-
-  /**
-   * IDs of all `prompt` submissions seen so far.
-   */
-  const prompts = new Set<string>();
-
-  /**
-   * IDs of all submissions delivered so far.
-   */
-  const delivered = new Set<string>();
 
   /**
    * Number of recorded steps per turn, keyed by the turn's submission ID.
@@ -129,8 +117,10 @@ export function createFinishFunctions(options: {
   }
 
   /**
-   * Propagates a fold failure that the log isolated from its durable writes.
-   * An incomplete turn state must never authorize an append.
+   * Throws the error that occurred earlier while updating the in-memory turn
+   * state from a log event. The log keeps such an error from failing its own
+   * writes, so it is rethrown here instead: an incomplete turn state must
+   * never allow writing to the log.
    */
   function checkState(): void {
     if (stateFailed) throw stateError;
@@ -146,14 +136,8 @@ export function createFinishFunctions(options: {
     event: HarnessAgentLogEvent;
   }): void {
     const { event } = options;
-    if (event.type === 'submission') {
-      if (event.data.type === 'prompt') prompts.add(event.id);
-    } else if (event.type === 'effect-start') {
-      for (const submissionId of event.data.deliveredSubmissionIds) {
-        if (delivered.has(submissionId)) continue;
-        delivered.add(submissionId);
-        if (prompts.has(submissionId)) currentTurn = submissionId;
-      }
+    if (event.type === 'turn-start') {
+      currentTurn = event.data.submissionId;
     } else if (event.type === 'finish-step') {
       const { submissionId } = event.data;
       recordedSteps.set(
@@ -166,10 +150,12 @@ export function createFinishFunctions(options: {
   }
 
   /**
-   * Loads history once for concurrent callers, then reconciles notifications
-   * buffered since registration without folding overlapping events twice.
-   * Failed reads leave the state untouched and notifications available for
-   * retry; a fold failure instead makes these functions unusable.
+   * Reads the log once, shared by concurrent callers, and applies its events
+   * to the in-memory turn state. Events received through the subscription
+   * before the read finished are applied afterwards, skipping those the read
+   * already returned, so no event is applied twice. A failed read leaves the
+   * state untouched and can be retried; an error while applying an event
+   * makes these functions unusable.
    */
   function initialize(): Promise<void> {
     if (initialization) return initialization;

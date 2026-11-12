@@ -204,6 +204,32 @@ export type HarnessAgentLogEvent =
     }
   | {
       /**
+       * Records the start of a turn, visible only to the agent engine. Written
+       * by the effect function under the ID `turn-start:${submissionId}`, right
+       * before the `effect-start` that first delivers the turn's `prompt`
+       * submission. From then on, that submission counts as delivered and the
+       * turn is the session's current turn.
+       */
+      readonly type: 'turn-start';
+
+      /**
+       * Turn identity.
+       */
+      readonly data: {
+        /**
+         * ID of the `prompt` submission that starts the turn.
+         */
+        readonly submissionId: string;
+      };
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    }
+  | {
+      /**
        * Records a finished turn, visible only to the agent engine. Written by
        * the drive context's `finishTurn()` under the ID
        * `finish-turn:${submissionId}`.
@@ -246,8 +272,8 @@ export type HarnessAgentLogEvent =
  * Finishes the current AI SDK step. Same as `HarnessV2DriveContext['finishStep']`,
  * redeclared so the engine does not depend on the adapter-facing type.
  *
- * The current turn is the one started by the latest delivered `prompt`
- * submission, finished or not. A `stepNumber` below the turn's recorded step
+ * The current turn is the one started by the latest `turn-start` event,
+ * finished or not. A `stepNumber` below the turn's recorded step
  * count is a replay and records and emits nothing; one equal to it records the
  * step and emits `finish-step`; anything else rejects.
  */
@@ -277,8 +303,8 @@ export type HarnessAgentFinishStepFunction = (options: {
  * Finishes the current turn. Same as `HarnessV2DriveContext['finishTurn']`,
  * redeclared so the engine does not depend on the adapter-facing type.
  *
- * The current turn is the one started by the latest delivered `prompt`
- * submission. If it is already finished, the call is a replay and records and
+ * The current turn is the one started by the latest `turn-start` event. If it
+ * is already finished, the call is a replay and records and
  * emits nothing; otherwise it records the finish and emits `finish`.
  */
 export type HarnessAgentFinishTurnFunction = (options: {
@@ -358,9 +384,10 @@ export type HarnessAgentLog = {
    * Registers a callback for matching new events and returns an unsubscribe
    * function. Each matching canonical event first observed while registered is
    * delivered once, in committed order, with an independent payload snapshot.
-   * Delivery is synchronous when a read or write folds the event, before that
-   * operation resolves. Previously cached events are not replayed; events first
-   * observed after registration may also appear in a subsequent read's history.
+   * The callback is called synchronously as soon as a read or write adds the
+   * event to the log's in-memory copy, before that read or write resolves.
+   * Previously cached events are not replayed; events first observed after
+   * registration may also appear in a subsequent read's history.
    * Callback failures are isolated from persistence and other listeners, and
    * asynchronous callback work is not awaited. External writes are discovered
    * through advisory hints, polling, reads, or append reconciliation.
@@ -380,14 +407,23 @@ export type HarnessAgentLog = {
 
 /**
  * Stream events handled by the HarnessAgent engine: the engine-side superset of
- * `HarnessV2StreamPart`. The `finish-step` and `finish` variants are produced
- * only by the engine, from the drive context's `finishStep()` and
- * `finishTurn()`; a harness never emits them.
+ * `HarnessV2StreamPart`. The `start`, `finish-step`, `finish`, `withdraw` and
+ * `yield` variants are produced only by the engine: `start` when a turn
+ * starts, the finish parts from the drive context's `finishStep()` and
+ * `finishTurn()`, `withdraw` from the stream writer's `withdraw()`, and
+ * `yield` when a drive yields at its deadline. A harness never emits them.
  *
  * This union is redeclared rather than derived from `HarnessV2StreamPart`, so
  * every change to that type must be mirrored here.
  */
 export type HarnessAgentStreamPart =
+  | {
+      /**
+       * Marks the start of a turn. Emitted by the engine only, keyed
+       * `turn-start:${submissionId}`.
+       */
+      type: 'start';
+    }
   | {
       /**
        * Begins a model or harness stream and may report call-level warnings.
@@ -644,11 +680,30 @@ export type HarnessAgentStreamPart =
        * Marks that the current model step's streamed content should reset.
        */
       type: 'reset-step';
+    }
+  | {
+      /**
+       * Instructs readers to withdraw the output of interrupted effect
+       * attempts. Emitted by the engine only.
+       */
+      type: 'withdraw';
+
+      /**
+       * Start IDs of the attempts whose output readers withdraw.
+       */
+      startIds: string[];
+    }
+  | {
+      /**
+       * Marks that the drive yielded at its deadline. The current turn, if
+       * unfinished, continues in a later drive. Emitted by the engine only.
+       */
+      type: 'yield';
     };
 
 /**
- * Stream record carrying a part, plus the engine-only tags readers use to
- * attribute and deduplicate it.
+ * One record of a session's stream: a part, plus the engine-only tags readers
+ * use to attribute and deduplicate it.
  */
 export type HarnessAgentStreamPartRecord = {
   /**
@@ -666,24 +721,6 @@ export type HarnessAgentStreamPartRecord = {
    */
   key?: string;
 };
-
-/**
- * Engine-only stream record instructing readers to withdraw the output of
- * interrupted effect attempts.
- */
-export type HarnessAgentStreamWithdrawRecord = {
-  /**
-   * Effect attempts whose output readers withdraw.
-   */
-  withdraw: string[];
-};
-
-/**
- * One decoded record of a session's stream.
- */
-export type HarnessAgentStreamRecord =
-  | HarnessAgentStreamPartRecord
-  | HarnessAgentStreamWithdrawRecord;
 
 /**
  * Ordered, best-effort writer for one session's stream, owned by one drive.
@@ -742,7 +779,7 @@ export type HarnessAgentStreamWriter = {
   unsafeEmit(part: HarnessAgentStreamPart): void;
 
   /**
-   * Writes the engine-only withdraw record withdrawing the output of the given
+   * Emits the engine-only `withdraw` part withdrawing the output of the given
    * effect attempts.
    */
   withdraw(options: {

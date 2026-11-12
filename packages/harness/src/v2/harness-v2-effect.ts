@@ -101,6 +101,12 @@ export type HarnessV2Effect = {
 
   /**
    * Submission IDs whose delivery has already been recorded for this effect.
+   *
+   * Only one turn runs at a time, and each turn starts with one prompt: a
+   * prompt submitted while a turn is running waits until that turn finished.
+   * So an effect may deliver at most one prompt that has not started a turn
+   * yet, and only once the previous turn finished. Otherwise `effect()`
+   * rejects with `HarnessInvalidDriveStateError` without recording anything.
    */
   readonly deliveredSubmissionIds: readonly string[];
 

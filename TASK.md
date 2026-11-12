@@ -48,8 +48,8 @@ The steps are below:
    - Add a `HarnessAgentEffectFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["effect"]` (redeclare it, DO NOT import).
    - The input for the `createEffectFunction()` function must include the `HarnessAgentLog`.
 9. [x] Scaffold `packages/harness/src/agent/v2/internal/create-stream-writer.ts` with function `createStreamWriter(input): HarnessAgentStreamWriter`, and update the contract for replay-safe stream emission, per "Error representation", "Raw stream parts" and "Replay-safe stream emission" in HARNESS-V2.md.
-   - Add the `HarnessAgentStreamWriter` type (`emit`, `unsafeEmit`, `withdraw`, `flush`, `close`) and the `HarnessAgentStreamRecord` type (a union of `HarnessAgentStreamPartRecord` and `HarnessAgentStreamWithdrawRecord`) to `packages/harness/src/agent/v2/internal/types.ts`. There is no `createEmitFunction()` and no `HarnessAgentEmitFunction` type.
-   - The input for the `createStreamWriter()` function must include `world: World`, the session's `runId` and the drive's `abortSignal`; the writer writes to a per-session World stream in strict order (one write in flight). Add `decodeStreamRecords()` next to it.
+   - Add the `HarnessAgentStreamWriter` type (`emit`, `unsafeEmit`, `withdraw`, `flush`, `close`) and the `HarnessAgentStreamPartRecord` type (a part plus the engine-only `startId` and `key` tags; every stream record is one) to `packages/harness/src/agent/v2/internal/types.ts`. Withdrawals are an engine-only `withdraw` variant of `HarnessAgentStreamPart`. There is no `createEmitFunction()` and no `HarnessAgentEmitFunction` type.
+   - The input for the `createStreamWriter()` function must include `world: World`, the `HarnessAgentSession` and the drive's `abortSignal`; the writer writes to the session's World stream, named by `session.getStreamName()`, in strict order (one write in flight). Add `decodeStreamRecords()` next to it.
    - Add `HarnessV2EffectError` and use it for the `error` of `HarnessV2StreamPart` and `HarnessV2EffectOutput`; update `createEffectFunction()`'s error outputs accordingly.
    - Type the `raw` stream part's `rawValue` as `SerializableValue`.
    - Add the `HarnessEffectError` class in `packages/harness/src/errors/harness-effect-error.ts`, extending `HarnessError`.
@@ -73,43 +73,52 @@ The steps are below:
 - It builds the drive context's `unsafeEmit` from `writer.unsafeEmit`.
 - It has to decorate `HarnessAgentLog` into `HarnessAgentV2Log`, and it has to create the sandbox session function based on the given session's sandbox session getter function. The other shapes should be compatible.
 
-13. [ ] Wire all the pieces that are individually handled by steps 7 to 11 together in `HarnessAgent`, so that the resulting `HarnessV2DriveContext` object can be passed to the `harness: HarnessV2` instance's `drive()` method.
-14. [ ] Implement `packages/harness-pi-v2`, a new from-scratch reimplementation of the Pi harness. Keep it minimal, but follow the key harness requirements. For now, the only thing that it will support is custom `tools`.
+13. [x] Wire all the pieces that are individually handled by steps 7 to 11 together in `HarnessAgent`, so that the resulting `HarnessV2DriveContext` object can be passed to the `harness: HarnessV2` instance's `drive()` method.
+14. [ ] Implement recovery of effect attempts that a dead drive left unfinished, so that a durable session continues after a crash.
+
+- At the start of a drive, find the attempts with an `effect-start` but no `effect-end`, and treat them as abandoned only once there is proof that the drive that started them is gone (e.g. that drive's recorded deadline has passed). Never treat an attempt that a live drive may still be running as abandoned.
+- Record each abandoned attempt as `interrupted` (`retryable` from its `replay`, with its last committed partial), and emit a `withdraw` part for their `startId`s to the session's stream.
+- Without such proof, the new drive must yield without changing the session.
+- At the start of a drive, re-emit the latest turn's boundary parts to the session's stream, each under its log key: the turn's `start`, then its `finish` if it finished, or else its latest `finish-step`. A crash between a boundary event's log append and its stream write loses the part, and the drive cannot tell whether the write landed, so readers must drop parts whose key they already saw.
+
+15. [ ] Add durable cancellation of a running turn: a new `HarnessAgent` method (e.g. `cancel({ session })`) appends an engine-internal cancel event to the session's log; the drive running the session, in any process, observes it, aborts its drive `stopAbortSignal`, and finishes the turn as `interrupted`. A call's `abortSignal` stays a local control that only ends that call's result.
+
+16. [ ] Implement `packages/harness-pi-v2`, a new from-scratch reimplementation of the Pi harness. Keep it minimal, but follow the key harness requirements. For now, the only thing that it will support is custom `tools`.
 
 - Ignore existing harnesses' code structure and architectural conventions. We'll want to build this as ideal as it is for the new architecture.
 
-15. [ ] Implement `examples/durable-harness-e2e-next`, a Next.js app with interactive testing UI for durable harness execution.
+17. [ ] Implement `examples/durable-harness-e2e-next`, a Next.js app with interactive testing UI for durable harness execution.
 
 - All harness configurations in this app will run on a durable `World`.
 - Initially, only include a simple example for the new `harness-pi-v2`.
 
-16. [ ] Define `HarnessV2Store` and its engine counterpart `HarnessAgentStore`, under the hood relying on specific `HarnessAgentLog` events (e.g. with type `store:...`), and include the adapter-specific type on `HarnessV2DriveContext`.
+18. [ ] Define `HarnessV2Store` and its engine counterpart `HarnessAgentStore`, under the hood relying on specific `HarnessAgentLog` events (e.g. with type `store:...`), and include the adapter-specific type on `HarnessV2DriveContext`.
 
-17. [ ] Implement `packages/harness-ai-sdk`, a new custom AI SDK harness where developers build their own durable `HarnessAgent` compatible harness on top of `ToolLoopAgent`.
+19. [ ] Implement `packages/harness-ai-sdk`, a new custom AI SDK harness where developers build their own durable `HarnessAgent` compatible harness on top of `ToolLoopAgent`.
 
 - Ignore existing harnesses' code structure and architectural conventions. We'll want to build this as ideal as it is for the new architecture.
 
-17. [ ] Revise the `packages/harness/src/v2/` tool type definitions for harness-specific needs.
+20. [ ] Revise the `packages/harness/src/v2/` tool type definitions for harness-specific needs.
 
 - Define harness-specific tool types (at least as aliases) instead of just reusing AI SDK's existing types directly. Use type `harness-builtin` in favor of using `provider-defined` and `provider-executed`, which are not the same.
 - Drop common tools as a foundation in favor of using `Tool["metadata"]` to store mapping data for a built-in tool to its common tool shape.
 - Use the `ProviderDefinedTool` type for a harness's built-in tools.
 - Revise the two adapters to use the new types.
 
-18. [ ] Add support for (system) instructions to the new `HarnessAgent` and the two adapters.
-19. [ ] Add support for skills to the new `HarnessAgent` and the two adapters.
-20. [ ] Add support for a new `HarnessAgent` option (only actually support in the new `HarnessAgent` implementation!) that configures whether the agent's workDir can be trusted (i.e. project-level trust).
+21. [ ] Add support for (system) instructions to the new `HarnessAgent` and the two adapters.
+22. [ ] Add support for skills to the new `HarnessAgent` and the two adapters.
+23. [ ] Add support for a new `HarnessAgent` option (only actually support in the new `HarnessAgent` implementation!) that configures whether the agent's workDir can be trusted (i.e. project-level trust).
 
 - Harness adapters must receive awareness of this configuration.
 - If trusted, the harness adapter should use the workDir to discover and process instructions (e.g. `AGENTS.md`), skills (e.g. `.agents/skills/*`), configuration (e.g. `./claude/settings.json`), hooks (e.g. `.codex/hooks.json`), and MCP servers (e.g. `.mcp.json`) as far as the trust is configured.
 - If not trusted (default), the harness adapter must completely ignore ALL of the above files even if present in the workDir.
 
-21. [ ] Implement `packages/harness-claude-code-v2`, a new from-scratch reimplementation of the Claude Code harness. Keep it minimal, but follow the key harness requirements. For now, the only thing that it will support is custom `tools`, `instructions`, and `skills`.
+24. [ ] Implement `packages/harness-claude-code-v2`, a new from-scratch reimplementation of the Claude Code harness. Keep it minimal, but follow the key harness requirements. For now, the only thing that it will support is custom `tools`, `instructions`, and `skills`.
 
 - Ignore existing harnesses' code structure and architectural conventions. We'll want to build this as ideal as it is for the new architecture.
 - As part of this, ensure the new `HarnessAgent` class properly supports a harness's bootstrap recipe.
 
-22. [ ] Add support for fencing to the sandbox abstraction and the new `HarnessAgent`, so that a drive that lost ownership of a session can no longer change anything in the session's sandbox.
+25. [ ] Add support for fencing to the sandbox abstraction and the new `HarnessAgent`, so that a drive that lost ownership of a session can no longer change anything in the session's sandbox.
 
 - Add an optional fencing capability to the sandbox abstraction (e.g. a `fenced({ token })` method returning a fenced sandbox session view). A sandbox that supports it must persist the highest token it has seen, refuse operations with a lower token in the same step as the operation itself, and stop all processes started under lower tokens once a higher token arrives.
 - In the new `HarnessAgent` engine, derive a per-drive token that only increases across owners of a session (e.g. the committed log position of a drive claim event, or the World's in-band writer fence where available), and have the drive context's `sandbox()` return the fenced view when the sandbox supports it, including fenced versions of derived sessions such as `restricted()`.
@@ -120,7 +129,7 @@ The steps are below:
 
 We are working on a prototype. The objective is not full coverage of all features, or a fully functional behavior at all times.
 
-- Until task step 15, only run `pnpm check` and `pnpm type-check`, and `pnpm --filter harness test` for verification.
+- Until task step 17, only run `pnpm check` and `pnpm type-check`, and `pnpm --filter harness test` for verification.
 - After that task is done, after every step whatever we had in scope of the implementation must be functional, so also include end-to-end example run verifications at this point.
 - That means there may still be parts that aren't (e.g. an API parameter for which the implementation just throws). But whatever the respective step adds in scope to the implementation has to fully work.
 

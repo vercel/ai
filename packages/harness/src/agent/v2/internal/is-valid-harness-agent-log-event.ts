@@ -12,6 +12,7 @@ const eventTypes = {
   'effect-progress': true,
   'effect-end': true,
   'finish-step': true,
+  'turn-start': true,
   'finish-turn': true,
 } satisfies Record<
   Exclude<HarnessAgentLogEvent['type'], `harness:${string}`>,

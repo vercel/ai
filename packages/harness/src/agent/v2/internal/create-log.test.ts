@@ -413,7 +413,7 @@ describe('createLog', () => {
     expect((await log.read()).events).toHaveLength(4);
   });
 
-  test('folds and delivers repeated physical records for one event ID only once', async () => {
+  test('adds and delivers repeated physical records for one event ID only once', async () => {
     const { world, runId, log } = await setup();
     const event = {
       type: 'harness:journal',
@@ -683,7 +683,7 @@ describe('createLog', () => {
   });
 
   test.each(['complete', 'missing', 'partial'] as const)(
-    'folds interleaved commits with a %s write report',
+    'adds interleaved commits with a %s write report',
     async report => {
       const { world, runId, log } = await setup();
       const create = world.events.create.bind(world.events);
