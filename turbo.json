@@ -53,6 +53,7 @@
         "OPENAI_BASE_URL",
         "PERPLEXITY_API_KEY",
         "REPLICATE_API_TOKEN",
+        "SCALEDOWN_API_KEY",
         "SENTRY_AUTH_TOKEN",
         "SENTRY_ORG",
         "SENTRY_PROJECT",

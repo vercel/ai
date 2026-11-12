@@ -1,0 +1,103 @@
+---
+title: ScaleDown
+description: Use ScaleDown's Decisions API with the AI SDK.
+---
+
+# ScaleDown Provider
+
+The [ScaleDown](https://scaledown.ai) provider answers choice, boolean, and score
+questions with ScaleDown's classification model through its
+[Decisions API](https://docs.scaledown.ai/api-reference/decisions).
+
+## Setup
+
+Install the provider:
+
+```sh
+pnpm add @ai-sdk/scaledown
+```
+
+Set the `SCALEDOWN_API_KEY` environment variable, or configure an instance:
+
+```ts
+import { createScaleDown } from '@ai-sdk/scaledown';
+
+const scaledown = createScaleDown({ apiKey: 'your-api-key' });
+```
+
+`createScaleDown` also accepts `baseURL` (default `https://api.scaledown.xyz`),
+`headers`, and a custom `fetch` implementation. Authentication uses `x-api-key`.
+
+## Decision Models
+
+```ts
+import { scaledown } from '@ai-sdk/scaledown';
+import { experimental_decide } from 'ai';
+
+const result = await experimental_decide({
+  model: scaledown.decisionModel('classify-1'),
+  state: 'The export button crashes in Safari. It works in Chrome.',
+  questions: {
+    category: {
+      type: 'choice',
+      criteria: {
+        bug: 'Broken functionality',
+        feedback: 'Product suggestions',
+      },
+    },
+    hasWorkaround: {
+      type: 'boolean',
+      instructions: 'Can the user work around this issue?',
+    },
+    severity: {
+      type: 'score',
+      instructions: 'How severe is the reported issue?',
+      criteria: ['Cosmetic', 'Degraded, with a workaround', 'Blocking'],
+    },
+  },
+});
+
+console.log(result.answers);
+console.log(result.usage);
+```
+
+The provider sends one request to `POST /v1/scaledown`. ScaleDown evaluates each
+question against the shared state and aggregates token usage across those calls.
+
+| Model        | Choice    | Boolean   | Score     | Box       | Image/PDF Input |
+| ------------ | --------- | --------- | --------- | --------- | --------------- |
+| `classify`   | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />       |
+| `classify-1` | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />       |
+
+`classify` selects the latest version; `classify-1` pins version 1. Other model
+IDs are forwarded to ScaleDown for validation.
+
+- Choice questions select one option and return its complete probability distribution.
+  Null option descriptions use the option name.
+- Boolean questions map to ScaleDown's `noul` primitive and return `P(true)`.
+  Boolean criteria are included in the native question's instructions.
+- Score questions require 2–10 non-null, ordered levels. Scores are zero-based,
+  probability-weighted means and can be fractional.
+
+Text parts are joined with newlines. JSON state and structured instructions or
+criteria are serialized to text, preserving fields that ScaleDown would otherwise
+ignore. State can also contain one JPEG, PNG, TIFF, or PDF file part; the provider
+sends it as a base64-encoded document alongside any text.
+
+The Decisions API does not support `reasoning`, `maxOutputTokens`, or provider
+options; supplying them produces warnings. This provider supports decision calls.
+
+### Provider Metadata
+
+`result.providerMetadata.scaledown` contains `confidence` and `legend` maps keyed by
+question ID, plus the total request `cost` in USD when supplied by ScaleDown. The
+package exports `ScaleDownDecisionProviderMetadata` for typed access.
+
+### Classify and Decisions
+
+ScaleDown's [`/classify` and Decisions APIs](https://docs.scaledown.ai/api-reference/classify-overview)
+use the same scoring model with different request and response shapes.
+`/classify` accepts labels with rubrics; Decisions accepts typed questions and
+returns one answer per question. This provider implements the Decisions endpoint.
+Classify-specific batching, multi-label settings, and free-form reasoning are
+available through ScaleDown's separate `/classify` API.
