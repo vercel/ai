@@ -1,8 +1,8 @@
 import { z } from 'zod/v4';
-import type { inceptionModelCatalog } from '../inception-model-catalog';
+import type { InceptionModelIds } from '../inception-model-catalog';
 
 export type InceptionChatModelId =
-  | keyof typeof inceptionModelCatalog
+  | InceptionModelIds['language']
   | (string & {});
 
 export const inceptionLanguageModelChatOptions = z.object({

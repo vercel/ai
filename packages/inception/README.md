@@ -1,6 +1,6 @@
 # AI SDK - Inception Provider
 
-The **[Inception provider](https://ai-sdk.dev/providers/ai-sdk-providers/inception)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for [Inception's Mercury models](https://docs.inceptionlabs.ai/), including streaming, tool calling, reasoning effort, and structured outputs.
+The **[Inception provider](https://ai-sdk.dev/providers/ai-sdk-providers/inception)** for the [AI SDK](https://ai-sdk.dev/docs) contains language and decision model support for [Inception's Mercury models](https://docs.inceptionlabs.ai/), including streaming, tool calling, reasoning effort, structured outputs, and classification with Mercury Decide.
 
 ## Setup
 

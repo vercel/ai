@@ -21,6 +21,7 @@ export const inceptionProviderOptions = {
     keyof InceptionLanguageModelChatOptions,
     ProviderOptionDefinition
   >,
+  decision: {},
 } as const satisfies ProviderOptionDefinitions;
 
 function createChatModelEntry(
@@ -52,9 +53,43 @@ function createChatModelEntry(
 }
 
 // https://docs.inceptionlabs.ai/get-started/models
-export const inceptionModelCatalog = {
+const inceptionChatModelCatalog = {
   'mercury-3': createChatModelEntry(),
   'mercury-2.5': createChatModelEntry(),
   'mercury-2': createChatModelEntry(),
   'mercury-voice': createChatModelEntry(['low', 'medium', 'high']),
 } as const satisfies Record<string, ModelEntry>;
+
+export const inceptionDecisionModelLimits = {
+  supportedQuestionTypes: ['boolean', 'choice', 'score'],
+  maxChoiceOptions: 255,
+  maxScoreLevels: 10,
+  maxImages: 16,
+  supportedMediaTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
+} as const;
+
+// https://docs.inceptionlabs.ai/capabilities/decisions
+const inceptionDecisionModelCatalog = {
+  'mercury-decide': {
+    capabilities: {
+      decision: {
+        questionTypes: { boolean: true, choice: true, score: true, box: false },
+        inputs: { image: true },
+        reasoning: false,
+        maxOutputTokens: false,
+        ...inceptionDecisionModelLimits,
+      },
+    },
+    providerOptions: { decision: {} },
+  },
+} as const satisfies Record<string, ModelEntry>;
+
+export const inceptionModelCatalog = {
+  ...inceptionChatModelCatalog,
+  ...inceptionDecisionModelCatalog,
+} as const satisfies Record<string, ModelEntry>;
+
+export type InceptionModelIds = {
+  language: keyof typeof inceptionChatModelCatalog;
+  decision: keyof typeof inceptionDecisionModelCatalog;
+};

@@ -1,11 +1,12 @@
 ---
 title: Inception
-description: Learn how to use Inception's Mercury language models with the AI SDK.
+description: Learn how to use Inception's Mercury language and decision models with the AI SDK.
 ---
 
 # Inception Provider
 
-The [Inception](https://inceptionlabs.ai) provider supports Mercury language models through Inception's [chat completions API](https://docs.inceptionlabs.ai/api-reference/chat/create-a-chat-completion).
+The [Inception](https://inceptionlabs.ai) provider supports Mercury language models through Inception's [chat completions API](https://docs.inceptionlabs.ai/api-reference/chat/create-a-chat-completion)
+and Mercury Decide through the [Decisions API](https://docs.inceptionlabs.ai/api-reference/decisions/create-a-decision).
 
 ## Setup
 
@@ -178,3 +179,120 @@ enterprise access and supports `low`, `medium`, and `high` reasoning effort.
 See Inception's
 [model documentation](https://docs.inceptionlabs.ai/get-started/models) for
 current model availability.
+
+## Decision Models
+
+Use `inception.decisionModel('mercury-decide')` with the experimental `decide`
+function to evaluate named questions against shared text, JSON, or image state.
+All questions are sent together to `POST /v1/decisions`.
+
+```ts
+import { inception } from '@ai-sdk/inception';
+import { experimental_decide as decide } from 'ai';
+
+const result = await decide({
+  model: inception.decisionModel('mercury-decide'),
+  state: { message: 'Please refund the duplicate charge on my account.' },
+  questions: {
+    billing: {
+      type: 'boolean',
+      instructions: 'Is this request about billing?',
+    },
+    team: {
+      type: 'choice',
+      criteria: {
+        billing: 'Payments, charges, and refunds',
+        support: 'Technical support and other requests',
+      },
+    },
+    urgency: {
+      type: 'score',
+      instructions: 'How urgent is this request?',
+      criteria: [
+        'Can wait',
+        'Needs attention soon',
+        'Needs immediate attention',
+      ],
+    },
+  },
+});
+
+console.log(result.answers.billing.probability);
+console.log(result.answers.team.choice);
+console.log(result.answers.urgency.score);
+```
+
+### Question Types
+
+| AI SDK type | Inception type | Result                                                                                                  |
+| ----------- | -------------- | ------------------------------------------------------------------------------------------------------- |
+| `boolean`   | `noul`         | `probability`: the probability of a positive answer, between 0 and 1                                    |
+| `choice`    | `choice`       | `choice`: the highest-probability option, with `probabilities` for all options                          |
+| `score`     | `score`        | `score`: the probability-weighted mean of zero-based level indices, with `probabilities` for all levels |
+
+Choice questions require 1–255 named criteria; descriptions may be `null`.
+Score questions require 1–10 non-null criteria and can return fractional scores.
+Instructions and criterion descriptions can be strings, JSON objects, or arrays.
+Instructions may be omitted or `null` when criteria define the judgment.
+Boolean questions can supply `criteria.true` and `criteria.false` descriptions.
+
+`providerMetadata.inception.confidence` contains confidence values for choice
+and score answers, keyed by question name. `providerMetadata.inception.legend`
+contains score level descriptions, keyed by question name and level index.
+The exported `InceptionDecisionProviderMetadata` type describes these fields.
+Both input and output token counts are preserved in `usage`.
+
+### Image State
+
+Pass image bytes or a base64 string in a `file` state part:
+
+```ts
+import { inception } from '@ai-sdk/inception';
+import { experimental_decide as decide } from 'ai';
+import { readFileSync } from 'node:fs';
+
+const result = await decide({
+  model: inception.decisionModel('mercury-decide'),
+  state: [
+    { type: 'text', text: 'Inspect this screenshot.' },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: readFileSync('./screenshot.png'),
+    },
+  ],
+  questions: {
+    errorShown: {
+      type: 'boolean',
+      instructions: 'Does the page show a payment error?',
+    },
+  },
+});
+```
+
+The provider converts file parts to Inception's base64 `image_url` format.
+PNG, JPEG, WebP, and GIF are supported. The API permits up to 16 images,
+10 MiB per image, with a default 20 MiB limit for the complete JSON request.
+Images can appear in state or instructions, but not in criteria. Native
+`image_url` parts inside JSON state or instructions must use base64 data URLs;
+Inception does not fetch remote image URLs.
+
+### Decision Model Capabilities
+
+{/* model-capabilities:inception-decision:start */}
+
+| Model            | Boolean   | Choice    | Score     | Box       | Image Input | Reasoning | Max Output Tokens |
+| ---------------- | --------- | --------- | --------- | --------- | ----------- | --------- | ----------------- |
+| `mercury-decide` | <Check /> | <Check /> | <Check /> | <Cross /> | <Check />   | <Cross /> | <Cross />         |
+
+{/* model-capabilities:inception-decision:end */}
+
+Mercury Decide does not support streaming, tool calling, box questions, or
+provider-specific decision options. `reasoning` and `maxOutputTokens` are
+omitted with warnings. The AI SDK decision interface currently exposes boolean,
+choice, and score questions for this provider; Inception's `extract` question
+type is not exposed.
+
+See Inception's [Decisions guide](https://docs.inceptionlabs.ai/capabilities/decisions)
+and [API reference](https://docs.inceptionlabs.ai/api-reference/decisions/create-a-decision)
+for the native request and response formats.

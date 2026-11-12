@@ -1,5 +1,6 @@
 import {
   NoSuchModelError,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
@@ -13,12 +14,15 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InceptionChatLanguageModel } from './chat/inception-chat-language-model';
 import type { InceptionChatModelId } from './chat/inception-chat-language-model-options';
+import { DecisionInceptionModel } from './decisions/inception-decision-model';
+import type { InceptionDecisionModelId } from './decisions/inception-decision-model-options';
 import { VERSION } from './version';
 
 export interface InceptionProvider extends ProviderV4 {
   (modelId: InceptionChatModelId): LanguageModelV4;
   languageModel(modelId: InceptionChatModelId): LanguageModelV4;
   chat(modelId: InceptionChatModelId): LanguageModelV4;
+  decisionModel(modelId: InceptionDecisionModelId): DecisionModelV4;
 }
 
 export interface InceptionProviderSettings {
@@ -35,9 +39,8 @@ export interface InceptionProviderSettings {
 export function createInception(
   options: InceptionProviderSettings = {},
 ): InceptionProvider {
-  const baseURL = withoutTrailingSlash(
-    options.baseURL ?? 'https://api.inceptionlabs.ai/v1',
-  );
+  const baseURL =
+    withoutTrailingSlash(options.baseURL) ?? 'https://api.inceptionlabs.ai/v1';
   const getHeaders = () =>
     resolveWith(options.apiKey, apiKey =>
       withUserAgentSuffix(
@@ -65,6 +68,13 @@ export function createInception(
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
+  provider.decisionModel = (modelId: InceptionDecisionModelId) =>
+    new DecisionInceptionModel(modelId, {
+      provider: 'inception.decision',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
