@@ -1,8 +1,10 @@
 import type { ToolNameMapping } from '@ai-sdk/provider-utils';
-import type {
-  LanguageModelV3Prompt,
-  LanguageModelV3ToolResultOutput,
-  LanguageModelV3ToolResultPart,
+import {
+  UnsupportedFunctionalityError,
+  type JSONValue,
+  type LanguageModelV3Prompt,
+  type LanguageModelV3ToolResultOutput,
+  type LanguageModelV3ToolResultPart,
 } from '@ai-sdk/provider';
 import { describe, it, expect } from 'vitest';
 import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
@@ -105,6 +107,27 @@ function createExpandedParallelToolCallPrompt({
 }
 
 const parallelToolCallOutput = '{"temperature":72}\nColosseum';
+
+const customDefinition = {
+  type: 'custom',
+  name: 'apply_patch',
+  description: 'Apply a patch',
+  format: { type: 'grammar', syntax: 'lark', definition: 'start: "x"' },
+};
+
+const namespaceDefinition = {
+  type: 'namespace',
+  name: 'linear',
+  description: 'Linear tools',
+  tools: [
+    {
+      type: 'function',
+      name: 'get_issue',
+      parameters: { type: 'object', properties: {} },
+      defer_loading: true,
+    },
+  ],
+};
 
 describe('convertToOpenAIResponsesInput', () => {
   describe('compact parallel tool metadata', () => {
@@ -212,6 +235,338 @@ describe('convertToOpenAIResponsesInput', () => {
             output: 'Colosseum',
           },
         ]);
+      },
+    );
+  });
+
+  describe('additional tools after ordinary tool results', () => {
+    const definition = {
+      type: 'function',
+      name: 'list_issues',
+      description: 'List issues',
+      parameters: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
+      strict: true,
+    };
+    const output = [
+      { connection: 'linear' },
+      { connection: 'github', error: 'Not authorized' },
+    ];
+    const convert = (
+      prompt: LanguageModelV3Prompt,
+      providerOptionsName = 'openai',
+    ) =>
+      convertToOpenAIResponsesInput({
+        prompt,
+        providerOptionsName,
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'developer',
+        store: false,
+      });
+    const result = (
+      additionalTools: JSONValue,
+      provider = 'openai',
+    ): LanguageModelV3ToolResultPart => ({
+      type: 'tool-result',
+      toolName: 'search',
+      toolCallId: 'search-call',
+      output: { type: 'json', value: output },
+      providerOptions: { [provider]: { additionalTools } },
+    });
+
+    it.each(['openai', 'azure'])(
+      'preserves the result and inserts definitions immediately after it for %s',
+      async provider => {
+        const { input } = await convert(
+          [
+            {
+              role: 'tool',
+              content: [
+                result([definition], provider),
+                {
+                  type: 'tool-result',
+                  toolName: 'other',
+                  toolCallId: 'other-call',
+                  output: { type: 'text', value: 'other result' },
+                },
+              ],
+            },
+          ],
+          provider,
+        );
+        expect(input).toEqual([
+          {
+            type: 'function_call_output',
+            call_id: 'search-call',
+            output: JSON.stringify(output),
+          },
+          { type: 'additional_tools', role: 'developer', tools: [definition] },
+          {
+            type: 'function_call_output',
+            call_id: 'other-call',
+            output: 'other result',
+          },
+        ]);
+      },
+    );
+
+    it('preserves multiple insertion points when replaying and extending history', async () => {
+      const prompt: LanguageModelV3Prompt = [
+        { role: 'tool', content: [result([definition])] },
+      ];
+      const first = await convert(prompt);
+      prompt.push(
+        { role: 'user', content: [{ type: 'text', text: 'Search again' }] },
+        {
+          role: 'tool',
+          content: [
+            {
+              ...result([{ ...definition, name: 'get_issue' }]),
+              toolCallId: 'second-search',
+            },
+          ],
+        },
+      );
+      const second = await convert(prompt);
+      expect(second.input.slice(0, first.input.length)).toEqual(first.input);
+      expect(second.input.at(-1)).toEqual({
+        type: 'additional_tools',
+        role: 'developer',
+        tools: [{ ...definition, name: 'get_issue' }],
+      });
+      expect((await convert(prompt)).input).toEqual(second.input);
+    });
+
+    it('does not emit an item for an empty list', async () => {
+      expect(
+        (await convert([{ role: 'tool', content: [result([])] }])).input,
+      ).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'search-call',
+          output: JSON.stringify(output),
+        },
+      ]);
+    });
+
+    it.each(
+      [
+        null,
+        'invalid',
+        [{ type: 'function', name: 'missing_parameters' }],
+        [{ ...definition, strict: 'yes' }],
+        [{ ...definition, unsupported: true }],
+      ].map(additionalTools => ({ additionalTools })),
+    )(
+      'rejects malformed definitions: $additionalTools',
+      async ({ additionalTools }) => {
+        await expect(
+          convert([{ role: 'tool', content: [result(additionalTools)] }]),
+        ).rejects.toThrow();
+      },
+    );
+
+    it('reads openai options when using another provider name', async () => {
+      expect(
+        (
+          await convert(
+            [{ role: 'tool', content: [result([definition], 'openai')] }],
+            'azure',
+          )
+        ).input,
+      ).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'search-call',
+          output: JSON.stringify(output),
+        },
+        { type: 'additional_tools', role: 'developer', tools: [definition] },
+      ]);
+    });
+
+    it.each([{ hasConversation: true }, { hasPreviousResponseId: true }])(
+      'keeps definitions from expanded parallel results with %j',
+      async continuation => {
+        const prompt = createExpandedParallelToolCallPrompt();
+        const toolMessage = prompt[1];
+        if (toolMessage.role !== 'tool') throw new Error('expected tool');
+        for (const [index, part] of toolMessage.content.entries()) {
+          if (part.type !== 'tool-result') continue;
+          part.providerOptions = {
+            ...part.providerOptions,
+            openai: {
+              ...part.providerOptions?.openai,
+              additionalTools: [{ ...definition, name: `tool_${index}` }],
+            },
+          };
+        }
+        const { input } = await convertToOpenAIResponsesInput({
+          prompt,
+          providerOptionsName: 'openai',
+          toolNameMapping: testToolNameMapping,
+          systemMessageMode: 'developer',
+          store: true,
+          ...continuation,
+        });
+        expect(input).toEqual([
+          ...('hasConversation' in continuation
+            ? []
+            : [
+                {
+                  type: 'function_call',
+                  call_id: 'call_parallel',
+                  name: 'parallel',
+                  arguments: parallelToolCallInput,
+                },
+              ]),
+          {
+            type: 'function_call_output',
+            call_id: 'call_parallel',
+            output: parallelToolCallOutput,
+          },
+          {
+            type: 'additional_tools',
+            role: 'developer',
+            tools: [{ ...definition, name: 'tool_0' }],
+          },
+          {
+            type: 'additional_tools',
+            role: 'developer',
+            tools: [{ ...definition, name: 'tool_1' }],
+          },
+        ]);
+      },
+    );
+
+    it('accepts custom and namespace definitions', async () => {
+      const tools = [customDefinition, namespaceDefinition];
+      expect(
+        (await convert([{ role: 'tool', content: [result(tools)] }])).input,
+      ).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'search-call',
+          output: JSON.stringify(output),
+        },
+        { type: 'additional_tools', role: 'developer', tools },
+      ]);
+    });
+  });
+
+  describe('additional tools at a message position', () => {
+    const definition = {
+      type: 'function',
+      name: 'list_issues',
+      parameters: { type: 'object', properties: {} },
+      defer_loading: true,
+    };
+    const control = (
+      options: Record<string, JSONValue>,
+      provider = 'openai',
+    ): LanguageModelV3Prompt[number] => ({
+      role: 'system',
+      content: '',
+      providerOptions: { [provider]: options },
+    });
+    const convert = (
+      prompt: LanguageModelV3Prompt,
+      {
+        providerOptionsName = 'openai',
+        configurationUpdateUnsupportedReason,
+      }: {
+        providerOptionsName?: string;
+        configurationUpdateUnsupportedReason?: string;
+      } = {},
+    ) =>
+      convertToOpenAIResponsesInput({
+        prompt,
+        providerOptionsName,
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'developer',
+        store: false,
+        configurationUpdateUnsupportedReason,
+      });
+
+    it.each(['openai', 'azure'])(
+      'emits the item where the control message is for %s',
+      async provider => {
+        const tools = [definition, customDefinition, namespaceDefinition];
+        const { input } = await convert(
+          [
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+            control({ additionalTools: tools }, provider),
+            { role: 'user', content: [{ type: 'text', text: 'Use them' }] },
+          ],
+          { providerOptionsName: provider },
+        );
+        expect(input).toEqual([
+          { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          { type: 'additional_tools', role: 'developer', tools },
+          { role: 'user', content: [{ type: 'input_text', text: 'Use them' }] },
+        ]);
+      },
+    );
+
+    it('emits a configuration update before tools from the same message', async () => {
+      const { input } = await convert([
+        control({
+          reasoningEffortUpdate: 'low',
+          additionalTools: [definition],
+        }),
+      ]);
+      expect(input).toEqual([
+        { type: 'configuration_update', reasoning: { effort: 'low' } },
+        { type: 'additional_tools', role: 'developer', tools: [definition] },
+      ]);
+    });
+
+    it('does not need configuration update support', async () => {
+      const { input } = await convert(
+        [control({ additionalTools: [definition] })],
+        { configurationUpdateUnsupportedReason: 'not supported' },
+      );
+      expect(input).toEqual([
+        { type: 'additional_tools', role: 'developer', tools: [definition] },
+      ]);
+    });
+
+    it('does not emit an item for an empty list', async () => {
+      expect((await convert([control({ additionalTools: [] })])).input).toEqual(
+        [],
+      );
+    });
+
+    it('requires empty system message content', async () => {
+      await expect(
+        convert([
+          {
+            role: 'system',
+            content: 'Instructions',
+            providerOptions: { openai: { additionalTools: [definition] } },
+          },
+        ]),
+      ).rejects.toThrow(
+        new UnsupportedFunctionalityError({
+          functionality: 'Message-level additionalTools',
+          message:
+            'Message-level additionalTools requires empty system message content.',
+        }),
+      );
+    });
+
+    it.each(
+      [
+        [{ type: 'namespace', name: 'ns', description: 'd', tools: [] }],
+        [{ type: 'custom', name: 'c', format: { type: 'grammar' } }],
+        [{ type: 'web_search' }],
+      ].map(additionalTools => ({ additionalTools })),
+    )(
+      'rejects malformed definitions: $additionalTools',
+      async ({ additionalTools }) => {
+        await expect(convert([control({ additionalTools })])).rejects.toThrow();
       },
     );
   });

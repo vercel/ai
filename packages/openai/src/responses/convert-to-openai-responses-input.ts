@@ -23,7 +23,10 @@ import {
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { openaiResponsesSystemMessageOptionsSchema } from './openai-responses-options';
+import {
+  openaiResponsesSystemMessageOptionsSchema,
+  openaiResponsesToolResultOptionsSchema,
+} from './openai-responses-options';
 import {
   applyPatchInputSchema,
   applyPatchOutputSchema,
@@ -479,13 +482,21 @@ export async function convertToOpenAIResponsesInput({
         }
         const effort = options?.reasoningEffortUpdate;
         const textFormat = options?.textFormatUpdate;
-        if (effort != null || textFormat != null) {
+        const additionalTools = options?.additionalTools;
+        if (effort != null || textFormat != null || additionalTools != null) {
+          const hasConfigurationUpdate = effort != null || textFormat != null;
           const feature =
-            effort != null ? 'reasoningEffortUpdate' : 'textFormatUpdate';
+            effort != null
+              ? 'reasoningEffortUpdate'
+              : textFormat != null
+                ? 'textFormatUpdate'
+                : 'additionalTools';
           const unsupportedReason =
             content !== ''
               ? `Message-level ${feature} requires empty system message content.`
-              : configurationUpdateUnsupportedReason;
+              : hasConfigurationUpdate
+                ? configurationUpdateUnsupportedReason
+                : undefined;
 
           if (unsupportedReason != null) {
             throw new UnsupportedFunctionalityError({
@@ -494,16 +505,25 @@ export async function convertToOpenAIResponsesInput({
             });
           }
 
-          input.push({
-            type: 'configuration_update',
-            ...(effort != null && { reasoning: { effort } }),
-            ...(textFormat != null && {
-              text: {
-                format: normalizeOpenAIResponsesTextFormat(textFormat),
-              },
-            }),
-          });
-          // The control is independent of systemMessageMode's text handling.
+          if (hasConfigurationUpdate) {
+            input.push({
+              type: 'configuration_update',
+              ...(effort != null && { reasoning: { effort } }),
+              ...(textFormat != null && {
+                text: {
+                  format: normalizeOpenAIResponsesTextFormat(textFormat),
+                },
+              }),
+            });
+          }
+          if (additionalTools != null && additionalTools.length > 0) {
+            input.push({
+              type: 'additional_tools',
+              role: 'developer',
+              tools: additionalTools,
+            });
+          }
+          // The controls are independent of systemMessageMode's text handling.
           break;
         }
 
@@ -1293,6 +1313,20 @@ export async function convertToOpenAIResponsesInput({
                     }))
                   : serializedToolOutputs.join('\n'),
               });
+
+              for (const result of parallelToolResultGroup.results) {
+                const additionalTools = await parseToolResultAdditionalTools({
+                  providerOptions: result.providerOptions,
+                  providerOptionsName,
+                });
+                if (additionalTools?.length) {
+                  input.push({
+                    type: 'additional_tools',
+                    role: 'developer',
+                    tools: additionalTools,
+                  });
+                }
+              }
             }
             continue;
           }
@@ -1523,6 +1557,18 @@ export async function convertToOpenAIResponsesInput({
             call_id: part.toolCallId,
             output: contentValue,
           });
+
+          const additionalTools = await parseToolResultAdditionalTools({
+            providerOptions: part.providerOptions,
+            providerOptionsName,
+          });
+          if (additionalTools?.length) {
+            input.push({
+              type: 'additional_tools',
+              role: 'developer',
+              tools: additionalTools,
+            });
+          }
         }
 
         break;
@@ -1573,3 +1619,26 @@ const openaiResponsesReasoningProviderOptionsSchema = lazySchema(() =>
 export type OpenAIResponsesReasoningProviderOptions = InferSchema<
   typeof openaiResponsesReasoningProviderOptionsSchema
 >;
+
+async function parseToolResultAdditionalTools({
+  providerOptions,
+  providerOptionsName,
+}: {
+  providerOptions: SharedV3ProviderOptions | undefined;
+  providerOptionsName: string;
+}) {
+  const options = await parseProviderOptions({
+    provider: providerOptionsName,
+    providerOptions,
+    schema: openaiResponsesToolResultOptionsSchema,
+  });
+  if (options?.additionalTools != null || providerOptionsName === 'openai') {
+    return options?.additionalTools;
+  }
+  const openaiOptions = await parseProviderOptions({
+    provider: 'openai',
+    providerOptions,
+    schema: openaiResponsesToolResultOptionsSchema,
+  });
+  return openaiOptions?.additionalTools;
+}
