@@ -151,6 +151,7 @@ export function createTogetherAI(
     return new OpenAICompatibleChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
       includeUsage: true,
+      supportsStructuredOutputs: jsonSchemaModelIds.has(modelId),
     });
   };
 
@@ -195,3 +196,14 @@ export function createTogetherAI(
 }
 
 export const togetherai = createTogetherAI();
+
+const jsonSchemaModelIds: ReadonlySet<string> = new Set([
+  'deepseek-ai/DeepSeek-V4-Flash-0731',
+  'deepseek-ai/DeepSeek-V4.1-Flash',
+  'deepseek-ai/DeepSeek-V4.1-Flash-1017',
+  'openai/gpt-oss-120b',
+  'zai-org/GLM-5.2',
+  'zai-org/GLM-5.3-Flash',
+  'moonshotai/Kimi-K3',
+  'MiniMaxAI/MiniMax-M3.1-Flash',
+]);
