@@ -65,6 +65,7 @@ export const harnessV1BridgeToolWireSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   inputSchema: z.unknown().optional(),
+  deferLoading: z.boolean().optional(),
 });
 
 export type HarnessV1BridgeToolWire = z.infer<
