@@ -2872,3 +2872,6 @@ value for a field. It does not return `pNull`, `confidence`, `guess`, or
 offsets. Image and PDF files are passed to the language model, which must
 support them. The adapter requests `reasoning: 'none'` by default and forwards
 `providerOptions.anthropic`. See [Extractions](/docs/ai-sdk-core/extractions).
+
+Anthropic limits the size of structured-output schemas, so one call supports
+about 70 fields. Split larger field maps across several calls.

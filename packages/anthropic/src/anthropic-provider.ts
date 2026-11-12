@@ -252,6 +252,7 @@ export function createAnthropic(
     new ExtractionLanguageModel({
       model: createChatModel(modelId),
       provider: `${providerName.replace(/\.messages$/, '')}.extraction`,
+      maxNullableFields: 16,
     });
   provider.experimental_batch = createBatch;
 

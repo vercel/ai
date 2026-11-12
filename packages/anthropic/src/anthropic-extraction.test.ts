@@ -148,3 +148,45 @@ it('extracts typed fields with Messages structured output', async () => {
     }
   `);
 });
+
+it('lists missing fields separately above the 16 union parameter limit', async () => {
+  const fetch = vi.fn().mockImplementation(
+    async () =>
+      new Response(
+        JSON.stringify({
+          ...fixture,
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                missing: ['f16'],
+                values: Object.fromEntries(
+                  Array.from({ length: 17 }, (_, i) => [`f${i}`, i]),
+                ),
+              }),
+            },
+          ],
+        }),
+        { headers: { 'content-type': 'application/json' } },
+      ),
+  );
+  const model = createAnthropic({
+    apiKey: 'test-key',
+    baseURL: 'https://example.com/v1',
+    fetch,
+  }).extractionModel('claude-sonnet-5-5');
+
+  const result = await model.doExtract({
+    state: [{ type: 'text', text: 'Prices.' }],
+    fields: Object.fromEntries(
+      Array.from({ length: 17 }, (_, i) => [`price ${i}`, { type: 'number' }]),
+    ),
+  });
+
+  const schema = JSON.parse(fetch.mock.calls[0][1].body).output_config.format
+    .schema;
+  expect(JSON.stringify(schema)).not.toContain('anyOf');
+  expect(Object.keys(schema.properties)).toEqual(['missing', 'values']);
+  expect(result.answers['price 15']).toEqual({ type: 'number', value: 15 });
+  expect(result.answers['price 16']).toEqual({ type: 'number', value: null });
+});

@@ -1,7 +1,7 @@
 {
-  "id": "resp_084fb893cc68e002006af4edf2d38c87d2a5dbe31ff387180d",
+  "id": "resp_0fe8329d9916caee006af50087647487d294c2737202b77b5c",
   "object": "response",
-  "created_at": 1794436594,
+  "created_at": 1794441351,
   "status": "completed",
   "access_programs": {
     "cyber": "standard"
@@ -10,7 +10,7 @@
   "billing": {
     "payer": "developer"
   },
-  "completed_at": 1794436598,
+  "completed_at": 1794441353,
   "error": null,
   "frequency_penalty": 0,
   "image": {
@@ -24,19 +24,14 @@
   "moderation": null,
   "output": [
     {
-      "id": "rs_084fb893cc68e002006af4edf40aec87d2b1caf020912c1369",
+      "id": "rs_0fe8329d9916caee006af5008864d887d2b80e639de67c718b",
       "type": "reasoning",
       "content": [],
-      "encrypted_content": "gAAAAABq9O33kIvbutQLi5AGKFj7csUMPME2McYmKL985Aa3WdLrfqXFE7NPXtHgF7ET8LNz7H03fMkifmkOwyxIhmy8x3Q6dDKy3MH3XoVL0ZYXSCZrr2Ag0KElzytptBe54XHPKtflecD1cLFID6nQHbYFyMrdfIWsdzjSRymtuDVhZ72Wby3Mp1YjNA1expmUY1NtTO_QvtbL9FEKMIAOtYBP0ffBACAK94IG4VxJbX7NYUCLuoWaVpLbMT7v2ErMCHr6QeA3Jn9LtodOeqnbYr1RhT-66ORMPBrY0JAmGeiTSLsIqzODir2g-IZX6Ucs_RcZoP-jX52xsIxhz4lZimnhAGvsqi5GV2EuVd73e9vkpFnvCSdPnh_nhaXbVw1OVh8vCGvLK76tB42O3qDsENSB7nAiXzcUvQvTpDbV9etqiJsy7kQtxqHIDK09UkXQtaadGb-_T4icywrtuym8h7RHMt2R3enGmXZ8FAMbLk9fKe5MTBl6-oVCTPiWXnCgclPCvpCRPrs-crFEM1IQqpbmirm9MDP6b39j0vvKIN-Uy1AvZnTKpfIJnQ9plDZgmd3t-498LNgj5FY4Q0A0DWU0L7EMoHAFD5EwzsXIeElcoKrGJybUOW4-XnByuIzCv4YjI0pgNiJYbPN-fQLzxqUWZ2gsSsdvKHx1lTiRSiU-Vwb29ZEpS0uTGw51dN7AZEIKQwgKEZHCSBWWixKOyyzgH5VrlJRGjHhz3o0QAoBHJ7iLCvlCMSShZypaEjc7Heip2X-otM0rT2ostfoU2IQJhuM_RnTI_QfmGtWl4rT9nhbpVPGjZ_hkjKVTjANmxMBGiOnwcG-4WH9eFFdWXjevpINj0zERXrIAxNqjw0eSWc-llZ8YMM3QtzIgUkfYLp2hw-71mBW-9UG2ayA5IeSvJT22wwWe_CEInOXiIV0_wKEKaPccZg4rBAChlfGJy6j522gfpLk3LXcxiYgIbnt4hKM9_hWzS7CVkZUHm-nyk9YiydQc6vttgayIqZwr7mKpDuCcpMZb6CR5rZ72Vp4h7lEfnCXpL1vkh2sDyVExqy_1qTOdHwuB7sEHWAPl_8uuXeu1jQkSznz4ux_okFGM7uHrokSRc4dewLQhRQeshCfDW7wqP0MN3hRiw356CGW3Yy7oxlF4QIL9-XdGN908LiguyhbPTKPShD-Gk53xc27dZleSz2Pm3eTwlHGidSkFrlUM2K_O0Cj0pyrzHe7RcBDOvqrG_Py21uJxC2uVMbz_55YomNaBLOEzi7kqqCm-FkiGW1Yv34Cwg0JdTHn2ttf8g5Niy9gbtYJIblQZtk2GfeqxQ60pIwWAgbfsQNfThw5a9-X2Xr1hpWlZKx5TYy9dr6tiv-_qMmjVI3ARq-Ef6AS0Dw6s_bGwV7fGfY5vBfRD1VSjN2oBKIL3K2obgJVjyXHWF9y2zEIraBojexz2Q5gADUmdP_qYKAIEG3WbL03CnKLgdqa8R6rr_yBElY_MdlFPG8eUL-9JcJrhOQGbnBZnORD7Su3oPxtP9ibtmUYW7YgrHg_ABlFxAcqt3GB5OJVCXpWnuSCXY3rGcTljDrGIqGKmGBQm8QgW_tVEdMnh2bT8EJ9VwvVOhZnyWdK1EIFbYuIzGAsg3bUla1yhbODl4ASRoIFNz1MFE0CCNb_b9MYXAmVFNwExfSj8KqLnLIBqpXPGSi7c-BnQJv9SwcgRLJxxIxY2arrFip9GU5T3RRkfv-i0iOFD2ODNOrkilTKqV5SLolmz1Efr9SC_eDmUg-3F6K47mlrZ32DOoT-l3wQcS5ONDnpKisqFj77mOw==",
-      "summary": [
-        {
-          "type": "summary_text",
-          "text": "**Determining closest date**\n\nI need to figure out the closest date to March 3, 2027, compared to 2026. Since 2027 is later than 2026, I’m pretty sure the answer is 2027. It seems straightforward, but I just want to double-check that I’m not missing anything. March 3, 2027, is definitely closer to itself than to the previous year. So yeah, the date I’m looking for is 2027."
-        }
-      ]
+      "encrypted_content": "gAAAAABq9QCJd7j_mY19KDNizcArVzVxHrcKNKEzgH__pOGK4g317_WqPuvlbwy3RRnm8hxqTfuB4WpsNqvxY9xjO_kVtQYTiorYSEcLh7pzVuwPQkPSEENWjucyhyZThWJzgcE8VslsyadIRprB7GBuNaXfySlvGNIBJ54OxO370iauCWuQXn8uuBQ-jc6_5yo4K3Jx8FrhCP5O265XIV2Kpqsr-1HOUUf5sKkxl18kEsoM1VRDxEkT_Nn4kmEOVsCURl26jY48WBDJedJ_A5NGhCG5g2TQHnl4Cb81xCa4ASmGjYZl3dwGxCIrkife-dYiivC0MpXRnH7P85uZNERMXXAhzeQ2rUNXwRG0gfkuv8ZY61oEbRozb1N1-Yr--rULbTdcjODgNt_WuItFsRn79HBD1sX4CgpfkPCNNyrm832gguE12bGiz-vHW3PT7Ctbm0tJql6XlWIhuWtdeP3MMKXixowcBevEimvebZImf-Vi9SKtV8CZsB-aTdWAiab9FwrOJs9wmhBpbiGgWchnJZ33DKb6esGiwnREvpxmJwjMOhaEEd4P00hUTDOtZ58jBIJfO0eI7eyBFnRtgLc3mV6DJYh5RvoSQL82bBPFZ33AX1zDBPs5fIfylK3OhGqbzYkEkYRXUvr4erSDCPfKeQA-tOAY8LxjRisU1DzEP_8-CjoWxzvMTBbTWGkL-kKXKlRVRgTgI5fDPukZMQH1JUi65QDleTMQBdQM-25RAVLohtr9rV-Uns4Vj63fGvjsYISx34wKhwQM0UmfYBOWVy8OAUmFMyWEG9Auo5n583QWcI9qyoIacxBFZsbVUULH5Y-W89Y_1HjKsRBt_4E3McnsWClJMRPHS3n3UuhgzE7EabB6g3-7WAp2UljkGP0FqR2z9_C4khsH5qvI2uAsHqSJEDzigj2iF5IhOZZuU1kp89mwYRM2RX8mTpOAdpm6PgPUa8Q-AROpYzAsdY4u_25usVRgVU_E_J2pwCJxR3D1Tx3_FWb-Ky9jdjhoCB2zHYQBt0-A9xs7VENW02l-OYwQlHwEewW3rUnA33A669qdvU8uymfwDwETsRPQOZ7n4kbpfh578BlJ9g3Rc8n32NU8ArftLAa2k9PzZcWHYTDIeK_bqQMuF9yYnqmW3k-pGJG5l4Ky1TZovde04TKLXMWeKrEECNTRW74Qhf-yZDfJ9vY3LoAr-4stspyHnPAzAoxz7SMVjyyfZ7rFK-264GuYfl4ZBHGKr_OK8_dF1sDBMmOGXVN5zWyHCty-ppAIERRqsejfPDk9rlGgcei5TcWmvpps_Q66p3ne4pUDGLZQXNMZaN3ya8HZNpSrFX2HzszBfGAL1VQNdjB_kJPufBM51JjMcMu4aY53Fa3rOXg2YuHY8jdb_JmvMIa_Gv6iX3szPR1-IlBhbJSZynnjcAHpuABqMa560sS4z4ffyLRNSkoElXQCQUSUyr_O-gY6vuVXXUF7TjYKwRnMy2pERq3W2syb8riMsB2RbLdgASxWsYS8kSjzsnH6JIu0wPxb33yJjcbgA37RCCDJ73N9r7fHlM1fdCQp2E6vb_s-5HEd8lUshbgNftgxd_flG6EsJOLWK5LVcrlJjqPOtCgNvP-G5XpVZINtk-5IuPJ7gbgUMSlZ-z-pOmoBrKx2qqt_DarxhmmUi_nN3Yj9Gu6X6pG7NAMPx_AIyR5Bn2sFKBG-z7eLpCas9MNcVkl0wzhhRe_6JdT22yo5wfTIlVmFsrOtBY4OynMm1aaMPdDm9lG26jqsQ7I=",
+      "summary": []
     },
     {
-      "id": "msg_084fb893cc68e002006af4edf6b97087d2b98eaf8478b18568",
+      "id": "msg_0fe8329d9916caee006af50088fcc487d28b7f2be9d70d76d9",
       "type": "message",
       "status": "completed",
       "content": [
@@ -171,16 +166,16 @@
   "top_p": 0.98,
   "truncation": "disabled",
   "usage": {
-    "input_tokens": 437,
+    "input_tokens": 438,
     "input_tokens_details": {
       "cache_write_tokens": 0,
       "cached_tokens": 0
     },
-    "output_tokens": 69,
+    "output_tokens": 66,
     "output_tokens_details": {
-      "reasoning_tokens": 21
+      "reasoning_tokens": 18
     },
-    "total_tokens": 506
+    "total_tokens": 504
   },
   "user": null,
   "metadata": {}
