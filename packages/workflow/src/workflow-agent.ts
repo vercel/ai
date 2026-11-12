@@ -2482,7 +2482,7 @@ export class WorkflowAgent<
           executeTool(
             toolCall,
             tools,
-            messages,
+            modelMessages,
             resolvedContext,
             effectiveAbortSignal,
             workflowDownload,
@@ -3732,18 +3732,25 @@ function createInvalidToolResult(toolCall: {
   };
 }
 
+/**
+ * Returns the conversation that tools and tool callbacks receive. Like in
+ * `generateText` and `streamText`, it contains neither the system prompt nor
+ * the assistant message with the tool call that is being executed.
+ */
 function getToolCallbackMessages(
   messages: LanguageModelV4Prompt,
 ): ModelMessage[] {
   const withoutAssistantToolCall =
     messages.at(-1)?.role === 'assistant' ? messages.slice(0, -1) : messages;
-  return withoutAssistantToolCall as unknown as ModelMessage[];
+  return withoutAssistantToolCall.filter(
+    message => message.role !== 'system',
+  ) as unknown as ModelMessage[];
 }
 
 async function executeTool(
   toolCall: { toolCallId: string; toolName: string; input: unknown },
   tools: ToolSet,
-  messages: LanguageModelV4Prompt,
+  messages: ModelMessage[],
   context?: unknown,
   abortSignal?: AbortSignal,
   download?: DownloadFunction,

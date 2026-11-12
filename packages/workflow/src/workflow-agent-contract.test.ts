@@ -2,7 +2,7 @@ import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
-import { ToolLoopAgent, tool } from 'ai';
+import { ToolLoopAgent, tool, type ModelMessage } from 'ai';
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
@@ -180,6 +180,53 @@ describe('WorkflowAgent stream and core generate contracts', () => {
     expect(generated.toolCalls).toMatchObject(streamed.toolCalls);
     expect(streamed.toolResults).toEqual([]);
     expect(generated.toolResults).toEqual([]);
+  });
+
+  it('passes the same conversation scope to tool execution as core', async () => {
+    const responses = () => [
+      toolResponse(),
+      {
+        ...toolResponse(),
+        content: toolResponse().content.map(part =>
+          part.type === 'tool-call'
+            ? { ...part, toolCallId: 'weather-call-2' }
+            : part,
+        ),
+      },
+      textResponse('It is 18°C.'),
+    ];
+    const seen: Record<string, Array<Array<ModelMessage['role']>>> = {};
+    const seenByCallback: typeof seen = {};
+    const settings = (label: string) => ({
+      model: createAgentModel(responses()),
+      instructions: 'You are a weather assistant.',
+      onToolExecutionStart: ({ messages }: { messages: ModelMessage[] }) => {
+        (seenByCallback[label] ??= []).push(
+          messages.map(message => message.role),
+        );
+      },
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+          execute: async (_input, { messages }) => {
+            (seen[label] ??= []).push(messages.map(message => message.role));
+            return { temperature: 18 };
+          },
+        }),
+      },
+    });
+
+    await new ToolLoopAgent(settings('core')).generate({ prompt });
+    await new WorkflowAgent(settings('generate')).generate({ prompt });
+    await new WorkflowAgent(settings('stream')).stream({ prompt });
+
+    // No system prompt, and no assistant message with the current tool call.
+    expect(seen.core).toEqual([['user'], ['user', 'assistant', 'tool']]);
+    expect(seen.generate).toEqual(seen.core);
+    expect(seen.stream).toEqual(seen.core);
+    expect(seenByCallback.core).toEqual(seen.core);
+    expect(seenByCallback.generate).toEqual(seen.core);
+    expect(seenByCallback.stream).toEqual(seen.core);
   });
 
   it('distinguishes the core 20-step default from the unbounded Workflow stream default', async () => {
