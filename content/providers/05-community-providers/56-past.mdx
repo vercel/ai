@@ -1,23 +1,23 @@
 ---
-title: past dev
-description: Learn how to use past dev long-term memory with the AI SDK.
+title: past.dev
+description: Learn how to use past.dev long-term memory with the AI SDK.
 ---
 
-# past dev
+# past.dev
 
-[past dev](https://past.dev) is a memory API for AI agents. The [`@pastdotdev/ai-sdk`](https://www.npmjs.com/package/@pastdotdev/ai-sdk) package gives your agents long-term memory across conversations.
+[past.dev](https://past.dev) is a long-term memory API for AI agents. The [`@pastdotdev/ai-sdk`](https://www.npmjs.com/package/@pastdotdev/ai-sdk) package gives your agents long-term memory across conversations.
 
 Features include:
 
 - Two tools: `recall` returns ranked memories with their dates and source quotations, and `ingest` adds a piece of information to memory
 - A language model middleware that recalls before each model call and keeps the added context small
 - Works with `generateText`, `streamText`, and `ToolLoopAgent`
-- Multi-user memory: your code sets the identity, never the model
+- Multi-user memory: your code sets the identity and the audience, never the model
 - Full TypeScript support, ESM and CommonJS, no runtime dependencies
 
 ## Setup
 
-Create a project in the [past dev console](https://app.past.dev) and copy its API key. It starts with `past_sk_`. Set it as `PAST_API_KEY` in your environment.
+Create a project in the [past.dev console](https://app.past.dev) and copy its API key. It starts with `past_sk_`. Set it as `PAST_API_KEY` in your environment.
 
 ## Installation
 
@@ -34,6 +34,22 @@ const tools = pastTools({ identity: 'user-123' });
 ```
 
 The model fills only the query of `recall`, and the content of `ingest` with an optional timestamp and label. It never sees the identity, so in multi-user apps, call `pastTools` inside your request handler with the signed-in user's ID.
+
+## Memory Visibility
+
+The `identity` decides who a recall answers as and who an ingest is attributed to. On its own it does not keep one person's memory out of another person's recall. Visibility is set by the `audience` of each ingest:
+
+- With no `audience`, an ingest is visible to every identity in the project, so any other identity can recall it.
+- With an `audience`, an ingest is visible only to the identities that audience reaches.
+
+Audiences are created ahead of time, in the [past.dev console](https://app.past.dev) or with `PUT /api/v1/audiences/{slug}`, and an ingest that names a slug which does not exist is rejected. When each person's memory must stay private, create one audience per person and pass its slug:
+
+```ts
+// The audience `user-123` must already exist, with `user-123` as its only member.
+const tools = pastTools({ identity: 'user-123', audience: 'user-123' });
+```
+
+When tenants must never share memory at all, use one past.dev project per tenant: a project is the isolation boundary, and a project API key selects exactly one. See [Access control](https://past.dev/docs/memory-api/access-control).
 
 ## Basic Usage
 
@@ -92,7 +108,7 @@ const result = streamText({
 | `identity`            | Required. The person the memory is for.                                                 |
 | `apiKey`              | The project API key. Defaults to `PAST_API_KEY`.                                        |
 | `apiHost`             | The API origin, for a deployment in your own cloud. Defaults to `https://api.past.dev`. |
-| `audience`            | The audience slug of each ingest. Omit it for memory visible to the whole project.      |
+| `audience`            | The audience slug of each ingest, which decides who can recall it.                      |
 | `metadata`            | Your JSON, stored with each ingest. The model never sees it.                            |
 | `limit`               | The maximum number of memories in a recall.                                             |
 | `level` / `maxTokens` | The evidence budget of a recall.                                                        |
@@ -101,5 +117,5 @@ const result = streamText({
 
 - [`@pastdotdev/ai-sdk` on GitHub](https://github.com/pastdotdev/ai-sdk)
 - [`@pastdotdev/ai-sdk` on npm](https://www.npmjs.com/package/@pastdotdev/ai-sdk)
-- [past dev quickstart](https://past.dev/docs/memory-api/quickstart)
-- [past dev API reference](https://past.dev/docs/memory-api/api-reference)
+- [past.dev quickstart](https://past.dev/docs/memory-api/quickstart)
+- [past.dev API reference](https://past.dev/docs/memory-api/api-reference)
