@@ -1,0 +1,22 @@
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
+import { generateText } from 'ai';
+import { run } from '../../lib/run';
+
+run(async () => {
+  const result = await generateText({
+    model: google.interactions('gemini-4-hydrogen'),
+    prompt: 'What is AGI?',
+    providerOptions: {
+      google: {
+        thinkingLevel: 'xhigh',
+      } satisfies GoogleLanguageModelInteractionsOptions,
+    },
+  });
+
+  console.log(result.text);
+  console.log('Token usage:', result.usage);
+  console.log('Finish reason:', result.finishReason);
+});
