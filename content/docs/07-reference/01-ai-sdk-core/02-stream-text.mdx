@@ -2522,7 +2522,14 @@ To see `streamText` in action, check out [these examples](#examples).
               type: '(error: unknown) => string',
               isOptional: true,
               description:
-                'Process an error, e.g. to log it. Returns error message to include in the data stream. Defaults to () => "An error occurred."',
+                'Process stream errors. Also handles failed tool calls when redactToolErrors is enabled, which defaults to true when onError is provided. Provider-executed tool execution errors bypass this callback; invalid tool calls of provider-executed tools still use it.',
+            },
+            {
+              name: 'redactToolErrors',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Replace failed tool-call error text with the result of onError. Defaults to true when onError is provided, and false otherwise.',
             },
             {
               name: 'consumeSseStream',
