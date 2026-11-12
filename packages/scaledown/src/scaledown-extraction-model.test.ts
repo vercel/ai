@@ -1,5 +1,6 @@
 import {
   Experimental_ExtractionUnsupportedFieldTypeError,
+  InvalidResponseDataError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -32,6 +33,11 @@ const options = {
 // Entity shape from https://docs.scaledown.ai/api-reference/extract.
 const content = {
   entities: [
+    ...['vendor', 'contacts', 'missing', 'empty'].map(type => ({
+      text: '',
+      type,
+      confidence: 1,
+    })),
     { text: 'Acme Corp', type: 'vendor', confidence: 0.97, start: 0, end: 9 },
     { text: 'Ana', type: 'contacts', confidence: 0.9, start: 21, end: 24 },
     { text: 'Bo', type: 'contacts', confidence: 0.85, start: 26, end: 28 },
@@ -316,14 +322,18 @@ it('restores workflow configuration and environment authentication', async () =>
 });
 
 it('rejects malformed inner JSON and surfaces API errors', async () => {
-  server.urls[url].response = {
-    type: 'json-value',
-    body: {
-      ...response,
-      choices: [{ message: { content: '{"entities":"invalid"}' } }],
-    },
-  };
-  await expect(model.doExtract(options)).rejects.toThrow();
+  for (const content of ['not JSON', '{"entities":"invalid"}']) {
+    server.urls[url].response = {
+      type: 'json-value',
+      body: {
+        ...response,
+        choices: [{ message: { content } }],
+      },
+    };
+    const extraction = model.doExtract(options);
+    await expect(extraction).rejects.toBeInstanceOf(InvalidResponseDataError);
+    await expect(extraction).rejects.toMatchObject({ data: content });
+  }
   server.urls[url].response = {
     type: 'error',
     status: 402,

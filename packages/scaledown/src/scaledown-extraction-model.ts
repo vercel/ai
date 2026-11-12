@@ -1,5 +1,6 @@
 import {
   Experimental_ExtractionUnsupportedFieldTypeError as ExtractionUnsupportedFieldTypeError,
+  InvalidResponseDataError,
   type Experimental_ExtractionModelV4 as ExtractionModelV4,
   type Experimental_ExtractionModelV4Answer as ExtractionModelV4Answer,
 } from '@ai-sdk/provider';
@@ -7,10 +8,10 @@ import {
   combineHeaders,
   createJsonResponseHandler,
   loadApiKey,
-  parseJSON,
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  safeParseJSON,
   serializeModelOptions,
   withUserAgentSuffix,
   WORKFLOW_DESERIALIZE,
@@ -156,17 +157,24 @@ export class ScaleDownExtractionModel implements ExtractionModelV4 {
         scaledownExtractionResponseSchema,
       ),
     });
-    const content = await parseJSON({
+    const parsed = await safeParseJSON({
       text: value.choices[0].message.content,
       schema: scaledownExtractionContentSchema,
     });
+    if (!parsed.success) {
+      throw new InvalidResponseDataError({
+        data: value.choices[0].message.content,
+        message: 'ScaleDown did not return valid extraction content.',
+      });
+    }
+    const content = parsed.value;
 
     return {
       answers: Object.fromEntries(
         Object.entries(fields).map(
           ([id, field]): [string, ExtractionModelV4Answer] => {
             const matches = content.entities.filter(
-              entity => entity.type === id,
+              entity => entity.type === id && entity.text !== '',
             );
             if (field.type === 'list') {
               if (matches.length === 0) {
