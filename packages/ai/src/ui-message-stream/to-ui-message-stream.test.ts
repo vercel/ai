@@ -976,6 +976,34 @@ describe('toUIMessageStream', () => {
       expect(warningLogger).toHaveBeenCalledOnce();
     });
 
+    it('does not fail the stream when the tool error cannot be serialized', async () => {
+      const circularError: { self?: unknown } = {};
+      circularError.self = circularError;
+
+      const chunks = await convertReadableStreamToArray(
+        toUIMessageStream({
+          stream: convertArrayToReadableStream([
+            startStep,
+            toolCall,
+            { ...toolError, error: circularError },
+            testStep,
+            startStep,
+            ...reasoning,
+            testStep,
+          ]),
+          tools: undefined,
+        }),
+      );
+
+      expect(chunks).toContainEqual({
+        type: 'tool-output-error',
+        toolCallId: 'call-1',
+        dynamic: true,
+        errorText: 'An error occurred.',
+      });
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
     it('does not warn for provider-executed tool errors', async () => {
       await consumeUIMessageStream([
         startStep,

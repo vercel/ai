@@ -175,7 +175,9 @@ export function toUIMessageStream<
               type: 'tool-output-error' | 'tool-input-error';
             };
 
-            if (errorText !== getErrorMessage(part.error)) {
+            const modelErrorText = getModelToolErrorText(part.error);
+
+            if (modelErrorText != null && errorText !== modelErrorText) {
               mismatchedToolCallIdInCurrentStep ??= part.toolCallId;
             }
           } else if (
@@ -245,4 +247,17 @@ export function toUIMessageStream<
     onError,
     getOutcome: () => outcome,
   });
+}
+
+/**
+ * Returns the error text that the model receives for a failed tool call (see
+ * `createToolModelOutput` with `errorMode: 'text'`), or `undefined` when the
+ * error cannot be serialized. Detecting a mismatch must not fail the stream.
+ */
+function getModelToolErrorText(error: unknown): string | undefined {
+  try {
+    return getErrorMessage(error);
+  } catch {
+    return undefined;
+  }
 }
