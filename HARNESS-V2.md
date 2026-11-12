@@ -58,7 +58,7 @@ graph TD
 Green and blue boxes are public API; the dashed orange box is internal.
 
 - **`HarnessAgent`:** the public consumer API that app code uses: `stream()`, `generate()`, sessions, stream parts, `UIMessage` streams and lifecycle callbacks. This API will not notably change, other than receiving the new `world?: World` setting.
-- **`HarnessV2`:** the public API for harness adapter makers: `drive()` with its drive context (`log`, `effect()`, `executeHostTool()`, `gateBuiltinTool()`, `finishStep()`, `finishTurn()`, and the exceptional `unsafeEmit()`). See section below for details. Stream parts are emitted through the effect context's `emit()`, the only adapter-facing function with that name.
+- **`HarnessV2`:** the public API for harness adapter makers: `drive()` with its drive context (`log`, `effect()`, `executeHostTool()`, `executeBuiltinTool()`, `gateBuiltinTool()`, `finishStep()`, `finishTurn()`, and the exceptional `unsafeEmit()`). See section below for details. Stream parts are emitted through the effect context's `emit()`, the only adapter-facing function with that name.
   - `HarnessV2EffectFunction` declares the generic call signature used by the `HarnessV2DriveContext.effect` property.
 - **`HarnessAgent` engine:** the internal layer, not exported. Among other things, it:
   - translates `HarnessV2` stream parts into consumer stream types
@@ -237,6 +237,25 @@ type HarnessV2LogEvent =
       readonly data: {
         readonly startId: string;
         readonly output: NonNullable<HarnessV2Effect['output']>;
+      };
+      readonly id: string;
+    }
+  | {
+      /**
+       * A finished turn, written by the agent: when the harness calls
+       * `finishTurn()`, or when the agent ends the turn itself (e.g. a failed
+       * drive, later a cancellation). The harness reads it when rebuilding,
+       * so it never resumes a turn the agent already ended.
+       */
+      readonly type: 'finish-turn';
+      readonly data: {
+        /**
+         * ID of the turn. Opaque to the harness.
+         */
+        readonly turnId: string;
+        readonly finishReason: LanguageModelV4FinishReason;
+        readonly totalUsage: LanguageModelV4Usage;
+        readonly harnessMetadata?: HarnessV2Metadata;
       };
       readonly id: string;
     }
@@ -529,6 +548,25 @@ interface HarnessV2DriveContext {
     input: JSONValue;
   }): Promise<HarnessV2ToolExecutionOutput<T>>;
   /**
+   * Executes one of the harness's built-in tools whose implementation the
+   * adapter runs itself (e.g. Pi's tools operating on the sandbox). The agent
+   * records the call as the effect `tool:${toolCallId}` (with the built-in
+   * tool's `replay` policy) and runs `execute` inside it, so a recorded call
+   * returns its recorded outcome without running again. It also emits the
+   * call's `tool-result` parts; the adapter must not emit them. `input` must
+   * already be parsed from the model's JSON.
+   */
+  executeBuiltinTool<T extends JSONValue = JSONValue>(call: {
+    toolCallId: string;
+    toolName: string;
+    input: JSONValue;
+    execute: (options: {
+      abortSignal: AbortSignal;
+    }) =>
+      | PromiseLike<HarnessV2ToolExecutionValue<T>>
+      | AsyncIterable<HarnessV2ToolExecutionValue<T>>;
+  }): Promise<HarnessV2ToolExecutionOutput<T>>;
+  /**
    * Called from the runtime's permission point before a built-in tool runs.
    * Resolves with `approved` (start event written; the adapter reports the
    * outcome through `result()` or `error()`), `denied` (a reason to report
@@ -802,9 +840,10 @@ After a crash, a new drive reruns the harness from the log. Any stream part emit
 - Only one turn runs at a time. A prompt can be submitted while a turn is running, but it waits until that turn finished; content for the running turn is a steer. So a new attempt that delivers more than one prompt without a turn, or a prompt while the latest turn has not finished, rejects with `HarnessInvalidDriveStateError` before anything is recorded. As with any error the adapter does not handle, the drive then fails, and the running turn, if any, is finished with `finishReason: 'error'`.
 - `finishStep()` is awaited by the harness, which gives the engine its hold point before the next step starts.
 - Finish calls follow the same first-wins rule as effects: if the step or turn is already recorded, the call records and emits nothing, without comparing its options to the recorded ones.
-- Both finish calls are recorded in the log as engine-internal events (`finish-step` and `finish-turn` in `HarnessAgentLogEvent`), which is the source of truth; the stream parts are only emitted after a new append. The events store the call's options plus the turn's `submissionId`.
+- Both finish calls are recorded in the log (`finish-step` and `finish-turn`), which is the source of truth; the stream parts are only emitted after a new append. The events store the call's options plus the turn's `turnId`. `finish-step` is engine-internal (only in `HarnessAgentLogEvent`). `finish-turn` is part of `HarnessV2LogEvent`, readable but not appendable by the adapter: the engine can end a turn without the adapter (e.g. after a failed drive), and an adapter rebuilding from the log must not resume such a turn. The adapter needs no `finish-step` events, since it derives step numbers from its own model call effects and a replayed `finishStep()` call records nothing.
 - A session has at most one turn at a time, so the engine identifies it without input from the adapter: the current turn is the one of the latest `turn-start` event, whether that turn is finished or not. A finished turn stays current until the next turn starts, so a drive that re-enters a finished turn's last step resolves its replayed finish calls to that turn.
-- Log event IDs, which double as the stream record keys, are `finish-step:${submissionId}:${stepNumber}` and `finish-turn:${submissionId}`.
+- Log event IDs, which double as the stream record keys, are `finish-step:${turnId}:${stepNumber}` and `finish-turn:${turnId}`.
+- `turnId` (on `turn-start`, `finish-step` and `finish-turn`) is currently the ID of the `prompt` submission that started the turn, and the engine relies on that. To adapters it is an opaque string: an adapter must never use it, let alone assume it is a submission ID, so the submission-to-turn relationship can change (e.g. several prompts merged into one turn) without affecting adapters. An adapter only uses a `finish-turn` event's position in the log.
 - `finishStep()` checks `stepNumber` (a non-negative integer) against the steps recorded for the current turn: lower is a replay, equal is a new step. A higher number, a new step for a finished turn, or a call before any turn started rejects with `HarnessInvalidDriveStateError`. `finishTurn()` on a finished turn is a replay; before any turn started it rejects. `finishTurn()` does not check that the turn's steps were finished.
 - Limit: an adapter that replays finish calls of turns older than the current one would misattribute them. Adapters must therefore rebuild from the log and re-enter at most the latest step, never replaying older turns.
 - Crash between the log append and the stream write of a turn boundary part: the part is lost. Re-emitting it is part of recovery, which is not implemented yet.
@@ -897,9 +936,20 @@ An adapter runs every host tool call through `executeHostTool()` instead of wrap
 - A tool without `execute` that the provider does not execute is a client tool: the call resolves `suspended` (`client-tool`) without being recorded.
 - Not supported yet: tool approvals and active tool filtering.
 
+### Built-in tool execution (`executeBuiltinTool()`)
+
+An in-process runtime (e.g. Pi) runs its built-in tools through callbacks the adapter provides, e.g. to operate on the session's sandbox. The adapter then owns the tool's execution, so the engine runs it inside an effect, the same as a host tool, instead of gating a runtime it does not control.
+
+- The adapter passes the tool's implementation as `execute`; the engine looks up the tool by name in `builtinTools`. The difference to `executeHostTool()` is only where the implementation comes from, which the adapter knows statically: a host tool's `execute` belongs to the app, a built-in tool's to the adapter.
+- Each call is recorded as the effect `tool:${toolCallId}` named `tool.${toolName}`, with the built-in tool's `replay` policy (`'never'` when omitted). A recorded call returns its recorded outcome without running `execute`, and a recorded retryable interruption runs it in a new attempt. So when a runtime re-enters a step after a crash and dispatches the step's tool calls again, completed calls return their original result.
+- `execute` returns the final value, or is an async iterable whose yielded values are partial values and whose last yielded value is the final value. Values have the shape of `HarnessV2ToolExecutionValue` (`{ raw, modelOutput? }`), like everywhere else. `input` is not validated against the tool's `inputSchema`, since the runtime validates its own tools.
+- A thrown error, a value that is not a valid tool value, or an iterable that yields nothing becomes an `error` outcome. A tool that is not one of the harness's built-in tools is recorded as an `error` without running `execute`.
+- The engine emits the call's `tool-result` parts (preliminary, final and error) through the attempt's `emit()`. The adapter emits the call's `tool-call` part, but never its results.
+- Not supported yet: tool approvals (`suspended`) and active tool filtering.
+
 ### Built-in tool gating (`gateBuiltinTool()`)
 
-A runtime runs its built-in tools itself, so the engine cannot run them inside an effect. Instead, an adapter calls `gateBuiltinTool()` from the runtime's permission point before a built-in tool runs (e.g. Claude Code's `PreToolUse` hook), and reports the outcome from the runtime's report after it ran (e.g. `PostToolUse` / `PostToolUseFailure`). Both ends form one effect, so every built-in call that ran has a committed start event first.
+A closed runtime (e.g. Claude Code) runs its built-in tools itself, so the engine cannot run them inside an effect. Instead, an adapter calls `gateBuiltinTool()` from the runtime's permission point before a built-in tool runs (e.g. Claude Code's `PreToolUse` hook), and reports the outcome from the runtime's report after it ran (e.g. `PostToolUse` / `PostToolUseFailure`). Both ends form one effect, so every built-in call that ran has a committed start event first.
 
 - Each call is recorded as the effect `tool:${toolCallId}` named `tool.${toolName}`, like a host tool call. The replay policy comes from the built-in tool's `replay` field in `builtinTools`, defaulting to `'never'`.
 - `input` is typed `JSONValue` and rejects at runtime if it is not a plain JSON value. It is not validated against the tool's `inputSchema`, since the runtime validates its own tools.

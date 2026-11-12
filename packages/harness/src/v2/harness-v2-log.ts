@@ -1,5 +1,10 @@
 import type { HarnessV2Effect } from './harness-v2-effect';
 import type { SerializableValue } from '@ai-sdk/provider';
+import type {
+  HarnessV2FinishReason,
+  HarnessV2Metadata,
+  HarnessV2Usage,
+} from './harness-v2-stream-part';
 import type { HarnessV2Submission } from './harness-v2-submission';
 
 /**
@@ -59,6 +64,46 @@ export type HarnessV2LogEvent =
          * Final or interrupted outcome for the effect attempt.
          */
         readonly output: NonNullable<HarnessV2Effect['output']>;
+      };
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    }
+  | {
+      /**
+       * Marks a finished turn. Written by the agent, either when the adapter
+       * calls `finishTurn()` or when the agent ends the turn itself, e.g.
+       * after a failed drive. A finished turn must not be resumed by a later
+       * drive.
+       */
+      readonly type: 'finish-turn';
+
+      /**
+       * Turn identity and the options the turn was finished with.
+       */
+      readonly data: {
+        /**
+         * ID of the turn.
+         */
+        readonly turnId: string;
+
+        /**
+         * Reason reported for the turn's completion.
+         */
+        readonly finishReason: HarnessV2FinishReason;
+
+        /**
+         * Aggregate usage across all steps in the turn.
+         */
+        readonly totalUsage: HarnessV2Usage;
+
+        /**
+         * Provider metadata associated with the turn, if any.
+         */
+        readonly harnessMetadata?: HarnessV2Metadata;
       };
 
       /**

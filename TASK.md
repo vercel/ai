@@ -74,51 +74,73 @@ The steps are below:
 - It has to decorate `HarnessAgentLog` into `HarnessAgentV2Log`, and it has to create the sandbox session function based on the given session's sandbox session getter function. The other shapes should be compatible.
 
 13. [x] Wire all the pieces that are individually handled by steps 7 to 11 together in `HarnessAgent`, so that the resulting `HarnessV2DriveContext` object can be passed to the `harness: HarnessV2` instance's `drive()` method.
-14. [ ] Implement recovery of effect attempts that a dead drive left unfinished, so that a durable session continues after a crash.
-
-- At the start of a drive, find the attempts with an `effect-start` but no `effect-end`, and treat them as abandoned only once there is proof that the drive that started them is gone (e.g. that drive's recorded deadline has passed). Never treat an attempt that a live drive may still be running as abandoned.
-- Record each abandoned attempt as `interrupted` (`retryable` from its `replay`, with its last committed partial), and emit a `withdraw` part for their `startId`s to the session's stream.
-- Without such proof, the new drive must yield without changing the session.
-- At the start of a drive, re-emit the latest turn's boundary parts to the session's stream, each under its log key: the turn's `start`, then its `finish` if it finished, or else its latest `finish-step`. A crash between a boundary event's log append and its stream write loses the part, and the drive cannot tell whether the write landed, so readers must drop parts whose key they already saw.
-
-15. [ ] Add durable cancellation of a running turn: a new `HarnessAgent` method (e.g. `cancel({ session })`) appends an engine-internal cancel event to the session's log; the drive running the session, in any process, observes it, aborts its drive `stopAbortSignal`, and finishes the turn as `interrupted`. A call's `abortSignal` stays a local control that only ends that call's result.
-
-16. [ ] Implement `packages/harness-pi-v2`, a new from-scratch reimplementation of the Pi harness. Keep it minimal, but follow the key harness requirements. For now, the only thing that it will support is custom `tools`.
+14. [ ] Implement `packages/harness-pi-v2`, a new from-scratch reimplementation of the Pi harness. Keep it minimal, but follow the key harness requirements. For now, the only things that it will support are custom `tools` (through `executeHostTool()`) and Pi's built-in tools (through `executeBuiltinTool()`).
 
 - Ignore existing harnesses' code structure and architectural conventions. We'll want to build this as ideal as it is for the new architecture.
+- Pi's built-in tools run in the adapter's process, with implementations that operate on the session's sandbox (from `sandbox()`), like the remote operations of the existing `packages/harness-pi` adapter.
+- Deliver at most one prompt per turn (e.g. Pi's `followUpMode: 'one-at-a-time'`), as the current spec requires, until step 19 lifts that restriction.
 
-17. [ ] Implement `examples/durable-harness-e2e-next`, a Next.js app with interactive testing UI for durable harness execution.
+15. [ ] Implement `examples/durable-harness-e2e-next`, a Next.js app with interactive testing UI for durable harness execution.
 
 - All harness configurations in this app will run on a durable `World`.
 - Initially, only include a simple example for the new `harness-pi-v2`.
 
-18. [ ] Define `HarnessV2Store` and its engine counterpart `HarnessAgentStore`, under the hood relying on specific `HarnessAgentLog` events (e.g. with type `store:...`), and include the adapter-specific type on `HarnessV2DriveContext`.
+16. [ ] Implement recovery of effect attempts that a dead drive left unfinished, so that a durable session continues after a crash.
 
-19. [ ] Implement `packages/harness-ai-sdk`, a new custom AI SDK harness where developers build their own durable `HarnessAgent` compatible harness on top of `ToolLoopAgent`.
+- At the start of a drive, find the attempts with an `effect-start` but no `effect-end`, and treat them as abandoned only once there is proof that the drive that started them is gone (e.g. that drive's recorded deadline has passed). Never treat an attempt that a live drive may still be running as abandoned.
+- Record each abandoned attempt as `interrupted` (`retryable` from its `replay`, with its last committed partial), and emit a `withdraw` part for their `startId`s to the session's stream.
+- Have `executeHostTool()` and `executeBuiltinTool()` append an engine-internal `tool-execution-start` event, and await its commit, right before calling the tool's `execute` (after input validation and sandbox resolution). An abandoned tool attempt without that event provably never started its tool, so record it as `interrupted` with `retryable: true` regardless of the tool's `replay` policy. No end marker is needed: the `effect-end` is committed after `execute` returns. `gateBuiltinTool()` gets no such event, since the runtime runs the call as soon as the gate approves it.
+- Without such proof, the new drive must yield without changing the session.
+- At the start of a drive, re-emit the latest turn's boundary parts to the session's stream, each under its log key: the turn's `start`, then its `finish` if it finished, or else its latest `finish-step`. A crash between a boundary event's log append and its stream write loses the part, and the drive cannot tell whether the write landed, so readers must drop parts whose key they already saw.
+
+17. [ ] Add durable cancellation of a running turn: a new `HarnessAgent` method (e.g. `cancel({ session })`) appends an engine-internal cancel event to the session's log; the drive running the session, in any process, observes it, aborts its drive `stopAbortSignal`, and finishes the turn as `interrupted`. A call's `abortSignal` stays a local control that only ends that call's result.
+
+18. [ ] Treat errors caught from a drive like crashes: the engine no longer finishes the current turn for every error thrown out of a drive (`failCurrentTurn()`), but leaves the turn unfinished, so that a later drive continues it from the log.
+
+- Only end the turn (`finishReason: 'error'`, recorded as `finish-turn`) for errors known to be permanent, where another drive cannot succeed, and for a turn whose drives keep failing a bounded number of times in a row, as far as either case is relevant to us. `durable-harness` does the same with its `Unavailable` errors and its `failing` code after 8 failed deliveries in a row.
+
+19. [ ] Allow several queued prompts to be delivered together as a single turn.
+
+- Accept prompts while a turn is running (`generate()` and `stream()` currently reject), and queue them for after that turn.
+- Merging is up to the adapter: it delivers all pending prompts in one effect (listing all of them in `deliveredSubmissionIds`), so that they start a single turn. Update the Pi adapter to do so.
+- Change the spec alongside: remove the "at most one prompt that has not started a turn" rule from the `HarnessV2Effect['deliveredSubmissionIds']` docs and from the engine's `maybeStartTurn()`.
+- Decide how `turnId` is derived for a turn started by several prompts. It stays opaque to adapters.
+- Decide whose turn settings apply to a turn started by several prompts.
+
+20. [ ] Let the turn of a follow-up prompt continue the stream that `agent.stream()` returned for the turn running when the prompt was submitted.
+
+- A stream is not a per-turn construct: the session's World stream already spans all turns. The result keeps reading past its turn's `finish` part into the turns of follow-up prompts, instead of ending at its own turn's `finish`.
+- This does not merge turns: each follow-up prompt still starts its own turn. No `HarnessV2` change.
+
+21. [ ] Pass the session's work directory to the `execute` of the app's own tools run through `executeHostTool()`, which currently only receive the sandbox session (`experimental_sandbox`). Built-in tools run through `executeBuiltinTool()` do not need this, since the adapter's `execute` gets the work directory from `sandbox()`.
+
+22. [ ] Define `HarnessV2Store` and its engine counterpart `HarnessAgentStore`, under the hood relying on specific `HarnessAgentLog` events (e.g. with type `store:...`), and include the adapter-specific type on `HarnessV2DriveContext`.
+
+23. [ ] Implement `packages/harness-ai-sdk`, a new custom AI SDK harness where developers build their own durable `HarnessAgent` compatible harness on top of `ToolLoopAgent`.
 
 - Ignore existing harnesses' code structure and architectural conventions. We'll want to build this as ideal as it is for the new architecture.
 
-20. [ ] Revise the `packages/harness/src/v2/` tool type definitions for harness-specific needs.
+24. [ ] Revise the `packages/harness/src/v2/` tool type definitions for harness-specific needs.
 
 - Define harness-specific tool types (at least as aliases) instead of just reusing AI SDK's existing types directly. Use type `harness-builtin` in favor of using `provider-defined` and `provider-executed`, which are not the same.
 - Drop common tools as a foundation in favor of using `Tool["metadata"]` to store mapping data for a built-in tool to its common tool shape.
 - Use the `ProviderDefinedTool` type for a harness's built-in tools.
 - Revise the two adapters to use the new types.
 
-21. [ ] Add support for (system) instructions to the new `HarnessAgent` and the two adapters.
-22. [ ] Add support for skills to the new `HarnessAgent` and the two adapters.
-23. [ ] Add support for a new `HarnessAgent` option (only actually support in the new `HarnessAgent` implementation!) that configures whether the agent's workDir can be trusted (i.e. project-level trust).
+25. [ ] Add support for (system) instructions to the new `HarnessAgent` and the two adapters.
+26. [ ] Add support for skills to the new `HarnessAgent` and the two adapters.
+27. [ ] Add support for a new `HarnessAgent` option (only actually support in the new `HarnessAgent` implementation!) that configures whether the agent's workDir can be trusted (i.e. project-level trust).
 
 - Harness adapters must receive awareness of this configuration.
 - If trusted, the harness adapter should use the workDir to discover and process instructions (e.g. `AGENTS.md`), skills (e.g. `.agents/skills/*`), configuration (e.g. `./claude/settings.json`), hooks (e.g. `.codex/hooks.json`), and MCP servers (e.g. `.mcp.json`) as far as the trust is configured.
 - If not trusted (default), the harness adapter must completely ignore ALL of the above files even if present in the workDir.
 
-24. [ ] Implement `packages/harness-claude-code-v2`, a new from-scratch reimplementation of the Claude Code harness. Keep it minimal, but follow the key harness requirements. For now, the only thing that it will support is custom `tools`, `instructions`, and `skills`.
+28. [ ] Implement `packages/harness-claude-code-v2`, a new from-scratch reimplementation of the Claude Code harness. Keep it minimal, but follow the key harness requirements. For now, the only thing that it will support is custom `tools`, `instructions`, and `skills`.
 
 - Ignore existing harnesses' code structure and architectural conventions. We'll want to build this as ideal as it is for the new architecture.
 - As part of this, ensure the new `HarnessAgent` class properly supports a harness's bootstrap recipe.
 
-25. [ ] Add support for fencing to the sandbox abstraction and the new `HarnessAgent`, so that a drive that lost ownership of a session can no longer change anything in the session's sandbox.
+29. [ ] Add support for fencing to the sandbox abstraction and the new `HarnessAgent`, so that a drive that lost ownership of a session can no longer change anything in the session's sandbox.
 
 - Add an optional fencing capability to the sandbox abstraction (e.g. a `fenced({ token })` method returning a fenced sandbox session view). A sandbox that supports it must persist the highest token it has seen, refuse operations with a lower token in the same step as the operation itself, and stop all processes started under lower tokens once a higher token arrives.
 - In the new `HarnessAgent` engine, derive a per-drive token that only increases across owners of a session (e.g. the committed log position of a drive claim event, or the World's in-band writer fence where available), and have the drive context's `sandbox()` return the fenced view when the sandbox supports it, including fenced versions of derived sessions such as `restricted()`.
@@ -129,7 +151,7 @@ The steps are below:
 
 We are working on a prototype. The objective is not full coverage of all features, or a fully functional behavior at all times.
 
-- Until task step 17, only run `pnpm check` and `pnpm type-check`, and `pnpm --filter harness test` for verification.
+- Until task step 15, only run `pnpm check` and `pnpm type-check`, and `pnpm --filter harness test` for verification.
 - After that task is done, after every step whatever we had in scope of the implementation must be functional, so also include end-to-end example run verifications at this point.
 - That means there may still be parts that aren't (e.g. an API parameter for which the implementation just throws). But whatever the respective step adds in scope to the implementation has to fully work.
 

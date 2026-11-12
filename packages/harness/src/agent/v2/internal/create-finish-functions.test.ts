@@ -114,7 +114,7 @@ async function startTurn(options: {
   await options.log.append({
     type: 'turn-start',
     id: `turn-start:${options.submissionId}`,
-    data: { submissionId: options.submissionId },
+    data: { turnId: options.submissionId },
   });
 }
 
@@ -184,7 +184,7 @@ describe('createFinishFunctions', () => {
           type: 'finish-step',
           id: 'finish-step:p1:0',
           data: {
-            submissionId: 'p1',
+            turnId: 'p1',
             stepNumber: 0,
             finishReason,
             usage,
@@ -233,7 +233,7 @@ describe('createFinishFunctions', () => {
       await log.append({
         type: 'finish-step',
         id: 'finish-step:p1:0',
-        data: { submissionId: 'p1', stepNumber: 0, finishReason, usage },
+        data: { turnId: 'p1', stepNumber: 0, finishReason, usage },
       });
       const abortController = new AbortController();
       abortControllers.add(abortController);
@@ -347,7 +347,7 @@ describe('createFinishFunctions', () => {
           type: 'finish-turn',
           id: 'finish-turn:p1',
           data: {
-            submissionId: 'p1',
+            turnId: 'p1',
             finishReason,
             totalUsage: usage,
             harnessMetadata: { test: { value: 1 } },

@@ -17,10 +17,16 @@ import type {
   HarnessV2Log,
   HarnessV2LogEvent,
 } from '../../../v2/harness-v2-log';
-import type { HarnessV2StreamPart } from '../../../v2/harness-v2-stream-part';
+import type {
+  HarnessV2FinishReason,
+  HarnessV2Metadata,
+  HarnessV2StreamPart,
+  HarnessV2Usage,
+} from '../../../v2/harness-v2-stream-part';
 import type {
   HarnessAgentEffectFunction,
   HarnessAgentEffectOptions,
+  HarnessAgentExecuteBuiltinToolFunction,
   HarnessAgentExecuteHostToolFunction,
   HarnessAgentFinishStepFunction,
   HarnessAgentFinishTurnFunction,
@@ -85,6 +91,12 @@ test('redeclares the adapter built-in tool gate signature without changing it', 
   >().toEqualTypeOf<JSONValue>();
 });
 
+test('redeclares the adapter built-in tool execution signature without changing it', () => {
+  expectTypeOf<HarnessAgentExecuteBuiltinToolFunction>().toEqualTypeOf<
+    HarnessV2DriveContext['executeBuiltinTool']
+  >();
+});
+
 test('reports approved built-in tool calls through effect output shapes', () => {
   /**
    * Approved variant of the built-in tool gate output.
@@ -105,13 +117,25 @@ test('uses the AI SDK tool result output as the model output', () => {
   expectTypeOf<HarnessV2ToolResultOutput>().toEqualTypeOf<ToolResultOutput>();
 });
 
-test('keeps turn start and finish events internal to the agent', () => {
+test('keeps turn start and step finish events internal to the agent', () => {
   expectTypeOf<
-    Extract<
-      HarnessV2LogEvent,
-      { type: 'turn-start' | 'finish-step' | 'finish-turn' }
-    >
+    Extract<HarnessV2LogEvent, { type: 'turn-start' | 'finish-step' }>
   >().toBeNever();
+});
+
+test('exposes turn finish events to the adapter', () => {
+  expectTypeOf<
+    Extract<HarnessV2LogEvent, { type: 'finish-turn' }>
+  >().toEqualTypeOf<{
+    readonly type: 'finish-turn';
+    readonly data: {
+      readonly turnId: string;
+      readonly finishReason: HarnessV2FinishReason;
+      readonly totalUsage: HarnessV2Usage;
+      readonly harnessMetadata?: HarnessV2Metadata;
+    };
+    readonly id: string;
+  }>();
 });
 
 test('keeps progress events internal to the agent', () => {

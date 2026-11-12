@@ -6,6 +6,7 @@ import type {
 } from '../../../v2/harness-v2-effect';
 import type {
   HarnessV2ToolExecutionOutput,
+  HarnessV2ToolExecutionValue,
   HarnessV2ToolGateOutput,
 } from '../../../v2/harness-v2-drive-context';
 import type { HarnessV2LogEvent } from '../../../v2/harness-v2-log';
@@ -81,6 +82,47 @@ export type HarnessAgentExecuteHostToolFunction = <
 }) => Promise<HarnessV2ToolExecutionOutput<T>>;
 
 /**
+ * Executes one of the harness's built-in tools, implemented by the adapter, as
+ * a recorded effect. Same as `HarnessV2DriveContext['executeBuiltinTool']`,
+ * redeclared so the engine does not depend on the adapter-facing type.
+ *
+ * Each call is recorded as the effect `tool:${toolCallId}` under the built-in
+ * tool's replay policy, and the adapter's `execute` runs inside it, so a
+ * recorded call returns its recorded outcome without running again. The
+ * `tool-result` parts are emitted by the engine.
+ */
+export type HarnessAgentExecuteBuiltinToolFunction = <
+  T extends JSONValue = JSONValue,
+>(call: {
+  /**
+   * ID of the tool call, unique across all tool calls.
+   */
+  toolCallId: string;
+
+  /**
+   * Name of the built-in tool to execute.
+   */
+  toolName: string;
+
+  /**
+   * Tool input, already parsed from the model's JSON.
+   */
+  input: JSONValue;
+
+  /**
+   * Runs the tool for a new attempt.
+   */
+  execute: (options: {
+    /**
+     * Aborts the execution when its attempt is cancelled.
+     */
+    abortSignal: AbortSignal;
+  }) =>
+    | PromiseLike<HarnessV2ToolExecutionValue<T>>
+    | AsyncIterable<HarnessV2ToolExecutionValue<T>>;
+}) => Promise<HarnessV2ToolExecutionOutput<T>>;
+
+/**
  * Gates one of the harness's built-in tools before the runtime runs it. Same
  * as `HarnessV2DriveContext['gateBuiltinTool']`, redeclared so the engine does
  * not depend on the adapter-facing type.
@@ -117,6 +159,12 @@ export type HarnessAgentGateBuiltinToolFunction = (call: {
  * Additional union variants beyond HarnessV2LogEvent support framework-internal
  * behavior, such as tracking partial effect output. These events are not exposed
  * to harness adapters and therefore do not belong in HarnessV2LogEvent.
+ *
+ * The `turnId` of `turn-start`, `finish-step` and `finish-turn` events is
+ * currently the ID of the `prompt` submission that started the turn, and the
+ * engine relies on that (e.g. to find prompts that have not started a turn).
+ * Adapters only see `turnId` on `finish-turn` events, as an opaque string,
+ * so this relationship can change without affecting them.
  *
  * Runtime checks for common fields and supported event types live in
  * is-valid-harness-agent-log-event.ts. Changes to these fields or event types
@@ -162,7 +210,7 @@ export type HarnessAgentLogEvent =
       /**
        * Records a finished AI SDK step, visible only to the agent engine.
        * Written by the drive context's `finishStep()` under the ID
-       * `finish-step:${submissionId}:${stepNumber}`.
+       * `finish-step:${turnId}:${stepNumber}`.
        */
       readonly type: 'finish-step';
 
@@ -171,9 +219,10 @@ export type HarnessAgentLogEvent =
        */
       readonly data: {
         /**
-         * ID of the `prompt` submission that started the step's turn.
+         * ID of the step's turn. Currently the ID of the `prompt` submission
+         * that started the turn.
          */
-        readonly submissionId: string;
+        readonly turnId: string;
 
         /**
          * Zero-based number of the step within its turn.
@@ -205,7 +254,7 @@ export type HarnessAgentLogEvent =
   | {
       /**
        * Records the start of a turn, visible only to the agent engine. Written
-       * by the effect function under the ID `turn-start:${submissionId}`, right
+       * by the effect function under the ID `turn-start:${turnId}`, right
        * before the `effect-start` that first delivers the turn's `prompt`
        * submission. From then on, that submission counts as delivered and the
        * turn is the session's current turn.
@@ -217,48 +266,10 @@ export type HarnessAgentLogEvent =
        */
       readonly data: {
         /**
-         * ID of the `prompt` submission that starts the turn.
+         * ID of the turn. Currently the ID of the `prompt` submission that
+         * starts the turn.
          */
-        readonly submissionId: string;
-      };
-
-      /**
-       * Stable event identity within the session, used for deduplication.
-       * Independent of the event's committed log position.
-       */
-      readonly id: string;
-    }
-  | {
-      /**
-       * Records a finished turn, visible only to the agent engine. Written by
-       * the drive context's `finishTurn()` under the ID
-       * `finish-turn:${submissionId}`.
-       */
-      readonly type: 'finish-turn';
-
-      /**
-       * Turn identity and the options the turn was finished with.
-       */
-      readonly data: {
-        /**
-         * ID of the `prompt` submission that started the turn.
-         */
-        readonly submissionId: string;
-
-        /**
-         * Reason reported for the turn's completion.
-         */
-        readonly finishReason: HarnessV2FinishReason;
-
-        /**
-         * Aggregate usage across all steps in the turn.
-         */
-        readonly totalUsage: HarnessV2Usage;
-
-        /**
-         * Provider metadata associated with the turn, if any.
-         */
-        readonly harnessMetadata?: HarnessV2Metadata;
+        readonly turnId: string;
       };
 
       /**
@@ -420,7 +431,7 @@ export type HarnessAgentStreamPart =
   | {
       /**
        * Marks the start of a turn. Emitted by the engine only, keyed
-       * `turn-start:${submissionId}`.
+       * `turn-start:${turnId}`.
        */
       type: 'start';
     }

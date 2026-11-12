@@ -137,15 +137,12 @@ export function createFinishFunctions(options: {
   }): void {
     const { event } = options;
     if (event.type === 'turn-start') {
-      currentTurn = event.data.submissionId;
+      currentTurn = event.data.turnId;
     } else if (event.type === 'finish-step') {
-      const { submissionId } = event.data;
-      recordedSteps.set(
-        submissionId,
-        (recordedSteps.get(submissionId) ?? 0) + 1,
-      );
+      const { turnId } = event.data;
+      recordedSteps.set(turnId, (recordedSteps.get(turnId) ?? 0) + 1);
     } else if (event.type === 'finish-turn') {
-      finishedTurns.add(event.data.submissionId);
+      finishedTurns.add(event.data.turnId);
     }
   }
 
@@ -188,7 +185,7 @@ export function createFinishFunctions(options: {
    * until the call settled. Calls after abort do nothing.
    */
   async function withTurnState(
-    fn: (submissionId: string | undefined) => Promise<void>,
+    fn: (turnId: string | undefined) => Promise<void>,
   ): Promise<void> {
     if (abortSignal.aborted) return;
     running++;
@@ -210,15 +207,15 @@ export function createFinishFunctions(options: {
             'HarnessAgent.finishStep: stepNumber must be a non-negative integer.',
         });
       }
-      await withTurnState(async submissionId => {
-        if (submissionId == null) {
+      await withTurnState(async turnId => {
+        if (turnId == null) {
           throw new HarnessInvalidDriveStateError({
             message: 'HarnessAgent.finishStep: no turn has started.',
           });
         }
-        const recorded = recordedSteps.get(submissionId) ?? 0;
+        const recorded = recordedSteps.get(turnId) ?? 0;
         if (stepNumber < recorded) return;
-        if (finishedTurns.has(submissionId)) {
+        if (finishedTurns.has(turnId)) {
           throw new HarnessInvalidDriveStateError({
             message:
               'HarnessAgent.finishStep: the current turn already finished.',
@@ -230,14 +227,14 @@ export function createFinishFunctions(options: {
           });
         }
 
-        const id = `finish-step:${submissionId}:${stepNumber}`;
+        const id = `finish-step:${turnId}:${stepNumber}`;
         const data: {
-          submissionId: string;
+          turnId: string;
           stepNumber: number;
           finishReason: HarnessV2FinishReason;
           usage: HarnessV2Usage;
           harnessMetadata?: HarnessV2Metadata;
-        } = { submissionId, stepNumber, finishReason, usage };
+        } = { turnId, stepNumber, finishReason, usage };
         const part: Extract<HarnessAgentStreamPart, { type: 'finish-step' }> = {
           type: 'finish-step',
           finishReason,
@@ -256,21 +253,21 @@ export function createFinishFunctions(options: {
     },
 
     async finishTurn({ finishReason, totalUsage, harnessMetadata }) {
-      await withTurnState(async submissionId => {
-        if (submissionId == null) {
+      await withTurnState(async turnId => {
+        if (turnId == null) {
           throw new HarnessInvalidDriveStateError({
             message: 'HarnessAgent.finishTurn: no turn has started.',
           });
         }
-        if (finishedTurns.has(submissionId)) return;
+        if (finishedTurns.has(turnId)) return;
 
-        const id = `finish-turn:${submissionId}`;
+        const id = `finish-turn:${turnId}`;
         const data: {
-          submissionId: string;
+          turnId: string;
           finishReason: HarnessV2FinishReason;
           totalUsage: HarnessV2Usage;
           harnessMetadata?: HarnessV2Metadata;
-        } = { submissionId, finishReason, totalUsage };
+        } = { turnId, finishReason, totalUsage };
         const part: Extract<HarnessAgentStreamPart, { type: 'finish' }> = {
           type: 'finish',
           finishReason,

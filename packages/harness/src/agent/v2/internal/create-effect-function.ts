@@ -415,12 +415,12 @@ export function createEffectFunction(options: {
         break;
 
       case 'turn-start':
-        startedTurns.add(event.data.submissionId);
-        latestTurn = event.data.submissionId;
+        startedTurns.add(event.data.turnId);
+        latestTurn = event.data.turnId;
         break;
 
       case 'finish-turn':
-        finishedTurns.add(event.data.submissionId);
+        finishedTurns.add(event.data.turnId);
         break;
 
       case 'effect-start': {
@@ -581,7 +581,7 @@ export function createEffectFunction(options: {
       const appended = await log.append({
         type: 'turn-start',
         id,
-        data: { submissionId },
+        data: { turnId: submissionId },
       });
       checkState();
       startedTurns.add(submissionId);

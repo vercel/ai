@@ -1896,7 +1896,7 @@ describe('createEffectFunction', () => {
       expect(events[0]).toEqual({
         type: 'turn-start',
         id: 'turn-start:prompt-1',
-        data: { submissionId: 'prompt-1' },
+        data: { turnId: 'prompt-1' },
       });
       expect(await readStream({ world, runId })).toEqual([
         { part: { type: 'start' }, key: 'turn-start:prompt-1' },
@@ -2015,7 +2015,7 @@ describe('createEffectFunction', () => {
         type: 'finish-turn',
         id: 'finish-turn:prompt-1',
         data: {
-          submissionId: 'prompt-1',
+          turnId: 'prompt-1',
           finishReason: { unified: 'stop', raw: 'stop' },
           totalUsage: {
             inputTokens: {

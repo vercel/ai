@@ -8,6 +8,7 @@ import { createDriveContext } from './create-drive-context';
 import { createLog } from './create-log';
 import type {
   HarnessAgentEffectFunction,
+  HarnessAgentExecuteBuiltinToolFunction,
   HarnessAgentExecuteHostToolFunction,
   HarnessAgentFinishStepFunction,
   HarnessAgentFinishTurnFunction,
@@ -54,7 +55,7 @@ const allEvents: HarnessAgentLogEvent[] = [
   {
     type: 'turn-start',
     id: 'turn-start:prompt-1',
-    data: { submissionId: 'prompt-1' },
+    data: { turnId: 'prompt-1' },
   },
   {
     type: 'effect-start',
@@ -81,12 +82,12 @@ const allEvents: HarnessAgentLogEvent[] = [
   {
     type: 'finish-step',
     id: 'finish-step:prompt-1:0',
-    data: { submissionId: 'prompt-1', stepNumber: 0, finishReason, usage },
+    data: { turnId: 'prompt-1', stepNumber: 0, finishReason, usage },
   },
   {
     type: 'finish-turn',
     id: 'finish-turn:prompt-1',
-    data: { submissionId: 'prompt-1', finishReason, totalUsage: usage },
+    data: { turnId: 'prompt-1', finishReason, totalUsage: usage },
   },
   { type: 'harness:journal', id: 'journal-1', data: { entry: 1 } },
 ];
@@ -164,6 +165,7 @@ async function setup(options?: {
   const effect: HarnessAgentEffectFunction = vi.fn();
   const executeHostTool: HarnessAgentExecuteHostToolFunction = vi.fn();
   const gateBuiltinTool: HarnessAgentGateBuiltinToolFunction = vi.fn();
+  const executeBuiltinTool: HarnessAgentExecuteBuiltinToolFunction = vi.fn();
   const finishStep: HarnessAgentFinishStepFunction = vi.fn();
   const finishTurn: HarnessAgentFinishTurnFunction = vi.fn();
   const context = createDriveContext({
@@ -174,6 +176,7 @@ async function setup(options?: {
     finishStep,
     finishTurn,
     executeHostTool,
+    executeBuiltinTool,
     gateBuiltinTool,
     harnessId: 'mock-harness',
     workDir: options?.workDir,
@@ -189,6 +192,7 @@ async function setup(options?: {
     writer,
     effect,
     executeHostTool,
+    executeBuiltinTool,
     gateBuiltinTool,
     finishStep,
     finishTurn,
@@ -207,6 +211,7 @@ describe('createDriveContext', () => {
       yieldController,
       effect,
       executeHostTool,
+      executeBuiltinTool,
       gateBuiltinTool,
       finishStep,
       finishTurn,
@@ -214,6 +219,7 @@ describe('createDriveContext', () => {
 
     expect(context.effect).toBe(effect);
     expect(context.executeHostTool).toBe(executeHostTool);
+    expect(context.executeBuiltinTool).toBe(executeBuiltinTool);
     expect(context.gateBuiltinTool).toBe(gateBuiltinTool);
     expect(context.finishStep).toBe(finishStep);
     expect(context.finishTurn).toBe(finishTurn);
@@ -242,6 +248,7 @@ describe('createDriveContext', () => {
         'prompt-1',
         'start-1',
         'end-1',
+        'finish-turn:prompt-1',
         'journal-1',
       ]);
       expect(result.position).toBe(engineRead.position);
@@ -336,7 +343,9 @@ describe('createDriveContext', () => {
         listener.mockClear();
         await log.append(event);
         expect(listener.mock.calls.length, event.type).toBe(
-          ['submission', 'effect-start', 'effect-end'].includes(event.type)
+          ['submission', 'effect-start', 'effect-end', 'finish-turn'].includes(
+            event.type,
+          )
             ? 1
             : 0,
         );

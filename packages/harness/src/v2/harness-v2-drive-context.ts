@@ -220,6 +220,58 @@ export interface HarnessV2DriveContext {
   }): Promise<HarnessV2ToolExecutionOutput<T>>;
 
   /**
+   * Executes one of the harness's built-in tools whose implementation the
+   * adapter runs itself (e.g. an in-process runtime's tools operating on the
+   * sandbox), and returns its outcome. Built-in tools that a closed runtime
+   * runs go through `gateBuiltinTool()` instead.
+   *
+   * Each call is recorded as the effect `tool:${toolCallId}` named
+   * `tool.${toolName}`, with the built-in tool's `replay` policy (`'never'`
+   * when omitted), and `execute` runs inside that effect. A call already
+   * recorded returns its recorded outcome without running `execute` again;
+   * a recorded retryable interruption (a `replay: 'safe'` tool) runs it in a
+   * new attempt. A tool that is not one of the harness's built-in tools is
+   * recorded as an `error` outcome without running `execute`. `input` must
+   * already be parsed from the model's JSON.
+   *
+   * `execute` is either an async function, whose return value is the final
+   * value, or an async iterable, whose yielded values are recorded as partial
+   * values and whose last yielded value is the final value. Every value is
+   * complete, not a delta. A thrown error becomes an `error` outcome.
+   *
+   * The agent emits the `tool-result` parts (preliminary, final and error) of
+   * these calls itself, so the adapter must not emit them.
+   */
+  executeBuiltinTool<T extends JSONValue = JSONValue>(call: {
+    /**
+     * ID of the tool call, unique across all tool calls.
+     */
+    toolCallId: string;
+
+    /**
+     * Name of the built-in tool to execute.
+     */
+    toolName: string;
+
+    /**
+     * Tool input, already parsed from the model's JSON.
+     */
+    input: JSONValue;
+
+    /**
+     * Runs the tool for a new attempt.
+     */
+    execute: (options: {
+      /**
+       * Aborts the execution when its attempt is cancelled.
+       */
+      abortSignal: AbortSignal;
+    }) =>
+      | PromiseLike<HarnessV2ToolExecutionValue<T>>
+      | AsyncIterable<HarnessV2ToolExecutionValue<T>>;
+  }): Promise<HarnessV2ToolExecutionOutput<T>>;
+
+  /**
    * Gates one of the harness's built-in tools, called from the runtime's
    * permission point before the tool runs.
    *
@@ -313,7 +365,8 @@ export interface HarnessV2DriveContext {
    * a call replayed after a crash records and emits nothing, even if its
    * options differ. The current turn is the one started by the latest
    * delivered prompt, even once it finished. A call before any prompt was
-   * delivered is rejected.
+   * delivered is rejected. The finish is recorded as a `finish-turn` log
+   * event, which the agent also writes when it ends a turn itself.
    */
   finishTurn(options: {
     /**

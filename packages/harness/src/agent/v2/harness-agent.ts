@@ -29,6 +29,7 @@ import { createEffectFunction } from './internal/create-effect-function';
 import { createExecuteHostToolFunction } from './internal/create-execute-host-tool-function';
 import { createFinishFunctions } from './internal/create-finish-functions';
 import { createGateBuiltinToolFunction } from './internal/create-gate-builtin-tool-function';
+import { createExecuteBuiltinToolFunction } from './internal/create-execute-builtin-tool-function';
 import { createLog } from './internal/create-log';
 import {
   createStreamWriter,
@@ -767,6 +768,10 @@ async function runDrivePass(options: {
       effect,
       getSandboxSession: () => session.getSandboxSession(),
     });
+    const executeBuiltinTool = createExecuteBuiltinToolFunction({
+      builtinTools: harness.builtinTools,
+      effect,
+    });
     const gateBuiltinTool = createGateBuiltinToolFunction({
       builtinTools: harness.builtinTools,
       effect,
@@ -781,6 +786,7 @@ async function runDrivePass(options: {
       finishStep: finishFunctions.finishStep,
       finishTurn,
       executeHostTool,
+      executeBuiltinTool,
       gateBuiltinTool,
       harnessId: harness.harnessId,
       workDir,
@@ -842,16 +848,16 @@ async function failCurrentTurn(options: {
   const { log, writer, finishTurn, error } = options;
   const { events } = await log.read({ types: ['turn-start', 'finish-turn'] });
 
-  let submissionId: string | undefined;
+  let turnId: string | undefined;
   const finished = new Set<string>();
   for (const event of events) {
-    if (event.type === 'turn-start') submissionId = event.data.submissionId;
-    if (event.type === 'finish-turn') finished.add(event.data.submissionId);
+    if (event.type === 'turn-start') turnId = event.data.turnId;
+    if (event.type === 'finish-turn') finished.add(event.data.turnId);
   }
-  if (submissionId == null) {
+  if (turnId == null) {
     throw new HarnessBeforeStartError({ cause: error });
   }
-  if (finished.has(submissionId)) {
+  if (finished.has(turnId)) {
     throw new HarnessAfterFinishError({ cause: error });
   }
 
@@ -881,15 +887,15 @@ async function hasRunningTurn(options: {
   const started = new Set<string>();
   const finished = new Set<string>();
   for (const event of events) {
-    if (event.type === 'turn-start') started.add(event.data.submissionId);
-    if (event.type === 'finish-turn') finished.add(event.data.submissionId);
+    if (event.type === 'turn-start') started.add(event.data.turnId);
+    if (event.type === 'finish-turn') finished.add(event.data.turnId);
   }
   return events.some(
     event =>
       (event.type === 'submission' &&
         event.data.type === 'prompt' &&
         !started.has(event.id)) ||
-      (event.type === 'turn-start' && !finished.has(event.data.submissionId)),
+      (event.type === 'turn-start' && !finished.has(event.data.turnId)),
   );
 }
 

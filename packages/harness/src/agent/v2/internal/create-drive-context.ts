@@ -12,6 +12,7 @@ import type { HarnessV2NetworkSandboxSession } from '../../../v2/harness-v2-netw
 import type { HarnessAgentSession } from '../harness-agent-session';
 import type {
   HarnessAgentEffectFunction,
+  HarnessAgentExecuteBuiltinToolFunction,
   HarnessAgentExecuteHostToolFunction,
   HarnessAgentFinishStepFunction,
   HarnessAgentFinishTurnFunction,
@@ -33,6 +34,7 @@ const engineEventTypes = {
   submission: true,
   'effect-start': true,
   'effect-end': true,
+  'finish-turn': true,
 } satisfies Record<
   Exclude<HarnessV2LogEvent['type'], `harness:${string}`>,
   true
@@ -69,15 +71,15 @@ function isHarnessV2LogEvent(
  * Narrows the engine log to the adapter-facing `HarnessV2Log` of one drive.
  *
  * - `read()` returns only `HarnessV2LogEvent` events (`submission`,
- *   `effect-start`, `effect-end` and `harness:` events), even when other types
- *   are requested through `types`. Hidden events still advance the returned
- *   `position`.
+ *   `effect-start`, `effect-end`, `finish-turn` and `harness:` events), even
+ *   when other types are requested through `types`. Hidden events still
+ *   advance the returned `position`.
  * - `append()` accepts only `harness:` events and assigns a generated ID when
  *   none is given, so such an event is always written. Once the drive is
  *   aborted it rejects with the abort reason without writing.
  * - `onAppend()` fires only for the engine-written `HarnessV2LogEvent` types.
  *   An adapter can only append `harness:` events, so these are exactly the
- *   events the adapter did not write itself; engine-internal events never
+ *   events the adapter did not append itself; engine-internal events never
  *   fire it. Listeners are unsubscribed when the drive is aborted, and
  *   registering after that registers nothing.
  */
@@ -184,6 +186,12 @@ export function createDriveContext(options: {
   executeHostTool: HarnessAgentExecuteHostToolFunction;
 
   /**
+   * Built-in tool execution function of the drive, for built-in tools the
+   * adapter implements itself.
+   */
+  executeBuiltinTool: HarnessAgentExecuteBuiltinToolFunction;
+
+  /**
    * Built-in tool gate function of the drive.
    */
   gateBuiltinTool: HarnessAgentGateBuiltinToolFunction;
@@ -217,6 +225,7 @@ export function createDriveContext(options: {
     finishStep,
     finishTurn,
     executeHostTool,
+    executeBuiltinTool,
     gateBuiltinTool,
     harnessId,
     workDir,
@@ -247,6 +256,7 @@ export function createDriveContext(options: {
     log: adaptHarnessV2Log({ log, abortSignal: stopAbortSignal }),
     effect,
     executeHostTool,
+    executeBuiltinTool,
     gateBuiltinTool,
     sandbox() {
       if (sandbox == null) {
