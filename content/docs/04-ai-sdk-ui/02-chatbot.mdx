@@ -726,16 +726,15 @@ With `streamText`, you can control how error messages and usage information are 
 
 ### Error Messages
 
-By default, the error message is masked for security reasons.
-The default error message is "An error occurred."
+Stream errors are masked by default. The default message is "An error occurred."
 
-Tool execution errors marked `providerExecuted: true` are an exception. They
-bypass the UI stream's `onError` callback: strings are forwarded unchanged, and
-other error values are serialized with `JSON.stringify`. This preserves provider
-error codes when chat history is converted back into model messages. Stream
-errors and invalid tool calls still use `onError`, even for provider-executed
-tools. Do not rely on this callback to redact provider-executed tool execution
-errors before they reach the client.
+Failed tool calls keep the error text that the model received, so stored UI
+messages preserve the history sent back on later requests. A custom `onError`
+also handles failed tool calls by default and may replace that text. Set
+`redactToolErrors: false` when your callback should handle stream errors only.
+Tool execution errors marked `providerExecuted: true` always bypass `onError`.
+See [Errors](/docs/ai-sdk-ui/chatbot-tool-usage#errors) for safe tool errors
+and redaction details.
 
 You can forward error messages or send your own error message by providing an `onError` function:
 
