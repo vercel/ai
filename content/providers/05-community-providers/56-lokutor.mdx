@@ -54,6 +54,7 @@ Create speech models with the `.speech()` factory method and use them with `gene
 ```ts
 import { generateSpeech } from 'ai';
 import { lokutor } from '@lokutor/ai-sdk-provider';
+import { writeFile } from 'node:fs/promises';
 
 const { audio } = await generateSpeech({
   model: lokutor.speech('versa-2.0'),
@@ -62,7 +63,7 @@ const { audio } = await generateSpeech({
   language: 'en',
 });
 
-await audio.writeToFile('./hello.wav');
+await writeFile('./hello.wav', audio.uint8Array);
 ```
 
 The voice is a slot (`F1` to `F5`, `M1` to `M5`, or a `clone_...` id from your account) and the speaker you hear depends on `language`. The default is `F1` in `en`. The output is always WAV (16-bit PCM, 44.1 kHz, mono). `outputFormat`, `speed` and `instructions` are not supported and produce a warning.
