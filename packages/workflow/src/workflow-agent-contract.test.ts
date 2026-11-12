@@ -86,6 +86,74 @@ describe('WorkflowAgent stream and core generate contracts', () => {
     expect(streamed.messages.slice(1)).toEqual(generated.responseMessages);
   });
 
+  it('aggregates stream usage like core, keeping token details', async () => {
+    const responses = [toolResponse(), textResponse('It is 18°C.')];
+    const core = await new ToolLoopAgent({
+      model: createAgentModel(responses),
+      tools: weatherTools(),
+    }).stream({ prompt });
+    await core.consumeStream();
+
+    let endUsage: unknown;
+    let endTotalUsage: unknown;
+    const streamed = await new WorkflowAgent({
+      model: createAgentModel(responses),
+      tools: weatherTools(),
+    }).stream({
+      prompt,
+      onEnd: event => {
+        endUsage = event.usage;
+        endTotalUsage = event.totalUsage;
+      },
+    });
+
+    expect(streamed.totalUsage).toEqual(await core.totalUsage);
+    expect(streamed.totalUsage).toEqual({
+      inputTokens: 6,
+      inputTokenDetails: {
+        noCacheTokens: 4,
+        cacheReadTokens: 2,
+        cacheWriteTokens: undefined,
+      },
+      outputTokens: 4,
+      outputTokenDetails: { textTokens: 4, reasoningTokens: undefined },
+      totalTokens: 10,
+    });
+    expect(endTotalUsage).toEqual(streamed.totalUsage);
+    expect(endUsage).toEqual(streamed.totalUsage);
+  });
+
+  it('keeps unknown stream usage counts undefined like core', async () => {
+    const response: LanguageModelV4GenerateResult = {
+      ...textResponse('Done.'),
+      usage: {
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+      },
+    };
+    const core = await new ToolLoopAgent({
+      model: createAgentModel([response]),
+    }).stream({ prompt });
+    await core.consumeStream();
+    const streamed = await new WorkflowAgent({
+      model: createAgentModel([response]),
+    }).stream({ prompt });
+
+    expect(streamed.totalUsage).toEqual(await core.totalUsage);
+    expect(streamed.totalUsage.inputTokens).toBeUndefined();
+    expect(streamed.totalUsage.outputTokens).toBeUndefined();
+    expect(streamed.totalUsage.totalTokens).toBeUndefined();
+  });
+
   it('returns unresolved client tool calls in both contracts', async () => {
     const tools = {
       weather: tool({ inputSchema: z.object({ city: z.string() }) }),
