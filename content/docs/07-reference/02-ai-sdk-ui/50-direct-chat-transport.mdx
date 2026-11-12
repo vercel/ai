@@ -121,7 +121,7 @@ export default function Chat() {
       type: '(error: unknown) => string',
       isOptional: true,
       description:
-        "Process an error, e.g. to log it. Defaults to `() => 'An error occurred.'`. Return the error message to include in the data stream.",
+        "Process an error, e.g. to log it. Defaults to `() => 'An error occurred.'`. Return the error message to include in the data stream. For a failed tool call, the model receives the full error text. If this callback returns a different text, the UI messages no longer match the message history that the model received.",
     },
   ]}
 />
