@@ -5,7 +5,7 @@ import type {
   Experimental_ExtractionModelV4Source as ExtractionSource,
 } from '@ai-sdk/provider';
 
-export type ExtractionModel = ExtractionModelV4;
+export type ExtractionModel = string | ExtractionModelV4;
 
 export type ExtractionValue<FIELD extends ExtractionField> = FIELD extends {
   type: 'number' | 'duration';
