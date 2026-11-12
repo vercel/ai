@@ -1,0 +1,98 @@
+---
+title: OpenCheap
+description: Use the OpenCheap OpenAI compatible API with the AI SDK.
+---
+
+# OpenCheap Provider
+
+[OpenCheap](https://opencheap.si) is an OpenAI-compatible API for 900+ models from many labs. Each request goes to the cheapest healthy provider of the model you name, and you pay that provider's price. You can use it with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+## Setup
+
+The OpenCheap provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use OpenCheap, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const opencheap = createOpenAICompatible({
+  name: 'opencheap',
+  baseURL: 'https://api.opencheap.si/v1',
+  apiKey: process.env.OPENCHEAP_API_KEY,
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+```
+
+`includeUsage` asks for the usage chunk at the end of a stream, so `streamText` reports token counts. `supportsStructuredOutputs` sends the JSON schema of `Output.object` with the request.
+
+<Note>
+  You can create an API key in the [OpenCheap console](https://opencheap.si/keys).
+  Make sure to set the `OPENCHEAP_API_KEY` environment variable with your API
+  key.
+</Note>
+
+## Language Models
+
+You can create OpenCheap models using a provider instance. The first argument is the model ID from the [model list](https://opencheap.si/models), e.g. `claude-sonnet-5`.
+
+```ts
+const model = opencheap('claude-sonnet-5');
+```
+
+### Example
+
+You can use OpenCheap language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const opencheap = createOpenAICompatible({
+  name: 'opencheap',
+  baseURL: 'https://api.opencheap.si/v1',
+  apiKey: process.env.OPENCHEAP_API_KEY,
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+
+const { text } = await generateText({
+  model: opencheap('claude-sonnet-5'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+```
+
+OpenCheap language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const opencheap = createOpenAICompatible({
+  name: 'opencheap',
+  baseURL: 'https://api.opencheap.si/v1',
+  apiKey: process.env.OPENCHEAP_API_KEY,
+  includeUsage: true,
+  supportsStructuredOutputs: true,
+});
+
+const result = streamText({
+  model: opencheap('claude-sonnet-5'),
+  prompt: 'Count from 1 to 5.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+
+console.log(await result.usage);
+```
+
+Tool calls and `Output.object` work the same way on models that support them. The [model list](https://opencheap.si/models) shows each model's context length and every provider that serves it, with its price, speed and uptime.
