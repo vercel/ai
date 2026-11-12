@@ -369,6 +369,78 @@ describe('convertToOpenAIResponsesInput', () => {
       },
     );
 
+    it('reads openai options when using another provider name', async () => {
+      expect(
+        (
+          await convert(
+            [{ role: 'tool', content: [result([definition], 'openai')] }],
+            'azure',
+          )
+        ).input,
+      ).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'search-call',
+          output: JSON.stringify(output),
+        },
+        { type: 'additional_tools', role: 'developer', tools: [definition] },
+      ]);
+    });
+
+    it.each([{ hasConversation: true }, { hasPreviousResponseId: true }])(
+      'keeps definitions from expanded parallel results with %j',
+      async continuation => {
+        const prompt = createExpandedParallelToolCallPrompt();
+        const toolMessage = prompt[1];
+        if (toolMessage.role !== 'tool') throw new Error('expected tool');
+        for (const [index, part] of toolMessage.content.entries()) {
+          if (part.type !== 'tool-result') continue;
+          part.providerOptions = {
+            ...part.providerOptions,
+            openai: {
+              ...part.providerOptions?.openai,
+              additionalTools: [{ ...definition, name: `tool_${index}` }],
+            },
+          };
+        }
+        const { input } = await convertToOpenAIResponsesInput({
+          prompt,
+          providerOptionsName: 'openai',
+          toolNameMapping: testToolNameMapping,
+          systemMessageMode: 'developer',
+          store: true,
+          ...continuation,
+        });
+        expect(input).toEqual([
+          ...('hasConversation' in continuation
+            ? []
+            : [
+                {
+                  type: 'function_call',
+                  call_id: 'call_parallel',
+                  name: 'parallel',
+                  arguments: parallelToolCallInput,
+                },
+              ]),
+          {
+            type: 'function_call_output',
+            call_id: 'call_parallel',
+            output: parallelToolCallOutput,
+          },
+          {
+            type: 'additional_tools',
+            role: 'developer',
+            tools: [{ ...definition, name: 'tool_0' }],
+          },
+          {
+            type: 'additional_tools',
+            role: 'developer',
+            tools: [{ ...definition, name: 'tool_1' }],
+          },
+        ]);
+      },
+    );
+
     it('accepts custom and namespace definitions', async () => {
       const tools = [customDefinition, namespaceDefinition];
       expect(
