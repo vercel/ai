@@ -124,6 +124,59 @@ it('maps text and lists, missing values, confidence, sources, and usage', async 
   expect(result.warnings).toEqual([]);
 });
 
+it('preserves field IDs with spaces, camelCase, Unicode, and distinct casing', async () => {
+  // Field IDs and entity text verified against the live ScaleDown API.
+  const entities = [
+    { type: 'invoice number', text: 'INV-2041', confidence: 0.9 },
+    { type: 'dueDate', text: '2026-12-01', confidence: 0.9 },
+    { type: '客户名称', text: 'Zoë Martin', confidence: 0.9 },
+    { type: 'Vendor', text: 'Acme Corp', confidence: 0.9 },
+  ];
+  server.urls[url].response = {
+    type: 'json-value',
+    body: {
+      ...response,
+      choices: [{ message: { content: JSON.stringify({ entities }) } }],
+    },
+  };
+
+  const result = await model.doExtract({
+    state: [
+      {
+        type: 'text',
+        text: 'Invoice INV-2041 issued by Acme Corp to Zoë Martin. Payment is due on 2026-12-01.',
+      },
+    ],
+    fields: {
+      'invoice number': { type: 'text', instructions: 'Invoice identifier' },
+      dueDate: { type: 'text', instructions: 'Exact payment due date' },
+      客户名称: {
+        type: 'text',
+        instructions: 'Name of the person receiving the invoice',
+      },
+      Vendor: {
+        type: 'text',
+        instructions: 'Name of the company issuing the invoice',
+      },
+      vendor: {
+        type: 'text',
+        instructions: 'Name of the company receiving the invoice',
+      },
+    },
+  });
+  const body = await server.calls[0].requestBodyJson;
+  expect(
+    Object.keys(body.response_format.json_schema.schema.properties),
+  ).toEqual(['invoice number', 'dueDate', '客户名称', 'Vendor', 'vendor']);
+  expect(result.answers).toEqual({
+    'invoice number': { type: 'text', value: 'INV-2041', confidence: 0.9 },
+    dueDate: { type: 'text', value: '2026-12-01', confidence: 0.9 },
+    客户名称: { type: 'text', value: 'Zoë Martin', confidence: 0.9 },
+    Vendor: { type: 'text', value: 'Acme Corp', confidence: 0.9 },
+    vendor: { type: 'text', value: null },
+  });
+});
+
 it('converts UTF-8 offsets across JSON and Unicode text parts without inventing sources', async () => {
   server.urls[url].response = {
     type: 'json-value',
