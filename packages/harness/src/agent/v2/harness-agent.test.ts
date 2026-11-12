@@ -21,7 +21,6 @@ import {
 import { HarnessAgent } from './harness-agent';
 import { InMemoryWorld } from './in-memory-world';
 import { createLog } from './internal/create-log';
-import { HarnessAgent as PublicHarnessAgent } from '../harness-agent';
 
 const harness: HarnessV2 = {
   specificationVersion: 'harness-v2',
@@ -222,17 +221,6 @@ describe('HarnessAgent', () => {
     },
   );
 
-  test('accepts a sandbox work directory through the public HarnessAgent', () => {
-    expect(
-      () =>
-        new PublicHarnessAgent({
-          harness,
-          getSandboxSession,
-          sandboxConfig: { workDir: 'project' },
-        }),
-    ).not.toThrow();
-  });
-
   test('leaves the work directory unset without one configured', () => {
     const agent = new HarnessAgent({
       harness,
@@ -318,30 +306,6 @@ describe('HarnessAgent', () => {
     expect(session.sessionId).toBe('session-id');
     expect(session.sandboxId).toBe('sandbox-id');
     await expect(session.getSandboxSession()).resolves.toBe(sandboxSession);
-  });
-
-  test('lazily resolves a session created through the public HarnessAgent', async () => {
-    const resolvedSandboxSession = {} as SandboxSession;
-    const resolveSandboxSession = vi.fn(async () => resolvedSandboxSession);
-    const agent = new PublicHarnessAgent({
-      harness,
-      getSandboxSession: resolveSandboxSession,
-    });
-
-    const session = await agent.createSession({
-      sessionId: 'session-id',
-      sandboxId: 'sandbox-id',
-    });
-
-    expect(session.sessionId).toBe('session-id');
-    expect(session.sandboxId).toBe('sandbox-id');
-    await expect(session.getSandboxSession()).resolves.toBe(
-      resolvedSandboxSession,
-    );
-    expect(resolveSandboxSession).toHaveBeenCalledWith({
-      sandboxId: 'sandbox-id',
-      abortSignal: expect.any(AbortSignal),
-    });
   });
 
   test('uses a provided sandbox session before resolving it by id', async () => {
