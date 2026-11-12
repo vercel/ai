@@ -1,5 +1,19 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.97
+
+### Patch Changes
+
+- 6f9d73f: fix(harness-acp): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [2ebc78b]
+- Updated dependencies [1a94af3]
+- Updated dependencies [cb4fa52]
+- Updated dependencies [6f9d73f]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/harness@1.0.182
+  - @ai-sdk/provider@4.0.38
+  - @ai-sdk/harness-acp@1.0.122
+
 ## 1.0.96
 
 ### Patch Changes
