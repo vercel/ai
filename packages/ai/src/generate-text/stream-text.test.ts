@@ -20968,7 +20968,7 @@ describe('streamText', () => {
               "type": "tool-input-available",
             },
             {
-              "errorText": "An error occurred.",
+              "errorText": "Error: test error",
               "toolCallId": "call-1",
               "type": "tool-output-error",
             },
@@ -27062,7 +27062,17 @@ describe('streamText', () => {
                 "type": "tool-input-delta",
               },
               {
-                "errorText": "An error occurred.",
+                "errorText": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]",
                 "input": {
                   "cities": "San Francisco",
                 },

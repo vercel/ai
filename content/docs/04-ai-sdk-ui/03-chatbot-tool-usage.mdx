@@ -781,19 +781,108 @@ export async function POST(req: Request) {
 
 ## Errors
 
-Language models can make errors when calling tools.
-By default, these errors are masked for security reasons, and show up as "An error occurred" in the UI.
+Language models can make errors when calling tools, and tools can fail while
+they run.
 
-Tool execution errors marked `providerExecuted: true` bypass this masking and the
-UI stream's `onError` callback. String errors pass through unchanged; other error
-values are serialized with `JSON.stringify`. The original error data is needed
-when converting persisted UI messages back into model messages, for example to
-preserve Anthropic tool error codes. Harness runtime tool errors also retain
-their original messages. The callback still handles invalid tool calls and
-stream errors, regardless of whether a tool is provider-executed.
+By default, the client receives the same error text for a failed tool call as
+the model. This applies to tool execution errors and to invalid tool calls. The
+UI messages are sent back to the model on the next request, so they keep the
+text that the model's reasoning and answers are based on.
 
-To customize masked errors, pass `onError` to `toUIMessageStream`. This callback
-does not redact provider-executed tool execution errors sent to the client.
+<Note type="warning">
+  The error text of a failed tool call can contain details from your server,
+  such as host names or file paths. The model receives this text and can repeat
+  it in its answer. To keep such details away from the model and the client,
+  catch the error in the tool's `execute` function and throw an error with a
+  safe message.
+</Note>
+
+```tsx
+const weatherTool = tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({ location: z.string() }),
+  execute: async ({ location }) => {
+    try {
+      return await getWeather(location);
+    } catch (error) {
+      console.error(error); // the details stay on the server
+
+      // the model and the client receive this message:
+      throw new Error('The weather service is unavailable.');
+    }
+  },
+});
+```
+
+Tool execution errors marked `providerExecuted: true` are also sent unchanged.
+String errors pass through; other error values are serialized with
+`JSON.stringify`. The original error data is needed when converting persisted UI
+messages back into model messages, for example to preserve Anthropic tool error
+codes. Harness runtime tool errors also retain their original messages.
+
+### Redacting tool errors
+
+To replace the error text of failed tool calls before it is sent to the client,
+set `redactToolErrors` to `true`. The text then comes from the `onError`
+callback, which returns "An error occurred." by default:
+
+```tsx
+const result = streamText({
+  // ...
+});
+
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream({
+    stream: result.stream,
+    redactToolErrors: true,
+  }),
+});
+```
+
+When you pass your own `onError`, it handles failed tool calls as well, unless
+you set `redactToolErrors` to `false`. Tool execution errors marked
+`providerExecuted: true` are never redacted. Invalid tool calls of
+provider-executed tools always use `onError`.
+
+Redacting tool errors changes the message history. See
+[Tool error text and message history](#tool-error-text-and-message-history)
+before you enable it.
+
+### Tool error text and message history
+
+During a [server-side multi-step call](#server-side-multi-step-calls), the model
+receives the full error text of a failed tool call. When tool errors are
+redacted, the UI receives a different text. The tool result that
+`convertToModelMessages` creates from the stored UI messages on the next request
+is then not the tool result that the model received.
+
+Some models bind their reasoning to the messages before it and reject a request
+when those messages have changed. For example, Anthropic models with
+[preserved thinking](/providers/ai-sdk-providers/anthropic#thinking-binding-controls)
+respond with a 400 error, and every later request with these messages fails the
+same way. The AI SDK logs a warning when a UI message stream sends a tool error
+text that differs from the text the model received and then sends reasoning from
+a later step.
+
+If you redact tool errors, use one of these options to avoid the rejected
+request:
+
+- Set `sendReasoning: false` so that the UI messages contain no reasoning to
+  send back to the model.
+- With Anthropic models that use adaptive thinking, set
+  `thinking.blockBinding.prefixMismatchBehavior` to `drop_block`. The API then
+  drops the reasoning that no longer matches instead of rejecting the request.
+
+With both options, the model reads the redacted error text on later requests,
+not the text it received when the tool call failed.
+
+### Stream errors
+
+Errors that are not tied to a tool call, such as a failed request to the model
+provider, never reach the model. They are masked for security reasons and show
+up as "An error occurred." in the UI.
+
+To customize these errors, pass `onError` to `toUIMessageStream`:
 
 ```tsx
 export function errorHandler(error: unknown) {
@@ -827,6 +916,10 @@ return createUIMessageStreamResponse({
 });
 ```
 
+A custom `onError` also handles failed tool calls, so this handler returns the
+same error text that the model receives. Set `redactToolErrors: false` if your
+`onError` should handle stream errors only.
+
 In case you are using `createUIMessageResponse`, you can use the `onError` function when calling `toUIMessageResponse`:
 
 ```tsx
@@ -838,32 +931,3 @@ const response = createUIMessageResponse({
   onError: error => `Custom error: ${error.message}`,
 });
 ```
-
-### Tool error text and message history
-
-During a [server-side multi-step call](#server-side-multi-step-calls), the model
-receives the full error text of a failed tool call, while the UI receives the
-result of `onError`. When the two texts differ, the tool result that
-`convertToModelMessages` creates from the stored UI messages on the next request
-is not the tool result that the model received.
-
-Some models bind their reasoning to the messages before it and reject a request
-when those messages have changed. For example, Anthropic models with
-[preserved thinking](/providers/ai-sdk-providers/anthropic#thinking-binding-controls)
-respond with a 400 error, and every later request with these messages fails the
-same way. The AI SDK logs a warning when a UI message stream sends a tool error
-text that differs from the text the model received and then sends reasoning from
-a later step.
-
-To avoid the rejected request, use one of these options:
-
-- Return the error text that the model received from `onError`, as the
-  `errorHandler` above does. This sends tool error details to the client.
-- Set `sendReasoning: false` so that the UI messages contain no reasoning to
-  send back to the model.
-- With Anthropic models, set `thinking.blockBinding.prefixMismatchBehavior` to
-  `drop_block`. The API then drops the reasoning that no longer matches instead
-  of rejecting the request.
-
-With the last two options, the model still reads the masked error text on later
-requests, not the text it received when the tool call failed.

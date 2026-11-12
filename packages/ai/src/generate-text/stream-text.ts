@@ -3882,6 +3882,7 @@ class DefaultStreamTextResult<
     sendStart,
     sendFinish,
     onError,
+    redactToolErrors,
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
@@ -3899,6 +3900,7 @@ class DefaultStreamTextResult<
         sendStart,
         sendFinish,
         onError,
+        redactToolErrors,
       }),
     );
   }
@@ -3918,6 +3920,7 @@ class DefaultStreamTextResult<
       sendFinish,
       sendStart,
       onError,
+      redactToolErrors,
       ...init
     }: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
   ) {
@@ -3934,6 +3937,7 @@ class DefaultStreamTextResult<
         sendFinish,
         sendStart,
         onError,
+        redactToolErrors,
       }),
       ...init,
     });
@@ -3960,6 +3964,7 @@ class DefaultStreamTextResult<
     sendFinish,
     sendStart,
     onError,
+    redactToolErrors,
     ...init
   }: UIMessageStreamResponseInit &
     UIMessageStreamOptions<UI_MESSAGE> = {}): Response {
@@ -3975,6 +3980,7 @@ class DefaultStreamTextResult<
         sendFinish,
         sendStart,
         onError,
+        redactToolErrors,
       }),
       ...init,
     });
