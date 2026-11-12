@@ -18,12 +18,12 @@ Include the provider and model ID in the cache key alongside the call parameters
 
 ```ts filename="ai/middleware.ts"
 import { Redis } from '@upstash/redis';
-import {
-  type LanguageModelV4,
-  type LanguageModelV4Middleware,
-  type LanguageModelV4StreamPart,
-  simulateReadableStream,
-} from 'ai';
+import type {
+  LanguageModelV4,
+  LanguageModelV4Middleware,
+  LanguageModelV4StreamPart,
+} from '@ai-sdk/provider';
+import { simulateReadableStream } from 'ai';
 
 const redis = new Redis({
   url: process.env.KV_URL,
