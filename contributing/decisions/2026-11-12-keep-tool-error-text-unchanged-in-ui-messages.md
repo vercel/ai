@@ -105,16 +105,16 @@ Non-goals:
 
 ### Verification
 
-- [ ] `toUIMessageChunk` returns `errorText: 'Error: tool failed'` for a `tool-error` part and for an invalid `tool-call` part with `new Error('tool failed')` when no options are set
-- [ ] `toUIMessageChunk` returns `errorText: 'An error occurred.'` for both parts with `{ redactToolErrors: true }`
-- [ ] `toUIMessageChunk` returns the `onError` result for both parts when only `onError` is set, and the model's text with `{ onError, redactToolErrors: false }`
-- [ ] `toUIMessageChunk({ type: 'error', error })` returns `errorText: 'An error occurred.'` when no options are set
-- [ ] A UI message that `readUIMessageStream` builds from `toUIMessageStream` output converts back with `convertToModelMessages` to the output of `createToolModelOutput({ errorMode: 'text' })`, for a tool execution error and for an invalid tool call
-- [ ] `toUIMessageStream` logs the mismatch warning with `{ redactToolErrors: true }` and logs nothing with the default options, for a tool error that is followed by reasoning from a later step
-- [ ] In `@ai-sdk/harness`, a host tool whose context validation fails produces a `tool-error` stream part with the message `Tool context validation failed.`, and neither the stream parts nor the UI chunks contain the context value. This holds when the turn pauses for host input before the runtime echoes the result, and when the tool runs after an approval.
-- [ ] `grep -rn "@ai-sdk/anthropic" packages/ai/src` returns no results
-- [ ] `pnpm test` passes in `packages/ai` and `packages/harness`
-- [ ] A two-turn chat with a failing tool, adaptive thinking, and `prefixMismatchBehavior: 'error'` on a model with preserved thinking succeeds on the second turn with the default options, and fails with HTTP 400 with `redactToolErrors: true`
+- [x] `toUIMessageChunk` returns `errorText: 'Error: tool failed'` for a `tool-error` part and for an invalid `tool-call` part with `new Error('tool failed')` when no options are set
+- [x] `toUIMessageChunk` returns `errorText: 'An error occurred.'` for both parts with `{ redactToolErrors: true }`
+- [x] `toUIMessageChunk` returns the `onError` result for both parts when only `onError` is set, and the model's text with `{ onError, redactToolErrors: false }`
+- [x] `toUIMessageChunk({ type: 'error', error })` returns `errorText: 'An error occurred.'` when no options are set
+- [x] A UI message that `readUIMessageStream` builds from `toUIMessageStream` output converts back with `convertToModelMessages` to the output of `createToolModelOutput({ errorMode: 'text' })`, for a tool execution error and for an invalid tool call
+- [x] `toUIMessageStream` logs the mismatch warning with `{ redactToolErrors: true }` and logs nothing with the default options, for a tool error that is followed by reasoning from a later step
+- [x] In `@ai-sdk/harness`, a host tool whose context validation fails produces a `tool-error` stream part with the message `Tool context validation failed.`, and neither the stream parts nor the UI chunks contain the context value. This holds when the turn pauses for host input before the runtime echoes the result, and when the tool runs after an approval.
+- [x] `grep -rn "@ai-sdk/anthropic" packages/ai/src` returns no results
+- [x] `pnpm test` passes in `packages/ai` and `packages/harness`
+- [x] A two-turn chat with a failing tool, adaptive thinking, and `prefixMismatchBehavior: 'error'` on a model with preserved thinking succeeds on the second turn with the default options, and fails with HTTP 400 with `redactToolErrors: true`
 
 ## Pros and Cons of the Options
 
