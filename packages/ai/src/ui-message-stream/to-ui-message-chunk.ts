@@ -73,10 +73,11 @@ export function toUIMessageChunk<
 
   // The error text of a failed tool call is not altered by default.
   //
-  // The model has already received this text (`getErrorMessage(error)`, see
-  // `createToolModelOutput`) and may have reasoned about it and repeated it in
-  // its answer. The UI message is the record that `convertToModelMessages`
-  // sends back to the model on the next request. Replacing the text here
+  // In a multi-step call, the model has already received this text
+  // (`getErrorMessage(error)`, see `createToolModelOutput`) and may have
+  // reasoned about it and repeated it in its answer. The UI message is the
+  // record that `convertToModelMessages` sends back to the model on the next
+  // request. Replacing the text here
   //
   // - changes the message history after the fact. Models that bind reasoning
   //   to the preceding messages (for example Anthropic models with preserved
@@ -84,6 +85,11 @@ export function toUIMessageChunk<
   //   error that they never received.
   // - does not keep the text from the client, because the model's reasoning
   //   and answer are sent to the client as well.
+  //
+  // When the call ends with the failed tool call, the model has not received
+  // the text yet, and replacing it would not change the history. The two
+  // cases cannot be told apart here: whether another step follows is decided
+  // after this chunk has been sent. Both cases use the same default.
   //
   // To keep error details away from the model and the client, throw a safe
   // error from the tool's `execute` function. `redactToolErrors` restores the

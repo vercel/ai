@@ -22,7 +22,9 @@ Since [#15994](https://github.com/vercel/ai/pull/15994) (June 2026), the default
 
 [#24955](https://github.com/vercel/ai/pull/24955) added a warning and documentation for this case. The default still produced the failure.
 
-For failed tool calls, the redaction also did not keep the text from the client. The model receives the full error text and can repeat it. In the reproduction, the tool part said "An error occurred." while the model's answer, which is sent to the same client, quoted the error.
+In a multi-step call, the redaction also did not keep the text from the client. The model receives the full error text and can repeat it. In the reproduction, the tool part said "An error occurred." while the model's answer, which is sent to the same client, quoted the error.
+
+A call that ends with the failed tool call is different. The model has not received the error text in that call; it receives the text of the UI message on the next request. There the redaction changed no history and did keep the text from the client. This is the case for every failed tool call with the default `stopWhen` of `streamText`, which is one step.
 
 Anthropic's guidance for preserved thinking is to [send the history back as the model received it](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/change-tools-or-instructions), to shorten a tool result before it is first sent, and to use `prefix_mismatch_behavior: "drop_block"` only [while a change is being fixed](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/fix-bound-to-a-different-conversation).
 
@@ -44,6 +46,7 @@ How should the SDK treat the error text of failed tool calls in UI messages?
 4. Redact by default only for models that do not bind reasoning to earlier messages
 5. Keep redacting the displayed text and carry the model's text separately in the UI message
 6. Keep redacting, with documentation and a warning only (the state after #24955)
+7. Redact only the tool errors that the model has not received
 
 ## Decision Outcome
 
@@ -74,6 +77,7 @@ Non-goals:
 - Good, because the model reads the same error on later turns as the one it reacted to, on every provider.
 - Good, because it needs no provider-specific logic, no beta header, and works with every thinking mode.
 - Bad, because clients receive the error text of failed tool calls by default again: `error.toString()` of an error thrown by `execute`, and the validation details of an invalid tool call. Applications that relied on the masking since #15994 must set `redactToolErrors: true` or throw safe errors from their tools. The changeset and the documentation state this.
+- Bad, because a call that ends with the failed tool call loses a protection that worked: the model had not received the error text, so the redaction kept it from the client without changing the history. With the default `stopWhen` of one step, this applies to every failed tool call. Those applications need `redactToolErrors: true` or safe errors from their tools.
 - Bad, because the default of `redactToolErrors` depends on whether `onError` is provided. AI SDK 8 should make the default `false` in both cases.
 - Neutral, because applications that pass `onError` keep the behavior they have today, including a possible mismatch. The warning from #24955 still reports it.
 - Neutral, because chats that were stored with a redacted error text keep failing on models with preserved thinking until the reasoning parts after the failed tool call are removed, or until the request sends `drop_block`.
@@ -170,6 +174,14 @@ The state after #24955.
 
 - Good, because nothing changes for existing applications
 - Bad, because the default configuration keeps producing chats that fail permanently on models with preserved thinking
+
+### Redact only the tool errors that the model has not received
+
+The UI message stream redacts a failed tool call when the call ends with it, and keeps the model's text when another step follows.
+
+- Good, because single-step calls keep the redaction, and multi-step calls keep an exact history
+- Bad, because `toUIMessageStream` sends the chunk of a failed tool call before the stop condition decides whether another step follows, so it would have to hold back the chunk or replace its text later
+- Bad, because what a client receives would depend on `stopWhen` and on which step a tool fails in
 
 ## More Information
 
