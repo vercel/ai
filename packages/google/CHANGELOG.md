@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.146
+
+### Patch Changes
+
+- 271ca50: Add the `gemini-4-hydrogen` model ID and support Hydrogen's `xhigh` thinking level in Google Generate Content and Interactions provider options.
+
 ## 3.0.145
 
 ### Patch Changes

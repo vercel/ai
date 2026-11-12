@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 3.0.142
+
+### Patch Changes
+
+- 5a14668: feat(openai): add positioned additionalTools and accept custom and namespace tools
+- 5a14668: feat(openai): support ordered 'additional_tools' from tool results
+
 ## 3.0.141
 
 ### Patch Changes
