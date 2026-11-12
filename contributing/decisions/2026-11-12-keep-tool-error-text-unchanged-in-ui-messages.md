@@ -57,7 +57,7 @@ The decision in detail:
 - Stream errors (`error` chunks) never reach the model. They keep going through `onError` and stay masked by default.
 - Tool execution errors with `providerExecuted: true` are unchanged: they bypass `onError`. Invalid tool calls of provider-executed tools are unchanged as well: they always use `onError`, because the SDK does not send the model a tool result for them.
 - When `getErrorMessage` cannot serialize the error, the model did not receive an error text either. `errorText` is then the result of `onError`.
-- The `error` of a `tool-error` stream part is the error that the model received. A package that sends the model a different error than the one it reports to the application puts the model's error into the stream part. `@ai-sdk/harness` does this for a failed tool context validation of a host tool: the runtime receives a fixed message, the stream part carries an error with that message, and the detailed validation error, which includes the context value, stays in host-only callbacks such as `onToolExecutionEnd`.
+- The `error` of a `tool-error` stream part is the error that the model received. A package that sends the model a different error than the one it reports to the application puts the model's error into the stream part. `@ai-sdk/harness` does this for a failed tool context validation of a host tool: the runtime receives a fixed message, the stream part carries an error with that message, and the detailed validation error, which includes the context value, stays in host-only callbacks such as `onToolExecutionEnd`. It also does this when a host tool throws a value that is not an `Error` or a string: the runtime receives `String(value)`, and the stream part carries that text, not the value.
 - Redaction belongs before the model receives the error. An application that must keep details away from the model and the client catches the error in the tool's `execute` function and throws an error with a safe message.
 
 Non-goals:
@@ -86,7 +86,7 @@ Non-goals:
   - `packages/ai/src/ui-message-stream/to-ui-message-stream.ts`: pass `onError` and `redactToolErrors` through without a default, and use the helper for the mismatch warning
   - `packages/ai/src/generate-text/stream-text-result.ts`: add `redactToolErrors` to `UIMessageStreamOptions`
   - `packages/ai/src/generate-text/stream-text.ts` and `packages/harness/src/agent/internal/harness-stream-text-result.ts`: forward `redactToolErrors` in `toUIMessageStream`, `pipeUIMessageStreamToResponse`, and `toUIMessageStreamResponse`
-  - `packages/harness/src/agent/internal/run-prompt.ts`: a failed tool context validation of a host tool puts an error with the message that the runtime received into the `tool-error` stream part (`HostToolOutcome.streamError`)
+  - `packages/harness/src/agent/internal/run-prompt.ts`: a failed tool context validation of a host tool, and a host tool that throws a value other than an `Error` or a string, put the error that the runtime received into the `tool-error` stream part (`HostToolOutcome.streamError`)
   - `content/docs/04-ai-sdk-ui/03-chatbot-tool-usage.mdx`, `content/docs/04-ai-sdk-ui/02-chatbot.mdx`, `content/docs/09-troubleshooting/12-use-chat-an-error-occurred.mdx`, `content/providers/01-ai-sdk-providers/05-anthropic.mdx`, `content/docs/07-reference/01-ai-sdk-core/02-stream-text.mdx`, `content/docs/07-reference/02-ai-sdk-ui/50-direct-chat-transport.mdx`: describe the default, the option, and how to throw safe errors from a tool
 - **Dependencies**: none
 - **Patterns to follow**:
@@ -112,6 +112,7 @@ Non-goals:
 - [x] A UI message that `readUIMessageStream` builds from `toUIMessageStream` output converts back with `convertToModelMessages` to the output of `createToolModelOutput({ errorMode: 'text' })`, for a tool execution error and for an invalid tool call
 - [x] `toUIMessageStream` logs the mismatch warning with `{ redactToolErrors: true }` and logs nothing with the default options, for a tool error that is followed by reasoning from a later step
 - [x] In `@ai-sdk/harness`, a host tool whose context validation fails produces a `tool-error` stream part with the message `Tool context validation failed.`, and neither the stream parts nor the UI chunks contain the context value. This holds when the turn pauses for host input before the runtime echoes the result, and when the tool runs after an approval.
+- [x] In `@ai-sdk/harness`, a host tool that throws `{ status: 500, body: 'host-secret' }` produces a `tool-output-error` chunk with `errorText: '[object Object]'`, the text that the runtime received
 - [x] `grep -rn "@ai-sdk/anthropic" packages/ai/src` returns no results
 - [x] `pnpm test` passes in `packages/ai` and `packages/harness`
 - [x] A two-turn chat with a failing tool, adaptive thinking, and `prefixMismatchBehavior: 'error'` on a model with preserved thinking succeeds on the second turn with the default options, and fails with HTTP 400 with `redactToolErrors: true`

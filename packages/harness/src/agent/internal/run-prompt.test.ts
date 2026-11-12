@@ -2434,6 +2434,84 @@ describe('runPrompt host tool input validation', () => {
     expect(JSON.stringify(parts)).not.toContain('host-secret');
   });
 
+  test('sends the text that the runtime received when a host tool throws an object', async () => {
+    const failing = tool({
+      inputSchema: z.object({}),
+      execute: async (): Promise<string> => {
+        throw { status: 500, body: 'host-secret' };
+      },
+    });
+    const askUser = tool({ inputSchema: z.object({}) });
+    const submitted: SubmittedResult[] = [];
+    let hostFacingError: unknown;
+    const { result, done } = runPrompt({
+      harness,
+      // The turn pauses for the client-side tool, so the harness reports
+      // the host tool outcome itself.
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'failing',
+            input: '{}',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'c2',
+            toolName: 'askUser',
+            input: '{}',
+          },
+          ...finishEvents,
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { failing, askUser },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      callbacks: {
+        onToolExecutionEnd: event => {
+          if (event.toolOutput.type === 'tool-error') {
+            hostFacingError = event.toolOutput.error;
+          }
+        },
+      },
+    });
+    const uiChunksPromise = (async () => {
+      const chunks: Array<{ type: string }> = [];
+      for await (const chunk of result.toUIMessageStream()) chunks.push(chunk);
+      return chunks;
+    })();
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    const uiChunks = await uiChunksPromise;
+    await done;
+
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: '[object Object]' },
+        isError: true,
+      },
+    ]);
+    expect(hostFacingError).toEqual({ status: 500, body: 'host-secret' });
+    expect(
+      uiChunks.filter(chunk => chunk.type === 'tool-output-error'),
+    ).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        errorText: '[object Object]',
+      }),
+    ]);
+    expect(JSON.stringify(parts)).not.toContain('host-secret');
+    expect(JSON.stringify(uiChunks)).not.toContain('host-secret');
+  });
+
   test.each(['toUIMessageStream', 'toUIMessageStreamResponse'] as const)(
     'redacts a host tool error in %s when redactToolErrors is true',
     async method => {

@@ -1905,12 +1905,25 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
     });
     return { executed: true, outcome: { ok: true, output } };
   } catch (err) {
+    const errorText = String(err);
     await input.submitToolResult({
       toolCallId: input.event.toolCallId,
-      output: { error: String(err) },
+      output: { error: errorText },
       isError: true,
     });
-    return { executed: true, outcome: { ok: false, error: err } };
+    return {
+      executed: true,
+      outcome: {
+        ok: false,
+        error: err,
+        // The error text of an `Error` or a string in a UI message stream is
+        // the text that the runtime received. Any other thrown value would be
+        // serialized with all its properties.
+        ...(err instanceof Error || typeof err === 'string'
+          ? {}
+          : { streamError: errorText }),
+      },
+    };
   }
 }
 
