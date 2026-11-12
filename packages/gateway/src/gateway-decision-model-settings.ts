@@ -3,6 +3,7 @@ export type GatewayDecisionModelId =
   | 'baseten/joey-1'
   | 'baseten/mammoth-1'
   | 'convaiinnovations/laya'
+  | 'google/gemini-decision-1'
   | 'liquid/d1'
   | 'liquid/d1-ultra'
   | 'microsoft/microsoft-decision-1'
