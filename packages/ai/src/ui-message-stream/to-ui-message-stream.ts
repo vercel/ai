@@ -1,4 +1,3 @@
-import { getErrorMessage } from '@ai-sdk/provider';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type {
   TextStreamPart,
@@ -6,6 +5,7 @@ import type {
 } from '../generate-text/stream-text-result';
 import { logWarnings } from '../logger/log-warnings';
 import type { UIMessage } from '../ui/ui-messages';
+import { getModelToolErrorText } from './get-model-tool-error-text';
 import { getResponseUIMessageId } from './get-response-ui-message-id';
 import { handleUIMessageStreamFinish } from './handle-ui-message-stream-finish';
 import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
@@ -28,7 +28,8 @@ export function toUIMessageStream<
   sendSources = false,
   sendStart = true,
   sendFinish = true,
-  onError = () => 'An error occurred.', // masks errors except provider-executed tool execution errors
+  onError,
+  redactToolErrors,
   messageMetadata,
   originalMessages,
   generateMessageId,
@@ -51,11 +52,12 @@ export function toUIMessageStream<
   // TODO AI SDK 8: remove once invalid tool calls no longer inject tool-error parts
   const invalidToolCallIds = new Set<string>();
 
-  // A failed tool call has two error texts: the model receives
-  // `getErrorMessage(error)` with the next step, and the UI receives the
-  // `onError` result. Reasoning from a later step was produced after the model
-  // read its text, so UI messages that contain both no longer reproduce the
-  // history that this reasoning belongs to.
+  // When tool errors are redacted (`redactToolErrors`, which defaults to `true`
+  // with a custom `onError`), a failed tool call has two error texts: the model
+  // receives `getErrorMessage(error)` with the next step, and the UI receives
+  // the `onError` result. Reasoning from a later step was produced after the
+  // model read its text, so UI messages that contain both no longer reproduce
+  // the history that this reasoning belongs to.
   let mismatchedToolCallIdInCurrentStep: string | undefined;
   let mismatchedToolCallIdInEarlierStep: string | undefined;
   let hasWarnedAboutToolErrorMismatch = false;
@@ -156,6 +158,7 @@ export function toUIMessageStream<
                 sendStart,
                 sendFinish,
                 onError,
+                redactToolErrors,
                 messageMetadata: messageMetadataValue,
                 responseMessageId,
               });
@@ -244,20 +247,7 @@ export function toUIMessageStream<
     originalMessages,
     onStepEnd: onStepEnd ?? onStepFinish,
     onEnd: onEnd ?? onFinish,
-    onError,
+    onError: onError ?? (() => 'An error occurred.'),
     getOutcome: () => outcome,
   });
-}
-
-/**
- * Returns the error text that the model receives for a failed tool call (see
- * `createToolModelOutput` with `errorMode: 'text'`), or `undefined` when the
- * error cannot be serialized. Detecting a mismatch must not fail the stream.
- */
-function getModelToolErrorText(error: unknown): string | undefined {
-  try {
-    return getErrorMessage(error);
-  } catch {
-    return undefined;
-  }
 }

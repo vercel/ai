@@ -74,6 +74,7 @@ import { normalizeHarnessToolModelOutput } from '../../utils/normalize-harness-t
 import { HarnessCapabilityUnsupportedError } from '../../errors/harness-capability-unsupported-error';
 
 const invalidToolInputMessage = 'Tool input validation failed.';
+const invalidToolContextMessage = 'Tool context validation failed.';
 
 function unwrapToolResultOutput(toolResult: ToolResultPart): {
   output: unknown;
@@ -394,6 +395,8 @@ export function runPrompt<
     type ToolExecutionState = {
       toolCall: TypedToolCall<TOOLS>;
       toolOutput?: TypedToolResult<TOOLS> | TypedToolError<TOOLS>;
+      // see HostToolOutcome.streamError
+      streamError?: unknown;
       toolExecutionMs?: number;
       executionStartedAt?: number;
       startNotification?: Promise<void>;
@@ -550,7 +553,11 @@ export function runPrompt<
             toolCall,
             outcome:
               toolOutput.type === 'tool-error'
-                ? { ok: false, error: toolOutput.error }
+                ? {
+                    ok: false,
+                    error: toolOutput.error,
+                    streamError: toolExecutions.get(toolCallId)?.streamError,
+                  }
                 : { ok: true, output: toolOutput.output },
             isContinuation: false,
           });
@@ -673,7 +680,10 @@ export function runPrompt<
         toolCallId: options.toolCall.toolCallId,
         toolName: options.toolCall.toolName,
         input: options.toolCall.input,
-        error: options.outcome.error,
+        // Stream parts can reach the client and the model: UI message streams
+        // send the error text of a failed tool call unchanged by default, and
+        // response messages contain it.
+        error: options.outcome.streamError ?? options.outcome.error,
       } as TextStreamPart<TOOLS>);
     };
     const submitToolResult: HarnessV1PromptControl['submitToolResult'] =
@@ -924,6 +934,7 @@ export function runPrompt<
         toolCall,
         outcome: execution.outcome,
       });
+      toolExecution.streamError = getStreamError(execution.outcome);
       toolExecution.toolExecutionMs = Date.now() - executionStartedAt;
       await publishToolExecutionEnd(toolExecution);
       enqueueHostToolOutcome({
@@ -1626,6 +1637,7 @@ export function runPrompt<
                 toolCall: parsedToolCall,
                 outcome: execution.outcome,
               });
+              toolExecution.streamError = getStreamError(execution.outcome);
               toolExecution.toolExecutionMs = Date.now() - executionStartedAt;
               await publishToolExecutionEnd(toolExecution);
             })(),
@@ -1694,7 +1706,24 @@ export function runPrompt<
 
 type HostToolOutcome =
   | { ok: true; output: unknown }
-  | { ok: false; error: unknown };
+  | {
+      ok: false;
+
+      /**
+       * Error for host-only consumers such as lifecycle callbacks.
+       */
+      error: unknown;
+
+      /**
+       * Error for stream parts. Set when `error` contains host-only details
+       * that the runtime did not receive.
+       */
+      streamError?: unknown;
+    };
+
+function getStreamError(outcome: HostToolOutcome): unknown {
+  return outcome.ok ? undefined : outcome.streamError;
+}
 
 type HostToolExecution =
   | { executed: false }
@@ -1801,13 +1830,20 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   } catch (err) {
     // Context is host-only and can contain credentials. Keep the detailed
     // validation error in the host-facing outcome, but never send its value or
-    // schema diagnostics back to the runtime/model.
+    // schema diagnostics back to the runtime/model or into the stream.
     await input.submitToolResult({
       toolCallId: input.event.toolCallId,
-      output: { error: 'Tool context validation failed.' },
+      output: { error: invalidToolContextMessage },
       isError: true,
     });
-    return { executed: true, outcome: { ok: false, error: err } };
+    return {
+      executed: true,
+      outcome: {
+        ok: false,
+        error: err,
+        streamError: new Error(invalidToolContextMessage),
+      },
+    };
   }
 
   try {
@@ -1869,12 +1905,25 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
     });
     return { executed: true, outcome: { ok: true, output } };
   } catch (err) {
+    const errorText = String(err);
     await input.submitToolResult({
       toolCallId: input.event.toolCallId,
-      output: { error: String(err) },
+      output: { error: errorText },
       isError: true,
     });
-    return { executed: true, outcome: { ok: false, error: err } };
+    return {
+      executed: true,
+      outcome: {
+        ok: false,
+        error: err,
+        // The error text of an `Error` or a string in a UI message stream is
+        // the text that the runtime received. Any other thrown value would be
+        // serialized with all its properties.
+        ...(err instanceof Error || typeof err === 'string'
+          ? {}
+          : { streamError: errorText }),
+      },
+    };
   }
 }
 
