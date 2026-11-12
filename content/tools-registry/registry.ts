@@ -686,7 +686,7 @@ const { text } = await generateText({
 console.log(text);`,
     docsUrl: 'https://pushary.com/docs/agents/build/vercel-ai-sdk',
     apiKeyUrl: 'https://pushary.com/onboarding/partner',
-    websiteUrl: 'https://pushary.com/human-in-the-loop',
+    websiteUrl: 'https://pushary.com/human-in-the-loop-vercel-ai-sdk',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
   {
@@ -971,16 +971,47 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@redis/vercel-ai-sdk',
   },
   {
+    slug: 'keenable',
+    name: 'Keenable',
+    description:
+      'Keenable is a web search API built for AI agents. Search returns ranked pages with their text already extracted, and the fetch tool reads any URL as clean markdown. No API key is required.',
+    packageName: '@keenable/ai-sdk',
+    tags: ['search', 'web', 'extraction'],
+    apiKeyEnvName: 'KEENABLE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @keenable/ai-sdk',
+      npm: 'npm install @keenable/ai-sdk',
+      yarn: 'yarn add @keenable/ai-sdk',
+      bun: 'bun add @keenable/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { keenableTools } from '@keenable/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'What changed in the latest Bun release? Cite the pages you used.',
+  tools: keenableTools(),
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.keenable.ai/integrations/vercel',
+    apiKeyUrl: 'https://keenable.ai/console',
+    websiteUrl: 'https://keenable.ai',
+    npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
+  },
+
+  {
     slug: 'ava',
     name: 'AVA',
     description: 'AVA tools for the Vercel AI SDK: load a local dataset (CSV/JSON/Parquet/XLSX), inspect its schema, run read-only SQL, profile columns, ask natural-language questions, and turn verified rows into a chart. AVA owns data access and rendering; the model owns reasoning. Runs in-process, no server required.',
     packageName: 'ai-sdk-ava',
     tags: ['data-analysis', 'sql', 'visualization', 'charts', 'ava'],
     installCommand: {
-      pnpm: 'pnpm add ai-sdk-ava @antv/ava@beta ai @ai-sdk/openai zod',
-      npm: 'npm install ai-sdk-ava @antv/ava@beta ai @ai-sdk/openai zod',
-      yarn: 'yarn add ai-sdk-ava @antv/ava@beta ai @ai-sdk/openai zod',
-      bun: 'bun add ai-sdk-ava @antv/ava@beta ai @ai-sdk/openai zod',
+      pnpm: 'pnpm add ai-sdk-ava @antv/ava ai @ai-sdk/openai zod',
+      npm: 'npm install ai-sdk-ava @antv/ava ai @ai-sdk/openai zod',
+      yarn: 'yarn add ai-sdk-ava @antv/ava ai @ai-sdk/openai zod',
+      bun: 'bun add ai-sdk-ava @antv/ava ai @ai-sdk/openai zod',
     },
     codeExample: `import { generateText, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
