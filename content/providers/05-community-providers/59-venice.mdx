@@ -9,14 +9,7 @@ description: Learn how to use the Venice AI community provider.
 
 ## Setup
 
-The Venice AI provider is available in the `venice-ai-sdk-provider` package and requires Node.js 24 or later. Choose a package version whose `ai` peer dependency supports your installed AI SDK major version.
-
-<Note type="warning">
-  Version 2.2.0 of the community provider declares support for AI SDK 6 (`ai:
-  ^6.0.90`). For AI SDK 7, use the [OpenAI-compatible
-  integration](#openai-compatible-integration) until the community provider
-  publishes a release that declares AI SDK 7 support.
-</Note>
+The Venice AI provider is available in the `venice-ai-sdk-provider` package. The current release targets AI SDK 7. For AI SDK 6, install the `2.x` line. See the [package README](https://github.com/dpuyosa/venice-ai-sdk-provider) for supported Node.js versions.
 
 Install the community provider with:
 
@@ -86,7 +79,7 @@ Call the provider with a Venice model ID to create a language model:
 ```ts
 import { venice } from 'venice-ai-sdk-provider';
 
-const model = venice('venice-uncensored-1-2');
+const model = venice('z-ai-glm-5-3-flash');
 ```
 
 Use `generateText` to generate a complete response:
@@ -96,7 +89,7 @@ import { venice } from 'venice-ai-sdk-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: venice('venice-uncensored-1-2'),
+  model: venice('z-ai-glm-5-3-flash'),
   prompt: 'Write a vegetarian lasagna recipe for four people.',
 });
 
@@ -114,7 +107,7 @@ import { venice } from 'venice-ai-sdk-provider';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: venice('venice-uncensored-1-2'),
+  model: venice('z-ai-glm-5-3-flash'),
   prompt: 'Write a short story about a robot learning to cook.',
 });
 
@@ -169,7 +162,7 @@ const venice = createVenice({
 });
 
 const { output } = await generateText({
-  model: venice('venice-uncensored-1-2'),
+  model: venice('z-ai-glm-5-3-flash'),
   output: Output.object({
     schema: z4.object({
       name: z4.string(),
@@ -200,7 +193,7 @@ import { venice } from 'venice-ai-sdk-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: venice('venice-uncensored-1-2'),
+  model: venice('z-ai-glm-5-3-flash'),
   prompt: 'What are the latest developments in AI?',
   providerOptions: {
     venice: {
@@ -255,11 +248,9 @@ console.log(embedding);
 
 ## OpenAI-Compatible Integration
 
-Venice also works with the official `@ai-sdk/openai` provider. Use this integration for AI SDK 7 while the community package's SDK 7 update is pending, or when you prefer the OpenAI adapter. The community provider exposes Venice-specific settings through `providerOptions.venice`; those options are specific to that package.
+Venice also works with the official `@ai-sdk/openai` provider, if you prefer the OpenAI adapter. The community provider exposes Venice-specific settings through `providerOptions.venice`; those options are specific to that package.
 
-Install the AI SDK 7 packages:
-
-<InstallPackages packages="ai@7 @ai-sdk/openai@4" />
+<InstallPackages packages="ai @ai-sdk/openai" />
 
 ```ts
 import { createOpenAI } from '@ai-sdk/openai';
@@ -271,7 +262,7 @@ const venice = createOpenAI({
 });
 
 const { text } = await generateText({
-  model: venice.chat('venice-uncensored-1-2'),
+  model: venice.chat('z-ai-glm-5-3-flash'),
   prompt: 'Write a vegetarian lasagna recipe for four people.',
 });
 
