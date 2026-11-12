@@ -250,8 +250,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1(9d079a418e5441368883501342c95a36)
       '@vercel/geistdocs':
-        specifier: 2.13.1
-        version: 2.13.1(ff29671d4d6f0a1a40ba4e0433ea6a4a)
+        specifier: 2.15.2
+        version: 2.15.2(ff29671d4d6f0a1a40ba4e0433ea6a4a)
       fumadocs-core:
         specifier: 16.2.2
         version: 16.2.2(@types/react@18.3.28)(algoliasearch@5.48.1)(lucide-react@0.555.0(react@19.2.6))(next@16.4.1(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.97.3))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(supports-color@10.2.2)
@@ -14608,6 +14608,10 @@ packages:
     resolution: {integrity: sha512-0krENrjuitlW8s6TJu0MlqCevyCU7K7JK63jZAf7xZ6n17tx+vUEwzHT3sTxawtwZxaW21hu+oFUpoOrm49FsQ==}
     engines: {node: '>=14'}
 
+  '@vercel/firewall@1.2.6':
+    resolution: {integrity: sha512-89ybsa2rnVNdw6RI3jGOVvqUJaBj6Umm4IagC1o3PKtr/MXxBKOLek+yyUgF0csA0O5W+dzcpdIhKxVXhgVVtA==}
+    engines: {node: '>= 20'}
+
   '@vercel/functions@3.6.0':
     resolution: {integrity: sha512-Xj68JYqqJwtqFWJN7EWmFN7MOiUjv5whjw48UEKqQbg8r7hRkhuJhncTU0ba3jJCh/wxEuLWckrtsKcrHQraxw==}
     engines: {node: '>= 20'}
@@ -14629,8 +14633,8 @@ packages:
       ws:
         optional: true
 
-  '@vercel/geistdocs@2.13.1':
-    resolution: {integrity: sha512-xnt2dwZjK7B0ons4JGlJ458dDvt44/fv5KSIrwbCBY2JY1VUcmjKc+L6FWIrGUng2VbXOLNlss0Qvr3yndWR9g==}
+  '@vercel/geistdocs@2.15.2':
+    resolution: {integrity: sha512-2am3nE5LbNLiCqipVh6gzVs8AHfnfG3Tais1V+l3OUeAAcKsNmwsRfEcsCbvnwJqtlfSUhFX5OxDYftcRp2dBQ==}
     hasBin: true
     peerDependencies:
       next: ^16.3.3
@@ -36901,6 +36905,8 @@ snapshots:
 
   '@vercel/detect-agent@1.2.5': {}
 
+  '@vercel/firewall@1.2.6': {}
+
   '@vercel/functions@3.6.0(@aws-sdk/credential-provider-web-identity@3.972.78)':
     dependencies:
       '@vercel/oidc': 3.4.1
@@ -36936,7 +36942,7 @@ snapshots:
       ws: 8.21.3
     optional: true
 
-  '@vercel/geistdocs@2.13.1(ff29671d4d6f0a1a40ba4e0433ea6a4a)':
+  '@vercel/geistdocs@2.15.2(ff29671d4d6f0a1a40ba4e0433ea6a4a)':
     dependencies:
       '@ai-sdk/react': 3.0.223(react@19.2.6)(zod@4.6.5)
       '@clack/prompts': 0.11.0
@@ -36947,6 +36953,7 @@ snapshots:
       '@types/mdx': 2.0.14
       '@types/react': 19.2.18
       '@vercel/agent-readability': 0.7.0(@sveltejs/kit@2.70.2(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.55.7)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.9.0(supports-color@10.2.2))(lightningcss@1.32.0)(sass@1.97.3)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)))(svelte@5.55.7)(typescript@6.0.3)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.9.0(supports-color@10.2.2))(lightningcss@1.32.0)(sass@1.97.3)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)))(@vercel/functions@3.9.3(@aws-sdk/credential-provider-web-identity@3.972.78)(ws@8.21.3))(h3@1.15.11)(next@16.4.1(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.97.3))
+      '@vercel/firewall': 1.2.6
       '@vercel/oidc': 3.8.4
       ai: 6.0.221(zod@4.6.5)
       class-variance-authority: 0.7.1
@@ -36960,7 +36967,6 @@ snapshots:
       glob: 11.1.0
       mcp-handler: 2.2.0(@modelcontextprotocol/server@2.0.0)(next@16.4.1(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.97.3))
       mermaid: 11.17.2
-      motion: 12.42.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       next: 16.4.1(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.97.3)
       next-themes: 0.4.6(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       phase: 0.5.4(react@19.2.6)
@@ -36986,7 +36992,6 @@ snapshots:
       vaul: 1.1.2(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@19.2.18)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       zod: 4.6.5
     transitivePeerDependencies:
-      - '@emotion/is-prop-valid'
       - '@fumadocs/mdx-remote'
       - '@mixedbread/sdk'
       - '@orama/core'
