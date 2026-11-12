@@ -589,7 +589,14 @@ const agent = new WorkflowAgent({
 });
 ```
 
-Both `prepareCall` and `prepareStep` can also be passed per-call in `stream()`.
+A `model`, `toolChoice`, `activeTools`, or generation setting returned from
+`prepareStep` applies to the current step only, as in `ToolLoopAgent`. Later
+steps use the agent or call values again unless `prepareStep` returns an
+override for them too. Returned `messages`, `system`, `runtimeContext`, and
+`toolsContext` values stay in effect for later steps.
+
+`prepareStep` can also be passed per call in `generate()` and `stream()`.
+`prepareCall` is a constructor option only.
 
 ## Lifecycle Callbacks
 

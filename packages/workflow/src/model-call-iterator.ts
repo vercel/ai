@@ -260,6 +260,15 @@ export async function* modelCallIterator({
 
     let stepSandbox = sandbox;
 
+    // Like in generateText and streamText, prepareStep overrides for the
+    // model, tool choice, active tools, and generation settings apply to the
+    // current step only. Every step starts from the call-level values.
+    // Messages, the system message, and contexts stay changed for later steps.
+    currentModel = model;
+    currentGenerationSettings = generationSettings ?? {};
+    currentToolChoice = toolChoice;
+    currentActiveTools = undefined;
+
     // Call prepareStep callback before each step if provided
     if (prepareStep) {
       const prepareResult = await prepareStep({

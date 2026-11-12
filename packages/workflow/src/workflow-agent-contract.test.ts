@@ -86,6 +86,116 @@ describe('WorkflowAgent stream and core generate contracts', () => {
     expect(streamed.messages.slice(1)).toEqual(generated.responseMessages);
   });
 
+  it('applies prepareStep setting overrides to one step only, like core', async () => {
+    const responses = () => [toolResponse(), textResponse('It is 18°C.')];
+    const tools = () => ({
+      ...weatherTools(),
+      other: tool({
+        inputSchema: z.object({}),
+        execute: async () => 'unused',
+      }),
+    });
+    const firstStepOverrides = {
+      temperature: 0.9,
+      toolChoice: 'required' as const,
+      activeTools: ['weather' as const],
+      providerOptions: { mock: { firstStep: true } },
+    };
+    const summarize = (call: {
+      temperature?: number;
+      toolChoice?: unknown;
+      tools?: Array<{ name: string }>;
+      providerOptions?: unknown;
+    }) => ({
+      temperature: call.temperature,
+      toolChoice: call.toolChoice,
+      tools: call.tools?.map(modelTool => modelTool.name),
+      providerOptions: call.providerOptions,
+    });
+
+    const coreModel = createAgentModel(responses());
+    await new ToolLoopAgent({
+      model: coreModel,
+      tools: tools(),
+      temperature: 0.1,
+      prepareStep: ({ stepNumber }) =>
+        stepNumber === 0 ? firstStepOverrides : undefined,
+    }).generate({ prompt });
+
+    const generateModel = createAgentModel(responses());
+    await new WorkflowAgent({
+      model: generateModel,
+      tools: tools(),
+      temperature: 0.1,
+      prepareStep: ({ stepNumber }) =>
+        stepNumber === 0 ? firstStepOverrides : undefined,
+    }).generate({ prompt });
+
+    const streamModel = createAgentModel(responses());
+    await new WorkflowAgent({
+      model: streamModel,
+      tools: tools(),
+      temperature: 0.1,
+      prepareStep: ({ stepNumber }) =>
+        stepNumber === 0 ? firstStepOverrides : undefined,
+    }).stream({ prompt });
+
+    const expected = [
+      {
+        temperature: 0.9,
+        toolChoice: { type: 'required' },
+        tools: ['weather'],
+        providerOptions: { mock: { firstStep: true } },
+      },
+      {
+        temperature: 0.1,
+        toolChoice: { type: 'auto' },
+        tools: ['weather', 'other'],
+        providerOptions: undefined,
+      },
+    ];
+    expect(coreModel.doGenerateCalls.map(summarize)).toEqual(expected);
+    expect(generateModel.doGenerateCalls.map(summarize)).toEqual(expected);
+    expect(streamModel.doStreamCalls.map(summarize)).toEqual(expected);
+  });
+
+  it('uses a prepareStep model override for one step only, like core', async () => {
+    for (const run of [
+      (model: MockLanguageModelV4, firstStepModel: MockLanguageModelV4) =>
+        new ToolLoopAgent({
+          model,
+          tools: weatherTools(),
+          prepareStep: ({ stepNumber }) =>
+            stepNumber === 0 ? { model: firstStepModel } : undefined,
+        }).generate({ prompt }),
+      (model: MockLanguageModelV4, firstStepModel: MockLanguageModelV4) =>
+        new WorkflowAgent({
+          model,
+          tools: weatherTools(),
+          prepareStep: ({ stepNumber }) =>
+            stepNumber === 0 ? { model: firstStepModel } : undefined,
+        }).generate({ prompt }),
+      (model: MockLanguageModelV4, firstStepModel: MockLanguageModelV4) =>
+        new WorkflowAgent({
+          model,
+          tools: weatherTools(),
+          prepareStep: ({ stepNumber }) =>
+            stepNumber === 0 ? { model: firstStepModel } : undefined,
+        }).stream({ prompt }),
+    ]) {
+      const model = createAgentModel([textResponse('It is 18°C.')]);
+      const firstStepModel = createAgentModel([toolResponse()]);
+
+      await run(model, firstStepModel);
+
+      expect(
+        firstStepModel.doGenerateCalls.length +
+          firstStepModel.doStreamCalls.length,
+      ).toBe(1);
+      expect(model.doGenerateCalls.length + model.doStreamCalls.length).toBe(1);
+    }
+  });
+
   it('returns unresolved client tool calls in both contracts', async () => {
     const tools = {
       weather: tool({ inputSchema: z.object({ city: z.string() }) }),
