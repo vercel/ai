@@ -2596,7 +2596,7 @@ export class WorkflowAgent<
           toolCalls: [],
           toolResults: [],
           finishReason: 'other',
-          totalUsage: aggregateExecutionUsage(steps, mode),
+          totalUsage: aggregateUsage(steps),
           output: undefined as TOutput,
         },
       };
@@ -2962,7 +2962,7 @@ export class WorkflowAgent<
                   ]
             ) as ModelMessage[];
             const lastStep = steps[steps.length - 1];
-            const totalUsage = aggregateExecutionUsage(steps, mode);
+            const totalUsage = aggregateUsage(steps);
             const finishReason = lastStep?.finishReason ?? 'other';
 
             const data: WorkflowExecutionData<TTools, TOutput> = {
@@ -3230,7 +3230,7 @@ export class WorkflowAgent<
     }
 
     const lastStep = steps[steps.length - 1];
-    const totalUsage = aggregateExecutionUsage(steps, mode);
+    const totalUsage = aggregateUsage(steps);
     const finishReason = lastStep?.finishReason ?? 'other';
 
     const data: WorkflowExecutionData<TTools, TOutput> = {
@@ -3619,18 +3619,16 @@ function isInWorkflow(): boolean {
   }
 }
 
+/**
+ * Sums the usage of all steps the same way `generateText` and `streamText`
+ * do: token details are kept, and a count that no step reported stays
+ * `undefined` instead of becoming `0`.
+ */
 function aggregateUsage(steps: StepResult<any, any>[]): LanguageModelUsage {
-  let inputTokens = 0;
-  let outputTokens = 0;
-  for (const step of steps) {
-    inputTokens += step.usage?.inputTokens ?? 0;
-    outputTokens += step.usage?.outputTokens ?? 0;
-  }
-  return {
-    inputTokens,
-    outputTokens,
-    totalTokens: inputTokens + outputTokens,
-  } as LanguageModelUsage;
+  return steps.reduce(
+    (usage, step) => addLanguageModelUsage(usage, step.usage),
+    createNullLanguageModelUsage(),
+  );
 }
 
 async function resolveProviderToolResult(
@@ -3803,18 +3801,6 @@ async function executeTool(
     rawOutput: toolResult,
     isError: false,
   };
-}
-
-function aggregateExecutionUsage(
-  steps: StepResult<any, any>[],
-  mode: 'generate' | 'stream',
-): LanguageModelUsage {
-  return mode === 'stream'
-    ? aggregateUsage(steps)
-    : steps.reduce(
-        (usage, step) => addLanguageModelUsage(usage, step.usage),
-        createNullLanguageModelUsage(),
-      );
 }
 
 function addApprovalRequestsToMessages(
