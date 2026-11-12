@@ -1000,4 +1000,36 @@ console.log(text);`,
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
+  {
+    slug: 'layerhop',
+    name: 'LayerHop',
+    description:
+      "Cross-chain and same-chain swap tools for agents across 70 chains, including Ethereum, Base, Arbitrum, Optimism, BNB Chain, Polygon, Solana and Hyperliquid. LayerHop compares routes from many bridges and aggregators and returns the best quote with every fee itemised. List chains and tokens, get quotes and swap links, build unsigned transactions, simulate them and track orders. Returns unsigned transactions only and never holds keys; the user's wallet signs. No API key needed for quotes.",
+    packageName: '@layerhop/ai',
+    tags: ['defi', 'web3', 'bridge'],
+    apiKeyEnvName: 'LAYERHOP_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @layerhop/ai',
+      npm: 'npm install @layerhop/ai',
+      yarn: 'yarn add @layerhop/ai',
+      bun: 'bun add @layerhop/ai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createVercelTools, AGENT_INSTRUCTIONS } from '@layerhop/ai/vercel';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  system: AGENT_INSTRUCTIONS,
+  prompt:
+    'Quote 25 USDC on Base to USDC on Arbitrum for wallet 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045.',
+  tools: createVercelTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.layerhop.com/guides/agent-frameworks#vercel-ai-sdk',
+    apiKeyUrl: 'https://dashboard.layerhop.com',
+    websiteUrl: 'https://layerhop.com',
+    npmUrl: 'https://www.npmjs.com/package/@layerhop/ai',
+  },
 ];
