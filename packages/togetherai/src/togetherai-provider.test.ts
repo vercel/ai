@@ -204,6 +204,28 @@ describe('TogetherAIProvider', () => {
       const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
       expect(config.includeUsage).toBe(true);
     });
+
+    it.each([
+      ['deepseek-ai/DeepSeek-V4-Flash-0731', true],
+      ['deepseek-ai/DeepSeek-V4.1-Flash', true],
+      ['deepseek-ai/DeepSeek-V4.1-Flash-1017', true],
+      ['openai/gpt-oss-120b', true],
+      ['zai-org/GLM-5.2', true],
+      ['zai-org/GLM-5.3-Flash', true],
+      ['moonshotai/Kimi-K3', true],
+      ['MiniMaxAI/MiniMax-M3.1-Flash', true],
+      ['zai-org/GLM-5.3', false],
+      ['custom-model-id', false],
+    ] as const)(
+      'should set supportsStructuredOutputs for %s to %s',
+      (modelId, expected) => {
+        const provider = createTogetherAI();
+        provider.chatModel(modelId);
+
+        const config = OpenAICompatibleChatLanguageModelMock.mock.calls[0][1];
+        expect(config.supportsStructuredOutputs).toBe(expected);
+      },
+    );
   });
 
   describe('completionModel', () => {
