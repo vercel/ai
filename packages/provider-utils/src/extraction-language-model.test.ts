@@ -74,6 +74,7 @@ function setup(
     }),
     doGenerate,
     languageModel,
+    result,
   };
 }
 
@@ -306,6 +307,7 @@ it('sends a nullable schema per field, the field options, and the state', async 
                 {
                   "description": "Every matching value in the order it appears in the state.",
                   "items": {
+                    "description": "A finite number.",
                     "type": "integer",
                   },
                   "type": "array",
@@ -534,12 +536,103 @@ describe('maxFieldsPerCall', () => {
   );
 });
 
-it('treats an empty list as no value', async () => {
+it('treats empty strings and lists as no value', async () => {
   const { model } = setup({
-    content: [{ type: 'text', text: JSON.stringify({ ...values, f7: [] }) }],
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify({ ...values, f0: '', f3: '', f7: [] }),
+      },
+    ],
   });
   const result = await model.doExtract(options);
+  expect(result.answers['invoice number']).toEqual({
+    type: 'text',
+    value: null,
+  });
+  expect(result.answers.dueDate).toEqual({ type: 'date', value: null });
   expect(result.answers.contacts).toEqual({ type: 'list', value: null });
+});
+
+it('rounds numbers, durations, and number list items to decimals', async () => {
+  const { model } = setup({
+    content: [
+      {
+        type: 'text',
+        text: JSON.stringify({
+          f0: 1250.004,
+          f1: 0.30000000000000004,
+          f2: [1.256, 2],
+        }),
+      },
+    ],
+  });
+  const result = await model.doExtract({
+    ...options,
+    fields: {
+      total: { type: 'number', decimals: 2 },
+      wait: { type: 'duration', decimals: 1 },
+      prices: { type: 'list', items: 'number', decimals: 2 },
+    },
+  });
+  expect(result.answers).toEqual({
+    total: { type: 'number', value: 1250 },
+    wait: { type: 'duration', value: 0.3 },
+    prices: { type: 'list', value: [1.26, 2] },
+  });
+});
+
+it('returns refusals for the fields of a refused call', async () => {
+  const { model, doGenerate, result } = setup({}, 1);
+  doGenerate
+    .mockResolvedValueOnce({
+      ...result,
+      content: [],
+      finishReason: { unified: 'content-filter', raw: 'refusal' },
+    })
+    .mockResolvedValueOnce({
+      ...result,
+      content: [{ type: 'text', text: JSON.stringify({ f0: 'B' }) }],
+    });
+  const extraction = await model.doExtract({
+    ...options,
+    fields: { a: { type: 'text' }, b: { type: 'text' } },
+  });
+  expect(extraction.answers).toEqual({
+    a: { type: 'refusal' },
+    b: { type: 'text', value: 'B' },
+  });
+});
+
+it('omits the reference date from the prompt when unset', async () => {
+  const { model, doGenerate } = setup();
+  await model.doExtract({ ...options, referenceDate: undefined });
+  const [, user] = doGenerate.mock.calls[0][0].prompt;
+  expect(JSON.stringify(user.content[0])).not.toContain('referenceDate');
+});
+
+it('rejects with the abort reason without calling an aborted model', async () => {
+  const { model, doGenerate } = setup();
+  const controller = new AbortController();
+  const reason = new Error('aborted');
+  controller.abort(reason);
+  await expect(
+    model.doExtract({ ...options, abortSignal: controller.signal }),
+  ).rejects.toBe(reason);
+  expect(doGenerate).not.toHaveBeenCalled();
+});
+
+it('rejects with the abort reason when aborted while the model responds', async () => {
+  const { model, doGenerate, result } = setup();
+  const controller = new AbortController();
+  const reason = new Error('aborted');
+  doGenerate.mockImplementation(async () => {
+    controller.abort(reason);
+    return result;
+  });
+  await expect(
+    model.doExtract({ ...options, abortSignal: controller.signal }),
+  ).rejects.toBe(reason);
 });
 
 it('passes reasoning, limits, headers, and provider options through', async () => {

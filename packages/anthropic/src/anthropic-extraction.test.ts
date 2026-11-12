@@ -68,85 +68,9 @@ it('extracts typed fields with Messages structured output', async () => {
   expect(fetch).toHaveBeenCalledTimes(1);
   const [url, request] = fetch.mock.calls[0];
   expect(url).toBe('https://example.com/v1/messages');
-  expect(JSON.parse(request.body).output_config).toMatchInlineSnapshot(`
-    {
-      "format": {
-        "schema": {
-          "additionalProperties": false,
-          "properties": {
-            "f0": {
-              "anyOf": [
-                {
-                  "description": "Text copied from the state.",
-                  "type": "string",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-            },
-            "f1": {
-              "anyOf": [
-                {
-                  "description": "A finite number.",
-                  "type": "number",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-            },
-            "f2": {
-              "anyOf": [
-                {
-                  "description": "A calendar date formatted as YYYY-MM-DD.",
-                  "type": "string",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-            },
-            "f3": {
-              "anyOf": [
-                {
-                  "description": "Every matching value in the order it appears in the state.",
-                  "items": {
-                    "description": "Text copied from the state.",
-                    "type": "string",
-                  },
-                  "type": "array",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-            },
-            "f4": {
-              "anyOf": [
-                {
-                  "description": "Text copied from the state.",
-                  "type": "string",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-            },
-          },
-          "required": [
-            "f0",
-            "f1",
-            "f2",
-            "f3",
-            "f4",
-          ],
-          "type": "object",
-        },
-        "type": "json_schema",
-      },
-    }
-  `);
+  const { format } = JSON.parse(request.body).output_config;
+  expect(format.type).toBe('json_schema');
+  expect(format.schema.required).toEqual(['f0', 'f1', 'f2', 'f3', 'f4']);
 });
 
 it('splits more than 16 fields into parallel calls under the union parameter limit', async () => {

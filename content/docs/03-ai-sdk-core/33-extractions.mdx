@@ -83,6 +83,12 @@ They return `null` for missing values but no `pNull`, `confidence`,
 `guess`, or `source`. Judge quality against your own labeled examples before
 choosing a model for a task.
 
+- Empty strings and empty lists are returned as `null`.
+- Numbers, durations, and number list items are rounded to `decimals`.
+- When the provider refuses a request, the fields in that request are reported
+  as refused and `experimental_extract` throws
+  `Experimental_ExtractionRefusalError`.
+
 ## Answers
 
 Every answer has the field's `type` and a `value`. `value` is `null` when the

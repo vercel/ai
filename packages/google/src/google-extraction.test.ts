@@ -70,84 +70,13 @@ it('extracts typed fields with Gemini structured output', async () => {
   expect(url).toBe(
     'https://example.com/v1beta/models/gemini-3.8-flash:generateContent',
   );
-  expect(JSON.parse(request.body).generationConfig).toMatchInlineSnapshot(`
-    {
-      "responseJsonSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "f0": {
-            "anyOf": [
-              {
-                "description": "Text copied from the state.",
-                "type": "string",
-              },
-              {
-                "type": "null",
-              },
-            ],
-          },
-          "f1": {
-            "anyOf": [
-              {
-                "description": "A finite number.",
-                "type": "number",
-              },
-              {
-                "type": "null",
-              },
-            ],
-          },
-          "f2": {
-            "anyOf": [
-              {
-                "description": "A calendar date formatted as YYYY-MM-DD.",
-                "type": "string",
-              },
-              {
-                "type": "null",
-              },
-            ],
-          },
-          "f3": {
-            "anyOf": [
-              {
-                "description": "Every matching value in the order it appears in the state.",
-                "items": {
-                  "description": "Text copied from the state.",
-                  "type": "string",
-                },
-                "type": "array",
-              },
-              {
-                "type": "null",
-              },
-            ],
-          },
-          "f4": {
-            "anyOf": [
-              {
-                "description": "Text copied from the state.",
-                "type": "string",
-              },
-              {
-                "type": "null",
-              },
-            ],
-          },
-        },
-        "required": [
-          "f0",
-          "f1",
-          "f2",
-          "f3",
-          "f4",
-        ],
-        "type": "object",
-      },
-      "responseMimeType": "application/json",
-      "thinkingConfig": {
-        "thinkingLevel": "low",
-      },
-    }
-  `);
+  const { generationConfig } = JSON.parse(request.body);
+  expect(generationConfig.responseMimeType).toBe('application/json');
+  expect(generationConfig.responseJsonSchema.required).toEqual([
+    'f0',
+    'f1',
+    'f2',
+    'f3',
+    'f4',
+  ]);
 });

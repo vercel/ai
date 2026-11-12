@@ -24,13 +24,6 @@
   "moderation": null,
   "output": [
     {
-      "id": "rs_0fe8329d9916caee006af5008864d887d2b80e639de67c718b",
-      "type": "reasoning",
-      "content": [],
-      "encrypted_content": "gAAAAABq9QCJd7j_mY19KDNizcArVzVxHrcKNKEzgH__pOGK4g317_WqPuvlbwy3RRnm8hxqTfuB4WpsNqvxY9xjO_kVtQYTiorYSEcLh7pzVuwPQkPSEENWjucyhyZThWJzgcE8VslsyadIRprB7GBuNaXfySlvGNIBJ54OxO370iauCWuQXn8uuBQ-jc6_5yo4K3Jx8FrhCP5O265XIV2Kpqsr-1HOUUf5sKkxl18kEsoM1VRDxEkT_Nn4kmEOVsCURl26jY48WBDJedJ_A5NGhCG5g2TQHnl4Cb81xCa4ASmGjYZl3dwGxCIrkife-dYiivC0MpXRnH7P85uZNERMXXAhzeQ2rUNXwRG0gfkuv8ZY61oEbRozb1N1-Yr--rULbTdcjODgNt_WuItFsRn79HBD1sX4CgpfkPCNNyrm832gguE12bGiz-vHW3PT7Ctbm0tJql6XlWIhuWtdeP3MMKXixowcBevEimvebZImf-Vi9SKtV8CZsB-aTdWAiab9FwrOJs9wmhBpbiGgWchnJZ33DKb6esGiwnREvpxmJwjMOhaEEd4P00hUTDOtZ58jBIJfO0eI7eyBFnRtgLc3mV6DJYh5RvoSQL82bBPFZ33AX1zDBPs5fIfylK3OhGqbzYkEkYRXUvr4erSDCPfKeQA-tOAY8LxjRisU1DzEP_8-CjoWxzvMTBbTWGkL-kKXKlRVRgTgI5fDPukZMQH1JUi65QDleTMQBdQM-25RAVLohtr9rV-Uns4Vj63fGvjsYISx34wKhwQM0UmfYBOWVy8OAUmFMyWEG9Auo5n583QWcI9qyoIacxBFZsbVUULH5Y-W89Y_1HjKsRBt_4E3McnsWClJMRPHS3n3UuhgzE7EabB6g3-7WAp2UljkGP0FqR2z9_C4khsH5qvI2uAsHqSJEDzigj2iF5IhOZZuU1kp89mwYRM2RX8mTpOAdpm6PgPUa8Q-AROpYzAsdY4u_25usVRgVU_E_J2pwCJxR3D1Tx3_FWb-Ky9jdjhoCB2zHYQBt0-A9xs7VENW02l-OYwQlHwEewW3rUnA33A669qdvU8uymfwDwETsRPQOZ7n4kbpfh578BlJ9g3Rc8n32NU8ArftLAa2k9PzZcWHYTDIeK_bqQMuF9yYnqmW3k-pGJG5l4Ky1TZovde04TKLXMWeKrEECNTRW74Qhf-yZDfJ9vY3LoAr-4stspyHnPAzAoxz7SMVjyyfZ7rFK-264GuYfl4ZBHGKr_OK8_dF1sDBMmOGXVN5zWyHCty-ppAIERRqsejfPDk9rlGgcei5TcWmvpps_Q66p3ne4pUDGLZQXNMZaN3ya8HZNpSrFX2HzszBfGAL1VQNdjB_kJPufBM51JjMcMu4aY53Fa3rOXg2YuHY8jdb_JmvMIa_Gv6iX3szPR1-IlBhbJSZynnjcAHpuABqMa560sS4z4ffyLRNSkoElXQCQUSUyr_O-gY6vuVXXUF7TjYKwRnMy2pERq3W2syb8riMsB2RbLdgASxWsYS8kSjzsnH6JIu0wPxb33yJjcbgA37RCCDJ73N9r7fHlM1fdCQp2E6vb_s-5HEd8lUshbgNftgxd_flG6EsJOLWK5LVcrlJjqPOtCgNvP-G5XpVZINtk-5IuPJ7gbgUMSlZ-z-pOmoBrKx2qqt_DarxhmmUi_nN3Yj9Gu6X6pG7NAMPx_AIyR5Bn2sFKBG-z7eLpCas9MNcVkl0wzhhRe_6JdT22yo5wfTIlVmFsrOtBY4OynMm1aaMPdDm9lG26jqsQ7I=",
-      "summary": []
-    },
-    {
       "id": "msg_0fe8329d9916caee006af50088fcc487d28b7f2be9d70d76d9",
       "type": "message",
       "status": "completed",
@@ -66,78 +59,6 @@
       "type": "json_schema",
       "description": null,
       "name": "extraction",
-      "schema": {
-        "type": "object",
-        "properties": {
-          "f0": {
-            "anyOf": [
-              {
-                "type": "string",
-                "description": "Text copied from the state."
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "f1": {
-            "anyOf": [
-              {
-                "type": "number",
-                "description": "A finite number."
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "f2": {
-            "anyOf": [
-              {
-                "type": "string",
-                "description": "A calendar date formatted as YYYY-MM-DD."
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "f3": {
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "description": "Text copied from the state."
-                },
-                "description": "Every matching value in the order it appears in the state."
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "f4": {
-            "anyOf": [
-              {
-                "type": "string",
-                "description": "Text copied from the state."
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": [
-          "f0",
-          "f1",
-          "f2",
-          "f3",
-          "f4"
-        ],
-        "additionalProperties": false
-      },
       "strict": true
     },
     "verbosity": "medium"

@@ -13,6 +13,7 @@ import {
 } from '@ai-sdk/provider';
 import { WORKFLOW_DESERIALIZE, WORKFLOW_SERIALIZE } from '@workflow/serde';
 import { getTopLevelMediaType } from './detect-media-type';
+import { isRecord } from './is-record';
 import { safeParseJSON } from './parse-json';
 
 const formats: Record<ExtractionModelV4Field['type'], string> = {
@@ -27,21 +28,51 @@ const formats: Record<ExtractionModelV4Field['type'], string> = {
 };
 
 function valueSchema(
-  type: 'text' | 'number' | 'date',
+  type: Exclude<ExtractionModelV4Field['type'], 'list'>,
   integer?: boolean,
 ): JSONSchema7 {
-  if (type === 'number') return { type: integer ? 'integer' : 'number' };
-  return { type: 'string', description: formats[type] };
+  return {
+    type:
+      type === 'number' || type === 'duration'
+        ? integer
+          ? 'integer'
+          : 'number'
+        : 'string',
+    description: formats[type],
+  };
 }
 
 function fieldSchema(field: ExtractionModelV4Field): JSONSchema7 {
-  const schema: JSONSchema7 =
-    field.type === 'list'
-      ? { type: 'array', items: valueSchema(field.items, field.integer) }
-      : field.type === 'number' || field.type === 'duration'
-        ? { type: field.integer ? 'integer' : 'number' }
-        : { type: 'string' };
-  return { ...schema, description: formats[field.type] };
+  return field.type === 'list'
+    ? {
+        type: 'array',
+        items: valueSchema(field.items, field.integer),
+        description: formats.list,
+      }
+    : valueSchema(field.type, 'integer' in field ? field.integer : undefined);
+}
+
+function round(value: unknown, decimals: number | undefined) {
+  return decimals !== undefined &&
+    typeof value === 'number' &&
+    Number.isFinite(value)
+    ? Number(value.toFixed(decimals))
+    : value;
+}
+
+/** Maps empty strings and lists to null and rounds numbers to `decimals`. */
+function answerValue(field: ExtractionModelV4Field, value: unknown) {
+  if (value === '' || (Array.isArray(value) && value.length === 0)) {
+    return null;
+  }
+  if (field.type === 'list') {
+    return field.items === 'number' && Array.isArray(value)
+      ? value.map(item => round(item, field.decimals))
+      : value;
+  }
+  return field.type === 'number' || field.type === 'duration'
+    ? round(value, field.decimals)
+    : value;
 }
 
 type Entry = readonly [string, ExtractionModelV4Field];
@@ -267,6 +298,23 @@ export class ExtractionLanguageModel implements ExtractionModelV4 {
       providerOptions,
     });
     abortSignal?.throwIfAborted();
+    const metadata = {
+      usage: {
+        inputTokens: result.usage.inputTokens.total,
+        outputTokens: result.usage.outputTokens.total,
+      },
+      warnings: result.warnings,
+      providerMetadata: result.providerMetadata,
+      response: result.response,
+    };
+    if (result.finishReason.unified === 'content-filter') {
+      return {
+        answers: Object.fromEntries(
+          entries.map(([id]) => [id, { type: 'refusal' as const }]),
+        ),
+        ...metadata,
+      };
+    }
     if (result.finishReason.unified !== 'stop') {
       throw new InvalidResponseDataError({
         data: result,
@@ -284,11 +332,9 @@ export class ExtractionLanguageModel implements ExtractionModelV4 {
         message: 'Extraction did not return valid JSON.',
       });
     }
-    const values: unknown = parsed.value;
+    const values = parsed.value;
     if (
-      values == null ||
-      typeof values !== 'object' ||
-      Array.isArray(values) ||
+      !isRecord(values) ||
       Object.keys(values).length !== keys.length ||
       !keys.every(key => Object.hasOwn(values, key))
     ) {
@@ -299,29 +345,15 @@ export class ExtractionLanguageModel implements ExtractionModelV4 {
     }
     return {
       answers: Object.fromEntries(
-        entries.map(([id, field], index) => {
-          const value = (values as Record<string, unknown>)[`f${index}`];
-          return [
-            id,
-            {
-              type: field.type,
-              value:
-                field.type === 'list' &&
-                Array.isArray(value) &&
-                value.length === 0
-                  ? null
-                  : value,
-            } as ExtractionModelV4Answer,
-          ];
-        }),
+        entries.map(([id, field], index) => [
+          id,
+          {
+            type: field.type,
+            value: answerValue(field, values[keys[index]]),
+          } as ExtractionModelV4Answer,
+        ]),
       ),
-      usage: {
-        inputTokens: result.usage.inputTokens.total,
-        outputTokens: result.usage.outputTokens.total,
-      },
-      warnings: result.warnings,
-      providerMetadata: result.providerMetadata,
-      response: result.response,
+      ...metadata,
     };
   }
 }

@@ -4240,8 +4240,8 @@ use Gateway by default, or an explicitly configured default provider with an
 ## Extraction Models
 
 Create an experimental extraction model with `openai.extractionModel(modelId)`.
-It wraps a openai language model and uses the Responses API's structured output to
-extract typed fields in one call.
+It wraps an OpenAI language model and uses the Responses API's structured output
+to extract typed fields in one call.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -4263,5 +4263,6 @@ The adapter supports every field type and returns `null` when the state has no
 value for a field. It does not return `pNull`, `confidence`, `guess`, or
 `source`, since a prompted model cannot give calibrated estimates or exact
 offsets. Image and PDF files are passed to the language model, which must
-support them. The adapter requests `reasoning: 'none'` by default and forwards
-`providerOptions.openai`. See [Extractions](/docs/ai-sdk-core/extractions).
+support them. The adapter requests `reasoning: 'none'` by default. Models that
+do not support `'none'` use their lowest reasoning effort and return a
+compatibility warning. The adapter forwards `providerOptions.openai`. See [Extractions](/docs/ai-sdk-core/extractions).

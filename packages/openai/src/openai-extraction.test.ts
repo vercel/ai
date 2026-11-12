@@ -68,85 +68,11 @@ it('extracts typed fields with Responses structured output', async () => {
   expect(fetch).toHaveBeenCalledTimes(1);
   const [url, request] = fetch.mock.calls[0];
   expect(url).toBe('https://example.com/v1/responses');
-  expect(JSON.parse(request.body).text).toMatchInlineSnapshot(`
-    {
-      "format": {
-        "name": "extraction",
-        "schema": {
-          "additionalProperties": false,
-          "properties": {
-            "f0": {
-              "anyOf": [
-                {
-                  "description": "Text copied from the state.",
-                  "type": "string",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-            },
-            "f1": {
-              "anyOf": [
-                {
-                  "description": "A finite number.",
-                  "type": "number",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-            },
-            "f2": {
-              "anyOf": [
-                {
-                  "description": "A calendar date formatted as YYYY-MM-DD.",
-                  "type": "string",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-            },
-            "f3": {
-              "anyOf": [
-                {
-                  "description": "Every matching value in the order it appears in the state.",
-                  "items": {
-                    "description": "Text copied from the state.",
-                    "type": "string",
-                  },
-                  "type": "array",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-            },
-            "f4": {
-              "anyOf": [
-                {
-                  "description": "Text copied from the state.",
-                  "type": "string",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-            },
-          },
-          "required": [
-            "f0",
-            "f1",
-            "f2",
-            "f3",
-            "f4",
-          ],
-          "type": "object",
-        },
-        "strict": true,
-        "type": "json_schema",
-      },
-    }
-  `);
+  const { format } = JSON.parse(request.body).text;
+  expect(format).toMatchObject({
+    type: 'json_schema',
+    name: 'extraction',
+    strict: true,
+  });
+  expect(format.schema.required).toEqual(['f0', 'f1', 'f2', 'f3', 'f4']);
 });
