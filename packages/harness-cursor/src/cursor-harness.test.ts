@@ -23,6 +23,7 @@ describe('createCursor', () => {
       ReturnType<typeof createCursor>['builtinTools']
     >;
     expect(settings.nonTextContentTypes).toEqual(['image']);
+    expect(settings.writeProtectedPaths).toEqual(['.cursor']);
     expect({
       version: settings.version,
       harnessId: settings.harnessId,
