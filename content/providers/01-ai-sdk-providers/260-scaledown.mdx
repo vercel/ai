@@ -135,7 +135,7 @@ For document-only input, the provider supplies the non-empty user message
 required by ScaleDown automatically.
 
 - Text fields return the most confident verbatim match, or `null` if none is found.
-- Text lists return up to 30 distinct matches in source order, or an empty list
+- Text lists return up to 30 distinct matches in source order, or `null`
   when none are found. Each item retains its confidence and source when available.
 - Text sources convert ScaleDown's byte offsets to UTF-16 offsets in the original
   state part. JSON parts have no source location. Document matches cite the file
