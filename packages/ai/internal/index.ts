@@ -51,6 +51,7 @@ export {
   verifyToolApprovalSignature,
 } from '../src/generate-text/tool-approval-signature';
 export { validateApprovedToolApprovals } from '../src/generate-text/validate-tool-approvals';
+export { resolveToolApproval } from '../src/generate-text/resolve-tool-approval';
 export { toResponseMessages } from '../src/generate-text/to-response-messages';
 
 export { DefaultGenerateTextResult } from '../src/generate-text/default-generate-text-result';
