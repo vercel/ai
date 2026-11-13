@@ -44,6 +44,7 @@ export { isOutputChunk } from '../src/generate-text/is-output-chunk';
 export type { ToolsContextSettings } from '../src/generate-text/tools-context-parameter';
 export { validateToolContext } from '../src/generate-text/validate-tool-context';
 export { createToolSearchState } from '../src/tool-search/prepare-tool-search';
+export { logDefaultStopConditionWarning } from '../src/agent/default-stop-condition';
 export {
   collectToolApprovals,
   type CollectedToolApprovals,

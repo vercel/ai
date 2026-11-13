@@ -404,7 +404,7 @@ The stream-level value overrides the constructor default.
 `stream()` does not apply a default step limit. When `stopWhen` is omitted, it
 continues until the model stops calling tools or another natural termination
 condition is met. `generate()` stops after 20 steps by default, like
-`ToolLoopAgent`, but does not log a warning when it reaches that limit.
+`ToolLoopAgent`, and logs the same warning when it reaches that limit.
 
 <Note>
   A model that repeatedly calls tools can make an unlimited number of model
@@ -717,7 +717,7 @@ TypeScript rejects these options on `WorkflowAgent`. If you pass them anyway, fo
 |                 | `generate()`                                                 | `stream()`                                                   |
 | --------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | `ToolLoopAgent` | 20 steps. A warning is logged when the limit stops the loop. | 20 steps. A warning is logged when the limit stops the loop. |
-| `WorkflowAgent` | 20 steps. No warning is logged.                              | No limit.                                                    |
+| `WorkflowAgent` | 20 steps. A warning is logged when the limit stops the loop. | No limit.                                                    |
 
 ### prepareCall
 
