@@ -261,6 +261,44 @@ describe('parseToolCall', () => {
     `);
   });
 
+  describe('tools that omit inputSchema', () => {
+    const parse = (input: string) =>
+      parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input,
+        },
+        tools: {
+          testTool: tool({ execute: async () => 'ok' }),
+        } as const,
+        repairToolCall: undefined,
+        messages: [],
+        instructions: undefined,
+      });
+
+    it.each(['', '{}', '{"unexpected": 1}'])(
+      'parses %j to an empty object',
+      async input => {
+        const result = await parse(input);
+
+        expect(result).toMatchObject({ input: {} });
+        expect(result).not.toHaveProperty('invalid');
+      },
+    );
+
+    it.each(['null', '42', '"text"', 'true', '[]'])(
+      'marks %s as invalid',
+      async input => {
+        expect(await parse(input)).toMatchObject({
+          invalid: true,
+          error: expect.any(InvalidToolInputError),
+        });
+      },
+    );
+  });
+
   it('should throw NoSuchToolError when tools is null', async () => {
     const result = await parseToolCall({
       toolCall: {

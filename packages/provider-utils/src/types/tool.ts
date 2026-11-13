@@ -1,5 +1,5 @@
 import type { JSONValue, JSONObject } from '@ai-sdk/provider';
-import { asSchema, type FlexibleSchema } from '../schema';
+import { jsonSchema, type FlexibleSchema } from '../schema';
 import type { ToolResultOutput } from './content-part';
 import type { Context } from './context';
 import type { ExecutableTool } from './executable-tool';
@@ -352,6 +352,20 @@ export type Tool<
 type EmptyToolInput = Record<string, never>;
 
 /**
+ * Default input schema for `tool()` calls without an `inputSchema`.
+ * Like `z.object({})`, it accepts any plain object and strips its keys.
+ */
+const emptyToolInputSchema = jsonSchema<EmptyToolInput>(
+  { type: 'object', properties: {}, additionalProperties: false },
+  {
+    validate: value =>
+      typeof value === 'object' && value !== null && !Array.isArray(value)
+        ? { success: true, value: {} }
+        : { success: false, error: new Error('Expected an object.') },
+  },
+);
+
+/**
  * Infer the tool type from a tool object.
  *
  * This is useful for type inference when working with tool objects.
@@ -405,14 +419,13 @@ export function tool<CONTEXT extends Context>(
   },
 ): Tool<EmptyToolInput, never, CONTEXT>;
 export function tool(tool: any): any {
-  if (tool.inputSchema != null) {
-    return tool;
+  // Assign in place instead of spreading so class-based tools keep their
+  // prototype methods and private fields.
+  if (tool.inputSchema == null) {
+    tool.inputSchema = emptyToolInputSchema;
   }
 
-  return {
-    ...tool,
-    inputSchema: asSchema(undefined),
-  };
+  return tool;
 }
 
 /**
