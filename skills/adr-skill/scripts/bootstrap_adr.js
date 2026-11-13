@@ -107,22 +107,10 @@ function toPosix(p) {
   return p.split(path.sep).join('/');
 }
 
-function generateFirstAdr({ title, status, date, deciders, adrDir }) {
-  const deciderLine = deciders
-    ? String(deciders)
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean)
-        .join(', ')
-    : '';
+function generateFirstAdr({ title, status, adrDir }) {
+  return `# ${title}
 
-  return `---
-status: ${status}
-date: ${date}
-decision-makers: ${deciderLine}
----
-
-# ${title}
+- Status: ${status}
 
 ## Context and Problem Statement
 
@@ -136,32 +124,29 @@ We need a lightweight, version-controlled way to capture decisions where the cod
 
 ## Decision
 
-Adopt Architecture Decision Records (ADRs) using the MADR 4.0 format, stored in \`${adrDir}/\`.
+Adopt Architecture Decision Records (ADRs), stored in \`${adrDir}/\`.
 
 Conventions:
+
 - One ADR per file, named \`YYYY-MM-DD-title-with-dashes.md\`
 - New ADRs start as \`proposed\`, move to \`accepted\` or \`rejected\`
 - Superseded ADRs link to their replacement
-- ADRs are written to be self-contained — a coding agent should be able to read one and implement the decision without further context
+- Use Context and Problem Statement, Decision, Alternatives Considered, and optional More Information
+- Record status with a single line below the title, without YAML frontmatter
+- Include tradeoffs with the decision and alternatives; keep implementation plans and verification in issues or PRs
+- ADRs are self-contained so contributors and coding agents can understand the decision and its rationale
 
-## Consequences
-
-* Good, because decisions are discoverable and version-controlled alongside the code
-* Good, because new contributors (human or agent) can understand the "why" behind architecture choices
-* Good, because the team builds a shared decision log that prevents relitigating settled questions
-* Bad, because writing ADRs takes time — though a good ADR saves more time than it costs
-* Neutral, because ADRs require periodic review to mark outdated decisions as deprecated or superseded
+Decisions are discoverable and version-controlled alongside the code, helping contributors understand the rationale and avoid relitigating settled questions. Writing records takes time, and they need periodic review to mark outdated decisions as deprecated or superseded.
 
 ## Alternatives Considered
 
-* No formal records: Continue making decisions in conversations and code comments. Rejected because context is lost and decisions get relitigated.
-* Wiki or Notion pages: Capture decisions outside the repo. Rejected because they drift out of sync with the code and are not version-controlled.
-* Lightweight RFCs: More heavyweight process with formal review cycles. Rejected as overkill for most decisions — ADRs can scale up to RFC-level detail when needed.
+- No formal records: Continue making decisions in conversations and code comments. Rejected because context is lost and decisions get relitigated.
+- Wiki or Notion pages: Capture decisions outside the repo. Rejected because they drift out of sync with the code and are not version-controlled.
+- Lightweight RFCs: A more heavyweight process with formal review cycles. Rejected as overkill for most decisions; ADRs can expand the analysis when needed.
 
 ## More Information
 
-* MADR: <https://adr.github.io/madr/>
-* Michael Nygard, "Documenting Architecture Decisions": <https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions>`;
+- Michael Nygard, "Documenting Architecture Decisions": <https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions>`;
 }
 
 function updateIndexFile(indexFile, { relLink, title, status, date }) {
@@ -217,8 +202,6 @@ function main() {
   const firstAdrContent = generateFirstAdr({
     title: args.firstTitle,
     status: args.firstStatus,
-    date: today,
-    deciders: args.deciders,
     adrDir: args.dir,
   });
 

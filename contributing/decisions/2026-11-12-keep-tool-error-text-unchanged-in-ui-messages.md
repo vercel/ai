@@ -1,10 +1,6 @@
----
-status: accepted
-date: 2026-11-12
-decision-makers: Gregor Martynus
----
-
 # Keep tool error text unchanged in UI messages
+
+- Status: accepted
 
 ## Context and Problem Statement
 
@@ -30,7 +26,7 @@ Anthropic's guidance for preserved thinking is to [send the history back as the 
 
 How should the SDK treat the error text of failed tool calls in UI messages?
 
-## Decision Drivers
+The decision needs to satisfy these constraints:
 
 - The default configuration must not produce a message history that a model rejects.
 - UI messages that are converted with `convertToModelMessages` should reproduce what the model received.
@@ -38,17 +34,7 @@ How should the SDK treat the error text of failed tool calls in UI messages?
 - What a client receives must be controllable by the application, and a change to it must be explicit and documented.
 - Applications that already pass `onError` have chosen their error handling and should keep it.
 
-## Considered Options
-
-1. Keep the model's error text in UI messages by default, with an opt-out
-2. Keep redacting and send Anthropic `prefix_mismatch_behavior: "drop_block"` by default
-3. Keep redacting and remove the reasoning that follows a redacted tool error
-4. Redact by default only for models that do not bind reasoning to earlier messages
-5. Keep redacting the displayed text and carry the model's text separately in the UI message
-6. Keep redacting, with documentation and a warning only (the state after #24955)
-7. Redact only the tool errors that the model has not received
-
-## Decision Outcome
+## Decision
 
 Chosen option: "Keep the model's error text in UI messages by default, with an opt-out", because it is the only option that makes the default message history exact for every provider, platform, and thinking mode, without provider-specific code and without losing reasoning.
 
@@ -71,57 +57,7 @@ Non-goals:
 - No repair of chats that were stored with a redacted error text.
 - No change to `@ai-sdk/workflow`, which builds its UI chunks in `packages/workflow/src/to-ui-message-chunk.ts`.
 
-### Consequences
-
-- Good, because a UI message that is converted back reproduces the tool result that the model received, so the default no longer causes rejected requests on models with preserved thinking.
-- Good, because the model reads the same error on later turns as the one it reacted to, on every provider.
-- Good, because it needs no provider-specific logic, no beta header, and works with every thinking mode.
-- Bad, because clients receive the error text of failed tool calls by default again: `error.toString()` of an error thrown by `execute`, and the validation details of an invalid tool call. Applications that relied on the masking since #15994 must set `redactToolErrors: true` or throw safe errors from their tools. The changeset and the documentation state this.
-- Bad, because a call that ends with the failed tool call loses a protection that worked: the model had not received the error text, so the redaction kept it from the client without changing the history. With the default `stopWhen` of one step, this applies to every failed tool call. Those applications need `redactToolErrors: true` or safe errors from their tools.
-- Bad, because the default of `redactToolErrors` depends on whether `onError` is provided. AI SDK 8 should make the default `false` in both cases.
-- Neutral, because applications that pass `onError` keep the behavior they have today, including a possible mismatch. The warning from #24955 still reports it.
-- Neutral, because chats that were stored with a redacted error text keep failing on models with preserved thinking until the reasoning parts after the failed tool call are removed, or until the request sends `drop_block`.
-
-## Implementation Plan
-
-- **Affected paths**:
-  - `packages/ai/src/ui-message-stream/to-ui-message-chunk.ts`: resolve `redactToolErrors`, and use the model's text for `tool-error` parts and invalid `tool-call` parts unless tool errors are redacted
-  - `packages/ai/src/ui-message-stream/get-model-tool-error-text.ts`: new, the one helper that returns the text the model receives, or `undefined` when the error cannot be serialized
-  - `packages/ai/src/ui-message-stream/to-ui-message-stream.ts`: pass `onError` and `redactToolErrors` through without a default, and use the helper for the mismatch warning
-  - `packages/ai/src/generate-text/stream-text-result.ts`: add `redactToolErrors` to `UIMessageStreamOptions`
-  - `packages/ai/src/generate-text/stream-text.ts` and `packages/harness/src/agent/internal/harness-stream-text-result.ts`: forward `redactToolErrors` in `toUIMessageStream`, `pipeUIMessageStreamToResponse`, and `toUIMessageStreamResponse`
-  - `packages/harness/src/agent/internal/run-prompt.ts`: a failed tool context validation of a host tool, and a host tool that throws a value other than an `Error` or a string, put the error that the runtime received into the `tool-error` stream part (`HostToolOutcome.streamError`)
-  - `content/docs/04-ai-sdk-ui/03-chatbot-tool-usage.mdx`, `content/docs/04-ai-sdk-ui/02-chatbot.mdx`, `content/docs/09-troubleshooting/12-use-chat-an-error-occurred.mdx`, `content/providers/01-ai-sdk-providers/05-anthropic.mdx`, `content/docs/07-reference/01-ai-sdk-core/02-stream-text.mdx`, `content/docs/07-reference/02-ai-sdk-ui/50-direct-chat-transport.mdx`: describe the default, the option, and how to throw safe errors from a tool
-- **Dependencies**: none
-- **Patterns to follow**:
-  - The provider-executed branch of the `tool-error` case in `to-ui-message-chunk.ts`, which already bypasses `onError` so that the error survives a round trip
-  - Options that are forwarded by spreading (`createAgentUIStream`, `DirectChatTransport`) need no change; methods that destructure `UIMessageStreamOptions` must name `redactToolErrors`, or it ends up in the response init
-  - Warning tests set `globalThis.AI_SDK_LOG_WARNINGS`, as in `to-ui-message-stream.test.ts`
-  - One comment at `getToolErrorText` in `to-ui-message-chunk.ts` explains why the text is not altered and links this ADR
-- **Patterns to avoid**:
-  - Do not call `onError` for a failed tool call unless tool errors are redacted
-  - Do not add a model or provider check to `packages/ai/src/ui-message-stream/`
-  - Do not compute the model's error text in a second place; use `getModelToolErrorText`
-  - Do not change `createToolModelOutput` or the text that the model receives
-  - Do not put an error into a `tool-error` stream part that has details the model did not receive
-- **Configuration**: the `redactToolErrors` option; no environment variables or feature flags
-- **Migration steps**: an application that wants the previous default sets `redactToolErrors: true`. #15994 was backported to `release-v6.0` and `release-v5.0`, so the same change applies to those branches in separate pull requests.
-
-### Verification
-
-- [x] `toUIMessageChunk` returns `errorText: 'Error: tool failed'` for a `tool-error` part and for an invalid `tool-call` part with `new Error('tool failed')` when no options are set
-- [x] `toUIMessageChunk` returns `errorText: 'An error occurred.'` for both parts with `{ redactToolErrors: true }`
-- [x] `toUIMessageChunk` returns the `onError` result for both parts when only `onError` is set, and the model's text with `{ onError, redactToolErrors: false }`
-- [x] `toUIMessageChunk({ type: 'error', error })` returns `errorText: 'An error occurred.'` when no options are set
-- [x] A UI message that `readUIMessageStream` builds from `toUIMessageStream` output converts back with `convertToModelMessages` to the output of `createToolModelOutput({ errorMode: 'text' })`, for a tool execution error and for an invalid tool call
-- [x] `toUIMessageStream` logs the mismatch warning with `{ redactToolErrors: true }` and logs nothing with the default options, for a tool error that is followed by reasoning from a later step
-- [x] In `@ai-sdk/harness`, a host tool whose context validation fails produces a `tool-error` stream part with the message `Tool context validation failed.`, and neither the stream parts nor the UI chunks contain the context value. This holds when the turn pauses for host input before the runtime echoes the result, and when the tool runs after an approval.
-- [x] In `@ai-sdk/harness`, a host tool that throws `{ status: 500, body: 'host-secret' }` produces a `tool-output-error` chunk with `errorText: '[object Object]'`, the text that the runtime received
-- [x] `grep -rn "@ai-sdk/anthropic" packages/ai/src` returns no results
-- [x] `pnpm test` passes in `packages/ai` and `packages/harness`
-- [x] A two-turn chat with a failing tool, adaptive thinking, and `prefixMismatchBehavior: 'error'` on a model with preserved thinking succeeds on the second turn with the default options, and fails with HTTP 400 with `redactToolErrors: true`
-
-## Pros and Cons of the Options
+## Alternatives Considered
 
 ### Keep the model's error text in UI messages by default, with an opt-out
 
@@ -131,7 +67,10 @@ The UI message stores `getErrorMessage(error)` for a failed tool call. `redactTo
 - Good, because it works for every provider, platform, and thinking mode, and needs no beta header
 - Good, because it is the behavior that tool errors had before #15994, limited to tool errors
 - Neutral, because an explicit `onError` keeps redacting tool errors, so those applications keep the mismatch until they set `redactToolErrors: false`
-- Bad, because the client receives the error text of failed tool calls by default
+- Bad, because clients receive the error text of failed tool calls by default again: `error.toString()` of an error thrown by `execute`, and the validation details of an invalid tool call. Applications that relied on the masking since #15994 must set `redactToolErrors: true` or throw safe errors from their tools. The changeset and the documentation state this.
+- Bad, because a call that ends with the failed tool call loses a protection that worked: the model had not received the error text, so the redaction kept it from the client without changing the history. With the default `stopWhen` of one step, this applies to every failed tool call. Those applications need `redactToolErrors: true` or safe errors from their tools.
+- Bad, because the default of `redactToolErrors` depends on whether `onError` is provided. AI SDK 8 should make the default `false` in both cases.
+- Neutral, because chats that were stored with a redacted error text keep failing on models with preserved thinking until the reasoning parts after the failed tool call are removed, or until the request sends `drop_block`.
 
 ### Keep redacting and send Anthropic `prefix_mismatch_behavior: "drop_block"` by default
 
@@ -185,6 +124,7 @@ The UI message stream redacts a failed tool call when the call ends with it, and
 
 ## More Information
 
+- Implementation and verification: [#24980](https://github.com/vercel/ai/pull/24980).
 - [#15994](https://github.com/vercel/ai/pull/15994) introduced the redaction. [#24955](https://github.com/vercel/ai/pull/24955) added the warning and the first documentation.
 - Anthropic documentation: [Preserved thinking](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking), [Prefix checks on thinking blocks](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/prefix-checks), [Change tools or instructions without failing the prefix check](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/change-tools-or-instructions)
 - Follow-ups:

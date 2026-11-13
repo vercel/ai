@@ -45,3 +45,5 @@ Conventions:
 
 - MADR: <https://adr.github.io/madr/>
 - Michael Nygard, "Documenting Architecture Decisions": <https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions>
+
+- 2026-11-13: Simplify the ADR format to Context and Problem Statement, Decision, Alternatives Considered, and optional More Information. Use an inline status instead of YAML frontmatter, include tradeoffs with the decision and alternatives, and keep implementation plans and verification in issues or PRs. This updates the format convention above; existing decisions remain valid.

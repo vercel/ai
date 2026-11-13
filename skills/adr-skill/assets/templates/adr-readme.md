@@ -1,6 +1,6 @@
 # Architecture Decision Records (ADR)
 
-An Architecture Decision Record (ADR) captures an important architecture decision along with its context and consequences.
+An Architecture Decision Record (ADR) captures an important architecture decision along with its context, rationale, and alternatives.
 
 ## Conventions
 
@@ -8,6 +8,9 @@ An Architecture Decision Record (ADR) captures an important architecture decisio
 - Naming:
   - Use date-prefixed files: `YYYY-MM-DD-choose-database.md`
   - If the repo already uses slug-only names, keep that: `choose-database.md`
+- Format: Context and Problem Statement, Decision, Alternatives Considered, and optional More Information
+- Use a single `- Status: proposed` line below the title, without YAML frontmatter
+- Include tradeoffs in the decision and alternatives; keep implementation and verification in issues or PRs
 - Status values: `proposed`, `accepted`, `rejected`, `deprecated`, `superseded`
 
 ## Workflow

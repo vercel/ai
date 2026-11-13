@@ -15,60 +15,38 @@ Detection order (used by scripts): `contributing/decisions/`, `docs/decisions/`,
 
 Pattern: `YYYY-MM-DD-title-with-dashes.md`
 
-- `YYYY-MM-DD` is the ADR creation date (matches the `date` frontmatter field).
+- `YYYY-MM-DD` is the ADR creation date; keep it stable when updating the record.
 - Title uses lowercase, dashes, present-tense imperative verb phrase.
 - Examples: `2025-06-15-choose-database.md`, `2025-07-01-adopt-adrs.md`
 - Multiple ADRs on the same date are fine — the slug suffix disambiguates them.
 
 If a repo already uses slug-only filenames (no date prefix), follow that convention.
 
-## Minimal Sections
+## Sections
 
-At minimum, every ADR must clearly include:
+Use Context and Problem Statement, Decision, and Alternatives Considered. More Information is optional. Include accepted tradeoffs in Decision and option-specific tradeoffs with the alternatives. Do not repeat them in a separate Consequences section.
 
-1. **Context**: why the decision exists now, what constraints/drivers apply.
-2. **Decision**: what is chosen.
-3. **Consequences**: what becomes easier/harder, risks, costs, follow-ups.
+Keep implementation plans and verification in issues and pull requests, linked from the ADR when useful. Do not add YAML frontmatter.
 
-For agent-first ADRs, also ensure:
+## Status
 
-- Constraints are explicit and measurable
-- Non-goals are stated
-- Follow-up tasks are identified
+Use one line below the title:
 
-## Status Values
-
-Track status in YAML front matter:
-
-```yaml
----
-status: proposed
-date: 2025-06-15
-decision-makers: Alice, Bob
----
+```markdown
+- Status: proposed
 ```
 
 Common statuses:
 
-| Status                        | Meaning                                                       |
-| ----------------------------- | ------------------------------------------------------------- |
-| `proposed`                    | Under discussion, not yet decided                             |
-| `accepted`                    | Decision is active and should be followed                     |
-| `rejected`                    | Considered but explicitly not adopted                         |
-| `deprecated`                  | Was accepted but no longer applies — explain replacement path |
-| `superseded by [title](link)` | Replaced by a newer ADR — always link both ways               |
+| Status                        | Meaning                                         |
+| ----------------------------- | ----------------------------------------------- |
+| `proposed`                    | Under discussion, not yet decided               |
+| `accepted`                    | Decision is active and should be followed       |
+| `rejected`                    | Considered but explicitly not adopted           |
+| `deprecated`                  | Was accepted but no longer applies; explain why |
+| `superseded by [title](link)` | Replaced by a newer ADR; link both ways         |
 
-## YAML Front Matter Fields
-
-| Field             | Required | Description                                              |
-| ----------------- | -------- | -------------------------------------------------------- |
-| `status`          | Yes      | Current lifecycle state                                  |
-| `date`            | Yes      | Date of last status change (YYYY-MM-DD)                  |
-| `decision-makers` | Yes      | People who own the decision                              |
-| `consulted`       | No       | Subject-matter experts consulted (two-way communication) |
-| `informed`        | No       | Stakeholders kept up-to-date (one-way communication)     |
-
-The `consulted` and `informed` fields follow the RACI model and are useful for audit trails in larger teams.
+Keep status and creation date in the index entry as well. The status helper supports legacy YAML frontmatter and Status sections so older records can still be maintained.
 
 ## Mutability
 
