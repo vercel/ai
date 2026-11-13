@@ -54,7 +54,7 @@ import {
   formatInputMessages,
   formatModelMessages,
   formatObjectOutputMessages,
-  formatOutputMessages,
+  formatOutputContent,
   formatSystemInstructions,
   mapOperationName,
   mapProviderName,
@@ -1226,20 +1226,8 @@ export class OpenTelemetry implements Telemetry {
         'gen_ai.output.messages': {
           output: () =>
             JSON.stringify(
-              formatOutputMessages({
-                text:
-                  event.content
-                    .filter(p => p.type === 'text')
-                    .map(p => p.text)
-                    .join('') || undefined,
-                reasoning: event.content.filter(p => p.type === 'reasoning'),
-                toolCalls: event.content.filter(p => p.type === 'tool-call'),
-                toolResults: event.content.filter(
-                  p => p.type === 'tool-result',
-                ),
-                files: event.content
-                  .filter(p => p.type === 'file')
-                  .map(p => p.file),
+              formatOutputContent({
+                content: event.content,
                 finishReason: event.finishReason,
               }),
             ),
@@ -1742,14 +1730,8 @@ export class OpenTelemetry implements Telemetry {
         'gen_ai.output.messages': {
           output: () =>
             JSON.stringify(
-              formatOutputMessages({
-                text: event.text ?? undefined,
-                reasoning: event.finalStep.reasoning as ReadonlyArray<{
-                  text?: string;
-                }>,
-                toolCalls: event.toolCalls,
-                toolResults: event.toolResults,
-                files: event.files,
+              formatOutputContent({
+                content: event.finalStep.content,
                 finishReason: event.finishReason,
               }),
             ),
