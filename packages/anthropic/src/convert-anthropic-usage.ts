@@ -51,8 +51,8 @@ export function convertAnthropicUsage({
   usage: AnthropicUsage;
   rawUsage?: JSONObject;
 }): LanguageModelV4Usage {
-  const cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;
-  const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
+  let cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;
+  let cacheReadTokens = usage.cache_read_input_tokens ?? 0;
   const reasoningTokens =
     usage.output_tokens_details?.thinking_tokens ?? undefined;
 
@@ -88,6 +88,26 @@ export function convertAnthropicUsage({
       );
       inputTokens = totals.input;
       outputTokens = totals.output;
+
+      // The top-level cache fields also only reflect the final message
+      // iteration, so sum them across executor iterations as well. Fall back
+      // to the top-level values when iterations don't report cache usage.
+      const reportsCacheUsage = executorIterations.some(
+        iter =>
+          iter.cache_creation_input_tokens != null ||
+          iter.cache_read_input_tokens != null,
+      );
+
+      if (reportsCacheUsage) {
+        cacheCreationTokens = executorIterations.reduce(
+          (acc, iter) => acc + (iter.cache_creation_input_tokens ?? 0),
+          0,
+        );
+        cacheReadTokens = executorIterations.reduce(
+          (acc, iter) => acc + (iter.cache_read_input_tokens ?? 0),
+          0,
+        );
+      }
     } else {
       inputTokens = usage.input_tokens;
       outputTokens = usage.output_tokens;
