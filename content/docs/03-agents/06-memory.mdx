@@ -212,7 +212,7 @@ See the [Hindsight provider documentation](/providers/community-providers/hindsi
 [`@mongodb-developer/vercel-ai-memory`](https://www.npmjs.com/package/@mongodb-developer/vercel-ai-memory) provides MongoDB Atlas-backed persistent memory with five structured tiers: **Session**, **Semantic**, **Procedural**, **Episodic**, and **Scratchpad**. Retrieval is powered by Atlas Vector Search using any AI SDK embedding model, with automatic index creation and per-type retention policies.
 
 ```bash
-pnpm add @mongodb-developer/vercel-ai-memory
+pnpm add @mongodb-developer/vercel-ai-memory @ai-sdk/voyage
 ```
 
 This integration targets AI SDK v6 because it relies on v6 APIs such as `ModelMessage`, `ToolLoopAgent`, and `isLoopFinished()`:
@@ -230,12 +230,13 @@ This integration targets AI SDK v6 because it relies on v6 APIs such as `ModelMe
 ```ts
 import { createMongoDBMemory } from '@mongodb-developer/vercel-ai-memory';
 import { openai } from '@ai-sdk/openai';
+import { voyage } from '@ai-sdk/voyage';
 import { ToolLoopAgent, isLoopFinished } from 'ai';
 
 // Create the memory instance once at module/server level
 const mongodbMemory = createMongoDBMemory({
   uri: process.env.MONGODB_URI!,
-  embedder: openai.embedding('text-embedding-3-small'),
+  embedder: voyage.embedding('voyage-4'),
 });
 
 // Scope to a user and session per request
@@ -249,6 +250,8 @@ const result = await agent.generate({
   prompt: 'My name is Alice and I love hiking. Remember that.',
 });
 ```
+
+The embedder uses the [Voyage AI provider](/providers/ai-sdk-providers/voyage), which reads your API key from the `VOYAGE_API_KEY` environment variable. Vector dimensions are detected automatically, so you can swap in a different Voyage AI model without further configuration.
 
 `isLoopFinished()` lets the agent keep running until the tool loop naturally finishes, which is useful when memory tools need to read and write before the final response.
 
