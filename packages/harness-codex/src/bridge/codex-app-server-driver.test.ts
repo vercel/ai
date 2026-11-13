@@ -1091,6 +1091,41 @@ describe('Codex app-server dynamic tools', () => {
     ]);
   });
 
+  it('groups deferred tools in a namespace and leaves other tools top-level', () => {
+    const result = createDynamicTools([
+      { name: 'immediate', inputSchema: { type: 'object' } },
+      {
+        name: 'deferred',
+        inputSchema: { type: 'object' },
+        deferLoading: true,
+      },
+    ]);
+
+    expect(result.specs).toEqual([
+      {
+        type: 'function',
+        name: 'immediate',
+        description: '',
+        inputSchema: { type: 'object' },
+      },
+      {
+        type: 'namespace',
+        name: 'host_tools',
+        description: 'Host tools loaded on demand.',
+        tools: [
+          {
+            type: 'function',
+            name: 'deferred',
+            description: '',
+            inputSchema: { type: 'object' },
+            deferLoading: true,
+          },
+        ],
+      },
+    ]);
+    expect(result.originalNameByAlias.get('deferred')).toBe('deferred');
+  });
+
   it('routes a tool request by call id and returns text output', async () => {
     const emitted: Array<Record<string, unknown>> = [];
     const dynamicTools = createDynamicTools([

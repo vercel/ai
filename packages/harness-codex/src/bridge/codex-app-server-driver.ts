@@ -556,6 +556,7 @@ export function createDynamicTools(
     name: string;
     description?: string;
     inputSchema?: unknown;
+    deferLoading?: boolean;
   }>,
 ): {
   specs: Array<Record<string, unknown>>;
@@ -566,7 +567,9 @@ export function createDynamicTools(
   );
   const usedAliases = new Set<string>();
   const originalNameByAlias = new Map<string, string>();
-  const specs = tools.map((tool, index) => {
+  const deferredSpecs: Array<Record<string, unknown>> = [];
+  const specs: Array<Record<string, unknown>> = [];
+  tools.forEach((tool, index) => {
     let alias = tool.name;
     if (!isValidDynamicToolName(alias) || usedAliases.has(alias)) {
       const digest = createHash('sha256')
@@ -582,13 +585,26 @@ export function createDynamicTools(
     }
     usedAliases.add(alias);
     originalNameByAlias.set(alias, tool.name);
-    return {
+    const spec = {
       type: 'function',
       name: alias,
       description: tool.description ?? '',
       inputSchema: tool.inputSchema ?? {},
     };
+    if (tool.deferLoading) {
+      deferredSpecs.push({ ...spec, deferLoading: true });
+    } else {
+      specs.push(spec);
+    }
   });
+  if (deferredSpecs.length > 0) {
+    specs.push({
+      type: 'namespace',
+      name: 'host_tools',
+      description: 'Host tools loaded on demand.',
+      tools: deferredSpecs,
+    });
+  }
   return { specs, originalNameByAlias };
 }
 

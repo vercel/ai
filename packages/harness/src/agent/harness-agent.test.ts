@@ -4780,6 +4780,36 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('forwards deferred loading metadata in custom tool specs', async () => {
+    const receivedToolSpecs: HarnessV1ToolSpec[][] = [];
+    const { harness } = mockHarness({
+      onPromptTurn: opts => {
+        receivedToolSpecs.push([...(opts.tools ?? [])]);
+      },
+      script: () => finishEvents(),
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: {
+        readTask: tool({
+          inputSchema: z.object({ id: z.string() }),
+          deferLoading: true,
+          execute: async ({ id }) => `Task ${id}`,
+        }),
+      },
+    });
+    const session = await agent.createSession({
+      sandboxSession: makeSandboxSession(),
+    });
+
+    await agent.generate({ session, prompt: 'go' });
+
+    expect(receivedToolSpecs[0]).toMatchObject([
+      { name: 'readTask', deferLoading: true },
+    ]);
+    await session.destroy();
+  });
+
   test('inactiveTools filters custom tool specs and blocks inactive custom execution', async () => {
     const receivedToolSpecs: HarnessV1ToolSpec[][] = [];
     const { harness, toolResults } = mockHarness({

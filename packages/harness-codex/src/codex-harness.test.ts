@@ -589,6 +589,46 @@ describe('createCodex adapter', () => {
     await session.doDestroy();
   });
 
+  it('forwards deferred tool metadata to the bridge', async () => {
+    const session = await createCodex().doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [
+        {
+          name: 'read_task',
+          description: 'Read a task.',
+          inputSchema: { type: 'object' },
+          deferLoading: true,
+        },
+      ],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        tools: [
+          {
+            name: 'read_task',
+            deferLoading: true,
+          },
+        ],
+      });
+    });
+    await session.doDestroy();
+  });
+
   it('forwards inline image content to the bridge', async () => {
     const png =
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
