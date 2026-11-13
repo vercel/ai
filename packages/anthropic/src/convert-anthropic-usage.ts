@@ -36,10 +36,10 @@ export type AnthropicUsage = {
   /**
    * When compaction is triggered or the advisor tool is invoked, this
    * array contains usage for each sampling iteration. Top-level
-   * input_tokens and output_tokens exclude compaction iteration usage,
-   * and the advisor sub-inference is also not rolled into the top-level
-   * totals because it bills at a different rate. Use this array for
-   * per-iteration cost tracking.
+   * input_tokens, output_tokens, and cache token counts exclude compaction
+   * iteration usage, and the advisor sub-inference is also not rolled into
+   * the top-level totals because it bills at a different rate. Use this
+   * array for per-iteration cost tracking.
    */
   iterations?: AnthropicUsageIteration[] | null;
 };
@@ -51,16 +51,17 @@ export function convertAnthropicUsage({
   usage: AnthropicUsage;
   rawUsage?: JSONObject;
 }): LanguageModelV4Usage {
-  const cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;
-  const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
+  let cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;
+  let cacheReadTokens = usage.cache_read_input_tokens ?? 0;
   const reasoningTokens =
     usage.output_tokens_details?.thinking_tokens ?? undefined;
 
   // When iterations is present (compaction or advisor), sum across executor
-  // iterations to get the true executor totals. The top-level input_tokens
-  // and output_tokens exclude compaction usage. Advisor (`advisor_message`)
-  // iterations are filtered out: they bill at the advisor model's rates,
-  // not the executor's, so they don't belong in the top-level totals.
+  // iterations to get the true executor totals. The top-level input_tokens,
+  // output_tokens, and cache token counts exclude compaction usage. Advisor
+  // (`advisor_message`) iterations are filtered out: they bill at the advisor
+  // model's rates, not the executor's, so they don't belong in the top-level
+  // totals.
   //
   // A turn served by a server-side fallback is the exception: the served
   // answer comes from the fallback model, so the executor `message` iteration
@@ -83,11 +84,26 @@ export function convertAnthropicUsage({
         (acc, iter) => ({
           input: acc.input + iter.input_tokens,
           output: acc.output + iter.output_tokens,
+          cacheCreation:
+            acc.cacheCreation + (iter.cache_creation_input_tokens ?? 0),
+          cacheRead: acc.cacheRead + (iter.cache_read_input_tokens ?? 0),
         }),
-        { input: 0, output: 0 },
+        { input: 0, output: 0, cacheCreation: 0, cacheRead: 0 },
       );
       inputTokens = totals.input;
       outputTokens = totals.output;
+      if (
+        executorIterations.some(
+          iter => iter.cache_creation_input_tokens != null,
+        )
+      ) {
+        cacheCreationTokens = totals.cacheCreation;
+      }
+      if (
+        executorIterations.some(iter => iter.cache_read_input_tokens != null)
+      ) {
+        cacheReadTokens = totals.cacheRead;
+      }
     } else {
       inputTokens = usage.input_tokens;
       outputTokens = usage.output_tokens;
