@@ -203,6 +203,11 @@ bootstrap, and harness startup failures are sent as UI error parts instead of
 becoming generic HTTP errors. `getHarnessErrorMessage` preserves reviewed,
 client-safe harness messages and masks unknown server errors.
 
+Because the route passes `onError`, it also formats the errors of failed host
+tool calls that the harness reports itself. Set `redactToolErrors: false` to
+send those error texts unchanged. See
+[Errors](/docs/ai-sdk-ui/chatbot-tool-usage#errors) for details.
+
 Do not use `createAgentUIStreamResponse` directly with `HarnessAgent` unless you
 wrap the agent to inject the required session. `HarnessAgent.stream()` requires
 `session` on every call.

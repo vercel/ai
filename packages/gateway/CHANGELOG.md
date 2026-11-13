@@ -1,5 +1,29 @@
 # @ai-sdk/gateway
 
+## 4.0.145
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 4.0.144
+
+### Patch Changes
+
+- 640569d: chore(provider/gateway): update gateway model settings files
+- 4e43721: Add the `gemini-4-hydrogen` model ID and support Hydrogen's `xhigh` thinking level in Google Generate Content and Interactions provider options. Map portable `reasoning: 'xhigh'` to `xhigh` only for Hydrogen models.
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 4.0.143
+
+### Patch Changes
+
+- eaeb37e: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.142
 
 ### Patch Changes

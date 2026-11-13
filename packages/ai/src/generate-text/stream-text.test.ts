@@ -20968,7 +20968,7 @@ describe('streamText', () => {
               "type": "tool-input-available",
             },
             {
-              "errorText": "An error occurred.",
+              "errorText": "Error: test error",
               "toolCallId": "call-1",
               "type": "tool-output-error",
             },
@@ -20981,6 +20981,50 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+
+    describe('redactToolErrors: true', () => {
+      it('should redact the tool error in toUIMessageStream', async () => {
+        const chunks = await convertReadableStreamToArray(
+          result.toUIMessageStream({ redactToolErrors: true }),
+        );
+
+        expect(
+          chunks.filter(chunk => chunk.type === 'tool-output-error'),
+        ).toEqual([
+          {
+            type: 'tool-output-error',
+            toolCallId: 'call-1',
+            errorText: 'An error occurred.',
+          },
+        ]);
+      });
+
+      it('should redact the tool error in toUIMessageStreamResponse', async () => {
+        const response = result.toUIMessageStreamResponse({
+          redactToolErrors: true,
+        });
+
+        const body = (await convertResponseStreamToArray(response)).join('');
+
+        expect(body).toContain('"errorText":"An error occurred."');
+        expect(body).not.toContain('test error');
+      });
+
+      it('should redact the tool error in pipeUIMessageStreamToResponse', async () => {
+        const mockResponse = createMockServerResponse();
+
+        result.pipeUIMessageStreamToResponse(mockResponse, {
+          redactToolErrors: true,
+        });
+
+        await mockResponse.waitForEnd();
+
+        const body = mockResponse.getDecodedChunks().join('');
+
+        expect(body).toContain('"errorText":"An error occurred."');
+        expect(body).not.toContain('test error');
+      });
     });
   });
 
@@ -27062,7 +27106,17 @@ describe('streamText', () => {
                 "type": "tool-input-delta",
               },
               {
-                "errorText": "An error occurred.",
+                "errorText": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
+            Error message: [
+              {
+                "expected": "string",
+                "code": "invalid_type",
+                "path": [
+                  "city"
+                ],
+                "message": "Invalid input: expected string, received undefined"
+              }
+            ]",
                 "input": {
                   "cities": "San Francisco",
                 },
@@ -33445,6 +33499,7 @@ describe('streamText', () => {
       expect(downloadCalls).toMatchInlineSnapshot(`
         [
           {
+            "abortSignal": undefined,
             "isUrlSupportedByModel": false,
             "url": "https://example.com/test.jpg",
           },

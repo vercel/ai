@@ -26,9 +26,9 @@ const SAFE_UNTRUSTED_FIRST_HOP_HEADERS = new Set([
 
 /**
  * Fetches an untrusted URL with first-hop credential isolation and validated
- * redirects. Uses the URL validation, DNS-pinned Node.js transport, redirect
+ * redirects. Uses the URL validation, runtime fetch transport, redirect
  * limits, and cross-origin header stripping of {@link fetchWithValidatedRedirects}.
- * An injected fetch must provide equivalent connect-time DNS validation.
+ * Inject guarded-fetch on Node.js for connect-time DNS validation.
  *
  * Without a matching `credentialedOrigin` (or `trustedOrigin` when it is
  * omitted), only allowlisted request metadata is sent on the first hop.

@@ -1,7 +1,10 @@
+import type { ParallelModelIds } from './parallel-model-catalog';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import * as z from 'zod/v4';
 
-export type ParallelDecisionModelId = 'fast' | (string & {});
+export type ParallelDecisionModelId =
+  | ParallelModelIds['decision']
+  | (string & {});
 
 export const parallelDecisionModelOptions = lazySchema(() =>
   zodSchema(

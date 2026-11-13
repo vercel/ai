@@ -181,7 +181,14 @@ The adapter does not expose the fx CLI's other built-in tools.
 
 Built-in tool filtering is supported through `activeTools` and `inactiveTools`.
 With `permissionMode: 'allow-reads'`, file edits and shell commands require
-approval. With `allow-edits`, only shell commands require approval.
+approval. With `allow-edits`, shell commands require approval, as do `write`
+and `edit` calls that touch `.agents/skills` or `.fx` in the session workdir.
+These paths hold configuration and skills that can run code or change the
+agent's behavior in later sessions. A path matches when it is a protected path,
+lies inside one, or is a parent of one. Symlinks are resolved in both
+directions: writes through an alias that points into a protected path match, as
+do writes to targets of symlinks inside protected directories. While a
+protected path exists, writes to hard-linked files also require approval.
 `allow-all` runs these tools without approval requests.
 
 ## Session Lifecycle

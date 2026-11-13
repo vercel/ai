@@ -101,6 +101,8 @@ export type GoogleLanguageModelConfig = {
   downloadToolResultFiles?: {
     maxBytes: number;
     supportsGoogleCloudStorageUrls?: boolean;
+    /** Transport for untrusted file URLs, without provider authentication. */
+    fetch?: FetchFunction;
   };
 };
 
@@ -317,6 +319,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       ? await downloadToolResultFiles(prompt, {
           abortSignal,
           maxBytes: config.downloadToolResultFiles.maxBytes,
+          fetch: config.downloadToolResultFiles.fetch,
           supportedUrls: supportedFunctionResponseUrls,
         })
       : prompt;
@@ -1666,22 +1669,19 @@ function resolveGemini3ThinkingConfig({
   modelId: string;
   warnings: SharedV4Warning[];
 }): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
-  const minimumThinkingLevel =
+  const thinkingLevels =
     getGoogleLanguageModelEntry(modelId).capabilities.language.reasoning
-      .efforts?.[0];
+      .efforts;
 
   // It's not possible to fully disable thinking with Gemini 3, so reasoning
   // 'none' maps to the lowest supported thinking level.
-  const thinkingLevel = mapReasoningToProviderEffort({
+  const thinkingLevel = mapReasoningToProviderEffort<
+    NonNullable<GoogleThinkingConfig['thinkingLevel']>
+  >({
     reasoning,
-    effortMap: {
-      ...(minimumThinkingLevel === 'minimal' && {
-        minimal: 'minimal' as const,
-      }),
-      low: 'low',
-      medium: 'medium',
-      high: 'high',
-    },
+    effortMap: Object.fromEntries(
+      (thinkingLevels ?? []).map(level => [level, level]),
+    ),
     warnings,
   });
 

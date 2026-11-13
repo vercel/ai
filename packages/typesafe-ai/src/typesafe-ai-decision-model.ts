@@ -1,4 +1,8 @@
 import {
+  typeSafeAiSupportedQuestionTypes,
+  type TypeSafeAiModelIds,
+} from './typesafe-ai-model-catalog';
+import {
   InvalidArgumentError,
   UnsupportedFunctionalityError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
@@ -31,10 +35,7 @@ import { typesafeAiFilePartProviderOptions } from './typesafe-ai-file-part-optio
 import { typesafeAiDecisionModelOptions } from './typesafe-ai-decision-model-options';
 
 export type TypeSafeAiDecisionModelId =
-  | 'jev-1.13.0'
-  | 'jev-1.14.0'
-  | 'jev-latest'
-  | 'jev-preview'
+  | TypeSafeAiModelIds['decision']
   | (string & {});
 
 type TypeSafeAiDecisionModelConfig = {
@@ -46,12 +47,7 @@ type TypeSafeAiDecisionModelConfig = {
 
 export class DecisionTypeSafeAiModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
-  readonly supportedQuestionTypes = [
-    'choice',
-    'score',
-    'boolean',
-    'box',
-  ] as const;
+  readonly supportedQuestionTypes = typeSafeAiSupportedQuestionTypes;
 
   constructor(
     readonly modelId: TypeSafeAiDecisionModelId,

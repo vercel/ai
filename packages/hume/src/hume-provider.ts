@@ -1,3 +1,4 @@
+import { humeSpeechModelIds } from './hume-model-catalog';
 import {
   NoSuchModelError,
   type SpeechModelV4,
@@ -63,7 +64,7 @@ export function createHume(options: HumeProviderSettings = {}): HumeProvider {
     );
 
   const createSpeechModel = () =>
-    new HumeSpeechModel('', {
+    new HumeSpeechModel(humeSpeechModelIds[0], {
       provider: `hume.speech`,
       url: ({ path }) => `https://api.hume.ai${path}`,
       headers: getHeaders,
