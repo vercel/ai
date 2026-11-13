@@ -1,6 +1,7 @@
 import {
   NoSuchModelError,
   type ProviderV4,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type Experimental_VideoModelV4 as VideoModelV4,
 } from '@ai-sdk/provider';
 import {
@@ -11,6 +12,8 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { DecisionHeyGenModel } from './heygen-decision-model';
+import type { HeyGenDecisionModelId } from './heygen-decision-model-options';
 import { HeyGenVideoModel } from './heygen-video-model';
 import type { HeyGenVideoModelId } from './heygen-video-settings';
 import { VERSION } from './version';
@@ -29,6 +32,8 @@ export interface HeyGenProviderSettings {
 export interface HeyGenProvider extends ProviderV4 {
   video(modelId: HeyGenVideoModelId): VideoModelV4;
   videoModel(modelId: HeyGenVideoModelId): VideoModelV4;
+  /** Creates an experimental decision model using the HeyGen Decision API. */
+  decisionModel(modelId: HeyGenDecisionModelId): DecisionModelV4;
 }
 
 export function createHeyGen(
@@ -37,24 +42,25 @@ export function createHeyGen(
   const baseURL =
     withoutTrailingSlash(options.baseURL ?? 'https://api.heygen.com') ??
     'https://api.heygen.com';
+  const getHeaders = () =>
+    resolveWith(options.apiKey, apiKey =>
+      withUserAgentSuffix(
+        {
+          'x-api-key': loadApiKey({
+            apiKey,
+            environmentVariableName: 'HEYGEN_API_KEY',
+            description: 'HeyGen',
+          }),
+          ...options.headers,
+        },
+        `ai-sdk-heygen/${VERSION}`,
+      ),
+    );
   const createVideoModel = (modelId: HeyGenVideoModelId): VideoModelV4 =>
     new HeyGenVideoModel(modelId, {
       provider: 'heygen.video',
       baseURL,
-      headers: () =>
-        resolveWith(options.apiKey, apiKey =>
-          withUserAgentSuffix(
-            {
-              'x-api-key': loadApiKey({
-                apiKey,
-                environmentVariableName: 'HEYGEN_API_KEY',
-                description: 'HeyGen',
-              }),
-              ...options.headers,
-            },
-            `ai-sdk-heygen/${VERSION}`,
-          ),
-        ),
+      headers: getHeaders,
       fetch: options.fetch,
     });
 
@@ -62,6 +68,13 @@ export function createHeyGen(
     specificationVersion: 'v4',
     video: createVideoModel,
     videoModel: createVideoModel,
+    decisionModel: (modelId: HeyGenDecisionModelId) =>
+      new DecisionHeyGenModel(modelId, {
+        provider: 'heygen.decision',
+        baseURL,
+        headers: getHeaders,
+        fetch: options.fetch,
+      }),
     languageModel(modelId) {
       throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
     },

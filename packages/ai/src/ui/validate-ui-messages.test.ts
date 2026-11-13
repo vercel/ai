@@ -68,8 +68,16 @@ describe('validateUIMessages', () => {
     );
 
     it.each([
-      ['parts', [{ id: '1', role: 'user', parts: Array(100).fill({}) }]],
-      ['messages', Array(100).fill({ id: '1', role: 'user', parts: [{}] })],
+      [
+        'parts',
+        [{ id: '1', role: 'user', parts: Array(100).fill({}) }],
+        [0, 'parts', 0, 'type'],
+      ],
+      [
+        'messages',
+        Array(100).fill({ id: '1', role: 'user', parts: [{}] }),
+        [0, 'parts', 0, 'type'],
+      ],
       [
         'steering parts',
         [
@@ -81,10 +89,11 @@ describe('validateUIMessages', () => {
             ],
           },
         ],
+        [0, 'parts', 0, 'parts', 0, 'type'],
       ],
     ])(
       'should stop accumulating structural errors across invalid %s',
-      async (_, messages) => {
+      async (_, messages, expectedPath) => {
         const result = await safeValidateUIMessages({ messages });
 
         expect(result.success).toBe(false);
@@ -92,11 +101,9 @@ describe('validateUIMessages', () => {
         expect(TypeValidationError.isInstance(result.error)).toBe(true);
         expect(result.error.message.length).toBeLessThan(40_000);
         expect((result.error.cause as z.ZodError).issues).toHaveLength(1);
-        expect((result.error.cause as z.ZodError).issues[0].path).toEqual([
-          0,
-          'parts',
-          0,
-        ]);
+        expect((result.error.cause as z.ZodError).issues[0].path).toEqual(
+          expectedPath,
+        );
       },
     );
 
@@ -117,6 +124,7 @@ describe('validateUIMessages', () => {
         0,
         'parts',
         1,
+        'type',
       ]);
     });
 
