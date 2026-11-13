@@ -1488,6 +1488,14 @@ MAI-Image models use the [MAI image API](#mai-image) instead.
 const model = azure.image('your-dalle-deployment-name');
 ```
 
+<Note type="warning">
+  Azure image models (including MAI-Image) download remote reference images and
+  masks using the `fetch` option of `createAzure`; provider credentials are not
+  sent to those hosts. For untrusted URLs on Node.js, pass a `guarded-fetch`
+  transport there. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
+</Note>
+
 Azure OpenAI image models support several additional settings. You can pass them as `providerOptions.openai` or `providerOptions.azure` when generating the image (`azure` wins when both set the same option):
 
 ```ts

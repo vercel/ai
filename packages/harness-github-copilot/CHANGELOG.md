@@ -1,5 +1,60 @@
 # @ai-sdk/harness-github-copilot
 
+## 1.0.80
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+- Updated dependencies [71bef69]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/harness-acp@1.0.123
+  - @ai-sdk/harness@1.0.183
+
+## 1.0.79
+
+### Patch Changes
+
+- 6f9d73f: fix(harness-acp): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [2ebc78b]
+- Updated dependencies [1a94af3]
+- Updated dependencies [cb4fa52]
+- Updated dependencies [6f9d73f]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/harness@1.0.182
+  - @ai-sdk/provider@4.0.38
+  - @ai-sdk/harness-acp@1.0.122
+
+## 1.0.78
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.181
+- @ai-sdk/harness-acp@1.0.121
+
+## 1.0.77
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/harness@1.0.180
+  - @ai-sdk/harness-acp@1.0.120
+
+## 1.0.76
+
+### Patch Changes
+
+- 0fc1f13: chore(harness): update harness adapter underlying SDKs to their latest releases
+- c849d37: feat(harness): use public-key cryptography instead of token for sandbox bridge communication
+- Updated dependencies [0fc1f13]
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness-acp@1.0.119
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 1.0.75
 
 ### Patch Changes

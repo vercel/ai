@@ -685,6 +685,22 @@ export type WorkflowAgentOptions<
     onToolExecutionEnd?: WorkflowAgentOnToolExecutionEndCallback<TTools>;
 
     /**
+     * Callback that is called when an error occurs. Aborts are not reported.
+     *
+     * If `onError` is also passed to `generate()` or `stream()`, both
+     * callbacks are called.
+     */
+    onError?: WorkflowAgentOnErrorCallback;
+
+    /**
+     * Callback that is called when the operation is aborted.
+     *
+     * If `onAbort` is also passed to `generate()` or `stream()`, both
+     * callbacks are called.
+     */
+    onAbort?: WorkflowAgentOnAbortCallback<TTools>;
+
+    /**
      * Prepare the parameters for the stream call.
      * Called once before the agent loop starts. Use this to transform
      * model, tools, instructions, or other settings based on runtime context.
@@ -1578,6 +1594,8 @@ export class WorkflowAgent<
   >;
   private constructorOnToolExecutionStart?: WorkflowAgentOnToolExecutionStartCallback<TBaseTools>;
   private constructorOnToolExecutionEnd?: WorkflowAgentOnToolExecutionEndCallback<TBaseTools>;
+  private constructorOnError?: WorkflowAgentOnErrorCallback;
+  private constructorOnAbort?: WorkflowAgentOnAbortCallback<TBaseTools>;
   private prepareCall?: PrepareCallCallback<TBaseTools, TRuntimeContext>;
 
   constructor(
@@ -1616,6 +1634,8 @@ export class WorkflowAgent<
       options.onStepStart ?? options.experimental_onStepStart;
     this.constructorOnToolExecutionStart = options.onToolExecutionStart;
     this.constructorOnToolExecutionEnd = options.onToolExecutionEnd;
+    this.constructorOnError = options.onError;
+    this.constructorOnAbort = options.onAbort;
     this.prepareCall = options.prepareCall;
     this.allowSystemInMessages = options.allowSystemInMessages ?? false;
 
@@ -2331,6 +2351,18 @@ export class WorkflowAgent<
         | undefined,
       options.onStepStart ?? options.experimental_onStepStart,
     );
+    // Like the other callbacks, errors thrown by `onError` and `onAbort` are
+    // ignored so that they cannot replace the error or result of the run.
+    const mergedOnError = mergeCallbacks(
+      this.constructorOnError,
+      options.onError,
+    );
+    const mergedOnAbort = mergeCallbacks(
+      this.constructorOnAbort as
+        | WorkflowAgentOnAbortCallback<TTools>
+        | undefined,
+      options.onAbort,
+    );
     // Determine effective tool choice
     const effectiveToolChoice = effectiveToolChoiceFromPrepare;
 
@@ -2450,7 +2482,7 @@ export class WorkflowAgent<
           executeTool(
             toolCall,
             tools,
-            messages,
+            modelMessages,
             resolvedContext,
             effectiveAbortSignal,
             workflowDownload,
@@ -2584,9 +2616,7 @@ export class WorkflowAgent<
 
     // Check for abort before starting
     if (mergedGenerationSettings.abortSignal?.aborted) {
-      if (options.onAbort) {
-        await options.onAbort({ steps });
-      }
+      await mergedOnAbort({ steps });
       return {
         outcome: { status: 'aborted' },
         abortReason: abortReason(),
@@ -2596,7 +2626,7 @@ export class WorkflowAgent<
           toolCalls: [],
           toolResults: [],
           finishReason: 'other',
-          totalUsage: aggregateExecutionUsage(steps, mode),
+          totalUsage: aggregateUsage(steps),
           output: undefined as TOutput,
         },
       };
@@ -2653,9 +2683,7 @@ export class WorkflowAgent<
         // Check for abort during iteration
         if (mergedGenerationSettings.abortSignal?.aborted) {
           wasAborted = true;
-          if (options.onAbort) {
-            await options.onAbort({ steps });
-          }
+          await mergedOnAbort({ steps });
           break;
         }
 
@@ -2962,7 +2990,7 @@ export class WorkflowAgent<
                   ]
             ) as ModelMessage[];
             const lastStep = steps[steps.length - 1];
-            const totalUsage = aggregateExecutionUsage(steps, mode);
+            const totalUsage = aggregateUsage(steps);
             const finishReason = lastStep?.finishReason ?? 'other';
 
             const data: WorkflowExecutionData<TTools, TOutput> = {
@@ -2974,10 +3002,12 @@ export class WorkflowAgent<
               totalUsage,
               output: undefined as TOutput,
             };
-            if (mode === 'generate' && step != null) {
-              await mergedOnStepEnd?.(
-                step as StepResult<TTools, TRuntimeContext>,
-              );
+            if (step != null) {
+              if (mode === 'generate') {
+                await mergedOnStepEnd?.(
+                  step as StepResult<TTools, TRuntimeContext>,
+                );
+              }
               await telemetryDispatcher.onStepEnd?.(
                 normalizeStepForTelemetry(step),
               );
@@ -3165,9 +3195,7 @@ export class WorkflowAgent<
         } else {
           finalMessages = result.value.messages;
           wasAborted = true;
-          if (options.onAbort) {
-            await options.onAbort({ steps });
-          }
+          await mergedOnAbort({ steps });
         }
       }
     } catch (error) {
@@ -3176,21 +3204,17 @@ export class WorkflowAgent<
       // Check if this is an abort error
       if (isAbortError(error)) {
         wasAborted = true;
-        if (options.onAbort) {
-          await options.onAbort({ steps });
-        }
-      } else if (options.onError) {
+        await mergedOnAbort({ steps });
+      } else {
         // Call onError for non-abort errors (including tool execution errors)
-        await options.onError({ error });
+        await mergedOnError({ error });
       }
       await telemetryDispatcher.onError?.(error);
       // Don't throw yet - we want to call onEnd first
     }
 
     if (hasTerminalError) {
-      if (options.onError) {
-        await options.onError({ error: terminalError });
-      }
+      await mergedOnError({ error: terminalError });
       await telemetryDispatcher.onError?.(terminalError);
     }
 
@@ -3228,7 +3252,7 @@ export class WorkflowAgent<
     }
 
     const lastStep = steps[steps.length - 1];
-    const totalUsage = aggregateExecutionUsage(steps, mode);
+    const totalUsage = aggregateUsage(steps);
     const finishReason = lastStep?.finishReason ?? 'other';
 
     const data: WorkflowExecutionData<TTools, TOutput> = {
@@ -3617,18 +3641,16 @@ function isInWorkflow(): boolean {
   }
 }
 
+/**
+ * Sums the usage of all steps the same way `generateText` and `streamText`
+ * do: token details are kept, and a count that no step reported stays
+ * `undefined` instead of becoming `0`.
+ */
 function aggregateUsage(steps: StepResult<any, any>[]): LanguageModelUsage {
-  let inputTokens = 0;
-  let outputTokens = 0;
-  for (const step of steps) {
-    inputTokens += step.usage?.inputTokens ?? 0;
-    outputTokens += step.usage?.outputTokens ?? 0;
-  }
-  return {
-    inputTokens,
-    outputTokens,
-    totalTokens: inputTokens + outputTokens,
-  } as LanguageModelUsage;
+  return steps.reduce(
+    (usage, step) => addLanguageModelUsage(usage, step.usage),
+    createNullLanguageModelUsage(),
+  );
 }
 
 async function resolveProviderToolResult(
@@ -3710,18 +3732,25 @@ function createInvalidToolResult(toolCall: {
   };
 }
 
+/**
+ * Returns the conversation that tools and tool callbacks receive. Like in
+ * `generateText` and `streamText`, it contains neither the system prompt nor
+ * the assistant message with the tool call that is being executed.
+ */
 function getToolCallbackMessages(
   messages: LanguageModelV4Prompt,
 ): ModelMessage[] {
   const withoutAssistantToolCall =
     messages.at(-1)?.role === 'assistant' ? messages.slice(0, -1) : messages;
-  return withoutAssistantToolCall as unknown as ModelMessage[];
+  return withoutAssistantToolCall.filter(
+    message => message.role !== 'system',
+  ) as unknown as ModelMessage[];
 }
 
 async function executeTool(
   toolCall: { toolCallId: string; toolName: string; input: unknown },
   tools: ToolSet,
-  messages: LanguageModelV4Prompt,
+  messages: ModelMessage[],
   context?: unknown,
   abortSignal?: AbortSignal,
   download?: DownloadFunction,
@@ -3801,18 +3830,6 @@ async function executeTool(
     rawOutput: toolResult,
     isError: false,
   };
-}
-
-function aggregateExecutionUsage(
-  steps: StepResult<any, any>[],
-  mode: 'generate' | 'stream',
-): LanguageModelUsage {
-  return mode === 'stream'
-    ? aggregateUsage(steps)
-    : steps.reduce(
-        (usage, step) => addLanguageModelUsage(usage, step.usage),
-        createNullLanguageModelUsage(),
-      );
 }
 
 function addApprovalRequestsToMessages(

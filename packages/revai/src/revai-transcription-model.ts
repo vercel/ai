@@ -1,3 +1,4 @@
+import { getRevaiTranscriptionModelEntry } from './revai-model-catalog';
 import {
   AISDKError,
   type TranscriptionModelV4,
@@ -173,9 +174,10 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
     }
 
     const jobId = submissionResponse.id;
-    const timeoutMs = 60 * 1000; // 60 seconds timeout
+    const { timeoutMs, pollingInterval } = getRevaiTranscriptionModelEntry(
+      this.modelId,
+    ).requestConfig.transcription;
     const startTime = Date.now();
-    const pollingInterval = 1000;
     let jobResponse = submissionResponse;
 
     while (jobResponse.status !== 'transcribed') {

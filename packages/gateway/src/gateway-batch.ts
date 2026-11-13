@@ -489,30 +489,31 @@ async function* convertGatewayBatchResultLines(
 
 const gatewayBatchItemResultLineSchema = lazySchema(() =>
   zodSchema(
-    z
-      .object({
+    z.catchall(
+      z.object({
         type: z.literal('text'),
         id: z.string(),
         status: z.enum(['cancelled', 'expired', 'failed', 'succeeded']),
-      })
-      .catchall(z.unknown()),
+      }),
+      z.unknown(),
+    ),
   ),
 );
 
 const gatewayBatchErrorSchema = () =>
   z.object({
     message: z.string(),
-    type: z.string().nullish(),
-    code: z.string().nullish(),
-    statusCode: z.number().nullish(),
+    type: z.nullish(z.string()),
+    code: z.nullish(z.string()),
+    statusCode: z.nullish(z.number()),
   });
 
 const gatewayBatchRequestCountsSchema = () =>
   z.object({
-    total: z.number().nullish(),
-    pending: z.number().nullish(),
-    completed: z.number().nullish(),
-    failed: z.number().nullish(),
+    total: z.nullish(z.number()),
+    pending: z.nullish(z.number()),
+    completed: z.nullish(z.number()),
+    failed: z.nullish(z.number()),
   });
 
 const gatewayBatchProviderMetadataSchema = () =>
@@ -521,28 +522,29 @@ const gatewayBatchProviderMetadataSchema = () =>
 const gatewayBatchStatusFieldsSchema = () =>
   z.object({
     status: z.enum(['completed', 'failed', 'pending']),
-    rawStatus: z.string().nullish(),
-    requestCounts: gatewayBatchRequestCountsSchema().nullish(),
-    error: gatewayBatchErrorSchema().nullish(),
-    createdAt: z.string().nullish(),
-    expiresAt: z.string().nullish(),
-    providerMetadata: gatewayBatchProviderMetadataSchema().nullish(),
+    rawStatus: z.nullish(z.string()),
+    requestCounts: z.nullish(gatewayBatchRequestCountsSchema()),
+    error: z.nullish(gatewayBatchErrorSchema()),
+    createdAt: z.nullish(z.string()),
+    expiresAt: z.nullish(z.string()),
+    providerMetadata: z.nullish(gatewayBatchProviderMetadataSchema()),
   });
 
 const gatewayBatchStartResponseSchema = lazySchema(() =>
   zodSchema(
-    gatewayBatchStatusFieldsSchema().extend({
+    z.extend(gatewayBatchStatusFieldsSchema(), {
       batchId: z.string(),
-      warnings: z
-        .array(
-          z
-            .object({
-              requestId: z.string().nullish(),
+      warnings: z.nullish(
+        z.array(
+          z.catchall(
+            z.object({
+              requestId: z.nullish(z.string()),
               warning: z.unknown(),
-            })
-            .catchall(z.unknown()),
-        )
-        .nullish(),
+            }),
+            z.unknown(),
+          ),
+        ),
+      ),
     }),
   ),
 );

@@ -119,6 +119,8 @@ const languageModelDefinitions = {
     urlContext: false,
   },
   'gemini-4-argon': standard,
+  'gemini-4-carbon': standard,
+  'gemini-4-hydrogen': standard,
   'gemini-3.8-flash': standard,
   'gemini-3.7-flash': standard,
   'gemini-3.6-flash': standard,
@@ -196,7 +198,10 @@ function createGoogleLanguageModelEntry(
     runtime.usesGemini3Features && !modelId.includes('gemini-3-pro-image')
       ? 'level'
       : 'budget';
-  const minLevel = getMinimumThinkingLevelForGemini3Model(modelId);
+  const isHydrogen = /(^|[/.])gemini-4-hydrogen(?:-|$)/i.test(modelId);
+  const minLevel = isHydrogen
+    ? 'low'
+    : getMinimumThinkingLevelForGemini3Model(modelId);
   const language: GoogleLanguageCapabilities = {
     inputs: { image: documented?.image ?? 'unknown', audio: 'unknown' },
     objectGeneration: documented?.objectGeneration ?? 'unknown',
@@ -219,6 +224,7 @@ function createGoogleLanguageModelEntry(
               'low',
               'medium',
               'high',
+              ...(isHydrogen ? ['xhigh'] : []),
             ]
           : undefined,
       minBudget: id.includes('2.5-pro') ? 128 : 0,

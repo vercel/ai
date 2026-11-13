@@ -3,12 +3,15 @@ import type {
   RequestPermissionRequest,
   ToolCallUpdate,
 } from '@agentclientprotocol/sdk';
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { link, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createACPPermissionController } from './permission-controller';
-import { areACPToolLocationsTrusted } from './permission-locations';
+import {
+  areACPToolLocationsTrusted,
+  areACPToolWriteLocationsProtected,
+} from './permission-locations';
 
 let sandboxDir: string;
 let workDir: string;
@@ -606,4 +609,313 @@ describe('ACP permission controller', () => {
       });
     },
   );
+
+  describe('write protection', () => {
+    const writeProtectedPaths = [
+      '.agents/skills',
+      '.github/hooks',
+      '.mcp.json',
+    ];
+
+    function isProtected({
+      locations,
+      protectedPaths = writeProtectedPaths,
+    }: {
+      locations: string[];
+      protectedPaths?: string[];
+    }) {
+      return areACPToolWriteLocationsProtected({
+        workDir,
+        writeProtectedPaths: protectedPaths,
+        toolCall: {
+          toolCallId: 'call-1',
+          kind: 'edit',
+          locations: locations.map(location => ({ path: location })),
+        },
+      });
+    }
+
+    beforeEach(async () => {
+      await mkdir(path.join(workDir, '.github/hooks'), { recursive: true });
+      await mkdir(path.join(workDir, '.github/workflows'));
+      await mkdir(path.join(workDir, '.github/hooks-old'));
+      await writeFile(path.join(workDir, '.github/hooks/lab.json'), '{}');
+      await writeFile(path.join(workDir, '.github/workflows/ci.yml'), '');
+      await writeFile(path.join(workDir, '.mcp.json'), '{}');
+      await writeFile(path.join(workDir, '.mcp.json.bak'), '{}');
+      await mkdir(path.join(workDir, 'src'));
+      await writeFile(path.join(workDir, 'src/file.ts'), '');
+      await symlink('.github/hooks', path.join(workDir, 'alias'), 'dir');
+      await symlink(
+        '.github/hooks/lab.json',
+        path.join(workDir, 'notes-link.json'),
+      );
+      await mkdir(path.join(workDir, 'skills/s'), { recursive: true });
+      await mkdir(path.join(workDir, '.agents'));
+      await symlink('../skills', path.join(workDir, '.agents/skills'), 'dir');
+    });
+
+    it.each([
+      { location: '.github/hooks/lab.json', protected: true },
+      { location: '.github/hooks/new/x.json', protected: true },
+      { location: '.github', protected: true },
+      { location: '.', protected: true },
+      { location: '.mcp.json', protected: true },
+      { location: 'alias/x.json', protected: true },
+      { location: 'notes-link.json', protected: true },
+      { location: 'skills/s/SKILL.md', protected: true },
+      { location: 'skills', protected: true },
+      { location: '.agents', protected: true },
+      { location: '.agents/skills/s/SKILL.md', protected: true },
+      { location: '.github/workflows/ci.yml', protected: false },
+      { location: '.mcp.json.bak', protected: false },
+      { location: '.github/hooks-old/x', protected: false },
+      { location: 'src/file.ts', protected: false },
+      { location: 'skillsx/a', protected: false },
+      { location: '.agents/README.md', protected: false },
+    ])(
+      'resolves $location as protected=$protected',
+      async ({ location, protected: expected }) => {
+        await expect(isProtected({ locations: [location] })).resolves.toBe(
+          expected,
+        );
+      },
+    );
+
+    it('resolves absolute locations', async () => {
+      await expect(
+        isProtected({
+          locations: [path.join(workDir, '.github/hooks/lab.json')],
+        }),
+      ).resolves.toBe(true);
+      await expect(
+        isProtected({ locations: [path.join(workDir, 'src/file.ts')] }),
+      ).resolves.toBe(false);
+    });
+
+    it('protects every location of a tool call', async () => {
+      await expect(
+        isProtected({ locations: ['src/file.ts', '.mcp.json'] }),
+      ).resolves.toBe(true);
+    });
+
+    it('requires approval without file locations', async () => {
+      await expect(isProtected({ locations: [] })).resolves.toBe(true);
+    });
+
+    it('protects paths behind a symlinked parent of a protected path', async () => {
+      await mkdir(path.join(workDir, 'config/skills'), { recursive: true });
+      await symlink('config', path.join(workDir, '.cursor'), 'dir');
+      const protectedPaths = ['.cursor/skills'];
+
+      await expect(
+        isProtected({ locations: ['config/skills/a'], protectedPaths }),
+      ).resolves.toBe(true);
+      await expect(
+        isProtected({ locations: ['config/other'], protectedPaths }),
+      ).resolves.toBe(false);
+    });
+
+    it('protects targets of symlinks inside protected directories', async () => {
+      await writeFile(path.join(workDir, 'notes.json'), '{}');
+      await symlink(
+        '../../notes.json',
+        path.join(workDir, '.github/hooks/out.json'),
+      );
+
+      await expect(isProtected({ locations: ['notes.json'] })).resolves.toBe(
+        true,
+      );
+    });
+
+    it('protects symlink targets transitively', async () => {
+      await mkdir(path.join(workDir, 'shared'));
+      await mkdir(path.join(workDir, 'other'));
+      await mkdir(path.join(workDir, 'unrelated'));
+      await symlink(
+        '../../shared',
+        path.join(workDir, '.github/hooks/dir'),
+        'dir',
+      );
+      await symlink('../other', path.join(workDir, 'shared/inner'), 'dir');
+
+      await expect(isProtected({ locations: ['other/a'] })).resolves.toBe(true);
+      await expect(isProtected({ locations: ['unrelated/a'] })).resolves.toBe(
+        false,
+      );
+    });
+
+    it('fails closed for dangling symlinks inside protected directories', async () => {
+      await symlink(
+        '../../missing',
+        path.join(workDir, '.github/hooks/broken'),
+      );
+
+      await expect(isProtected({ locations: ['src/file.ts'] })).resolves.toBe(
+        true,
+      );
+    });
+
+    it('fails closed for a dangling protected path', async () => {
+      await symlink('missing', path.join(workDir, '.cursor'));
+
+      await expect(
+        isProtected({
+          locations: ['src/file.ts'],
+          protectedPaths: ['.cursor'],
+        }),
+      ).resolves.toBe(true);
+    });
+
+    it('protects hard-linked files while a protected path exists', async () => {
+      await link(
+        path.join(workDir, '.github/hooks/lab.json'),
+        path.join(workDir, 'linked.json'),
+      );
+
+      await expect(isProtected({ locations: ['linked.json'] })).resolves.toBe(
+        true,
+      );
+      await expect(
+        isProtected({
+          locations: ['linked.json'],
+          protectedPaths: ['.missing'],
+        }),
+      ).resolves.toBe(false);
+    });
+
+    it('fails closed when protected directories exceed the scan limit', async () => {
+      await Promise.all(
+        Array.from({ length: 2001 }, (_, index) =>
+          writeFile(path.join(workDir, `.github/hooks/${index}.json`), '{}'),
+        ),
+      );
+
+      await expect(isProtected({ locations: ['src/file.ts'] })).resolves.toBe(
+        true,
+      );
+    });
+
+    describe.each(['edit', 'delete', 'move'] as const)('%s', kind => {
+      it.each([
+        { approved: true, expectedOptionId: 'allow-once' },
+        { approved: false, expectedOptionId: 'reject-once' },
+      ])(
+        'requests approval for the built-in .agents/skills path with allow-edits (approved=$approved)',
+        async ({ approved, expectedOptionId }) => {
+          const fake = createFakeTurn();
+          const controller = createACPPermissionController({
+            turn: fake.turn,
+            workDir,
+            sessionId: 'session-1',
+            permissionMode: 'allow-edits',
+            hasPermissionModeMapping: false,
+            emitToolCall: () => {},
+            claimHostToolPermission: async () => undefined,
+          });
+          const request = controller.requestPermission(
+            permissionRequest({
+              toolCallId: 'call-1',
+              kind,
+              toolCall: {
+                locations: [{ path: '.agents/skills/new/SKILL.md' }],
+              },
+            }),
+          );
+          const approvalId = await vi.waitFor(() =>
+            getApprovalId({ events: fake.events }),
+          );
+
+          fake.respond({ approvalId, approved });
+          await expect(request).resolves.toEqual({
+            outcome: { outcome: 'selected', optionId: expectedOptionId },
+          });
+        },
+      );
+    });
+
+    it.each([
+      { permissionMode: 'allow-edits', kind: 'edit' },
+      { permissionMode: 'allow-reads', kind: 'edit' },
+    ] as const)(
+      'requests approval for configured paths with $permissionMode $kind',
+      async ({ permissionMode, kind }) => {
+        const fake = createFakeTurn();
+        const controller = createACPPermissionController({
+          turn: fake.turn,
+          workDir,
+          sessionId: 'session-1',
+          permissionMode,
+          hasPermissionModeMapping: false,
+          writeProtectedPaths: ['.claude'],
+          emitToolCall: () => {},
+          claimHostToolPermission: async () => undefined,
+        });
+        const request = controller.requestPermission(
+          permissionRequest({
+            toolCallId: 'call-1',
+            kind,
+            toolCall: { locations: [{ path: '.claude/settings.json' }] },
+          }),
+        );
+        const approvalId = await vi.waitFor(() =>
+          getApprovalId({ events: fake.events }),
+        );
+
+        fake.respond({ approvalId, approved: false });
+        await expect(request).resolves.toEqual({
+          outcome: { outcome: 'selected', optionId: 'reject-once' },
+        });
+      },
+    );
+
+    it.each([
+      {
+        description: 'reads of protected paths with allow-edits',
+        permissionMode: 'allow-edits',
+        kind: 'read',
+        location: '.claude/settings.json',
+      },
+      {
+        description: 'writes of protected paths with allow-all',
+        permissionMode: 'allow-all',
+        kind: 'edit',
+        location: '.claude/settings.json',
+      },
+      {
+        description: 'writes of unprotected paths with allow-edits',
+        permissionMode: 'allow-edits',
+        kind: 'edit',
+        location: 'src/file.ts',
+      },
+    ] as const)(
+      'auto-approves $description',
+      async ({ permissionMode, kind, location }) => {
+        const fake = createFakeTurn();
+        const controller = createACPPermissionController({
+          turn: fake.turn,
+          workDir,
+          sessionId: 'session-1',
+          permissionMode,
+          hasPermissionModeMapping: false,
+          writeProtectedPaths: ['.claude'],
+          emitToolCall: () => {},
+          claimHostToolPermission: async () => undefined,
+        });
+
+        await expect(
+          controller.requestPermission(
+            permissionRequest({
+              toolCallId: 'call-1',
+              kind,
+              toolCall: { locations: [{ path: location }] },
+            }),
+          ),
+        ).resolves.toEqual({
+          outcome: { outcome: 'selected', optionId: 'allow-once' },
+        });
+        expect(fake.events).toEqual([]);
+      },
+    );
+  });
 });

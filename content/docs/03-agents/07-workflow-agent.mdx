@@ -5,7 +5,7 @@ description: Build durable, resumable agents with the WorkflowAgent from @ai-sdk
 
 # WorkflowAgent
 
-The `WorkflowAgent` from `@ai-sdk/workflow` is designed for building **durable, resumable agents** that run inside a [workflow](https://vercel.com/docs/workflow). It provides the same agent loop as the [`ToolLoopAgent`](/docs/agents/building-agents), but adds automatic state persistence, tool schema serialization, and built-in tool approval flows that survive workflow step boundaries.
+The `WorkflowAgent` from `@ai-sdk/workflow` is designed for building **durable, resumable agents** that run inside a [workflow](https://vercel.com/docs/workflow). It runs a tool loop like [`ToolLoopAgent`](/docs/agents/building-agents) and adds automatic state persistence, tool schema serialization, and tool approval flows that survive workflow step boundaries.
 
 ## Why Durable Agents?
 
@@ -32,6 +32,8 @@ A standard `ToolLoopAgent` runs entirely in memory — if the process crashes, a
 | **Stream output**       | `streamText` return value | `writable` parameter with `ModelCallStreamPart`  |
 
 For simpler use cases that don't need durability, use [`ToolLoopAgent`](/docs/agents/building-agents) from the `ai` package.
+
+The two classes have different options, callbacks, and results. Read [Differences from ToolLoopAgent](#differences-from-toolloopagent) before you move code from one to the other.
 
 ## Installation
 
@@ -399,9 +401,10 @@ The stream-level value overrides the constructor default.
 
 ## Loop Control
 
-Unlike `ToolLoopAgent`, `WorkflowAgent` does not apply a default step limit.
-When `stopWhen` is omitted, it continues until the model stops calling tools or
-another natural termination condition is met.
+`stream()` does not apply a default step limit. When `stopWhen` is omitted, it
+continues until the model stops calling tools or another natural termination
+condition is met. `generate()` stops after 20 steps by default, like
+`ToolLoopAgent`, but does not log a warning when it reaches that limit.
 
 <Note>
   A model that repeatedly calls tools can make an unlimited number of model
@@ -420,8 +423,9 @@ const result = await agent.stream({
 });
 ```
 
-Omitting `stopWhen` already lets `WorkflowAgent` continue until it has finished
-calling tools. You can make that intent explicit with `isLoopFinished()`:
+With `stream()`, omitting `stopWhen` already lets the agent continue until it
+has finished calling tools. You can make that intent explicit with
+`isLoopFinished()`, which also removes the 20-step default of `generate()`:
 
 ```ts
 import { isLoopFinished } from 'ai';
@@ -432,7 +436,7 @@ const result = await agent.stream({
 });
 ```
 
-`isLoopFinished()` is equivalent to omitting `stopWhen` for `WorkflowAgent`.
+For `stream()`, `isLoopFinished()` is equivalent to omitting `stopWhen`.
 Use it with caution because a model that keeps calling tools can run
 indefinitely and incur significant costs. See
 [`isLoopFinished()`](/docs/reference/ai-sdk-core/loop-finished).
@@ -589,7 +593,14 @@ const agent = new WorkflowAgent({
 });
 ```
 
-Both `prepareCall` and `prepareStep` can also be passed per-call in `stream()`.
+A `model`, `toolChoice`, `activeTools`, or generation setting returned from
+`prepareStep` applies to the current step only, as in `ToolLoopAgent`. Later
+steps use the agent or call values again unless `prepareStep` returns an
+override for them too. Returned `messages`, `system`, `runtimeContext`, and
+`toolsContext` values stay in effect for later steps.
+
+`prepareStep` can also be passed per call in `generate()` and `stream()`.
+`prepareCall` is a constructor option only.
 
 ## Lifecycle Callbacks
 
@@ -667,6 +678,115 @@ const myAgent = new WorkflowAgent({
 
 export type MyAgentUIMessage = InferWorkflowAgentUIMessage<typeof myAgent>;
 ```
+
+## Differences from ToolLoopAgent
+
+`WorkflowAgent` and [`ToolLoopAgent`](/docs/agents/building-agents) both run a tool loop, but they are separate implementations with separate APIs. `WorkflowAgent` does not implement the [`Agent`](/docs/reference/ai-sdk-core/agent) interface, so you cannot pass it to `createAgentUIStream`, `createAgentUIStreamResponse`, or `pipeAgentUIStreamToResponse`. Code written for one class usually needs changes before it runs on the other.
+
+### Options that only ToolLoopAgent supports
+
+TypeScript rejects these options on `WorkflowAgent`. If you pass them anyway, for example from JavaScript, they are ignored without an error unless the table says otherwise.
+
+| ToolLoopAgent option                                            | With WorkflowAgent                                                                                                                                                       |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `toolApproval`                                                  | Set `needsApproval` on each tool. See [Tool Approval](#tool-approval).                                                                                                   |
+| `toolOrder`                                                     | Not supported. Tools are sent in the order of the `tools` object.                                                                                                        |
+| `callOptionsSchema` and the `options` call parameter            | Not supported. Pass settings to `generate()` or `stream()` directly.                                                                                                     |
+| `experimental_refineToolInput`                                  | Not supported.                                                                                                                                                           |
+| `experimental_toolCallers`                                      | Not supported.                                                                                                                                                           |
+| `experimental_steering`                                         | Not supported. To add messages between steps, return `messages` from `prepareStep`.                                                                                      |
+| `experimental_transform`                                        | Not supported. Transform `run.readable` with `pipeThrough()` where you create the response.                                                                              |
+| `onStepError`                                                   | Not supported. Use `onError`.                                                                                                                                            |
+| `onLanguageModelCallStart`, `onLanguageModelCallEnd`            | Not supported.                                                                                                                                                           |
+| `include` in the constructor                                    | Pass `include` to `generate()`. `stream()` has no `include` option and does not record request data in its steps. Use `includeRawChunks` to receive raw provider chunks. |
+| `timeout` in the constructor, and `timeout` as an object        | Pass `timeout` as a number of milliseconds to `generate()` or `stream()`. An object value fails with a `TypeError`.                                                      |
+| `experimental_telemetry`                                        | Use `telemetry`.                                                                                                                                                         |
+| `experimental_onToolCallStart`, `experimental_onToolCallFinish` | Use `onToolExecutionStart` and `onToolExecutionEnd`.                                                                                                                     |
+
+### Options with a different shape
+
+| Option                                                                                                                               | ToolLoopAgent                                                | WorkflowAgent                                                                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Generation settings, `instructions`, `toolChoice`, `activeTools`, `stopWhen`, `output`, `telemetry`, `prepareStep`, `repairToolCall` | Constructor only. Use `prepareCall` to change them per call. | Constructor, or per call in `generate()` and `stream()`. The per-call value overrides the constructor value.                                                                           |
+| `abortSignal`                                                                                                                        | Per call.                                                    | Constructor or per call.                                                                                                                                                               |
+| `experimental_sandbox`                                                                                                               | Per call.                                                    | Constructor or per call.                                                                                                                                                               |
+| `timeout`                                                                                                                            | A number or an object, in the constructor or per call.       | A number, per call. It sets a deadline for model calls and does not cancel a tool that waits on a hook. See [Deadlines, cancellation, and replay](#deadlines-cancellation-and-replay). |
+| `experimental_toolApprovalSecret`                                                                                                    | The secret, as a `string` or `Uint8Array`.                   | `{ environmentVariable: string }`, the name of an environment variable that holds the secret. See [Signed Tool Approvals](#signed-tool-approvals).                                     |
+| `runtimeContext`, `toolsContext`                                                                                                     | Any JavaScript value.                                        | Serializable values. See [runtimeContext and toolsContext](#runtimecontext-and-toolscontext).                                                                                          |
+
+### Default step limit
+
+|                 | `generate()`                                                 | `stream()`                                                   |
+| --------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `ToolLoopAgent` | 20 steps. A warning is logged when the limit stops the loop. | 20 steps. A warning is logged when the limit stops the loop. |
+| `WorkflowAgent` | 20 steps. No warning is logged.                              | No limit.                                                    |
+
+### prepareCall
+
+In `ToolLoopAgent`, `prepareCall` receives the settings together with the `prompt` or `messages` and the typed `options` of the call, and the object it returns replaces the call settings. In `WorkflowAgent`:
+
+- It receives `messages` and no `options`. A string `prompt` is converted to a user message first.
+- The fields it returns are merged into the call. Fields you leave out keep their values, so you do not need the `({ options, ...rest }) => ({ ...rest })` pattern.
+- It cannot return `tools`. The tools are fixed when the agent is created.
+
+### prepareStep
+
+- `messages` uses the provider prompt format (`LanguageModelV4Prompt`) in the argument and in the return value, and it includes the system message. `ToolLoopAgent` uses `ModelMessage[]` without the system message.
+- The argument has no `instructions` and no `responseMessages`. `initialInstructions` and `initialMessages` are available.
+- To change the system prompt, return `system` as a string. A returned `instructions` value is ignored.
+- A returned `providerOptions` object replaces the `providerOptions` of the agent. `ToolLoopAgent` merges the two objects.
+- You can return `headers`. They replace all headers of the call, including the `user-agent` value that identifies the agent. `ToolLoopAgent` does not accept `headers` from `prepareStep`.
+- You cannot return `toolOrder`.
+
+### Callbacks
+
+The callbacks have the same names, but most of them receive smaller event objects than in `ToolLoopAgent`:
+
+| Callback               | Event fields in WorkflowAgent                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `onStart`              | `model`, `messages`, `runtimeContext`, `toolsContext`                                                          |
+| `onStepStart`          | `stepNumber`, `model`, `messages`, `steps`, `runtimeContext`, `toolsContext`                                   |
+| `onToolExecutionStart` | `toolCall`, `stepNumber`, `messages`, `toolContext`                                                            |
+| `onToolExecutionEnd`   | `toolCall`, `stepNumber`, `messages`, `toolContext`, `durationMs`, `success`, and `output` or `error`          |
+| `onStepEnd`            | The step result, as in `ToolLoopAgent`                                                                         |
+| `onEnd`                | `steps`, `messages`, `text`, `finishReason`, `usage`, `totalUsage`, `output`, `runtimeContext`, `toolsContext` |
+
+`ToolLoopAgent` events also carry a `callId`, and its `onToolExecutionEnd` event uses `toolExecutionMs` and `toolOutput` where `WorkflowAgent` uses `durationMs`, `success`, `output`, and `error`.
+
+The callbacks also run at different times:
+
+- After a failed run, `stream()` calls `onEnd` before it rejects. `generate()` and `ToolLoopAgent` do not call `onEnd` for a failed run.
+- `onAbort` is called by `generate()` and by `stream()`, and its event has only `steps`. `ToolLoopAgent` calls `onAbort` only for `stream()`, with `callId`, `reason`, and `steps`.
+- An aborted `stream()` call resolves with the steps that finished. An aborted `generate()` call rejects.
+- If `generate()` is aborted during a step with a custom abort reason, it calls `onError` with that reason. `ToolLoopAgent` does not report aborts to `onError`.
+
+### Results
+
+`generate()` returns the same result type as `ToolLoopAgent`. If a model returns its structured output separately from its text, `generate()` still parses the text of the last step.
+
+`stream()` works differently from `ToolLoopAgent`:
+
+- It resolves when the run has finished, with a plain object that has `messages`, `steps`, `toolCalls`, `toolResults`, `finishReason`, `totalUsage`, and `output`, plus `error` when the model stream reported one. It has none of the streams and promises of `StreamTextResult`, such as `textStream`, `fullStream`, or `text`. Stream parts go to the `writable` you pass in. Read the final text from `result.steps.at(-1)?.text`.
+- `messages` contains the input messages followed by the generated messages. `ToolLoopAgent` returns only the generated messages, as `responseMessages`.
+- `toolCalls` and `toolResults` describe the last step. In `ToolLoopAgent` they cover all steps.
+- `output` is `undefined` unless you set an `output` specification. `ToolLoopAgent` defaults to the generated text.
+- If the structured output cannot be parsed, the `stream()` call rejects. In `ToolLoopAgent`, the call resolves and only `result.output` rejects.
+- If the model call throws, the `stream()` call rejects with that error. In `ToolLoopAgent`, the call resolves and the error is reported through the stream and `onError`.
+- Each step is a plain object. Its `request` is empty, its `model.provider` is derived from the model ID of the response and can differ from the provider name, and its `providerMetadata` is `{}` when the provider sends none. Steps from `generate()` match `ToolLoopAgent`.
+- A tool call for an unknown tool, or with input that does not match the schema, is missing from `content` and `toolCalls` of the step. The model still receives the error as a tool result and the loop continues. `generate()` and `ToolLoopAgent` keep the call in the step, marked `invalid`, with a `tool-error` part.
+
+`WorkflowAgent` does not log provider warnings. Read them from `warnings` on each step.
+
+### Tools
+
+- Approval is configured with `needsApproval` on the tool. Approval request IDs have the form `approval-<toolCallId>`. `ToolLoopAgent` generates random IDs.
+- A tool whose `execute` function is an async generator is not supported. `ToolLoopAgent` treats every yielded value except the last one as a preliminary result. `WorkflowAgent` does not iterate the generator, and the tool result is an empty object.
+- In `stream()`, the `onInputStart` and `onInputAvailable` hooks of a tool are not called when the provider sends the tool call without streaming its input first. They are called in `generate()`.
+- Tool timeouts (`toolMs` and `tools` in the `timeout` object) are not supported.
+
+### Requests
+
+Requests carry `ai-sdk-agent/workflow` in the `user-agent` header. `ToolLoopAgent` sends `ai-sdk-agent/tool-loop`.
 
 ## Migrating from `DurableAgent`
 

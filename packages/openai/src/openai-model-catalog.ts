@@ -28,7 +28,9 @@ export const openaiProviderOptions = {
     parallelToolCalls: { description: 'Whether to use parallel tool calls.' },
     previousResponseId: { description: 'Previous response ID to continue.' },
     promptCacheKey: { description: 'Cache key for prompt caching.' },
-    promptCacheOptions: { description: 'Prompt cache mode, TTL, and prewarm.' },
+    promptCacheOptions: {
+      description: 'Prompt cache mode, TTL, prewarm, and diagnostics.',
+    },
     promptCacheRetention: { description: 'Prompt cache retention policy.' },
     reasoningEffort: { description: 'Reasoning effort.' },
     reasoningEffortUpdate: {
@@ -45,6 +47,7 @@ export const openaiProviderOptions = {
     },
     strictJsonSchema: { description: 'Use strict JSON schema validation.' },
     textVerbosity: { description: 'Verbosity of text responses.' },
+    textFormat: { description: 'Stable request-level text format.' },
     truncation: { description: 'Output truncation behavior.' },
     user: { description: 'End-user identifier for abuse monitoring.' },
     systemMessageMode: { description: 'System message role override.' },

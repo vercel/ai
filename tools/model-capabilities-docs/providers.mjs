@@ -1,3 +1,16 @@
+import { typeSafeAiDocs } from './providers/typesafe-ai.mjs';
+import { parallelDocs } from './providers/parallel.mjs';
+import { topazDocs } from './providers/topaz.mjs';
+import { quiveraiDocs } from './providers/quiverai.mjs';
+import { tencentDocs } from './providers/tencent.mjs';
+import { revaiDocs } from './providers/revai.mjs';
+import { humeDocs } from './providers/hume.mjs';
+import { gladiaDocs } from './providers/gladia.mjs';
+import { fishAudioDocs } from './providers/fish-audio.mjs';
+import { elevenLabsDocs } from './providers/elevenlabs.mjs';
+import { deepgramDocs } from './providers/deepgram.mjs';
+import { cartesiaDocs } from './providers/cartesia.mjs';
+import { assemblyaiDocs } from './providers/assemblyai.mjs';
 import { prodiaDocs } from './providers/prodia.mjs';
 import { heygenDocs } from './providers/heygen.mjs';
 import { gmicloudDocs } from './providers/gmicloud.mjs';
@@ -29,6 +42,19 @@ import { formatSupport } from './render-tables.mjs';
 // Table IDs match the model-capabilities markers in the provider's MDX file.
 // Columns are [heading, capability path, optional formatter].
 export const providers = [
+  typeSafeAiDocs,
+  parallelDocs,
+  topazDocs,
+  quiveraiDocs,
+  tencentDocs,
+  revaiDocs,
+  humeDocs,
+  gladiaDocs,
+  fishAudioDocs,
+  elevenLabsDocs,
+  deepgramDocs,
+  cartesiaDocs,
+  assemblyaiDocs,
   prodiaDocs,
   heygenDocs,
   gmicloudDocs,

@@ -1,5 +1,67 @@
 # @ai-sdk/harness
 
+## 1.0.183
+
+### Patch Changes
+
+- 71bef69: feat(harness): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [6d50947]
+- Updated dependencies [79d2004]
+  - @ai-sdk/provider-utils@5.0.81
+  - ai@7.0.172
+
+## 1.0.182
+
+### Patch Changes
+
+- 1a94af3: Forward the `redactToolErrors` option in `toUIMessageStream` and `toUIMessageStreamResponse`.
+
+  When the context validation of a host tool fails, the `tool-error` stream part now carries an error with the message that the runtime receives (`Tool context validation failed.`). Previously it carried the detailed validation error, which includes the context value. The detailed error is still passed to `onToolExecutionEnd`.
+
+  When a host tool throws a value that is not an `Error` or a string, the `tool-error` stream part now carries the text that the runtime receives (`String(value)`), not the thrown value.
+
+  Both changes apply to every consumer of the stream part: `fullStream`, step content, and the `onError` callback of a UI message stream, also when `redactToolErrors` is `true`.
+
+- Updated dependencies [11323f9]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+- Updated dependencies [ceeee29]
+- Updated dependencies [1a94af3]
+  - ai@7.0.171
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 1.0.181
+
+### Patch Changes
+
+- Updated dependencies [91a67c2]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+
+## 1.0.180
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - @ai-sdk/provider-utils@5.0.79
+  - ai@7.0.169
+
+## 1.0.179
+
+### Patch Changes
+
+- c849d37: feat(harness): use public-key cryptography instead of token for sandbox bridge communication
+- 7f1c01e: feat(harness): export `encodeHarnessPathSegment` helper
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+- Updated dependencies [88b9575]
+  - ai@7.0.168
+  - @ai-sdk/provider-utils@5.0.78
+
 ## 1.0.178
 
 ### Patch Changes

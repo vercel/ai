@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-opencode",
-  "version": "1.0.181",
+  "version": "1.0.186",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -54,7 +54,7 @@
     "@vscode/ripgrep": "1.18.0",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "engines": {
     "node": ">=22"

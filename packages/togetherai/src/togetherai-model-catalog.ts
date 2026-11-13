@@ -193,6 +193,21 @@ const rerankingModelIds = [
   'Salesforce/Llama-Rank-v1',
   'mixedbread-ai/Mxbai-Rerank-Large-V2',
 ] as const;
+/**
+ * Chat models verified to honor `response_format: { type: 'json_schema' }`.
+ * Every other model ID gets `json_object` and the schema is dropped, so probe
+ * a model with a schema-only enum value before adding it here.
+ */
+const jsonSchemaModelIds: ReadonlySet<string> = new Set([
+  'deepseek-ai/DeepSeek-V4-Flash-0731',
+  'deepseek-ai/DeepSeek-V4.1-Flash',
+  'deepseek-ai/DeepSeek-V4.1-Flash-1017',
+  'openai/gpt-oss-120b',
+  'zai-org/GLM-5.2',
+  'zai-org/GLM-5.3-Flash',
+  'moonshotai/Kimi-K3',
+  'MiniMaxAI/MiniMax-M3.1-Flash',
+]);
 const documentedLanguageCapabilities: Record<
   string,
   NonNullable<ModelCapabilities['language']>
@@ -293,7 +308,7 @@ export function getTogetherAILanguageModelEntry(modelId: string) {
         ...(documentedLanguageCapabilities[modelId] ??
           unknownLanguageCapabilities),
         structuredOutput: {
-          jsonSchema: modelId === 'deepseek-ai/DeepSeek-V4-Flash-0731',
+          jsonSchema: jsonSchemaModelIds.has(modelId),
         },
       },
     },

@@ -918,10 +918,10 @@ retain the content their contracts require.
     },
     {
       name: 'experimental_download',
-      type: '(requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>) => Promise<Array<null | { data: Uint8Array; mediaType?: string }>>',
+      type: '(requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean; abortSignal?: AbortSignal }>) => Promise<Array<null | { data: Uint8Array; mediaType?: string }>>',
       isOptional: true,
       description:
-        'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
+        'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Use `createDownload({ fetch, maxBytes })` from `ai` to keep the default behavior with a custom fetch transport (e.g. `guarded-fetch` on Node.js) or size limit. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
     },
     {
       name: 'include',
@@ -4251,7 +4251,7 @@ retain the content their contracts require.
               type: 'boolean',
               isOptional: true,
               description:
-                'Send reasoning parts to the client. Defaults to false.',
+                'Send reasoning parts to the client. Defaults to true.',
             },
             {
               name: 'sendSources',
@@ -4279,7 +4279,14 @@ retain the content their contracts require.
               type: '(error: unknown) => string',
               isOptional: true,
               description:
-                'Process an error, e.g. to log it. Returns the error message to include in the data stream. Defaults to () => "An error occurred." Tool execution errors marked providerExecuted: true bypass this callback: strings pass through unchanged and other values are JSON-stringified to preserve provider error data for model-message round trips and harness runtime error messages. Stream errors and invalid tool calls still use this callback.',
+                'Process an error, e.g. to log it. Returns the error message to include in the data stream. Defaults to () => "An error occurred." Handles stream errors. Also handles failed tool calls (tool execution errors and invalid tool calls) when redactToolErrors is enabled, which is the default when this callback is provided. Tool execution errors marked providerExecuted: true bypass this callback: strings pass through unchanged and other values are JSON-stringified to preserve provider error data for model-message round trips and harness runtime error messages. Invalid tool calls of provider-executed tools always use this callback.',
+            },
+            {
+              name: 'redactToolErrors',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Replace the error text of failed tool calls (tool execution errors and invalid tool calls) with the result of onError. By default, the client receives the same error text as the model, because the UI messages are sent back to the model on the next request and a different text changes the message history. Defaults to true when onError is provided, and to false otherwise.',
             },
             {
               name: 'consumeSseStream',

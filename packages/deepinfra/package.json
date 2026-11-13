@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/deepinfra",
-  "version": "3.0.88",
+  "version": "3.0.92",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -53,7 +53,7 @@
     "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"

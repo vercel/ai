@@ -117,6 +117,7 @@ import type {
   OnLanguageModelCallStartCallback,
 } from './language-model-events';
 import { text, type Output } from './output';
+import { createArrayStreamParser } from '../util/array-output-stream';
 import {
   createSingleConsumerStreamTextResult,
   type StreamTextSingleConsumerResult,
@@ -678,9 +679,12 @@ function streamTextInternal<
       experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
 
       /**
-       * Custom download function to use for URLs.
+       * Custom download function to use for URLs in the prompt and for
+       * generated file URLs returned by the model.
        *
-       * By default, files are downloaded if the model does not support the URL for the given media type.
+       * By default, prompt files are downloaded if the model does not support
+       * the URL for the given media type. Generated file URLs are always
+       * downloaded; returning `null` for them is an error.
        */
       experimental_download?: DownloadFunction | undefined;
 
@@ -1072,10 +1076,14 @@ function createOutputTransformStream<
   let text = '';
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
+  let arrayStreamParser = createArrayStreamParser(output);
+  let lastArrayPartial: InferPartialOutput<OUTPUT> | undefined;
   let lastPublishedValue: string | undefined = undefined;
   let hasPublishedValue = false;
 
   function resetOutputState() {
+    arrayStreamParser = createArrayStreamParser(output);
+    lastArrayPartial = undefined;
     firstTextChunkId = undefined;
     text = '';
     textChunk = '';
@@ -1201,6 +1209,24 @@ function createOutputTransformStream<
           chunk: { part: chunk, partialOutput: undefined },
         });
         return;
+      }
+
+      // Built-in arrays publish only changed snapshots, so growing arrays do
+      // not need to be reparsed, revalidated, or stringified on every chunk.
+      if (arrayStreamParser != null) {
+        const result = await arrayStreamParser(chunk.text);
+        if (result !== 'fallback') {
+          if (result != null) {
+            lastArrayPartial = result.partial as InferPartialOutput<OUTPUT>;
+            publishTextChunk({ controller, partialOutput: lastArrayPartial });
+          }
+          return;
+        }
+        arrayStreamParser = undefined;
+        if (lastArrayPartial != null) {
+          lastPublishedValue = JSON.stringify(lastArrayPartial);
+          hasPublishedValue = true;
+        }
       }
 
       // only publish if partial json can be parsed:
@@ -3856,6 +3882,7 @@ class DefaultStreamTextResult<
     sendStart,
     sendFinish,
     onError,
+    redactToolErrors,
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
@@ -3873,6 +3900,7 @@ class DefaultStreamTextResult<
         sendStart,
         sendFinish,
         onError,
+        redactToolErrors,
       }),
     );
   }
@@ -3892,6 +3920,7 @@ class DefaultStreamTextResult<
       sendFinish,
       sendStart,
       onError,
+      redactToolErrors,
       ...init
     }: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
   ) {
@@ -3908,6 +3937,7 @@ class DefaultStreamTextResult<
         sendFinish,
         sendStart,
         onError,
+        redactToolErrors,
       }),
       ...init,
     });
@@ -3934,6 +3964,7 @@ class DefaultStreamTextResult<
     sendFinish,
     sendStart,
     onError,
+    redactToolErrors,
     ...init
   }: UIMessageStreamResponseInit &
     UIMessageStreamOptions<UI_MESSAGE> = {}): Response {
@@ -3949,6 +3980,7 @@ class DefaultStreamTextResult<
         sendFinish,
         sendStart,
         onError,
+        redactToolErrors,
       }),
       ...init,
     });

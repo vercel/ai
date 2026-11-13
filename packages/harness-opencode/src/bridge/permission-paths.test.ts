@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   areFileToolPathsTrusted,
   areOpenCodePermissionPathsTrusted,
+  areOpenCodePermissionPathsWriteProtected,
 } from './permission-paths';
 
 let directory: string;
@@ -118,6 +119,81 @@ describe('OpenCode file permission targets', () => {
           readableSkillRoots: [skills],
         }),
       ).resolves.toBe(trusted);
+    },
+  );
+});
+
+describe('OpenCode write-protected permission targets', () => {
+  it.each([
+    {
+      name: 'an unprotected edit',
+      action: 'edit',
+      metadata: { files: [{ filePath: 'file.txt' }] },
+      writeProtected: false,
+    },
+    ...[
+      '.agents/skills/test/SKILL.md',
+      '.opencode/plugin/index.ts',
+      'opencode.json',
+      'opencode.jsonc',
+      '.claude/skills/test/SKILL.md',
+    ].map(filePath => ({
+      name: `an edit of ${filePath}`,
+      action: 'edit',
+      metadata: { files: [{ filePath }] },
+      writeProtected: true,
+    })),
+    {
+      name: 'an edit of unrelated .claude configuration',
+      action: 'edit',
+      metadata: { files: [{ filePath: '.claude/settings.json' }] },
+      writeProtected: false,
+    },
+    {
+      name: 'a move into a protected directory',
+      action: 'edit',
+      metadata: {
+        files: [
+          {
+            filePath: 'file.txt',
+            type: 'move',
+            movePath: '.agents/skills/moved/SKILL.md',
+          },
+        ],
+      },
+      writeProtected: true,
+    },
+    {
+      name: 'a write tool call',
+      action: 'edit',
+      toolCall: { nativeName: 'write', input: { filePath: 'opencode.json' } },
+      writeProtected: true,
+    },
+    {
+      name: 'a read of a protected path',
+      action: 'read',
+      toolCall: { nativeName: 'read', input: { filePath: 'opencode.json' } },
+      writeProtected: false,
+    },
+    {
+      name: 'an edit without targets',
+      action: 'edit',
+      metadata: { files: [] },
+      writeProtected: true,
+    },
+  ])(
+    'reports $name as write-protected=$writeProtected',
+    async ({ writeProtected, name: _name, ...input }) => {
+      await expect(
+        areOpenCodePermissionPathsWriteProtected({
+          resources: [],
+          metadata: undefined,
+          toolCall: undefined,
+          ...input,
+          workDir,
+          readableSkillRoots: [skills],
+        }),
+      ).resolves.toBe(writeProtected);
     },
   );
 });

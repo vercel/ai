@@ -36,8 +36,8 @@ vi.mock('pkce-challenge', () => ({
 const mockFetch = vi.fn();
 global.fetch = (input, init) => mockFetch(input, init);
 
-// Successful discovery fixtures explicitly provide their inert transport. Edge
-// runtimes now reject untrusted discovery through the native/global default.
+// Successful discovery fixtures explicitly provide their inert transport. Server
+// runtimes reject untrusted discovery through the native/global default.
 const discoverOAuthProtectedResourceMetadata = (
   ...[serverUrl, options, fetchFn = mockFetch]: Parameters<
     typeof discoverOAuthProtectedResourceMetadataImpl

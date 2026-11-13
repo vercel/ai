@@ -28,6 +28,7 @@ import {
   agentGenerateWithGlobalTelemetry,
   agentStreamWithGlobalTelemetry,
   agentToolLoopWithGlobalTelemetry,
+  agentWithClientToolTelemetry,
   agentWithRedactedProviderTools,
 } from './test/telemetry-workflows.js';
 
@@ -136,6 +137,30 @@ const expectedSpans = [
 ];
 
 describe('WorkflowAgent telemetry with global integrations', () => {
+  it.each(['generate', 'stream'] as const)(
+    '%s: ends every step span when stopping on a client-side tool',
+    async mode => {
+      const run = await start(agentWithClientToolTelemetry, [mode]);
+      expect(await run.returnValue).toEqual({
+        stepCount: 2,
+        lastTool: 'askUser',
+        // Preserve the public callback behavior on the paused-tool path.
+        stepEndCallbacks: mode === 'generate' ? 2 : 1,
+      });
+
+      expect(events.filter(event => event === 'onStepEnd')).toHaveLength(2);
+      expect(events.slice(-2)).toEqual(['onStepEnd', 'onEnd']);
+      expect(getSpanTree().shape).toEqual({
+        'invoke_agent workflow-test-model': [
+          {
+            'step 1': ['chat workflow-test-model', 'execute_tool addNumbers'],
+          },
+          { 'step 2': ['chat workflow-test-model'] },
+        ],
+      });
+    },
+  );
+
   it.each(['generate', 'stream'] as const)(
     '%s: redacts provider tools after the durable model-step boundary',
     async mode => {
