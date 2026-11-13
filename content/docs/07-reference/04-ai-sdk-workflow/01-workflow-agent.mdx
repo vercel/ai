@@ -637,9 +637,9 @@ In addition to the options in the table, `stream()` accepts the generation setti
     },
     {
       name: 'timeout',
-      type: 'number',
+      type: 'WorkflowAgentTimeoutConfiguration',
       isOptional: true,
-      description: 'Model-call deadline in milliseconds. Inside a workflow, the absolute deadline is checked at dispatch and retry and remains in effect across suspension. It does not cancel a tool waiting on a Workflow hook; use run.cancel() to stop the suspended run.',
+      description: 'Timeout for model calls. A number, or `totalMs` in the object form, is one deadline in milliseconds for the whole run. Inside a workflow, the absolute deadline is checked at dispatch and retry and remains in effect across suspension. `stepMs` limits each model call. `firstChunkMs` limits the wait for the first output of each model call, and `chunkMs` limits the wait between two outputs. A timeout does not cancel a tool waiting on a Workflow hook; use run.cancel() to stop the suspended run.',
     },
     {
       name: 'sendFinish',
@@ -911,6 +911,21 @@ type ActiveTools<TTools extends ToolSet> =
 ```
 
 Limits a workflow agent call to the listed tool names. `undefined` means no tool restriction is applied.
+
+### `WorkflowAgentTimeoutConfiguration`
+
+```ts
+type WorkflowAgentTimeoutConfiguration =
+  | number
+  | {
+      totalMs?: number;
+      stepMs?: number;
+      firstChunkMs?: number;
+      chunkMs?: number;
+    };
+```
+
+The `timeout` option of `generate()` and `stream()`. A number is the total deadline in milliseconds. `generate()` uses `totalMs` and `stepMs`. `stream()` uses all four values. See [Deadlines, cancellation, and replay](/docs/agents/workflow-agent#deadlines-cancellation-and-replay).
 
 ### `InferWorkflowAgentUIMessage`
 
