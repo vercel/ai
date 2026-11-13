@@ -1176,7 +1176,7 @@ function getAssistantMessageContent(
   for (const part of step.content) {
     switch (part.type) {
       case 'text':
-        if (part.text.length > 0) {
+        if (part.text.length > 0 || part.providerMetadata != null) {
           content.push({
             type: 'text',
             text: part.text,
