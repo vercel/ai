@@ -1,0 +1,347 @@
+---
+title: Wiro AI
+description: Learn how to use the Wiro AI provider for the AI SDK.
+---
+
+# Wiro AI
+
+[Wiro AI](https://wiro.ai) runs 1,000+ AI models behind one API and one project key: language models from OpenAI, Anthropic, Google, xAI, DeepSeek, Qwen and others on the Wiro LLM gateway, and image, video, speech and transcription models on the Wiro Run API.
+
+The Wiro AI provider for the AI SDK supports:
+
+- **Text generation**: streaming, tool calling, structured output and reasoning settings
+- **Image generation**: text to image, and image editing from your own pictures
+- **Speech**: text-to-speech models and their voices
+- **Transcription**: speech-to-text models, with timings when the model gives them
+- **Video generation**: text to video, or video from a start image
+
+Calls are paid from a prepaid Wiro wallet, and every result reports what the call cost.
+Learn more in the [Wiro AI documentation](https://wiro.ai/docs).
+
+## Setup
+
+The Wiro AI provider is available in the `@wiro-ai/wiro-llm` module. You can install it with:
+
+<InstallPackages packages="@wiro-ai/wiro-llm" />
+
+Create a project at [wiro.ai/panel/project/new](https://wiro.ai/panel/project/new) and set its credential as an environment variable: the API key for an API Key Only project, or `API_KEY:API_SECRET` (the key and the secret joined with a colon) for a Signature project.
+
+```bash
+WIRO_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+You can import the default provider instance `wiro` from `@wiro-ai/wiro-llm`:
+
+```ts
+import { wiro } from '@wiro-ai/wiro-llm';
+```
+
+If you need a customized setup, you can use `createWiro` and create a provider instance with your settings:
+
+```ts
+import { createWiro } from '@wiro-ai/wiro-llm';
+
+const wiro = createWiro({
+  apiKey: process.env.WIRO_API_KEY,
+});
+```
+
+You can use the following optional settings to customize the Wiro AI provider instance:
+
+- **apiKey** _string_
+
+  Your project credential: the API key, or `API_KEY:API_SECRET` for a Signature project.
+  It defaults to the `WIRO_API_KEY` environment variable.
+  For a Signature project, image, speech, transcription and video requests are signed with the secret, and the secret itself is never sent.
+
+- **baseURL** _string_
+
+  The URL of the LLM gateway, which language models use.
+  The default is `https://llm.wiro.ai/v1`.
+
+- **runBaseURL** _string_
+
+  The URL of the Wiro Run API, which image, speech, transcription and video models use.
+  The default is `https://api.wiro.ai/v1`.
+
+- **poll** _\{ intervalMs?: number; timeoutMs?: number \}_
+
+  How image, speech and transcription calls wait for their task.
+  By default the provider checks every 2 seconds at first, then less often, and waits up to 10 minutes.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Language Models
+
+You can create language models using a provider instance.
+The first argument is the model ID, in the lowercase `owner/model` form:
+
+```ts
+const model = wiro('openai/gpt-5-4-nano');
+```
+
+`wiro.languageModel()` and `wiro.chatModel()` return the same model.
+
+### Example
+
+You can use Wiro AI language models to generate text with the `generateText` function:
+
+```ts
+import { wiro } from '@wiro-ai/wiro-llm';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: wiro('openai/gpt-5-4-nano'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+```
+
+Wiro AI language models can also be used in the `streamText` function
+(see [AI SDK Core](/docs/ai-sdk-core)):
+
+```ts
+import { wiro } from '@wiro-ai/wiro-llm';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: wiro('deepseek/v4-1-flash'),
+  prompt: 'Write a two-line poem about routing requests.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Tools and Structured Output
+
+```ts
+import { wiro } from '@wiro-ai/wiro-llm';
+import { generateText, isStepCount, Output, tool } from 'ai';
+import { z } from 'zod';
+
+const { text } = await generateText({
+  model: wiro('openai/gpt-5-4-nano'),
+  tools: {
+    getWeather: tool({
+      description: 'Get the current weather for a city',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ city, temperatureC: 21 }),
+    }),
+  },
+  stopWhen: isStepCount(3),
+  prompt: 'What is the weather in Istanbul right now?',
+});
+
+const { output } = await generateText({
+  model: wiro('openai/gpt-5-4-nano'),
+  output: Output.object({
+    schema: z.object({ name: z.string(), country: z.string() }),
+  }),
+  prompt: 'Give me the largest city in Turkey.',
+});
+```
+
+`Output.object` sends the schema as a `json_schema` response format.
+
+### Provider Options
+
+The following optional provider option is available for Wiro AI language models:
+
+- **reasoningEffort** _string_
+
+  The reasoning effort, sent as `reasoning_effort`, for models that list it in their supported parameters.
+  You can also use the AI SDK `reasoning` option.
+
+```ts
+const { text } = await generateText({
+  model: wiro('openai/gpt-5-4-nano'),
+  providerOptions: { wiro: { reasoningEffort: 'low' } },
+  prompt: 'Is 97 a prime number? Answer yes or no.',
+});
+```
+
+Other keys under `providerOptions.wiro` are added to the request body unchanged, for example `parallel_tool_calls: false`.
+
+<Note>
+  Browse the language models in the [Wiro AI model
+  catalog](https://wiro.ai/models?categories=llm-tool-call), or list them with
+  `GET https://llm.wiro.ai/v1/models`, which also shows each model's tools,
+  structured output modes and limits. You can pass any model ID as a string.
+</Note>
+
+## Image Models
+
+You can create image models with the `.image()` factory method.
+`.imageModel()` returns the same model.
+
+```ts
+import { wiro } from '@wiro-ai/wiro-llm';
+import { generateImage } from 'ai';
+import { writeFile } from 'node:fs/promises';
+
+const { image } = await generateImage({
+  model: wiro.image('pruna/p-image'),
+  prompt: 'A red lighthouse on a rocky coast at dusk',
+  aspectRatio: '16:9',
+  seed: 42,
+});
+
+await writeFile('./lighthouse.jpg', image.uint8Array);
+```
+
+Models name their settings in different ways, such as `aspectRatio` or `ratio`, `samples` or `maxImages`, and `width` and `height` or `resolution`.
+The provider reads each model's settings from Wiro and sends `n`, `size`, `aspectRatio` and `seed` in the form that model takes.
+A value a model does not offer comes back as a warning, and the model's default is used.
+
+### Image Editing
+
+Pass your pictures in `prompt.images` to a model that takes input images:
+
+```ts
+import { wiro } from '@wiro-ai/wiro-llm';
+import { generateImage } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const { image } = await generateImage({
+  model: wiro.image('google/nano-banana'),
+  prompt: {
+    text: 'Turn this photo into a soft watercolor painting',
+    images: [await readFile('./photo.jpg')],
+  },
+});
+```
+
+Images can be bytes, base64 strings or public URLs, and `prompt.mask` goes to models that take a mask.
+
+### Provider Options
+
+Each model's own settings, as listed on its page in the [model catalog](https://wiro.ai/models), go in `providerOptions.wiro` and are sent as they are:
+
+```ts
+const { image } = await generateImage({
+  model: wiro.image('openai/gpt-image-2'),
+  prompt: 'A product photo of a ceramic mug on a linen tablecloth',
+  aspectRatio: '3:2',
+  providerOptions: { wiro: { quality: 'medium' } },
+});
+```
+
+Required settings you leave out get the model's default.
+
+## Speech Models
+
+You can create models that call Wiro AI text-to-speech models using the `.speech()` factory method.
+`.speechModel()` returns the same model.
+
+```ts
+import { wiro } from '@wiro-ai/wiro-llm';
+import { generateSpeech } from 'ai';
+import { writeFile } from 'node:fs/promises';
+
+const { audio } = await generateSpeech({
+  model: wiro.speech('elevenlabs/eleven-v4-turbo'),
+  text: 'Hello from Wiro AI!',
+  voice: 'alice',
+  language: 'en',
+});
+
+await writeFile('./speech.mp3', audio.uint8Array);
+```
+
+`voice` matches a model's voices by ID or by name, and `language` takes ISO 639-1 codes such as `en` or `tr`.
+`outputFormat`, `instructions` and `speed` go to models that have those settings.
+
+## Transcription Models
+
+You can create models that call Wiro AI speech-to-text models using the `.transcription()` factory method.
+`.transcriptionModel()` returns the same model.
+
+```ts
+import { wiro } from '@wiro-ai/wiro-llm';
+import { transcribe } from 'ai';
+import { readFile } from 'node:fs/promises';
+
+const result = await transcribe({
+  model: wiro.transcription('openai/whisper-large-v3'),
+  audio: await readFile('./audio.mp3'),
+});
+
+console.log(result.text);
+console.log(result.segments);
+```
+
+A public audio URL, such as `audio: new URL('https://example.com/talk.mp3')`, goes to Wiro as it is, and Wiro downloads it.
+`timestampGranularities` turns on timestamps for models with a timestamp setting, such as `nvidia/parakeet-tdt-0-6b-v3`.
+
+## Video Models
+
+You can create video models using the `.video()` factory method.
+`.videoModel()` returns the same model.
+
+```ts
+import { wiro } from '@wiro-ai/wiro-llm';
+import { experimental_generateVideo as generateVideo } from 'ai';
+import { writeFile } from 'node:fs/promises';
+
+const { video } = await generateVideo({
+  model: wiro.video('bytedance/seedance-v1-pro-fast'),
+  prompt: 'A paper boat drifting on a calm pond, soft morning light',
+  resolution: '864x480',
+  duration: 5,
+});
+
+await writeFile('./boat.mp4', video.uint8Array);
+```
+
+A start image goes in `prompt: { image, text }`, and `frameImages` with a `last_frame` sets the end frame on models that take one.
+`aspectRatio`, `resolution`, `duration`, `fps`, `seed` and `generateAudio` go to the model's matching settings.
+Video models use the start and status flow, so the `poll` and `webhook` options of `experimental_generateVideo`, `experimental_startVideo` and `experimental_getVideoStatus` work with them.
+
+<Note>
+  Browse the models for each task in the Wiro AI model catalog: [text to
+  image](https://wiro.ai/models?categories=text-to-image), [image
+  editing](https://wiro.ai/models?categories=image-to-image), [text to
+  speech](https://wiro.ai/models?categories=text-to-speech), [speech to
+  text](https://wiro.ai/models?categories=speech-to-text), [text to
+  video](https://wiro.ai/models?categories=text-to-video) and [image to
+  video](https://wiro.ai/models?categories=image-to-video).
+</Note>
+
+## Cost
+
+Every result reports what the call cost, in USD, in `providerMetadata.wiro`:
+
+```ts
+import { wiro } from '@wiro-ai/wiro-llm';
+import { generateText } from 'ai';
+
+const { providerMetadata } = await generateText({
+  model: wiro('openai/gpt-5-4-nano'),
+  prompt: 'Explain what an API gateway does in one sentence.',
+});
+
+console.log(providerMetadata?.wiro?.cost);
+```
+
+Speech, transcription and video results also name their Wiro task in `providerMetadata.wiro.taskId`.
+Image and video results list each file under `providerMetadata.wiro.images` and `providerMetadata.wiro.videos`, with its `taskId`, `cost` and `url`.
+
+## Additional Resources
+
+- [Wiro AI Provider Repository](https://github.com/wiroai/Wiro-LLM)
+- [NPM Package](https://www.npmjs.com/package/@wiro-ai/wiro-llm)
+- [Wiro AI Documentation](https://wiro.ai/docs)
+- [Wiro AI LLM Gateway Documentation](https://wiro.ai/docs/completions-api)
+- [Wiro AI Model Catalog](https://wiro.ai/models)
+- [Wiro AI Dashboard](https://wiro.ai/panel)
