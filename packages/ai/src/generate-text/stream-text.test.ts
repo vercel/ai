@@ -22847,6 +22847,51 @@ describe('streamText', () => {
           },
         });
       });
+
+      it('should not reject when stopStream is called on the last finish-step', async () => {
+        await expectUndefinedUnhandledRejections({
+          fn: async () => {
+            const result = streamText({
+              model: createTestModel({
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: 'Hello' },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              }),
+              prompt: 'test-input',
+              experimental_transform: ({ stopStream }) =>
+                new TransformStream({
+                  transform(chunk, controller) {
+                    controller.enqueue(chunk);
+
+                    if (chunk.type === 'finish-step') {
+                      stopStream();
+                    }
+                  },
+                }),
+            });
+
+            expect(
+              (await convertAsyncIterableToArray(result.stream)).map(
+                chunk => chunk.type,
+              ),
+            ).toEqual([
+              'start',
+              'start-step',
+              'text-start',
+              'text-delta',
+              'text-end',
+              'finish-step',
+            ]);
+          },
+        });
+      });
     });
   });
 
