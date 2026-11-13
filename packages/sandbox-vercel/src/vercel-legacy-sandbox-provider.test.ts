@@ -6,11 +6,14 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createVercelSandbox } from './vercel-legacy-sandbox-provider';
 
-const { createMock, getMock, getOrCreateMock } = vi.hoisted(() => ({
-  createMock: vi.fn(),
-  getMock: vi.fn(),
-  getOrCreateMock: vi.fn(),
-}));
+const { createMock, getMock, getOrCreateMock, snapshotListMock } = vi.hoisted(
+  () => ({
+    createMock: vi.fn(),
+    getMock: vi.fn(),
+    getOrCreateMock: vi.fn(),
+    snapshotListMock: vi.fn(),
+  }),
+);
 
 vi.mock('@vercel/sandbox', () => ({
   Sandbox: {
@@ -18,7 +21,16 @@ vi.mock('@vercel/sandbox', () => ({
     get: getMock,
     getOrCreate: getOrCreateMock,
   },
+  Snapshot: { list: snapshotListMock },
 }));
+
+function createSnapshotPage(snapshots: Array<Record<string, unknown>>) {
+  return {
+    async *[Symbol.asyncIterator]() {
+      yield* snapshots;
+    },
+  };
+}
 
 type MockSpies = {
   domain: ReturnType<typeof vi.fn>;
@@ -40,6 +52,7 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
   const networkPolicy = overrides.networkPolicy;
   const sandbox = {
     name: 'sbx_harness',
+    snapshot: vi.fn(async () => ({ snapshotId: 'snap_123' })),
     domain,
     update,
     runCommand,
@@ -50,6 +63,12 @@ function makeMockSandbox(overrides: Partial<MockSpies> = {}) {
     currentSession: () => ({
       cwd: '/vercel/sandbox',
       networkPolicy,
+      sessionId: 'session',
+    }),
+    listSessions: async () => ({
+      async *[Symbol.asyncIterator]() {
+        yield { id: 'session', networkPolicy: { mode: 'custom' } };
+      },
     }),
   } as unknown as Sandbox;
   return {
@@ -427,6 +446,8 @@ describe('createVercelSandbox (create from scratch)', () => {
     createMock.mockReset();
     getMock.mockReset();
     getOrCreateMock.mockReset();
+    snapshotListMock.mockReset();
+    snapshotListMock.mockResolvedValue(createSnapshotPage([]));
     (
       globalThis as {
         [key: symbol]: Map<string, string> | undefined;
@@ -541,8 +562,10 @@ describe('createVercelSandbox (create from scratch)', () => {
   it('uses an image for a template without forwarding it to snapshot forks', async () => {
     const { sandbox: template } = makeMockSandbox();
     const { sandbox: fork } = makeMockSandbox();
-    Object.assign(template, { currentSnapshotId: 'snap_123' });
-    getOrCreateMock.mockResolvedValueOnce(template);
+    getOrCreateMock.mockImplementationOnce(async options => {
+      await options.onCreate(template);
+      return template;
+    });
     createMock.mockResolvedValueOnce(fork);
 
     await createVercelSandbox({
@@ -565,8 +588,10 @@ describe('createVercelSandbox (create from scratch)', () => {
   it('preserves the explicit template name and caches its snapshot across sessions', async () => {
     const { sandbox: template } = makeMockSandbox();
     const { sandbox: fork } = makeMockSandbox();
-    Object.assign(template, { currentSnapshotId: 'snap_123' });
-    getOrCreateMock.mockResolvedValue(template);
+    getOrCreateMock.mockImplementation(async options => {
+      await options.onCreate(template);
+      return template;
+    });
     createMock.mockResolvedValue(fork);
     const provider = createVercelSandbox({ name: 'explicit-template' });
     const onFirstCreate = vi.fn(async () => {});
@@ -678,15 +703,18 @@ describe('createVercelSandbox (create from scratch)', () => {
   });
 
   it('forwards credentials when polling for a template snapshot', async () => {
-    const { sandbox: template } = makeMockSandbox({
-      stop: vi.fn(async () => ({})),
-    });
-    const { sandbox: refreshedTemplate } = makeMockSandbox();
+    const { sandbox: template } = makeMockSandbox();
     const { sandbox: fork } = makeMockSandbox();
-    Object.assign(template, { currentSnapshotId: undefined });
-    Object.assign(refreshedTemplate, { currentSnapshotId: 'snap_123' });
     getOrCreateMock.mockResolvedValueOnce(template);
-    getMock.mockResolvedValueOnce(refreshedTemplate);
+    snapshotListMock.mockResolvedValueOnce(
+      createSnapshotPage([
+        {
+          id: 'snap_123',
+          status: 'created',
+          creationMethod: 'manual',
+        },
+      ]),
+    );
     createMock.mockResolvedValueOnce(fork);
     const abortController = new AbortController();
 
@@ -700,9 +728,9 @@ describe('createVercelSandbox (create from scratch)', () => {
       onFirstCreate: async () => {},
     });
 
-    expect(getMock).toHaveBeenCalledWith({
+    expect(snapshotListMock).toHaveBeenCalledWith({
       name: 'ai-sdk-harness-template-test',
-      resume: false,
+      sortOrder: 'desc',
       token: 'token_test',
       teamId: 'team_test',
       projectId: 'prj_test',

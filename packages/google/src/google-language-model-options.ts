@@ -35,6 +35,10 @@ export type GoogleModelId =
   | 'gemini-3.6-flash'
   | 'gemini-3.7-flash'
   | 'gemini-3.8-flash'
+  | 'gemini-4-argon'
+  | 'gemini-4-carbon'
+  | 'gemini-4-hydrogen'
+  | 'gemini-nano-banana-2.1'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
@@ -59,7 +63,9 @@ export type GoogleModelId =
 export const googleLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
-      responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).optional(),
+      responseModalities: z
+        .array(z.enum(['TEXT', 'IMAGE', 'AUDIO']))
+        .optional(),
 
       thinkingConfig: z
         .object({
@@ -67,7 +73,7 @@ export const googleLanguageModelOptions = lazySchema(() =>
           includeThoughts: z.boolean().optional(),
           // https://ai.google.dev/gemini-api/docs/gemini-3?thinking=high#thinking_level
           thinkingLevel: z
-            .enum(['minimal', 'low', 'medium', 'high'])
+            .enum(['minimal', 'low', 'medium', 'high', 'xhigh'])
             .optional(),
         })
         .optional(),
@@ -257,6 +263,17 @@ export const googleLanguageModelOptions = lazySchema(() =>
        * `serviceTier` body field. Gemini API only.
        */
       serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),
+
+      /**
+       * Optional. Resumes a response that stopped with `MAX_TOKENS` because it
+       * used up its `maxOutputTokens` budget (Gemini 4 long decode). Pass the
+       * `continuationToken` from the previous response's provider metadata
+       * together with the original prompt and a higher `maxOutputTokens` (the
+       * budget is cumulative across requests). Requests that reach the
+       * per-request cap while budget remains (`CONTINUATION`) are continued
+       * automatically. Sent as the `continuationToken` body field.
+       */
+      continuationToken: z.string().optional(),
 
       /**
        * Optional. Vertex AI only. Sent as the

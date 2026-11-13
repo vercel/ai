@@ -9,7 +9,6 @@ import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { ACPAuthenticationMode, ACPClientApp } from './acp-auth';
-import type { ACPToolCall } from './acp-tool-call';
 import {
   createACPV1,
   type ACPAskUserQuestionsSettings,
@@ -38,7 +37,16 @@ export type ACPHarnessSettings<
    * underlying runtime's native MCP server configuration format.
    */
   readonly mcpServers?: Record<string, unknown>;
-  readonly isMcpToolCall?: (toolCall: ACPToolCall) => boolean;
+  /**
+   * Classifies an ACP tool call that did not resolve to a host tool as a
+   * dynamic MCP tool call.
+   */
+  readonly isMcpToolCall: ACPV1Settings['isMcpToolCall'];
+  /**
+   * Resolves an ACP tool call to the host tool it invokes. Host tools are
+   * exposed to the ACP agent through the harness-owned MCP server.
+   */
+  readonly resolveHostToolCall: ACPV1Settings['resolveHostToolCall'];
   readonly port?: number;
   /**
    * Override the host endpoint used to connect to the sandbox bridge. Required
@@ -46,6 +54,12 @@ export type ACPHarnessSettings<
    */
   readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
+  /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
@@ -65,6 +79,7 @@ export type ACPHarnessSettings<
   readonly credentialEnv?: ACPV1Settings['credentialEnv'];
   readonly credentialBrokering?: ACPV1Settings['credentialBrokering'];
   readonly authenticationFiles?: ACPV1Settings['authenticationFiles'];
+  readonly prepareSandbox?: ACPV1Settings['prepareSandbox'];
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
@@ -84,15 +99,34 @@ export type ACPHarnessSettings<
   readonly outputSchemaMapping?: ACPV1Settings['outputSchemaMapping'];
   /**
    * Transport used for the harness-owned MCP server that exposes host tools to
-   * the ACP implementation. Defaults to `stdio`. Set this to `http` for
-   * implementations that only accept HTTP or SSE MCP servers from the client,
-   * which requires the implementation to advertise
+   * the ACP agent. Defaults to `stdio`. Set this to `http` for
+   * agents that only accept HTTP or SSE MCP servers from the client,
+   * which requires the agent to advertise
    * `agentCapabilities.mcpCapabilities.http`.
    */
   readonly hostToolMcpTransport?: ACPV1Settings['hostToolMcpTransport'];
+  /**
+   * Non-text tool model output the ACP agent can deliver to its
+   * model. Text is always supported. Undeclared image content is omitted
+   * with a warning. Defaults to an empty list.
+   */
+  readonly nonTextContentTypes?: ACPV1Settings['nonTextContentTypes'];
   readonly askUserQuestions?: TAskUserQuestions;
   readonly permissionModeMapping?: ACPV1Settings['permissionModeMapping'];
+  /**
+   * Paths relative to the session working directory (files or directories)
+   * that the ACP agent must not write to without host approval. Under the
+   * `allow-reads` and `allow-edits` permission modes, `edit`, `delete`, and
+   * `move` permission requests touching these paths always require approval.
+   * `.agents/skills` is always protected. `allow-all` is unaffected.
+   */
+  readonly writeProtectedPaths?: ACPV1Settings['writeProtectedPaths'];
   readonly session?: ACPV1Settings['session'];
+  // TODO: Remove in the next major version.
+  /**
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
+   */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
@@ -100,23 +134,19 @@ const ACP_BUILTIN_TOOLS = {} as const satisfies ToolSet;
 
 const acpBridgeCoordsSchema = z.object({
   port: z.number(),
-  token: z.string(),
+  privateKey: z.string(),
   lastSeenEventId: z.number(),
   sandboxId: z.string().optional(),
   stateDir: z.string().optional(),
 });
 
 const acpResumeStateSchema = z.object({
-  implementationIdentity: z.string(),
+  agentIdentity: z.string(),
   authenticationProfile: z
     .object({
       digest: z.string(),
       acpMethodId: z.string().optional(),
-      providerKind: z
-        .enum(['implementation-default', 'direct', 'ai-gateway'])
-        .transform(value =>
-          value === 'implementation-default' ? 'direct' : value,
-        ),
+      providerKind: z.enum(['direct', 'ai-gateway']),
       providerMode: z.enum(['auto', 'direct', 'ai-gateway']).optional(),
       gatewayCredentialSource: z
         .enum(['AI_GATEWAY_API_KEY', 'VERCEL_OIDC_TOKEN'])
@@ -163,25 +193,6 @@ export function createACP<
 >(
   settings: ACPHarnessSettings<TBuiltinTools, TAskUserQuestions>,
 ): HarnessV1<ACPHarnessTools<TBuiltinTools, TAskUserQuestions>> {
-  if (
-    (settings.credentialEnv == null) !==
-    (settings.credentialBrokering == null)
-  ) {
-    throw new Error(
-      'ACP credentialEnv and credentialBrokering must be configured together.',
-    );
-  }
-  if (
-    settings.mcpServers != null &&
-    Object.prototype.hasOwnProperty.call(
-      settings.mcpServers,
-      'ai-sdk-harness-tools',
-    )
-  ) {
-    throw new Error(
-      'ACP MCP server name "ai-sdk-harness-tools" is reserved for HarnessAgent tools.',
-    );
-  }
   const version = (settings as { readonly version?: string }).version ?? 'v1';
   switch (version) {
     case 'v1': {
@@ -200,6 +211,7 @@ export function createACP<
         port: settings.port,
         portEndpoint: settings.portEndpoint,
         startupTimeoutMs: settings.startupTimeoutMs,
+        hostDisconnectTimeoutMs: settings.hostDisconnectTimeoutMs,
         reconnect: settings.reconnect,
         clientApp,
         lifecycleStateSchema: acpResumeStateSchema satisfies z.ZodType<{

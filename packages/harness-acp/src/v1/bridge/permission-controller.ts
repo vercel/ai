@@ -5,29 +5,50 @@ import type {
   RequestPermissionResponse,
   ToolCallUpdate,
 } from '@agentclientprotocol/sdk';
+import type { HostToolCall } from './host-tool-call-resolver';
+import {
+  areACPToolLocationsTrusted,
+  areACPToolWriteLocationsProtected,
+} from './permission-locations';
 
 type PendingPermission = {
   cancel(): void;
 };
+
+/*
+ * Skills in the standardized `.agents/skills` directory are loaded into later
+ * sessions, so agent writes there always require approval outside `allow-all`,
+ * regardless of the adapter's own write-protected paths.
+ */
+const ACP_BUILTIN_WRITE_PROTECTED_PATHS = ['.agents/skills'] as const;
 
 let permissionRequestCounter = 0;
 
 export function createACPPermissionController({
   turn,
   sessionId,
+  workDir,
   permissionMode,
   hasPermissionModeMapping,
+  writeProtectedPaths,
   emitToolCall,
   claimHostToolPermission,
   onHostToolPermissionAllowed,
 }: {
   turn: BridgeTurn;
   sessionId: string;
+  workDir: string;
   permissionMode: HarnessV1PermissionMode;
   hasPermissionModeMapping: boolean;
+  writeProtectedPaths?: ReadonlyArray<string>;
   emitToolCall: (options: { toolCall: ToolCallUpdate }) => void;
-  claimHostToolPermission: (options: { toolCall: ToolCallUpdate }) => boolean;
-  onHostToolPermissionAllowed?: (options: { toolCall: ToolCallUpdate }) => void;
+  claimHostToolPermission: (options: {
+    toolCall: ToolCallUpdate;
+  }) => Promise<HostToolCall | undefined>;
+  onHostToolPermissionAllowed?: (options: {
+    toolCallId: string;
+    call: HostToolCall;
+  }) => void;
 }): {
   requestPermission(
     request: RequestPermissionRequest,
@@ -35,6 +56,11 @@ export function createACPPermissionController({
   cancelAll(): void;
 } {
   const pendingPermissions = new Map<string, PendingPermission>();
+  let cancellationGeneration = 0;
+  const effectiveWriteProtectedPaths = [
+    ...ACP_BUILTIN_WRITE_PROTECTED_PATHS,
+    ...(writeProtectedPaths ?? []),
+  ];
 
   return {
     async requestPermission(request) {
@@ -64,8 +90,16 @@ export function createACPPermissionController({
         });
         return cancelled();
       }
-      if (claimHostToolPermission({ toolCall: request.toolCall })) {
-        onHostToolPermissionAllowed?.({ toolCall: request.toolCall });
+      const generation = cancellationGeneration;
+      const call = await claimHostToolPermission({
+        toolCall: request.toolCall,
+      });
+      if (generation !== cancellationGeneration) return cancelled();
+      if (call != null) {
+        onHostToolPermissionAllowed?.({
+          toolCallId: request.toolCall.toolCallId,
+          call,
+        });
         return {
           outcome: {
             outcome: 'selected',
@@ -73,13 +107,27 @@ export function createACPPermissionController({
           },
         };
       }
-      if (
+      const autoApprove =
         !hasPermissionModeMapping &&
         shouldAutoApprove({
           permissionMode,
           kind: request.toolCall.kind,
-        })
-      ) {
+        }) &&
+        (permissionMode === 'allow-all' ||
+          ((await areACPToolLocationsTrusted({
+            toolCall: request.toolCall,
+            workDir,
+          })) &&
+            !(
+              isWriteKind({ kind: request.toolCall.kind }) &&
+              (await areACPToolWriteLocationsProtected({
+                toolCall: request.toolCall,
+                workDir,
+                writeProtectedPaths: effectiveWriteProtectedPaths,
+              }))
+            )));
+      if (generation !== cancellationGeneration) return cancelled();
+      if (autoApprove) {
         return {
           outcome: {
             outcome: 'selected',
@@ -103,6 +151,12 @@ export function createACPPermissionController({
         approvalId,
         toolCallId: request.toolCall.toolCallId,
       });
+      turn.emit({
+        type: 'finish-step',
+        finishReason: { unified: 'tool-calls', raw: 'host-input' },
+        usage: unknownUsage(),
+        harnessMetadata: { acp: { inferredStep: true } },
+      });
 
       try {
         const response = await Promise.race([approval, cancellation]);
@@ -120,6 +174,7 @@ export function createACPPermissionController({
       }
     },
     cancelAll() {
+      cancellationGeneration += 1;
       for (const pending of pendingPermissions.values()) {
         pending.cancel();
       }
@@ -150,6 +205,26 @@ function shouldAutoApprove({
   );
 }
 
+function isWriteKind({ kind }: { kind: ToolCallUpdate['kind'] }): boolean {
+  return kind === 'edit' || kind === 'delete' || kind === 'move';
+}
+
 function cancelled(): RequestPermissionResponse {
   return { outcome: { outcome: 'cancelled' } };
+}
+
+function unknownUsage() {
+  return {
+    inputTokens: {
+      total: undefined,
+      noCache: undefined,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: undefined,
+      text: undefined,
+      reasoning: undefined,
+    },
+  };
 }

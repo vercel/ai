@@ -58,7 +58,19 @@ export {
   type WaitForBridgeReadyOptions,
   type WaitForBridgeReadyResult,
 } from './bridge-ready';
-export { createBridgeToken, withBridgeToken } from './bridge-token';
+export { BRIDGE_AUTH_PUBLIC_KEY_ENV } from './bridge-auth-protocol';
+export { createBridgeAuthKeyPair, type BridgeAuthKeyPair } from './bridge-auth';
+export {
+  resolveBridgeEndpoint,
+  resolveBridgePort,
+  validateBridgeSandboxSettings,
+  warnMintBridgeTokenIgnored,
+} from './bridge-endpoint';
+export {
+  createBridgeWebSocketConnect,
+  type BridgeHello,
+  type CreateBridgeWebSocketConnectOptions,
+} from './bridge-web-socket';
 export { createReadBridgeAsset } from './bridge-asset';
 export {
   createBridgeErrorHandler,
@@ -70,4 +82,17 @@ export {
 } from './bridge-diagnostics';
 export { resolveSandboxDefaultWorkingDirectory } from './resolve-sandbox-default-working-directory';
 export { getRestrictedSandboxSession } from './get-restricted-sandbox-session';
+export { isSandboxWriteProtectedPath } from './is-sandbox-write-protected-path';
 export { sleep } from './sleep';
+export { normalizeHarnessToolModelOutput } from './normalize-harness-tool-model-output';
+export {
+  harnessPromptContentSchema,
+  extractHarnessPromptContent,
+  type HarnessPromptContent,
+  type HarnessPromptContentPart,
+} from './extract-harness-prompt-content';
+export {
+  convertHarnessToolModelOutput,
+  type HarnessToolModelOutputContent,
+} from './convert-harness-tool-model-output';
+export { encodeHarnessPathSegment } from '../v1/harness-session-data-directory-path';

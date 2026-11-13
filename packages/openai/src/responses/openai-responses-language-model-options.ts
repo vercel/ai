@@ -4,6 +4,7 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { openaiResponsesTextFormatSchema } from './openai-responses-text-format';
 
 /**
  * `top_logprobs` request body argument can be set to an integer between
@@ -59,6 +60,7 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5.6-terra',
   'gpt-6-astra',
   'gpt-6.1-sol',
+  'gpt-6.1-terra',
   'gpt-6-luna',
   'gpt-6-sol',
 ] as const;
@@ -135,6 +137,7 @@ export type OpenAIResponsesModelId =
   | 'gpt-5.6-terra'
   | 'gpt-6-astra'
   | 'gpt-6.1-sol'
+  | 'gpt-6.1-terra'
   | 'gpt-6-luna'
   | 'gpt-6-sol'
   | 'gpt-5-2025-08-07'
@@ -250,12 +253,15 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       /**
        * Prompt cache behavior for GPT-5.6 and later models.
        * `mode` controls whether OpenAI also places an implicit breakpoint.
-       * `ttl` sets the minimum cache lifetime and currently only supports 30 minutes.
+       * `ttl` sets the minimum cache lifetime: `'30m'` (default) or `'12h'`.
+       * `prewarm` writes the prompt to the cache without generating output.
        */
       promptCacheOptions: z
         .object({
           mode: z.enum(['implicit', 'explicit']).optional(),
-          ttl: z.literal('30m').optional(),
+          ttl: z.enum(['30m', '12h']).optional(),
+          prewarm: z.boolean().optional(),
+          comparisonResponseId: z.string().optional(),
         })
         .optional(),
 
@@ -360,6 +366,12 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
 
       /**
+       * Override the request-level text format without changing Output parsing.
+       * Keep this initial format stable when replaying textFormatUpdate messages.
+       */
+      textFormat: openaiResponsesTextFormatSchema().optional(),
+
+      /**
        * Controls output truncation. 'auto' (default) performs truncation automatically;
        * 'disabled' turns truncation off.
        */
@@ -450,6 +462,15 @@ export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
       reasoningEffortUpdate: z
         .enum(['none', 'low', 'medium', 'high', 'xhigh', 'max'])
         .optional(),
+      /**
+       * Replace the response format at this position in history. Requires empty
+       * system message content and the same compatibility as reasoning updates.
+       */
+      textFormatUpdate: openaiResponsesTextFormatSchema().optional(),
+      /** Tool definitions to load at this position in history. Requires empty system message content. */
+      additionalTools: z
+        .array(openaiResponsesAdditionalToolSchema())
+        .optional(),
     }),
   ),
 );
@@ -457,3 +478,56 @@ export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
 export type OpenAIResponsesSystemMessageOptions = InferSchema<
   typeof openaiResponsesSystemMessageOptionsSchema
 >;
+
+export const openaiResponsesToolResultOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /** Tool definitions to load immediately after this ordinary tool result. */
+      additionalTools: z
+        .array(openaiResponsesAdditionalToolSchema())
+        .optional(),
+    }),
+  ),
+);
+
+export type OpenAIResponsesToolResultOptions = InferSchema<
+  typeof openaiResponsesToolResultOptionsSchema
+>;
+
+function openaiResponsesFunctionToolDefinitionSchema() {
+  return z.strictObject({
+    type: z.literal('function'),
+    name: z.string().min(1),
+    description: z.string().optional(),
+    parameters: z.record(z.string(), z.json()),
+    strict: z.boolean().optional(),
+    defer_loading: z.boolean().optional(),
+  });
+}
+
+function openaiResponsesAdditionalToolSchema() {
+  return z.discriminatedUnion('type', [
+    openaiResponsesFunctionToolDefinitionSchema(),
+    z.strictObject({
+      type: z.literal('custom'),
+      name: z.string().min(1),
+      description: z.string().optional(),
+      format: z
+        .discriminatedUnion('type', [
+          z.strictObject({ type: z.literal('text') }),
+          z.strictObject({
+            type: z.literal('grammar'),
+            syntax: z.enum(['regex', 'lark']),
+            definition: z.string(),
+          }),
+        ])
+        .optional(),
+    }),
+    z.strictObject({
+      type: z.literal('namespace'),
+      name: z.string().min(1),
+      description: z.string(),
+      tools: z.array(openaiResponsesFunctionToolDefinitionSchema()).min(1),
+    }),
+  ]);
+}

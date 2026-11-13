@@ -127,6 +127,9 @@
       "path": "packages/harness"
     },
     {
+      "path": "packages/heygen"
+    },
+    {
       "path": "packages/huggingface"
     },
     {
@@ -169,6 +172,9 @@
       "path": "packages/otel"
     },
     {
+      "path": "packages/parallel"
+    },
+    {
       "path": "packages/perplexity"
     },
     {
@@ -205,13 +211,25 @@
       "path": "packages/sandbox-vercel"
     },
     {
+      "path": "packages/scaledown"
+    },
+    {
       "path": "packages/svelte"
+    },
+    {
+      "path": "packages/tencent"
     },
     {
       "path": "packages/test-server"
     },
     {
       "path": "packages/togetherai"
+    },
+    {
+      "path": "packages/tool-bash"
+    },
+    {
+      "path": "packages/tool-web-fetch"
     },
     {
       "path": "packages/topaz"

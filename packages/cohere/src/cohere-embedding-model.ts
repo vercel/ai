@@ -3,6 +3,8 @@ import {
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
@@ -19,11 +21,15 @@ import {
   type CohereEmbeddingModelOptions,
 } from './cohere-embedding-model-options';
 import { cohereFailedResponseHandler } from './cohere-error';
+import {
+  cohereEmbeddingModelLimits,
+  getCohereEmbeddingModelEntry,
+} from './cohere-model-catalog';
 
 type CohereEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string | undefined>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -31,8 +37,8 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly modelId: CohereEmbeddingModelId;
 
-  readonly maxEmbeddingsPerCall = 96;
-  readonly supportsParallelCalls = true;
+  readonly maxEmbeddingsPerCall: number;
+  readonly supportsParallelCalls: boolean;
 
   private readonly config: CohereEmbeddingConfig;
 
@@ -52,6 +58,11 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
 
   constructor(modelId: CohereEmbeddingModelId, config: CohereEmbeddingConfig) {
     this.modelId = modelId;
+    const limits =
+      getCohereEmbeddingModelEntry(modelId).capabilities.embedding ??
+      cohereEmbeddingModelLimits;
+    this.maxEmbeddingsPerCall = limits.maxEmbeddingsPerCall;
+    this.supportsParallelCalls = limits.supportsParallelCalls;
     this.config = config;
   }
 
@@ -61,6 +72,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -72,7 +84,10 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
       providerOptions,
       schema: cohereEmbeddingModelOptions,
     });
-    const embeddingType = embeddingOptions?.embeddingType ?? 'float';
+    const defaults = getCohereEmbeddingModelEntry(this.modelId).requestConfig
+      .embedding;
+    const embeddingType =
+      embeddingOptions?.embeddingType ?? defaults.embeddingType;
 
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
@@ -89,14 +104,14 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/embed`,
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         embedding_types: [embeddingType],
         texts: values,
-        input_type: embeddingOptions?.inputType ?? 'search_query',
+        input_type: embeddingOptions?.inputType ?? defaults.inputType,
         truncate: embeddingOptions?.truncate,
-        output_dimension: embeddingOptions?.outputDimension,
+        output_dimension: embeddingOptions?.outputDimension ?? dimensions,
       },
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

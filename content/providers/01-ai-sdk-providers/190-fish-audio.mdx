@@ -1,32 +1,64 @@
 ---
 title: Fish Audio
-description: Learn how to use the Fish Audio provider for the AI SDK.
+description: Learn how to use Fish Audio with AI Gateway and the direct provider.
 ---
 
 # Fish Audio Provider
 
 The [Fish Audio](https://fish.audio/) provider contains speech generation (S1 and
 S2 models) and speech-to-text transcription support.
+You can use Fish Audio models through [AI Gateway](/providers/ai-sdk-providers/ai-gateway) (recommended) or connect directly with `@ai-sdk/fish-audio`.
 
-## Setup
+```ts provider="fish-audio" model="fish-audio/s2.1-pro"
+import { generateSpeech } from 'ai';
+__PROVIDER_IMPORT__;
+import { writeFile } from 'node:fs/promises';
 
-The Fish Audio provider is available in the `@ai-sdk/fish-audio` module. You can install it with
+const { audio } = await generateSpeech({
+  model: __SPEECH_MODEL__,
+  text: 'Hello, world!',
+  outputFormat: 'mp3',
+});
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/fish-audio" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/fish-audio" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/fish-audio" dark />
-  </Tab>
+await writeFile('speech.mp3', audio.uint8Array);
+```
 
-  <Tab>
-    <Snippet text="bun add @ai-sdk/fish-audio" dark />
-  </Tab>
-</Tabs>
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+Gateway feature and provider-option support depends on the model and the provider serving the request. See [Gateway provider options](https://vercel.com/docs/ai-gateway/models-and-providers/provider-options).
+
+## Using `@ai-sdk/fish-audio`
+
+For direct access to Fish Audio, install `ai` and `@ai-sdk/fish-audio`:
+
+<InstallPackages packages="ai @ai-sdk/fish-audio" />
+
+Set your Fish Audio API credential in the `FISH_AUDIO_API_KEY` environment variable:
+
+```bash
+export FISH_AUDIO_API_KEY=your_api_key_here
+```
+
+AI Gateway does not expose every API in `@ai-sdk/fish-audio`. Use the direct provider for provider-specific APIs or custom connection settings.
+
+<Note>
+  The following sections document the direct `@ai-sdk/fish-audio` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -49,7 +81,10 @@ const fishAudio = createFishAudio({
 
 You can use the following optional settings to customize the Fish Audio provider instance:
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a synchronous or asynchronous callback to resolve the key before each
+  request. The callback is responsible for caching and refreshing credentials.
 
   API key that is being sent using the `Authorization` header.
   It defaults to the `FISH_AUDIO_API_KEY` environment variable.
@@ -246,12 +281,17 @@ value falls back to `mp3` and produces a warning.
 
 ### Model Capabilities
 
-| Model           | Multi-Speaker       | Notes                                                                     |
-| --------------- | ------------------- | ------------------------------------------------------------------------- |
-| `s1`            |                     | Ignores `normalizeLoudness`                                               |
-| `s2-pro`        | <Check size={18} /> | Supports `normalizeLoudness`                                              |
-| `s2.1-pro`      | <Check size={18} /> | Recommended default; supports `normalizeLoudness`                         |
-| `s2.1-pro-free` |                     | Free developer tier; no time-to-first-audio or data-processing guarantees |
+{/* model-capabilities:fish-audio-speech:start */}
+
+| Model      | Multi-Speaker | Loudness Normalization | Instructions |
+| ---------- | ------------- | ---------------------- | ------------ |
+| `s1`       | <Cross />     | <Cross />              | <Cross />    |
+| `s2-pro`   | <Check />     | <Check />              | <Cross />    |
+| `s2.1-pro` | <Check />     | <Check />              | <Cross />    |
+
+{/* model-capabilities:fish-audio-speech:end */}
+
+`s2.1-pro` is the recommended default. The `s2.1-pro-free` developer tier has no time-to-first-audio or data-processing guarantees; multi-speaker and loudness-normalization support are not declared here.
 
 <Note>
   Streaming text-to-speech (Fish Audio's TTS-live WebSocket and timestamped
@@ -341,6 +381,38 @@ console.log(result.providerMetadata?.fishAudio?.language); // 'English'
 
 ### Model Capabilities
 
-| Model          | Transcription       | Duration            | Segments            | Language            |
-| -------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `transcribe-1` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+{/* model-capabilities:fish-audio-transcription:start */}
+
+| Model          | Transcription | Streaming | Duration  | Segments                                               | Language  |
+| -------------- | ------------- | --------- | --------- | ------------------------------------------------------ | --------- |
+| `transcribe-1` | <Check />     | <Cross /> | <Check /> | Conditional: Returned unless ignoreTimestamps is true. | <Check /> |
+
+{/* model-capabilities:fish-audio-transcription:end */}
+
+### Provider Option Catalog
+
+{/* model-capabilities:fish-audio-provider-options:start */}
+
+| Operation     | Option                      | Description                                                                                                                                                                                                                                                                                                                              |
+| ------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| speech        | `referenceId`               | Voice model ID(s). A single ID selects one speaker; an array enables multi-speaker dialogue (S2-Pro models), in which case the text must mark turns with speaker tokens such as `<\|speaker:0\|>`. The speaker index maps to the position in this array. Takes precedence over the top-level `voice` option.                             |
+| speech        | `sampleRate`                | Output sample rate in Hz. Falls back to the format default when unset (44100 Hz for wav/pcm/mp3, 48000 Hz for opus).                                                                                                                                                                                                                     |
+| speech        | `mp3Bitrate`                | Bitrate in kbps for mp3 output. Ignored for other formats.                                                                                                                                                                                                                                                                               |
+| speech        | `opusBitrate`               | Bitrate in bps for opus output, where `-1000` selects automatic. Ignored for other formats.                                                                                                                                                                                                                                              |
+| speech        | `latency`                   | Latency/quality tradeoff. `normal` gives the best quality, `balanced` reduces latency, and `low` is the fastest.                                                                                                                                                                                                                         |
+| speech        | `volume`                    | Volume offset in dB. Negative values are quieter.                                                                                                                                                                                                                                                                                        |
+| speech        | `normalizeLoudness`         | Loudness normalization. Supported by the S2 family (`s2-pro` and `s2.1-pro`). Fish Audio accepts it on `s1` but ignores it, so the provider emits a warning in that case.                                                                                                                                                                |
+| speech        | `temperature`               | Governs expressiveness. Higher values are more varied, lower values more consistent.                                                                                                                                                                                                                                                     |
+| speech        | `topP`                      | Controls diversity via nucleus sampling.                                                                                                                                                                                                                                                                                                 |
+| speech        | `chunkLength`               | Text segment size for processing.                                                                                                                                                                                                                                                                                                        |
+| speech        | `minChunkLength`            | Minimum characters before splitting into a new chunk.                                                                                                                                                                                                                                                                                    |
+| speech        | `normalize`                 | Text normalization for English and Chinese. Helps stability with numbers.                                                                                                                                                                                                                                                                |
+| speech        | `maxNewTokens`              | Maximum audio tokens to generate per text chunk.                                                                                                                                                                                                                                                                                         |
+| speech        | `repetitionPenalty`         | Values above 1.0 discourage repeated audio patterns.                                                                                                                                                                                                                                                                                     |
+| speech        | `conditionOnPreviousChunks` | Reuse prior audio as context for voice consistency across chunks.                                                                                                                                                                                                                                                                        |
+| speech        | `earlyStopThreshold`        | Early-stop threshold used in batch processing.                                                                                                                                                                                                                                                                                           |
+| speech        | `features`                  | Request-scoped flags passed through to the inference backend, e.g. `['quality-guard']`.                                                                                                                                                                                                                                                  |
+| transcription | `language`                  | Language of the audio. A hint only. Fish Audio passes it to the model, but auto-detection is authoritative and overrides it, so this changes neither the transcript nor the reported language. The detected language is reported as `result.language`.                                                                                   |
+| transcription | `ignoreTimestamps`          | Whether to skip precise timestamps. Mirrors the Fish Audio `ignore_timestamps` parameter, whose API default is `true`. This provider defaults it to `false` so that `result.segments` is populated. Fish Audio documents an added latency cost for audio shorter than 30 seconds; set this to `true` to trade segments for that latency. |
+
+{/* model-capabilities:fish-audio-provider-options:end */}

@@ -58,7 +58,7 @@ System messages in `prompt` or `messages` are rejected by default; use the `inst
 const result = await generateText({
   model: __MODEL__,
   instructions:
-    `You help planning travel itineraries. ` +
+    `You help plan travel itineraries. ` +
     `Respond to the users' request with a list ` +
     `of the best stops to make in their destination.`,
   prompt:
@@ -262,6 +262,10 @@ const result = await generateText({
 
 ##### Example: Image URL (string)
 
+For untrusted image URLs, configure a [guarded download
+transport](#custom-download-function-experimental) before downloading them on
+your server.
+
 ```ts highlight="8-12"
 const result = await generateText({
   model: __MODEL__,
@@ -306,6 +310,9 @@ User messages can include file parts. A file can be one of the following:
   - `URL` object, e.g. `new URL('https://example.com/some.pdf')`
 
 You need to specify the MIME type of the file you are sending.
+
+The same [URL download protections](#custom-download-function-experimental)
+apply when your server downloads remote file parts.
 
 ##### Example: PDF file from Buffer
 
@@ -358,6 +365,14 @@ const result = await generateText({
 
 #### Custom Download Function (Experimental)
 
+<Note type="warning">
+  The default download only validates the URL itself; it does not check what a
+  hostname resolves to. When your server downloads URLs supplied by users,
+  models, or tools on Node.js, pass a `guarded-fetch` transport via
+  `experimental_download: createDownload({fetch})`. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
+</Note>
+
 You can use custom download functions to implement throttling, retries, authentication, caching, and more.
 
 The default download implementation automatically downloads files in parallel when they are not supported by the model.
@@ -371,6 +386,7 @@ const result = await generateText({
     requestedDownloads: Array<{
       url: URL;
       isUrlSupportedByModel: boolean;
+      abortSignal?: AbortSignal;
     }>,
   ): PromiseLike<
     Array<{
@@ -378,7 +394,8 @@ const result = await generateText({
       mediaType: string | undefined;
     } | null>
   > => {
-    // ... download the files and return an array with similar order
+    // Forward each abortSignal to your fetch implementation, and return the
+    // downloaded files in the same order.
   },
   messages: [
     {
@@ -481,7 +498,7 @@ const result = await generateText({
 });
 ```
 
-### Tool messages
+### Tool Messages
 
 <Note>
   [Tools](/docs/foundations/tools) (also known as function calling) are programs
@@ -616,7 +633,7 @@ const result = await generateText({
   model: __MODEL__,
   allowSystemInMessages: true,
   messages: [
-    { role: 'system', content: 'You help planning travel itineraries.' },
+    { role: 'system', content: 'You help plan travel itineraries.' },
     {
       role: 'user',
       content:

@@ -1,11 +1,18 @@
 import type { LanguageModelV4FinishReason } from '@ai-sdk/provider';
 
-export function mapOpenAIFinishReason(
-  finishReason: string | null | undefined,
-): LanguageModelV4FinishReason['unified'] {
+export function mapOpenAIFinishReason({
+  finishReason,
+  hasRefusal = false,
+}: {
+  finishReason: string | null | undefined;
+  // flag that checks if the model refused to answer:
+  hasRefusal?: boolean;
+}): LanguageModelV4FinishReason['unified'] {
   switch (finishReason) {
     case 'stop':
-      return 'stop';
+      // OpenAI reports a completed response for refusals, so the refusal is
+      // the reason the response ended:
+      return hasRefusal ? 'content-filter' : 'stop';
     case 'length':
       return 'length';
     case 'content_filter':

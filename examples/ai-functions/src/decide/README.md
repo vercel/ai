@@ -29,6 +29,7 @@ from `examples/ai-functions`.
 | ----------------- | ------------------------------ |
 | Vercel AI Gateway | `AI_GATEWAY_API_KEY`           |
 | TypeSafe AI       | `TYPESAFE_AI_API_KEY`          |
+| Perplexity        | `PERPLEXITY_API_KEY`           |
 | OpenAI            | `OPENAI_API_KEY`               |
 | Anthropic         | `ANTHROPIC_API_KEY`            |
 | Google            | `GOOGLE_GENERATIVE_AI_API_KEY` |
@@ -44,30 +45,33 @@ pnpm tsx src/decide/gateway/basic.ts
 All paths below are relative to this directory. Run any script with
 `pnpm tsx src/decide/<path>` from `examples/ai-functions`.
 
-| Example                                                                  | Demonstrates                                                                                            |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| [mock/basic.ts](./mock/basic.ts)                                         | Return a fixed boolean probability with a mock decision model.                                          |
-| [gateway/basic.ts](./gateway/basic.ts)                                   | Decide answers to Choice, Score, and Boolean questions with Jev through AI Gateway.                     |
-| [typesafe-ai/basic.ts](./typesafe-ai/basic.ts)                           | Call Jev directly through the TypeSafe AI provider and inspect answers, usage, and provider metadata.   |
-| [typesafe-ai/structured-rubrics.ts](./typesafe-ai/structured-rubrics.ts) | Use JSON objects and arrays in state, instructions, and criteria.                                       |
-| [typesafe-ai/registry.ts](./typesafe-ai/registry.ts)                     | Register a custom model alias and route answers using probability thresholds.                           |
-| [typesafe-ai/error-handling.ts](./typesafe-ai/error-handling.ts)         | Submit oversized state and inspect `APICallError` details if the provider rejects it.                   |
-| [openai/basic.ts](./openai/basic.ts)                                     | Decide answers to all three question types with OpenAI.                                                 |
-| [openai/default-provider.ts](./openai/default-provider.ts)               | Configure a global default provider and resolve a decision model by alias.                              |
-| [anthropic/basic.ts](./anthropic/basic.ts)                               | Decide answers to all three question types with Anthropic.                                              |
-| [google/basic.ts](./google/basic.ts)                                     | Decide answers to all three question types with Google and configure thinking through provider options. |
+| Example                                                                  | Demonstrates                                                                                          |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| [mock/basic.ts](./mock/basic.ts)                                         | Return a fixed boolean probability with a mock decision model.                                        |
+| [gateway/basic.ts](./gateway/basic.ts)                                   | Decide answers to Choice, Score, and Boolean questions with Jev through AI Gateway.                   |
+| [typesafe-ai/basic.ts](./typesafe-ai/basic.ts)                           | Call Jev directly through the TypeSafe AI provider and inspect answers, usage, and provider metadata. |
+| [typesafe-ai/structured-rubrics.ts](./typesafe-ai/structured-rubrics.ts) | Use JSON objects and arrays in state, instructions, and criteria.                                     |
+| [typesafe-ai/registry.ts](./typesafe-ai/registry.ts)                     | Register a custom model alias and route answers using probability thresholds.                         |
+| [typesafe-ai/error-handling.ts](./typesafe-ai/error-handling.ts)         | Submit oversized state and inspect `APICallError` details if the provider rejects it.                 |
+| [perplexity/basic.ts](./perplexity/basic.ts)                             | Decide answers to Boolean, Choice, and Score questions with Perplexity.                               |
+| [perplexity/criteria-only.ts](./perplexity/criteria-only.ts)             | Omit instructions or set them to null, using structured criteria to describe the decision.            |
+| [perplexity/single-level-score.ts](./perplexity/single-level-score.ts)   | Use a single Score level and inspect its zero score, probability, and legend.                         |
+| [openai/basic.ts](./openai/basic.ts)                                     | Decide answers to all three question types with OpenAI.                                               |
+| [openai/default-provider.ts](./openai/default-provider.ts)               | Configure a global default provider and resolve a decision model by alias.                            |
+| [anthropic/basic.ts](./anthropic/basic.ts)                               | Decide answers to all three question types with Anthropic.                                            |
+| [google/basic.ts](./google/basic.ts)                                     | Call Gemini Decisions directly and inspect native probabilities and confidence.                       |
 
 ## Interpreting results
 
-TypeSafe AI provides native decisions. The OpenAI, Anthropic, and Google
-adapters use structured language-model output and decide all answers in one
-prompt. Their boolean probabilities are prompted estimates; Choice and Score
-answers do not include probability distributions.
+TypeSafe AI, OpenAI, Perplexity, and Google provide native decisions.
+The Anthropic adapter uses structured language-model output and evaluates all
+questions in one prompt. Its boolean probabilities are prompted estimates;
+Choice and Score answers do not include probability distributions.
 
 Choice and Score distributions are optional in the shared API. Check for their
 presence before using them, and choose routing thresholds using labeled data
 from your application. A boolean probability estimates whether the statement is
-true; it is not confidence in either outcome. TypeSafe's separate Choice/Score
+true; it is not confidence in either outcome. TypeSafe's and OpenAI's separate Choice/Score
 confidence statistic is available in `providerMetadata`.
 
 ## Related resources

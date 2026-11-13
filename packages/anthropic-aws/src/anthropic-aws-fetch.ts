@@ -1,5 +1,8 @@
+import { LoadAPIKeyError } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  resolve,
+  type Resolvable,
   normalizeHeaders,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
@@ -73,7 +76,9 @@ export function createSigV4FetchFunction(
     const signer = new AwsV4Signer({
       url,
       method: 'POST',
-      headers: Object.entries(headersWithUserAgent),
+      headers: Object.entries(headersWithUserAgent).filter(([, value]) =>
+        isAscii(value),
+      ),
       body,
       region: credentials.region,
       accessKeyId: credentials.accessKeyId,
@@ -106,6 +111,10 @@ function prepareBodyString(body: BodyInit | undefined): string {
   }
 }
 
+function isAscii(value: string): boolean {
+  return !/[\u0080-\uffff]/.test(value);
+}
+
 /**
  * Creates a fetch function that applies x-api-key header authentication.
  *
@@ -114,7 +123,7 @@ function prepareBodyString(body: BodyInit | undefined): string {
  * @returns A FetchFunction that adds the x-api-key header to requests.
  */
 export function createApiKeyFetchFunction(
-  apiKey: string,
+  apiKey: Resolvable<string>,
   fetch?: FetchFunction,
 ): FetchFunction {
   return async (
@@ -129,8 +138,18 @@ export function createApiKeyFetchFunction(
       getRuntimeEnvironmentUserAgent(),
     );
 
+    const resolvedApiKey = await resolve(apiKey);
+    if (
+      typeof apiKey !== 'string' &&
+      (typeof resolvedApiKey !== 'string' || !resolvedApiKey.trim())
+    ) {
+      throw new LoadAPIKeyError({
+        message: 'Anthropic AWS API key must be a non-empty string.',
+      });
+    }
+
     const finalHeaders = combineHeaders(headersWithUserAgent, {
-      'x-api-key': apiKey,
+      'x-api-key': resolvedApiKey,
     });
 
     return effectiveFetch(input, {

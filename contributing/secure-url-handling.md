@@ -31,6 +31,15 @@ explicit `validateUrl`.
 > If the host, or anything beyond a path segment, comes from a response body,
 > or an authenticated poll must validate redirects → `validateUrl: true`.
 
+## Identifiers in URL paths
+
+Use `encodePathSegment` from `@ai-sdk/provider-utils` when inserting a raw
+identifier into a URL path. It encodes separators, query and fragment markers,
+and standalone `.` / `..` segments that URL parsers would otherwise normalize.
+Pass unencoded values. For resource names with intentional slashes, encode each
+segment separately with `resourceName.split('/').map(encodePathSegment).join('/')`;
+the provider must still validate the resource name's expected structure.
+
 ## Self-hosted deployments: `trustedOrigin`
 
 A response URL often points back at the developer-configured endpoint itself
@@ -77,8 +86,8 @@ await getFromApi({
 ## Direct fetch helpers
 
 Use `fetchUntrustedUrl` from `@ai-sdk/provider-utils` for direct fetches of
-response-supplied or otherwise untrusted URLs. It shares URL validation, DNS
-pinning, and redirect handling with `fetchWithValidatedRedirects`, but adds
+response-supplied or otherwise untrusted URLs. It shares URL validation and
+redirect handling with `fetchWithValidatedRedirects`, but adds
 first-hop credential isolation. Without a matching `credentialedOrigin` or,
 when that option is omitted, a matching `trustedOrigin`, it sends only an
 allowlist of non-credential request metadata such as content negotiation, range,
@@ -116,23 +125,32 @@ await fetchUntrustedUrl({
 
 ## DNS validation and deployment hardening
 
-On Node.js, the default validated download fetch resolves all DNS records
-inside an `undici` connector hook, rejects the entire result if any address is
-private/internal, and returns those exact records to the connector. This pins
-the connection to the validated result and prevents DNS rebinding.
+The default download transport uses the configured fetch or the runtime's global
+fetch. URL checks do not resolve DNS: public-looking hostnames resolving to
+private addresses and DNS rebinding are outside the default protection.
 
-Node-compatible `process` objects in Bun, Deno, Cloudflare Workers, and framework
-edge runtimes do not opt into this Node-only transport. Workers process-v2
-[reports a Node release but a `workerd` title](https://github.com/cloudflare/workerd/blob/main/src/node/internal/public_process.ts),
-and its [`dns.lookup` is not implemented](https://developers.cloudflare.com/workers/runtime-apis/nodejs/dns/).
-Deno's Node-compatible process exposes
-[`versions.deno`](https://github.com/denoland/deno/blob/main/ext/node/polyfills/_process/process.ts).
+Recommend `createGuardedFetch()` from `guarded-fetch` for applications
+fetching URLs supplied by users, models, tools, or external services on Node.js,
+unless the application controls the destinations or already enforces equivalent
+SSRF protection. Authentication alone does not make a user-supplied URL trusted.
+The transport validates all DNS results inside an Undici connector and passes
+those same results to the socket. A separate DNS lookup before calling fetch
+does not protect the connection from a subsequent DNS change. Applications can
+instead (or additionally) enforce network egress restrictions. Other server
+runtimes need equivalent platform or transport controls.
 
-Global `fetch` wrappers do not replace this protected Node.js transport. An
-explicitly injected custom `fetch` must provide equivalent connect-time
-validation. Other server runtimes should restrict network egress
-because the Node DNS and socket hooks are unavailable there. The user-facing
-explanation lives in:
+Always propagate `this.config.fetch` (or the equivalent provider setting) into
+download and polling helpers, including `downloadBlob`. Otherwise applications
+cannot apply their chosen transport to those requests. Pass the underlying
+configured transport, not an API wrapper that adds credentials to every request;
+the URL helpers must remain in control of which origins receive credentials.
+Core file downloads (prompt files, generated files, transcription audio, and
+video results) go through `createDownload({ fetch })`, which users pass as the
+`download` or `experimental_download` option.
+
+Core and providers must not import `guarded-fetch` or depend on Undici for the
+default download path; the transport is the application's choice. The
+user-facing configuration and limitations live in
 [Secure URL Fetching](../content/docs/06-advanced/11-secure-url-fetching.mdx).
 
 ## Settings inserted into generated hostnames

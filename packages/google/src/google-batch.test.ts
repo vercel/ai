@@ -827,6 +827,41 @@ describe('GoogleBatch', () => {
     ).resolves.toMatchObject({ requestCounts });
   });
 
+  it.each([16, 4096])(
+    'applies the factory maxLineBytes setting of %s',
+    async maxLineBytes => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: operation({ output: { responsesFile: 'files/batch-output' } }),
+      };
+      server.urls[urls.output].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({
+            key: 'france',
+            response: googleResponse({ id: 'response-france', text: 'Paris' }),
+          }) + '\n',
+        ],
+      };
+      const batch = createGoogle({
+        apiKey: 'test-api-key',
+        batchResultDownloads: { maxLineBytes },
+      }).experimental_batch();
+      const stream = await batch.doGetBatchResults({
+        batchId: 'batches/batch-123',
+      });
+      const results = convertReadableStreamToArray(stream);
+      if (maxLineBytes === 16) {
+        await expect(results).rejects.toMatchObject({
+          name: 'AI_DownloadError',
+          url: urls.output,
+        });
+      } else {
+        await expect(results).resolves.toHaveLength(1);
+      }
+    },
+  );
+
   it('streams successful and failed results across JSONL chunk boundaries', async () => {
     const usageMetadata = {
       promptTokenCount: 10,

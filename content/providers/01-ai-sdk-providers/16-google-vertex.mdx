@@ -1,11 +1,70 @@
 ---
 title: Google Vertex AI
-description: Learn how to use the Google Vertex AI provider.
+description: Learn how to use Google Vertex AI with AI Gateway and the direct provider.
 ---
 
 # Google Vertex Provider
 
 The Google Vertex provider for the [AI SDK](/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs. This includes support for [Google's Gemini models](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models), [Anthropic's Claude partner models](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude), [xAI's Grok partner models](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/grok), and [MaaS (Model as a Service) open models](https://cloud.google.com/vertex-ai/generative-ai/docs/maas/use-open-models).
+Start with [AI Gateway](/providers/ai-sdk-providers/ai-gateway) for models in its catalog (recommended), or use `@ai-sdk/google-vertex` to connect directly to Google Vertex AI.
+
+```ts provider="google-vertex" model="google/gemini-4-argon"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  __GATEWAY_OPTIONS__,
+});
+
+console.log(text);
+```
+
+## Using AI Gateway
+
+The AI SDK uses AI Gateway by default for model strings. Gateway provides access to models across providers through a single API key, with usage and cost tracking. Install `ai`:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [AI Gateway provider documentation](/providers/ai-sdk-providers/ai-gateway) for configuration and the [model catalog](https://vercel.com/ai-gateway/models) for available models.
+
+The example sets `providerOptions.gateway.order` to `['vertex']`. This sends the request to Google Vertex AI first, then falls back to other available providers of the same model if Google Vertex AI is unavailable or the request fails. `order` sets a preference; it does not restrict fallback to Google Vertex AI. See [provider ordering](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+The dropdown lists models served by Google Vertex AI through Gateway with a corresponding direct-provider example. Provider availability depends on the model and your team's [Provider Allowlist](https://vercel.com/docs/ai-gateway/models-and-providers/provider-filtering-and-ordering).
+
+Gateway uses the `vertex` route for Gemini on Google Vertex AI and handles Google Cloud authentication. The example does not use your `GOOGLE_VERTEX_PROJECT`, location, or service-account credentials; use the direct provider to connect to your own project.
+
+## Using `@ai-sdk/google-vertex`
+
+For direct access to Google Vertex AI, install `ai` and `@ai-sdk/google-vertex`:
+
+<InstallPackages packages="ai @ai-sdk/google-vertex" />
+
+Set your Google Cloud project, location, and the path to your service-account credentials file:
+
+```bash
+export GOOGLE_VERTEX_PROJECT=your_project_id
+export GOOGLE_VERTEX_LOCATION=us-central1
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
+```
+
+The Node.js provider uses Google Application Default Credentials. You can also authenticate locally with `gcloud auth application-default login`. See the runtime sections below for Edge and Express Mode authentication.
+
+Use the direct provider for Google Cloud authentication, Vertex deployments, partner models, or Vertex-specific APIs. Gateway requests do not use your project configuration.
+
+<Note>
+  The following sections document the direct `@ai-sdk/google-vertex` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 <Note>
   The Google Vertex provider is compatible with both Node.js and Edge runtimes.
@@ -15,12 +74,6 @@ The Google Vertex provider for the [AI SDK](/docs) contains language model suppo
   Runtime](#google-vertex-anthropic-edge-runtime), and [Google Vertex MaaS Edge
   Runtime](#google-vertex-maas-edge-runtime) sections below.
 </Note>
-
-## Setup
-
-The Google Vertex, Google Vertex Anthropic, Google Vertex xAI, and Google Vertex MaaS providers are available in the `@ai-sdk/google-vertex` module. You can install it with
-
-<InstallPackages packages="@ai-sdk/google-vertex" />
 
 ## Google Vertex Provider Usage
 
@@ -239,7 +292,12 @@ const googleVertex = createGoogleVertex({
 
 ##### Optional Provider Settings
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a callback to resolve the API key before each request. The callback can
+  return a string or a promise; token caching and renewal are handled by the caller.
+  A callback or promise selects API key authentication and must resolve to a
+  non-empty string; lookup failures do not switch authentication methods.
 
   The API key for Google Vertex AI. When provided, the provider uses express mode with API key authentication instead of OAuth.
   It uses the `GOOGLE_VERTEX_API_KEY` environment variable by default.
@@ -711,7 +769,44 @@ const { text } = await generateText({
   files to that location.
 </Note>
 
+For video file parts, pass `videoMetadata` through `providerOptions.googleVertex`
+to control clipping and frame rate. It works with Cloud Storage URLs and inline
+video data:
+
+```ts
+import type { FilePart } from 'ai';
+
+const videoPart = {
+  type: 'file',
+  data: new URL('gs://my-bucket/video.mp4'),
+  mediaType: 'video/mp4',
+  providerOptions: {
+    googleVertex: {
+      videoMetadata: {
+        startOffset: '60s',
+        endOffset: '120s',
+        fps: 1,
+      },
+    },
+  },
+} satisfies FilePart;
+```
+
+All three fields are optional. `startOffset` and `endOffset` are durations in
+seconds, such as `'60s'` or `'3.5s'`. `fps` must be in the range `(0, 24]` and
+defaults to `1`.
+
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
+
+### Long decode
+
+Gemini 4 models such as `gemini-4-argon` support long decode on Vertex AI the
+same way as on the Gemini API: set `maxOutputTokens` above the per-request cap
+(up to 1M minus input) and the provider continues the response automatically.
+See [Long decode](/providers/ai-sdk-providers/google#long-decode) for details
+on budgets, usage across requests, and resuming with a continuation token.
+
+The Vertex AI Interactions API (preview) does not support long decode.
 
 ### Tool Result Files
 
@@ -748,6 +843,14 @@ caller must have access to the referenced object.
 HTTP(S) tool-result files are downloaded and sent as inline data, subject to
 `toolResultDownloads.maxBytes`. Direct GCS tool-result forwarding is not supported
 for older Gemini models or MIME types outside the list above.
+
+<Note type="warning">
+  HTTP(S) tool-result files are downloaded using the `fetch` option of
+  `createGoogleVertex`; the Vertex API key is not sent to those hosts. For
+  untrusted URLs on Node.js, pass a `guarded-fetch` transport there. Direct
+  `gs://` references are fetched by Vertex instead. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
+</Note>
 
 ### Cached Content
 
@@ -950,17 +1053,30 @@ The following Zod features are known to not work with Google Vertex:
 
 ### Model Capabilities
 
-| Model                   | Image Input | Object Generation | Tool Usage | Tool Streaming |
-| ----------------------- | ----------- | ----------------- | ---------- | -------------- |
-| `gemini-3.8-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-3.7-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-3.6-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-3.5-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-3.5-flash-lite` | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-3-pro-preview`  | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-2.5-pro`        | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-2.5-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
-| `gemini-2.0-flash-001`  | <Check />   | <Check />         | <Check />  | <Check />      |
+{/* model-capabilities:google-vertex-language:start */}
+
+| Model                            | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| -------------------------------- | ----------- | ----------------- | ---------- | -------------- |
+| `gemini-nano-banana-2.1`         | <Check />   | <Cross />         | <Cross />  | <Cross />      |
+| `gemini-4-argon`                 | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-4-carbon`                | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.8-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.7-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.6-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.5-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.5-flash-lite`          | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.5-pro`                 | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.5-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.5-flash-lite`          | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-2.0-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3-pro-preview`           | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3-pro-image-preview`     | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3-flash-preview`         | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.1-pro-preview`         | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.1-flash-image-preview` | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-3.1-flash-lite-preview`  | <Check />   | <Check />         | <Check />  | <Check />      |
+
+{/* model-capabilities:google-vertex-language:end */}
 
 <Note>
   The table above lists popular models. Please see the [Google Vertex AI
@@ -1029,11 +1145,23 @@ The following optional provider options are available for Google Vertex AI embed
 
 #### Model Capabilities
 
-| Model                        | Max Values Per Call | Parallel Calls | Multimodal |
-| ---------------------------- | ------------------- | -------------- | ---------- |
-| `text-embedding-005`         | 2048                | <Check />      | <Cross />  |
-| `gemini-embedding-2`         | 2048                | <Check />      | <Check />  |
-| `gemini-embedding-2-preview` | 2048                | <Check />      | <Check />  |
+{/* model-capabilities:google-vertex-embedding:start */}
+
+| Model                                  | Max Values Per Call | Parallel Calls | Multimodal |
+| -------------------------------------- | ------------------- | -------------- | ---------- |
+| `textembedding-gecko`                  | 250                 | <Check />      | <Cross />  |
+| `textembedding-gecko@001`              | 250                 | <Check />      | <Cross />  |
+| `textembedding-gecko@003`              | 250                 | <Check />      | <Cross />  |
+| `textembedding-gecko-multilingual`     | 250                 | <Check />      | <Cross />  |
+| `textembedding-gecko-multilingual@001` | 250                 | <Check />      | <Cross />  |
+| `text-multilingual-embedding-002`      | 250                 | <Check />      | <Cross />  |
+| `text-embedding-004`                   | 250                 | <Check />      | <Cross />  |
+| `text-embedding-005`                   | 250                 | <Check />      | <Cross />  |
+| `gemini-embedding-001`                 | 250                 | <Check />      | <Cross />  |
+| `gemini-embedding-2`                   | 1                   | <Check />      | <Check />  |
+| `gemini-embedding-2-preview`           | 1                   | <Check />      | <Check />  |
+
+{/* model-capabilities:google-vertex-embedding:end */}
 
 <Note>
   The table above lists popular models. You can also pass any available provider
@@ -1100,11 +1228,16 @@ const { image } = await generateImage({
 
 ##### Gemini Image Model Capabilities
 
-| Model                            | Image Generation | Image Editing | Aspect Ratios                                       |
-| -------------------------------- | ---------------- | ------------- | --------------------------------------------------- |
-| `gemini-3.1-flash-image-preview` | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-3-pro-image-preview`     | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-2.5-flash-image`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+{/* model-capabilities:google-vertex-image:start */}
+
+| Model                            | Image Generation | Image Editing | Aspect Ratios                                                           |
+| -------------------------------- | ---------------- | ------------- | ----------------------------------------------------------------------- |
+| `gemini-nano-banana-2.1`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9, 1:8, 8:1, 1:4, 4:1 |
+| `gemini-3-pro-image-preview`     | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9                     |
+| `gemini-3.1-flash-image-preview` | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9                     |
+| `gemini-2.5-flash-image`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9                     |
+
+{/* model-capabilities:google-vertex-image:end */}
 
 <Note>
   `gemini-3-pro-image-preview` supports additional features including up to 14
@@ -1252,13 +1385,23 @@ The following provider options are available:
 
 #### Model Capabilities
 
-| Model                       | Audio Support |
-| --------------------------- | ------------- |
-| `veo-3.1-generate-001`      | Yes           |
-| `veo-3.1-fast-generate-001` | Yes           |
-| `veo-3.0-generate-001`      | Yes           |
-| `veo-3.0-fast-generate-001` | Yes           |
-| `veo-2.0-generate-001`      | No            |
+{/* model-capabilities:google-vertex-video:start */}
+
+| Model                           | Audio Support |
+| ------------------------------- | ------------- |
+| `veo-2.0-generate-preview`      | <Cross />     |
+| `veo-2.0-generate-exp`          | <Cross />     |
+| `veo-2.0-generate-001`          | <Cross />     |
+| `veo-3.0-generate-001`          | <Check />     |
+| `veo-3.0-fast-generate-001`     | <Check />     |
+| `veo-3.0-generate-preview`      | <Check />     |
+| `veo-3.0-fast-generate-preview` | <Check />     |
+| `veo-3.1-generate-001`          | <Check />     |
+| `veo-3.1-fast-generate-001`     | <Check />     |
+| `veo-3.1-generate-preview`      | <Check />     |
+| `veo-3.1-fast-generate-preview` | <Check />     |
+
+{/* model-capabilities:google-vertex-video:end */}
 
 <Note>
   The table above lists popular models. You can also pass any available provider
@@ -1286,11 +1429,17 @@ The `voice` argument accepts one of Gemini's [30 prebuilt voices](https://ai.goo
 (e.g. `Kore`, `Puck`, `Zephyr`); it defaults to `Kore`. Multi-speaker dialogue is available via
 `providerOptions.googleVertex.multiSpeakerVoiceConfig`.
 
+Set `language` to a supported BCP-47 code such as `en-US` to send
+`speechConfig.languageCode` for single- or multi-speaker Gemini speech. Omit it or
+use `language: 'auto'` for automatic detection.
+
 By default the audio is returned as a playable WAV (Gemini returns raw PCM, which the provider
 wraps). Set `outputFormat: 'pcm'` for the raw signed 16-bit little-endian mono bytes; the sample
 rate is reported in `result.providerMetadata.google.sampleRate`.
 
 #### Speech Model Capabilities
+
+{/* model-capabilities:google-vertex-speech:start */}
 
 | Model                               | Multi-speaker | Style via instructions |
 | ----------------------------------- | ------------- | ---------------------- |
@@ -1298,8 +1447,28 @@ rate is reported in `result.providerMetadata.google.sampleRate`.
 | `gemini-2.5-pro-tts`                | <Check />     | <Check />              |
 | `gemini-2.5-flash-lite-preview-tts` | <Check />     | <Check />              |
 | `gemini-3.1-flash-tts-preview`      | <Check />     | <Check />              |
+| `chirp-3-hd`                        | <Cross />     | <Cross />              |
+
+{/* model-capabilities:google-vertex-speech:end */}
 
 ### Transcription Models
+
+#### Gemini transcription
+
+Gemini transcription models such as `gemini-3.5-transcribe` also support
+`googleVertex.transcription()`. Request word timing with the shared
+`timestampGranularities: ['word']` setting. An explicit
+`providerOptions.googleVertex.wordTimestamp` takes precedence, including
+`false`, which disables word timestamps and produces a warning if word timing
+was requested through the shared setting.
+
+Returned words are exposed in the optional `result.words` array. For
+compatibility, `result.segments` continues to contain the same word timings.
+Gemini does not provide separate caption segments and warns if `'segment'` is
+requested. These shared timing controls currently apply to Gemini transcription;
+Chirp and telephony use their provider settings below.
+
+#### Speech-to-Text transcription
 
 You can transcribe audio with Google Cloud Speech-to-Text models using the
 `.transcription()` factory method together with
@@ -1371,11 +1540,15 @@ The following provider options are available:
 
 #### Transcription Model Capabilities
 
+{/* model-capabilities:google-vertex-transcription:start */}
+
 | Model       | Word timestamps                                           | Language detection                                                             |
 | ----------- | --------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `chirp_2`   | Available with a potential quality and speed tradeoff     | Auto detection with `['auto']`                                                 |
 | `chirp_3`   | Available with a potential transcription quality tradeoff | Auto detection with `['auto']`                                                 |
 | `telephony` | Available                                                 | Explicit supported language codes, with alternative language detection support |
+
+{/* model-capabilities:google-vertex-transcription:end */}
 
 ## Google Vertex Anthropic Provider Usage
 
@@ -1420,6 +1593,15 @@ const vertexAnthropic = createVertexAnthropic({
 ##### Optional Provider Settings
 
 You can use the following optional settings to customize the Google Vertex Anthropic provider instance:
+
+- **supportsNativeStructuredOutput** _boolean_
+
+  Optional. Defaults to `false`. Set to `true` to let
+  `providerOptions.anthropic.structuredOutputMode: 'auto'` use native structured
+  output for Claude 4.5 and newer model IDs. The Google Cloud organization policy
+  must allow `structured_outputs` for every model used with native output.
+  This setting does not enable strict tool input schemas.
+  See [Native Structured Output](#native-structured-output).
 
 - **project** _string_
 
@@ -1595,6 +1777,93 @@ The following optional provider options are available for Anthropic models:
 
   Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
   - `userId` _string_ - An external identifier for the end-user.
+
+### Native Structured Output
+
+Vertex Anthropic normally uses a JSON response tool to generate structured
+output. If your Google Cloud organization policy permits native structured output,
+you can opt in for a provider instance:
+
+```ts
+import { createGoogleVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { Output, streamText } from 'ai';
+import { z } from 'zod';
+
+const vertexAnthropic = createGoogleVertexAnthropic({
+  supportsNativeStructuredOutput: true,
+});
+
+const result = streamText({
+  model: vertexAnthropic('claude-sonnet-4-6'),
+  output: Output.object({
+    schema: z.object({ name: z.string(), ingredients: z.array(z.string()) }),
+  }),
+  prompt: 'Create a vegetarian lasagna recipe.',
+});
+
+console.log(await result.output);
+```
+
+The opt-in applies to `structuredOutputMode: 'auto'` (the default) for versioned
+Claude model IDs from 4.5 onward, including Vertex IDs with an `@` suffix.
+Older models and IDs without a recognizable Claude version, such as custom
+deployment names, continue to use the JSON response tool.
+The setting is available in both the Node.js and Edge providers.
+In `'auto'` mode, schemas that native output cannot safely represent, such as
+open objects, circular references, or schemas with too many optional properties,
+continue to use the JSON response tool.
+
+Google Cloud denies the feature by default through
+`constraints/vertexai.allowedPartnerModelFeatures`. Allow the
+`structured_outputs` feature for each model you use.
+See [Google Cloud's structured output documentation](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude/structured-outputs)
+for supported models and policy configuration. Enabling the SDK setting does not
+change that policy. API errors, including policy rejections, are returned without
+automatically falling back to tool emulation.
+
+You can still set `providerOptions.anthropic.structuredOutputMode` per request:
+
+- `'jsonTool'` selects tool emulation. Models that reject forced tool use retain
+  the Anthropic provider's existing behavior of switching to native output when
+  the model supports it and the schema can be represented, even without this
+  opt-in. This fallback also applies in `'auto'` mode with the opt-in disabled.
+  Models such as `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-fable-5-1`,
+  and `claude-fable-5-2` therefore require the `structured_outputs` policy regardless of this setting.
+- `'outputFormat'` explicitly requests native output, bypassing the opt-in and
+  model detection. The API rejects unsupported or policy-denied requests.
+
+Native output constrains the final response generated with `Output.object`.
+Ordinary tool arguments use separate input schemas; this opt-in does not enable
+`strict: true` for Vertex tools. The SDK still validates generated output against
+your original schema, including constraints that the native API cannot enforce.
+
+### Billing Labels
+
+Pass billing labels for Claude requests using `providerOptions.vertex.labels`.
+Labels are a map of string keys to string values and work with both
+`generateText` and `streamText`:
+
+```ts
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: vertexAnthropic('claude-sonnet-4-6@default'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    vertex: {
+      labels: { team: 'data-platform', feature: 'my-app' },
+    },
+  },
+});
+```
+
+The provider sends the labels as base64-encoded UTF-8 JSON in the
+`X-Vertex-AI-Labels` header. An explicitly supplied labels header takes
+precedence over `providerOptions.vertex.labels`.
+
+See [Google's billing labels documentation](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls#add_a_label_to_a_partner_model_api_call)
+for label requirements and supported billing options.
 
 ### Reasoning
 
@@ -1868,9 +2137,12 @@ These tools can be used in conjunction with supported Claude models to enable mo
 The latest Anthropic model list on Vertex AI is available [here](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude#model-list).
 See also [Anthropic Model Comparison](https://docs.anthropic.com/en/docs/about-claude/models#model-comparison).
 
+{/* model-capabilities:google-vertex-anthropic:start */}
+
 | Model                           | Image Input | Object Generation | Tool Usage | Tool Streaming | Computer Use |
 | ------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------ |
 | `claude-fable-5-1`              | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    |
+| `claude-fable-5-2`              | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    |
 | `claude-3-7-sonnet@20250219`    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    |
 | `claude-3-5-sonnet-v2@20241022` | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    |
 | `claude-3-5-sonnet@20240620`    | <Check />   | <Check />         | <Check />  | <Check />      | <Cross />    |
@@ -1878,6 +2150,8 @@ See also [Anthropic Model Comparison](https://docs.anthropic.com/en/docs/about-c
 | `claude-3-sonnet@20240229`      | <Check />   | <Check />         | <Check />  | <Check />      | <Cross />    |
 | `claude-3-haiku@20240307`       | <Check />   | <Check />         | <Check />  | <Check />      | <Cross />    |
 | `claude-3-opus@20240229`        | <Check />   | <Check />         | <Check />  | <Check />      | <Cross />    |
+
+{/* model-capabilities:google-vertex-anthropic:end */}
 
 <Note>
   The table above lists popular models. You can also pass any available provider
@@ -2051,12 +2325,16 @@ const result = await generateText({
 
 The following models are available through the Google Vertex xAI provider. You can also pass any valid model ID as a string.
 
-| Model ID                          | Reasoning |
+{/* model-capabilities:google-vertex-xai:start */}
+
+| Model                             | Reasoning |
 | --------------------------------- | --------- |
-| `xai/grok-4.20-reasoning`         | Yes       |
-| `xai/grok-4.20-non-reasoning`     | No        |
-| `xai/grok-4.1-fast-reasoning`     | Yes       |
-| `xai/grok-4.1-fast-non-reasoning` | No        |
+| `xai/grok-4.20-reasoning`         | <Check /> |
+| `xai/grok-4.20-non-reasoning`     | <Cross /> |
+| `xai/grok-4.1-fast-reasoning`     | <Check /> |
+| `xai/grok-4.1-fast-non-reasoning` | <Cross /> |
+
+{/* model-capabilities:google-vertex-xai:end */}
 
 <Note>
   Grok reasoning models on Vertex report reasoning token counts in usage
@@ -2186,7 +2464,9 @@ for await (const textPart of result.textStream) {
 
 The following models are available through the MaaS provider. You can also pass any valid model ID as a string.
 
-| Model ID                                       | Provider |
+{/* model-capabilities:google-vertex-maas:start */}
+
+| Model                                          | Provider |
 | ---------------------------------------------- | -------- |
 | `deepseek-ai/deepseek-r1-0528-maas`            | DeepSeek |
 | `deepseek-ai/deepseek-v3.1-maas`               | DeepSeek |
@@ -2201,6 +2481,8 @@ The following models are available through the MaaS provider. You can also pass 
 | `qwen/qwen3-next-80b-a3b-thinking-maas`        | Qwen     |
 | `moonshotai/kimi-k2-thinking-maas`             | Moonshot |
 
+{/* model-capabilities:google-vertex-maas:end */}
+
 <Note>
   Llama 4 MaaS models default to their 8,192-token output limit when
   `maxOutputTokens` is not specified. An explicit `maxOutputTokens` value takes
@@ -2213,3 +2495,81 @@ The following models are available through the MaaS provider. You can also pass 
   Garden](https://console.cloud.google.com/vertex-ai/model-garden) for the
   latest available models.
 </Note>
+
+### Transcription Capability Reference
+
+{/* model-capabilities:google-vertex-transcription-all:start */}
+
+| Model                        | Transcription | Streaming | Duration  | Segments                               | Language  |
+| ---------------------------- | ------------- | --------- | --------- | -------------------------------------- | --------- |
+| `chirp_2`                    | <Check />     | <Cross /> | <Check /> | Conditional: Requires word timestamps. | <Check /> |
+| `chirp_3`                    | <Check />     | <Cross /> | <Check /> | Conditional: Requires word timestamps. | <Check /> |
+| `telephony`                  | <Check />     | <Cross /> | <Check /> | Conditional: Requires word timestamps. | <Check /> |
+| `gemini-3.5-transcribe`      | <Check />     | <Cross /> | <Cross /> | Conditional: Requires word timestamps. | <Check /> |
+| `gemini-3.5-transcribe-live` | <Cross />     | <Check /> | <Cross /> | <Cross />                              | <Check /> |
+
+{/* model-capabilities:google-vertex-transcription-all:end */}
+
+## Provider Option Reference
+
+The following option definitions are generated from the provider catalog.
+
+{/* model-capabilities:google-vertex-provider-options:start */}
+
+| Operation     | Option                        | Description                                           |
+| ------------- | ----------------------------- | ----------------------------------------------------- |
+| language      | `responseModalities`          | Response modalities to generate.                      |
+| language      | `thinkingConfig`              | Thinking budget, level, and thought output.           |
+| language      | `cachedContent`               | Cached content to use as request context.             |
+| language      | `structuredOutputs`           | Whether to send the JSON response schema.             |
+| language      | `safetySettings`              | Safety settings for the request.                      |
+| language      | `threshold`                   | Default threshold for configurable safety categories. |
+| language      | `audioTimestamp`              | Enable timestamp understanding for audio.             |
+| language      | `labels`                      | Billing labels. Vertex AI only.                       |
+| language      | `mediaResolution`             | Resolution used to process media inputs.              |
+| language      | `imageConfig`                 | Image generation configuration.                       |
+| language      | `retrievalConfig`             | Retrieval configuration for tools.                    |
+| language      | `streamFunctionCallArguments` | Stream function arguments. Vertex AI only.            |
+| language      | `serviceTier`                 | Service tier. Gemini API only.                        |
+| language      | `continuationToken`           | Resume a response using its continuation token.       |
+| language      | `sharedRequestType`           | Shared PayGo tier. Vertex AI only.                    |
+| language      | `requestType`                 | Request routing type. Vertex AI only.                 |
+| image         | `thinkingConfig`              | Thinking budget, level, and thought output.           |
+| image         | `cachedContent`               | Cached content to use as request context.             |
+| image         | `structuredOutputs`           | Whether to send the JSON response schema.             |
+| image         | `safetySettings`              | Safety settings for the request.                      |
+| image         | `threshold`                   | Default threshold for configurable safety categories. |
+| image         | `audioTimestamp`              | Enable timestamp understanding for audio.             |
+| image         | `labels`                      | Billing labels. Vertex AI only.                       |
+| image         | `mediaResolution`             | Resolution used to process media inputs.              |
+| image         | `imageConfig`                 | Image generation configuration.                       |
+| image         | `retrievalConfig`             | Retrieval configuration for tools.                    |
+| image         | `streamFunctionCallArguments` | Stream function arguments. Vertex AI only.            |
+| image         | `serviceTier`                 | Service tier. Gemini API only.                        |
+| image         | `continuationToken`           | Resume a response using its continuation token.       |
+| image         | `sharedRequestType`           | Shared PayGo tier. Vertex AI only.                    |
+| image         | `requestType`                 | Request routing type. Vertex AI only.                 |
+| embedding     | `outputDimensionality`        | Reduced output dimensions.                            |
+| embedding     | `taskType`                    | Task for which embeddings are optimized.              |
+| embedding     | `title`                       | Document title; requires RETRIEVAL_DOCUMENT.          |
+| embedding     | `autoTruncate`                | Truncate inputs exceeding the model context.          |
+| speech        | `speechMetadata`              | Directions for Gemini 3.8 speech.                     |
+| speech        | `turns`                       | Structured transcript for Gemini 3.8 speech.          |
+| speech        | `multiSpeakerVoiceConfig`     | Voice configuration for dialogue speakers.            |
+| transcription | `languageCodes`               | Language hints or automatic language detection.       |
+| transcription | `enableAutomaticPunctuation`  | Include punctuation in Cloud Speech transcripts.      |
+| transcription | `enableWordTimeOffsets`       | Include Cloud Speech word timestamps.                 |
+| transcription | `region`                      | Cloud Speech region.                                  |
+| transcription | `customVocabulary`            | Vocabulary hints for Gemini transcription.            |
+| transcription | `wordTimestamp`               | Include Gemini word timestamps.                       |
+| transcription | `diarization`                 | Enable Gemini speaker diarization.                    |
+| transcription | `mode`                        | Verbatim or smart Gemini transcription formatting.    |
+| video         | `pollIntervalMs`              | Polling interval.                                     |
+| video         | `pollTimeoutMs`               | Polling timeout.                                      |
+| video         | `personGeneration`            | Policy for generating people.                         |
+| video         | `negativePrompt`              | Content to avoid.                                     |
+| video         | `generateAudio`               | Generate synchronized audio.                          |
+| video         | `gcsOutputDirectory`          | Cloud Storage output directory.                       |
+| video         | `referenceImages`             | Reference images for video generation.                |
+
+{/* model-capabilities:google-vertex-provider-options:end */}

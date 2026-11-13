@@ -34,6 +34,7 @@ export class SseMCPTransport implements MCPTransport {
   private resourceMetadataUrl?: URL;
   private redirectMode: RequestRedirect;
   private fetchFn: FetchFunction;
+  private customFetch?: FetchFunction;
   private authPromise?: Promise<AuthResult>;
 
   onclose?: () => void;
@@ -58,7 +59,8 @@ export class SseMCPTransport implements MCPTransport {
     this.headers = headers;
     this.authProvider = authProvider;
     this.redirectMode = redirect;
-    this.fetchFn = fetchFn ?? globalThis.fetch;
+    this.fetchFn = fetchFn ?? globalThis.fetch.bind(globalThis);
+    this.customFetch = fetchFn;
   }
 
   setProtocolVersion(version: string): void {
@@ -105,7 +107,7 @@ export class SseMCPTransport implements MCPTransport {
         serverUrl: this.url,
         resourceMetadataUrl,
         scope,
-        fetchFn: this.fetchFn,
+        fetchFn: this.customFetch,
       }).finally(() => {
         this.authPromise = undefined;
       });
@@ -164,7 +166,8 @@ export class SseMCPTransport implements MCPTransport {
           }
 
           if (!response.ok || !response.body) {
-            let errorMessage = `MCP SSE Transport Error: ${response.status} ${response.statusText}`;
+            const text = await response.text().catch(() => null);
+            let errorMessage = `MCP SSE Transport Error: ${response.status} ${response.statusText}${text ? `: ${text}` : ''}`;
 
             if (response.status === 405) {
               errorMessage +=
@@ -173,6 +176,9 @@ export class SseMCPTransport implements MCPTransport {
 
             const error = new MCPClientError({
               message: errorMessage,
+              statusCode: response.status,
+              url: this.url.href,
+              responseBody: text ?? undefined,
             });
             this.onerror?.(error);
             return reject(error);

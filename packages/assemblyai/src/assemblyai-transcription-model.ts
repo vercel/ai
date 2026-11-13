@@ -1,9 +1,13 @@
+import { getAssemblyAITranscriptionModelEntry } from './assemblyai-model-catalog';
 import type {
   TranscriptionModelV4,
   SharedV4Warning,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   createJsonResponseHandler,
   extractResponseHeaders,
@@ -77,7 +81,10 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
     // `universal-3-pro`, `universal-3-5-pro`) are only accessible via the
     // `speech_models` array and are rejected by `speech_model`.
     // See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model
-    if (this.modelId === 'best') {
+    const { requestConfig } = getAssemblyAITranscriptionModelEntry(
+      this.modelId,
+    );
+    if (requestConfig.transcription.legacy) {
       body.speech_model = this.modelId as 'best';
       warnings.push({
         type: 'deprecated',
@@ -88,21 +95,10 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
     } else {
       body.speech_models = [this.modelId];
 
-      // Forward-looking nudge: universal-3-5-pro is AssemblyAI's latest
-      // flagship and is set to replace universal-3-pro. Not a deprecation —
-      // both models still work — so this is an informational warning only.
-      if (
-        this.modelId === 'universal-3-pro' ||
-        this.modelId === 'universal-2'
-      ) {
-        const docsUrl =
-          'https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model';
+      if (requestConfig.transcription.replacementWarning != null) {
         warnings.push({
           type: 'other',
-          message:
-            this.modelId === 'universal-3-pro'
-              ? `'universal-3-5-pro' is AssemblyAI's latest flagship model and is set to replace 'universal-3-pro'. See ${docsUrl}`
-              : `'universal-3-5-pro' is AssemblyAI's latest flagship model. See ${docsUrl}`,
+          message: `${requestConfig.transcription.replacementWarning} See https://www.assemblyai.com/docs/pre-recorded-audio/select-the-speech-model`,
         });
       }
     }
@@ -294,7 +290,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         {
           method: 'GET',
           headers: combineHeaders(
-            this.config.headers?.(),
+            await resolve(this.config.headers),
             headers,
           ) as HeadersInit,
           signal: abortSignal,
@@ -346,7 +342,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       }),
       headers: {
         'Content-Type': 'application/octet-stream',
-        ...combineHeaders(this.config.headers?.(), options.headers),
+        ...combineHeaders(await resolve(this.config.headers), options.headers),
       },
       body: {
         content: options.audio,
@@ -367,7 +363,10 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         path: '/v2/transcript',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: {
         ...body,
         audio_url: uploadResponse.upload_url,
@@ -449,14 +448,22 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
-const assemblyaiUploadResponseSchema = z.object({
-  upload_url: z.string(),
-});
+const assemblyaiUploadResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      upload_url: z.string(),
+    }),
+  ),
+);
 
-const assemblyaiSubmitResponseSchema = z.object({
-  id: z.string(),
-  status: z.enum(['queued', 'processing', 'completed', 'error']),
-});
+const assemblyaiSubmitResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string(),
+      status: z.enum(['queued', 'processing', 'completed', 'error']),
+    }),
+  ),
+);
 
 const assemblyaiWordSchema = z.object({
   start: z.number(),

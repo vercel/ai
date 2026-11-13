@@ -1,6 +1,6 @@
 ---
 title: Cartesia
-description: Learn how to use the Cartesia provider for the AI SDK.
+description: Learn how to set up the Cartesia provider and check AI Gateway availability.
 ---
 
 # Cartesia Provider
@@ -8,26 +8,55 @@ description: Learn how to use the Cartesia provider for the AI SDK.
 The [Cartesia](https://cartesia.ai/) provider contains Sonic speech generation,
 Ink-Whisper batch transcription, and Ink 2 realtime and streaming transcription
 support.
+Cartesia models are not currently available through [AI Gateway](https://vercel.com/ai-gateway/models), so the opening example uses `@ai-sdk/cartesia` directly. See [Using AI Gateway](#using-ai-gateway) below for supported alternatives.
 
-## Setup
+```ts
+import { generateSpeech } from 'ai';
+import { cartesia } from '@ai-sdk/cartesia';
+import { writeFile } from 'node:fs/promises';
 
-The Cartesia provider is available in the `@ai-sdk/cartesia` module. You can install it with
+const { audio } = await generateSpeech({
+  model: cartesia.speech('sonic-3.5'),
+  text: 'Hello, world!',
+  outputFormat: 'mp3',
+  voice: '694f9389-aac1-45b6-b726-9d9369183238',
+});
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/cartesia" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/cartesia" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/cartesia" dark />
-  </Tab>
+await writeFile('speech.mp3', audio.uint8Array);
+```
 
-  <Tab>
-    <Snippet text="bun add @ai-sdk/cartesia" dark />
-  </Tab>
-</Tabs>
+## Using AI Gateway
+
+The current [AI Gateway model catalog](https://vercel.com/ai-gateway/models) does not list Cartesia models. Use `@ai-sdk/cartesia` for the APIs on this page. To use other speech models through Gateway, install `ai` and configure a Gateway API key:
+
+<InstallPackages packages="ai" />
+
+Set an [AI Gateway API key](https://vercel.com/docs/ai-gateway/getting-started) in your environment:
+
+```bash
+export AI_GATEWAY_API_KEY=your_api_key_here
+```
+
+Vercel deployments can also use [OIDC authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments).
+See the [Gateway documentation](/providers/ai-sdk-providers/ai-gateway) for supported models and APIs.
+
+## Using `@ai-sdk/cartesia`
+
+For direct access to Cartesia, install `ai` and `@ai-sdk/cartesia`:
+
+<InstallPackages packages="ai @ai-sdk/cartesia" />
+
+Set your Cartesia API credential in the `CARTESIA_API_KEY` environment variable:
+
+```bash
+export CARTESIA_API_KEY=your_api_key_here
+```
+
+<Note>
+  The following sections document the direct `@ai-sdk/cartesia` provider,
+  including its model factories and settings. Gateway model and feature
+  availability can differ.
+</Note>
 
 ## Provider Instance
 
@@ -50,7 +79,10 @@ const cartesia = createCartesia({
 
 You can use the following optional settings to customize the Cartesia provider instance:
 
-- **apiKey** _string_
+- **apiKey** _string | PromiseLike&lt;string&gt; | (() =&gt; string | PromiseLike&lt;string&gt;)_
+
+  Pass a synchronous or asynchronous callback to resolve the key before each
+  request. The callback is responsible for caching and refreshing credentials.
 
   API key that is being sent using the `Authorization` header.
   It defaults to the `CARTESIA_API_KEY` environment variable.
@@ -148,20 +180,62 @@ The following provider options are available:
   Controls the speed of the generated speech between `0.6` and `1.5`.
   Optional.
 
+- **volume** _number_
+
+  Volume of the generated speech between `0.5` and `2`. Defaults to `1`.
+  Requires Sonic 3 or newer.
+  Optional.
+
+- **emotion** _string_
+
+  Emotion of the generated speech, for example `calm` or `sad`. This option is in beta and works best with English.
+  Requires Sonic 3 or newer.
+  See the [Cartesia docs](https://docs.cartesia.ai/build-with-cartesia/capability-guides/volume-speed-emotion#emotion-controls-beta) for the list of values.
+  Optional.
+
 - **language** _string_
 
   The language to generate speech in (ISO 639-1 code).
   Optional.
 
+- **locale** _string_
+
+  A regional locale such as `en-GB` or `es-MX`. Regional locales require Sonic 3.6
+  or later. Optional.
+
+  Cannot be combined with `providerOptions.cartesia.language`. When a generic
+  `language` call option is also set, `locale` takes precedence and the ignored
+  generic option produces an unsupported warning.
+
+- **normalization** _string_
+
+  Controls how written text is prepared for speech. Use `auto` (the default),
+  `off`, or a language or locale code such as `en-IN` to select reading
+  conventions independently of the speech language. Optional.
+
+  Cartesia validates the supported values. See the
+  [text normalization guide](https://docs.cartesia.ai/build-with-cartesia/capability-guides/text-normalization).
+
+- **pronunciationDictionaryId** _string_
+
+  ID of a [pronunciation dictionary](https://docs.cartesia.ai/api-reference/pronunciation-dicts/create) to apply to the text.
+  Dictionaries are created with the Cartesia API, not with this provider.
+  Sonic 3 and newer.
+  Optional.
+
 ### Model Capabilities
 
-| Model          |
-| -------------- |
-| `sonic-3.5`    |
-| `sonic-3`      |
-| `sonic-2`      |
-| `sonic-turbo`  |
-| `sonic-latest` |
+{/* model-capabilities:cartesia-speech:start */}
+
+| Model          | Instructions |
+| -------------- | ------------ |
+| `sonic-3.5`    | <Cross />    |
+| `sonic-3`      | <Cross />    |
+| `sonic-2`      | <Cross />    |
+| `sonic-turbo`  | <Cross />    |
+| `sonic-latest` | <Cross />    |
+
+{/* model-capabilities:cartesia-speech:end */}
 
 ## Realtime Transcription Models
 
@@ -200,9 +274,13 @@ setup.
 
 ### Model Capabilities
 
-| Model   | Streaming Transcription | Turn Detection      |
-| ------- | ----------------------- | ------------------- |
-| `ink-2` | <Check size={18} />     | <Check size={18} /> |
+{/* model-capabilities:cartesia-realtime:start */}
+
+| Model   | Streaming Transcription | Turn Detection |
+| ------- | ----------------------- | -------------- |
+| `ink-2` | <Check />               | <Check />      |
+
+{/* model-capabilities:cartesia-realtime:end */}
 
 ## Streaming Transcription Models
 
@@ -266,14 +344,42 @@ const result = streamTranscribe({
 });
 ```
 
+To bias recognition toward product names or jargon, pass up to 100 terms
+(up to 1,200 characters in total) in `providerOptions.cartesia.streaming.keyterms`
+([keyterm prompting](https://docs.cartesia.ai/use-the-api/stt/keyterms)). Turn detection can be tuned with
+`turnStartThreshold`, `turnEagerEndThreshold`, `turnEndThreshold` and
+`turnEndTimeoutMs`; these are ignored, with a warning, when `turnDetection` is
+`false`. See the [Cartesia turn detection docs](https://docs.cartesia.ai/use-the-api/stt/turns)
+for the accepted ranges.
+
+```ts
+const result = streamTranscribe({
+  model: cartesia.transcription('ink-2'),
+  audio,
+  inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+  providerOptions: {
+    cartesia: {
+      streaming: {
+        keyterms: ['Cartesia', 'Sonic'],
+        turnEndTimeoutMs: 800,
+      },
+    },
+  },
+});
+```
+
 See [Transcription](/docs/ai-sdk-core/transcription) for more information about
 streaming transcription.
 
 ### Model Capabilities
 
-| Model   | Streaming Transcription | Turn Detection      |
-| ------- | ----------------------- | ------------------- |
-| `ink-2` | <Check size={18} />     | <Check size={18} /> |
+{/* model-capabilities:cartesia-streaming-transcription:start */}
+
+| Model   | Streaming Transcription | Turn Detection | Keyterms  |
+| ------- | ----------------------- | -------------- | --------- |
+| `ink-2` | <Check />               | <Check />      | <Check /> |
+
+{/* model-capabilities:cartesia-streaming-transcription:end */}
 
 ## Batch Transcription Models
 
@@ -334,6 +440,34 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model         | Transcription       | Duration            | Segments            | Language            |
-| ------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `ink-whisper` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+{/* model-capabilities:cartesia-transcription:start */}
+
+| Model         | Transcription | Streaming | Duration  | Segments  | Language  |
+| ------------- | ------------- | --------- | --------- | --------- | --------- |
+| `ink-whisper` | <Check />     | <Cross /> | <Check /> | <Check /> | <Check /> |
+| `ink-2`       | <Cross />     | <Check /> | <Check /> | <Cross /> | <Check /> |
+
+{/* model-capabilities:cartesia-transcription:end */}
+
+### Provider Option Catalog
+
+{/* model-capabilities:cartesia-provider-options:start */}
+
+| Operation     | Option                      | Description                                                                                                |
+| ------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| speech        | `container`                 | Container format for the output audio (raw, wav, mp3).                                                     |
+| speech        | `encoding`                  | Encoding type for the audio output (pcm_f32le, pcm_s16le, pcm_mulaw, pcm_alaw).                            |
+| speech        | `sampleRate`                | Sample rate for the output audio in Hz (e.g. 8000, 16000, 22050, 24000, 44100, 48000).                     |
+| speech        | `bitRate`                   | Bitrate for mp3 output in bits per second (e.g. 32000, 64000, 128000, 192000).                             |
+| speech        | `speed`                     | Controls the speed of the generated speech.                                                                |
+| speech        | `volume`                    | Volume of the generated speech, between 0.5 and 2. Sonic 3 and newer.                                      |
+| speech        | `emotion`                   | Emotion of the generated speech. Beta, works best with English. Sonic 3 and newer.                         |
+| speech        | `language`                  | The language to generate speech in (ISO 639-1 code).                                                       |
+| speech        | `locale`                    | The regional locale code to generate speech in (e.g. 'en-GB', 'es-MX'). Supported for Sonic 3.6 and later. |
+| speech        | `normalization`             | Controls text normalization ('auto', 'off', or a language or locale code).                                 |
+| speech        | `pronunciationDictionaryId` | ID of a pronunciation dictionary created with the Cartesia API. Sonic 3 and newer.                         |
+| transcription | `language`                  | The language of the audio (ISO 639-1 code). Defaults to English.                                           |
+| transcription | `timestampGranularities`    | The timestamp granularities to populate. Currently only `word` is supported.                               |
+| transcription | `streaming`                 | Options for realtime Ink 2 transcription over WebSocket.                                                   |
+
+{/* model-capabilities:cartesia-provider-options:end */}

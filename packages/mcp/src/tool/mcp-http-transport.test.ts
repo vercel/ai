@@ -237,6 +237,111 @@ describe('HttpMCPTransport', () => {
     expect(responseAborted).toBe(true);
   });
 
+  it('should wait for a slow protocol discovery response instead of falling back to initialize', async () => {
+    const methods: string[] = [];
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method !== 'POST') {
+          return new Response(null, { status: 405 });
+        }
+
+        const message = JSON.parse(String(init.body));
+        methods.push(message.method);
+        if (message.method !== 'server/discover') {
+          return Response.json({
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32022,
+              message: `Unsupported protocol version: ${LATEST_LEGACY_PROTOCOL_VERSION}`,
+            },
+          });
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return Response.json({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: {
+            resultType: 'complete',
+            supportedVersions: [LATEST_PROTOCOL_VERSION],
+            capabilities: { tools: {} },
+          },
+        });
+      },
+    );
+
+    const [client] = await Promise.all([
+      createMCPClient({
+        transport: { type: 'http', url: 'http://localhost:4000/mcp', fetch },
+      }),
+      vi.advanceTimersByTimeAsync(2000),
+    ]);
+
+    expect(methods).toEqual(['server/discover']);
+    await client.close();
+  });
+
+  it('should explain legacy discovery incompatibility from an HTTP 400 without falling back', async () => {
+    const methods: string[] = [];
+    const data = {
+      requested: LATEST_PROTOCOL_VERSION,
+      supported: ['2025-06-18'],
+    };
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const message = JSON.parse(String(init?.body));
+        methods.push(message.method);
+        return Response.json(
+          {
+            jsonrpc: '2.0',
+            id: message.id,
+            error: {
+              code: -32022,
+              message: 'Unsupported protocol version',
+              data,
+            },
+          },
+          { status: 400 },
+        );
+      },
+    );
+
+    await expect(
+      createMCPClient({
+        transport: { type: 'http', url: 'http://localhost:4000/mcp', fetch },
+      }),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('protocolVersionDiscovery: false'),
+      code: -32022,
+      data,
+      cause: expect.any(MCPClientError),
+    });
+    expect(methods).toEqual(['server/discover']);
+  });
+
+  it('should reject with a network error from protocol discovery without falling back to initialize', async () => {
+    const methods: string[] = [];
+    const networkError = new TypeError('fetch failed');
+    const fetch = vi.fn(
+      async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method !== 'POST') {
+          return new Response(null, { status: 405 });
+        }
+
+        methods.push(JSON.parse(String(init.body)).method);
+        throw networkError;
+      },
+    );
+
+    await expect(
+      createMCPClient({
+        transport: { type: 'http', url: 'http://localhost:4000/mcp', fetch },
+      }),
+    ).rejects.toBe(networkError);
+    expect(methods).toEqual(['server/discover']);
+  });
+
   it('should bound session cleanup after failed initialization', async () => {
     let resolveDeleteStarted: () => void;
     const deleteStarted = new Promise<void>(resolve => {

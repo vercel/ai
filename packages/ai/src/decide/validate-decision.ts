@@ -1,45 +1,44 @@
 import {
   InvalidResponseDataError,
-  type Experimental_DecisionModelV4CallOptions as DecisionModelV4CallOptions,
   type Experimental_DecisionModelV4Result as DecisionModelV4Result,
+  type Experimental_DecisionModelV4Question as DecisionQuestion,
 } from '@ai-sdk/provider';
+import type { DecisionState } from './decision-state';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 
 // Absolute tolerance for sums and means. Never renormalize provider output.
 const tolerance = 1e-6;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   if (value == null || typeof value !== 'object' || Array.isArray(value))
     return false;
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
 }
 
-function isJSON(value: unknown, ancestors = new Set<object>()): boolean {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean')
-    return true;
+/**
+ * Checks the JSON constraints that types cannot express: finite numbers, no
+ * cycles, and no array holes. These would otherwise be silently changed by
+ * `JSON.stringify` or make it throw.
+ */
+export function isSerializableJSON(
+  value: unknown,
+  ancestors = new Set<object>(),
+): boolean {
   if (typeof value === 'number') return Number.isFinite(value);
-  if (typeof value !== 'object' || (!Array.isArray(value) && !isRecord(value)))
-    return false;
+  if (value == null || typeof value !== 'object') return true;
   if (ancestors.has(value)) return false;
   ancestors.add(value);
-  const valid =
-    Object.getOwnPropertySymbols(value).length === 0 &&
-    (Array.isArray(value)
-      ? Array.from(value).every(item => isJSON(item, ancestors))
-      : Object.values(value).every(item => isJSON(item, ancestors)));
+  const valid = Array.isArray(value)
+    ? Array.from(value.keys()).every(
+        index => index in value && isSerializableJSON(value[index], ancestors),
+      )
+    : Object.values(value).every(item => isSerializableJSON(item, ancestors));
   ancestors.delete(value);
   return valid;
 }
 
-function isInput(value: unknown): boolean {
-  return (
-    (typeof value === 'string' || Array.isArray(value) || isRecord(value)) &&
-    isJSON(value)
-  );
-}
-
-function invalidInput(
+export function invalidInput(
   parameter: string,
   value: unknown,
   message: string,
@@ -47,34 +46,54 @@ function invalidInput(
   throw new InvalidArgumentError({ parameter, value, message });
 }
 
-export function validateDecisionInput({
-  state,
-  questions,
-}: DecisionModelV4CallOptions) {
-  if (!isInput(state)) {
+export function validateDecisionState(state: DecisionState) {
+  if (
+    Array.isArray(state) &&
+    Array.from(state.keys()).some(index => !(index in state))
+  ) {
+    invalidInput('state', state, 'state parts must not contain array holes');
+  }
+
+  const stateJSON = Array.isArray(state)
+    ? state.flatMap(part => (part.type === 'json' ? [part.value] : []))
+    : state;
+  if (!isSerializableJSON(stateJSON)) {
     invalidInput(
       'state',
       state,
-      'must be a JSON-compatible string, object, or array',
+      'JSON content must not contain non-finite numbers, cycles, or array holes',
     );
   }
-  if (!isRecord(questions) || Object.keys(questions).length === 0) {
+}
+
+export function validateDecisionInput({
+  state,
+  questions,
+}: {
+  state: DecisionState;
+  questions: Readonly<Record<string, DecisionQuestion>>;
+}) {
+  validateDecisionState(state);
+
+  if (Object.keys(questions).length === 0) {
     invalidInput('questions', questions, 'must be a nonempty question map');
   }
 
   for (const [id, question] of Object.entries(questions)) {
     const parameter = `questions.${id}`;
-    if (!isRecord(question) || !isInput(question.instructions)) {
+    if (
+      !isSerializableJSON(question.instructions) ||
+      ('criteria' in question && !isSerializableJSON(question.criteria))
+    ) {
       invalidInput(
         parameter,
         question,
-        'instructions must be a JSON-compatible string, object, or array',
+        'instructions and criteria must not contain non-finite numbers, cycles, or array holes',
       );
     }
-    const criteria = question.criteria;
     switch (question.type) {
       case 'choice':
-        if (!isRecord(criteria) || Object.keys(criteria).length === 0) {
+        if (Object.keys(question.criteria).length === 0) {
           invalidInput(
             parameter,
             question,
@@ -83,18 +102,29 @@ export function validateDecisionInput({
         }
         break;
       case 'score':
-        if (!Array.isArray(criteria) || criteria.length < 2) {
+        if (question.criteria.length === 0) {
           invalidInput(
             parameter,
             question,
-            'score criteria must contain at least two ordered levels',
+            'score criteria must contain at least one ordered level',
           );
         }
         break;
-      case 'boolean':
-        if (criteria === undefined) continue;
+      case 'boolean': {
+        const criteria = question.criteria;
         if (
-          !isRecord(criteria) ||
+          question.instructions == null &&
+          (criteria == null ||
+            !Object.values(criteria).some(value => value != null))
+        ) {
+          invalidInput(
+            parameter,
+            question,
+            'boolean questions require instructions or at least one non-null criterion',
+          );
+        }
+        if (
+          criteria != null &&
           Object.keys(criteria).some(key => key !== 'true' && key !== 'false')
         ) {
           invalidInput(
@@ -104,22 +134,7 @@ export function validateDecisionInput({
           );
         }
         break;
-      default:
-        invalidInput(
-          parameter,
-          question,
-          'question type must be choice, score, or boolean',
-        );
-    }
-    if (
-      !isJSON(criteria) ||
-      Object.values(criteria).some(value => value !== null && !isInput(value))
-    ) {
-      invalidInput(
-        parameter,
-        question,
-        'criteria descriptions must be JSON-compatible strings, objects, arrays, or null',
-      );
+      }
     }
   }
 }
@@ -128,7 +143,7 @@ function invalidAnswer(answers: unknown, message: string): never {
   throw new InvalidResponseDataError({ data: answers, message });
 }
 
-function isProbability(value: unknown): value is number {
+export function isProbability(value: unknown): value is number {
   return (
     typeof value === 'number' &&
     Number.isFinite(value) &&
@@ -137,7 +152,10 @@ function isProbability(value: unknown): value is number {
   );
 }
 
-function hasExactKeys(value: Record<string, unknown>, keys: string[]): boolean {
+export function hasExactKeys(
+  value: Record<string, unknown>,
+  keys: string[],
+): boolean {
   return (
     Object.keys(value).length === keys.length &&
     keys.every(key => Object.hasOwn(value, key))
@@ -178,7 +196,7 @@ export function validateDecisionAnswers({
   answers,
   rounding,
 }: {
-  questions: DecisionModelV4CallOptions['questions'];
+  questions: Readonly<Record<string, DecisionQuestion>>;
   answers: unknown;
   rounding?: DecisionModelV4Result['rounding'];
 }) {
@@ -203,6 +221,7 @@ export function validateDecisionAnswers({
 
   for (const [id, question] of Object.entries(questions)) {
     const answer = answers[id];
+    if (isRecord(answer) && answer.type === 'refusal') continue;
     if (!isRecord(answer) || answer.type !== question.type) {
       invalidAnswer(
         answers,
@@ -232,7 +251,8 @@ export function validateDecisionAnswers({
           const selected = answer.probabilities[answer.choice];
           if (
             Object.values(answer.probabilities).some(
-              probability => probability > selected + tolerance,
+              probability =>
+                probability > selected + tolerance + 2 * probabilityError,
             )
           ) {
             invalidAnswer(
@@ -282,6 +302,25 @@ export function validateDecisionAnswers({
               `Question "${id}" score must equal the probability-weighted mean within the declared rounding precision.`,
             );
           }
+        }
+        break;
+      }
+      case 'box': {
+        const box = answer.box;
+        if (
+          !isRecord(box) ||
+          !hasExactKeys(box, ['top', 'bottom', 'left', 'right']) ||
+          !isProbability(box.left) ||
+          !isProbability(box.right) ||
+          !isProbability(box.top) ||
+          !isProbability(box.bottom) ||
+          !(box.left < box.right) ||
+          !(box.top < box.bottom)
+        ) {
+          invalidAnswer(
+            answers,
+            `Question "${id}" must return box edges in [0, 1] with left < right and top < bottom.`,
+          );
         }
         break;
       }

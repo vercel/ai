@@ -308,6 +308,18 @@ export async function POST(request: Request) {
 }
 ```
 
+If you use Next.js, wrap your config with `withWorkflow()` so the Workflow SDK
+transforms `'use workflow'` and `'use step'` modules. Other frameworks have
+their own Workflow SDK setup.
+
+```js filename='next.config.js'
+import { withWorkflow } from 'workflow/next';
+
+const nextConfig = {};
+
+export default withWorkflow(nextConfig);
+```
+
 The workflow state `sessionId` identifies the harness session. The step derives
 `sandboxId` from it; otherwise, you must persist `sandboxSession.id` separately
 to reattach across steps. Keep
@@ -326,6 +338,11 @@ Workflow automatically persists the `HarnessWorkflowState` returned by each
 step, including `continueFrom`, for the duration of the current workflow run.
 To continue the native harness session across separate user-turn workflow runs,
 persist the opaque `resumeFrom` state by `sessionId`.
+
+For sandbox bridge adapters, `resumeFrom` and `continueFrom` contain the private
+key that authorizes reconnecting to the running bridge. Workflow stores this key
+with the step state, so treat your Workflow storage and any resume storage as
+sensitive.
 
 The storage implementation is the same for semantic agent steps and time
 slices. This example uses Workflow steps because filesystem access must stay out

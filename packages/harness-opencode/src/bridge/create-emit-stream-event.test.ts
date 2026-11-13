@@ -51,6 +51,63 @@ function createEmitter({
 }
 
 describe('createEmitStreamEvent', () => {
+  it('keeps MCP arguments separate from observation metadata', () => {
+    const { emitted, emitStreamEvent } = createEmitter({
+      mcpToolNames: new Set(['fixture_read']),
+    });
+    const part = {
+      type: 'tool',
+      callID: 'native-call',
+      tool: 'fixture_read',
+      metadata: { providerItemId: 'observe-1', path: 'wrong-path' },
+      state: {
+        status: 'running',
+        metadata: { billing: 'observation', exact: false },
+        input: { path: 'a.ts', exact: true },
+      },
+      provider: { metadata: { openai: { itemId: 'provider-item' } } },
+    };
+
+    emitStreamEvent({
+      type: 'message.part.updated',
+      properties: { part },
+    });
+    emitStreamEvent({
+      type: 'message.part.updated',
+      properties: {
+        part: {
+          ...part,
+          state: {
+            ...part.state,
+            status: 'completed',
+            output: 'native result',
+          },
+        },
+      },
+    });
+
+    expect(emitted.filter(event => event.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'native-call',
+        toolName: 'fixture_read',
+        input: '{"path":"a.ts","exact":true}',
+        providerExecuted: true,
+        dynamic: true,
+        providerMetadata: part.provider.metadata,
+      },
+    ]);
+    expect(emitted.filter(event => event.type === 'tool-result')).toEqual([
+      {
+        type: 'tool-result',
+        toolCallId: 'native-call',
+        toolName: 'fixture_read',
+        result: 'native result',
+        dynamic: true,
+      },
+    ]);
+  });
+
   it.each([true, false])(
     'reports legacy compaction without streaming its summary as answer text (auto=%s)',
     auto => {
@@ -425,6 +482,38 @@ describe('createEmitStreamEvent', () => {
         },
       ]
     `);
+  });
+
+  it('ignores tool parts that OpenCode has compacted', () => {
+    const { emitted, emitStreamEvent } = createEmitter();
+    const part = {
+      type: 'tool',
+      callID: 'tool-earlier-turn',
+      tool: 'view',
+      state: {
+        status: 'completed',
+        input: { file: 'README.md' },
+        output: 'contents',
+        time: { start: 1, end: 2 },
+      },
+    };
+
+    emitStreamEvent({
+      type: 'message.part.updated',
+      properties: {
+        part: {
+          ...part,
+          state: { ...part.state, time: { ...part.state.time, compacted: 3 } },
+        },
+      },
+    });
+    expect(emitted).toEqual([]);
+
+    emitStreamEvent({ type: 'message.part.updated', properties: { part } });
+    expect(emitted.map(event => event.type)).toEqual([
+      'tool-call',
+      'tool-result',
+    ]);
   });
 
   it('does not expose the internal structured output tool', () => {

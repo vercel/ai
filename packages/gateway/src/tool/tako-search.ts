@@ -4,6 +4,10 @@ import {
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from '../zod';
+import {
+  gatewayToolErrorSchema,
+  type GatewayToolError,
+} from './gateway-tool-error';
 
 export type TakoSearchEffort = 'deep' | 'fast' | 'instant';
 
@@ -93,6 +97,23 @@ export interface TakoSearchConfig {
   };
   /** Maximum related search suggestions to include (1-20). */
   includeRelated?: number;
+  /**
+   * Serve per-unit-priced data, such as web traffic and SEO. Each such card adds
+   * a charge, capped by maxVariableCostUsd. On by default; set false to opt out,
+   * and those cards come back as placeholders.
+   */
+  variableCost?: boolean;
+  /**
+   * Most one call can be charged in variable cost, in USD. Defaults to 0.25;
+   * null removes the cap. Cards that don't fit come back as placeholders with
+   * reason 'over_cap'. Can't be combined with variableCost: false.
+   */
+  maxVariableCostUsd?: number | null;
+  /**
+   * Extra Tako request fields in snake_case, deep-merged into the body last.
+   * Can't set fields this tool models; Tako rejects unknown keys (api_error).
+   */
+  extraBody?: Record<string, unknown>;
 }
 
 export interface TakoSearchInput {
@@ -164,11 +185,22 @@ export interface TakoResultContent {
   expires_at?: string | null;
   total_rows?: number | null;
   truncated?: boolean;
+  /** Distinct records per premium class (e.g. company_record) among delivered rows. */
+  premium_rows?: Record<string, number> | null;
+  /** Column header → 0-based delivered-row positions whose premium value was withheld. */
+  redacted_cells?: Record<string, number[]> | null;
+  /** Full set size when the card lists only a capped slice of it. */
+  total_matching?: number | null;
   export_pricing?: {
     baseline_usd: number;
-    free_rows: number;
+    /** @deprecated Always 0, and Tako will stop sending it. */
+    free_rows?: number;
     max_rows_ceiling: number;
     row_cpm_usd: number;
+    /** USD per 1,000 premium records by class, added to row_cpm_usd when premium. */
+    premium_row_cpm_usd?: Record<string, number> | null;
+    /** Upper bound on this card's variable-cost charge; set only for per-unit-priced sources. */
+    variable_cost_max_usd?: number | null;
   } | null;
   manifest?: Array<{
     dtype?: 'boolean' | 'date' | 'datetime' | 'number' | 'string' | null;
@@ -201,6 +233,8 @@ export interface TakoCard {
   source_indexes?: Array<'data' | 'web'> | null;
   card_type?: string | null;
   relevance?: 'High' | 'Low' | 'Medium' | null;
+  /** Relevance to the query, 1.0-5.0. Null unless the account is entitled. */
+  relevance_score?: number | null;
   content?: TakoResultContent | null;
   exportable?: boolean;
   nodes?: Array<{
@@ -217,6 +251,14 @@ export interface TakoCard {
     coverage_end?: string | null;
     data_as_of?: string | null;
     last_updated?: string | null;
+  } | null;
+  /**
+   * Set when Tako withholds the card's data: variable cost off or not served
+   * (`not_served`), or over maxVariableCostUsd (`over_cap`).
+   */
+  placeholder?: {
+    withheld_source: string;
+    reason?: 'not_served' | 'over_cap' | null;
   } | null;
 }
 
@@ -241,342 +283,355 @@ export interface TakoSearchResponse {
     data?: {
       cost_usd: number;
       datasets: number;
+      data_points?: number | null;
+    } | null;
+    variable_cost?: {
+      cost_usd: number;
     } | null;
   } | null;
   related?: Array<Record<string, unknown>> | null;
 }
 
-export interface TakoSearchError {
-  error:
-    | 'api_error'
-    | 'configuration_error'
-    | 'execution_error'
-    | 'invalid_input'
-    | 'rate_limit'
-    | 'timeout'
-    | 'unknown_tool';
-  statusCode?: number;
-  message: string;
-}
+export type TakoSearchError = GatewayToolError;
 
 export type TakoSearchOutput = TakoSearchError | TakoSearchResponse;
 
-const takoDataSourceInputSchema = z.object({
-  count: z
-    .number()
-    .optional()
-    .describe(
+const takoDataSourceInputSchema = () =>
+  z.object({
+    count: z.describe(
+      z.optional(z.number()),
       'Maximum number of data results to return (1-20). When include_contents is true, each additional result adds its own data surcharge.',
     ),
-  include_contents: z
-    .boolean()
-    .optional()
-    .describe(
+    include_contents: z.describe(
+      z.optional(z.boolean()),
       'Inline rows for each data result. This adds a data surcharge based on row count and dataset source. To estimate cost, search with include_contents disabled and inspect cards.content.export_pricing. This applies to every returned card; limit sources.data.count and sources.data.max_rows to control cost.',
     ),
-  mode: z
-    .enum(['inline', 'url'])
-    .optional()
-    .describe(
+    mode: z.describe(
+      z.optional(z.enum(['inline', 'url'])),
       'Requested data delivery mode. Search card data is always inline.',
     ),
-  content_format: z
-    .enum(['card_json', 'csv', 'json_compact', 'json_records'])
-    .optional()
-    .describe('Serialization for inlined card data.'),
-  max_rows: z
-    .number()
-    .optional()
-    .describe(
+    content_format: z.describe(
+      z.optional(z.enum(['card_json', 'csv', 'json_compact', 'json_records'])),
+      'Serialization for inlined card data.',
+    ),
+    max_rows: z.describe(
+      z.optional(z.number()),
       'Maximum rows to inline per result. Omit to use the allowance in cards.content.export_pricing. A data surcharge applies per 1,000 exported rows; lower values reduce cost.',
     ),
-  node_ids: z
-    .array(z.string())
-    .optional()
-    .describe('Data Graph node IDs to prioritize. Maximum 20.'),
-  strict: z
-    .boolean()
-    .optional()
-    .describe(
+    node_ids: z.describe(
+      z.optional(z.array(z.string())),
+      'Data Graph node IDs to prioritize. Maximum 20.',
+    ),
+    strict: z.describe(
+      z.optional(z.boolean()),
       'Only return cards matching node_ids. Requires a non-empty node_ids.',
     ),
-});
+  });
 
-const takoWebSourceInputSchema = z.object({
-  count: z
-    .number()
-    .optional()
-    .describe('Maximum number of web results to return (1-20).'),
-  include_contents: z
-    .boolean()
-    .optional()
-    .describe('Inline extracted web page text. This can add a data charge.'),
-  category: z
-    .enum(['finance', 'news', 'sports'])
-    .optional()
-    .describe('Optional web-result category filter.'),
-  include_domains: z
-    .array(z.string())
-    .optional()
-    .describe('Only return results from these bare domains.'),
-  exclude_domains: z
-    .array(z.string())
-    .optional()
-    .describe('Exclude results from these bare domains.'),
-  snippet_max_chars: z
-    .number()
-    .optional()
-    .describe('Maximum characters in each web-result snippet.'),
-  highlights: z
-    .boolean()
-    .optional()
-    .describe(
+const takoWebSourceInputSchema = () =>
+  z.object({
+    count: z.describe(
+      z.optional(z.number()),
+      'Maximum number of web results to return (1-20).',
+    ),
+    include_contents: z.describe(
+      z.optional(z.boolean()),
+      'Inline extracted web page text. This can add a data charge.',
+    ),
+    category: z.describe(
+      z.optional(z.enum(['finance', 'news', 'sports'])),
+      'Optional web-result category filter.',
+    ),
+    include_domains: z.describe(
+      z.optional(z.array(z.string())),
+      'Only return results from these bare domains.',
+    ),
+    exclude_domains: z.describe(
+      z.optional(z.array(z.string())),
+      'Exclude results from these bare domains.',
+    ),
+    snippet_max_chars: z.describe(
+      z.optional(z.number()),
+      'Maximum characters in each web-result snippet.',
+    ),
+    highlights: z.describe(
+      z.optional(z.boolean()),
       'Include highlighted passages in web results. Defaults to true in AI Gateway.',
     ),
-  article_content_max_chars: z
-    .number()
-    .optional()
-    .describe(
+    article_content_max_chars: z.describe(
+      z.optional(z.number()),
       'Maximum extracted characters per web page when including contents.',
     ),
-  published_after: z
-    .string()
-    .optional()
-    .describe('Keep results published on or after this ISO date (YYYY-MM-DD).'),
-  published_before: z
-    .string()
-    .optional()
-    .describe(
+    published_after: z.describe(
+      z.optional(z.string()),
+      'Keep results published on or after this ISO date (YYYY-MM-DD).',
+    ),
+    published_before: z.describe(
+      z.optional(z.string()),
       'Keep results published on or before this ISO date (YYYY-MM-DD).',
     ),
-});
+  });
 
 const takoSearchInputSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      query: z
-        .string()
-        .describe(
-          'Natural-language search query. Include the entity, metric, and time period. Quote a phrase to force it to one entity, for example "Tesla":PRODUCT price.',
+      query: z.describe(
+        z.string(),
+        'Natural-language search query. Include the entity, metric, and time period. Quote a phrase to force it to one entity, for example "Tesla":PRODUCT price.',
+      ),
+      effort: z.describe(
+        z.optional(z.enum(['deep', 'fast', 'instant'])),
+        'Search effort. fast is the balanced default, instant favors cached results and low latency, and deep broadens retrieval with reranking at higher cost and latency.',
+      ),
+      sources: z.describe(
+        z.optional(
+          z.object({
+            data: z.optional(takoDataSourceInputSchema()),
+            web: z.optional(takoWebSourceInputSchema()),
+          }),
         ),
-      effort: z
-        .enum(['deep', 'fast', 'instant'])
-        .optional()
-        .describe(
-          'Search effort. fast is the balanced default, instant favors cached results and low latency, and deep broadens retrieval with reranking at higher cost and latency.',
+        'Sources to search. Omit to search both curated data and the web. When provided, only keys present are searched.',
+      ),
+      location: z.describe(
+        z.optional(
+          z.object({
+            latitude: z.describe(z.number(), 'Latitude between -90 and 90.'),
+            longitude: z.describe(
+              z.number(),
+              'Longitude between -180 and 180.',
+            ),
+          }),
         ),
-      sources: z
-        .object({
-          data: takoDataSourceInputSchema.optional(),
-          web: takoWebSourceInputSchema.optional(),
-        })
-        .optional()
-        .describe(
-          'Sources to search. Omit to search both curated data and the web. When provided, only keys present are searched.',
-        ),
-      location: z
-        .object({
-          latitude: z.number().describe('Latitude between -90 and 90.'),
-          longitude: z.number().describe('Longitude between -180 and 180.'),
-        })
-        .optional()
-        .describe('End-user coordinates for localized results.'),
-      country_code: z
-        .string()
-        .optional()
-        .describe("Two-letter ISO 3166-1 country code, such as 'US'."),
-      locale: z.string().optional().describe("BCP-47 locale, such as 'en-US'."),
-      timezone: z
-        .string()
-        .optional()
-        .describe("IANA timezone, such as 'America/New_York'."),
-      output_settings: z
-        .object({
-          image_dark_mode: z
-            .boolean()
-            .optional()
-            .describe('Render card preview images in dark mode.'),
-          force_refresh: z
-            .boolean()
-            .optional()
-            .describe(
+        'End-user coordinates for localized results.',
+      ),
+      country_code: z.describe(
+        z.optional(z.string()),
+        "Two-letter ISO 3166-1 country code, such as 'US'.",
+      ),
+      locale: z.describe(
+        z.optional(z.string()),
+        "BCP-47 locale, such as 'en-US'.",
+      ),
+      timezone: z.describe(
+        z.optional(z.string()),
+        "IANA timezone, such as 'America/New_York'.",
+      ),
+      output_settings: z.describe(
+        z.optional(
+          z.object({
+            image_dark_mode: z.describe(
+              z.optional(z.boolean()),
+              'Render card preview images in dark mode.',
+            ),
+            force_refresh: z.describe(
+              z.optional(z.boolean()),
               'Instant-effort only. Request a refreshed instant result.',
             ),
-        })
-        .optional()
-        .describe('Controls card rendering in the search response.'),
-      include_related: z
-        .number()
-        .optional()
-        .describe('Maximum related search suggestions to include (1-20).'),
+          }),
+        ),
+        'Controls card rendering in the search response.',
+      ),
+      include_related: z.describe(
+        z.optional(z.number()),
+        'Maximum related search suggestions to include (1-20).',
+      ),
     }),
   ),
 );
 
-const takoDatasetCellSchema = z
-  .union([z.boolean(), z.number(), z.string()])
-  .nullable();
+const takoDatasetCellSchema = () =>
+  z.nullable(z.union([z.boolean(), z.number(), z.string()]));
 
-const takoResultContentSchema = z
-  .object({
-    content_format: z
-      .enum(['card_json', 'csv', 'json_compact', 'json_records'])
-      .nullish(),
-    cost: z.number().optional(),
-    data: z.string().nullish(),
-    records: z.array(z.record(z.string(), takoDatasetCellSchema)).nullish(),
-    dataset: z
-      .object({
-        columns: z.array(
+export const takoResultContentSchema = () =>
+  z.catchall(
+    z.object({
+      content_format: z.nullish(
+        z.enum(['card_json', 'csv', 'json_compact', 'json_records']),
+      ),
+      cost: z.optional(z.number()),
+      data: z.nullish(z.string()),
+      records: z.nullish(
+        z.array(z.record(z.string(), takoDatasetCellSchema())),
+      ),
+      dataset: z.nullish(
+        z.object({
+          columns: z.array(
+            z.object({
+              name: z.string(),
+              type: z.enum(['boolean', 'date', 'datetime', 'number', 'string']),
+              unit: z.nullish(z.string()),
+            }),
+          ),
+          rows: z.array(z.array(takoDatasetCellSchema())),
+          total_rows: z.number(),
+          truncated: z.boolean(),
+          ref: z.string(),
+          sources: z.array(
+            z.object({
+              name: z.string(),
+              index: z.optional(z.enum(['data', 'web'])),
+            }),
+          ),
+          provenance: z.optional(z.enum(['query', 'web_extraction'])),
+        }),
+      ),
+      card_data: z.nullish(z.catchall(z.object({}), z.unknown())),
+      card_data_schema: z.nullish(z.catchall(z.object({}), z.unknown())),
+      url: z.nullish(z.string()),
+      expires_at: z.nullish(z.string()),
+      total_rows: z.nullish(z.number()),
+      truncated: z.optional(z.boolean()),
+      premium_rows: z.nullish(z.record(z.string(), z.number())),
+      redacted_cells: z.nullish(z.record(z.string(), z.array(z.number()))),
+      total_matching: z.nullish(z.number()),
+      export_pricing: z.nullish(
+        z.catchall(
           z.object({
-            name: z.string(),
-            type: z.enum(['boolean', 'date', 'datetime', 'number', 'string']),
-            unit: z.string().nullish(),
+            baseline_usd: z.number(),
+            free_rows: z.optional(z.number()),
+            max_rows_ceiling: z.number(),
+            row_cpm_usd: z.number(),
+            premium_row_cpm_usd: z.nullish(z.record(z.string(), z.number())),
+            variable_cost_max_usd: z.nullish(z.number()),
+          }),
+          z.unknown(),
+        ),
+      ),
+      manifest: z.nullish(
+        z.array(
+          z.object({
+            dtype: z.nullish(
+              z.enum(['boolean', 'date', 'datetime', 'number', 'string']),
+            ),
+            entity: z.nullish(z.string()),
+            metric: z.nullish(z.string()),
+            name: z.nullish(z.string()),
+            unit: z.nullish(z.string()),
           }),
         ),
-        rows: z.array(z.array(takoDatasetCellSchema)),
-        total_rows: z.number(),
-        truncated: z.boolean(),
-        ref: z.string(),
-        sources: z.array(
+      ),
+    }),
+    z.unknown(),
+  );
+
+const takoCardSchema = () =>
+  z.catchall(
+    z.object({
+      card_id: z.nullish(z.string()),
+      title: z.nullish(z.string()),
+      description: z.nullish(z.string()),
+      semantic_description: z.nullish(z.string()),
+      webpage_url: z.nullish(z.string()),
+      image_url: z.nullish(z.string()),
+      embed_url: z.nullish(z.string()),
+      sources: z.nullish(
+        z.array(
           z.object({
-            name: z.string(),
-            index: z.enum(['data', 'web']).optional(),
+            source_name: z.nullish(z.string()),
+            source_description: z.nullish(z.string()),
+            source_index: z.enum(['data', 'web']),
+            source_text: z.nullish(z.string()),
+            url: z.nullish(z.string()),
           }),
         ),
-        provenance: z.enum(['query', 'web_extraction']).optional(),
-      })
-      .nullish(),
-    card_data: z.object({}).passthrough().nullish(),
-    card_data_schema: z.object({}).passthrough().nullish(),
-    url: z.string().nullish(),
-    expires_at: z.string().nullish(),
-    total_rows: z.number().nullish(),
-    truncated: z.boolean().optional(),
-    export_pricing: z
-      .object({
-        baseline_usd: z.number(),
-        free_rows: z.number(),
-        max_rows_ceiling: z.number(),
-        row_cpm_usd: z.number(),
-      })
-      .nullish(),
-    manifest: z
-      .array(
+      ),
+      methodologies: z.nullish(
+        z.array(
+          z.object({
+            methodology_name: z.nullable(z.string()),
+            methodology_description: z.nullable(z.string()),
+          }),
+        ),
+      ),
+      source_indexes: z.nullish(z.array(z.enum(['data', 'web']))),
+      card_type: z.nullish(z.string()),
+      relevance: z.nullish(z.enum(['High', 'Low', 'Medium'])),
+      relevance_score: z.nullish(z.number()),
+      content: z.nullish(takoResultContentSchema()),
+      exportable: z.optional(z.boolean()),
+      nodes: z.nullish(
+        z.array(
+          z.object({
+            id: z.string(),
+            type: z.enum(['entity', 'metric']),
+            name: z.string(),
+            description: z.nullish(z.string()),
+          }),
+        ),
+      ),
+      metric_definitions: z.nullish(
+        z.array(z.object({ name: z.string(), definition: z.string() })),
+      ),
+      data_freshness: z.nullish(
         z.object({
-          dtype: z
-            .enum(['boolean', 'date', 'datetime', 'number', 'string'])
-            .nullish(),
-          entity: z.string().nullish(),
-          metric: z.string().nullish(),
-          name: z.string().nullish(),
-          unit: z.string().nullish(),
+          coverage_end: z.nullish(z.string()),
+          data_as_of: z.nullish(z.string()),
+          last_updated: z.nullish(z.string()),
         }),
-      )
-      .nullish(),
-  })
-  .passthrough();
+      ),
+      placeholder: z.nullish(
+        z.catchall(
+          z.object({
+            withheld_source: z.string(),
+            reason: z.nullish(z.enum(['not_served', 'over_cap'])),
+          }),
+          z.unknown(),
+        ),
+      ),
+    }),
+    z.unknown(),
+  );
 
-const takoCardSchema = z
-  .object({
-    card_id: z.string().nullish(),
-    title: z.string().nullish(),
-    description: z.string().nullish(),
-    semantic_description: z.string().nullish(),
-    webpage_url: z.string().nullish(),
-    image_url: z.string().nullish(),
-    embed_url: z.string().nullish(),
-    sources: z
-      .array(
-        z.object({
-          source_name: z.string().nullish(),
-          source_description: z.string().nullish(),
-          source_index: z.enum(['data', 'web']),
-          source_text: z.string().nullish(),
-          url: z.string().nullish(),
-        }),
-      )
-      .nullish(),
-    methodologies: z
-      .array(
-        z.object({
-          methodology_name: z.string().nullable(),
-          methodology_description: z.string().nullable(),
-        }),
-      )
-      .nullish(),
-    source_indexes: z.array(z.enum(['data', 'web'])).nullish(),
-    card_type: z.string().nullish(),
-    relevance: z.enum(['High', 'Low', 'Medium']).nullish(),
-    content: takoResultContentSchema.nullish(),
-    exportable: z.boolean().optional(),
-    nodes: z
-      .array(
-        z.object({
-          id: z.string(),
-          type: z.enum(['entity', 'metric']),
-          name: z.string(),
-          description: z.string().nullish(),
-        }),
-      )
-      .nullish(),
-    metric_definitions: z
-      .array(z.object({ name: z.string(), definition: z.string() }))
-      .nullish(),
-    data_freshness: z
-      .object({
-        coverage_end: z.string().nullish(),
-        data_as_of: z.string().nullish(),
-        last_updated: z.string().nullish(),
-      })
-      .nullish(),
-  })
-  .passthrough();
-
-const takoWebResultSchema = z
-  .object({
-    title: z.string(),
-    url: z.string(),
-    snippet: z.string().nullish(),
-    source_name: z.string().nullish(),
-    publish_date: z.string().nullish(),
-    content: takoResultContentSchema.nullish(),
-  })
-  .passthrough();
+const takoWebResultSchema = () =>
+  z.catchall(
+    z.object({
+      title: z.string(),
+      url: z.string(),
+      snippet: z.nullish(z.string()),
+      source_name: z.nullish(z.string()),
+      publish_date: z.nullish(z.string()),
+      content: z.nullish(takoResultContentSchema()),
+    }),
+    z.unknown(),
+  );
 
 const takoSearchOutputSchema = lazySchema(() =>
   zodSchema(
     z.union([
-      z
-        .object({
+      z.catchall(
+        z.object({
           request_id: z.string(),
-          cards: z.array(takoCardSchema).optional(),
-          web_results: z.array(takoWebResultSchema).optional(),
-          usage: z
-            .object({
-              total_cost_usd: z.number(),
-              compute: z.object({ cost_usd: z.number() }).nullish(),
-              data: z
-                .object({ cost_usd: z.number(), datasets: z.number() })
-                .nullish(),
-            })
-            .nullish(),
-          related: z.array(z.object({}).passthrough()).nullish(),
-        })
-        .passthrough(),
-      z.object({
-        error: z.enum([
-          'api_error',
-          'configuration_error',
-          'execution_error',
-          'invalid_input',
-          'rate_limit',
-          'timeout',
-          'unknown_tool',
-        ]),
-        statusCode: z.number().optional(),
-        message: z.string(),
-      }),
+          cards: z.optional(z.array(takoCardSchema())),
+          web_results: z.optional(z.array(takoWebResultSchema())),
+          usage: z.nullish(
+            z.catchall(
+              z.object({
+                total_cost_usd: z.number(),
+                compute: z.nullish(
+                  z.catchall(z.object({ cost_usd: z.number() }), z.unknown()),
+                ),
+                data: z.nullish(
+                  z.catchall(
+                    z.object({
+                      cost_usd: z.number(),
+                      datasets: z.number(),
+                      data_points: z.nullish(z.number()),
+                    }),
+                    z.unknown(),
+                  ),
+                ),
+                variable_cost: z.nullish(
+                  z.catchall(z.object({ cost_usd: z.number() }), z.unknown()),
+                ),
+              }),
+              z.unknown(),
+            ),
+          ),
+          related: z.nullish(z.array(z.catchall(z.object({}), z.unknown()))),
+        }),
+        z.unknown(),
+      ),
+      gatewayToolErrorSchema(),
     ]),
   ),
 );

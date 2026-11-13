@@ -1,4 +1,6 @@
 import {
+  lazySchema,
+  zodSchema,
   convertBase64ToUint8Array,
   safeParseJSON,
   type FetchFunction,
@@ -7,9 +9,13 @@ import { z } from 'zod/v4';
 import { createAmazonBedrockEventStreamDecoder } from '../amazon-bedrock-event-stream-decoder';
 import { getAmazonBedrockStreamErrorMetadata } from '../amazon-bedrock-stream-error';
 
-const amazonBedrockErrorSchema = z.looseObject({
-  message: z.string().optional(),
-});
+const amazonBedrockErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.looseObject({
+      message: z.string().optional(),
+    }),
+  ),
+);
 
 export function createAmazonBedrockAnthropicFetch(
   baseFetch: FetchFunction,

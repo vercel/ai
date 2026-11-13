@@ -1,11 +1,16 @@
+import { getErrorMessage } from '@ai-sdk/provider';
+import { DelayedPromise } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
+import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import type { LanguageModelUsage } from '../types/usage';
+import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import type { UIMessage } from '../ui/ui-messages';
+import { readUIMessageStream } from './read-ui-message-stream';
 import { toUIMessageStream } from './to-ui-message-stream';
 
 const testUsage: LanguageModelUsage = {
@@ -23,7 +28,110 @@ const testUsage: LanguageModelUsage = {
   },
 };
 
+const testStep: TextStreamPart<{}> & { type: 'finish-step' } = {
+  type: 'finish-step',
+  response: { id: 'r', modelId: 'm', timestamp: new Date(0) },
+  usage: testUsage,
+  performance: {
+    effectiveOutputTokensPerSecond: 0,
+    outputTokensPerSecond: 0,
+    inputTokensPerSecond: 0,
+    effectiveTotalTokensPerSecond: 0,
+    stepTimeMs: 0,
+    responseTimeMs: 0,
+    toolExecutionMs: {},
+    timeToFirstOutputMs: undefined,
+  },
+  finishReason: 'stop',
+  rawFinishReason: 'stop',
+  providerMetadata: undefined,
+};
+
 describe('toUIMessageStream', () => {
+  it('includes finish-step metadata in the snapshot before forwarding the boundary', async () => {
+    const onStepEnd = vi.fn();
+    const onEnd = vi.fn();
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream<{}, UIMessage<{ totalTokens: number | undefined }>>({
+        stream: convertArrayToReadableStream([
+          { type: 'start' },
+          { type: 'start-step', request: {}, warnings: [] },
+          testStep,
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            rawFinishReason: 'stop',
+            totalUsage: testUsage,
+          },
+        ]),
+        generateMessageId: () => 'assistant-1',
+        messageMetadata: ({ part }) =>
+          part.type === 'finish-step'
+            ? { totalTokens: part.usage.totalTokens }
+            : undefined,
+        onStepEnd,
+        onEnd,
+      }),
+    );
+
+    expect(chunks).toEqual([
+      { type: 'start', messageId: 'assistant-1' },
+      { type: 'start-step' },
+      { type: 'message-metadata', messageMetadata: { totalTokens: 2 } },
+      { type: 'finish-step' },
+      { type: 'finish', finishReason: 'stop' },
+    ]);
+    expect(onStepEnd).toHaveBeenCalledOnce();
+    expect(onStepEnd.mock.calls[0][0].responseMessage.metadata).toEqual({
+      totalTokens: 2,
+    });
+    expect(onStepEnd.mock.calls[0][0].responseMessage).toEqual(
+      onEnd.mock.calls[0][0].responseMessage,
+    );
+  });
+
+  it.each([false, true])(
+    'resolves the deprecated step callback alias (onStepEnd provided: %s)',
+    async hasOnStepEnd => {
+      const onStepEnd = vi.fn();
+      const onStepFinish = vi.fn();
+      await convertReadableStreamToArray(
+        toUIMessageStream({
+          stream: convertArrayToReadableStream([{ type: 'start' }, testStep]),
+          onStepEnd: hasOnStepEnd ? onStepEnd : undefined,
+          onStepFinish,
+        }),
+      );
+      expect(onStepEnd).toHaveBeenCalledTimes(hasOnStepEnd ? 1 : 0);
+      expect(onStepFinish).toHaveBeenCalledTimes(hasOnStepEnd ? 0 : 1);
+    },
+  );
+
+  it('awaits the UI callback before delivering finish-step', async () => {
+    const callbackStarted = new DelayedPromise<void>();
+    const callbackFinished = new DelayedPromise<void>();
+    const reader = toUIMessageStream({
+      stream: convertArrayToReadableStream([{ type: 'start' }, testStep]),
+      onStepEnd: async () => {
+        callbackStarted.resolve(undefined);
+        await callbackFinished.promise;
+      },
+    }).getReader();
+
+    expect((await reader.read()).value).toEqual({ type: 'start' });
+    const nextRead = reader.read();
+    await callbackStarted.promise;
+    let boundaryDelivered = false;
+    void nextRead.then(() => {
+      boundaryDelivered = true;
+    });
+    await Promise.resolve();
+    expect(boundaryDelivered).toBe(false);
+    callbackFinished.resolve(undefined);
+    expect((await nextRead).value).toEqual({ type: 'finish-step' });
+    expect((await reader.read()).done).toBe(true);
+  });
+
   it('maps text and lifecycle parts to UI message chunks', async () => {
     const parts: TextStreamPart<{}>[] = [
       { type: 'start' },
@@ -155,6 +263,176 @@ describe('toUIMessageStream', () => {
     expect(chunks).toEqual([{ type: 'error', errorText: 'handled: boom' }]);
   });
 
+  it('routes an invalid tool call through onError once', async () => {
+    const invalidToolCallError = new Error('invalid tool input');
+    const onError = vi.fn(() => 'formatted tool error');
+
+    const parts: TextStreamPart<{}>[] = [
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'invalid' },
+        invalid: true,
+        dynamic: true,
+        error: invalidToolCallError,
+      },
+      {
+        type: 'tool-error',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'invalid' },
+        error: 'Error: invalid tool input',
+        dynamic: true,
+      },
+    ];
+
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        onError,
+      }),
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-error',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'invalid' },
+        dynamic: true,
+        errorText: 'formatted tool error',
+      },
+    ]);
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledWith(invalidToolCallError);
+  });
+
+  it('forwards tool errors for valid tool calls', async () => {
+    const onError = vi.fn(() => 'formatted tool error');
+
+    const parts: TextStreamPart<{}>[] = [
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'valid' },
+        dynamic: true,
+      },
+      {
+        type: 'tool-error',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'valid' },
+        error: new Error('execution failed'),
+        dynamic: true,
+      },
+    ];
+
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        onError,
+      }),
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: { value: 'valid' },
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'call-1',
+        dynamic: true,
+        errorText: 'formatted tool error',
+      },
+    ]);
+    expect(onError).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    {
+      name: 'tool execution error',
+      toolCall: {},
+      toolError: { error: new Error('execution failed') },
+    },
+    {
+      name: 'invalid tool call',
+      // streamText follows an invalid tool call with a tool-error part that
+      // contains the error text for the model
+      toolCall: { invalid: true, error: new Error('invalid tool input') },
+      toolError: { error: 'Error: invalid tool input' },
+    },
+  ])(
+    'sends a $name that converts back to the tool result the model received',
+    async ({ toolCall, toolError }) => {
+      const parts: TextStreamPart<{}>[] = [
+        { type: 'start' },
+        { type: 'start-step', request: {}, warnings: [] },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'test-tool',
+          input: { value: 'input' },
+          dynamic: true,
+          ...toolCall,
+        },
+        {
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'test-tool',
+          input: { value: 'input' },
+          dynamic: true,
+          ...toolError,
+        },
+        testStep,
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          rawFinishReason: 'stop',
+          totalUsage: testUsage,
+        },
+      ];
+
+      let uiMessage: UIMessage | undefined;
+      for await (const message of readUIMessageStream({
+        stream: toUIMessageStream({
+          stream: convertArrayToReadableStream(parts),
+          tools: undefined,
+        }),
+      })) {
+        uiMessage = message;
+      }
+
+      const modelMessages = await convertToModelMessages([uiMessage!]);
+
+      expect(modelMessages.at(-1)).toEqual({
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'test-tool',
+            // the output that streamText sends to the model
+            output: await createToolModelOutput({
+              toolCallId: 'call-1',
+              input: { value: 'input' },
+              output: toolError.error,
+              tool: undefined,
+              errorMode: 'text',
+            }),
+          },
+        ],
+      });
+    },
+  );
+
   it('emits separate metadata chunks for non-lifecycle parts', async () => {
     type MetadataUIMessage = UIMessage<{ partType: string }>;
 
@@ -251,6 +529,104 @@ describe('toUIMessageStream', () => {
         },
       ],
     });
+  });
+
+  it('calls onStepEnd with the accumulated UI message', async () => {
+    const parts: TextStreamPart<{}>[] = [
+      { type: 'start' },
+      { type: 'start-step', request: {}, warnings: [] },
+      { type: 'text-start', id: 't1' },
+      { type: 'text-delta', id: 't1', text: 'First' },
+      { type: 'text-end', id: 't1' },
+      {
+        type: 'finish-step',
+        response: { id: 'r1', modelId: 'm', timestamp: new Date(0) },
+        usage: testUsage,
+        performance: {
+          effectiveOutputTokensPerSecond: 0,
+          outputTokensPerSecond: 0,
+          inputTokensPerSecond: 0,
+          effectiveTotalTokensPerSecond: 0,
+          stepTimeMs: 0,
+          responseTimeMs: 0,
+          toolExecutionMs: {},
+          timeToFirstOutputMs: undefined,
+        },
+        finishReason: 'stop',
+        rawFinishReason: 'stop',
+        providerMetadata: undefined,
+      },
+      { type: 'start-step', request: {}, warnings: [] },
+      { type: 'text-start', id: 't2' },
+      { type: 'text-delta', id: 't2', text: 'Second' },
+      { type: 'text-end', id: 't2' },
+      {
+        type: 'finish-step',
+        response: { id: 'r2', modelId: 'm', timestamp: new Date(0) },
+        usage: testUsage,
+        performance: {
+          effectiveOutputTokensPerSecond: 0,
+          outputTokensPerSecond: 0,
+          inputTokensPerSecond: 0,
+          effectiveTotalTokensPerSecond: 0,
+          stepTimeMs: 0,
+          responseTimeMs: 0,
+          toolExecutionMs: {},
+          timeToFirstOutputMs: undefined,
+        },
+        finishReason: 'stop',
+        rawFinishReason: 'stop',
+        providerMetadata: undefined,
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        rawFinishReason: 'stop',
+        totalUsage: testUsage,
+      },
+    ];
+    const originalMessages: UIMessage[] = [
+      {
+        id: 'user-msg-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Hi' }],
+      },
+    ];
+    const onStepEnd = vi.fn();
+
+    await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        originalMessages,
+        generateMessageId: () => 'assistant-msg-1',
+        onStepEnd,
+      }),
+    );
+
+    expect(onStepEnd).toHaveBeenCalledTimes(2);
+    expect(onStepEnd.mock.calls[0][0]).toMatchObject({
+      isContinuation: false,
+      responseMessage: {
+        id: 'assistant-msg-1',
+        role: 'assistant',
+        parts: [{ type: 'step-start' }, { type: 'text', text: 'First' }],
+      },
+      messages: [
+        originalMessages[0],
+        {
+          id: 'assistant-msg-1',
+          role: 'assistant',
+          parts: [{ type: 'step-start' }, { type: 'text', text: 'First' }],
+        },
+      ],
+    });
+    expect(onStepEnd.mock.calls[1][0].responseMessage.parts).toMatchObject([
+      { type: 'step-start' },
+      { type: 'text', text: 'First' },
+      { type: 'step-start' },
+      { type: 'text', text: 'Second' },
+    ]);
   });
 
   it('calls onEnd when stream finishes', async () => {
@@ -518,6 +894,253 @@ describe('toUIMessageStream', () => {
     expect(onEnd.mock.calls[0][0].outcome).toEqual({
       status: 'failed',
       error: conversionError,
+    });
+  });
+
+  describe('tool error text mismatch warning', () => {
+    const warningLogger = vi.fn();
+
+    beforeEach(() => {
+      warningLogger.mockClear();
+      globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+    });
+
+    afterEach(() => {
+      delete globalThis.AI_SDK_LOG_WARNINGS;
+    });
+
+    const startStep: TextStreamPart<{}> = {
+      type: 'start-step',
+      request: {},
+      warnings: [],
+    };
+
+    const toolCall: TextStreamPart<{}> = {
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'test-tool',
+      input: { value: 'valid' },
+      dynamic: true,
+    };
+
+    const toolError: TextStreamPart<{}> = {
+      type: 'tool-error',
+      toolCallId: 'call-1',
+      toolName: 'test-tool',
+      input: { value: 'valid' },
+      error: new Error('execution failed'),
+      dynamic: true,
+    };
+
+    const reasoning: TextStreamPart<{}>[] = [
+      { type: 'reasoning-start', id: 'r1' },
+      { type: 'reasoning-delta', id: 'r1', text: 'thinking' },
+      { type: 'reasoning-end', id: 'r1' },
+    ];
+
+    // the tool call fails in the first step and the model reasons about the
+    // tool error in the second step
+    const toolErrorThenReasoning: TextStreamPart<{}>[] = [
+      startStep,
+      toolCall,
+      toolError,
+      testStep,
+      startStep,
+      ...reasoning,
+      testStep,
+    ];
+
+    async function consumeUIMessageStream(
+      parts: TextStreamPart<{}>[],
+      options: Pick<
+        Parameters<typeof toUIMessageStream>[0],
+        'onError' | 'redactToolErrors' | 'sendReasoning'
+      > = {},
+    ) {
+      await convertReadableStreamToArray(
+        toUIMessageStream({
+          stream: convertArrayToReadableStream(parts),
+          tools: undefined,
+          ...options,
+        }),
+      );
+    }
+
+    it('warns when a masked tool error is followed by reasoning from a later step', async () => {
+      await consumeUIMessageStream(toolErrorThenReasoning, {
+        redactToolErrors: true,
+      });
+
+      expect(warningLogger).toHaveBeenCalledOnce();
+      expect(warningLogger).toHaveBeenCalledWith({
+        warnings: [
+          {
+            type: 'other',
+            message: expect.stringContaining(
+              'The error text sent to the UI for tool call "call-1" differs from the error text the model received',
+            ),
+          },
+        ],
+      });
+    });
+
+    it('warns once per stream', async () => {
+      await consumeUIMessageStream(
+        [
+          ...toolErrorThenReasoning,
+          startStep,
+          { ...toolCall, toolCallId: 'call-2' },
+          { ...toolError, toolCallId: 'call-2' },
+          testStep,
+          startStep,
+          ...reasoning,
+          testStep,
+        ],
+        { redactToolErrors: true },
+      );
+
+      expect(warningLogger).toHaveBeenCalledOnce();
+    });
+
+    it('does not warn by default because the UI receives the text the model received', async () => {
+      await consumeUIMessageStream(toolErrorThenReasoning);
+
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
+    it('does not warn when a provided onError does not redact tool errors', async () => {
+      await consumeUIMessageStream(toolErrorThenReasoning, {
+        onError: error => (error as Error).message,
+        redactToolErrors: false,
+      });
+
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
+    it('warns when onError returns a text that differs from the text the model received', async () => {
+      await consumeUIMessageStream(toolErrorThenReasoning, {
+        onError: error => (error as Error).message,
+      });
+
+      expect(warningLogger).toHaveBeenCalledOnce();
+    });
+
+    it('does not warn when onError returns the text the model received', async () => {
+      await consumeUIMessageStream(toolErrorThenReasoning, {
+        onError: getErrorMessage,
+      });
+
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
+    it('does not warn when reasoning is not sent', async () => {
+      await consumeUIMessageStream(toolErrorThenReasoning, {
+        sendReasoning: false,
+      });
+
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
+    it('does not warn when the reasoning precedes the tool error', async () => {
+      await consumeUIMessageStream([
+        startStep,
+        ...reasoning,
+        toolCall,
+        toolError,
+        testStep,
+        startStep,
+        { type: 'text-start', id: 't1' },
+        { type: 'text-delta', id: 't1', text: 'The tool failed.' },
+        { type: 'text-end', id: 't1' },
+        testStep,
+      ]);
+
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
+    it('does not warn when the reasoning follows the tool error in the same step', async () => {
+      await consumeUIMessageStream([
+        startStep,
+        toolCall,
+        toolError,
+        ...reasoning,
+        testStep,
+      ]);
+
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
+    it('warns when a masked tool error precedes the first step', async () => {
+      // approved tool calls run before the first step of the next call
+      await consumeUIMessageStream(
+        [toolError, startStep, ...reasoning, testStep],
+        { redactToolErrors: true },
+      );
+
+      expect(warningLogger).toHaveBeenCalledOnce();
+    });
+
+    it('warns when a masked invalid tool call is followed by reasoning from a later step', async () => {
+      await consumeUIMessageStream(
+        [
+          startStep,
+          {
+            ...toolCall,
+            invalid: true,
+            error: new Error('invalid tool input'),
+          },
+          { ...toolError, error: 'Error: invalid tool input' },
+          testStep,
+          startStep,
+          ...reasoning,
+          testStep,
+        ],
+        { redactToolErrors: true },
+      );
+
+      expect(warningLogger).toHaveBeenCalledOnce();
+    });
+
+    it('does not fail the stream when the tool error cannot be serialized', async () => {
+      const circularError: { self?: unknown } = {};
+      circularError.self = circularError;
+
+      const chunks = await convertReadableStreamToArray(
+        toUIMessageStream({
+          stream: convertArrayToReadableStream([
+            startStep,
+            toolCall,
+            { ...toolError, error: circularError },
+            testStep,
+            startStep,
+            ...reasoning,
+            testStep,
+          ]),
+          tools: undefined,
+        }),
+      );
+
+      expect(chunks).toContainEqual({
+        type: 'tool-output-error',
+        toolCallId: 'call-1',
+        dynamic: true,
+        errorText: 'An error occurred.',
+      });
+      expect(warningLogger).not.toHaveBeenCalled();
+    });
+
+    it('does not warn for provider-executed tool errors', async () => {
+      await consumeUIMessageStream([
+        startStep,
+        { ...toolCall, providerExecuted: true },
+        { ...toolError, error: 'provider error', providerExecuted: true },
+        testStep,
+        startStep,
+        ...reasoning,
+        testStep,
+      ]);
+
+      expect(warningLogger).not.toHaveBeenCalled();
     });
   });
 });

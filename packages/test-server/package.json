@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/test-server",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -46,8 +46,9 @@
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
-    "typescript": "5.8.3"
+    "typescript": "6.0.3"
   },
   "engines": {
     "node": ">=22"

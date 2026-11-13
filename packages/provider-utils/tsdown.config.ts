@@ -1,6 +1,6 @@
 import { defineConfig, mergeConfig } from 'tsdown';
 
-import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
+import { tsdownBaseConfig } from '@vercel/ai-tsdown-config';
 
 export default defineConfig(
   [
@@ -19,6 +19,10 @@ export default defineConfig(
     {
       entry: ['src/experimental-evaluation/index.ts'],
       outDir: 'dist/experimental-evaluation',
+    },
+    {
+      entry: ['src/experimental-extraction/index.ts'],
+      outDir: 'dist/experimental-extraction',
     },
     {
       entry: ['src/test/index.ts'],

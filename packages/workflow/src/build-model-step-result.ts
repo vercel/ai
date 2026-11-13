@@ -1,3 +1,4 @@
+import { restoreTelemetryBody } from './serializable-telemetry-body.js';
 import type { LanguageModelV4Content } from '@ai-sdk/provider';
 import {
   convertLanguageModelContent,
@@ -25,6 +26,7 @@ export async function buildModelStepResult(
   finish: ModelCallFinish | undefined,
   providerExecutedToolResults: Map<string, ProviderExecutedToolResult>,
   opts: {
+    callId?: string;
     tools?: ToolSet;
     requestMessages?: ModelMessage[];
     stepNumber: number;
@@ -41,7 +43,12 @@ export async function buildModelStepResult(
           break;
         case 'tool-call': {
           const call = toolCalls[part.toolCallIndex];
-          providerContent.push({ ...call, input: '', type: 'tool-call' });
+          const { inputSchemaInput: _inputSchemaInput, ...publicCall } = call;
+          providerContent.push({
+            ...publicCall,
+            input: '',
+            type: 'tool-call',
+          });
           break;
         }
         case 'provider-tool-result':
@@ -72,7 +79,7 @@ export async function buildModelStepResult(
     const rate = (tokens: number | undefined) =>
       calculateTokensPerSecond({ tokens, durationMs: duration });
     return new DefaultStepResult({
-      callId: 'workflow-agent',
+      callId: opts.callId ?? 'workflow-agent',
       stepNumber: opts.stepNumber,
       provider: raw.generation.provider,
       modelId: raw.generation.modelId,
@@ -83,9 +90,28 @@ export async function buildModelStepResult(
       rawFinishReason: finish.rawFinishReason,
       usage: finish.usage,
       warnings: raw.warnings as StepResult<ToolSet>['warnings'],
-      request: { ...raw.generation.request, messages: opts.requestMessages },
+      request: {
+        ...raw.generation.request,
+        ...(raw.telemetryBodies?.request == null
+          ? {}
+          : {
+              body: restoreTelemetryBody(
+                raw.generation.request?.body,
+                raw.telemetryBodies.request,
+              ),
+            }),
+        messages: opts.requestMessages,
+      },
       response: {
         ...raw.responseMetadata,
+        ...(raw.telemetryBodies?.response == null
+          ? {}
+          : {
+              body: restoreTelemetryBody(
+                raw.responseMetadata?.body,
+                raw.telemetryBodies.response,
+              ),
+            }),
         messages: [],
       } as StepResult<ToolSet>['response'],
       providerMetadata:
@@ -105,6 +131,7 @@ export async function buildModelStepResult(
   const {
     content: rawContent,
     reasoning: reasoningParts,
+    performance: modelCallPerformance,
     responseMetadata,
     warnings,
   } = raw;
@@ -190,6 +217,9 @@ export async function buildModelStepResult(
         sources.push(part);
         content.push(part);
         break;
+      case 'custom':
+        content.push(part);
+        break;
       case 'tool-approval-request': {
         const toolCall = validToolCalls.find(
           call => call.toolCallId === part.toolCallId,
@@ -257,7 +287,7 @@ export async function buildModelStepResult(
   ) as StepResult<ToolSet, any>['toolResults'];
 
   return {
-    callId: 'workflow-agent',
+    callId: opts.callId ?? 'workflow-agent',
     stepNumber: opts.stepNumber,
     model: {
       provider: responseMetadata?.modelId?.split(':')[0] ?? 'unknown',
@@ -303,16 +333,23 @@ export async function buildModelStepResult(
         },
         totalTokens: 0,
       } as LanguageModelUsage),
-    performance: {
-      effectiveOutputTokensPerSecond: 0,
-      outputTokensPerSecond: undefined,
-      inputTokensPerSecond: undefined,
-      effectiveTotalTokensPerSecond: 0,
-      stepTimeMs: 0,
-      responseTimeMs: 0,
-      toolExecutionMs: {},
-      timeToFirstOutputMs: undefined,
-    },
+    performance:
+      modelCallPerformance == null
+        ? {
+            effectiveOutputTokensPerSecond: 0,
+            outputTokensPerSecond: undefined,
+            inputTokensPerSecond: undefined,
+            effectiveTotalTokensPerSecond: 0,
+            stepTimeMs: 0,
+            responseTimeMs: 0,
+            toolExecutionMs: {},
+            timeToFirstOutputMs: undefined,
+          }
+        : {
+            ...modelCallPerformance,
+            stepTimeMs: modelCallPerformance.responseTimeMs,
+            toolExecutionMs: {},
+          },
     warnings,
     request: {
       body: '',

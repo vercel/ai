@@ -14,6 +14,8 @@ import {
   type SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertAsyncIteratorToReadableStream,
   createJsonErrorResponseHandler,
@@ -35,7 +37,9 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
   readonly provider: string;
   readonly supportedUrls = { '*/*': [/.*/] };
 
-  constructor(private readonly config: GatewayChatConfig) {
+  constructor(
+    private readonly config: GatewayChatConfig & { maxLineBytes?: number },
+  ) {
     this.provider = `${config.provider}.batch`;
   }
 
@@ -191,6 +195,7 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
         body: { batchId },
         successfulResponseHandler: createJsonLinesResponseHandler(
           gatewayBatchItemResultLineSchema,
+          { maxLineBytes: this.config.maxLineBytes },
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
@@ -482,55 +487,68 @@ async function* convertGatewayBatchResultLines(
   }
 }
 
-const gatewayBatchItemResultLineSchema = z
-  .object({
-    type: z.literal('text'),
-    id: z.string(),
-    status: z.enum(['cancelled', 'expired', 'failed', 'succeeded']),
-  })
-  .catchall(z.unknown());
-
-const gatewayBatchErrorSchema = z.object({
-  message: z.string(),
-  type: z.string().nullish(),
-  code: z.string().nullish(),
-  statusCode: z.number().nullish(),
-});
-
-const gatewayBatchRequestCountsSchema = z.object({
-  total: z.number().nullish(),
-  pending: z.number().nullish(),
-  completed: z.number().nullish(),
-  failed: z.number().nullish(),
-});
-
-const gatewayBatchProviderMetadataSchema = z.record(
-  z.string(),
-  z.record(z.string(), z.unknown()),
+const gatewayBatchItemResultLineSchema = lazySchema(() =>
+  zodSchema(
+    z.catchall(
+      z.object({
+        type: z.literal('text'),
+        id: z.string(),
+        status: z.enum(['cancelled', 'expired', 'failed', 'succeeded']),
+      }),
+      z.unknown(),
+    ),
+  ),
 );
 
-const gatewayBatchStatusFieldsSchema = z.object({
-  status: z.enum(['completed', 'failed', 'pending']),
-  rawStatus: z.string().nullish(),
-  requestCounts: gatewayBatchRequestCountsSchema.nullish(),
-  error: gatewayBatchErrorSchema.nullish(),
-  createdAt: z.string().nullish(),
-  expiresAt: z.string().nullish(),
-  providerMetadata: gatewayBatchProviderMetadataSchema.nullish(),
-});
+const gatewayBatchErrorSchema = () =>
+  z.object({
+    message: z.string(),
+    type: z.nullish(z.string()),
+    code: z.nullish(z.string()),
+    statusCode: z.nullish(z.number()),
+  });
 
-const gatewayBatchStartResponseSchema = gatewayBatchStatusFieldsSchema.extend({
-  batchId: z.string(),
-  warnings: z
-    .array(
-      z
-        .object({
-          requestId: z.string().nullish(),
-          warning: z.unknown(),
-        })
-        .catchall(z.unknown()),
-    )
-    .nullish(),
-});
+const gatewayBatchRequestCountsSchema = () =>
+  z.object({
+    total: z.nullish(z.number()),
+    pending: z.nullish(z.number()),
+    completed: z.nullish(z.number()),
+    failed: z.nullish(z.number()),
+  });
 
-const gatewayBatchStatusResponseSchema = gatewayBatchStatusFieldsSchema;
+const gatewayBatchProviderMetadataSchema = () =>
+  z.record(z.string(), z.record(z.string(), z.unknown()));
+
+const gatewayBatchStatusFieldsSchema = () =>
+  z.object({
+    status: z.enum(['completed', 'failed', 'pending']),
+    rawStatus: z.nullish(z.string()),
+    requestCounts: z.nullish(gatewayBatchRequestCountsSchema()),
+    error: z.nullish(gatewayBatchErrorSchema()),
+    createdAt: z.nullish(z.string()),
+    expiresAt: z.nullish(z.string()),
+    providerMetadata: z.nullish(gatewayBatchProviderMetadataSchema()),
+  });
+
+const gatewayBatchStartResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.extend(gatewayBatchStatusFieldsSchema(), {
+      batchId: z.string(),
+      warnings: z.nullish(
+        z.array(
+          z.catchall(
+            z.object({
+              requestId: z.nullish(z.string()),
+              warning: z.unknown(),
+            }),
+            z.unknown(),
+          ),
+        ),
+      ),
+    }),
+  ),
+);
+
+const gatewayBatchStatusResponseSchema = lazySchema(() =>
+  zodSchema(gatewayBatchStatusFieldsSchema()),
+);

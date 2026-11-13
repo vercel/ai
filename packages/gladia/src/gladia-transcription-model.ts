@@ -1,9 +1,14 @@
+import { getGladiaTranscriptionModelEntry } from './gladia-model-catalog';
 import {
   AISDKError,
+  type JSONObject,
   type TranscriptionModelV4,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
@@ -22,12 +27,22 @@ import type { GladiaConfig } from './gladia-config';
 import { gladiaFailedResponseHandler } from './gladia-error';
 import { gladiaTranscriptionModelOptionsSchema } from './gladia-transcription-model-options';
 import type { GladiaTranscriptionInitiateAPITypes } from './gladia-api-types';
+import type { GladiaTranscriptionModelId } from './gladia-transcription-options';
+import {
+  resolveCustomVocabulary,
+  resolveLanguageConfig,
+} from './gladia-transcription-options-resolution';
 
 interface GladiaTranscriptionModelConfig extends GladiaConfig {
   _internal?: {
     currentDate?: () => Date;
   };
 }
+
+// Async pre-recorded jobs can take several minutes for long audio files or
+// when audio intelligence add-ons are enabled, so the default is generous.
+const DEFAULT_POLL_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const DEFAULT_POLL_INTERVAL_MS = 1000; // 1 second
 
 export class GladiaTranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
@@ -37,21 +52,30 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: GladiaTranscriptionModel) {
-    return serializeModelOptions({
+    const serialized = serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
     });
+    return {
+      ...serialized,
+      config: { ...serialized.config, provider: model.provider },
+    };
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
-    modelId: 'default';
-    config: GladiaTranscriptionModelConfig;
+    modelId: GladiaTranscriptionModelId;
+    config: Omit<GladiaTranscriptionModelConfig, 'url'> &
+      Partial<Pick<GladiaTranscriptionModelConfig, 'url'>>;
   }) {
-    return new GladiaTranscriptionModel(options.modelId, options.config);
+    return new GladiaTranscriptionModel(options.modelId, {
+      ...options.config,
+      // The provider's fixed endpoint callback is omitted by serialization.
+      url: options.config.url ?? (({ path }) => `https://api.gladia.io${path}`),
+    });
   }
 
   constructor(
-    readonly modelId: string,
+    readonly modelId: GladiaTranscriptionModelId,
     private readonly config: GladiaTranscriptionModelConfig,
   ) {}
 
@@ -69,64 +93,103 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
 
     const body: Omit<GladiaTranscriptionInitiateAPITypes, 'audio_url'> = {};
 
+    // Select the transcription model. `default` is the placeholder used when no
+    // model id is passed to `gladia.transcription()`; in that case we omit the
+    // field and let the Gladia API fall back to its own default (`solaria-1`).
+    if (
+      !getGladiaTranscriptionModelEntry(this.modelId).requestConfig
+        .transcription.omitModel
+    ) {
+      body.model = this.modelId;
+    }
+
     // Add provider-specific options
     if (gladiaOptions) {
-      body.context_prompt = gladiaOptions.contextPrompt ?? undefined;
-      body.custom_vocabulary = gladiaOptions.customVocabulary ?? undefined;
-      body.detect_language = gladiaOptions.detectLanguage ?? undefined;
-      body.enable_code_switching =
-        gladiaOptions.enableCodeSwitching ?? undefined;
-      body.language = gladiaOptions.language ?? undefined;
+      const unsupportedOptions = {
+        contextPrompt: gladiaOptions.contextPrompt,
+        moderation: gladiaOptions.moderation,
+        chapterization: gladiaOptions.chapterization,
+        nameConsistency: gladiaOptions.nameConsistency,
+        structuredDataExtraction: gladiaOptions.structuredDataExtraction,
+        structuredDataExtractionConfig:
+          gladiaOptions.structuredDataExtractionConfig,
+        displayMode: gladiaOptions.displayMode,
+        'diarizationConfig.enhanced': gladiaOptions.diarizationConfig?.enhanced,
+      };
+      for (const [feature, value] of Object.entries(unsupportedOptions)) {
+        if (value != null)
+          warnings.push({
+            type: 'unsupported',
+            feature,
+            details:
+              'No longer supported by the Gladia v2 pre-recorded API; ignored.',
+          });
+      }
+      for (const setting of [
+        'language',
+        'detectLanguage',
+        'enableCodeSwitching',
+        'codeSwitchingConfig',
+      ] as const) {
+        if (gladiaOptions[setting] != null)
+          warnings.push({
+            type: 'deprecated',
+            setting,
+            message:
+              gladiaOptions.languageConfig != null
+                ? 'Ignored because languageConfig is provided; remove this deprecated option.'
+                : 'Use languageConfig instead.',
+          });
+      }
+      const { customVocabulary, vocabulary: customVocabularyFromArray } =
+        resolveCustomVocabulary(gladiaOptions, warnings);
+
+      body.custom_vocabulary = customVocabulary ?? undefined;
       body.callback = gladiaOptions.callback ?? undefined;
       body.subtitles = gladiaOptions.subtitles ?? undefined;
       body.diarization = gladiaOptions.diarization ?? undefined;
       body.translation = gladiaOptions.translation ?? undefined;
       body.summarization = gladiaOptions.summarization ?? undefined;
-      body.moderation = gladiaOptions.moderation ?? undefined;
       body.named_entity_recognition =
         gladiaOptions.namedEntityRecognition ?? undefined;
-      body.chapterization = gladiaOptions.chapterization ?? undefined;
-      body.name_consistency = gladiaOptions.nameConsistency ?? undefined;
       body.custom_spelling = gladiaOptions.customSpelling ?? undefined;
-      body.structured_data_extraction =
-        gladiaOptions.structuredDataExtraction ?? undefined;
-      body.structured_data_extraction_config =
-        gladiaOptions.structuredDataExtractionConfig ?? undefined;
       body.sentiment_analysis = gladiaOptions.sentimentAnalysis ?? undefined;
       body.audio_to_llm = gladiaOptions.audioToLlm ?? undefined;
-      body.audio_to_llm_config = gladiaOptions.audioToLlmConfig ?? undefined;
+      body.pii_redaction = gladiaOptions.piiRedaction ?? undefined;
       body.custom_metadata = gladiaOptions.customMetadata ?? undefined;
       body.sentences = gladiaOptions.sentences ?? undefined;
-      body.display_mode = gladiaOptions.displayMode ?? undefined;
       body.punctuation_enhanced =
         gladiaOptions.punctuationEnhanced ?? undefined;
 
-      if (gladiaOptions.customVocabularyConfig) {
+      const customVocabularyConfig = gladiaOptions.customVocabularyConfig;
+      const vocabulary =
+        customVocabularyConfig?.vocabulary ?? customVocabularyFromArray;
+
+      if (vocabulary) {
         body.custom_vocabulary_config = {
-          vocabulary: gladiaOptions.customVocabularyConfig.vocabulary.map(
-            item => {
-              if (typeof item === 'string') return item;
-              return {
-                value: item.value,
-                intensity: item.intensity ?? undefined,
-                pronunciations: item.pronunciations ?? undefined,
-                language: item.language ?? undefined,
-              };
-            },
-          ),
+          vocabulary: vocabulary.map(item => {
+            if (typeof item === 'string') return item;
+            return {
+              value: item.value,
+              intensity: item.intensity ?? undefined,
+              pronunciations: item.pronunciations ?? undefined,
+              language: item.language ?? undefined,
+            };
+          }),
           default_intensity:
-            gladiaOptions.customVocabularyConfig.defaultIntensity ?? undefined,
+            customVocabularyConfig?.defaultIntensity ?? undefined,
         };
       }
 
-      // Handle code switching config
-      if (gladiaOptions.codeSwitchingConfig) {
-        body.code_switching_config = {
-          languages: gladiaOptions.codeSwitchingConfig.languages ?? undefined,
+      const languageConfig = resolveLanguageConfig(gladiaOptions);
+
+      if (languageConfig) {
+        body.language_config = {
+          languages: languageConfig.languages ?? undefined,
+          code_switching: languageConfig.codeSwitching ?? undefined,
         };
       }
 
-      // Handle callback config
       if (gladiaOptions.callbackConfig) {
         body.callback_config = {
           url: gladiaOptions.callbackConfig.url,
@@ -134,7 +197,6 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         };
       }
 
-      // Handle subtitles config
       if (gladiaOptions.subtitlesConfig) {
         body.subtitles_config = {
           formats: gladiaOptions.subtitlesConfig.formats ?? undefined,
@@ -150,7 +212,6 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         };
       }
 
-      // Handle diarization config
       if (gladiaOptions.diarizationConfig) {
         body.diarization_config = {
           number_of_speakers:
@@ -159,11 +220,9 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
             gladiaOptions.diarizationConfig.minSpeakers ?? undefined,
           max_speakers:
             gladiaOptions.diarizationConfig.maxSpeakers ?? undefined,
-          enhanced: gladiaOptions.diarizationConfig.enhanced ?? undefined,
         };
       }
 
-      // Handle translation config
       if (gladiaOptions.translationConfig) {
         body.translation_config = {
           target_languages: gladiaOptions.translationConfig.targetLanguages,
@@ -171,28 +230,73 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
           match_original_utterances:
             gladiaOptions.translationConfig.matchOriginalUtterances ??
             undefined,
+          lipsync: gladiaOptions.translationConfig.lipsync ?? undefined,
+          context_adaptation:
+            gladiaOptions.translationConfig.contextAdaptation ?? undefined,
+          context: gladiaOptions.translationConfig.context ?? undefined,
+          informal: gladiaOptions.translationConfig.informal ?? undefined,
         };
       }
 
-      // Handle summarization config
       if (gladiaOptions.summarizationConfig) {
         body.summarization_config = {
           type: gladiaOptions.summarizationConfig.type ?? undefined,
         };
       }
 
-      // Handle custom spelling config
       if (gladiaOptions.customSpellingConfig) {
         body.custom_spelling_config = {
           spelling_dictionary:
             gladiaOptions.customSpellingConfig.spellingDictionary,
         };
       }
+
+      if (gladiaOptions.audioToLlmConfig) {
+        body.audio_to_llm_config = {
+          prompts: gladiaOptions.audioToLlmConfig.prompts,
+          model: gladiaOptions.audioToLlmConfig.model ?? undefined,
+        };
+      }
+
+      if (gladiaOptions.piiRedactionConfig) {
+        if (gladiaOptions.piiRedaction !== true)
+          warnings.push({
+            type: 'other',
+            message:
+              'piiRedactionConfig has no effect unless piiRedaction is true.',
+          });
+        body.pii_redaction_config = {
+          entity_types:
+            gladiaOptions.piiRedactionConfig.entityTypes ?? undefined,
+          processed_text_type:
+            gladiaOptions.piiRedactionConfig.processedTextType ?? undefined,
+        };
+      }
+    }
+
+    if (
+      getGladiaTranscriptionModelEntry(this.modelId).requestConfig.transcription
+        .singleLanguage
+    ) {
+      if (body.language_config?.languages?.length !== 1)
+        warnings.push({
+          type: 'other',
+          message:
+            'The "solaria-3" model supports a single language only. Pass exactly one language in languageConfig.languages; Gladia may reject the request.',
+        });
+      if (body.language_config?.code_switching)
+        warnings.push({
+          type: 'other',
+          message:
+            'The "solaria-3" model does not support code switching; Gladia may reject the request.',
+        });
     }
 
     return {
       body,
       warnings,
+      pollIntervalMs: gladiaOptions?.pollIntervalMs ?? undefined,
+      pollTimeoutMs: gladiaOptions?.pollTimeoutMs ?? undefined,
     };
   }
 
@@ -200,12 +304,14 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { body, warnings, pollIntervalMs, pollTimeoutMs } =
+      await this.getArgs(options);
 
     // Create form data with base fields
     const formData = new FormData();
     const blob =
       options.audio instanceof Uint8Array
-        ? new Blob([options.audio])
+        ? new Blob([options.audio as Uint8Array<ArrayBuffer>])
         : new Blob([convertBase64ToUint8Array(options.audio)]);
 
     const fileExtension = mediaTypeToExtension(options.mediaType);
@@ -218,9 +324,12 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     const { value: uploadResponse } = await postFormDataToApi({
       url: this.config.url({
         path: '/v2/upload',
-        modelId: 'default',
+        modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       formData,
       failedResponseHandler: gladiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -230,14 +339,15 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
       fetch: this.config.fetch,
     });
 
-    const { body, warnings } = await this.getArgs(options);
-
     const { value: transcriptionInitResponse } = await postJsonToApi({
       url: this.config.url({
         path: '/v2/pre-recorded',
-        modelId: 'default',
+        modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       body: {
         ...body,
         audio_url: uploadResponse.audio_url,
@@ -254,18 +364,25 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     // The result URL comes from the provider response; only send credentials
     // when it stays on the provider's own origin.
     const resultUrl = transcriptionInitResponse.result_url;
-    const apiOrigin = this.config.url({ modelId: 'default', path: '' });
+    const apiOrigin = this.config.url({ modelId: this.modelId, path: '' });
     let transcriptionResult;
     let transcriptionResultHeaders;
-    const timeoutMs = 60 * 1000; // 60 seconds timeout
+    const timeoutMs =
+      pollTimeoutMs ?? this.config.pollTimeoutMs ?? DEFAULT_POLL_TIMEOUT_MS;
+    const pollingInterval =
+      pollIntervalMs ?? this.config.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
     const startTime = Date.now();
-    const pollingInterval = 1000;
 
     while (true) {
+      // Stop before polling again when the caller aborted the request. Use
+      // `throwIfAborted` so a custom abort reason, such as the `TimeoutError`
+      // from `AbortSignal.timeout`, is preserved.
+      options.abortSignal?.throwIfAborted();
+
       // Check if we've exceeded the timeout
       if (Date.now() - startTime > timeoutMs) {
         throw new AISDKError({
-          message: 'Transcription job polling timed out',
+          message: `Transcription job polling timed out after ${timeoutMs} ms`,
           name: 'TranscriptionJobPollingTimedOut',
           cause: transcriptionResult,
         });
@@ -277,7 +394,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         validateUrl: true,
         credentialedOrigin: apiOrigin,
         trustedOrigin: apiOrigin,
-        headers: combineHeaders(this.config.headers?.(), options.headers),
+        headers: combineHeaders(
+          await resolve(this.config.headers),
+          options.headers,
+        ),
         failedResponseHandler: gladiaFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           gladiaTranscriptionResultResponseSchema,
@@ -295,14 +415,26 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
 
       if (transcriptionResult.status === 'error') {
         throw new AISDKError({
-          message: 'Transcription job failed',
+          message:
+            transcriptionResult.error_code == null
+              ? 'Transcription job failed'
+              : `Transcription job failed with error code ${transcriptionResult.error_code}`,
           name: 'TranscriptionJobFailed',
           cause: transcriptionResult,
         });
       }
 
-      // Wait for the configured polling interval before checking again
-      await delay(pollingInterval);
+      // Wait for the configured polling interval before checking again. The
+      // wait is cancellable; prefer the caller's abort reason over the generic
+      // error that `delay` throws when the signal aborts.
+      try {
+        await delay(pollingInterval, { abortSignal: options.abortSignal });
+      } catch (error) {
+        if (options.abortSignal?.aborted) {
+          options.abortSignal.throwIfAborted();
+        }
+        throw error;
+      }
     }
 
     if (!transcriptionResult.result) {
@@ -327,56 +459,63 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
       ),
       response: {
         timestamp: currentDate,
-        modelId: 'default',
+        modelId: this.modelId,
         headers: transcriptionResultHeaders,
       },
       providerMetadata: {
-        gladia: transcriptionResult,
+        // The result comes from parsed JSON; loose objects pass provider
+        // add-ons through without validating them.
+        gladia: transcriptionResult as JSONObject,
       },
       warnings,
     };
   }
 }
 
-const gladiaUploadResponseSchema = z.object({
-  audio_url: z.string(),
-});
+const gladiaUploadResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      audio_url: z.string(),
+    }),
+  ),
+);
 
-const gladiaTranscriptionInitializeResponseSchema = z.object({
-  result_url: z.string(),
-});
+const gladiaTranscriptionInitializeResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      result_url: z.string(),
+    }),
+  ),
+);
 
-const gladiaTranscriptionResultResponseSchema = z.object({
-  status: z.enum(['queued', 'processing', 'done', 'error']),
-  result: z
-    .object({
-      metadata: z.object({
-        audio_duration: z.number(),
-      }),
-      transcription: z.object({
-        full_transcript: z.string(),
-        languages: z.array(z.string()),
-        utterances: z.array(
-          z.object({
-            start: z.number(),
-            end: z.number(),
-            text: z.string(),
-            speaker: z.union([z.string(), z.number()]).nullish(),
-            confidence: z.number().nullish(),
-            language: z.string().nullish(),
-            words: z
-              .array(
-                z.object({
-                  word: z.string(),
-                  start: z.number(),
-                  end: z.number(),
-                  confidence: z.number().nullish(),
-                }),
-              )
-              .nullish(),
+const gladiaTranscriptionResultResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      status: z.enum(['queued', 'processing', 'done', 'error']),
+      // HTTP status code of the failed request, reported for `status: 'error'`.
+      error_code: z.number().nullish(),
+      // Validate only the fields that `doGenerate` reads. The audio-intelligence
+      // add-ons (translation, summarization, named entity recognition, sentiment
+      // analysis, audio-to-LLM, sentences, subtitles, ...) are passed through as
+      // returned, so an unexpected add-on payload cannot fail the transcription.
+      result: z
+        .looseObject({
+          metadata: z.looseObject({
+            audio_duration: z.number(),
           }),
-        ),
-      }),
-    })
-    .nullish(),
-});
+          transcription: z.looseObject({
+            full_transcript: z.string(),
+            languages: z.array(z.string()),
+            utterances: z.array(
+              z.looseObject({
+                start: z.number(),
+                end: z.number(),
+                text: z.string(),
+              }),
+            ),
+          }),
+        })
+        .nullish(),
+    }),
+  ),
+);

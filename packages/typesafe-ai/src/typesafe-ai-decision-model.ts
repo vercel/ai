@@ -1,14 +1,23 @@
 import {
+  typeSafeAiSupportedQuestionTypes,
+  type TypeSafeAiModelIds,
+} from './typesafe-ai-model-catalog';
+import {
   InvalidArgumentError,
+  UnsupportedFunctionalityError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type Experimental_DecisionModelV4Answer as DecisionModelV4Answer,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertBase64ToUint8Array,
   createJsonResponseHandler,
+  generateId,
   loadApiKey,
+  parseProviderOptions,
   postJsonToApi,
+  postFormDataToApi,
   resolve,
   serializeModelOptions,
   withUserAgentSuffix,
@@ -22,8 +31,12 @@ import {
   typesafeFailedResponseHandler,
 } from './typesafe-ai-decision-api';
 import { VERSION } from './version';
+import { typesafeAiFilePartProviderOptions } from './typesafe-ai-file-part-options';
+import { typesafeAiDecisionModelOptions } from './typesafe-ai-decision-model-options';
 
-export type TypeSafeAiDecisionModelId = 'jev-latest' | (string & {});
+export type TypeSafeAiDecisionModelId =
+  | TypeSafeAiModelIds['decision']
+  | (string & {});
 
 type TypeSafeAiDecisionModelConfig = {
   provider: string;
@@ -34,7 +47,7 @@ type TypeSafeAiDecisionModelConfig = {
 
 export class DecisionTypeSafeAiModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
-  readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
+  readonly supportedQuestionTypes = typeSafeAiSupportedQuestionTypes;
 
   constructor(
     readonly modelId: TypeSafeAiDecisionModelId,
@@ -67,6 +80,8 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
   async doDecide({
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     headers,
     abortSignal,
     providerOptions,
@@ -76,27 +91,136 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
     for (const [id, question] of Object.entries(questions)) {
       if (
         question.type === 'choice' &&
-        Object.keys(question.criteria).length > 255
+        (Object.keys(question.criteria).length === 0 ||
+          Object.keys(question.criteria).length > 255)
       ) {
         throw new InvalidArgumentError({
           argument: `questions.${id}.criteria`,
-          message: 'TypeSafe Choice questions support at most 255 options.',
+          message: 'TypeSafe Choice questions require 1 to 255 options.',
         });
       }
-      if (question.type === 'score' && question.criteria.length > 10) {
+      if (
+        question.type === 'score' &&
+        (question.criteria.length === 0 ||
+          question.criteria.length > 10 ||
+          question.criteria.some(level => level == null))
+      ) {
         throw new InvalidArgumentError({
           argument: `questions.${id}.criteria`,
-          message: 'TypeSafe Score questions support at most 10 levels.',
+          message: 'TypeSafe Score questions require 1 to 10 non-null levels.',
         });
       }
     }
 
+    const typesafeOptions = await parseProviderOptions({
+      provider: 'typesafe',
+      providerOptions,
+      schema: typesafeAiDecisionModelOptions,
+    });
     const warnings: SharedV4Warning[] = Object.keys(
       providerOptions?.typesafe ?? {},
-    ).map(option => ({
-      type: 'unsupported',
-      feature: `providerOptions.typesafe.${option}`,
-    }));
+    )
+      .filter(option => option !== 'longContext')
+      .map(option => ({
+        type: 'unsupported',
+        feature: `providerOptions.typesafe.${option}`,
+      }));
+    if (maxOutputTokens != null) {
+      warnings.push({ type: 'unsupported', feature: 'maxOutputTokens' });
+    }
+    if (reasoning != null) {
+      warnings.push({ type: 'unsupported', feature: 'reasoning' });
+    }
+    const assets: Record<string, { type: 'image'; part: string }> =
+      Object.create(null); // don't inherit from Object.prototype
+    const imageParts: { name: string; blob: Blob; filename: string }[] = [];
+    const stateStrings = state.flatMap(part =>
+      part.type === 'text'
+        ? [part.text]
+        : part.type === 'json'
+          ? jsonStrings(part.value)
+          : [],
+    );
+    const stateParts = (
+      await Promise.all(
+        state.map(async (part, index) => {
+          if (part.type !== 'file') {
+            return part;
+          }
+          if (part.data.type !== 'data') {
+            throw new UnsupportedFunctionalityError({
+              functionality: `TypeSafe AI decision file input: ${part.mediaType} (${part.data.type})`,
+            });
+          }
+          const mediaType = part.mediaType;
+          if (mediaType !== 'image/png' && mediaType !== 'image/jpeg') {
+            throw new UnsupportedFunctionalityError({
+              functionality: `TypeSafe AI decision image media type: ${part.mediaType}`,
+            });
+          }
+          const fileOptions = await parseProviderOptions({
+            provider: 'typesafe',
+            providerOptions: part.providerOptions,
+            schema: typesafeAiFilePartProviderOptions,
+          });
+          if (
+            fileOptions?.insertReference === false &&
+            fileOptions.reference === undefined
+          ) {
+            throw new InvalidArgumentError({
+              argument: 'providerOptions.typesafe.reference',
+              message:
+                'TypeSafe images with insertReference: false need an explicit reference.',
+            });
+          }
+          // Default to random IDs to avoid accidental text matches
+          // as TypeSafe recommends as the safest option.
+          const reference = fileOptions?.reference ?? generateId();
+          const insertReference =
+            fileOptions?.insertReference ??
+            !stateStrings.some(text => text.includes(reference));
+          if (assets[reference] !== undefined) {
+            throw new InvalidArgumentError({
+              argument: 'providerOptions.typesafe.reference',
+              message: `Duplicate TypeSafe image reference: ${reference}`,
+            });
+          }
+          const partName = `image-${index}`;
+          assets[reference] = { type: 'image', part: partName };
+          imageParts.push({
+            name: partName,
+            blob: new Blob(
+              [
+                (typeof part.data.data === 'string'
+                  ? convertBase64ToUint8Array(part.data.data)
+                  : part.data.data) as BlobPart,
+              ],
+              { type: mediaType },
+            ),
+            filename:
+              part.filename ??
+              `${partName}.${mediaType === 'image/png' ? 'png' : 'jpeg'}`,
+          });
+          return insertReference
+            ? { type: 'text' as const, text: reference }
+            : undefined;
+        }),
+      )
+    ).filter(part => part !== undefined);
+    const jsonState =
+      stateParts.length === 1 && stateParts[0].type === 'json'
+        ? stateParts[0].value
+        : undefined;
+    const requestState =
+      jsonState != null &&
+      (typeof jsonState === 'object' || typeof jsonState === 'string')
+        ? jsonState
+        : stateParts
+            .map(part =>
+              part.type === 'text' ? part.text : JSON.stringify(part.value),
+            )
+            .join('\n');
+    const hasImages = Object.keys(assets).length > 0;
     const modelHeaders =
       this.config.headers === undefined
         ? withUserAgentSuffix(
@@ -106,37 +230,72 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
             `ai-sdk-typesafe-ai/${VERSION}`,
           )
         : await resolve(this.config.headers);
-    const {
-      value: response,
-      rawValue,
-      responseHeaders,
-    } = await postJsonToApi({
-      url: `${this.config.baseURL}/systemone`,
-      headers: combineHeaders(modelHeaders, headers),
-      body: {
-        model: this.modelId,
-        state,
-        questions: Object.fromEntries(
-          Object.entries(questions).map(([id, question]) => [
-            id,
-            question.type === 'boolean'
-              ? { ...question, type: 'noul' }
+    const body = {
+      model: this.modelId,
+      state: requestState,
+      ...(hasImages && { assets }),
+      questions: Object.fromEntries(
+        Object.entries(questions).map(([id, question]) => [
+          id,
+          question.type === 'boolean'
+            ? { ...question, type: 'noul' }
+            : question.type === 'box'
+              ? { type: 'box', instructions: question.instructions }
               : question,
-          ]),
-        ),
-      },
+        ]),
+      ),
+    };
+    const requestOptions = {
+      url: `${this.config.baseURL}/systemone`,
+      headers: combineHeaders(
+        modelHeaders,
+        hasImages ||
+          Object.values(questions).some(question => question.type === 'box')
+          ? { 'TypeSafe-Danger-Zone-Images': 'true' }
+          : undefined,
+        typesafeOptions?.longContext
+          ? { 'TypeSafe-Danger-Zone-Long-Context': 'true' }
+          : undefined,
+        headers,
+      ),
       abortSignal,
       fetch: this.config.fetch,
       failedResponseHandler: typesafeFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         typesafeDecisionResponseSchema,
       ),
-    });
+    };
+    let formData: FormData | undefined;
+    if (hasImages) {
+      formData = new FormData();
+      formData.append(
+        'request',
+        new Blob([JSON.stringify(body)], { type: 'application/json' }),
+        'request.json',
+      );
+      for (const { name, blob, filename } of imageParts) {
+        formData.append(name, blob, filename);
+      }
+    }
+    const {
+      value: response,
+      rawValue,
+      responseHeaders,
+    } = formData !== undefined
+      ? await postFormDataToApi({ ...requestOptions, formData })
+      : await postJsonToApi({ ...requestOptions, body });
 
     const confidence = Object.fromEntries(
       Object.entries(response.answers).flatMap(([id, answer]) =>
         answer.type !== 'noul' && answer.confidence != null
           ? [[id, answer.confidence]]
+          : [],
+      ),
+    );
+    const legend = Object.fromEntries(
+      Object.entries(response.answers).flatMap(([id, answer]) =>
+        answer.type === 'score' && answer.legend != null
+          ? [[id, answer.legend]]
           : [],
       ),
     );
@@ -146,6 +305,8 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
         Object.entries(response.answers).map(
           ([id, answer]): [string, DecisionModelV4Answer] => {
             switch (answer.type) {
+              case 'box':
+                return [id, { type: 'box', box: answer.box }];
               case 'noul':
                 return [id, { type: 'boolean', probability: answer.noul }];
               case 'choice':
@@ -177,7 +338,7 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       // The API rounds displayed probabilities and scores to two decimal places.
       rounding: { probabilityDecimals: 2, scoreDecimals: 2 },
       warnings,
-      providerMetadata: { typesafe: { confidence } },
+      providerMetadata: { typesafe: { confidence, legend } },
       response: {
         modelId: response.model ?? this.modelId,
         headers: responseHeaders,
@@ -185,4 +346,17 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
       },
     };
   }
+}
+
+function jsonStrings(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(jsonStrings);
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.values(value).flatMap(jsonStrings);
+  }
+  return [];
 }

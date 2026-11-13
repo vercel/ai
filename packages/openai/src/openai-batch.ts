@@ -19,6 +19,7 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   convertAsyncIteratorToReadableStream,
   createJsonLinesResponseHandler,
@@ -35,7 +36,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  openaiErrorDataSchema,
+  openaiErrorDataSchemaValidator,
   openaiFailedResponseHandler,
 } from './openai-error';
 import type { OpenAIConfig } from './openai-config';
@@ -47,7 +48,7 @@ import {
   type OpenAIResponsesLogprobs,
 } from './responses/openai-responses-api';
 import {
-  mapWebSearchOutput,
+  mapWebSearchResult,
   OpenAIResponsesLanguageModel,
   openaiResponsesSupportedUrls,
 } from './responses/openai-responses-language-model';
@@ -181,6 +182,7 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
     private readonly options: {
       provider: string;
       config: OpenAIConfig;
+      maxLineBytes?: number;
     },
   ) {
     this.provider = options.provider;
@@ -266,7 +268,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
 
     const { value: uploadedFile } = await postToApi({
       url: this.getUrl('/files'),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       body: {
         content: formData,
         values: {
@@ -290,7 +295,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
 
     const { value: batch } = await postJsonToApi({
       url: this.getUrl('/batches'),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       body: {
         input_file_id: uploadedFile.id,
         endpoint: openaiBatchEndpoint,
@@ -356,7 +364,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
       url: this.getUrl(
         `/batches/${encodeURIComponent(options.batchId)}/cancel`,
       ),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       body: {},
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -380,7 +391,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
 
     const { value: page } = await getFromApi({
       url: url.toString(),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiBatchListResponseSchema,
@@ -436,7 +450,10 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
   ): Promise<OpenAIBatchResponse> {
     const { value: batch } = await getFromApi({
       url: this.getUrl(`/batches/${encodeURIComponent(options.batchId)}`),
-      headers: combineHeaders(this.options.config.headers?.(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.options.config.headers),
+        options.headers,
+      ),
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiBatchResponseSchema,
@@ -460,12 +477,13 @@ export class OpenAIBatch implements BatchV4<OpenAIBatchModelIds> {
       const { value: lines } = await getFromApi({
         url: this.getUrl(`/files/${encodeURIComponent(fileId)}/content`),
         headers: combineHeaders(
-          this.options.config.headers?.(),
+          await resolve(this.options.config.headers),
           options.headers,
         ),
         failedResponseHandler: openaiFailedResponseHandler,
         successfulResponseHandler: createJsonLinesResponseHandler(
           openaiBatchResultLineSchema,
+          { maxLineBytes: this.options.maxLineBytes },
         ),
         abortSignal: options.abortSignal,
         fetch: this.options.config.fetch,
@@ -661,7 +679,7 @@ async function convertOpenAIErrorResponse({
 }): Promise<BatchV4Error> {
   const result = await safeValidateTypes({
     value: body,
-    schema: openaiErrorDataSchema,
+    schema: openaiErrorDataSchemaValidator,
   });
 
   if (!result.success) {
@@ -730,6 +748,7 @@ async function convertOpenAIBatchResult(
   const content: LanguageModelV4GenerateResult['content'] = [];
   const logprobs: Array<NonNullable<OpenAIResponsesLogprobs>> = [];
   let hasFunctionCall = false;
+  let hasRefusal = false;
 
   for (const part of response.output) {
     switch (part.type) {
@@ -756,6 +775,12 @@ async function convertOpenAIBatchResult(
 
       case 'message': {
         for (const contentPart of part.content) {
+          if (contentPart.type === 'refusal') {
+            hasRefusal = true;
+            content.push({ type: 'text', text: contentPart.refusal });
+            continue;
+          }
+
           content.push({ type: 'text', text: contentPart.text });
           if (contentPart.logprobs != null) {
             logprobs.push(contentPart.logprobs);
@@ -810,7 +835,7 @@ async function convertOpenAIBatchResult(
           type: 'tool-result',
           toolCallId: part.id,
           toolName: 'web_search',
-          result: mapWebSearchOutput(part.action),
+          ...mapWebSearchResult(part),
           dynamic: true,
         });
         break;
@@ -887,6 +912,9 @@ async function convertOpenAIBatchResult(
       ...(response.reasoning?.context != null
         ? { reasoningContext: response.reasoning.context }
         : {}),
+      ...(response.prompt_cache_diagnostics != null
+        ? { promptCacheDiagnostics: response.prompt_cache_diagnostics }
+        : {}),
     },
   };
 
@@ -898,6 +926,7 @@ async function convertOpenAIBatchResult(
         unified: mapOpenAIResponseFinishReason({
           finishReason: response.incomplete_details?.reason,
           hasFunctionCall,
+          hasRefusal,
         }),
         raw: response.incomplete_details?.reason ?? undefined,
       },

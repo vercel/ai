@@ -8,6 +8,7 @@ import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { FinishReason } from '../types/language-model';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
+import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { SerialJobExecutor } from '../util/serial-job-executor';
 import type { ChatTransport } from './chat-transport';
 import { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
@@ -135,11 +136,18 @@ export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
 type ActiveResponse<UI_MESSAGE extends UIMessage> = {
   state: StreamingUIMessageState<UI_MESSAGE>;
   abortController: AbortController;
+  completionPromise: Promise<void>;
 };
 
 type ActiveResumeRequest = {
   abortController: AbortController;
+  completionPromise: Promise<void>;
 };
+
+type MakeRequestOptions = {
+  trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
+  messageId?: string;
+} & ChatRequestOptions;
 
 export interface ChatState<UI_MESSAGE extends UIMessage> {
   status: ChatStatus;
@@ -150,6 +158,13 @@ export interface ChatState<UI_MESSAGE extends UIMessage> {
   pushMessage: (message: UI_MESSAGE) => void;
   popMessage: () => void;
   replaceMessage: (index: number, message: UI_MESSAGE) => void;
+
+  /**
+   * Experimental. Messages that are waiting to be sent when
+   * `experimental_queue` is enabled. States that don't implement it keep the
+   * queue in the chat, without change notifications.
+   */
+  experimental_queuedMessages?: UI_MESSAGE[];
 
   snapshot: <T>(thing: T) => T;
 }
@@ -188,7 +203,7 @@ export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
   /**
    * A unique identifier for the chat. If not provided, a random one will be
-   * generated.
+   * generated when first accessed.
    */
   id?: string;
 
@@ -238,10 +253,26 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   sendAutomaticallyWhen?: (options: {
     messages: UI_MESSAGE[];
   }) => boolean | PromiseLike<boolean>;
+
+  /**
+   * Experimental. Queue messages that are sent while a response is in progress
+   * or while the assistant waits for a tool result or approval, and send them
+   * one at a time after each response finishes. Stopping, an error or an
+   * interrupted response pauses the queue until the next message is sent.
+   * Editing a message or regenerating clears the queue.
+   *
+   * @default false
+   */
+  experimental_queue?: boolean;
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
-  readonly id: string;
+  private _id: string | undefined;
+
+  get id(): string {
+    return (this._id ??= this.generateId());
+  }
+
   readonly generateId: IdGenerator;
 
   protected state: ChatState<UI_MESSAGE>;
@@ -258,19 +289,34 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
   private onData?: ChatInit<UI_MESSAGE>['onData'];
   private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
+  private queueEnabled: boolean;
+  private queuedMessagesFallback: UI_MESSAGE[] = [];
+  private queuedMessageOptions = new Map<string, ChatRequestOptions>();
+  // a stop or an error pauses the queue. a paused response is not waiting for
+  // the user, so resuming the queue skips that check:
+  private isQueuePaused = false;
+  private pendingAutomaticDecisions: number[] = [];
+  // a user send that has to wait to send an answered approval first, with the
+  // request options of that send:
+  private deferredApprovalSend: { options?: ChatRequestOptions } | undefined;
 
   private pendingMessagePreparations = new Set<AbortController>();
   private pendingApprovalMessageId: string | undefined;
+  // Keep interruption state after activeResponse is cleared so late tool updates
+  // cannot automatically continue an interrupted message.
+  private interruptedMessageIds = new Set<string>();
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private activeResumeRequest: ActiveResumeRequest | undefined = undefined;
   private resumableStreamState:
     | StreamingUIMessageState<UI_MESSAGE>
     | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
+  private activeStopCount = 0;
+  private stopGeneration = 0;
 
   constructor({
     generateId = generateIdFunc,
-    id = generateId(),
+    id,
     transport = new DefaultChatTransport(),
     messageMetadataSchema,
     dataPartSchemas,
@@ -280,10 +326,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     onFinish,
     onData,
     sendAutomaticallyWhen,
+    experimental_queue = false,
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
-    this.id = id;
+    this._id = id;
     this.transport = transport;
     this.generateId = generateId;
     this.messageMetadataSchema = messageMetadataSchema;
@@ -294,6 +341,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.onFinish = onFinish;
     this.onData = onData;
     this.sendAutomaticallyWhen = sendAutomaticallyWhen;
+    this.queueEnabled = experimental_queue;
   }
 
   /**
@@ -315,7 +363,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     status: ChatStatus;
     error?: Error;
   }) {
-    if (this.status === status) return;
+    if (this.status === status) {
+      if (this.error !== error) {
+        this.state.error = error;
+      }
+      return;
+    }
 
     this.state.status = status;
     this.state.error = error;
@@ -331,6 +384,202 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
   get lastMessage(): UI_MESSAGE | undefined {
     return this.state.messages[this.state.messages.length - 1];
+  }
+
+  /**
+   * Experimental. Messages that wait to be sent when `experimental_queue` is
+   * enabled, in the order they will be sent.
+   */
+  get experimental_queuedMessages(): UI_MESSAGE[] {
+    return (
+      this.state.experimental_queuedMessages ?? this.queuedMessagesFallback
+    );
+  }
+
+  private setQueuedMessages(experimental_queuedMessages: UI_MESSAGE[]) {
+    if ('experimental_queuedMessages' in this.state) {
+      this.state.experimental_queuedMessages = experimental_queuedMessages;
+    } else {
+      this.queuedMessagesFallback = experimental_queuedMessages;
+    }
+  }
+
+  /**
+   * Experimental. Removes a queued message so it is not sent.
+   */
+  experimental_removeQueuedMessage = (id: string): void => {
+    this.queuedMessageOptions.delete(id);
+    this.setQueuedMessages(
+      this.experimental_queuedMessages.filter(message => message.id !== id),
+    );
+  };
+
+  /**
+   * Experimental. Stops the response in progress and sends the queued message
+   * with the given id next. The rest of the queue is sent after it.
+   */
+  experimental_sendQueuedMessageNow = async (id: string): Promise<void> => {
+    const message = this.experimental_queuedMessages.find(
+      message => message.id === id,
+    );
+
+    if (message == null) {
+      return;
+    }
+
+    this.setQueuedMessages([
+      message,
+      ...this.experimental_queuedMessages.filter(queued => queued.id !== id),
+    ]);
+
+    const stopGeneration = this.stopGeneration + 1;
+    await this.stop();
+
+    if (stopGeneration !== this.stopGeneration) {
+      return;
+    }
+
+    await this.resumeQueue({
+      skipWaitForUser: true,
+      options: this.queuedMessageOptions.get(id),
+    });
+  };
+
+  // the user sending a message resumes a paused queue (after a stop, an error
+  // or an interruption). an answered approval that was not sent yet goes
+  // first, the queue continues when its response finishes:
+  private async resumeQueue({
+    skipWaitForUser,
+    options,
+  }: {
+    skipWaitForUser: boolean;
+    options?: ChatRequestOptions;
+  }): Promise<void> {
+    this.isQueuePaused = false;
+
+    if (this.hasUnsentApprovalResponse()) {
+      if (!this.isRequestInProgress()) {
+        await this.sendMessage(undefined, options);
+        return;
+      }
+
+      // a pending sendAutomaticallyWhen decision can still send the approval.
+      // if it does not, the queue sends it first when it settles:
+      this.deferredApprovalSend = { options };
+    }
+
+    await this.settleQueue({ skipWaitForUser });
+  }
+
+  // editing a message or regenerating rewrites the history that the queued
+  // messages were sent after, so they are dropped together with the response
+  // in progress:
+  private async clearQueueForHistoryChange(): Promise<void> {
+    if (!this.queueEnabled) {
+      return;
+    }
+
+    this.queuedMessageOptions.clear();
+    this.setQueuedMessages([]);
+    this.deferredApprovalSend = undefined;
+
+    if (this.isRequestInProgress()) {
+      await this.stop();
+    }
+  }
+
+  // a pending sendAutomaticallyWhen decision can still start a request, so the
+  // queue waits for it like for a response in progress. a stop invalidates the
+  // decisions that were pending, so they no longer hold the queue:
+  private isRequestInProgress(): boolean {
+    return (
+      this.pendingAutomaticDecisions.includes(this.stopGeneration) ||
+      this.activeResponse != null ||
+      this.status === 'submitted' ||
+      this.status === 'streaming'
+    );
+  }
+
+  // the assistant waits for the user when the last message has a tool call
+  // without a result or an approval that has not been sent yet:
+  private isWaitingForUser(): boolean {
+    const lastMessage = this.lastMessage;
+
+    return (
+      lastMessage?.role === 'assistant' &&
+      lastMessage.parts.some(
+        part =>
+          isToolUIPart(part) &&
+          (part.state === 'approval-requested' ||
+            part.state === 'approval-responded' ||
+            (!part.providerExecuted &&
+              (part.state === 'input-streaming' ||
+                part.state === 'input-available'))),
+      )
+    );
+  }
+
+  // an answered approval has to reach the model before the next user message,
+  // otherwise its tool call is left without a result:
+  private hasUnsentApprovalResponse(): boolean {
+    const lastMessage = this.lastMessage;
+
+    return (
+      lastMessage?.role === 'assistant' &&
+      lastMessage.parts.some(
+        part => isToolUIPart(part) && part.state === 'approval-responded',
+      ) &&
+      !lastMessage.parts.some(
+        part =>
+          isToolUIPart(part) &&
+          (part.state === 'approval-requested' ||
+            (!part.providerExecuted &&
+              (part.state === 'input-streaming' ||
+                part.state === 'input-available'))),
+      )
+    );
+  }
+
+  // every path that can leave the chat idle ends here. the queue then either
+  // sends its next message, stays paused until the user sends again, or waits
+  // for the user to answer a tool call. a stop that happened after the caller
+  // captured `stopGeneration` cancels the send:
+  private async settleQueue({
+    stopGeneration = this.stopGeneration,
+    skipWaitForUser = false,
+  }: {
+    stopGeneration?: number;
+    skipWaitForUser?: boolean;
+  } = {}): Promise<void> {
+    if (
+      this.isQueuePaused ||
+      this.isRequestInProgress() ||
+      this.activeStopCount > 0 ||
+      stopGeneration !== this.stopGeneration
+    ) {
+      return;
+    }
+
+    const deferredApprovalSend = this.deferredApprovalSend;
+    this.deferredApprovalSend = undefined;
+    if (deferredApprovalSend != null && this.hasUnsentApprovalResponse()) {
+      await this.sendMessage(undefined, deferredApprovalSend.options);
+      return;
+    }
+
+    const [message, ...rest] = this.experimental_queuedMessages;
+
+    if (message == null || (!skipWaitForUser && this.isWaitingForUser())) {
+      return;
+    }
+
+    const options = this.queuedMessageOptions.get(message.id);
+    this.queuedMessageOptions.delete(message.id);
+    this.setQueuedMessages(rest);
+
+    this.state.pushMessage(message);
+
+    await this.makeRequest({ trigger: 'submit-message', ...options });
   }
 
   set messages(messages: UI_MESSAGE[]) {
@@ -433,7 +682,40 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       uiMessage = message;
     }
 
+    if (
+      this.queueEnabled &&
+      message.messageId == null &&
+      (this.isRequestInProgress() ||
+        this.isWaitingForUser() ||
+        this.experimental_queuedMessages.length > 0)
+    ) {
+      const queuedMessage = {
+        ...uiMessage,
+        id: uiMessage.id ?? this.generateId(),
+        role: uiMessage.role ?? 'user',
+        metadata: message.metadata,
+      } as UI_MESSAGE;
+
+      if (options != null) {
+        this.queuedMessageOptions.set(queuedMessage.id, options);
+      }
+      this.setQueuedMessages([
+        ...this.experimental_queuedMessages,
+        queuedMessage,
+      ]);
+
+      // a stopped response is not waiting for the user anymore, so resuming a
+      // paused queue skips that check:
+      await this.resumeQueue({
+        skipWaitForUser: this.isQueuePaused,
+        options,
+      });
+      return;
+    }
+
     if (message.messageId != null) {
+      await this.clearQueueForHistoryChange();
+
       const messageIndex = this.state.messages.findIndex(
         m => m.id === message.messageId,
       );
@@ -473,6 +755,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       } as UI_MESSAGE);
     }
 
+    // sending a new message is the user taking over after a stop or an error:
+    this.isQueuePaused = false;
+
     await this.makeRequest({
       trigger: 'submit-message',
       messageId: message.messageId,
@@ -490,6 +775,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   }: {
     messageId?: string;
   } & ChatRequestOptions = {}): Promise<void> => {
+    await this.clearQueueForHistoryChange();
+
     const messageIndex =
       messageId == null
         ? this.state.messages.length - 1
@@ -527,6 +814,33 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   };
 
   /**
+   * Resume the stream if the latest response ended with a resumable network
+   * disconnect. If a response is still active, wait for it to settle first so
+   * disconnects reported shortly after the caller's trigger are handled.
+   *
+   * @internal
+   */
+  '~resumeStreamIfDisconnected' = async ({
+    shouldResume = () => true,
+  }: {
+    shouldResume?: () => boolean;
+  } = {}): Promise<void> => {
+    const activeResponse = this.activeResponse;
+
+    if (this.resumableStreamState == null && activeResponse != null) {
+      await activeResponse.completionPromise;
+
+      if (this.resumableStreamState !== activeResponse.state) {
+        return;
+      }
+    }
+
+    if (this.resumableStreamState != null && shouldResume()) {
+      await this.resumeStream();
+    }
+  };
+
+  /**
    * Clear the error state and set the status to ready if the chat is in an error state.
    */
   clearError = () => {
@@ -543,6 +857,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     options,
   }) =>
     this.jobExecutor.run(async () => {
+      const stopGeneration = this.stopGeneration;
       const messages = this.state.messages;
 
       const updatePart = (
@@ -586,26 +901,35 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       // automatically send the message if the sendAutomaticallyWhen function returns true
       if (
+        messageIndex !== -1 &&
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-        this.shouldSendAutomatically().then(shouldSend => {
-          if (shouldSend) {
-            // no await to avoid deadlocking
+        const shouldSend = await this.shouldSendAutomatically(
+          messages[messageIndex].id,
+        );
+
+        if (shouldSend) {
+          // no await to avoid deadlocking
+          void this.runAutomaticRequest(() => {
             const messageId =
               messageIndex === -1
                 ? this.lastMessage?.id
                 : messages[messageIndex].id;
 
-            this.makeRequestForToolApproval({
+            return this.makeRequestForToolApproval({
               messageId,
               messageIndex,
               ...options,
             });
-          }
-        });
+          }, shouldSend);
+          return;
+        }
       }
+
+      // no await to avoid deadlocking
+      void this.settleQueue({ stopGeneration });
     });
 
   addToolOutput: ChatAddToolOutputFunction<UI_MESSAGE> = async ({
@@ -616,8 +940,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     options,
   }) =>
     this.jobExecutor.run(async () => {
+      const stopGeneration = this.stopGeneration;
       const messages = this.state.messages;
-      const lastMessage = messages[messages.length - 1];
 
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
@@ -657,11 +981,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             };
       };
 
-      // update the message to trigger an immediate UI update
-      this.state.replaceMessage(messages.length - 1, {
-        ...lastMessage,
-        parts: lastMessage.parts.map(updatePart),
-      });
+      const messageIndex = messages.findIndex(message =>
+        message.parts.some(
+          part => isToolUIPart(part) && part.toolCallId === toolCallId,
+        ),
+      );
+
+      if (messageIndex !== -1) {
+        const message = messages[messageIndex];
+
+        // update the message to trigger an immediate UI update
+        this.state.replaceMessage(messageIndex, {
+          ...message,
+          parts: message.parts.map(updatePart),
+        });
+      }
 
       // update the active response if it exists
       if (this.activeResponse) {
@@ -671,50 +1005,140 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       // automatically send the message if the sendAutomaticallyWhen function returns true
       if (
+        messageIndex !== -1 &&
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-        this.shouldSendAutomatically().then(shouldSend => {
-          if (shouldSend) {
-            // no await to avoid deadlocking
-            this.makeRequest({
-              trigger: 'submit-message',
-              messageId: this.lastMessage?.id,
-              ...options,
-            });
-          }
-        });
+        const shouldSend = await this.shouldSendAutomatically(
+          messages[messageIndex].id,
+        );
+
+        if (shouldSend) {
+          // no await to avoid deadlocking
+          void this.runAutomaticRequest(
+            () =>
+              this.makeRequest({
+                trigger: 'submit-message',
+                messageId: messages[messageIndex].id,
+                ...options,
+              }),
+            shouldSend,
+          );
+          return;
+        }
       }
+
+      // the tool result can be what the queue was waiting for. no await to
+      // avoid deadlocking:
+      void this.settleQueue({ stopGeneration });
     });
 
   /** @deprecated Use addToolOutput */
   addToolResult = this.addToolOutput;
 
   /**
-   * Abort the current request immediately, keep the generated tokens if any.
+   * Abort the current request, keep the generated tokens if any, and wait for
+   * the request pipeline to finish.
    */
   stop = async () => {
-    for (const controller of this.pendingMessagePreparations) {
-      controller.abort();
+    this.activeStopCount++;
+    this.stopGeneration++;
+    this.deferredApprovalSend = undefined;
+
+    try {
+      const activeResumeRequest = this.activeResumeRequest;
+      const activeResponse = this.activeResponse;
+
+      for (const controller of this.pendingMessagePreparations) {
+        controller.abort();
+      }
+      activeResumeRequest?.abortController.abort();
+      activeResponse?.abortController.abort();
+
+      await Promise.all([
+        activeResumeRequest?.completionPromise,
+        activeResponse?.completionPromise,
+      ]);
+
+      // Stream cancellation can complete while a processing job is still
+      // blocked in onToolCall. Drain that job and any message update it queued.
+      await this.jobExecutor.waitForIdle();
+
+      // a stop pauses the queue even when no response was running, e.g. while
+      // the assistant waits for a tool approval:
+      this.isQueuePaused = true;
+    } finally {
+      this.activeStopCount--;
     }
-    this.activeResumeRequest?.abortController.abort();
-    this.activeResponse?.abortController.abort();
   };
 
-  private async shouldSendAutomatically(): Promise<boolean> {
-    if (!this.sendAutomaticallyWhen) return false;
+  /**
+   * Stops active work and releases resources owned by the chat transport.
+   */
+  dispose = async (): Promise<void> => {
+    await this.stop();
+    this.transport.close?.();
+  };
 
-    const result = this.sendAutomaticallyWhen({
-      messages: this.state.messages,
-    });
+  private async shouldSendAutomatically(
+    messageId = this.lastMessage?.id,
+  ): Promise<boolean> {
+    const isInterrupted = (id: string | undefined) =>
+      id != null && this.interruptedMessageIds.has(id);
 
-    // Check if result is a promise
-    if (result && typeof result === 'object' && 'then' in result) {
-      return await result;
+    if (
+      !this.sendAutomaticallyWhen ||
+      isInterrupted(messageId) ||
+      isInterrupted(this.lastMessage?.id)
+    ) {
+      return false;
     }
 
-    return result as boolean;
+    const stopGeneration = this.stopGeneration;
+    this.pendingAutomaticDecisions.push(stopGeneration);
+    let result: boolean;
+    try {
+      result = await this.sendAutomaticallyWhen({
+        messages: this.state.messages,
+      });
+    } finally {
+      this.pendingAutomaticDecisions.splice(
+        this.pendingAutomaticDecisions.indexOf(stopGeneration),
+        1,
+      );
+    }
+
+    return (
+      result &&
+      !isInterrupted(messageId) &&
+      !isInterrupted(this.lastMessage?.id)
+    );
+  }
+
+  private async runAutomaticRequest(
+    request: () => Promise<void>,
+    shouldSend?: boolean,
+  ): Promise<boolean> {
+    const stopGeneration = this.stopGeneration;
+    const startedWhileStopping = this.activeStopCount > 0;
+
+    if (!(shouldSend ?? (await this.shouldSendAutomatically()))) {
+      return false;
+    }
+
+    // A stop invalidates automatic requests that were pending when it started,
+    // including requests queued by callback-driven tool updates.
+    if (
+      startedWhileStopping ||
+      stopGeneration !== this.stopGeneration ||
+      this.activeStopCount > 0
+    ) {
+      return false;
+    }
+
+    await request();
+    return true;
   }
 
   private async makeRequestForToolApproval({
@@ -725,6 +1149,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     messageId?: string;
     messageIndex: number;
   } & ChatRequestOptions) {
+    this.deferredApprovalSend = undefined;
+
     const consumesPendingApproval =
       messageId != null && messageId === this.pendingApprovalMessageId;
     if (consumesPendingApproval) {
@@ -747,23 +1173,38 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
   }
 
-  private async makeRequest({
+  private async makeRequest(options: MakeRequestOptions) {
+    const completion = createResolvablePromise<void>();
+
+    try {
+      await this.makeRequestImpl({
+        ...options,
+        completionPromise: completion.promise,
+      });
+    } finally {
+      completion.resolve();
+    }
+  }
+
+  private async makeRequestImpl({
     trigger,
     metadata,
     headers,
     body,
     messageId,
-  }: {
-    trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
-    messageId?: string;
-  } & ChatRequestOptions) {
+    completionPromise,
+  }: MakeRequestOptions & {
+    completionPromise: Promise<void>;
+  }) {
     if (trigger !== 'resume-stream') {
       this.resumableStreamState = undefined;
     }
 
     const abortController = new AbortController();
     const activeResumeRequest =
-      trigger === 'resume-stream' ? { abortController } : undefined;
+      trigger === 'resume-stream'
+        ? { abortController, completionPromise }
+        : undefined;
 
     if (activeResumeRequest) {
       this.activeResumeRequest?.abortController.abort();
@@ -849,10 +1290,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       responseMessageIndex === -1
         ? lastMessage
         : this.state.messages[responseMessageIndex];
-    // the continued stream can start with either
-    // 1) input deltas
-    // 2) or the result of an answered tool approval request
-    // Keep the tool part so in case 2, those chunks can find their tool call
+    const originalResponseMessageId = responseMessage?.id;
+    // The continued stream can start with input deltas or a tool result.
+    // Keep unfinished tool parts so result chunks can find their tool call.
     const resumableResponseMessage =
       trigger === 'resume-stream' &&
       responseMessage?.role === 'assistant' &&
@@ -860,6 +1300,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         part =>
           isToolUIPart(part) &&
           (part.state === 'input-streaming' ||
+            (part.state === 'input-available' && part.providerExecuted) ||
             part.state === 'approval-responded'),
       )
         ? this.state.snapshot(responseMessage)
@@ -889,6 +1330,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 messageId: this.generateId(),
               }),
         abortController,
+        completionPromise,
       } as ActiveResponse<UI_MESSAGE>;
 
       activeResponse = response;
@@ -939,16 +1381,28 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 this.setStatus({ status: 'streaming' });
               }
 
-              if (usesEarlierAssistantMessage) {
+              const existingMessageIndex = this.state.messages.findLastIndex(
+                message => message.id === response.state.message.id,
+              );
+
+              if (existingMessageIndex !== -1) {
                 this.state.replaceMessage(
-                  responseMessageIndex,
+                  existingMessageIndex,
                   response.state.message,
                 );
-              } else if (response.state.message.id === this.lastMessage?.id) {
-                this.state.replaceMessage(
-                  this.state.messages.length - 1,
-                  response.state.message,
+              } else if (usesEarlierAssistantMessage) {
+                const originalMessageIndex = this.state.messages.findLastIndex(
+                  message => message.id === originalResponseMessageId,
                 );
+
+                if (originalMessageIndex !== -1) {
+                  this.state.replaceMessage(
+                    originalMessageIndex,
+                    response.state.message,
+                  );
+                } else {
+                  this.state.pushMessage(response.state.message);
+                }
               } else {
                 this.state.pushMessage(response.state.message);
               }
@@ -960,6 +1414,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         stream: processUIMessageStream({
           stream,
           resetStateOnMessageIdChange: trigger === 'resume-stream',
+          resetStateOnFirstMessageStart:
+            trigger === 'resume-stream' && this.transport.resumeStreamIsReplay,
           onToolCall: this.onToolCall,
           onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
@@ -1010,13 +1466,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       isError = true;
 
-      // Network errors such as disconnected, timeout, etc.
-      if (
-        err instanceof TypeError &&
-        (err.message.toLowerCase().includes('fetch') ||
-          err.message.toLowerCase().includes('network'))
-      ) {
-        isDisconnect = true;
+      if (err instanceof TypeError) {
+        const message = err.message.toLowerCase();
+
+        isDisconnect =
+          // Chromium request failures; Node.js fetch failures.
+          message.includes('fetch') ||
+          // Firefox request failures; Chromium response-body failures.
+          message.includes('network') ||
+          // Safari/WebKit request and response-body failures.
+          message === 'load failed';
       }
 
       if (isDisconnect) {
@@ -1033,6 +1492,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     } finally {
       try {
         if (activeResponse) {
+          const { message, finishReason } = activeResponse.state;
+          if (finishReason === 'interrupted') {
+            this.interruptedMessageIds.add(message.id);
+          } else if (!isAbort && !isError) {
+            this.interruptedMessageIds.delete(message.id);
+          }
+
           this.onFinish?.({
             message: activeResponse.state.message,
             messages: this.state.messages,
@@ -1043,6 +1509,17 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           });
         }
       } finally {
+        // a response that did not finish (stopped, failed or interrupted)
+        // pauses the queue until the user sends again. a response that finishes
+        // on its own (e.g. an automatic resume) never clears the pause:
+        if (
+          isAbort ||
+          isError ||
+          activeResponse?.state.finishReason === 'interrupted'
+        ) {
+          this.isQueuePaused = true;
+        }
+
         if (this.activeResponse === activeResponse) {
           this.activeResponse = undefined;
         }
@@ -1052,14 +1529,28 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
-    if (!isError && (await this.shouldSendAutomatically())) {
-      await this.makeRequest({
-        trigger: 'submit-message',
-        messageId: this.lastMessage?.id,
-        metadata,
-        headers,
-        body,
-      });
+    if (
+      !isAbort &&
+      !isError &&
+      activeResponse?.state.finishReason !== 'interrupted'
+    ) {
+      const stopGeneration = this.stopGeneration;
+      const sentAutomatically = await this.runAutomaticRequest(() =>
+        this.makeRequest({
+          trigger: 'submit-message',
+          messageId: this.lastMessage?.id,
+          metadata,
+          headers,
+          body,
+        }),
+      );
+
+      // the automatic request settles the queue when it finishes. a stop while
+      // sendAutomaticallyWhen was pending cancels the send too, so a stopped or
+      // replaced chat never sends queued messages on its own:
+      if (!sentAutomatically) {
+        await this.settleQueue({ stopGeneration });
+      }
     }
   }
 }

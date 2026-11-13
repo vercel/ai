@@ -39,6 +39,9 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
   | 'status'
   | 'messages'
   | 'clearError'
+  | 'experimental_queuedMessages'
+  | 'experimental_removeQueuedMessage'
+  | 'experimental_sendQueuedMessageNow'
 >;
 
 export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
@@ -57,12 +60,57 @@ export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
   experimental_throttle?: number;
 
   /**
-   * Whether to resume an ongoing chat generation stream.
+   * Whether to automatically resume an ongoing chat generation stream.
    */
   resume?: boolean;
 };
 
-const automaticResumeRegistrations = new WeakMap<object, Set<object>>();
+type AutomaticResumeState = {
+  registrations: Set<object>;
+  cleanupVisibilityListener?: () => void;
+  pendingVisibilityResume?: Promise<void>;
+};
+
+const automaticResumeStates = new WeakMap<object, AutomaticResumeState>();
+
+type AutomaticallyResumableChat = {
+  '~resumeStreamIfDisconnected': (options: {
+    shouldResume: () => boolean;
+  }) => Promise<void>;
+};
+
+/**
+ * When the document becomes visible again, resume the chat stream if it was
+ * interrupted by a network disconnect while the page was in the background.
+ */
+function resumeOnVisible<UI_MESSAGE extends UIMessage>({
+  chat,
+  state,
+}: {
+  chat: Chat<UI_MESSAGE>;
+  state: AutomaticResumeState;
+}) {
+  if (
+    document.visibilityState !== 'visible' ||
+    state.pendingVisibilityResume != null
+  ) {
+    return;
+  }
+
+  const isRegistered = () =>
+    automaticResumeStates.get(chat) === state && state.registrations.size > 0;
+
+  const clearPendingResume = () => {
+    state.pendingVisibilityResume = undefined;
+  };
+
+  const resumableChat = chat as Chat<UI_MESSAGE> & AutomaticallyResumableChat;
+
+  state.pendingVisibilityResume = resumableChat['~resumeStreamIfDisconnected']({
+    shouldResume: () =>
+      isRegistered() && document.visibilityState === 'visible',
+  }).then(clearPendingResume, clearPendingResume);
+}
 
 function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   chat,
@@ -71,17 +119,33 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   chat: Chat<UI_MESSAGE>;
   registration: object;
 }) {
-  let registrations = automaticResumeRegistrations.get(chat);
+  let state = automaticResumeStates.get(chat);
 
-  if (registrations == null) {
-    registrations = new Set();
-    automaticResumeRegistrations.set(chat, registrations);
+  if (state == null) {
+    const newState: AutomaticResumeState = { registrations: new Set() };
+    automaticResumeStates.set(chat, newState);
+    state = newState;
+
+    if (typeof document !== 'undefined') {
+      const onVisibilityChange = () =>
+        resumeOnVisible({ chat, state: newState });
+
+      document.addEventListener('visibilitychange', onVisibilityChange);
+      newState.cleanupVisibilityListener = () => {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      };
+    }
   }
 
+  const { registrations } = state;
   const shouldResume = registrations.size === 0;
   registrations.add(registration);
 
-  if (shouldResume) {
+  if (
+    shouldResume &&
+    chat.status !== 'submitted' &&
+    chat.status !== 'streaming'
+  ) {
     void chat.resumeStream();
   }
 
@@ -89,7 +153,8 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
     registrations.delete(registration);
 
     if (registrations.size === 0) {
-      automaticResumeRegistrations.delete(chat);
+      state.cleanupVisibilityListener?.();
+      automaticResumeStates.delete(chat);
     }
   };
 }
@@ -99,6 +164,7 @@ type ChatSnapshot<UI_MESSAGE extends UIMessage> = {
   messages: UI_MESSAGE[];
   status: Chat<UI_MESSAGE>['status'];
   error: Error | undefined;
+  experimental_queuedMessages: UI_MESSAGE[];
 };
 
 function readChatSnapshot<UI_MESSAGE extends UIMessage>(
@@ -109,6 +175,7 @@ function readChatSnapshot<UI_MESSAGE extends UIMessage>(
     messages: chat.messages,
     status: chat.status,
     error: chat.error,
+    experimental_queuedMessages: chat.experimental_queuedMessages,
   };
 }
 
@@ -120,7 +187,8 @@ function equalChatSnapshots<UI_MESSAGE extends UIMessage>(
     current.chat === next.chat &&
     current.messages === next.messages &&
     current.status === next.status &&
-    current.error === next.error
+    current.error === next.error &&
+    current.experimental_queuedMessages === next.experimental_queuedMessages
   );
 }
 
@@ -164,7 +232,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
   // resolve the latest transport and fallback to a lazily created default transport
   let defaultTransport: ChatTransport<UI_MESSAGE> | undefined;
-  const getTransport = () =>
+  const getTransport = (): ChatTransport<UI_MESSAGE> =>
     latestRef.current.transport ??
     (defaultTransport ??= new DefaultChatTransport<UI_MESSAGE>());
 
@@ -172,6 +240,9 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   const chatOptions: typeof options = {
     ...options,
     transport: {
+      get resumeStreamIsReplay() {
+        return getTransport().resumeStreamIsReplay;
+      },
       sendMessages: sendOptions => getTransport().sendMessages(sendOptions),
       reconnectToStream: reconnectOptions =>
         getTransport().reconnectToStream(reconnectOptions),
@@ -243,6 +314,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       chat['~registerMessagesCallback'](publishSnapshot, throttleWaitMs),
       chat['~registerStatusCallback'](publishSnapshot),
       chat['~registerErrorCallback'](publishSnapshot),
+      chat['~registerQueuedMessagesCallback'](publishSnapshot),
     ];
 
     // Catch changes between render and subscription, including updates that
@@ -258,7 +330,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     };
   }, [chat, throttleWaitMs]);
 
-  const { messages, status, error } = snapshot;
+  const { messages, status, error, experimental_queuedMessages } = snapshot;
 
   const setMessages = useCallback(
     (
@@ -282,7 +354,9 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   }, [resume, chat]);
 
   return {
-    id: chat.id,
+    get id() {
+      return chat.id;
+    },
     messages,
     setMessages,
     sendMessage: chat.sendMessage,
@@ -298,5 +372,8 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     addToolResult: chat.addToolOutput,
     addToolOutput: chat.addToolOutput,
     addToolApprovalResponse: chat.addToolApprovalResponse,
+    experimental_queuedMessages,
+    experimental_removeQueuedMessage: chat.experimental_removeQueuedMessage,
+    experimental_sendQueuedMessageNow: chat.experimental_sendQueuedMessageNow,
   };
 }

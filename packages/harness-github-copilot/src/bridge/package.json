@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@github/copilot": "1.0.86"
+    "@agentclientprotocol/sdk": "1.9.0",
+    "@github/copilot": "1.0.106",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "ws": "8.21.0",
+    "zod": "4.4.3"
   }
 }

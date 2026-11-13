@@ -9,14 +9,9 @@ on:
       - '.changeset/**'
       - '.github/workflows/release.yml'
   workflow_dispatch:
-    inputs:
-      snapshot:
-        description: 'Publish a snapshot release instead of a normal release'
-        type: boolean
-        default: false
 
 concurrency:
-  group: 'release-${{ github.ref_name }}'
+  group: 'release-v2-${{ github.ref_name }}'
   cancel-in-progress: false
 
 permissions:
@@ -33,6 +28,7 @@ jobs:
       issues: write
     # do not attempt running in forks
     if: github.repository_owner == 'vercel'
+    environment: npm-release
     steps:
       - name: Configure Git
         run: |
@@ -45,22 +41,16 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
-
-      - name: Setup Node.js 24
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3
         with:
-          node-version: 24
+          runtime: node@24
+          require-lockfile: true
 
-      - name: Install Dependencies
-        run: pnpm i
-
-      # Normal release path
       - name: Create Release Pull Request or Publish to npm
-        if: inputs.snapshot != true
         id: changesets
-        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1
+        continue-on-error: true
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           version: pnpm ci:version
           publish: pnpm ci:release
@@ -70,64 +60,98 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Only retry release PR preparation. Publishing may have partially succeeded.
+      # Versioning consumes changesets, so restore the original checkout and lockfile
+      # before each retry to avoid accidentally entering the publishing path.
+      - name: Prepare release PR retry 1
+        id: prepare-retry-1
+        if: >-
+          steps.changesets.outcome == 'failure' &&
+          steps.changesets.outputs.hasChangesets == 'true'
+        run: |
+          sleep 30
+          git reset --hard "$RELEASE_SHA"
+          git clean -fd
+          pnpm install --frozen-lockfile
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+
+      - name: Retry release PR preparation 1
+        id: changesets-retry-1
+        if: steps.prepare-retry-1.outcome == 'success'
+        continue-on-error: true
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        with:
+          version: pnpm ci:version
+          publish: pnpm ci:release
+          setupGitUser: false
+          commitMode: 'github-api'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare release PR retry 2
+        id: prepare-retry-2
+        if: >-
+          steps.changesets-retry-1.outcome == 'failure' &&
+          steps.changesets-retry-1.outputs.hasChangesets == 'true'
+        run: |
+          sleep 60
+          git reset --hard "$RELEASE_SHA"
+          git clean -fd
+          pnpm install --frozen-lockfile
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+
+      - name: Retry release PR preparation 2
+        id: changesets-retry-2
+        if: steps.prepare-retry-2.outcome == 'success'
+        continue-on-error: true
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        with:
+          version: pnpm ci:version
+          publish: pnpm ci:release
+          setupGitUser: false
+          commitMode: 'github-api'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check Changesets result
+        if: >-
+          !cancelled() &&
+          steps.changesets.outcome == 'failure' &&
+          steps.changesets-retry-1.outcome != 'success' &&
+          steps.changesets-retry-2.outcome != 'success'
+        run: |
+          echo "::error::Changesets did not complete successfully."
+          exit 1
+
+      # Publishing only runs on the first attempt, which owns notification outputs.
       - name: Find release PR number
-        if: inputs.snapshot != true && steps.changesets.outputs.published == 'true'
+        if: steps.changesets.outputs.published == 'true'
         id: release-pr
         run: echo "number=$(gh api repos/${{ github.repository }}/commits/${{ github.sha }}/pulls --jq '.[0].number')" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Notify released PRs and issues
-        if: inputs.snapshot != true && steps.changesets.outputs.published == 'true'
-        uses: ./.github/actions/notify-released
-        with:
-          published-packages: ${{ steps.changesets.outputs.publishedPackages }}
-          pull-request-number: ${{ steps.release-pr.outputs.number }}
-
-      - name: Attach SLSA provenance to GitHub Releases
-        if: inputs.snapshot != true && steps.changesets.outputs.published == 'true'
+      - name: Create release notification manifest
         run: |
-          cd .github/scripts/upload-provenance
-          npm install --no-save
-          node index.mjs
+          mkdir -p .release-notification
+          jq -n \
+            --arg publishedPackages "$PUBLISHED_PACKAGES" \
+            --arg pullRequestNumber "$PULL_REQUEST_NUMBER" \
+            '{
+              type: "release",
+              publishedPackages: ($publishedPackages | fromjson? // []),
+              pullRequestNumber: $pullRequestNumber
+            }' > .release-notification/notification.json
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
+          PULL_REQUEST_NUMBER: ${{ steps.release-pr.outputs.number }}
 
-      # Snapshot release path
-      - name: Add SHORT_SHA env property with commit short sha
-        if: inputs.snapshot == true
-        run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-8`" >> $GITHUB_ENV
-
-      - name: Delete pre.json if it exists
-        if: inputs.snapshot == true
-        run: rm -f .changeset/pre.json
-
-      - name: Version Packages (snapshot)
-        if: inputs.snapshot == true
-        run: pnpm changeset version --snapshot ${SHORT_SHA}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Clean Examples
-        if: inputs.snapshot == true
-        run: pnpm clean-examples
-
-      - name: Build
-        if: inputs.snapshot == true
-        run: pnpm clean && pnpm build
-
-      - name: Publish Snapshot Release
-        if: inputs.snapshot == true
-        run: pnpm changeset publish --no-git-tag --tag snapshot
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Notify snapshot release pull request
-        if: inputs.snapshot == true
-        run: |
-          cd .github/scripts/notify-released
-          npm install --no-save
-          node notify-snapshot.mjs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload release notification manifest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-notification
+          path: .release-notification
+          include-hidden-files: true
+          retention-days: 1

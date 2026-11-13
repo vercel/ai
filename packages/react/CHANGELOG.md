@@ -1,5 +1,509 @@
 # @ai-sdk/react
 
+## 4.0.176
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+- Updated dependencies [79d2004]
+  - @ai-sdk/provider-utils@5.0.81
+  - ai@7.0.172
+  - @ai-sdk/mcp@2.0.99
+
+## 4.0.175
+
+### Patch Changes
+
+- Updated dependencies [11323f9]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+- Updated dependencies [ceeee29]
+- Updated dependencies [1a94af3]
+  - ai@7.0.171
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/mcp@2.0.98
+  - @ai-sdk/provider@4.0.38
+
+## 4.0.174
+
+### Patch Changes
+
+- 37dfe49: Allow MCP Apps to load scripts and styles from origins declared in `resourceDomains`.
+- 6309382: Add support for `baseUriDomains` in MCP App CSP metadata.
+- Updated dependencies [91a67c2]
+- Updated dependencies [6309382]
+- Updated dependencies [84b1cb0]
+  - ai@7.0.170
+  - @ai-sdk/mcp@2.0.97
+
+## 4.0.173
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [6141e6f]
+- Updated dependencies [4311fa1]
+- Updated dependencies [d9dd2b7]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/mcp@2.0.96
+  - ai@7.0.169
+
+## 4.0.172
+
+### Patch Changes
+
+- 65aa669: add experimental_queue to useChat to queue messages sent while a response is in progress
+- Updated dependencies [65aa669]
+- Updated dependencies [8585d7e]
+- Updated dependencies [88b9575]
+  - ai@7.0.168
+  - @ai-sdk/mcp@2.0.95
+  - @ai-sdk/provider-utils@5.0.78
+
+## 4.0.171
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+- Updated dependencies [404ce3b]
+  - @ai-sdk/provider-utils@5.0.77
+  - ai@7.0.167
+  - @ai-sdk/mcp@2.0.94
+
+## 4.0.170
+
+### Patch Changes
+
+- ai@7.0.166
+
+## 4.0.169
+
+### Patch Changes
+
+- Updated dependencies [dc0f7f2]
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [883fcde]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [6d21e8e]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/mcp@2.0.93
+  - @ai-sdk/provider-utils@5.0.76
+  - ai@7.0.165
+  - @ai-sdk/provider@4.0.37
+
+## 4.0.168
+
+### Patch Changes
+
+- Updated dependencies [ae13fce]
+  - @ai-sdk/mcp@2.0.92
+  - ai@7.0.164
+
+## 4.0.167
+
+### Patch Changes
+
+- e0143b0: feat(ai): support provider-owned realtime transports
+
+  Add an optional `createTransport` interface and `provider` connection capability.
+
+- Updated dependencies [5d18351]
+- Updated dependencies [8da48db]
+- Updated dependencies [fd7e8a7]
+- Updated dependencies [36802d4]
+- Updated dependencies [933dae3]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [c389374]
+- Updated dependencies [892af4d]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [1a1da8d]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - ai@7.0.163
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+  - @ai-sdk/mcp@2.0.91
+
+## 4.0.166
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+- Updated dependencies [857ca45]
+- Updated dependencies [4d6d830]
+  - @ai-sdk/provider-utils@5.0.74
+  - ai@7.0.162
+  - @ai-sdk/mcp@2.0.90
+
+## 4.0.165
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - ai@7.0.161
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/mcp@2.0.89
+
+## 4.0.164
+
+### Patch Changes
+
+- Updated dependencies [a71172d]
+- Updated dependencies [cf27969]
+- Updated dependencies [17b6923]
+  - ai@7.0.160
+
+## 4.0.163
+
+### Patch Changes
+
+- ai@7.0.159
+
+## 4.0.162
+
+### Patch Changes
+
+- 1afa510: Graduate `StdioMCPTransport`, `MCPClient.listPrompts`, `MCPClient.getPrompt`, and `MCPAppRenderer` to stable APIs. Deprecate their experimental names while retaining them as compatible aliases. MCP events remain experimental.
+- Updated dependencies [7716e18]
+- Updated dependencies [8ba3a5c]
+- Updated dependencies [c3af430]
+- Updated dependencies [1afa510]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - ai@7.0.158
+  - @ai-sdk/mcp@2.0.88
+  - @ai-sdk/provider@4.0.35
+
+## 4.0.161
+
+### Patch Changes
+
+- Updated dependencies [0cc4921]
+- Updated dependencies [61a315e]
+- Updated dependencies [077cfb3]
+- Updated dependencies [eb768e2]
+  - ai@7.0.157
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/mcp@2.0.87
+
+## 4.0.160
+
+### Patch Changes
+
+- ai@7.0.156
+
+## 4.0.159
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [ade2a33]
+- Updated dependencies [b6b9dca]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/mcp@2.0.86
+  - ai@7.0.155
+
+## 4.0.158
+
+### Patch Changes
+
+- Updated dependencies [47236dd]
+- Updated dependencies [c8e8866]
+- Updated dependencies [e64ed82]
+- Updated dependencies [1cf95c6]
+  - ai@7.0.154
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/mcp@2.0.85
+
+## 4.0.157
+
+### Patch Changes
+
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+- Updated dependencies [84d7880]
+- Updated dependencies [5475347]
+- Updated dependencies [e729d58]
+  - @ai-sdk/mcp@2.0.84
+  - @ai-sdk/provider@4.0.34
+  - ai@7.0.153
+  - @ai-sdk/provider-utils@5.0.68
+
+## 4.0.156
+
+### Patch Changes
+
+- ai@7.0.152
+
+## 4.0.155
+
+### Patch Changes
+
+- ai@7.0.151
+
+## 4.0.154
+
+### Patch Changes
+
+- Updated dependencies [8202f5b]
+- Updated dependencies [8e18d59]
+- Updated dependencies [85d84a1]
+  - @ai-sdk/provider-utils@5.0.67
+  - ai@7.0.150
+  - @ai-sdk/provider@4.0.33
+  - @ai-sdk/mcp@2.0.83
+
+## 4.0.153
+
+### Patch Changes
+
+- Updated dependencies [1727442]
+- Updated dependencies [0a5d0e7]
+- Updated dependencies [10026d1]
+  - ai@7.0.149
+  - @ai-sdk/provider@4.0.32
+  - @ai-sdk/mcp@2.0.82
+  - @ai-sdk/provider-utils@5.0.66
+
+## 4.0.152
+
+### Patch Changes
+
+- Updated dependencies [b089ce8]
+- Updated dependencies [39a776b]
+- Updated dependencies [060d419]
+  - @ai-sdk/provider-utils@5.0.65
+  - @ai-sdk/mcp@2.0.81
+  - ai@7.0.148
+
+## 4.0.151
+
+### Patch Changes
+
+- Updated dependencies [66e74dc]
+  - ai@7.0.147
+
+## 4.0.150
+
+### Patch Changes
+
+- Updated dependencies [0c2a9de]
+- Updated dependencies [200c47f]
+- Updated dependencies [3785b2e]
+- Updated dependencies [ab8eb61]
+- Updated dependencies [2b8185e]
+  - ai@7.0.146
+  - @ai-sdk/provider@4.0.31
+  - @ai-sdk/provider-utils@5.0.64
+  - @ai-sdk/mcp@2.0.80
+
+## 4.0.149
+
+### Patch Changes
+
+- ai@7.0.145
+
+## 4.0.148
+
+### Patch Changes
+
+- Updated dependencies [60cc252]
+- Updated dependencies [fce9210]
+- Updated dependencies [0ed59e2]
+  - @ai-sdk/provider@4.0.30
+  - ai@7.0.144
+  - @ai-sdk/mcp@2.0.79
+  - @ai-sdk/provider-utils@5.0.63
+
+## 4.0.147
+
+### Patch Changes
+
+- 8a5233b: Generate default chat IDs on first access so `useChat()` can prerender without reading a random value when the ID is not used during rendering.
+- Updated dependencies [8a5233b]
+- Updated dependencies [894e130]
+- Updated dependencies [0957554]
+  - ai@7.0.143
+  - @ai-sdk/provider@4.0.29
+  - @ai-sdk/provider-utils@5.0.62
+  - @ai-sdk/mcp@2.0.78
+
+## 4.0.146
+
+### Patch Changes
+
+- Updated dependencies [130e871]
+  - @ai-sdk/provider@4.0.28
+  - ai@7.0.142
+  - @ai-sdk/mcp@2.0.77
+  - @ai-sdk/provider-utils@5.0.61
+
+## 4.0.145
+
+### Patch Changes
+
+- Updated dependencies [5111e98]
+  - @ai-sdk/mcp@2.0.76
+
+## 4.0.144
+
+### Patch Changes
+
+- Updated dependencies [2e89fa4]
+- Updated dependencies [88ea0d7]
+  - @ai-sdk/provider-utils@5.0.60
+  - ai@7.0.141
+  - @ai-sdk/mcp@2.0.75
+
+## 4.0.143
+
+### Patch Changes
+
+- Updated dependencies [9523eb0]
+  - ai@7.0.140
+
+## 4.0.142
+
+### Patch Changes
+
+- ai@7.0.139
+
+## 4.0.141
+
+### Patch Changes
+
+- eab278a: fix: resume interrupted chat streams when the page becomes visible again
+
+  `useChat` with `resume: true` no longer starts a second resume request on mount when the chat is already submitted or streaming, e.g. when remounting with a shared `Chat` instance mid-stream.
+
+- a527dcd: fix(react): prevent stale useObject streams from overwriting newer results
+- 898bc05: fix(react): preserve replay semantics for custom chat transports
+- Updated dependencies [eab278a]
+- Updated dependencies [26d64e9]
+- Updated dependencies [9667bf2]
+- Updated dependencies [75b3ea2]
+- Updated dependencies [2913c8c]
+- Updated dependencies [69f4b82]
+- Updated dependencies [e57803c]
+- Updated dependencies [4c705d9]
+- Updated dependencies [81663cc]
+- Updated dependencies [5150d50]
+- Updated dependencies [9aef724]
+- Updated dependencies [7d0458b]
+  - ai@7.0.138
+  - @ai-sdk/provider-utils@5.0.59
+  - @ai-sdk/mcp@2.0.74
+  - @ai-sdk/provider@4.0.27
+
+## 4.0.140
+
+### Patch Changes
+
+- Updated dependencies [e27cc64]
+  - ai@7.0.137
+
+## 4.0.139
+
+### Patch Changes
+
+- Updated dependencies [7b5497c]
+- Updated dependencies [b5b0416]
+  - ai@7.0.136
+  - @ai-sdk/mcp@2.0.73
+
+## 4.0.138
+
+### Patch Changes
+
+- Updated dependencies [5ddbb70]
+- Updated dependencies [7c40a09]
+- Updated dependencies [4dbc902]
+- Updated dependencies [ff18b73]
+- Updated dependencies [9be846c]
+  - ai@7.0.135
+  - @ai-sdk/provider@4.0.26
+  - @ai-sdk/mcp@2.0.72
+  - @ai-sdk/provider-utils@5.0.58
+
+## 4.0.137
+
+### Patch Changes
+
+- Updated dependencies [8281ec4]
+- Updated dependencies [46c2b05]
+  - ai@7.0.134
+
+## 4.0.136
+
+### Patch Changes
+
+- Updated dependencies [9184a35]
+  - ai@7.0.133
+  - @ai-sdk/provider@4.0.25
+  - @ai-sdk/provider-utils@5.0.57
+  - @ai-sdk/mcp@2.0.71
+
+## 4.0.135
+
+### Patch Changes
+
+- Updated dependencies [3ebefff]
+- Updated dependencies [6315a3d]
+- Updated dependencies [ac50548]
+- Updated dependencies [d8e4b51]
+  - ai@7.0.132
+  - @ai-sdk/mcp@2.0.70
+
+## 4.0.134
+
+### Patch Changes
+
+- ai@7.0.131
+
+## 4.0.133
+
+### Patch Changes
+
+- Updated dependencies [6f6b9c0]
+- Updated dependencies [d3bcad9]
+  - ai@7.0.130
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/mcp@2.0.69
+  - @ai-sdk/provider-utils@5.0.56
+
+## 4.0.132
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [e37d213]
+- Updated dependencies [5094ebd]
+- Updated dependencies [73d8343]
+- Updated dependencies [268225c]
+- Updated dependencies [d83366e]
+- Updated dependencies [34905a2]
+- Updated dependencies [16ab882]
+- Updated dependencies [f810ea3]
+- Updated dependencies [19a127b]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - ai@7.0.129
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/mcp@2.0.68
+
 ## 4.0.131
 
 ### Patch Changes

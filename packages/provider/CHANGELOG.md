@@ -1,5 +1,147 @@
 # @ai-sdk/provider
 
+## 4.0.38
+
+### Patch Changes
+
+- cb4fa52: add experimental extract api and extraction model spec
+
+## 4.0.37
+
+### Patch Changes
+
+- c70adf6: Fix TypeSafe decision requests with primitive JSON state by serializing those values as text, reject empty criteria and null or undefined Score levels before sending a request, and expose structured Score legends in provider metadata. Allow omitted or null Box instructions and null Boolean criteria in experimental decision question types.
+
+## 4.0.36
+
+### Patch Changes
+
+- 36802d4: Support native URL transcription with an optional provider capability, keeping existing file-generation contracts unchanged. Groq sends HTTP(S) audio URLs through its `url` parameter without downloading and re-uploading them, avoiding the attachment upload limit. Supplying a custom `download` function retains local download behavior.
+
+  For telemetry integrations, `TranscriptionEndEvent.audio.byteLength` and `audio.mediaType` can now be `undefined` when a provider fetches the audio URL natively. Check for missing values before using them as a number or string. Downloaded and inline audio continue to report their metadata; streaming transcription metadata is unchanged.
+
+  Strip media fragments before sending URLs to Groq. If Groq rejects a redirect, fall back to the existing secure local downloader and file upload rather than failing previously working URL inputs. Other provider errors are preserved.
+
+- e0143b0: feat(ai): support provider-owned realtime transports
+
+  Add an optional `createTransport` interface and `provider` connection capability.
+
+- 934100c: Report the actual OpenAI Chat HTTP endpoint (also used by Azure Chat and Bedrock Mantle Chat) through optional request metadata and model-call end events. Record its host and port on OpenTelemetry chat spans without exposing URL credentials, paths, queries, or fragments. Expose only the sanitized HTTP origin in text and object generation results and step/finish callbacks. Providers that do not report an endpoint leave these attributes unset.
+- 892af4d: feat (provider): add server-side realtime extensions to the experimental RealtimeModelV4 spec
+
+  Extends the existing optional `getServerWebSocketConfig()` method and a normalized `usage` field so a trusted server/proxy can drive realtime providers the way it drives HTTP language models:
+
+  - `getServerWebSocketConfig({ intent? })` returns the upstream WebSocket `{ url, headers, protocols? }` for a server-initiated connection (header auth with the long-lived credential). Providers fail fast for unsupported endpoint intents instead of silently falling back. It is the server-side sibling of the browser-only `getWebSocketConfig`.
+  - `serializeClientEvent` and `buildSessionConfig` now accept the same optional `intent` so server-side callers can keep endpoint selection and session serialization aligned.
+  - New `RealtimeModelV4Usage` type and optional `usage` on `response-done`, `input-transcription-completed`, and provider `custom` snapshot events. Gross totals and known modality buckets remain separate, and duration is reported as `seconds`. Counts are gross (cache-inclusive) with cached portions reported separately so consumers can apply their own billing split without re-parsing `raw`.
+  - New `RealtimeModelV4ServerConnection` and `RealtimeModelV4SessionIntent` types, exported with the `Experimental_` prefix.
+
+- 41465fd: Expose optional transcription word timings separately from segments and accept shared timestampGranularities. Explicit provider timing settings take precedence. OpenAI now sends timestamp_granularities only with verbose_json and warns when a requested timing is unavailable or excluded.
+- 9754014: Add typed streaming heartbeat parts. Anthropic emits them only with `includePings: true` (disabled by default), without requiring raw chunks. Core forwards pings through stream retries without storing them as generated content or sending them to UI message streams. Consumers with exhaustive stream-part switches must handle the new `ping` union variant when upgrading, even when the opt-in is disabled. Typed pings do not flush partial words during stream smoothing.
+- 4bb73b0: Add optional video, reranking and decision sections to model capability catalogs, including support for declaring provider options for these operations.
+- 2e44144: Represent videos delivered directly to caller-managed storage with an explicit uploaded outcome. Video generation reports `uploadedVideos` without downloading or synthesizing video bytes; access `video` only when `videos` is nonempty.
+
+## 4.0.35
+
+### Patch Changes
+
+- dcd2f8d: Introduce a model entry contract with named capability sections and request configuration. Consolidate the OpenAI and Anthropic model catalogs so existing request behavior and generated capability documentation use the same source of truth. Catalogs also declare the provider options each provider accepts and which models support them.
+
+## 4.0.34
+
+### Patch Changes
+
+- 5475347: Fix non-streaming Responses API structured output failing when multiple assistant messages contain JSON. Providers can supply separate structured-output text for parsing, allowing OpenAI and Azure Responses models to select the last `final_answer` while preserving all generated content, annotations, conversation history, and token usage.
+- e729d58: chore(docs): update `README.md` for consistent format and to avoid duplication
+
+## 4.0.33
+
+### Patch Changes
+
+- 85d84a1: feat(provider): add experimental streaming speech model spec
+
+  Adds `Experimental_StreamingSpeechModelV4`, a `SpeechModelV4` extension with `doStream()` that takes the input text as a stream of text parts (each with an optional per-part `voice` and `providerOptions`) and returns a stream of audio parts, plus `Experimental_`-prefixed stream option, text part, part, result, and usage types. The stable `SpeechModelV4` is unchanged.
+
+## 4.0.32
+
+### Patch Changes
+
+- 10026d1: Add the `interrupted` finish reason for provider streams that end without a completion signal. Preserve partial output without introducing an error solely for interruption, and stop tool execution, agent continuation, and automatic UI follow-ups for interrupted responses, including late tool results and approvals. Provider detection and emission will be added separately.
+
+  **Compatibility notice:** Adding `interrupted` to the public finish-reason types can break type checking after upgrading, even though this is a patch release. Exhaustive switches (for example, using an `assertNever` fallback) and mappings such as `Record<FinishReason, string>` must handle the new value. Update any custom validation or application logic that assumes the existing set of finish reasons is exhaustive.
+
+  When providers begin emitting `interrupted`, a stream ending without a completion signal will preserve partial output and report this finish reason without emitting an error solely for the interruption. Applications that need to detect incomplete responses should check `finishReason === 'interrupted'` as well as their existing error handling.
+
+## 4.0.31
+
+### Patch Changes
+
+- 0c2a9de: Add `maxOutputTokens` and `reasoning` to experimental decision calls and forward them to language-model-backed decisions. Language-model adapters keep reasoning disabled when omitted. Native decision providers warn when either setting is unsupported.
+
+## 4.0.30
+
+### Patch Changes
+
+- 60cc252: feat(perplexity): add decisions api support
+
+## 4.0.29
+
+### Patch Changes
+
+- 0957554: Add `box` decision question type with image bounds for TypeSafe AI.
+
+## 4.0.28
+
+### Patch Changes
+
+- 130e871: Restore raw OpenAI custom-tool input deltas for consumers that forward them to Responses API clients. Mark streamed input with `inputEncoding: 'text'` so UI clients can display it progressively without JSON parsing. Preserve the encoding when partial UI messages are saved and resumed. Final provider tool-call inputs remain JSON-encoded.
+
+## 4.0.27
+
+### Patch Changes
+
+- e57803c: Add an optional shared citation representation to generated text and text-end stream events, separate from retrieved sources. Preserve citations in core result content and UI message text parts, including validation and persistence, without changing content or stream event discriminants.
+
+## 4.0.26
+
+### Patch Changes
+
+- 4dbc902: feat(ai): add a top level 'dimensions' setting for embeddding functions
+
+## 4.0.25
+
+### Patch Changes
+
+- 9184a35: Add ordered text, file, and JSON parts to experimental decision state. Support image input in OpenAI Decisions and language model adapters. Gateway retains its existing string and JSON request format and rejects files, as does TypeSafe AI.
+
+  Arrays passed directly as state now contain decision state parts. Wrap JSON arrays in an object or a json part.
+
+  Normalize all public state forms into an array of parts before calling decision providers. Providers receive text and JSON objects as text and json parts.
+
+  Serialize decision file bytes as base64 in OpenTelemetry state attributes. Model-call spans record normalized state parts, while outer spans retain public state inputs.
+
+  Preserve native JSON state in TypeSafe AI when state contains one JSON part. Label shared state in language-model decision prompts.
+
+## 4.0.24
+
+### Patch Changes
+
+- d3bcad9: feat(provider): report decision refusals as refusal answers
+
+## 4.0.23
+
+### Patch Changes
+
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
 ## 4.0.22
 
 ### Patch Changes

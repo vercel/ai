@@ -3,6 +3,7 @@ import {
   type EmbeddingModelV4,
 } from '@ai-sdk/provider';
 import {
+  resolve,
   combineHeaders,
   createJsonResponseHandler,
   EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
@@ -54,6 +55,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -86,12 +88,12 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
         path: '/embeddings',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers?.(), headers),
+      headers: combineHeaders(await resolve(this.config.headers), headers),
       body: {
         model: this.modelId,
         input: values,
         encoding_format: 'float',
-        dimensions: openaiOptions.dimensions,
+        dimensions: openaiOptions.dimensions ?? dimensions,
         user: openaiOptions.user,
       },
       failedResponseHandler: openaiFailedResponseHandler,

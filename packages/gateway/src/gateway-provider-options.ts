@@ -1,5 +1,5 @@
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
-import type { ZodType } from 'zod/v4';
+import type { ZodMiniType as ZodType } from 'zod/v4/mini';
 import { z } from './zod';
 
 // https://vercel.com/docs/ai-gateway/provider-options
@@ -9,11 +9,12 @@ export const DECISION_FALLBACK_MAX_QUESTION_LENGTH = 256;
 
 export const gatewayDecisionProviderOptionsSchema = lazySchema(() =>
   zodSchema(
-    z
-      .object({
-        models: gatewayModelFallbacksSchema.optional(),
-      })
-      .catchall(z.unknown()),
+    z.catchall(
+      z.object({
+        models: z.optional(gatewayModelFallbacksSchema()),
+      }),
+      z.unknown(),
+    ),
   ),
 );
 
@@ -59,8 +60,23 @@ export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
   /** Enables automatic caching behavior when supported by the Gateway. */
   caching?: 'auto';
 
+  /**
+   * Experimental, image models only: decode large base64 images while reading
+   * the response to reduce peak memory. Extracted images are returned as bytes;
+   * if a result mixes extracted and small images, all are returned as bytes.
+   * Defaults to false. Image models remove this client option from requests.
+   */
+  experimental_streamingImageDecoding?: boolean;
+
   /** Filter to providers that do not train on prompt data. */
   disallowPromptTraining?: boolean;
+
+  /**
+   * Route only to providers headquartered in these countries (ISO 3166-1
+   * alpha-2 codes, e.g. `['US', 'DE']`), or prefix every code with `!` to
+   * exclude countries instead (e.g. `['!US']`). A list can't mix the two.
+   */
+  headquarters?: string[];
 
   /**
    * Restrict routing to provider models that satisfy every given entry.
@@ -156,105 +172,128 @@ type GatewayModelFallbackList<QUESTION_ID extends string> =
   | string[]
   | [ConditionalGatewayModelFallback<QUESTION_ID>, ...string[]];
 
-const probabilitySchema = z.number().finite().min(0).max(1);
-const questionSchema = z
-  .string()
-  .min(1)
-  .max(DECISION_FALLBACK_MAX_QUESTION_LENGTH);
-const directConditionSchema = z.union([
+const probabilitySchema = () =>
+  z.number().check(z.minimum(0)).check(z.maximum(1));
+const questionSchema = () =>
   z
-    .object({
-      question: questionSchema.optional(),
-      confidenceBelow: probabilitySchema,
-    })
-    .strict(),
-  z
-    .object({
-      question: questionSchema.optional(),
-      probabilityBetween: z
-        .array(probabilitySchema)
-        .length(2)
-        .refine(([minimum, maximum]) => minimum <= maximum, {
-          message:
-            'probabilityBetween minimum must be less than or equal to maximum',
-        }),
-    })
-    .strict(),
-]) as ZodType<DecisionFallbackCondition>;
+    .string()
+    .check(z.minLength(1))
+    .check(z.maxLength(DECISION_FALLBACK_MAX_QUESTION_LENGTH));
+const directConditionSchema = () =>
+  z.union([
+    z.catchall(
+      z.object({
+        question: z.optional(questionSchema()),
+        confidenceBelow: probabilitySchema(),
+      }),
+      z.never(),
+    ),
+    z.catchall(
+      z.object({
+        question: z.optional(questionSchema()),
+        probabilityBetween: z
+          .array(probabilitySchema())
+          .check(z.length(2))
+          .check(
+            z.refine(([minimum, maximum]) => minimum <= maximum, {
+              message:
+                'probabilityBetween minimum must be less than or equal to maximum',
+            }),
+          ),
+      }),
+      z.never(),
+    ),
+  ]) as ZodType<DecisionFallbackCondition>;
 
-const groupBeyondMaxDepthSchema = z
-  .union([
-    z.object({ any: z.unknown() }),
-    z.object({ all: z.unknown() }),
-    z.object({ atLeast: z.unknown() }),
-  ])
-  .superRefine((_, context) => {
-    context.addIssue({
-      code: 'custom',
-      message: `conditions can be nested at most ${DECISION_FALLBACK_MAX_CONDITION_DEPTH} levels deep`,
+const groupBeyondMaxDepthSchema = () =>
+  z
+    .union([
+      z.object({ any: z.unknown() }),
+      z.object({ all: z.unknown() }),
+      z.object({ atLeast: z.unknown() }),
+    ])
+    .check(context => {
+      context.issues.push({
+        input: context.value,
+        continue: true,
+        code: 'custom',
+        message: `conditions can be nested at most ${DECISION_FALLBACK_MAX_CONDITION_DEPTH} levels deep`,
+      });
     });
-  });
 
-const conditionalModelFallbackSchema = z
-  .object({
-    model: z.string().min(1),
-    when: conditionSchema(1),
-  })
-  .strict();
+const conditionalModelFallbackSchema = () =>
+  z.catchall(
+    z.object({
+      model: z.string().check(z.minLength(1)),
+      when: conditionSchema(1),
+    }),
+    z.never(),
+  );
 
-const gatewayModelFallbacksSchema = z
-  .array(z.union([z.string(), conditionalModelFallbackSchema]))
-  .superRefine((entries, context) => {
-    const conditionalIndexes = entries.flatMap((entry, index) =>
-      typeof entry === 'string' ? [] : [index],
-    );
-    if (conditionalIndexes.length > 1) {
-      context.addIssue({
-        code: 'custom',
-        message: 'models supports at most one conditional decision fallback',
-      });
-    }
-    if (conditionalIndexes[0] !== undefined && conditionalIndexes[0] !== 0) {
-      context.addIssue({
-        code: 'custom',
-        message:
-          'a conditional decision fallback must be the first models entry',
-        path: [conditionalIndexes[0]],
-      });
-    }
-  });
+const gatewayModelFallbacksSchema = () =>
+  z
+    .array(z.union([z.string(), conditionalModelFallbackSchema()]))
+    .check(context => {
+      const entries = context.value;
+      const conditionalIndexes = entries.flatMap((entry, index) =>
+        typeof entry === 'string' ? [] : [index],
+      );
+      if (conditionalIndexes.length > 1) {
+        context.issues.push({
+          input: context.value,
+          continue: true,
+          code: 'custom',
+          message: 'models supports at most one conditional decision fallback',
+        });
+      }
+      if (conditionalIndexes[0] !== undefined && conditionalIndexes[0] !== 0) {
+        context.issues.push({
+          input: context.value,
+          continue: true,
+          code: 'custom',
+          message:
+            'a conditional decision fallback must be the first models entry',
+          path: [conditionalIndexes[0]],
+        });
+      }
+    });
 
 function conditionSchema(depth: number): ZodType<DecisionFallbackCondition> {
   if (depth === DECISION_FALLBACK_MAX_CONDITION_DEPTH) {
     return z.union([
-      directConditionSchema,
-      groupBeyondMaxDepthSchema,
+      directConditionSchema(),
+      groupBeyondMaxDepthSchema(),
     ]) as ZodType<DecisionFallbackCondition>;
   }
 
   const childConditionSchema = conditionSchema(depth + 1);
   const conditionListSchema = z
     .array(childConditionSchema)
-    .min(1)
-    .max(DECISION_FALLBACK_MAX_CONDITIONS_PER_LIST);
+    .check(z.minLength(1))
+    .check(z.maxLength(DECISION_FALLBACK_MAX_CONDITIONS_PER_LIST));
 
   return z.union([
-    directConditionSchema,
-    z.object({ any: conditionListSchema }).strict(),
-    z.object({ all: conditionListSchema }).strict(),
-    z
-      .object({
+    directConditionSchema(),
+    z.catchall(z.object({ any: conditionListSchema }), z.never()),
+    z.catchall(z.object({ all: conditionListSchema }), z.never()),
+    z.catchall(
+      z.object({
         atLeast: z
-          .object({
-            count: z.number().int().min(1),
-            conditions: conditionListSchema,
-          })
-          .strict()
-          .refine(({ count, conditions }) => count <= conditions.length, {
-            message: 'atLeast count cannot exceed the number of conditions',
-            path: ['count'],
-          }),
-      })
-      .strict(),
+          .catchall(
+            z.object({
+              count: z.number().check(z.int()).check(z.minimum(1)),
+              conditions: conditionListSchema,
+            }),
+            z.never(),
+          )
+          .check(
+            z.refine(({ count, conditions }) => count <= conditions.length, {
+              message: 'atLeast count cannot exceed the number of conditions',
+              path: ['count'],
+            }),
+          ),
+      }),
+      z.never(),
+    ),
   ]) as ZodType<DecisionFallbackCondition>;
 }

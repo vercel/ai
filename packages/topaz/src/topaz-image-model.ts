@@ -1,4 +1,8 @@
 import {
+  topazImageCapabilities,
+  topazImageRequestDefaults,
+} from './topaz-model-catalog';
+import {
   AISDKError,
   InvalidArgumentError,
   InvalidResponseDataError,
@@ -8,6 +12,10 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  type Resolvable,
+  lazySchema,
+  zodSchema,
+  type InferSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   createBinaryResponseHandler,
@@ -35,18 +43,15 @@ import {
   type TopazImageModelId,
 } from './topaz-image-settings';
 
-const DEFAULT_POLL_INTERVAL_MILLIS = 2000;
-const DEFAULT_POLL_TIMEOUT_MILLIS = 600_000;
-
 /**
  * Topaz enhances an image that the caller supplies, so `files` is required and
  * exactly one image is processed per call.
  */
 export class TopazImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 1;
-  readonly supportsFileInputs = true;
-  readonly supportsMaskInputs = false;
+  readonly maxImagesPerCall = topazImageCapabilities.maxImagesPerCall;
+  readonly supportsFileInputs = topazImageCapabilities.fileInput;
+  readonly supportsMaskInputs = topazImageCapabilities.maskInput;
 
   get provider(): string {
     return this.config.provider;
@@ -82,10 +87,8 @@ export class TopazImageModel implements ImageModelV4 {
       providerOptions: options.providerOptions,
       schema: topazImageModelOptionsSchema,
     });
-    const headers = combineHeaders(
-      await resolve(this.config.headers),
-      options.headers,
-    );
+    const headers = async () =>
+      combineHeaders(await resolve(this.config.headers), options.headers);
 
     this.addUnsupportedWarnings(options, warnings);
 
@@ -93,7 +96,7 @@ export class TopazImageModel implements ImageModelV4 {
 
     const { value: submitResponse } = await postFormDataToApi({
       url: `${this.config.baseURL}/image/v1/enhance-gen/async`,
-      headers,
+      headers: await headers(),
       formData,
       successfulResponseHandler: createJsonResponseHandler(
         topazImageSubmitResponseSchema,
@@ -118,9 +121,11 @@ export class TopazImageModel implements ImageModelV4 {
         headers,
         abortSignal: options.abortSignal,
         pollIntervalMillis:
-          topazOptions?.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS,
+          topazOptions?.pollIntervalMillis ??
+          topazImageRequestDefaults.pollIntervalMillis,
         pollTimeoutMillis:
-          topazOptions?.pollTimeoutMillis ?? DEFAULT_POLL_TIMEOUT_MILLIS,
+          topazOptions?.pollTimeoutMillis ??
+          topazImageRequestDefaults.pollTimeoutMillis,
       });
     } catch (error) {
       // Topaz charges on completion, so a job nobody will download should not
@@ -308,7 +313,7 @@ export class TopazImageModel implements ImageModelV4 {
     pollTimeoutMillis,
   }: {
     processId: string;
-    headers: Record<string, string | undefined> | undefined;
+    headers: Resolvable<Record<string, string | undefined> | undefined>;
     abortSignal: AbortSignal | undefined;
     pollIntervalMillis: number;
     pollTimeoutMillis: number;
@@ -320,7 +325,7 @@ export class TopazImageModel implements ImageModelV4 {
         url: `${this.config.baseURL}/image/v1/status/${processId}`,
         // Built from the configured baseURL, not from response data.
         validateUrl: false,
-        headers,
+        headers: await resolve(headers),
         successfulResponseHandler: createJsonResponseHandler(
           topazImageStatusResponseSchema,
         ),
@@ -357,7 +362,7 @@ export class TopazImageModel implements ImageModelV4 {
 
   private async cancelQuietly(
     processId: string,
-    headers: Record<string, string | undefined>,
+    headers: Resolvable<Record<string, string | undefined> | undefined>,
   ): Promise<void> {
     const fetchImpl = this.config.fetch ?? globalThis.fetch;
 
@@ -366,7 +371,7 @@ export class TopazImageModel implements ImageModelV4 {
       // reason polling stopped.
       await fetchImpl(`${this.config.baseURL}/image/v1/cancel/${processId}`, {
         method: 'DELETE',
-        headers: removeUndefinedEntries(headers),
+        headers: removeUndefinedEntries((await resolve(headers)) ?? {}),
       });
     } catch {
       // Best effort: the original error is more useful to the caller.
@@ -379,7 +384,7 @@ export class TopazImageModel implements ImageModelV4 {
     abortSignal,
   }: {
     processId: string;
-    headers: Record<string, string | undefined> | undefined;
+    headers: Resolvable<Record<string, string | undefined> | undefined>;
     abortSignal: AbortSignal | undefined;
   }): Promise<{
     image: Uint8Array;
@@ -389,7 +394,7 @@ export class TopazImageModel implements ImageModelV4 {
       url: `${this.config.baseURL}/image/v1/download/${processId}`,
       // Built from the configured baseURL, not from response data.
       validateUrl: false,
-      headers,
+      headers: await resolve(headers),
       successfulResponseHandler: createJsonResponseHandler(
         topazImageDownloadResponseSchema,
       ),
@@ -413,7 +418,7 @@ export class TopazImageModel implements ImageModelV4 {
       validateUrl: true,
       credentialedOrigin: this.config.baseURL,
       trustedOrigin: this.config.baseURL,
-      headers,
+      headers: await resolve(headers),
       successfulResponseHandler: createBinaryResponseHandler(),
       failedResponseHandler: topazFailedResponseHandler,
       abortSignal,
@@ -446,22 +451,36 @@ function appendIfDefined(
   }
 }
 
-const topazImageSubmitResponseSchema = z.object({
-  process_id: z.string().nullish(),
-});
+const topazImageSubmitResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      process_id: z.string().nullish(),
+    }),
+  ),
+);
 
-const topazImageStatusResponseSchema = z.object({
-  // Documented values are Pending, Processing, Completed, Cancelled and Failed.
-  // Unknown values keep polling rather than failing the parse.
-  status: z.string().nullish(),
-  credits: z.number().nullish(),
-  output_width: z.number().nullish(),
-  output_height: z.number().nullish(),
-  output_format: z.string().nullish(),
-});
+const topazImageStatusResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      // Documented values are Pending, Processing, Completed, Cancelled and Failed.
+      // Unknown values keep polling rather than failing the parse.
+      status: z.string().nullish(),
+      credits: z.number().nullish(),
+      output_width: z.number().nullish(),
+      output_height: z.number().nullish(),
+      output_format: z.string().nullish(),
+    }),
+  ),
+);
 
-type TopazImageStatusResponse = z.infer<typeof topazImageStatusResponseSchema>;
+type TopazImageStatusResponse = InferSchema<
+  typeof topazImageStatusResponseSchema
+>;
 
-const topazImageDownloadResponseSchema = z.object({
-  download_url: z.string().nullish(),
-});
+const topazImageDownloadResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      download_url: z.string().nullish(),
+    }),
+  ),
+);

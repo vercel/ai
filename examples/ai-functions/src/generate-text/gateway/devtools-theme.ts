@@ -6,7 +6,7 @@ registerTelemetry(DevToolsTelemetry());
 
 run(async () => {
   const { text } = await generateText({
-    model: 'anthropic/claude-haiku-4.5',
+    model: 'anthropic/claude-haiku-5.5',
     prompt: 'Explain why readable developer tools improve debugging.',
     telemetry: {
       functionId: 'devtools-theme-example',

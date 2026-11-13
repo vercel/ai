@@ -4,38 +4,6 @@ exports[`doGenerate > reasoning > should extract reasoning content 1`] = `
 {
   "content": [
     {
-      "text": "The word **"strawberry"** contains **3** instances of the letter **"r"**.  
-
-Here's the breakdown for clarity:  
-- **s** → not r  
-- **t** → not r  
-- **r** → **1st r**  
-- **a** → not r  
-- **w** → not r  
-- **b** → not r  
-- **e** → not r  
-- **r** → **2nd r**  
-- **r** → **3rd r**  
-- **y** → not r  
-
-💡 **Why the confusion?**  
-This is a common trick question! Many people miscount because:  
-- They overlook the **first "r"** in "straw" (position 3).  
-- They assume the double "r" in "berry" counts as *one* occurrence (but the question asks for *individual letters*, not sounds or syllables).  
-- Cognitive bias: The brain sometimes "skips" repeated letters during quick scanning.  
-
-✅ **Verification**:  
-- Spelling: **s-t-r-a-w-b-e-r-r-y** (10 letters total).  
-- Letter positions of "r": 3rd, 8th, and 9th characters (1-based indexing).  
-- Code check (Python):  
-  \`\`\`python
-  "strawberry".count("r")  # Returns 3
-  \`\`\`  
-
-**Answer: 3** 🍓",
-      "type": "text",
-    },
-    {
       "text": "We are asked: "How many 'r's are in the word 'strawberry'?" This is a straightforward letter counting question. However, sometimes people get tricked by double letters. Let's write out the word: s t r a w b e r r y. Now count the occurrences of the letter 'r' (case-insensitive, but the word is given in lowercase in the question? The word is written as "strawberry" in quotes, so we consider the lowercase version). Let's list each character:
 
 1. s
@@ -91,6 +59,38 @@ Yes.
 
 So final answer: 3.",
       "type": "reasoning",
+    },
+    {
+      "text": "The word **"strawberry"** contains **3** instances of the letter **"r"**.  
+
+Here's the breakdown for clarity:  
+- **s** → not r  
+- **t** → not r  
+- **r** → **1st r**  
+- **a** → not r  
+- **w** → not r  
+- **b** → not r  
+- **e** → not r  
+- **r** → **2nd r**  
+- **r** → **3rd r**  
+- **y** → not r  
+
+💡 **Why the confusion?**  
+This is a common trick question! Many people miscount because:  
+- They overlook the **first "r"** in "straw" (position 3).  
+- They assume the double "r" in "berry" counts as *one* occurrence (but the question asks for *individual letters*, not sounds or syllables).  
+- Cognitive bias: The brain sometimes "skips" repeated letters during quick scanning.  
+
+✅ **Verification**:  
+- Spelling: **s-t-r-a-w-b-e-r-r-y** (10 letters total).  
+- Letter positions of "r": 3rd, 8th, and 9th characters (1-based indexing).  
+- Code check (Python):  
+  \`\`\`python
+  "strawberry".count("r")  # Returns 3
+  \`\`\`  
+
+**Answer: 3** 🍓",
+      "type": "text",
     },
   ],
   "finishReason": {

@@ -2,6 +2,7 @@ import {
   Experimental_DecisionUnsupportedQuestionTypeError as DecisionUnsupportedQuestionTypeError,
   InvalidArgumentError,
   InvalidResponseDataError,
+  UnsupportedFunctionalityError,
   type Experimental_DecisionModelV4 as DecisionModelV4,
   type Experimental_DecisionModelV4Answer as DecisionModelV4Answer,
   type Experimental_DecisionModelV4CallOptions as DecisionModelV4CallOptions,
@@ -10,6 +11,7 @@ import {
   type LanguageModelV4,
 } from '@ai-sdk/provider';
 import { WORKFLOW_DESERIALIZE, WORKFLOW_SERIALIZE } from '@workflow/serde';
+import { getTopLevelMediaType } from './detect-media-type';
 import { safeParseJSON } from './parse-json';
 
 /** Adapts structured language-model output to Choice, Score, and Boolean decisions. */
@@ -60,13 +62,25 @@ export class DecisionLanguageModel implements DecisionModelV4 {
   async doDecide({
     state,
     questions,
+    maxOutputTokens,
+    reasoning,
     abortSignal,
     headers,
     providerOptions,
   }: DecisionModelV4CallOptions): Promise<DecisionModelV4Result> {
     abortSignal?.throwIfAborted();
+    for (const part of state) {
+      if (
+        part.type === 'file' &&
+        getTopLevelMediaType(part.mediaType) !== 'image'
+      ) {
+        throw new UnsupportedFunctionalityError({
+          functionality: `Decision file media type: ${part.mediaType}`,
+        });
+      }
+    }
     const entries = Object.entries(questions).map(([id, question]) => {
-      if (!this.supportedQuestionTypes.includes(question.type)) {
+      if (!this.supportedQuestionTypes.some(type => type === question.type)) {
         throw new DecisionUnsupportedQuestionTypeError({
           questionId: id,
           questionType: question.type,
@@ -136,7 +150,8 @@ export class DecisionLanguageModel implements DecisionModelV4 {
       ]),
     );
     const result = await this.model.doGenerate({
-      reasoning: 'none',
+      reasoning: reasoning ?? 'none',
+      maxOutputTokens,
       prompt: [
         {
           role: 'system',
@@ -146,10 +161,13 @@ export class DecisionLanguageModel implements DecisionModelV4 {
         {
           role: 'user',
           content: [
-            {
-              type: 'text',
-              text: JSON.stringify({ state, questions: rubrics }),
-            },
+            { type: 'text', text: JSON.stringify({ questions: rubrics }) },
+            { type: 'text', text: 'Shared state:' },
+            ...state.map(part =>
+              part.type === 'json'
+                ? { type: 'text' as const, text: JSON.stringify(part.value) }
+                : part,
+            ),
           ],
         },
       ],
@@ -205,7 +223,10 @@ export class DecisionLanguageModel implements DecisionModelV4 {
         const value: unknown = (values as Record<string, unknown>)[`q${index}`];
         if (question.type === 'choice') {
           const options = Object.keys(question.criteria);
-          const choiceIndex = options.findIndex((_, i) => value === `c${i}`);
+          let choiceIndex = options.findIndex((_, i) => value === `c${i}`);
+          if (choiceIndex === -1 && typeof value === 'string') {
+            choiceIndex = options.indexOf(value);
+          }
           if (choiceIndex === -1) {
             throw new InvalidResponseDataError({
               data: values,

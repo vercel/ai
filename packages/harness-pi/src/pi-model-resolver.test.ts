@@ -18,6 +18,7 @@ async function makeRegistry(models: PiModel[] = []) {
   });
   const registry = new ModelRegistry(modelRuntime);
   vi.spyOn(registry, 'getAll').mockReturnValue(models);
+  vi.spyOn(registry, 'hasConfiguredAuth').mockReturnValue(false);
   return registry;
 }
 

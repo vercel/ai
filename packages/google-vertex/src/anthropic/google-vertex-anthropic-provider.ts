@@ -5,8 +5,10 @@ import {
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  convertUint8ArrayToBase64,
   isValidHostnamePart,
   loadOptionalSetting,
+  parseProviderOptions,
   withoutTrailingSlash,
   type FetchFunction,
   type Resolvable,
@@ -15,7 +17,10 @@ import {
   anthropicTools,
   AnthropicLanguageModel,
 } from '@ai-sdk/anthropic/internal';
-import type { GoogleVertexAnthropicModelId } from './google-vertex-anthropic-options';
+import {
+  googleVertexAnthropicProviderOptions,
+  type GoogleVertexAnthropicModelId,
+} from './google-vertex-anthropic-options';
 
 type GoogleVertexAnthropicTools = Pick<
   typeof anthropicTools,
@@ -156,6 +161,14 @@ export interface GoogleVertexAnthropicProviderSettings {
   location?: string;
 
   /**
+   * Enable native structured output in `structuredOutputMode: 'auto'` for Claude
+   * 4.5 and newer. Defaults to false. Requires the Google Cloud organization
+   * policy to allow the `structured_outputs` feature for each model used.
+   * This does not enable strict tool input schemas.
+   */
+  supportsNativeStructuredOutput?: boolean;
+
+  /**
    * Use a different URL prefix for API calls, e.g. to use proxy servers.
    * The default prefix is `https://api.anthropic.com/v1`.
    */
@@ -232,11 +245,39 @@ export function createGoogleVertexAnthropic(
           anthropic_version: 'vertex-2023-10-16',
         };
       },
+      transformRequestHeaders: async (headers, providerOptions) => {
+        const vertexOptions = await parseProviderOptions({
+          provider: 'vertex',
+          providerOptions,
+          schema: googleVertexAnthropicProviderOptions,
+        });
+
+        // Explicit headers take precedence, regardless of their casing.
+        if (
+          vertexOptions?.labels == null ||
+          Object.keys(headers).some(
+            name =>
+              name.toLowerCase() === 'x-vertex-ai-labels' &&
+              headers[name] != null,
+          )
+        ) {
+          return headers;
+        }
+
+        return {
+          ...headers,
+          'x-vertex-ai-labels': convertUint8ArrayToBase64(
+            new TextEncoder().encode(JSON.stringify(vertexOptions.labels)),
+          ),
+        };
+      },
       // Google Vertex Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
-      // force the use of JSON tool fallback for structured outputs since beta header isn't supported
-      supportsNativeStructuredOutput: false,
-      // Vertex Anthropic doesn't support strict mode on tool definitions.
+      // Native output is default-denied by GCP policy and requires Claude 4.5+.
+      supportsNativeStructuredOutput:
+        options.supportsNativeStructuredOutput === true &&
+        supportsNativeStructuredOutput(modelId),
+      // Native final output does not opt in to strict tool input schemas.
       supportsStrictTools: false,
     });
 
@@ -266,4 +307,13 @@ export function createGoogleVertexAnthropic(
   provider.tools = googleVertexAnthropicTools;
 
   return provider;
+}
+
+function supportsNativeStructuredOutput(modelId: string): boolean {
+  const version = /^claude-[a-z]+-(\d+)(?:-(\d+))?(?:@|$)/.exec(modelId);
+  return (
+    version != null &&
+    (Number(version[1]) > 4 ||
+      (Number(version[1]) === 4 && Number(version[2]) >= 5))
+  );
 }

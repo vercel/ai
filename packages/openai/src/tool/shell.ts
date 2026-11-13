@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { SharedV4ProviderReference } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
+import { redactOpenAIToolArgs } from '../redact-openai-tool-credentials';
 
 export const shellInputSchema = lazySchema(() =>
   zodSchema(
@@ -21,6 +22,7 @@ export const shellInputSchema = lazySchema(() =>
 export const shellOutputSchema = lazySchema(() =>
   zodSchema(
     z.object({
+      maxOutputLength: z.number().optional(),
       output: z.array(
         z.object({
           stdout: z.string(),
@@ -35,27 +37,28 @@ export const shellOutputSchema = lazySchema(() =>
   ),
 );
 
-const shellSkillsSchema = z
-  .array(
-    z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('skillReference'),
-        providerReference: z.record(z.string(), z.string()),
-        version: z.string().optional(),
-      }),
-      z.object({
-        type: z.literal('inline'),
-        name: z.string(),
-        description: z.string(),
-        source: z.object({
-          type: z.literal('base64'),
-          mediaType: z.literal('application/zip'),
-          data: z.string(),
+const shellSkillsSchema = () =>
+  z
+    .array(
+      z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('skillReference'),
+          providerReference: z.record(z.string(), z.string()),
+          version: z.string().optional(),
         }),
-      }),
-    ]),
-  )
-  .optional();
+        z.object({
+          type: z.literal('inline'),
+          name: z.string(),
+          description: z.string(),
+          source: z.object({
+            type: z.literal('base64'),
+            mediaType: z.literal('application/zip'),
+            data: z.string(),
+          }),
+        }),
+      ]),
+    )
+    .optional();
 
 export const shellArgsSchema = lazySchema(() =>
   zodSchema(
@@ -84,7 +87,7 @@ export const shellArgsSchema = lazySchema(() =>
                 }),
               ])
               .optional(),
-            skills: shellSkillsSchema,
+            skills: shellSkillsSchema(),
           }),
           z.object({
             type: z.literal('containerReference'),
@@ -181,6 +184,11 @@ export const shell = createProviderDefinedToolFactoryWithOutputSchema<
   },
   {
     /**
+     * Optional maximum number of characters that was applied to each command's output.
+     */
+    maxOutputLength?: number;
+
+    /**
      * An array of shell call output contents.
      */
     output: Array<{
@@ -203,6 +211,7 @@ export const shell = createProviderDefinedToolFactoryWithOutputSchema<
   ShellArgs
 >({
   id: 'openai.shell',
+  redactArgs: args => redactOpenAIToolArgs('shell', args),
   inputSchema: shellInputSchema,
   outputSchema: shellOutputSchema,
 });

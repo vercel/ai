@@ -35,6 +35,13 @@ function prepareJsonFixtureResponse(
   };
 }
 
+function prepareJsonValueResponse(body: Record<string, unknown>) {
+  server.urls['https://api.cohere.com/v2/chat'].response = {
+    type: 'json-value',
+    body,
+  };
+}
+
 function prepareChunksFixtureResponse(
   filename: string,
   headers?: Record<string, string>,
@@ -77,6 +84,60 @@ describe('doGenerate', () => {
       });
 
       expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('response id', () => {
+    it('should use the id from the response', async () => {
+      prepareJsonFixtureResponse('cohere-text');
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.id).toBe('e7592632-1e3d-424f-b129-bd5f9f980f7b');
+    });
+
+    it('should prefer id over generation_id', async () => {
+      prepareJsonValueResponse({
+        id: 'response-id',
+        generation_id: 'legacy-generation-id',
+        message: { role: 'assistant', content: [] },
+        finish_reason: 'COMPLETE',
+      });
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.id).toBe('response-id');
+    });
+
+    it('should fall back to generation_id', async () => {
+      prepareJsonValueResponse({
+        generation_id: 'legacy-generation-id',
+        message: { role: 'assistant', content: [] },
+        finish_reason: 'COMPLETE',
+      });
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.id).toBe('legacy-generation-id');
+    });
+
+    it('should leave the id undefined when the response has neither', async () => {
+      prepareJsonValueResponse({
+        message: { role: 'assistant', content: [] },
+        finish_reason: 'COMPLETE',
+      });
+
+      const { response } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(response?.id).toBeUndefined();
     });
   });
 
@@ -248,7 +309,9 @@ describe('doGenerate', () => {
                 type: 'file',
                 data: {
                   type: 'data' as const,
-                  data: 'AI provides automation and efficiency.',
+                  data: Buffer.from(
+                    'AI provides automation and efficiency.',
+                  ).toString('base64'),
                 },
                 mediaType: 'text/plain',
                 filename: 'ai-benefits.txt',
@@ -259,6 +322,119 @@ describe('doGenerate', () => {
       });
 
       expect(result).toMatchSnapshot();
+    });
+
+    it('should map document citations without title and with missing fields', async () => {
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-citation-id',
+      });
+
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Automation of tasks' }],
+            citations: [
+              {
+                text: 'Automation of tasks',
+                sources: [
+                  {
+                    type: 'document',
+                    id: 'doc:0',
+                    document: {
+                      id: 'doc:0',
+                      text: 'AI provides automation of tasks.',
+                      extra_field: 'passed through',
+                    },
+                  },
+                ],
+                type: 'TEXT_CONTENT',
+              },
+            ],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            tokens: { input_tokens: 10, output_tokens: 5 },
+          },
+        },
+      };
+
+      const result = await testProvider('command-r-plus').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toStrictEqual([
+        { type: 'text', text: 'Automation of tasks' },
+        {
+          type: 'source',
+          sourceType: 'document',
+          id: 'test-citation-id',
+          mediaType: 'text/plain',
+          title: 'Document',
+          providerMetadata: {
+            cohere: {
+              text: 'Automation of tasks',
+              sources: [
+                {
+                  type: 'document',
+                  id: 'doc:0',
+                  document: {
+                    id: 'doc:0',
+                    text: 'AI provides automation of tasks.',
+                    extra_field: 'passed through',
+                  },
+                },
+              ],
+              citationType: 'TEXT_CONTENT',
+            },
+          },
+        },
+      ]);
+    });
+
+    it('should not emit sources for tool-sourced citations', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'It is sunny in Berlin.' }],
+            citations: [
+              {
+                start: 6,
+                end: 11,
+                text: 'sunny',
+                sources: [
+                  {
+                    type: 'tool',
+                    id: 'getWeather:0',
+                    tool_output: { city: 'Berlin', condition: 'sunny' },
+                  },
+                ],
+                type: 'TEXT_CONTENT',
+              },
+              {
+                start: 0,
+                end: 5,
+                text: 'It is',
+                sources: null,
+              },
+            ],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            tokens: { input_tokens: 10, output_tokens: 5 },
+          },
+        },
+      };
+
+      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(result.content).toStrictEqual([
+        { type: 'text', text: 'It is sunny in Berlin.' },
+      ]);
     });
 
     it('should extract text documents and send to API', async () => {
@@ -272,7 +448,9 @@ describe('doGenerate', () => {
                 type: 'file',
                 data: {
                   type: 'data' as const,
-                  data: 'This is a test document.',
+                  data: Buffer.from('This is a test document.').toString(
+                    'base64',
+                  ),
                 },
                 mediaType: 'text/plain',
                 filename: 'test.txt',
@@ -491,6 +669,112 @@ describe('doGenerate', () => {
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.documents).toBeUndefined();
+    });
+  });
+
+  describe('usage', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('cohere-text');
+    });
+
+    it('should return undefined token counts when usage is absent', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+        },
+      };
+
+      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: undefined,
+      });
+    });
+
+    it('should return undefined token counts for an empty usage object', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {},
+        },
+      };
+
+      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: {},
+      });
+    });
+
+    it('should not treat billed units as token counts', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            billed_units: { input_tokens: 12, output_tokens: 7 },
+            cached_tokens: 448,
+          },
+        },
+      };
+
+      const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      // billed units measure something else than tokens, so no token counts are
+      // reported and cached tokens are not subtracted from them.
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: 448,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+        raw: {
+          billed_units: { input_tokens: 12, output_tokens: 7 },
+          cached_tokens: 448,
+        },
+      });
     });
   });
 
@@ -715,9 +999,9 @@ describe('doGenerate', () => {
       expect(usage).toMatchInlineSnapshot(`
         {
           "inputTokens": {
-            "cacheRead": undefined,
+            "cacheRead": 448,
             "cacheWrite": undefined,
-            "noCache": 507,
+            "noCache": 59,
             "total": 507,
           },
           "outputTokens": {
@@ -773,8 +1057,8 @@ describe('doGenerate', () => {
       expect(usage).toStrictEqual({
         inputTokens: {
           total: 507,
-          noCache: 507,
-          cacheRead: undefined,
+          noCache: 59,
+          cacheRead: 448,
           cacheWrite: undefined,
         },
         outputTokens: {
@@ -842,7 +1126,7 @@ describe('doGenerate', () => {
         modelId: response?.modelId,
       }).toMatchInlineSnapshot(`
         {
-          "id": undefined,
+          "id": "e7592632-1e3d-424f-b129-bd5f9f980f7b",
           "modelId": undefined,
           "timestamp": undefined,
         }
@@ -852,6 +1136,44 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it.each([false, true])(
+    'handles a truncated stream (with error: %s)',
+    async withError => {
+      const events = fs
+        .readFileSync('src/__fixtures__/cohere-text.chunks.txt', 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map(line => JSON.parse(line));
+      const firstText = events.findIndex(
+        event => event.type === 'content-delta',
+      );
+      expect(firstText).toBeGreaterThanOrEqual(0);
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...events
+            .slice(0, firstText + 1)
+            .map(event => `data: ${JSON.stringify(event)}\n\n`),
+          ...(withError ? ['data: {invalid-json}\n\n'] : []),
+        ],
+      };
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+      expect(parts.some(part => part.type === 'text-delta')).toBe(true);
+      expect(parts.filter(part => part.type === 'error')).toHaveLength(
+        withError ? 1 : 0,
+      );
+      expect(parts.filter(part => part.type === 'finish')).toEqual([
+        expect.objectContaining({
+          finishReason: {
+            unified: withError ? 'error' : 'interrupted',
+            raw: undefined,
+          },
+        }),
+      ]);
+    },
+  );
+
   describe('text', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('cohere-text');
@@ -928,8 +1250,8 @@ describe('doStream', () => {
           usage: {
             inputTokens: {
               total: 507,
-              noCache: 507,
-              cacheRead: undefined,
+              noCache: 59,
+              cacheRead: 448,
               cacheWrite: undefined,
             },
             outputTokens: {
@@ -982,6 +1304,51 @@ describe('doStream', () => {
             outputTokens: {
               total: 10,
               text: 10,
+              reasoning: undefined,
+            },
+            raw: rawUsage,
+          },
+        },
+      );
+    });
+
+    it('should return undefined token counts when message-end has no tokens', async () => {
+      const rawUsage = {
+        billed_units: { input_tokens: 88, output_tokens: 13 },
+        cached_tokens: 128,
+      };
+      prepareChunkLinesResponse([
+        {
+          type: 'message-end',
+          delta: {
+            finish_reason: 'COMPLETE',
+            usage: rawUsage,
+          },
+        },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual(
+        {
+          type: 'finish',
+          finishReason: {
+            unified: 'stop',
+            raw: 'COMPLETE',
+          },
+          usage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: 128,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
               reasoning: undefined,
             },
             raw: rawUsage,
@@ -1068,6 +1435,351 @@ describe('doStream', () => {
     });
   });
 
+  describe('citations', () => {
+    it('should stream sources for citations', async () => {
+      prepareChunksFixtureResponse('cohere-citations');
+
+      const mockGenerateId = vi.fn().mockReturnValue('test-citation-id');
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: mockGenerateId,
+      });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'What is the capital of Zephyria?' },
+              {
+                type: 'file',
+                data: {
+                  type: 'data' as const,
+                  data: Buffer.from(
+                    'Zephyria is a fictional country. Its capital city is Marrowdale, a coastal city known for its lighthouses.',
+                  ).toString('base64'),
+                },
+                mediaType: 'text/plain',
+                filename: 'zephyria.txt',
+              },
+            ],
+          },
+        ],
+        includeRawChunks: false,
+      });
+
+      expect(
+        (await convertReadableStreamToArray(stream)).filter(
+          part => part.type === 'source',
+        ),
+      ).toStrictEqual([
+        {
+          type: 'source',
+          sourceType: 'document',
+          id: 'test-citation-id',
+          mediaType: 'text/plain',
+          title: 'zephyria.txt',
+          providerMetadata: {
+            cohere: {
+              start: 49,
+              end: 60,
+              text: 'Marrowdale.',
+              sources: [
+                {
+                  type: 'document',
+                  id: 'doc:0',
+                  document: {
+                    id: 'doc:0',
+                    text: 'Zephyria is a fictional country. Its capital city is Marrowdale, a coastal city known for its lighthouses.',
+                    title: 'zephyria.txt',
+                  },
+                },
+              ],
+              citationType: 'TEXT_CONTENT',
+            },
+          },
+        },
+      ]);
+    });
+
+    it('should stream a source for each citation in a citation-start event', async () => {
+      const citation = {
+        start: 0,
+        end: 4,
+        text: 'text',
+        sources: [
+          {
+            type: 'document',
+            id: 'doc:0',
+            document: { id: 'doc:0', text: 'text', title: 'test.txt' },
+          },
+        ],
+        type: 'TEXT_CONTENT',
+      };
+      prepareChunkLinesResponse([
+        {
+          type: 'citation-start',
+          index: 0,
+          delta: { message: { citations: [citation, citation] } },
+        },
+        { type: 'citation-end', index: 0 },
+      ]);
+
+      const mockGenerateId = vi
+        .fn()
+        .mockReturnValueOnce('test-citation-id-1')
+        .mockReturnValueOnce('test-citation-id-2');
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: mockGenerateId,
+      });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({ prompt: TEST_PROMPT });
+
+      expect(
+        (await convertReadableStreamToArray(stream)).filter(
+          part => part.type === 'source',
+        ),
+      ).toStrictEqual([
+        {
+          type: 'source',
+          sourceType: 'document',
+          id: 'test-citation-id-1',
+          mediaType: 'text/plain',
+          title: 'test.txt',
+          providerMetadata: {
+            cohere: {
+              start: 0,
+              end: 4,
+              text: 'text',
+              sources: citation.sources,
+              citationType: 'TEXT_CONTENT',
+            },
+          },
+        },
+        {
+          type: 'source',
+          sourceType: 'document',
+          id: 'test-citation-id-2',
+          mediaType: 'text/plain',
+          title: 'test.txt',
+          providerMetadata: {
+            cohere: {
+              start: 0,
+              end: 4,
+              text: 'text',
+              sources: citation.sources,
+              citationType: 'TEXT_CONTENT',
+            },
+          },
+        },
+      ]);
+    });
+
+    it('should tolerate citations without optional fields', async () => {
+      prepareChunkLinesResponse([
+        {
+          type: 'citation-start',
+          index: 0,
+          delta: {
+            message: {
+              citations: { sources: [{ type: 'document', document: {} }] },
+            },
+          },
+        },
+        { type: 'citation-end', index: 0 },
+      ]);
+
+      const mockGenerateId = vi.fn().mockReturnValue('test-citation-id');
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: mockGenerateId,
+      });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      expect(parts.filter(part => part.type === 'source')).toStrictEqual([
+        {
+          type: 'source',
+          sourceType: 'document',
+          id: 'test-citation-id',
+          mediaType: 'text/plain',
+          title: 'Document',
+          providerMetadata: {
+            cohere: {
+              sources: [{ type: 'document', document: {} }],
+            },
+          },
+        },
+      ]);
+    });
+
+    it('should tolerate a citation-start event without citations', async () => {
+      prepareChunkLinesResponse([
+        { type: 'citation-start', index: 0 },
+        { type: 'citation-end', index: 0 },
+        {
+          type: 'message-end',
+          delta: {
+            finish_reason: 'COMPLETE',
+            usage: { tokens: { input_tokens: 5, output_tokens: 2 } },
+          },
+        },
+      ]);
+
+      const testProvider = createCohere({ apiKey: 'test-api-key' });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      expect(parts.some(part => part.type === 'source')).toBe(false);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'stop' },
+      });
+    });
+
+    it('should skip tool-only citations', async () => {
+      prepareChunkLinesResponse([
+        {
+          type: 'citation-start',
+          index: 0,
+          delta: {
+            message: {
+              citations: {
+                start: 6,
+                end: 11,
+                text: 'sunny',
+                sources: [
+                  {
+                    type: 'tool',
+                    id: 'getWeather:0',
+                    tool_output: { city: 'Berlin', condition: 'sunny' },
+                  },
+                ],
+                type: 'TEXT_CONTENT',
+              },
+            },
+          },
+        },
+        { type: 'citation-end', index: 0 },
+      ]);
+
+      const testProvider = createCohere({ apiKey: 'test-api-key' });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      expect(parts.some(part => part.type === 'source')).toBe(false);
+    });
+
+    it('should emit a source with a distinct id for each citation-start event', async () => {
+      const citation = {
+        start: 49,
+        end: 60,
+        text: 'Marrowdale.',
+        sources: [
+          {
+            type: 'document',
+            id: 'doc:0',
+            document: {
+              id: 'doc:0',
+              text: 'Zephyria is a fictional country.',
+              title: 'zephyria.txt',
+            },
+          },
+        ],
+        type: 'TEXT_CONTENT',
+      };
+      prepareChunkLinesResponse([
+        {
+          type: 'citation-start',
+          index: 0,
+          delta: { message: { citations: citation } },
+        },
+        { type: 'citation-end', index: 0 },
+        {
+          type: 'citation-start',
+          index: 0,
+          delta: { message: { citations: citation } },
+        },
+        { type: 'citation-end', index: 0 },
+      ]);
+
+      const mockGenerateId = vi
+        .fn()
+        .mockReturnValueOnce('test-citation-id-1')
+        .mockReturnValueOnce('test-citation-id-2');
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: mockGenerateId,
+      });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({ prompt: TEST_PROMPT });
+      const sources = (await convertReadableStreamToArray(stream)).filter(
+        part => part.type === 'source',
+      );
+
+      expect(
+        sources.map(source => (source as { id: string }).id),
+      ).toStrictEqual(['test-citation-id-1', 'test-citation-id-2']);
+      expect(sources).toMatchObject([
+        { sourceType: 'document', title: 'zephyria.txt' },
+        { sourceType: 'document', title: 'zephyria.txt' },
+      ]);
+    });
+
+    it('should use a fallback title for untitled documents', async () => {
+      prepareChunkLinesResponse([
+        {
+          type: 'citation-start',
+          index: 0,
+          delta: {
+            message: {
+              citations: {
+                start: 0,
+                end: 4,
+                text: 'text',
+                sources: [
+                  {
+                    type: 'document',
+                    id: 'doc:0',
+                    document: { id: 'doc:0', text: 'text' },
+                  },
+                ],
+                type: 'TEXT_CONTENT',
+              },
+            },
+          },
+        },
+        { type: 'citation-end', index: 0 },
+      ]);
+
+      const testProvider = createCohere({
+        apiKey: 'test-api-key',
+        generateId: () => 'test-citation-id',
+      });
+      const testModel = testProvider('command-a-03-2025');
+
+      const { stream } = await testModel.doStream({ prompt: TEST_PROMPT });
+      const sources = (await convertReadableStreamToArray(stream)).filter(
+        part => part.type === 'source',
+      );
+
+      expect(sources).toMatchObject([{ title: 'Document' }]);
+    });
+  });
+
   describe('reasoning', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('cohere-reasoning');
@@ -1119,6 +1831,56 @@ describe('doStream', () => {
         .map(chunk =>
           chunk.type === 'tool-call' ? chunk.toolCallId : chunk.id,
         );
+    });
+
+    it('should handle string "null" tool call arguments', async () => {
+      prepareChunkLinesResponse([
+        {
+          type: 'tool-call-start',
+          index: 0,
+          delta: {
+            message: {
+              tool_calls: {
+                id: 'test-tool-call',
+                type: 'function',
+                function: { name: 'currentTime', arguments: '' },
+              },
+            },
+          },
+        },
+        {
+          type: 'tool-call-delta',
+          index: 0,
+          delta: {
+            message: {
+              tool_calls: { function: { arguments: 'null' } },
+            },
+          },
+        },
+        { type: 'tool-call-end', index: 0 },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'currentTime',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
+          },
+        ],
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'test-tool-call',
+        toolName: 'currentTime',
+        input: '{}',
+      });
     });
 
     it('rejects prototype keys in streamed tool call arguments', async () => {

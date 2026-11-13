@@ -6,14 +6,34 @@ import {
 } from '@ai-sdk/provider';
 import type { OpenAIChatPrompt } from './openai-chat-prompt';
 import {
+  parseProviderOptions,
+  secureJsonParse,
+  stringifyWithBigIntAndCycles,
   convertToBase64,
   getTopLevelMediaType,
   resolveFullMediaType,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 
+import { openaiChatMessageProviderOptions } from './openai-chat-language-model-options';
+
 function serializeToolCallArguments(input: unknown): string {
-  return JSON.stringify(
+  if (typeof input === 'string') {
+    try {
+      const parsed = secureJsonParse(input);
+      if (
+        typeof parsed !== 'object' ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        return '{}';
+      }
+      return input;
+    } catch {
+      return '{}';
+    }
+  }
+  return stringifyWithBigIntAndCycles(
     typeof input === 'object' && input !== null && !Array.isArray(input)
       ? input
       : {},
@@ -30,20 +50,27 @@ function getPromptCacheBreakpoint(
     | undefined;
 }
 
-export function convertToOpenAIChatMessages({
+export async function convertToOpenAIChatMessages({
   prompt,
   systemMessageMode = 'system',
 }: {
   prompt: LanguageModelV4Prompt;
   systemMessageMode?: 'system' | 'developer' | 'remove';
-}): {
+}): Promise<{
   messages: OpenAIChatPrompt;
   warnings: Array<SharedV4Warning>;
-} {
+}> {
   const messages: OpenAIChatPrompt = [];
   const warnings: Array<SharedV4Warning> = [];
 
   for (const { role, content, providerOptions } of prompt) {
+    const messageOptions = await parseProviderOptions({
+      provider: 'openai',
+      providerOptions,
+      schema: openaiChatMessageProviderOptions,
+    });
+    const name = messageOptions?.name;
+
     switch (role) {
       case 'system': {
         switch (systemMessageMode) {
@@ -52,6 +79,7 @@ export function convertToOpenAIChatMessages({
               getPromptCacheBreakpoint(providerOptions);
             messages.push({
               role: 'system',
+              ...(name != null && { name }),
               content:
                 promptCacheBreakpoint == null
                   ? content
@@ -70,6 +98,7 @@ export function convertToOpenAIChatMessages({
               getPromptCacheBreakpoint(providerOptions);
             messages.push({
               role: 'developer',
+              ...(name != null && { name }),
               content:
                 promptCacheBreakpoint == null
                   ? content
@@ -106,12 +135,17 @@ export function convertToOpenAIChatMessages({
           content[0].type === 'text' &&
           getPromptCacheBreakpoint(content[0].providerOptions) == null
         ) {
-          messages.push({ role: 'user', content: content[0].text });
+          messages.push({
+            role: 'user',
+            content: content[0].text,
+            ...(name != null && { name }),
+          });
           break;
         }
 
         messages.push({
           role: 'user',
+          ...(name != null && { name }),
           content: content.map((part, index) => {
             switch (part.type) {
               case 'text': {
@@ -294,6 +328,7 @@ export function convertToOpenAIChatMessages({
 
         messages.push({
           role: 'assistant',
+          ...(name != null && { name }),
           content: hasPromptCacheBreakpoint
             ? textParts
             : toolCalls.length > 0
@@ -306,6 +341,13 @@ export function convertToOpenAIChatMessages({
       }
 
       case 'tool': {
+        if (name != null) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'message name on tool messages',
+          });
+        }
+
         for (const toolResponse of content) {
           if (toolResponse.type === 'tool-approval-response') {
             continue;
@@ -322,16 +364,20 @@ export function convertToOpenAIChatMessages({
           let contentValue: string;
           switch (output.type) {
             case 'text':
-            case 'error-text':
               contentValue = output.value;
+              break;
+            case 'error-text':
+            case 'error-json':
+              contentValue = stringifyWithBigIntAndCycles({
+                error: output.value,
+              });
               break;
             case 'execution-denied':
               contentValue = output.reason ?? 'Tool call execution denied.';
               break;
             case 'content':
             case 'json':
-            case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue = stringifyWithBigIntAndCycles(output.value);
               break;
           }
 

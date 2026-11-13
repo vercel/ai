@@ -1,9 +1,12 @@
 // In-sandbox turn driver on `@ai-sdk/harness/bridge`; third-party imports stay external (tsdown) and install in-sandbox from src/bridge/package.json — keep import/externals/deps in sync.
 
 import { randomUUID } from 'node:crypto';
+import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
+import { rgPath } from '@vscode/ripgrep';
 import {
   runBridge,
+  convertHarnessToolModelOutput,
   type BridgeEvent,
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
@@ -24,19 +27,34 @@ import {
   endReasoningBlock,
   endTextBlock,
   flushStep,
+  markApprovalsWaiting,
+  markHostToolWaiting,
+  clearHostInputWaiting,
+  settleHostToolCall,
   toCommonName,
   type DeepAgentsStreamEvent,
+  type DeepAgentsStreamEventState,
 } from './create-emit-stream-event';
 import { jsonSchemaToZodObject } from './json-schema-to-zod';
-import { createLocalShellBackend } from './local-shell-backend';
+import {
+  createLocalShellBackend,
+  SANDBOX_PATH_FALLBACK,
+} from './local-shell-backend';
+import { createMcpToolErrorMiddleware } from './mcp-tool-errors';
 import {
   loadMemorySaver,
+  pruneMemorySaver,
   removeMemorySaverSnapshot,
   saveMemorySaver,
 } from './persistent-memory-saver';
 import { createBuiltinToolFilteringMiddleware } from './tool-filtering';
+import { createDeepAgentsRepositoryResourceMiddlewares } from './repository-resources';
 
 const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
+procEnv.PATH = [
+  procEnv.PATH ?? SANDBOX_PATH_FALLBACK,
+  path.dirname(rgPath),
+].join(path.delimiter);
 
 function parseArgs(rawArgs: string[]): Record<string, string> {
   const out: Record<string, string> = {};
@@ -139,10 +157,13 @@ function createModelMiddleware() {
 
 const args = parseArgs(argv.slice(2));
 const workdir = args.workdir;
+const homeDir = args.homeDir;
 const bridgeStateDir = args.bridgeStateDir;
-if (!workdir || !bridgeStateDir) {
+if (!workdir || !homeDir || !bridgeStateDir) {
   // eslint-disable-next-line no-console
-  console.error('deepagents bridge: missing --workdir / --bridge-state-dir');
+  console.error(
+    'deepagents bridge: missing --workdir / --home-dir / --bridge-state-dir',
+  );
   process.exit(1);
 }
 const conversationCheckpointPath = `${bridgeStateDir}/conversation.checkpoint`;
@@ -150,6 +171,7 @@ const conversationCheckpointPath = `${bridgeStateDir}/conversation.checkpoint`;
 // One agent per bridge process, reused across turns; host tools read the live turn via `currentTurn`.
 let agent: ReturnType<typeof createDeepAgent> | undefined;
 let currentTurn: BridgeTurn | undefined;
+let currentStreamEventState: DeepAgentsStreamEventState | undefined;
 let mcpClient: MultiServerMCPClient | undefined;
 let mcpToolNames = new Set<string>();
 let currentResponseFormat: ReturnType<typeof toolStrategy> | undefined;
@@ -207,7 +229,19 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
           input: JSON.stringify(input),
           providerExecuted: false,
         } as BridgeEvent);
-        const { output, isError } = await turn.requestToolResult(toolCallId);
+        const streamEventState = currentStreamEventState;
+        const emit = (event: Record<string, unknown>) =>
+          turn.emit(event as BridgeEvent);
+        if (streamEventState != null) {
+          markHostToolWaiting({ state: streamEventState, emit, toolCallId });
+        }
+        const { output, isError, toolResult } = await turn
+          .requestToolResult(toolCallId)
+          .finally(() => {
+            if (streamEventState != null) {
+              clearHostInputWaiting({ state: streamEventState, toolCallId });
+            }
+          });
         turn.emit({
           type: 'tool-result',
           toolCallId,
@@ -215,6 +249,24 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
           result: output ?? null,
           ...(isError !== undefined ? { isError } : {}),
         });
+        if (streamEventState != null) {
+          settleHostToolCall({ state: streamEventState, emit, toolCallId });
+        }
+        if (toolResult != null) {
+          const converted = convertHarnessToolModelOutput({
+            output: toolResult.output,
+          });
+          return converted.content.map(part =>
+            part.type === 'text'
+              ? part
+              : {
+                  type: 'image_url' as const,
+                  image_url: {
+                    url: `data:${part.mediaType};base64,${part.data}`,
+                  },
+                },
+          );
+        }
         return typeof output === 'string' ? output : JSON.stringify(output);
       },
       {
@@ -239,10 +291,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   const emit = (event: Record<string, unknown>) =>
     turn.emit(event as BridgeEvent);
 
-  const interruptOn = buildInterruptOn(
-    start.permissionMode,
-    start.builtinToolFiltering,
-  );
+  const interruptOn = buildInterruptOn({
+    permissionMode: start.permissionMode,
+    builtinToolFiltering: start.builtinToolFiltering,
+    workDir: workdir,
+    readableSkillRoots: start.readableSkillRoots ?? [],
+  });
   const config = {
     version: 'v2' as const,
     configurable: { thread_id: 'bridge-session' },
@@ -255,6 +309,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     instructions: start.instructions,
     tools: start.tools,
     skillsPaths: start.skillsPaths,
+    permissionMode: start.permissionMode,
+    builtinToolFiltering: start.builtinToolFiltering,
+    readableSkillRoots: start.readableSkillRoots,
   });
   const rebuildAgent =
     agent == null ||
@@ -278,6 +335,17 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       },
     );
     const middleware = [
+      ...Object.values(
+        createDeepAgentsRepositoryResourceMiddlewares({
+          workDir: workdir,
+          homeDir,
+          skillsPaths: start.skillsPaths,
+        }),
+      ),
+      createMcpToolErrorMiddleware({
+        mcpToolNames: () => mcpToolNames,
+        abortSignal: () => currentTurn?.abortSignal,
+      }),
       responseFormatMiddleware,
       modelMiddleware,
       ...(builtinToolFilteringMiddleware
@@ -299,8 +367,6 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       systemPrompt: start.instructions
         ? { suffix: start.instructions }
         : undefined,
-      // Native skills loaded from the source dirs ($HOME-materialized + <workDir> for repo-provided skills).
-      ...(start.skillsPaths?.length ? { skills: start.skillsPaths } : {}),
       ...(middleware.length > 0 ? { middleware } : {}),
       // Gate built-in tools behind HITL approval when the permission mode requires it.
       ...(interruptOn ? { interruptOn } : {}),
@@ -316,8 +382,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   const hostToolNames = new Set((start.tools ?? []).map(t => t.name));
   const streamEventState = createDeepAgentsStreamEventState();
+  currentStreamEventState = streamEventState;
   const emitStreamEvent = createEmitStreamEvent({
     state: streamEventState,
+    abortSignal: turn.abortSignal,
     configuredModel: activeModel,
     hostToolNames,
     mcpToolNames,
@@ -342,7 +410,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   };
 
   let resumeInput: unknown = {
-    messages: [{ role: 'user', content: start.prompt }],
+    messages: [
+      {
+        role: 'user',
+        content:
+          typeof start.prompt === 'string'
+            ? start.prompt
+            : start.prompt.map(part =>
+                part.type === 'text'
+                  ? part
+                  : {
+                      type: 'image' as const,
+                      mimeType: part.mediaType,
+                      data: part.data,
+                    },
+              ),
+      },
+    ],
   };
   let emittedStructuredOutput = false;
 
@@ -376,12 +460,18 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     const actionRequests = await readPendingApprovals();
     if (actionRequests.length === 0) break;
 
-    // HITL paused the run: announce each gated call, collect host decisions, then resume.
+    /*
+     * HITL paused the run: announce every gated call, request all host
+     * decisions at once so the host can answer them together, then resume.
+     */
     const decisions: Array<
       { type: 'approve' } | { type: 'reject'; message?: string }
     > = [];
-    for (const action of actionRequests) {
-      const approvalId = `approval-${randomUUID()}`;
+    const approvals = actionRequests.map(action => ({
+      action,
+      approvalId: `approval-${randomUUID()}`,
+    }));
+    for (const { action, approvalId } of approvals) {
       endTextBlock({ state: streamEventState, emit });
       endReasoningBlock({ state: streamEventState, emit });
       emit({
@@ -397,8 +487,23 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
         approvalId,
         toolCallId: approvalId,
       });
-      flushStep({ state: streamEventState, emit });
-      const decision = await turn.requestToolApproval(approvalId);
+    }
+    const decisionPromises = approvals.map(({ approvalId }) =>
+      turn.requestToolApproval(approvalId).finally(() =>
+        clearHostInputWaiting({
+          state: streamEventState,
+          toolCallId: approvalId,
+        }),
+      ),
+    );
+    markApprovalsWaiting({
+      state: streamEventState,
+      emit,
+      approvalIds: approvals.map(({ approvalId }) => approvalId),
+    });
+    const settledDecisions = await Promise.all(decisionPromises);
+    for (const [index, { action, approvalId }] of approvals.entries()) {
+      const decision = settledDecisions[index];
       if (decision.approved) {
         const queue = streamEventState.approvedToolQueue.get(action.name) ?? [];
         queue.push(approvalId);
@@ -411,6 +516,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           toolCallId: approvalId,
           toolName: toCommonName(action.name),
           result: decision.reason ?? 'Rejected by user.',
+        });
+        settleHostToolCall({
+          state: streamEventState,
+          emit,
+          toolCallId: approvalId,
         });
         decisions.push({
           type: 'reject',
@@ -438,7 +548,16 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 await runBridge<StartMessage>({
   bridgeType: 'deepagents',
   bridgeStateDir: bridgeStateDir!,
-  onStart: runTurn,
+  ...(args.hostDisconnectTimeoutMs !== undefined
+    ? { hostDisconnectTimeoutMs: Number(args.hostDisconnectTimeoutMs) }
+    : {}),
+  onStart: async (start, turn) => {
+    try {
+      await runTurn(start, turn);
+    } finally {
+      pruneMemorySaver({ saver: checkpointer });
+    }
+  },
   onStop: async () => {
     await closeMcpClient();
     await saveMemorySaver({

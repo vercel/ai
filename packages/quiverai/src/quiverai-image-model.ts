@@ -1,4 +1,8 @@
 import {
+  getQuiverAIImageModelEntry,
+  quiveraiRequestDefaults,
+} from './quiverai-model-catalog';
+import {
   InvalidArgumentError,
   type ImageModelV4,
   type ImageModelV4CallOptions,
@@ -6,6 +10,10 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
+  lazySchema,
+  zodSchema,
   combineHeaders,
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
@@ -35,7 +43,7 @@ import type {
 interface QuiverAIImageModelConfig {
   provider: string;
   baseURL: string;
-  headers?: () => Record<string, string>;
+  headers?: Resolvable<Record<string, string>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -44,14 +52,11 @@ interface QuiverAIImageModelConfig {
 
 export class QuiverAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall = 16;
+  readonly maxImagesPerCall = quiveraiRequestDefaults.image.maxImagesPerCall;
 
   get supportsFileInputs(): boolean | undefined {
-    return this.modelId === 'arrow-1' ||
-      this.modelId === 'arrow-1.1' ||
-      this.modelId === 'arrow-1.1-max' ||
-      this.modelId === 'arrow-2' ||
-      this.modelId === 'arrow-2-telos'
+    return getQuiverAIImageModelEntry(this.modelId).capabilities.image
+      .fileInput === true
       ? true
       : undefined;
   }
@@ -119,7 +124,10 @@ export class QuiverAIImageModel implements ImageModelV4 {
     });
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const combinedHeaders = combineHeaders(this.config.headers?.(), headers);
+    const combinedHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      headers,
+    );
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}${getOperationPath(operation)}`,
@@ -188,7 +196,8 @@ function getOperationPath(operation: QuiverAIOperation) {
 function getGenerateReferenceLimit(modelId: string) {
   // Only apply the lower limit to documented Arrow 1.x models. The API
   // enforces model-specific limits within its 16-reference request limit.
-  return ['arrow-1', 'arrow-1.0', 'arrow-1.1'].includes(modelId) ? 4 : 16;
+  return getQuiverAIImageModelEntry(modelId).requestConfig.image
+    .generateReferenceLimit;
 }
 
 function toQuiverAIImageReference(image: ImageModelV4File) {
@@ -295,9 +304,10 @@ function buildRequestBody({
   options: QuiverAIImageModelOptions;
 }) {
   if (
-    (modelId === 'arrow-2' || modelId === 'arrow-2-telos') &&
     options.maxOutputTokens != null &&
-    options.maxOutputTokens > 65536
+    options.maxOutputTokens >
+      (getQuiverAIImageModelEntry(modelId).requestConfig.image
+        .maxOutputTokens ?? Infinity)
   ) {
     throw new InvalidArgumentError({
       argument: 'maxOutputTokens',
@@ -417,7 +427,7 @@ function buildAnimationRequestBody({
   mask: ImageModelV4File | undefined;
   options: QuiverAIImageModelOptions;
 }) {
-  if (modelId !== 'arrow-2' && modelId !== 'arrow-2-telos') {
+  if (!getQuiverAIImageModelEntry(modelId).capabilities.image.animation) {
     throw new InvalidArgumentError({
       argument: 'modelId',
       message:
@@ -493,7 +503,6 @@ function buildAnimationRequestBody({
   };
 }
 
-const editModelIds = new Set(['arrow-2', 'arrow-2-telos']);
 const MAX_EDIT_SVG_BYTES = 200_000;
 
 function buildEditRequestBody({
@@ -511,7 +520,7 @@ function buildEditRequestBody({
   mask: ImageModelV4File | undefined;
   options: QuiverAIImageModelOptions;
 }) {
-  if (!editModelIds.has(modelId)) {
+  if (!getQuiverAIImageModelEntry(modelId).requestConfig.image.editModel) {
     throw new InvalidArgumentError({
       argument: 'modelId',
       message:
@@ -1015,23 +1024,29 @@ function collectWarnings({
 // Limited schemas focused on what is needed for the implementation.
 // This approach limits breakages when the API changes and keeps the
 // response handler efficient.
-const svgUsageSchema = z.object({
-  total_tokens: z.number().int().nonnegative(),
-  input_tokens: z.number().int().nonnegative(),
-  output_tokens: z.number().int().nonnegative(),
-});
+const svgUsageSchema = () =>
+  z.object({
+    total_tokens: z.number().int().nonnegative(),
+    input_tokens: z.number().int().nonnegative(),
+    output_tokens: z.number().int().nonnegative(),
+  });
 
-const svgDocumentSchema = z.object({
-  svg: z.string().min(1),
-  mime_type: z.literal('image/svg+xml'),
-  loop_period_ms: z.number().int().nonnegative().nullish(),
-  opening_animation_ms: z.number().int().nonnegative().nullish(),
-});
+const svgDocumentSchema = () =>
+  z.object({
+    svg: z.string().min(1),
+    mime_type: z.literal('image/svg+xml'),
+    loop_period_ms: z.number().int().nonnegative().nullish(),
+    opening_animation_ms: z.number().int().nonnegative().nullish(),
+  });
 
-const svgGenerationResponseSchema = z.object({
-  id: z.string().min(1),
-  created: z.number().int().nonnegative(),
-  data: z.array(svgDocumentSchema).min(1),
-  usage: svgUsageSchema.nullish(),
-  credits: z.number().int().nonnegative().nullish(),
-});
+const svgGenerationResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string().min(1),
+      created: z.number().int().nonnegative(),
+      data: z.array(svgDocumentSchema()).min(1),
+      usage: svgUsageSchema().nullish(),
+      credits: z.number().int().nonnegative().nullish(),
+    }),
+  ),
+);

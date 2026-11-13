@@ -76,39 +76,32 @@ export type BrowserbaseFetchOutput =
   | BrowserbaseFetchError
   | BrowserbaseFetchResponse;
 
-const jsonObjectSchema = z.record(z.string(), z.unknown());
+const jsonObjectSchema = () => z.record(z.string(), z.unknown());
 
 const browserbaseFetchInputSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      url: z.string().url().describe('URL of the page to fetch.'),
-      allow_redirects: z
-        .boolean()
-        .optional()
-        .describe('Whether to follow HTTP redirects (default: false).'),
-      allow_insecure_ssl: z
-        .boolean()
-        .optional()
-        .describe(
-          'Whether to bypass TLS certificate verification (default: false). Only use for trusted hosts.',
-        ),
-      proxies: z
-        .boolean()
-        .optional()
-        .describe(
-          'Whether to route the request through Browserbase proxies (default: false).',
-        ),
-      format: z
-        .enum(['raw', 'json', 'markdown'])
-        .optional()
-        .describe(
-          'Output format. raw returns the response body unchanged, markdown returns page content as Markdown, and json returns structured content using schema.',
-        ),
-      schema: jsonObjectSchema
-        .optional()
-        .describe(
-          'JSON Schema for structured extraction. Only use with format set to json.',
-        ),
+      url: z.describe(z.url(), 'URL of the page to fetch.'),
+      allow_redirects: z.describe(
+        z.optional(z.boolean()),
+        'Whether to follow HTTP redirects (default: false).',
+      ),
+      allow_insecure_ssl: z.describe(
+        z.optional(z.boolean()),
+        'Whether to bypass TLS certificate verification (default: false). Only use for trusted hosts.',
+      ),
+      proxies: z.describe(
+        z.optional(z.boolean()),
+        'Whether to route the request through Browserbase proxies (default: false).',
+      ),
+      format: z.describe(
+        z.optional(z.enum(['raw', 'json', 'markdown'])),
+        'Output format. raw returns the response body unchanged, markdown returns page content as Markdown, and json returns structured content using schema.',
+      ),
+      schema: z.describe(
+        z.optional(jsonObjectSchema()),
+        'JSON Schema for structured extraction. Only use with format set to json.',
+      ),
     }),
   ),
 );
@@ -118,7 +111,7 @@ const browserbaseFetchOutputSchema = lazySchema(() =>
     z.union([
       z.object({
         id: z.string(),
-        content: z.union([z.string(), jsonObjectSchema]),
+        content: z.union([z.string(), jsonObjectSchema()]),
         contentType: z.string(),
         encoding: z.string(),
         headers: z.record(z.string(), z.string()),
@@ -134,7 +127,7 @@ const browserbaseFetchOutputSchema = lazySchema(() =>
           'timeout',
           'unknown',
         ]),
-        statusCode: z.number().optional(),
+        statusCode: z.optional(z.number()),
         message: z.string(),
       }),
     ]),

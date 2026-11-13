@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "5.0.54",
+  "version": "5.0.81",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -50,22 +50,27 @@
       "types": "./dist/experimental-evaluation/index.d.ts",
       "import": "./dist/experimental-evaluation/index.js",
       "default": "./dist/experimental-evaluation/index.js"
+    },
+    "./experimental-extraction": {
+      "types": "./dist/experimental-extraction/index.d.ts",
+      "import": "./dist/experimental-extraction/index.js",
+      "default": "./dist/experimental-extraction/index.js"
     }
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
     "@workflow/serde": "4.1.0",
-    "eventsource-parser": "^3.0.8",
-    "undici": "^7.29.0"
+    "eventsource-parser": "^3.0.8"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
+    "@vercel/ai-tsdown-config": "workspace:*",
     "msw": "2.7.0",
     "tsdown": "^0.23.0",
-    "typescript": "5.8.3",
-    "zod": "3.25.76"
+    "typescript": "6.0.3",
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"

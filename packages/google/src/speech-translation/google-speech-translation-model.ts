@@ -7,6 +7,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  resolve,
+  type Resolvable,
   connectToWebSocket,
   combineHeaders,
   convertBase64ToUint8Array,
@@ -74,7 +76,7 @@ type GoogleLiveServerMessage = {
 export type GoogleSpeechTranslationModelConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   webSocket?: WebSocketConstructor;
   _internal?: {
     currentDate?: () => Date;
@@ -152,7 +154,10 @@ export class GoogleSpeechTranslationModel implements SpeechTranslationModelV4 {
       });
     }
 
-    const headers = combineHeaders(this.config.headers(), options.headers);
+    const headers = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
     // last case-variant wins: combineHeaders keeps case-distinct keys and
     // spreads per-call headers after configuration headers
     let apiKey: string | undefined;

@@ -4,22 +4,42 @@ import {
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from '../zod';
+import {
+  gatewayToolErrorSchema,
+  type GatewayToolError,
+} from './gateway-tool-error';
+
+const parallelSearchModes = [
+  'turbo',
+  'fast',
+  'basic',
+  'advanced',
+  'one-shot',
+  'agentic',
+] as const;
+
+/**
+ * Search mode. `turbo` and `fast` trade excerpt depth for latency (`turbo` is
+ * English and Japanese only), `basic` is balanced, `advanced` is the most thorough.
+ * Deprecated: `one-shot` (runs as `basic`) and `agentic` (runs as `advanced`).
+ */
+export type ParallelSearchMode = (typeof parallelSearchModes)[number];
 
 export interface ParallelSearchSourcePolicy {
   /**
-   * List of domains to include in search results.
-   * Example: ['wikipedia.org', 'nature.com']
+   * Domains or domain/path prefixes to restrict results to. When set,
+   * `excludeDomains` is ignored. Example: ['wikipedia.org', 'docs.python.org/3']
    */
   includeDomains?: string[];
 
   /**
-   * List of domains to exclude from search results.
-   * Example: ['reddit.com', 'twitter.com']
+   * Domains or domain/path prefixes to exclude from results.
+   * Example: ['reddit.com']
    */
   excludeDomains?: string[];
 
   /**
-   * Only include results published after this date (ISO 8601 format).
+   * Only include results published on or after this date (YYYY-MM-DD).
    * Example: '2024-01-01'
    */
   afterDate?: string;
@@ -33,25 +53,36 @@ export interface ParallelSearchExcerpts {
 
   /**
    * Maximum total characters across all results.
+   * @deprecated Use the top-level `maxCharsTotal` option instead.
    */
   maxCharsTotal?: number;
 }
 
 export interface ParallelSearchFetchPolicy {
   /**
-   * Maximum age in seconds for cached content.
-   * Set to 0 to always fetch fresh content.
+   * Maximum age in seconds of cached content before a live fetch is attempted.
+   * Minimum 600; lower values are raised to 600.
    */
   maxAgeSeconds?: number;
+
+  /**
+   * Timeout in seconds for a live fetch when content is not cached.
+   * The gateway caps it to stay within its own tool timeout.
+   */
+  timeoutSeconds?: number;
+
+  /**
+   * Return an error instead of falling back to older cached content when a
+   * live fetch fails or times out. Defaults to false.
+   */
+  disableCacheFallback?: boolean;
 }
 
 export interface ParallelSearchConfig {
   /**
-   * Mode preset for different use cases:
-   * - "one-shot": Comprehensive results with longer excerpts for single-response answers (default)
-   * - "agentic": Concise, token-efficient results for multi-step agentic workflows
+   * Search mode. Defaults to `basic`.
    */
-  mode?: 'one-shot' | 'agentic';
+  mode?: ParallelSearchMode;
 
   /**
    * Default maximum number of results to return (1-20).
@@ -70,45 +101,63 @@ export interface ParallelSearchConfig {
   excerpts?: ParallelSearchExcerpts;
 
   /**
+   * Maximum total characters across all result excerpts.
+   */
+  maxCharsTotal?: number;
+
+  /**
    * Default fetch policy for controlling content freshness.
    */
   fetchPolicy?: ParallelSearchFetchPolicy;
+
+  /**
+   * ISO 3166-1 alpha-2 country code to localize results, e.g. 'us'.
+   * Invalid codes are ignored with a warning.
+   */
+  location?: string;
 }
 
 export interface ParallelSearchResult {
   /** URL of the search result */
   url: string;
-  /** Title of the search result */
-  title: string;
-  /** Extracted text excerpt/content from the page */
-  excerpt: string;
-  /** Publication date of the content (may be null) */
-  publishDate?: string | null;
-  /** Relevance score for the result */
-  relevanceScore?: number;
+  /** Title of the page, if available */
+  title?: string | null;
+  /** Publication date of the page (YYYY-MM-DD), if available */
+  publish_date?: string | null;
+  /** Relevant excerpts from the page, formatted as markdown */
+  excerpts: string[];
+}
+
+export interface ParallelSearchWarning {
+  /** Warning type, e.g. 'input_validation_warning'. New types may be added. */
+  type: string;
+  /** Human-readable message */
+  message: string;
+  /** Optional detail supporting the warning */
+  detail?: Record<string, unknown> | null;
+}
+
+export interface ParallelSearchUsage {
+  /** Usage item name, e.g. 'sku_search' */
+  name: string;
+  /** Count for the usage item */
+  count?: number;
 }
 
 export interface ParallelSearchResponse {
   /** Unique identifier for this search request */
-  searchId: string;
-  /** Array of search results */
+  search_id: string;
+  /** Search results, ordered by decreasing relevance */
   results: ParallelSearchResult[];
+  /** Non-fatal issues with the request, such as an ignored `location` */
+  warnings?: ParallelSearchWarning[] | null;
+  /** Usage reported by Parallel for this search */
+  usage?: ParallelSearchUsage[] | null;
+  /** Session identifier shared by the searches made during one request */
+  session_id?: string;
 }
 
-export interface ParallelSearchError {
-  /** Error type */
-  error:
-    | 'api_error'
-    | 'rate_limit'
-    | 'timeout'
-    | 'invalid_input'
-    | 'configuration_error'
-    | 'unknown';
-  /** HTTP status code if applicable */
-  statusCode?: number;
-  /** Human-readable error message */
-  message: string;
-}
+export type ParallelSearchError = GatewayToolError;
 
 export interface ParallelSearchInput {
   /**
@@ -119,17 +168,14 @@ export interface ParallelSearchInput {
   objective: string;
 
   /**
-   * Optional search queries to supplement the objective.
-   * Maximum 200 characters per query.
+   * 2-3 concise keyword queries, 3-6 words each (max 5, 200 characters each).
    */
   search_queries?: string[];
 
   /**
-   * Mode preset for different use cases:
-   * - "one-shot": Comprehensive results with longer excerpts
-   * - "agentic": Concise, token-efficient results for multi-step workflows
+   * Search mode. Defaults to `basic`.
    */
-  mode?: 'one-shot' | 'agentic';
+  mode?: ParallelSearchMode;
 
   /**
    * Maximum number of results to return (1-20).
@@ -151,15 +197,28 @@ export interface ParallelSearchInput {
    */
   excerpts?: {
     max_chars_per_result?: number;
+    /** @deprecated Use the top-level `max_chars_total` instead. */
     max_chars_total?: number;
   };
+
+  /**
+   * Maximum total characters across all result excerpts.
+   */
+  max_chars_total?: number;
 
   /**
    * Fetch policy for controlling content freshness.
    */
   fetch_policy?: {
     max_age_seconds?: number;
+    timeout_seconds?: number;
+    disable_cache_fallback?: boolean;
   };
+
+  /**
+   * ISO 3166-1 alpha-2 country code to localize results.
+   */
+  location?: string;
 }
 
 export type ParallelSearchOutput = ParallelSearchResponse | ParallelSearchError;
@@ -167,84 +226,91 @@ export type ParallelSearchOutput = ParallelSearchResponse | ParallelSearchError;
 const parallelSearchInputSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      objective: z
-        .string()
-        .describe(
-          'Natural-language description of the web research goal, including source or freshness guidance and broader context from the task. Maximum 5000 characters.',
-        ),
+      objective: z.describe(
+        z.string(),
+        'Natural-language description of the web research goal, including source or freshness guidance and broader context from the task. Maximum 5000 characters.',
+      ),
 
-      search_queries: z
-        .array(z.string())
-        .optional()
-        .describe(
-          'Optional search queries to supplement the objective. Maximum 200 characters per query.',
-        ),
+      search_queries: z.describe(
+        z.optional(z.array(z.string())),
+        'Provide 2-3 concise keyword queries, 3-6 words each (max 5, 200 chars each). Strongly recommended; the search runs on these queries.',
+      ),
 
-      mode: z
-        .enum(['one-shot', 'agentic'])
-        .optional()
-        .describe(
-          'Mode preset: "one-shot" for comprehensive results with longer excerpts (default), "agentic" for concise, token-efficient results for multi-step workflows.',
-        ),
+      mode: z.describe(
+        z.optional(z.enum(parallelSearchModes)),
+        'Search mode: "turbo" and "fast" return quickly with shorter excerpts, "basic" is balanced (default), "advanced" is the most thorough. "turbo" supports English and Japanese only. "one-shot" and "agentic" are deprecated aliases of "basic" and "advanced".',
+      ),
 
-      max_results: z
-        .number()
-        .optional()
-        .describe(
-          'Maximum number of results to return (1-20). Defaults to 10 if not specified.',
-        ),
+      max_results: z.describe(
+        z.optional(z.number()),
+        'Maximum number of results to return (1-20). Defaults to 10 if not specified.',
+      ),
 
-      source_policy: z
-        .object({
-          include_domains: z
-            .array(z.string())
-            .optional()
-            .describe(
-              'Limit results to these domains. Use plain domain names only — e.g. example.com or sub.example.gov, or a bare extension like .edu. Do not include a scheme, path, or port (e.g. not https://example.com/page).',
+      source_policy: z.describe(
+        z.optional(
+          z.object({
+            include_domains: z.describe(
+              z.optional(z.array(z.string())),
+              "Domains or domain/path prefixes to restrict results to, without scheme or port. Example: ['wikipedia.org', 'docs.python.org/3'].",
             ),
-          exclude_domains: z
-            .array(z.string())
-            .optional()
-            .describe(
-              'Exclude results from these domains. Use plain domain names only — e.g. example.com or sub.example.gov, or a bare extension like .edu. Do not include a scheme, path, or port (e.g. not https://example.com/page).',
+            exclude_domains: z.describe(
+              z.optional(z.array(z.string())),
+              "Domains or domain/path prefixes to exclude, without scheme or port. Example: ['reddit.com'].",
             ),
-          after_date: z
-            .string()
-            .optional()
-            .describe(
-              'Only include results published after this date. Use an ISO 8601 calendar date formatted YYYY-MM-DD (e.g. 2025-01-01); do not include a time.',
+            after_date: z.describe(
+              z.optional(z.string()),
+              'Only include results published on or after this date. Use an ISO 8601 calendar date formatted YYYY-MM-DD (e.g. 2025-01-01); do not include a time.',
             ),
-        })
-        .optional()
-        .describe(
-          'Source policy for controlling which domains to include/exclude and freshness.',
+          }),
         ),
+        'Source policy for controlling which domains to include/exclude and freshness.',
+      ),
 
-      excerpts: z
-        .object({
-          max_chars_per_result: z
-            .number()
-            .optional()
-            .describe('Maximum characters per result.'),
-          max_chars_total: z
-            .number()
-            .optional()
-            .describe('Maximum total characters across all results.'),
-        })
-        .optional()
-        .describe('Excerpt configuration for controlling result length.'),
-
-      fetch_policy: z
-        .object({
-          max_age_seconds: z
-            .number()
-            .optional()
-            .describe(
-              'Maximum age in seconds for cached content. Set to 0 to always fetch fresh content.',
+      excerpts: z.describe(
+        z.optional(
+          z.object({
+            max_chars_per_result: z.describe(
+              z.optional(z.number()),
+              'Maximum characters per result.',
             ),
-        })
-        .optional()
-        .describe('Fetch policy for controlling content freshness.'),
+            max_chars_total: z.describe(
+              z.optional(z.number()),
+              'Deprecated: use the top-level max_chars_total.',
+            ),
+          }),
+        ),
+        'Excerpt configuration for controlling result length.',
+      ),
+
+      max_chars_total: z.describe(
+        z.optional(z.number()),
+        'Maximum total characters across all result excerpts.',
+      ),
+
+      fetch_policy: z.describe(
+        z.optional(
+          z.object({
+            max_age_seconds: z.describe(
+              z.optional(z.number()),
+              'Maximum age of cached content in seconds before a live fetch, minimum 600.',
+            ),
+            timeout_seconds: z.describe(
+              z.optional(z.number()),
+              'Timeout in seconds for a live fetch when content is not cached. Capped by the gateway tool timeout.',
+            ),
+            disable_cache_fallback: z.describe(
+              z.optional(z.boolean()),
+              'Return an error instead of older cached content when a live fetch fails.',
+            ),
+          }),
+        ),
+        'Fetch policy for controlling content freshness.',
+      ),
+
+      location: z.describe(
+        z.optional(z.string()),
+        'ISO 3166-1 alpha-2 country code to localize results, e.g. "us".',
+      ),
     }),
   ),
 );
@@ -252,32 +318,41 @@ const parallelSearchInputSchema = lazySchema(() =>
 const parallelSearchOutputSchema = lazySchema(() =>
   zodSchema(
     z.union([
-      // Success response
+      // Success response (Parallel's response, passed through by the gateway)
       z.object({
-        searchId: z.string(),
+        search_id: z.string(),
         results: z.array(
           z.object({
             url: z.string(),
-            title: z.string(),
-            excerpt: z.string(),
-            publishDate: z.string().nullable().optional(),
-            relevanceScore: z.number().optional(),
+            title: z.optional(z.nullable(z.string())),
+            publish_date: z.optional(z.nullable(z.string())),
+            excerpts: z.array(z.string()),
           }),
         ),
+        warnings: z.optional(
+          z.nullable(
+            z.array(
+              z.object({
+                type: z.string(),
+                message: z.string(),
+                detail: z.optional(
+                  z.nullable(z.record(z.string(), z.unknown())),
+                ),
+              }),
+            ),
+          ),
+        ),
+        usage: z.optional(
+          z.nullable(
+            z.array(
+              z.object({ name: z.string(), count: z.optional(z.number()) }),
+            ),
+          ),
+        ),
+        session_id: z.optional(z.string()),
       }),
       // Error response
-      z.object({
-        error: z.enum([
-          'api_error',
-          'rate_limit',
-          'timeout',
-          'invalid_input',
-          'configuration_error',
-          'unknown',
-        ]),
-        statusCode: z.number().optional(),
-        message: z.string(),
-      }),
+      gatewayToolErrorSchema(),
     ]),
   ),
 );

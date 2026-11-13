@@ -1,6 +1,7 @@
 import type {
   openaiResponsesChunkSchema,
   OpenAIResponsesLogprobs,
+  OpenAIResponsesPromptCacheDiagnostics,
 } from './openai-responses-api';
 import type { InferSchema } from '@ai-sdk/provider-utils';
 
@@ -16,6 +17,7 @@ export type ResponsesProviderMetadata = {
   logprobs?: Array<OpenAIResponsesLogprobs>;
   serviceTier?: string;
   reasoningContext?: string;
+  promptCacheDiagnostics?: OpenAIResponsesPromptCacheDiagnostics;
 };
 
 export type ResponsesReasoningProviderMetadata = {
@@ -68,6 +70,10 @@ export type OpenaiResponsesTextProviderMetadata = {
 };
 
 export type ResponsesSourceDocumentProviderMetadata =
+  | {
+      type: 'file_search';
+      fileId: string;
+    }
   | {
       type: 'file_citation';
       fileId: string;

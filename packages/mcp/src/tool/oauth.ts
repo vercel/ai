@@ -94,6 +94,11 @@ export interface OAuthClientProvider {
   ): void | Promise<void>;
   get redirectUrl(): string | URL;
   get clientMetadata(): OAuthClientMetadata;
+  /**
+   * Returns client credentials. Pre-registered confidential clients must specify
+   * their authorization server's `issuer` or provide stored authorization server
+   * information. `validateAuthorizationServerURL` does not replace this binding.
+   */
   clientInformation():
     | OAuthClientInformation
     | undefined
@@ -121,6 +126,7 @@ export interface OAuthClientProvider {
   /**
    * Validates an authorization server URL discovered from MCP protected resource
    * metadata before the client fetches its OAuth metadata.
+   * This additional restriction does not bind client credentials to that server.
    */
   validateAuthorizationServerURL?(
     serverUrl: string | URL,
@@ -129,6 +135,11 @@ export interface OAuthClientProvider {
   state?(): string | Promise<string>;
   saveState?(state: string): void | Promise<void>;
   storedState?(): string | undefined | Promise<string | undefined>;
+  /**
+   * Overrides protected resource validation and selection. Return a resource URL
+   * or throw to reject it. Returning undefined uses the canonical MCP server URL
+   * with its fragment removed, so OAuth requests always include a resource.
+   */
   validateResourceURL?(
     serverUrl: string | URL,
     resource?: string,
@@ -273,7 +284,7 @@ async function getStoredAuthorizationServerInformation({
   tokens,
 }: {
   provider: OAuthClientProvider;
-  clientInformation: OAuthClientInformation;
+  clientInformation: OAuthClientInformation | undefined;
   tokens?: OAuthTokens;
 }): Promise<OAuthAuthorizationServerInformation | undefined> {
   const tokenAuthorizationServerInformation =
@@ -470,6 +481,7 @@ async function fetchWithCorsRetry(
           fetch: fetchFn,
           trustedOrigin,
           redirect: 'manual',
+          requireDnsValidation: true,
         }),
       headers,
       trustedOrigin,
@@ -658,8 +670,12 @@ export function buildDiscoveryUrls(
     expectedIssuer: pathIssuer,
   });
 
+  // Assign the path rather than resolving it as a URL reference: a pathname
+  // beginning with // would otherwise replace the authorization server host.
+  const oidcDiscoveryUrl = new URL(url.origin);
+  oidcDiscoveryUrl.pathname = `${pathname}/.well-known/openid-configuration`;
   urlsToTry.push({
-    url: new URL(`${pathname}/.well-known/openid-configuration`, url.origin),
+    url: oidcDiscoveryUrl,
     type: 'oidc',
     expectedIssuer: pathIssuer,
   });
@@ -697,7 +713,16 @@ export async function discoverAuthorizationServerMetadata(
 ): Promise<AuthorizationServerMetadata | undefined> {
   const headers = { 'MCP-Protocol-Version': protocolVersion };
 
+  const authorizationServerOrigin = new URL(authorizationServerUrl).origin;
   const urlsToTry = buildDiscoveryUrls(authorizationServerUrl);
+
+  // Check all candidates before any request so discovery cannot bypass an
+  // application's authorization server validation by changing the origin.
+  if (urlsToTry.some(({ url }) => url.origin !== authorizationServerOrigin)) {
+    throw new MCPClientOAuthError({
+      message: 'OAuth discovery URL changed authorization-server origin',
+    });
+  }
 
   for (const { url: endpointUrl, type, expectedIssuer } of urlsToTry) {
     const response = await fetchWithCorsRetry(
@@ -997,6 +1022,7 @@ export async function exchangeAuthorization(
     resource,
     addClientAuthentication,
     fetchFn,
+    trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl),
   }: {
     metadata?: AuthorizationServerMetadata;
     clientInformation: OAuthClientInformation;
@@ -1006,6 +1032,8 @@ export async function exchangeAuthorization(
     resource?: URL;
     addClientAuthentication?: OAuthClientProvider['addClientAuthentication'];
     fetchFn?: FetchFunction;
+    /** Developer-configured origin, never derived from response metadata. */
+    trustedOrigin?: string;
   },
 ): Promise<OAuthTokens> {
   const grantType = 'authorization_code';
@@ -1013,7 +1041,6 @@ export async function exchangeAuthorization(
   const tokenUrl = metadata?.token_endpoint
     ? new URL(metadata.token_endpoint)
     : new URL('/token', authorizationServerUrl);
-  const trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl);
   assertSafeOAuthEndpoint(tokenUrl, {
     allowLoopback: tokenUrl.origin === trustedOrigin,
   });
@@ -1069,6 +1096,7 @@ export async function exchangeAuthorization(
     },
     fetch: fetchFn,
     trustedOrigin,
+    requireDnsValidation: true,
   });
 
   if (!response.ok) {
@@ -1099,6 +1127,7 @@ export async function refreshAuthorization(
     resource,
     addClientAuthentication,
     fetchFn,
+    trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl),
   }: {
     metadata?: AuthorizationServerMetadata;
     clientInformation: OAuthClientInformation;
@@ -1106,6 +1135,8 @@ export async function refreshAuthorization(
     resource?: URL;
     addClientAuthentication?: OAuthClientProvider['addClientAuthentication'];
     fetchFn?: FetchFunction;
+    /** Developer-configured origin, never derived from response metadata. */
+    trustedOrigin?: string;
   },
 ): Promise<OAuthTokens> {
   const grantType = 'refresh_token';
@@ -1125,7 +1156,6 @@ export async function refreshAuthorization(
   } else {
     tokenUrl = new URL('/token', authorizationServerUrl);
   }
-  const trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl);
   assertSafeOAuthEndpoint(tokenUrl, {
     allowLoopback: tokenUrl.origin === trustedOrigin,
   });
@@ -1170,6 +1200,7 @@ export async function refreshAuthorization(
     },
     fetch: fetchFn,
     trustedOrigin,
+    requireDnsValidation: true,
   });
   if (!response.ok) {
     throw await parseErrorResponse(response);
@@ -1190,10 +1221,13 @@ export async function registerClient(
     metadata,
     clientMetadata,
     fetchFn,
+    trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl),
   }: {
     metadata?: AuthorizationServerMetadata;
     clientMetadata: OAuthClientMetadata;
     fetchFn?: FetchFunction;
+    /** Developer-configured origin, never derived from response metadata. */
+    trustedOrigin?: string;
   },
 ): Promise<OAuthClientInformationFull> {
   let registrationUrl: URL;
@@ -1209,7 +1243,6 @@ export async function registerClient(
   } else {
     registrationUrl = new URL('/register', authorizationServerUrl);
   }
-  const trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl);
   assertSafeOAuthEndpoint(registrationUrl, {
     allowLoopback: registrationUrl.origin === trustedOrigin,
   });
@@ -1231,6 +1264,7 @@ export async function registerClient(
     },
     fetch: fetchFn,
     trustedOrigin,
+    requireDnsValidation: true,
   });
 
   if (!response.ok) {
@@ -1286,11 +1320,20 @@ export async function auth(
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
     } else if (error instanceof InvalidGrantError && refreshAttempt.tokens) {
+      // Keep the binding validated before the refresh, even when deleting the
+      // rejected tokens removes the provider's only copy of that binding.
+      const retryAuthorizationServerInformation =
+        getAuthorizationServerInformationFromCredentials(refreshAttempt.tokens);
       // Only invalidate the tokens used by a failed refresh.
       await provider.invalidateCredentials?.('tokens', {
         tokens: refreshAttempt.tokens,
       });
-      return await authInternal(provider, options);
+      return await authInternal(
+        provider,
+        options,
+        undefined,
+        retryAuthorizationServerInformation,
+      );
     }
 
     throw error;
@@ -1301,18 +1344,19 @@ export async function selectResourceURL(
   serverUrl: string | URL,
   provider: OAuthClientProvider,
   resourceMetadata?: OAuthProtectedResourceMetadata,
-): Promise<URL | undefined> {
+): Promise<URL> {
   const defaultResource = resourceUrlFromServerUrl(serverUrl);
 
   if (provider.validateResourceURL) {
-    return await provider.validateResourceURL(
+    const resource = await provider.validateResourceURL(
       defaultResource,
       resourceMetadata?.resource,
     );
+    return resource ?? defaultResource;
   }
 
   if (!resourceMetadata) {
-    return undefined;
+    return defaultResource;
   }
 
   if (
@@ -1348,6 +1392,7 @@ async function authInternal(
     fetchFn?: FetchFunction;
   },
   refreshAttempt?: { tokens?: OAuthTokens },
+  retryAuthorizationServerInformation?: OAuthAuthorizationServerInformation,
 ): Promise<AuthResult> {
   let resourceMetadata: OAuthProtectedResourceMetadata | undefined;
   let authorizationServerUrl: string | URL | undefined;
@@ -1416,7 +1461,7 @@ async function authInternal(
   }
 
   /** Validate and select the resource value sent to the AS */
-  const resource: URL | undefined = await selectResourceURL(
+  const resource = await selectResourceURL(
     serverUrl,
     provider,
     resourceMetadata,
@@ -1438,6 +1483,12 @@ async function authInternal(
   );
   const currentAuthorizationServerInformation =
     createAuthorizationServerInformation(authorizationServerUrl, metadata);
+  if (retryAuthorizationServerInformation) {
+    assertAuthorizationServerInformationMatches({
+      storedAuthorizationServerInformation: retryAuthorizationServerInformation,
+      currentAuthorizationServerInformation,
+    });
+  }
   const clientMetadata = provider.clientMetadata;
   const selectedScope = selectScope({
     scope,
@@ -1449,18 +1500,87 @@ async function authInternal(
   if (authorizationCode === undefined) {
     clientInformation = await Promise.resolve(provider.clientInformation());
   }
-  if (clientInformation?.issuer != null) {
+  const tokens =
+    authorizationCode === undefined ? await provider.tokens() : undefined;
+  if (clientInformation) {
+    // A flow pin must never override the issuer attached to the credentials.
+    if (
+      clientInformation.issuer != null &&
+      clientInformation.issuer !== currentAuthorizationServerInformation.issuer
+    ) {
+      throw new AuthorizationServerMismatchError({
+        message:
+          'OAuth authorization server does not match the issuer of the client credentials',
+      });
+    }
+
+    const clientAuthorizationServerInformation =
+      getAuthorizationServerInformationFromCredentials(clientInformation);
+    if (clientAuthorizationServerInformation) {
+      assertAuthorizationServerInformationMatches({
+        storedAuthorizationServerInformation:
+          clientAuthorizationServerInformation,
+        currentAuthorizationServerInformation,
+      });
+    }
+
     const storedAuthorizationServerInformation =
       callbackAuthorizationServerInformation ??
       (await getStoredAuthorizationServerInformation({
         provider,
         clientInformation,
-      }));
+        tokens,
+      })) ??
+      retryAuthorizationServerInformation;
     if (storedAuthorizationServerInformation) {
       assertAuthorizationServerInformationMatches({
         storedAuthorizationServerInformation,
         currentAuthorizationServerInformation,
       });
+    }
+
+    // Do not turn an MCP server's choice of AS into a trust binding for an
+    // existing secret. Dynamic registration below binds newly issued credentials.
+    if (
+      (clientInformation.client_secret != null ||
+        provider.addClientAuthentication) &&
+      clientInformation.issuer == null &&
+      !storedAuthorizationServerInformation
+    ) {
+      throw new AuthorizationServerMismatchError({
+        message:
+          'OAuth client credentials must be bound to an authorization server: configure their issuer or store authorization server information',
+      });
+    }
+  }
+
+  // Resolve the existing token's binding before registration can create a new one.
+  const refreshAuthorizationServerInformation = tokens?.refresh_token
+    ? await getStoredAuthorizationServerInformation({
+        provider,
+        clientInformation,
+        tokens,
+      })
+    : undefined;
+  if (tokens?.refresh_token) {
+    if (refreshAuthorizationServerInformation) {
+      assertAuthorizationServerInformationMatches({
+        storedAuthorizationServerInformation:
+          refreshAuthorizationServerInformation,
+        currentAuthorizationServerInformation,
+      });
+    } else {
+      await provider.invalidateCredentials?.('tokens', {
+        tokens: { ...tokens },
+      });
+      // Do not persist a new binding alongside an unbound token, even if the
+      // optional invalidation hook is missing or leaves tokens in storage.
+      if ((await provider.tokens())?.refresh_token) {
+        throw new MCPClientOAuthError({
+          message:
+            'Stored OAuth tokens without an authorization server binding must be cleared before starting authorization',
+        });
+      }
     }
   }
 
@@ -1484,6 +1604,7 @@ async function authInternal(
         scope: selectedScope,
       },
       fetchFn,
+      trustedOrigin: trustedAuthorizationServerOrigin,
     });
 
     clientInformation = addAuthorizationServerInformationToClientInformation(
@@ -1538,6 +1659,7 @@ async function authInternal(
       resource,
       addClientAuthentication: provider.addClientAuthentication,
       fetchFn: fetchFn,
+      trustedOrigin: trustedAuthorizationServerOrigin,
     });
 
     await provider.saveTokens(
@@ -1549,51 +1671,30 @@ async function authInternal(
     return 'AUTHORIZED';
   }
 
-  const tokens = await provider.tokens();
-
   /** Refresh only when stored credentials match the current AS pin */
-  if (tokens?.refresh_token) {
-    const storedAuthorizationServerInformation =
-      await getStoredAuthorizationServerInformation({
-        provider,
-        clientInformation,
-        tokens,
-      });
-
-    if (storedAuthorizationServerInformation) {
-      assertAuthorizationServerInformationMatches({
-        storedAuthorizationServerInformation,
-        currentAuthorizationServerInformation,
-      });
-    } else {
-      await provider.invalidateCredentials?.('tokens', {
-        tokens: { ...tokens },
-      });
-    }
-
+  if (tokens?.refresh_token && refreshAuthorizationServerInformation) {
     try {
-      if (storedAuthorizationServerInformation) {
-        if (refreshAttempt) {
-          refreshAttempt.tokens = { ...tokens };
-        }
-        // Attempt to refresh the token
-        const newTokens = await refreshAuthorization(authorizationServerUrl, {
-          metadata,
-          clientInformation,
-          refreshToken: tokens.refresh_token,
-          resource,
-          addClientAuthentication: provider.addClientAuthentication,
-          fetchFn,
-        });
-
-        await provider.saveTokens(
-          addAuthorizationServerInformationToTokens(
-            newTokens,
-            currentAuthorizationServerInformation,
-          ),
-        );
-        return 'AUTHORIZED';
+      if (refreshAttempt) {
+        refreshAttempt.tokens = { ...tokens };
       }
+      // Attempt to refresh the token
+      const newTokens = await refreshAuthorization(authorizationServerUrl, {
+        metadata,
+        clientInformation,
+        refreshToken: tokens.refresh_token,
+        resource,
+        addClientAuthentication: provider.addClientAuthentication,
+        fetchFn,
+        trustedOrigin: trustedAuthorizationServerOrigin,
+      });
+
+      await provider.saveTokens(
+        addAuthorizationServerInformationToTokens(
+          newTokens,
+          currentAuthorizationServerInformation,
+        ),
+      );
+      return 'AUTHORIZED';
     } catch (error) {
       if (
         // If this is a ServerError, or an unknown type, log it out and try to continue. Otherwise, escalate so we can fix things and retry.
