@@ -573,7 +573,55 @@ describe('startBatch', () => {
     });
   });
 
-  it('sends the response format of the output specification', async () => {
+  it('sends the response format of the output specification with every text request', async () => {
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
+    const batchApi = createMockBatchApi({
+      doStartBatch: async options => {
+        calls.push(options);
+        return { batchId: 'batch-123', status: 'pending', warnings: [] };
+      },
+    });
+
+    await startBatch({
+      provider: batchApi,
+      output: Output.object({ schema: z.object({ text: z.string() }) }),
+      requests: [
+        {
+          id: 'request-1',
+          type: 'text',
+          model: 'mock-model-id',
+          prompt: 'translate',
+        },
+        {
+          id: 'request-2',
+          type: 'text',
+          model: 'mock-model-id',
+          prompt: 'translate',
+        },
+        {
+          id: 'request-3',
+          type: 'image',
+          model: 'mock-image-model-id',
+          prompt: 'a cat',
+        },
+      ],
+    });
+
+    for (const request of calls[0].requests.slice(0, 2)) {
+      expect(request.options).toMatchObject({
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { text: { type: 'string' } },
+          },
+        },
+      });
+    }
+    expect(calls[0].requests[2].options).not.toHaveProperty('responseFormat');
+  });
+
+  it('does not send a response format without an output specification', async () => {
     const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
     const batchApi = createMockBatchApi({
       doStartBatch: async options => {
@@ -590,31 +638,12 @@ describe('startBatch', () => {
           type: 'text',
           model: 'mock-model-id',
           prompt: 'translate',
-          output: Output.object({ schema: z.object({ text: z.string() }) }),
-        },
-        {
-          id: 'request-2',
-          type: 'text',
-          model: 'mock-model-id',
-          prompt: 'translate',
         },
       ],
     });
 
-    expect(calls[0].requests[0].options).toMatchObject({
-      responseFormat: {
-        type: 'json',
-        schema: {
-          type: 'object',
-          properties: { text: { type: 'string' } },
-        },
-      },
-    });
-    expect(calls[0].requests[1].options).not.toHaveProperty('responseFormat', {
-      type: 'json',
-    });
     expect(
-      (calls[0].requests[1].options as { responseFormat?: unknown })
+      (calls[0].requests[0].options as { responseFormat?: unknown })
         .responseFormat,
     ).toBeUndefined();
   });

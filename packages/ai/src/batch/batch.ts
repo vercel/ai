@@ -161,6 +161,7 @@ export async function startBatch<
   provider,
   requests,
   providerOptions,
+  output,
   webhookUrl,
   abortSignal,
   headers,
@@ -175,6 +176,7 @@ export async function startBatch<
   );
   const supportedUrls = await batchApi.supportedUrls;
   operationAbortSignal?.throwIfAborted();
+  const responseFormat = await output?.responseFormat;
   const normalizedRequests = [];
   const toolsByName = new Map<string, unknown>();
 
@@ -200,7 +202,7 @@ export async function startBatch<
           modelId: request.model,
           options: {
             ...prepareLanguageModelCallOptions(request),
-            responseFormat: await request.output?.responseFormat,
+            responseFormat,
             prompt: await convertToLanguageModelPrompt({
               prompt: standardizedPrompt,
               supportedUrls,

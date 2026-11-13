@@ -78,15 +78,6 @@ export type TextBatchRequest<
     toolOrder?: ToolOrder<TOOLS>;
     toolsContext?: InferToolSetContext<TOOLS>;
     providerOptions?: ProviderOptions;
-
-    /**
-     * Specification for parsing structured data out of the model's text
-     * response. Its response format is sent with the request.
-     *
-     * Pass the same specification to `getBatchResults` as `output` to parse
-     * and validate each result.
-     */
-    output?: Output;
   };
 
 /**
@@ -135,6 +126,16 @@ export type StartBatchOptions<
   requests: ReadonlyArray<BatchRequest<InferBatchModelIds<PROVIDER>, TOOLS>>;
 
   providerOptions?: ProviderOptions;
+
+  /**
+   * Specification for structured data in the text responses. Its response
+   * format is sent with every text request in the batch; image requests
+   * ignore it.
+   *
+   * Pass the same specification to `getBatchResults` as `output` to parse and
+   * validate each result.
+   */
+  output?: Output;
 
   /**
    * URL that the provider should notify when the batch reaches a terminal

@@ -226,8 +226,9 @@ documentation for the tools and models available in batches.
 
 ## Structured output
 
-Batch text requests accept the same `output` specification as `generateText`.
-Its response format is sent with each request that includes it:
+`startBatch` accepts the same `output` specification as `generateText`. Its
+response format is sent with every text request in the batch. Image requests
+ignore it:
 
 ```ts
 import {
@@ -242,13 +243,13 @@ const output = Output.object({
 });
 
 const batch = await startBatch({
+  output,
   requests: [
     {
       id: 'translate-1',
       type: 'text',
       model: 'openai/gpt-5-mini',
       prompt: 'Translate to English: Directeur commercial',
-      output,
     },
   ],
 });
@@ -276,8 +277,8 @@ has an `outputError` instead of `output`. This lets you resubmit only the
 requests whose response was not valid. Without `output`, the raw JSON is
 available in `text`.
 
-All items passed to one `getBatchResults` call are parsed with the same
-`output`. Support for structured output depends on the provider and model:
+Because `output` applies to the whole batch, all text items are parsed with the
+same specification. To use different schemas, start separate batches. Support for structured output depends on the provider and model:
 
 - Anthropic batches require a model with native structured output.
 - Google batches do not support output schemas, because the Google batch

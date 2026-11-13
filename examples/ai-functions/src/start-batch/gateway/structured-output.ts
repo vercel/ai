@@ -21,6 +21,7 @@ run(async () => {
   });
 
   const batch = await startBatch({
+    output,
     requests: [
       {
         id: 'translate-1',
@@ -28,7 +29,6 @@ run(async () => {
         model,
         system: 'Translate each item into English.',
         prompt: JSON.stringify([{ id: 0, title: 'Directeur commercial' }]),
-        output,
       },
       {
         id: 'translate-2',
@@ -36,7 +36,6 @@ run(async () => {
         model,
         system: 'Translate each item into English.',
         prompt: JSON.stringify([{ id: 0, title: 'Ingeniero de software' }]),
-        output,
       },
     ],
   });

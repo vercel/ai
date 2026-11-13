@@ -331,8 +331,8 @@ it('infers the parsed output of text batch results from the output specification
   }
 });
 
-it('accepts an output specification on text batch requests', () => {
-  expectTypeOf<TextBatchRequest['output']>().toEqualTypeOf<
+it('accepts an output specification when starting a batch', () => {
+  expectTypeOf<StartBatchOptions['output']>().toEqualTypeOf<
     Output.Output | undefined
   >();
 });

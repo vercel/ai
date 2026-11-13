@@ -12,7 +12,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const provider = openai;
-  const model = 'gpt-5.4-nano';
+  const model = 'gpt-4.1-mini';
 
   const output = Output.object({
     schema: z.object({
@@ -23,6 +23,7 @@ run(async () => {
   });
 
   const batch = await startBatch({
+    output,
     provider,
     requests: [
       {
@@ -31,7 +32,6 @@ run(async () => {
         model,
         system: 'Translate each item into English.',
         prompt: JSON.stringify([{ id: 0, title: 'Directeur commercial' }]),
-        output,
       },
       {
         id: 'translate-2',
@@ -39,7 +39,6 @@ run(async () => {
         model,
         system: 'Translate each item into English.',
         prompt: JSON.stringify([{ id: 0, title: 'Ingeniero de software' }]),
-        output,
       },
     ],
   });
