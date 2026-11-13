@@ -348,6 +348,45 @@ Every serverless instance that might handle a request needs the same secret, sin
   and sent to the client.
 </Note>
 
+## Persistence and Crash Recovery in Continuations
+
+When resuming an agent session after a user approves a tool call, the SDK executes the approved tool eagerly before the first model step begins.
+
+In AI SDK 7.0, `step.response.messages` contains only the response messages produced by that particular model step. The pre-step tool execution results are part of the input to the continuation step and are available in:
+
+- `result.responseMessages` (and `onEnd({ responseMessages })`)
+- `onStepStart({ messages })`
+- `onToolExecutionEnd` events
+
+### Recommended Checkpoint Boundary
+
+If your application checkpoints message history to a database to survive unexpected process crashes, checkpoint `messages` inside `onStepStart`:
+
+```typescript
+const result = await generateText({
+  model,
+  messages,
+  tools,
+  onStepStart: async ({ messages }) => {
+    // Checkpointing here captures pre-step approved tool results immediately
+    // before the model generates follow-up steps or subsequent tools run.
+    await db.saveConversation(conversationId, messages);
+  },
+  onStepEnd: async step => {
+    // Step response messages contain only messages produced during this step.
+    await db.appendMessages(conversationId, step.response.messages);
+  },
+});
+```
+
+Checkpointing only `step.response.messages` inside `onStepEnd` risks losing the pre-step approved tool result if a subsequent tool in Step 0 crashes the process before `onStepEnd` is reached.
+
+### Distributed Safety and Idempotency
+
+In-process lifecycle callbacks—and durable execution engines like [`WorkflowAgent`](/docs/agents/workflow-agent) that automate step checkpointing—cannot prevent duplicate external writes if a process terminates (`SIGKILL` or hardware failure) _after_ an external service processes a request but _before_ the tool completion is durably recorded.
+
+For operations with external side-effects, always pass `toolCallId` (provided to `execute`) as an idempotency key to your external payment, database, or email service so retried attempts are safely deduplicated.
+
 ## Related APIs
 
 - Use `toolApproval` with `ToolLoopAgent`, `generateText`, and `streamText`.
