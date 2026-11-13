@@ -774,7 +774,7 @@ The callbacks also run at different times:
 ### Tools
 
 - Approval is configured with `needsApproval` on the tool. Approval request IDs have the form `approval-<toolCallId>`. `ToolLoopAgent` generates random IDs.
-- A tool whose `execute` function is an async generator is not supported. `ToolLoopAgent` treats every yielded value except the last one as a preliminary result. `WorkflowAgent` does not iterate the generator, and the tool result is an empty object.
+- For a tool whose `execute` function is an async generator, the last yielded value is the tool result, as in `ToolLoopAgent`. `ToolLoopAgent` also reports the earlier values as preliminary results. `WorkflowAgent` does not send them to the `writable`.
 - Tool timeouts (`toolMs` and `tools` in the `timeout` object) are not supported.
 
 ### Requests
