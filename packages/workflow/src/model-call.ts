@@ -17,6 +17,7 @@ import type {
   TelemetryOptions,
   ToolCallRepairFunction,
   ToolChoice,
+  ToolOrder,
   ToolSet,
 } from 'ai';
 import type { DownloadFunction, ProviderOptions } from './workflow-agent.js';
@@ -72,6 +73,7 @@ export interface ModelCallOptions {
   reasoning?: LanguageModelV4CallOptions['reasoning'];
   providerOptions?: ProviderOptions;
   toolChoice?: ToolChoice<ToolSet>;
+  toolOrder?: ToolOrder<ToolSet>;
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   download?: DownloadFunction;

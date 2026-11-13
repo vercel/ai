@@ -31,6 +31,7 @@ import {
   type ActiveTools,
   type ToolCallRepairFunction,
   type ToolChoice,
+  type ToolOrder,
   type ToolSet,
   type InferUITools,
   type UIMessage,
@@ -401,6 +402,11 @@ export interface PrepareStepResult<
   activeTools?: ActiveTools<NoInfer<TTools>>;
 
   /**
+   * Override the order in which tools are sent to the provider for this step.
+   */
+  toolOrder?: ToolOrder<NoInfer<TTools>>;
+
+  /**
    * Updated runtime context for the current and subsequent steps.
    * Returning a value replaces the agent's runtime context.
    */
@@ -448,6 +454,7 @@ export interface PrepareCallOptions<
     | StopCondition<NoInfer<TTools>, TRuntimeContext>
     | Array<StopCondition<NoInfer<TTools>, TRuntimeContext>>;
   activeTools?: ActiveTools<NoInfer<TTools>>;
+  toolOrder?: ToolOrder<NoInfer<TTools>>;
   experimental_download?: DownloadFunction;
   telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
   /**
@@ -576,6 +583,17 @@ export type WorkflowAgentOptions<
      * Per-stream `activeTools` values passed to `stream()` override this default.
      */
     activeTools?: ActiveTools<NoInfer<TTools>>;
+
+    /**
+     * Default order in which tools are sent to the provider.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically.
+     *
+     * Per-call `toolOrder` values passed to `generate()` or `stream()` override
+     * this default.
+     */
+    toolOrder?: ToolOrder<NoInfer<TTools>>;
 
     /**
      * Default output specification for structured outputs.
@@ -1052,6 +1070,15 @@ export type WorkflowAgentCallOptions<
      * changing the tool call and result types in the result.
      */
     activeTools?: ActiveTools<NoInfer<TTools>>;
+
+    /**
+     * Order in which tools are sent to the provider for this call.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically. Overrides the constructor-level
+     * `toolOrder` if provided.
+     */
+    toolOrder?: ToolOrder<NoInfer<TTools>>;
 
     /**
      * Optional telemetry configuration.
@@ -1593,6 +1620,7 @@ export class WorkflowAgent<
     | StopCondition<TBaseTools, TRuntimeContext>
     | Array<StopCondition<TBaseTools, TRuntimeContext>>;
   private activeTools?: ActiveTools<TBaseTools>;
+  private toolOrder?: ToolOrder<TBaseTools>;
   private output?: OutputSpecification<OUTPUT, PARTIAL_OUTPUT>;
   private repairToolCall?: ToolCallRepairFunction<TBaseTools>;
   private experimentalDownload?: DownloadFunction;
@@ -1642,6 +1670,7 @@ export class WorkflowAgent<
     this.toolsContext = options.toolsContext;
     this.stopWhen = options.stopWhen;
     this.activeTools = options.activeTools;
+    this.toolOrder = options.toolOrder;
     this.output = options.output;
     this.repairToolCall =
       options.repairToolCall ?? options.experimental_repairToolCall;
@@ -1786,6 +1815,7 @@ export class WorkflowAgent<
       (mode === 'generate' ? isStepCount(20) : undefined);
     let effectiveActiveToolsFromPrepare =
       options.activeTools ?? this.activeTools;
+    let effectiveToolOrderFromPrepare = options.toolOrder ?? this.toolOrder;
     let effectiveDownloadFromPrepare =
       options.experimental_download ?? this.experimentalDownload;
     const effectiveToolApprovalSecret =
@@ -1810,6 +1840,7 @@ export class WorkflowAgent<
         toolCallConcurrency: effectiveToolCallConcurrency,
         stopWhen: effectiveStopWhenFromPrepare,
         activeTools: effectiveActiveToolsFromPrepare,
+        toolOrder: effectiveToolOrderFromPrepare,
         experimental_download: effectiveDownloadFromPrepare,
         telemetry: effectiveTelemetryFromPrepare,
         runtimeContext: effectiveRuntimeContext,
@@ -1841,6 +1872,8 @@ export class WorkflowAgent<
         effectiveStopWhenFromPrepare = prepared.stopWhen;
       if (prepared.activeTools !== undefined)
         effectiveActiveToolsFromPrepare = prepared.activeTools;
+      if (prepared.toolOrder !== undefined)
+        effectiveToolOrderFromPrepare = prepared.toolOrder;
       if (prepared.experimental_download !== undefined)
         effectiveDownloadFromPrepare = prepared.experimental_download;
       if (prepared.telemetry !== undefined)
@@ -1950,6 +1983,7 @@ export class WorkflowAgent<
       toolCallConcurrency,
       effectiveStopWhenFromPrepare,
       effectiveActiveToolsFromPrepare,
+      effectiveToolOrderFromPrepare,
       effectiveToolApprovalSecret,
       effectiveTelemetry,
       telemetryDispatcher,
@@ -2018,6 +2052,7 @@ export class WorkflowAgent<
       toolCallConcurrency,
       effectiveStopWhenFromPrepare,
       effectiveActiveToolsFromPrepare,
+      effectiveToolOrderFromPrepare,
       effectiveToolApprovalSecret,
       effectiveTelemetry,
       telemetryDispatcher,
@@ -2689,6 +2724,7 @@ export class WorkflowAgent<
           | undefined)) as any,
       generationSettings: mergedGenerationSettings,
       toolChoice: effectiveToolChoice as ToolChoice<ToolSet>,
+      toolOrder: effectiveToolOrderFromPrepare as ToolOrder<ToolSet>,
       runtimeContext,
       toolsContext,
       telemetry: effectiveTelemetry,

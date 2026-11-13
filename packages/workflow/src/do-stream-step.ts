@@ -179,6 +179,7 @@ async function streamModelStep(
           allowSystemInMessages: true,
           tools,
           toolChoice: options?.toolChoice,
+          toolOrder: options?.toolOrder,
           includeRawChunks: options?.includeRawChunks,
           providerOptions: options?.providerOptions,
           abortSignal,

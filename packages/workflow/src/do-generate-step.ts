@@ -112,7 +112,10 @@ async function generateModelCall(
   });
   const tools = resolveSerializableTools(serializedTools);
   const toolChoice = prepareToolChoice({ toolChoice: options.toolChoice });
-  const modelTools = await prepareTools({ tools });
+  const modelTools = await prepareTools({
+    tools,
+    toolOrder: options.toolOrder,
+  });
   const settings = prepareLanguageModelCallOptions(options);
   const { retry } = prepareRetries({
     maxRetries: options.maxRetries,
