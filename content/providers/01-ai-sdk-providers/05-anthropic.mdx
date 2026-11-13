@@ -1883,6 +1883,14 @@ The web search tool supports several configuration options:
   the API response. The default is `'full'`. Use `'excluded'` to omit those
   nested call/result pairs and reduce output token usage.
 
+- **allowedCallers** _Array<'direct' | 'code_execution_20260120'>_
+
+  Available with `webSearch_20260209` and `webSearch_20260318`. Controls how
+  Claude can call the tool. The default, `['code_execution_20260120']`, runs
+  searches from code execution with dynamic filtering. Set `['direct']` to
+  search directly without dynamic filtering, for example for Zero Data
+  Retention or for models that do not support programmatic tool calling.
+
 ```ts
 const webSearchTool = anthropic.tools.webSearch_20260318({
   maxUses: 3,
@@ -2364,6 +2372,21 @@ The web fetch tool supports several configuration options:
   consumed by a completed code execution call in the same turn are included in
   the API response. The default is `'full'`. Direct results and results from
   code execution calls that pause before completing are always returned in full.
+
+- **allowedCallers** _Array<'direct' | 'code_execution_20260120'>_
+
+  Available with `webFetch_20260209` and `webFetch_20260318`. Controls how
+  Claude can call the tool. The default, `['code_execution_20260120']`, runs
+  fetches from code execution with dynamic filtering. Set `['direct']` to fetch
+  directly without dynamic filtering, for example for Zero Data Retention or
+  for models that do not support programmatic tool calling.
+
+```ts
+const webFetchTool = anthropic.tools.webFetch_20260318({
+  useCache: false,
+  allowedCallers: ['direct'],
+});
+```
 
 #### Error Handling
 

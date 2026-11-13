@@ -13,6 +13,9 @@ export const webFetch_20260209ArgsSchema = lazySchema(() =>
       blockedDomains: z.array(z.string()).optional(),
       citations: z.object({ enabled: z.boolean() }).optional(),
       maxContentTokens: z.number().optional(),
+      allowedCallers: z
+        .array(z.enum(['direct', 'code_execution_20260120']))
+        .optional(),
     }),
   ),
 );
@@ -130,6 +133,15 @@ const factory = createProviderExecutedToolFactory<
      * The maxContentTokens parameter limits the amount of content that will be included in the context.
      */
     maxContentTokens?: number;
+
+    /**
+     * Controls how Claude can call the tool. Defaults to
+     * `['code_execution_20260120']`, which enables dynamic filtering. Set to
+     * `['direct']` to call the tool directly without dynamic filtering, which
+     * is required for Zero Data Retention and for models that do not support
+     * programmatic tool calling.
+     */
+    allowedCallers?: Array<'direct' | 'code_execution_20260120'>;
   }
 >({
   id: 'anthropic.web_fetch_20260209',

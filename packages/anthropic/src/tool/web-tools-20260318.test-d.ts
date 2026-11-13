@@ -35,6 +35,19 @@ describe('20260318 web tool types', () => {
     }>();
   });
 
+  it('types allowed callers on dynamic filtering web tool versions', () => {
+    anthropic.tools.webSearch_20260209({ allowedCallers: ['direct'] });
+    anthropic.tools.webSearch_20260318({ allowedCallers: ['direct'] });
+    anthropic.tools.webFetch_20260209({ allowedCallers: ['direct'] });
+    anthropic.tools.webFetch_20260318({
+      allowedCallers: ['direct', 'code_execution_20260120'],
+    });
+    anthropic.tools.webFetch_20260318({
+      // @ts-expect-error web tools reject the code_execution_20250825 caller
+      allowedCallers: ['code_execution_20250825'],
+    });
+  });
+
   it('does not expose response inclusion on older web tool versions', () => {
     // @ts-expect-error responseInclusion requires web_search_20260318
     anthropic.tools.webSearch_20260209({ responseInclusion: 'excluded' });

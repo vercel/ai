@@ -574,6 +574,7 @@ export type AnthropicTool =
       max_content_tokens?: number;
       use_cache?: boolean;
       response_inclusion?: 'full' | 'excluded';
+      allowed_callers?: Array<'direct' | 'code_execution_20260120'>;
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
@@ -593,6 +594,7 @@ export type AnthropicTool =
         timezone?: string;
       };
       response_inclusion?: 'full' | 'excluded';
+      allowed_callers?: Array<'direct' | 'code_execution_20260120'>;
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
