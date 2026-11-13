@@ -3,7 +3,48 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   promptAndRefreshInitialHostToolCatalog,
   refreshHostToolCatalog,
+  refreshHostToolCatalogBeforePrompt,
 } from './refresh-host-tool-catalog';
+
+describe('refreshHostToolCatalogBeforePrompt', () => {
+  it('defers the refresh of a restored session that was never prompted', async () => {
+    const updateCatalog = vi.fn(() => ({ changed: false, revision: 1 }));
+    const waitForCatalogRefresh = vi.fn(async () => false);
+
+    const result = await refreshHostToolCatalogBeforePrompt({
+      relay: { updateCatalog, waitForCatalogRefresh },
+      tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
+      harnessId: 'lazy-acp',
+      timeoutMs: 100,
+      sessionPrompted: false,
+    });
+
+    expect(result).toEqual({ refreshAfterPrompt: true });
+    expect(updateCatalog).not.toHaveBeenCalled();
+    expect(waitForCatalogRefresh).not.toHaveBeenCalled();
+  });
+
+  it('refreshes a prompted session before its next prompt', async () => {
+    const waitForCatalogRefresh = vi.fn(async () => true);
+
+    const result = await refreshHostToolCatalogBeforePrompt({
+      relay: {
+        updateCatalog: () => ({ changed: true, revision: 2 }),
+        waitForCatalogRefresh,
+      },
+      tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
+      harnessId: 'lazy-acp',
+      timeoutMs: 100,
+      sessionPrompted: true,
+    });
+
+    expect(result).toEqual({ refreshAfterPrompt: false });
+    expect(waitForCatalogRefresh).toHaveBeenCalledWith({
+      revision: 2,
+      timeoutMs: 100,
+    });
+  });
+});
 
 describe('refreshHostToolCatalog', () => {
   it('starts the initial prompt before waiting for lazy MCP discovery', async () => {
