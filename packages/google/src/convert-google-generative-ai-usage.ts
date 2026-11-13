@@ -42,13 +42,15 @@ export function convertGoogleGenerativeAIUsage(
 
   const promptTokens = usage.promptTokenCount ?? 0;
   const candidatesTokens = usage.candidatesTokenCount ?? 0;
+  const toolUsePromptTokens = usage.toolUsePromptTokenCount ?? 0;
   const cachedContentTokens = usage.cachedContentTokenCount ?? 0;
   const thoughtsTokens = usage.thoughtsTokenCount ?? 0;
+  const inputTokens = promptTokens + toolUsePromptTokens;
 
   return {
     inputTokens: {
-      total: promptTokens,
-      noCache: promptTokens - cachedContentTokens,
+      total: inputTokens,
+      noCache: inputTokens - cachedContentTokens,
       cacheRead: cachedContentTokens,
       cacheWrite: undefined,
     },
