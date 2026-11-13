@@ -25,6 +25,7 @@ import { start } from 'workflow/api';
 import { z } from 'zod/v4';
 import { mockSequenceModel } from './providers/mock.js';
 import {
+  agentClientToolStopWithGlobalTelemetry,
   agentGenerateWithGlobalTelemetry,
   agentStreamWithGlobalTelemetry,
   agentToolLoopWithGlobalTelemetry,
@@ -323,6 +324,23 @@ describe('WorkflowAgent telemetry with global integrations', () => {
         hrTimeToMs(parent.endTime),
       );
     }
+  });
+
+  it('stream: ends the last step span when a tool without execute stops the run', async () => {
+    const run = await start(agentClientToolStopWithGlobalTelemetry, [2, 3]);
+    expect(await run.returnValue).toEqual({
+      stepCount: 2,
+      toolCalls: ['askUser'],
+    });
+
+    expect(getSpanTree().shape).toEqual({
+      'invoke_agent workflow-test-model': [
+        {
+          'step 1': ['chat workflow-test-model', 'execute_tool addNumbers'],
+        },
+        { 'step 2': ['chat workflow-test-model'] },
+      ],
+    });
   });
 });
 
