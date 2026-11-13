@@ -280,7 +280,7 @@ describe('modelCallIterator', () => {
           },
         ],
         step: {
-          toolCalls: [],
+          toolCalls: [{ invalid: true, toolName: 'readFile' }],
         },
       },
     });

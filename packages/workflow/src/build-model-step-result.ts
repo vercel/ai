@@ -138,36 +138,34 @@ export async function buildModelStepResult(
     warnings,
   } = raw;
   const reasoningText = reasoningParts.map(r => r.text).join('') || undefined;
-  const validToolCallsByIndex = new Map(
-    toolCalls.flatMap((tc, index) =>
-      tc.invalid
-        ? []
-        : [
-            [
-              index,
-              {
-                type: 'tool-call' as const,
-                toolCallId: tc.toolCallId,
-                toolName: tc.toolName,
-                input: tc.input,
-                ...(tc.providerExecuted != null
-                  ? { providerExecuted: tc.providerExecuted }
-                  : {}),
-                ...(tc.title != null ? { title: tc.title } : {}),
-                ...(tc.toolMetadata != null
-                  ? { toolMetadata: tc.toolMetadata }
-                  : {}),
-                ...(tc.dynamic ? { dynamic: true as const } : {}),
-                ...(tc.providerExecuted ? { providerExecuted: true } : {}),
-                ...(tc.providerMetadata != null
-                  ? { providerMetadata: tc.providerMetadata }
-                  : {}),
-              },
-            ] as const,
-          ],
+  const toolCallPartsByIndex = new Map(
+    toolCalls.map(
+      (tc, index) =>
+        [
+          index,
+          {
+            type: 'tool-call' as const,
+            toolCallId: tc.toolCallId,
+            toolName: tc.toolName,
+            input: tc.input,
+            ...(tc.providerExecuted != null
+              ? { providerExecuted: tc.providerExecuted }
+              : {}),
+            ...(tc.title != null ? { title: tc.title } : {}),
+            ...(tc.toolMetadata != null
+              ? { toolMetadata: tc.toolMetadata }
+              : {}),
+            ...(tc.dynamic ? { dynamic: true } : {}),
+            ...(tc.invalid ? { invalid: true, error: tc.error } : {}),
+            ...(tc.providerExecuted ? { providerExecuted: true } : {}),
+            ...(tc.providerMetadata != null
+              ? { providerMetadata: tc.providerMetadata }
+              : {}),
+          } as StepResult<ToolSet, any>['toolCalls'][number],
+        ] as const,
     ),
   );
-  const validToolCalls = [...validToolCallsByIndex.values()];
+  const toolCallParts = [...toolCallPartsByIndex.values()];
   const content: StepResult<ToolSet, any>['content'] = [];
   const files: StepResult<ToolSet, any>['files'] = [];
   const sources: StepResult<ToolSet, any>['sources'] = [];
@@ -223,7 +221,7 @@ export async function buildModelStepResult(
         content.push(part);
         break;
       case 'tool-approval-request': {
-        const toolCall = validToolCalls.find(
+        const toolCall = toolCallParts.find(
           call => call.toolCallId === part.toolCallId,
         );
         if (toolCall != null)
@@ -235,7 +233,7 @@ export async function buildModelStepResult(
         break;
       }
       case 'tool-call': {
-        const toolCall = validToolCallsByIndex.get(part.toolCallIndex);
+        const toolCall = toolCallPartsByIndex.get(part.toolCallIndex);
         if (toolCall != null) {
           content.push(toolCall);
         }
@@ -311,9 +309,9 @@ export async function buildModelStepResult(
     reasoningText,
     files,
     sources,
-    toolCalls: validToolCalls,
-    staticToolCalls: validToolCalls.filter(tc => tc.dynamic !== true),
-    dynamicToolCalls: validToolCalls.filter(tc => tc.dynamic),
+    toolCalls: toolCallParts,
+    staticToolCalls: toolCallParts.filter(tc => tc.dynamic !== true),
+    dynamicToolCalls: toolCallParts.filter(tc => tc.dynamic),
     toolResults,
     staticToolResults: toolResults.filter(result => result.dynamic !== true),
     dynamicToolResults: toolResults.filter(result => result.dynamic === true),

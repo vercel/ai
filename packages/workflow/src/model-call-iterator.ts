@@ -707,9 +707,8 @@ export async function* modelCallIterator({
           ),
         );
 
-        // Add assistant message content in provider emission order. Invalid
-        // tool calls are not part of StepResult.content, so retain the previous
-        // behavior of appending them to the prompt.
+        // Add assistant message content in provider emission order. Tool calls
+        // that are missing from the step content are appended to the prompt.
         // Note: providerMetadata from the tool call is mapped to providerOptions
         // in the prompt format, following the AI SDK convention. This is critical
         // for providers like Gemini that require thoughtSignature to be preserved
