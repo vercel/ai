@@ -321,17 +321,17 @@ try {
     name: 'Superagent',
     description:
       'AI security guardrails for your LLMs. Protect your AI apps from prompt injection, redact PII/PHI (SSNs, emails, phone numbers), and verify claims against source materials. Add security tools to your LLMs in just a few lines of code.',
-    packageName: '@superagent-ai/ai-sdk',
+    packageName: '@superagent-labs/ai-sdk',
     tags: ['security', 'guardrails', 'pii', 'prompt-injection', 'verification'],
     apiKeyEnvName: 'SUPERAGENT_API_KEY',
     installCommand: {
-      pnpm: 'pnpm add @superagent-ai/ai-sdk',
-      npm: 'npm install @superagent-ai/ai-sdk',
-      yarn: 'yarn add @superagent-ai/ai-sdk',
-      bun: 'bun add @superagent-ai/ai-sdk',
+      pnpm: 'pnpm add @superagent-labs/ai-sdk',
+      npm: 'npm install @superagent-labs/ai-sdk',
+      yarn: 'yarn add @superagent-labs/ai-sdk',
+      bun: 'bun add @superagent-labs/ai-sdk',
     },
     codeExample: `import { generateText, isStepCount } from 'ai';
-import { guard, redact, verify } from '@superagent-ai/ai-sdk';
+import { guard, redact, verify } from '@superagent-labs/ai-sdk';
 import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
@@ -349,7 +349,7 @@ console.log(text);`,
     docsUrl: 'https://docs.superagent.sh',
     apiKeyUrl: 'https://dashboard.superagent.sh',
     websiteUrl: 'https://superagent.sh',
-    npmUrl: 'https://www.npmjs.com/package/@superagent-ai/ai-sdk',
+    npmUrl: 'https://www.npmjs.com/package/@superagent-labs/ai-sdk',
   },
   {
     slug: 'tako-search',
