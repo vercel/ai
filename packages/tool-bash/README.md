@@ -1,4 +1,4 @@
-# AI SDK Bash Tool
+# AI SDK - Bash Tool
 
 A first-party, provider-independent bash tool for the [AI SDK](https://ai-sdk.dev/docs).
 

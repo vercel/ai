@@ -555,7 +555,7 @@ function formatObjectKey(key: string): string {
   return isIdentifier(key) ? key : JSON.stringify(key);
 }
 
-function formatPropertyAccess(key: string): string {
+export function formatPropertyAccess(key: string): string {
   return isIdentifier(key) ? `.${key}` : `[${JSON.stringify(key)}]`;
 }
 

@@ -9,6 +9,8 @@ Creates a durable, resumable AI agent for use inside a workflow. `WorkflowAgent`
 
 Unlike [`ToolLoopAgent`](/docs/reference/ai-sdk-core/tool-loop-agent) from the `ai` package, `WorkflowAgent` is designed to survive process restarts, pause for human approval, and integrate with the Workflow DevKit's step mechanism.
 
+`WorkflowAgent` does not implement the `Agent` interface, and its options, callbacks, and results differ from `ToolLoopAgent`. See [Differences from ToolLoopAgent](/docs/agents/workflow-agent#differences-from-toolloopagent) for the list.
+
 `WorkflowAgent` supports `runtimeContext` for shared agent state and `toolsContext` for per-tool context. Because these values can cross workflow and step boundaries, keep them serializable durable data. Unlike `ToolLoopAgent`, do not place functions, class instances, symbols, database clients, or SDK clients in context; pass identifiers or configuration and recreate non-serializable resources inside step functions.
 
 ```ts
@@ -134,7 +136,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'DownloadFunction',
       isOptional: true,
       description:
-        "Default custom download function for URLs. Mark the function with 'use step' when used in a workflow. Per-stream values override this default.",
+        "Default custom download function for URLs. Mark the function with 'use step' when used in a workflow and create any fetch transport inside the step rather than passing it across workflow boundaries. Per-stream values override this default. For untrusted URLs, see [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).",
     },
     {
       name: 'experimental_sandbox',
@@ -395,6 +397,20 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Callback called when all agent steps are finished and the response is complete. Receives steps, messages, text, finish reason, total usage, and context. If also specified in `stream()`, both callbacks fire (constructor first).',
     },
     {
+      name: 'onError',
+      type: 'WorkflowAgentOnErrorCallback',
+      isOptional: true,
+      description:
+        'Callback called when an error occurs. Aborts are not reported. If also specified in `generate()` or `stream()`, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
+    },
+    {
+      name: 'onAbort',
+      type: 'WorkflowAgentOnAbortCallback',
+      isOptional: true,
+      description:
+        'Callback called when the operation is aborted. Receives all previously finished steps. If also specified in `generate()` or `stream()`, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
+    },
+    {
       name: 'maxOutputTokens',
       type: 'number',
       isOptional: true,
@@ -462,6 +478,27 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       isOptional: true,
       description: 'Additional provider-specific configuration.',
     },
+    {
+      name: 'reasoning',
+      type: "LanguageModelV4CallOptions['reasoning']",
+      isOptional: true,
+      description:
+        'Reasoning effort for the model. Controls how much reasoning the model performs before it generates a response.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description:
+        'Default abort signal for every call on this agent. An `abortSignal` passed to `generate()` or `stream()` overrides it.',
+    },
+    {
+      name: 'allowSystemInMessages',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether system messages are allowed in the `prompt` or `messages` fields. When `false`, system messages in `prompt` or `messages` are rejected and must be provided through `instructions`. Default: false.',
+    },
   ]}
 />
 
@@ -495,7 +532,7 @@ console.log(result.text);
 console.log(result.usage);
 ```
 
-Accepts `WorkflowAgentGenerateOptions`, sharing prompt/messages, instructions, generation settings, tools and runtime context, preparation, stopping, output, and lifecycle options with `stream()`. It does not accept `writable`, `includeRawChunks`, `experimental_transform`, `sendFinish`, or `preventClose`. Without a configured stop condition, generation stops after at most 20 steps. `stream()` retains its existing unbounded default.
+Accepts `WorkflowAgentGenerateOptions`, sharing prompt/messages, instructions, generation settings, tools and runtime context, preparation, stopping, output, and lifecycle options with `stream()`. It does not accept `writable`, `includeRawChunks`, `sendFinish`, or `preventClose`. Without a configured stop condition, generation stops after at most 20 steps. `stream()` retains its existing unbounded default.
 
 The `include` option accepts `requestBody`, `responseBody`, and `requestMessages` booleans, all defaulting to `false`. Enable them only when the additional request/response data is needed. Response IDs, timestamps, model IDs, headers, and provider metadata are retained when supplied by the model.
 
@@ -531,6 +568,8 @@ const result = await agent.stream({
   messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
 });
 ```
+
+In addition to the options in the table, `stream()` accepts the generation settings of the constructor (`maxOutputTokens`, `temperature`, `topP`, `topK`, `presencePenalty`, `frequencyPenalty`, `stopSequences`, `seed`, `reasoning`, `maxRetries`, `headers`, `providerOptions`) and `abortSignal`. A value passed to `stream()` overrides the constructor value.
 
 <PropertiesTable
   content={[
@@ -627,17 +666,11 @@ const result = await agent.stream({
       description: "Callback to attempt automatic recovery when a tool call cannot be parsed. Mark the function with 'use step' when used in a workflow.",
     },
     {
-      name: 'experimental_transform',
-      type: 'StreamTextTransform | Array<StreamTextTransform>',
-      isOptional: true,
-      description: "Factories for stream transformations, applied in order to raw provider events before model processing and writable output. Each factory must return a TransformStream synchronously and maintain the stream structure. Mark each factory with 'use step' when used in a workflow.",
-    },
-    {
       name: 'experimental_download',
       type: 'DownloadFunction',
       isOptional: true,
       description:
-        "Custom download function for fetching files/URLs. Mark the function with 'use step' when used in a workflow.",
+        "Custom download function for fetching files/URLs. Mark the function with 'use step' when used in a workflow. For untrusted URLs, see [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).",
     },
     {
       name: 'experimental_sandbox',
@@ -747,13 +780,15 @@ const result = await agent.stream({
       name: 'onError',
       type: 'WorkflowAgentOnErrorCallback',
       isOptional: true,
-      description: 'Callback invoked when an error occurs during streaming.',
+      description:
+        'Callback invoked when an error occurs. Aborts are not reported. If also specified in the constructor, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
     },
     {
       name: 'onAbort',
       type: 'WorkflowAgentOnAbortCallback',
       isOptional: true,
-      description: 'Callback invoked when the operation is aborted. Receives all previously finished steps.',
+      description:
+        'Callback invoked when the operation is aborted. Receives all previously finished steps. If also specified in the constructor, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
     },
 
 ]}
@@ -788,6 +823,16 @@ Returns a `Promise<WorkflowAgentStreamResult>` with the following properties:
         'Tool results from the last step. Only includes results for tools that were executed.',
     },
     {
+      name: 'finishReason',
+      type: 'FinishReason',
+      description: 'The finish reason of the last step.',
+    },
+    {
+      name: 'totalUsage',
+      type: 'LanguageModelUsage',
+      description: 'The token usage of all steps combined.',
+    },
+    {
       name: 'error',
       type: 'unknown | undefined',
       description:
@@ -816,48 +861,6 @@ error when it crosses this step boundary.
 The callback can be asynchronous. Return the repaired tool call, or `null`
 if the repair cannot be completed. See [tool call repair](/docs/ai-sdk-core/tools-and-tool-calling#tool-call-repair)
 for repair strategies.
-
-### `experimental_transform` in a workflow
-
-Pass a transform factory, or an array of factories, to `stream()`.
-Mark each factory with `'use step'` so Workflow can load it inside the model
-step. The factory must return a `TransformStream` synchronously. Keep any
-captured values serializable.
-
-```ts
-import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
-import { WorkflowAgent } from '@ai-sdk/workflow';
-import { getWritable } from 'workflow';
-
-function uppercaseText() {
-  'use step';
-
-  return new TransformStream<
-    LanguageModelV4StreamPart,
-    LanguageModelV4StreamPart
-  >({
-    transform(part, controller) {
-      controller.enqueue(
-        part.type === 'text-delta'
-          ? { ...part, delta: part.delta.toUpperCase() }
-          : part,
-      );
-    },
-  });
-}
-
-export async function uppercaseWorkflow() {
-  'use workflow';
-
-  const agent = new WorkflowAgent({ model: 'openai/gpt-5' });
-
-  return agent.stream({
-    messages: [{ role: 'user', content: 'Write a short greeting.' }],
-    writable: getWritable(),
-    experimental_transform: uppercaseText,
-  });
-}
-```
 
 ## Utilities
 

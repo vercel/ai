@@ -34,7 +34,15 @@ const result = streamText({
     console.log('Token usage:', usage);
   },
 });
+
+// Consume the stream so onEnd can record usage.
+await result.consumeStream();
 ```
+
+The `onEnd` callback only fires once the stream is consumed — for example by
+iterating `partialOutputStream`, piping it, or calling `result.consumeStream()`.
+Without consuming the stream, the result is created but the callback is never
+called.
 
 ## `usage` Promise
 

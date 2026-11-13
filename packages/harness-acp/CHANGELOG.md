@@ -1,5 +1,180 @@
 # @ai-sdk/harness-acp
 
+## 1.0.123
+
+### Patch Changes
+
+- 71bef69: feat(harness): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [6d50947]
+- Updated dependencies [71bef69]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/harness@1.0.183
+
+## 1.0.122
+
+### Patch Changes
+
+- 6f9d73f: fix(harness-acp): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [2ebc78b]
+- Updated dependencies [1a94af3]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/harness@1.0.182
+
+## 1.0.121
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.181
+
+## 1.0.120
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/harness@1.0.180
+
+## 1.0.119
+
+### Patch Changes
+
+- 0fc1f13: chore(harness): update harness adapter underlying SDKs to their latest releases
+- c849d37: feat(harness): use public-key cryptography instead of token for sandbox bridge communication
+- Updated dependencies [c849d37]
+- Updated dependencies [7f1c01e]
+- Updated dependencies [88b9575]
+  - @ai-sdk/harness@1.0.179
+  - @ai-sdk/provider-utils@5.0.78
+
+## 1.0.118
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/harness@1.0.178
+
+## 1.0.117
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.177
+
+## 1.0.116
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/harness@1.0.176
+
+## 1.0.115
+
+### Patch Changes
+
+- a54f0fd: fix(harness): abort a running turn when its host disconnects for good
+- Updated dependencies [8e8033a]
+- Updated dependencies [a54f0fd]
+  - @ai-sdk/harness@1.0.175
+
+## 1.0.114
+
+### Patch Changes
+
+- deeb2bf: feat(harness-acp): add optional `prepareSandbox` callback support on `createACP()`
+- Updated dependencies [3bf70f8]
+- Updated dependencies [89aff56]
+  - @ai-sdk/harness@1.0.174
+  - @ai-sdk/provider-utils@5.0.75
+
+## 1.0.113
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/harness@1.0.173
+
+## 1.0.112
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [8a20b57]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+  - @ai-sdk/harness@1.0.172
+
+## 1.0.111
+
+### Patch Changes
+
+- 5d20d90: fix(harness-acp): recover missing tool approval input from observed updates
+- 5622bf1: Require host approval for native file operations outside the session workspace under restrictive permission modes. Automatic approvals now check every declared location, including symlinks and new-file destinations, and require approval when file locations are missing or cannot be resolved.
+  - @ai-sdk/harness@1.0.171
+
+## 1.0.110
+
+### Patch Changes
+
+- 03dac28: feat(harness-acp): require new `resolveHostToolCall()` callback and `isMcpToolCall()` callback for harness-owned control of these non-ACP details
+
+## 1.0.109
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.170
+
+## 1.0.108
+
+### Patch Changes
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/harness@1.0.169
+
+## 1.0.107
+
+### Patch Changes
+
+- Updated dependencies [033f8d9]
+- Updated dependencies [e7a8988]
+- Updated dependencies [2c12e25]
+- Updated dependencies [61a315e]
+- Updated dependencies [6eab0f7]
+  - @ai-sdk/harness@1.0.168
+  - @ai-sdk/provider-utils@5.0.71
+
+## 1.0.106
+
+### Patch Changes
+
+- 726a1cc: fix(harness): copy bridge lockfile as `pnpm-lockfile.yaml` in `dist/` so `pnpm pack` includes it in published tarballs
+  - @ai-sdk/harness@1.0.167
+
+## 1.0.105
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/harness@1.0.166
+
+## 1.0.104
+
+### Patch Changes
+
+- 39aae54: fix(harness): ensure harness adapters always resolve the model used
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/harness@1.0.165
+
 ## 1.0.103
 
 ### Patch Changes

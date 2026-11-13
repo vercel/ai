@@ -61,7 +61,7 @@ function parallelToolCallProviderMetadata(index: number) {
         itemId: 'fc_parallel',
         toolCallId: 'call_parallel',
         toolName: 'parallel',
-        input: PARALLEL_TOOL_CALL_INPUT,
+        ...(index === 0 && { input: PARALLEL_TOOL_CALL_INPUT }),
         index,
         count: 2,
       },
@@ -1346,7 +1346,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       );
 
       it.each(['none', 'minimal'])(
-        'should omit unsupported GPT-6 reasoning effort %s',
+        'should send provider reasoning effort %s unchanged for GPT-6 models',
         async reasoningEffort => {
           const { warnings } = await createModel('gpt-6-astra').doGenerate({
             prompt: TEST_PROMPT,
@@ -1357,21 +1357,31 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           });
 
-          expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
             model: 'gpt-6-astra',
-            input: [
-              {
-                role: 'user',
-                content: [{ type: 'input_text', text: 'Hello' }],
-              },
-            ],
+            reasoning: { effort: reasoningEffort },
+          });
+          expect(warnings).toStrictEqual([]);
+        },
+      );
+
+      it.each(['none', 'minimal'] as const)(
+        'should map unsupported GPT-6 reasoning %s to the lowest supported effort',
+        async reasoning => {
+          const { warnings } = await createModel('gpt-6-astra').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning,
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
+            model: 'gpt-6-astra',
+            reasoning: { effort: 'low' },
           });
           expect(warnings).toStrictEqual([
             {
-              type: 'unsupported',
-              feature: 'reasoningEffort',
-              details:
-                'gpt-6-astra only supports the following reasoning efforts: low, medium, high, xhigh, max',
+              type: 'compatibility',
+              feature: 'reasoning',
+              details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "low".`,
             },
           ]);
         },
@@ -1421,6 +1431,60 @@ describe('OpenAIResponsesLanguageModel', () => {
             details: 'logprobs is not supported for reasoning models',
           },
         ]);
+      });
+
+      it('should keep logprob settings for GPT-5 reasoning models', async () => {
+        const { warnings } = await createModel('gpt-5.5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'low',
+              logprobs: 5,
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.top_logprobs).toBe(5);
+        expect(body.include).toStrictEqual(['message.output_text.logprobs']);
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it.each([
+        ['gpt-5.5', 'minimal', 'low'],
+        ['gpt-5.1', 'xhigh', 'high'],
+        ['gpt-5-nano', 'none', 'minimal'],
+      ] as const)(
+        'should map unsupported reasoning for %s from %s to %s',
+        async (modelId, reasoning, expectedEffort) => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning,
+          });
+
+          expect((await server.calls[0].requestBodyJson).reasoning.effort).toBe(
+            expectedEffort,
+          );
+          expect(warnings).toStrictEqual([
+            {
+              type: 'compatibility',
+              feature: 'reasoning',
+              details: `reasoning "${reasoning}" is not directly supported by this model. mapped to effort "${expectedEffort}".`,
+            },
+          ]);
+        },
+      );
+
+      it('should send max reasoning for GPT-5.6 models', async () => {
+        const { warnings } = await createModel('gpt-5.6-luna').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning.effort).toBe(
+          'max',
+        );
+        expect(warnings).toStrictEqual([]);
       });
 
       it('should let GPT-5.6 use its default effort with pro mode', async () => {
@@ -2087,7 +2151,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
             details:
-              'reasoningEffortUpdate is only supported by GPT-6 and later models',
+              'Configuration updates are only supported by GPT-6 and later models',
           },
         ]);
       });
@@ -2116,9 +2180,25 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
             details:
-              'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation',
+              'Configuration updates require standard reasoning mode without automatic compaction or automatic truncation',
           },
         ]);
+      });
+
+      it('should send prompt cache retention for GPT-5 models', async () => {
+        const { warnings } = await createModel('gpt-5.5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheRetention: '24h',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).prompt_cache_retention,
+        ).toBe('24h');
+        expect(warnings).toStrictEqual([]);
       });
 
       it('should omit legacy prompt cache retention for GPT-6 models', async () => {
@@ -5171,7 +5251,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     describe.each([true, false])(
       'web search status with action: %s',
       withAction => {
-        it.each(['failed', 'incomplete'])(
+        it.each(['failed', 'incomplete', 'searching'])(
           'should mark %s web searches as tool errors',
           async status => {
             server.urls['https://api.openai.com/v1/responses'].response = {
@@ -5468,6 +5548,38 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           },
         });
+      });
+    });
+
+    describe('mcp tunnel tool', () => {
+      it('should send a tunnel target without legacy target fields', async () => {
+        prepareJsonFixtureResponse('openai-mcp-tool.1');
+        const options = {
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider' as const,
+              id: 'openai.mcp' as const,
+              name: 'MCP',
+              args: {
+                serverLabel: 'private',
+                tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+                allowedTools: { readOnly: true },
+                requireApproval: 'always',
+              },
+            },
+          ],
+        };
+        await createModel('gpt-5-mini').doGenerate(options);
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'mcp',
+            server_label: 'private',
+            tunnel_id: 'tunnel_0123456789abcdef0123456789abcdef',
+            allowed_tools: { read_only: true },
+            require_approval: 'always',
+          },
+        ]);
       });
     });
 
@@ -7547,9 +7659,509 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
       );
     });
+
+    it('should surface a refusal content part as text and map the finish reason to content-filter', async () => {
+      prepareJsonFixtureResponse('openai-refusal.1');
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'response',
+          schema: {
+            type: 'object',
+            properties: { steps: { type: 'array', items: { type: 'string' } } },
+            required: ['steps'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: "I'm sorry, I can't assist with that.",
+          providerMetadata: {
+            openai: {
+              itemId: 'msg_0390d4b158946a22006aebf39c868487d0aa03f83805e9f8a7',
+            },
+          },
+        },
+      ]);
+      expect(result.structuredOutputText).toBeUndefined();
+      expect(result.finishReason).toEqual({
+        unified: 'content-filter',
+        raw: undefined,
+      });
+    });
+
+    it('should surface output_text and refusal parts from the same message', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_refusal_mixed',
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_refusal_mixed',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Here is what I can share.',
+                  annotations: [],
+                },
+                {
+                  type: 'refusal',
+                  refusal: "I can't share the rest.",
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 13, output_tokens: 7 },
+        },
+      };
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'Here is what I can share.',
+          providerMetadata: {
+            openai: { itemId: 'msg_refusal_mixed' },
+          },
+        },
+        {
+          type: 'text',
+          text: "I can't share the rest.",
+          providerMetadata: {
+            openai: { itemId: 'msg_refusal_mixed' },
+          },
+        },
+      ]);
+      expect(result.finishReason).toEqual({
+        unified: 'content-filter',
+        raw: undefined,
+      });
+    });
+
+    it('should keep two message items as separate text parts', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_two_messages',
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_first',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'First message.',
+                  annotations: [],
+                },
+              ],
+            },
+            {
+              id: 'msg_second',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Second message.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 13, output_tokens: 7 },
+        },
+      };
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'First message.',
+          providerMetadata: {
+            openai: { itemId: 'msg_first' },
+          },
+        },
+        {
+          type: 'text',
+          text: 'Second message.',
+          providerMetadata: {
+            openai: { itemId: 'msg_second' },
+          },
+        },
+      ]);
+      expect(result.finishReason).toEqual({ unified: 'stop', raw: undefined });
+    });
+
+    it('should include a refusal in structuredOutputText for a final answer', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_refusal_final',
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_refusal_final',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              phase: 'final_answer',
+              content: [
+                {
+                  type: 'refusal',
+                  refusal: "I'm sorry, but I can't assist with that request.",
+                },
+              ],
+            },
+          ],
+          usage: { input_tokens: 13, output_tokens: 7 },
+        },
+      };
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: { type: 'json' },
+      });
+
+      expect(result.structuredOutputText).toBe(
+        "I'm sorry, but I can't assist with that request.",
+      );
+      expect(result.finishReason).toEqual({
+        unified: 'content-filter',
+        raw: undefined,
+      });
+    });
+
+    it('should prefer tool-calls over content-filter when a refusal is accompanied by a function call', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_refusal_function_call',
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_refusal_function_call',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'refusal',
+                  refusal: "I can't do that, but I can check the weather.",
+                },
+              ],
+            },
+            {
+              type: 'function_call',
+              id: 'fc_1',
+              call_id: 'call_1',
+              name: 'weather',
+              arguments: '{"location":"Paris"}',
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 13, output_tokens: 7 },
+        },
+      };
+
+      const result = await createModel('gpt-4o').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: TEST_TOOLS,
+      });
+
+      expect(result.content.map(part => part.type)).toEqual([
+        'text',
+        'tool-call',
+      ]);
+      expect(result.finishReason).toEqual({
+        unified: 'tool-calls',
+        raw: undefined,
+      });
+    });
   });
 
   describe('doStream', () => {
+    it('should stream refusal content parts as text and map the finish reason to content-filter', async () => {
+      prepareChunksFixtureResponse('openai-refusal.1');
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'response',
+          schema: {
+            type: 'object',
+            properties: { steps: { type: 'array', items: { type: 'string' } } },
+            required: ['steps'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_0c23285ace96282b006aebf3a5d14487d0a7209e6699450427",
+            "modelId": "gpt-4o-2024-08-06",
+            "timestamp": 2026-11-05T03:10:29.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+              },
+            },
+            "type": "text-start",
+          },
+          {
+            "delta": "I'm",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " very",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " sorry",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": ",",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " but",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " I",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " can't",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " assist",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " with",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": " that",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "delta": ".",
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "type": "text-delta",
+          },
+          {
+            "id": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_0c23285ace96282b006aebf3a6877887d095e452766dc4c948",
+              },
+            },
+            "type": "text-end",
+          },
+          {
+            "finishReason": {
+              "raw": undefined,
+              "unified": "content-filter",
+            },
+            "providerMetadata": {
+              "openai": {
+                "responseId": "resp_0c23285ace96282b006aebf3a5d14487d0a7209e6699450427",
+                "serviceTier": "default",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 55,
+                "total": 55,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 13,
+                "total": 13,
+              },
+              "raw": {
+                "input_tokens": 55,
+                "input_tokens_details": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 13,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+                "total_tokens": 68,
+              },
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should prefer tool-calls over content-filter when a refusal is streamed with a function call', async () => {
+      const messageItem = {
+        id: 'msg_refusal_function_call',
+        type: 'message',
+        status: 'completed',
+        role: 'assistant',
+        content: [
+          {
+            type: 'refusal',
+            refusal: "I can't do that, but I can check the weather.",
+          },
+        ],
+      };
+      const functionCallItem = {
+        id: 'fc_1',
+        type: 'function_call',
+        name: 'weather',
+        call_id: 'call_1',
+        arguments: '{"location":"Paris"}',
+        status: 'completed',
+      };
+
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          {
+            type: 'response.created',
+            response: { id: 'r1', created_at: 1, model: 'gpt-4o' },
+          },
+          {
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: { ...messageItem, status: 'in_progress', content: [] },
+          },
+          {
+            type: 'response.refusal.delta',
+            item_id: 'msg_refusal_function_call',
+            output_index: 0,
+            content_index: 0,
+            delta: "I can't do that, but I can check the weather.",
+          },
+          {
+            type: 'response.refusal.done',
+            item_id: 'msg_refusal_function_call',
+            output_index: 0,
+            content_index: 0,
+            refusal: "I can't do that, but I can check the weather.",
+          },
+          {
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: messageItem,
+          },
+          {
+            type: 'response.output_item.added',
+            output_index: 1,
+            item: { ...functionCallItem, arguments: '', status: 'in_progress' },
+          },
+          {
+            type: 'response.function_call_arguments.delta',
+            item_id: 'fc_1',
+            output_index: 1,
+            delta: '{"location":"Paris"}',
+          },
+          {
+            type: 'response.function_call_arguments.done',
+            item_id: 'fc_1',
+            output_index: 1,
+            arguments: '{"location":"Paris"}',
+          },
+          {
+            type: 'response.output_item.done',
+            output_index: 1,
+            item: functionCallItem,
+          },
+          {
+            type: 'response.completed',
+            response: {
+              incomplete_details: null,
+              output: [messageItem, functionCallItem],
+              usage: { input_tokens: 1, output_tokens: 2 },
+            },
+          },
+        ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+      };
+
+      const { stream } = await createModel('gpt-4o').doStream({
+        prompt: TEST_PROMPT,
+        tools: TEST_TOOLS,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.map(part => part.type)).toEqual([
+        'stream-start',
+        'response-metadata',
+        'text-start',
+        'text-delta',
+        'text-end',
+        'tool-input-start',
+        'tool-input-delta',
+        'tool-input-end',
+        'tool-call',
+        'finish',
+      ]);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        finishReason: { unified: 'tool-calls', raw: undefined },
+      });
+      expect(
+        parts
+          .filter(part => part.type === 'text-delta')
+          .map(part => part.delta)
+          .join(''),
+      ).toBe("I can't do that, but I can check the weather.");
+    });
+
     it.each([
       [undefined, undefined, 'interrupted'],
       ['response.completed', undefined, 'stop'],
@@ -9194,7 +9806,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     describe.each([true, false])(
       'streaming web search status with action: %s',
       withAction => {
-        it.each(['failed', 'incomplete'])(
+        it.each(['failed', 'incomplete', 'searching'])(
           'should mark %s web searches as tool errors',
           async status => {
             const item = {
@@ -10526,6 +11138,37 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('mcp tool', () => {
+      it('should send a tunnel target without legacy target fields', async () => {
+        prepareChunksFixtureResponse('openai-mcp-tool.1');
+        const options = {
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider' as const,
+              id: 'openai.mcp' as const,
+              name: 'MCP',
+              args: {
+                serverLabel: 'private',
+                tunnelId: 'tunnel_0123456789abcdef0123456789abcdef',
+                allowedTools: { readOnly: true },
+                requireApproval: 'always',
+              },
+            },
+          ],
+        };
+        const { stream } = await createModel('gpt-5-mini').doStream(options);
+        await convertReadableStreamToArray(stream);
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'mcp',
+            server_label: 'private',
+            tunnel_id: 'tunnel_0123456789abcdef0123456789abcdef',
+            allowed_tools: { read_only: true },
+            require_approval: 'always',
+          },
+        ]);
+      });
+
       it('should stream mcp tool results (list tools, tool calls, tool results)', async () => {
         prepareChunksFixtureResponse('openai-mcp-tool.1');
 

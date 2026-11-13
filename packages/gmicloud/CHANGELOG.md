@@ -1,5 +1,151 @@
 # @ai-sdk/gmicloud
 
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/openai-compatible@3.0.92
+
+## 3.0.62
+
+### Patch Changes
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/openai-compatible@3.0.91
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+  - @ai-sdk/openai-compatible@3.0.90
+
+## 3.0.60
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+  - @ai-sdk/openai-compatible@3.0.89
+
+## 3.0.59
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+- Updated dependencies [c9c6402]
+  - @ai-sdk/provider-utils@5.0.77
+  - @ai-sdk/openai-compatible@3.0.88
+
+## 3.0.58
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/openai-compatible@3.0.87
+  - @ai-sdk/provider@4.0.37
+
+## 3.0.57
+
+### Patch Changes
+
+- 2838776: Refactor GMI Cloud model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Request behavior is unchanged.
+- Updated dependencies [b63c06a]
+- Updated dependencies [646a7e3]
+  - @ai-sdk/openai-compatible@3.0.86
+
+## 3.0.56
+
+### Patch Changes
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [add01ab]
+- Updated dependencies [5f19ea5]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/openai-compatible@3.0.85
+  - @ai-sdk/provider-utils@5.0.75
+
+## 3.0.55
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+  - @ai-sdk/openai-compatible@3.0.84
+
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [4ae6986]
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [5006d83]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/openai-compatible@3.0.83
+  - @ai-sdk/provider-utils@5.0.73
+
+## 3.0.53
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/openai-compatible@3.0.82
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 3.0.52
+
+### Patch Changes
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+  - @ai-sdk/openai-compatible@3.0.81
+
+## 3.0.51
+
+### Patch Changes
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+  - @ai-sdk/openai-compatible@3.0.80
+
+## 3.0.50
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+- Updated dependencies [27a53b4]
+  - @ai-sdk/provider-utils@5.0.69
+  - @ai-sdk/openai-compatible@3.0.79
+
 ## 3.0.49
 
 ### Patch Changes

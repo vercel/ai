@@ -1,4 +1,8 @@
 import {
+  getRequestOrigin,
+  sanitizeRequestMetadata,
+} from '../telemetry/get-request-origin';
+import {
   getErrorMessage,
   type LanguageModelV4Content,
   type LanguageModelV4Prompt,
@@ -94,6 +98,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
           | 'tool-output-denied'
           | 'start-step'
           | 'finish-step'
+          | 'steering-message'
           | 'start'
           | 'abort';
       }
@@ -184,7 +189,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
  * If set and supported by the model, calls will generate deterministic results.
  * @param reasoning - Reasoning configuration for the model call.
  *
- * @param download - A function that downloads URLs as part of prompt conversion.
+ * @param download - A function that downloads URLs as part of prompt conversion and generated file URLs.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request.
  * @param includeRawChunks - Whether to include raw provider stream chunks in the model stream.
@@ -280,6 +285,8 @@ export async function streamLanguageModelCall<
   LanguageModelCallOptions): Promise<{
   stream: AsyncIterableStream<LanguageModelStreamPart<TOOLS>>;
   request?: {
+    /** Sanitized HTTP origin, when the provider reports an endpoint. */
+    url?: string;
     /**
      * Request HTTP body that was sent to the provider API.
      */
@@ -356,8 +363,8 @@ export async function streamLanguageModelCall<
     request,
   } = await executeLanguageModelCallInTelemetryContext({
     ...languageModelCallStartEvent,
-    execute: async () =>
-      await resolvedModel.doStream({
+    execute: async () => {
+      const result = await resolvedModel.doStream({
         ...callSettings,
         tools: stepTools,
         toolChoice: stepToolChoice,
@@ -367,7 +374,14 @@ export async function streamLanguageModelCall<
         abortSignal,
         headers,
         includeRawChunks,
-      }),
+      });
+      return {
+        ...result,
+        ...(result.request && {
+          request: sanitizeRequestMetadata(result.request),
+        }),
+      };
+    },
   });
 
   const standardizedStream = languageModelStream.pipeThrough(
@@ -377,6 +391,7 @@ export async function streamLanguageModelCall<
       messages: standardizedPrompt.messages,
       repairToolCall,
       refineToolInput,
+      download,
       abortSignal,
       callId: effectiveCallId,
       provider: resolvedModel.provider,
@@ -385,6 +400,7 @@ export async function streamLanguageModelCall<
       generateId,
       now,
       callStartTimestampMs,
+      request,
       onLanguageModelCallEnd,
       collectContent,
     }),
@@ -406,6 +422,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   messages,
   repairToolCall,
   refineToolInput,
+  download,
   abortSignal,
   callId,
   provider,
@@ -414,6 +431,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   generateId,
   now,
   callStartTimestampMs,
+  request,
   onLanguageModelCallEnd,
   collectContent,
 }: {
@@ -422,6 +440,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   messages: ModelMessage[];
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   refineToolInput: ToolInputRefinement<TOOLS> | undefined;
+  download: DownloadFunction | undefined;
   abortSignal: AbortSignal | undefined;
   callId: string;
   provider: string;
@@ -430,6 +449,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   generateId: IdGenerator;
   now: () => number;
   callStartTimestampMs: number;
+  request?: { url?: string };
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
   collectContent: boolean;
 }) {
@@ -595,6 +615,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
           const file = new DefaultGeneratedFileWithType({
             data: await resolveGeneratedFileData({
               data: chunk.data,
+              download,
               abortSignal,
             }),
             mediaType: chunk.mediaType,
@@ -661,6 +682,9 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               usage,
               content: modelCallContent,
               responseId,
+              ...(request?.url != null
+                ? { request: { url: getRequestOrigin(request.url) } }
+                : {}),
               ...(chunk.providerMetadata != null
                 ? { providerMetadata: chunk.providerMetadata }
                 : {}),

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/mcp",
-  "version": "2.0.84",
+  "version": "2.0.99",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -56,7 +56,7 @@
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
     "vitest": "^4.1.11",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"

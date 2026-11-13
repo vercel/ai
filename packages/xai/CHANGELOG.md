@@ -1,5 +1,151 @@
 # @ai-sdk/xai
 
+## 5.0.45
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 5.0.44
+
+### Patch Changes
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 5.0.43
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 5.0.42
+
+### Patch Changes
+
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 5.0.41
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 5.0.40
+
+### Patch Changes
+
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 5.0.39
+
+### Patch Changes
+
+- 892af4d: feat (provider/xai): implement server-side realtime extensions
+
+  `XaiRealtimeModel` now implements `getServerWebSocketConfig()`, returning the upstream voice realtime WebSocket URL (with the `model` query param) plus header auth derived from the model's configured credentials. Unsupported endpoint intents are rejected. The event mapper now populates normalized `usage` on `response-done` and `input-transcription-completed` using xAI's OpenAI-compatible realtime wire shape.
+
+- 41465fd: Expose optional transcription word timings separately from segments and accept shared timestampGranularities. Explicit provider timing settings take precedence. OpenAI now sends timestamp_granularities only with verbose_json and warns when a requested timing is unavailable or excluded.
+- 2e44144: Support typed `output.uploadUrl` delivery for video generation, editing, and extension. Polling returns an explicit uploaded outcome without downloading or exposing the signed destination, including in request errors. Use camelCase `output.uploadUrl` instead of raw `output.upload_url` passthrough; the new option rejects null and requires an HTTPS URL.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 5.0.38
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 5.0.37
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 5.0.36
+
+### Patch Changes
+
+- 3d6ac0a: fix(xai): map `incomplete_details.reason` to finish reason in Responses `generateText`, so `max_output_tokens` reports `length` instead of `other`
+
+## 5.0.35
+
+### Patch Changes
+
+- 89b76ce: Centralize xAI language, image, speech, transcription, and realtime capabilities in a shared model catalog, preserving request policies and generating capability tables from the same declarations.
+
+## 5.0.34
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 5.0.33
+
+### Patch Changes
+
+- 61a315e: fix: map the top-level `reasoning` option consistently across providers
+
+  Providers now resolve reasoning the same way:
+
+  1. A provider-specific reasoning setting in `providerOptions` is sent unchanged. OpenAI no longer drops `providerOptions.openai.reasoningEffort` values that are not in its list for the model, and Fireworks no longer rewrites `providerOptions.fireworks.reasoningEffort`. Fireworks also sends top-level `reasoning` values directly instead of rounding them to `'high'` at most, except for model families known to reject `'none'` (GPT-OSS, GLM-5.3, Muse Spark) or `'minimal'` (Nemotron, Inkling).
+  2. Otherwise, `reasoning` maps to the closest level the model supports, rounding down, and rounds up only when there is no lower level. For example, `'xhigh'` now maps to `'high'` instead of `'max'` on Anthropic and Bedrock models without `xhigh` effort, and `'medium'` maps to `'low'` instead of `'high'` on DeepSeek, Kimi K3, and Mistral GLM-5.3 models.
+  3. `'none'` on a model that cannot disable reasoning maps to the model's lowest level with a compatibility warning, instead of being dropped or sending a request the API rejects. This affects GPT-6 models without `'none'`, xAI grok-4.5 and later, Groq GPT-OSS, Kimi K3, Perplexity, QuiverAI, Bedrock OpenAI `gpt-oss` models, and Gemini 2.5 Pro (minimum thinking budget). Gemini 3 and Anthropic and Bedrock `between_tools` mappings now emit the compatibility warning too.
+
+  `mapReasoningToProviderEffort` now accepts any `reasoning` value, returns an optional `providerOptionsEffort` unchanged, and rounds levels that are missing from the effort map to the closest supported level. `mapReasoningToProviderBudget` maps `'none'` to the minimum reasoning budget, always returns a budget, and uses the default percentage for levels missing from `budgetPercentages`. `OpenAICompatibleChatConfig` adds an optional `mapReasoning` function for mapping the top-level `reasoning` option.
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
+## 5.0.32
+
+### Patch Changes
+
+- 0eb8de6: fix(xai): stop emitting each citation twice when streaming responses with web or X search
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 5.0.31
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
 ## 5.0.30
 
 ### Patch Changes

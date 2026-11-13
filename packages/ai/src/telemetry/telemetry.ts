@@ -22,6 +22,7 @@ import type {
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
+  GenerateTextStepErrorEvent,
   GenerateTextStepStartEvent,
 } from '../generate-text/generate-text-events';
 import type {
@@ -55,11 +56,64 @@ import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { TelemetryTracingEventType } from './tracing-channel';
 import type { TracingChannelContext } from './tracing-channel-publisher';
 
+/** Serializable tracing identity shared by the processes of a durable run. */
+export type DurableTelemetryContext = {
+  traceId: string;
+  rootSpanId: string;
+  /** The integration's root-span data, reused when the run is reported. */
+  rootSpanName?: string;
+  rootAttributes?: Record<
+    string,
+    | string
+    | number
+    | boolean
+    | Array<string | null | undefined>
+    | Array<number | null | undefined>
+    | Array<boolean | null | undefined>
+    | undefined
+  >;
+  traceFlags: number;
+  traceState?: string;
+  samplingDecision: 0 | 1 | 2;
+  parentSpanContext?: {
+    traceId: string;
+    spanId: string;
+    traceFlags: number;
+    traceState?: string;
+  };
+};
+
+/** Identifies live model events and the run events reported after completion. */
+export type DurableTelemetryEventContext = {
+  run: DurableTelemetryContext;
+  stepNumber?: number;
+  phase: 'live' | 'replay';
+  /** Context has already been filtered before crossing the step boundary. */
+  runtimeContext?: Record<string, unknown>;
+  headers?: Record<string, string | undefined>;
+};
+
 export type InferTelemetryEvent<EVENT> = EVENT &
   Omit<
     TelemetryOptions,
     'integrations' | 'isEnabled' | 'includeRuntimeContext'
-  >;
+  > & {
+    /**
+     * The version of the `ai` package that emitted this event.
+     * Absent in older releases.
+     */
+    readonly aiVersion?: string;
+
+    /**
+     * Time at which the event occurred, in milliseconds since the Unix epoch.
+     *
+     * Set when events are reported after they happened, for example when a
+     * durable workflow reports a run that spanned several processes.
+     * Integrations should use it instead of the current time when present.
+     */
+    readonly timestamp?: number;
+    readonly durableContext?: DurableTelemetryEventContext;
+  };
 
 type BivariantCallback<EVENT> = {
   bivarianceHack(event: EVENT): PromiseLike<void> | void;
@@ -110,6 +164,7 @@ export interface TelemetryDispatcher {
   onStepEnd?: Callback<GenerateTextStepEndEvent>;
   /** @deprecated Use `onStepEnd` instead. */
   onStepFinish?: Callback<GenerateTextStepEndEvent>;
+  onStepError?: Callback<GenerateTextStepErrorEvent>;
   onObjectStepStart?: Callback<GenerateObjectStepStartEvent>;
   onObjectStepEnd?: Callback<GenerateObjectStepEndEvent>;
   onEmbedStart?: Callback<EmbeddingModelCallStartEvent>;
@@ -134,6 +189,21 @@ export interface TelemetryDispatcher {
  * Methods can be sync or return a PromiseLike.
  */
 export interface Telemetry {
+  /**
+   * Capture a serializable tracing identity before a durable run's model calls.
+   * Return undefined to preserve live per-model operations when the integration
+   * cannot reconstruct a run span across processes. Integrations without this
+   * hook receive the recorded lifecycle after completion.
+   */
+  experimental_durable?: {
+    captureContext: (
+      event: InferTelemetryEvent<GenerateTextStartEvent>,
+    ) =>
+      | DurableTelemetryContext
+      | undefined
+      | PromiseLike<DurableTelemetryContext | undefined>;
+  };
+
   /**
    * Called when an operation begins. Fired for text generation
    * (generateText/streamText), object generation (generateObject/streamObject),
@@ -201,6 +271,12 @@ export interface Telemetry {
    * @deprecated Use `onStepEnd` instead.
    */
   onStepFinish?: Callback<InferTelemetryEvent<GenerateTextStepEndEvent>>;
+
+  /**
+   * Called when a step that started fails before it produces a step result.
+   * Use it to close step-level spans. The call then ends with `onError`.
+   */
+  onStepError?: Callback<InferTelemetryEvent<GenerateTextStepErrorEvent>>;
 
   /**
    * Called when an object generation step (single LLM invocation) begins.

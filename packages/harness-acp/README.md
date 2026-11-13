@@ -3,8 +3,7 @@
 `HarnessV1` adapter backed by an
 [Agent Client Protocol](https://agentclientprotocol.com/) version 1 agent.
 The adapter ships a bridge process that runs inside a sandbox and talks to the
-host over a WebSocket on a sandbox-proxied loopback port. The configured ACP
-agent runs alongside the bridge inside the sandbox.
+host over a WebSocket on a sandbox-proxied loopback port.
 
 -> **Note**: This package is experimental.
 
@@ -41,6 +40,27 @@ const codexACP = createACP({
     type: 'session-config-option',
     path: 'model',
   },
+  // codex-acp reports MCP tool calls with a `{ server, tool, arguments }`
+  // raw input.
+  resolveHostToolCall: ({ toolCall, serverName, toolNames }) => {
+    const rawInput = toolCall.rawInput as
+      | { server?: unknown; tool?: unknown; arguments?: unknown }
+      | undefined;
+    if (
+      rawInput?.server !== serverName ||
+      typeof rawInput.tool !== 'string' ||
+      !toolNames.includes(rawInput.tool) ||
+      rawInput.arguments == null ||
+      typeof rawInput.arguments !== 'object'
+    ) {
+      return undefined;
+    }
+    return {
+      toolName: rawInput.tool,
+      input: rawInput.arguments as Record<string, unknown>,
+    };
+  },
+  isMcpToolCall: toolCall => toolCall._meta?.is_mcp_tool_call === true,
   credentialEnv: ['CODEX_API_KEY', 'OPENAI_API_KEY'],
   credentialBrokering: ({ env, sandboxEnv }) => {
     const environmentVariableName = env.CODEX_API_KEY

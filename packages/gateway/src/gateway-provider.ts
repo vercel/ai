@@ -5,10 +5,12 @@ import {
   createJsonResponseHandler,
   getErrorMessage,
   loadOptionalSetting,
+  resolve,
   postJsonToApi,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
+  type Resolvable,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { z } from './zod';
@@ -57,20 +59,21 @@ import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
-import type {
-  EmbeddingModelV4,
-  Experimental_BatchV4 as BatchV4,
-  ImageModelV4,
-  RerankingModelV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
-  Experimental_VideoModelV4,
-  Experimental_DecisionModelV4,
-  Experimental_StreamingSpeechModelV4,
-  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
-  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
-  ProviderV4,
-  LanguageModelV4,
+import {
+  LoadAPIKeyError,
+  type EmbeddingModelV4,
+  type Experimental_BatchV4 as BatchV4,
+  type ImageModelV4,
+  type RerankingModelV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
+  type Experimental_VideoModelV4,
+  type Experimental_DecisionModelV4,
+  type Experimental_StreamingSpeechModelV4,
+  type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
+  type ProviderV4,
+  type LanguageModelV4,
 } from '@ai-sdk/provider';
 import { VERSION } from './version';
 
@@ -306,8 +309,17 @@ export interface GatewayProviderSettings {
   /**
    * API key or Vercel access token that is being sent using the `Authorization`
    * header. It defaults to the `AI_GATEWAY_API_KEY` environment variable.
+   * A callback is resolved before each request and must return a non-empty key.
+   *
+   * If neither `apiKey` nor `AI_GATEWAY_API_KEY` is set to a non-empty value,
+   * the provider authenticates with the Vercel OIDC token instead, resolved for
+   * each request. On Vercel deployments this requires no configuration. For
+   * local development, run `vercel env pull` or `vercel dev` to get a token.
+   * A non-empty configured API key is always used instead of OIDC, even if the
+   * key is invalid. If no OIDC token is available either, requests fail with a
+   * `GatewayAuthenticationError` ("No authentication provided").
    */
-  apiKey?: string;
+  apiKey?: Resolvable<string>;
 
   /**
    * Vercel team ID or slug to scope requests for access tokens that can access
@@ -354,7 +366,7 @@ const gatewayClientSecretResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       token: z.string(),
-      expiresAt: z.number().nullish(),
+      expiresAt: z.nullish(z.number()),
     }),
   ),
 );
@@ -392,9 +404,13 @@ export function createGateway(
       `ai-sdk-gateway/${VERSION}`,
     );
 
-  const getHeaders = async () => {
+  const getHeaders = async (
+    onResolved?: (headers: Record<string, string | undefined>) => void,
+  ) => {
     try {
-      return createAuthHeaders(await getGatewayAuthToken(options));
+      const headers = createAuthHeaders(await getGatewayAuthToken(options));
+      onResolved?.(headers);
+      return headers;
     } catch (error) {
       throw GatewayAuthenticationError.createContextualError({
         apiKeyProvided: false,
@@ -520,9 +536,13 @@ export function createGateway(
     if (!pendingMetadata || now - lastFetchTime > cacheRefreshMillis) {
       lastFetchTime = now;
 
+      let resolvedHeaders: Record<string, string | undefined> | undefined;
       pendingMetadata = new GatewayFetchMetadata({
         baseURL,
-        headers: getHeaders,
+        headers: () =>
+          getHeaders(headers => {
+            resolvedHeaders = headers;
+          }),
         fetch: options.fetch,
       })
         .getAvailableModels()
@@ -533,7 +553,7 @@ export function createGateway(
         .catch(async (error: unknown) => {
           throw await asGatewayError(
             error,
-            await parseAuthMethod(await getHeaders()),
+            await parseAuthMethod(resolvedHeaders ?? {}),
           );
         });
     }
@@ -542,46 +562,58 @@ export function createGateway(
   };
 
   const getCredits = async () => {
+    let resolvedHeaders: Record<string, string | undefined> | undefined;
     return new GatewayFetchMetadata({
       baseURL,
-      headers: getHeaders,
+      headers: () =>
+        getHeaders(headers => {
+          resolvedHeaders = headers;
+        }),
       fetch: options.fetch,
     })
       .getCredits()
       .catch(async (error: unknown) => {
         throw await asGatewayError(
           error,
-          await parseAuthMethod(await getHeaders()),
+          await parseAuthMethod(resolvedHeaders ?? {}),
         );
       });
   };
 
   const getSpendReport = async (params: GatewaySpendReportParams) => {
+    let resolvedHeaders: Record<string, string | undefined> | undefined;
     return new GatewaySpendReport({
       baseURL,
-      headers: getHeaders,
+      headers: () =>
+        getHeaders(headers => {
+          resolvedHeaders = headers;
+        }),
       fetch: options.fetch,
     })
       .getSpendReport(params)
       .catch(async (error: unknown) => {
         throw await asGatewayError(
           error,
-          await parseAuthMethod(await getHeaders()),
+          await parseAuthMethod(resolvedHeaders ?? {}),
         );
       });
   };
 
   const getGenerationInfo = async (params: GatewayGenerationInfoParams) => {
+    let resolvedHeaders: Record<string, string | undefined> | undefined;
     return new GatewayGenerationInfoFetcher({
       baseURL,
-      headers: getHeaders,
+      headers: () =>
+        getHeaders(headers => {
+          resolvedHeaders = headers;
+        }),
       fetch: options.fetch,
     })
       .getGenerationInfo(params)
       .catch(async (error: unknown) => {
         throw await asGatewayError(
           error,
-          await parseAuthMethod(await getHeaders()),
+          await parseAuthMethod(resolvedHeaders ?? {}),
         );
       });
   };
@@ -740,6 +772,7 @@ export function createGateway(
       baseURL,
       teamIdOrSlug: options.teamIdOrSlug,
       createClientSecret: mintClientSecret,
+      getHeaders,
     });
   provider.experimental_realtime = Object.assign(
     (modelId: GatewayRealtimeModelId) => createRealtimeModel(modelId),
@@ -767,11 +800,39 @@ export function createGateway(
 
 export const gateway = createGateway();
 
+/**
+ * Resolves the credential for a Gateway request, in this order:
+ *
+ * 1. The `apiKey` setting (a string, or a callback resolved per request).
+ * 2. The `AI_GATEWAY_API_KEY` environment variable.
+ * 3. The Vercel OIDC token from `getVercelOidcToken()`. It is available
+ *    automatically on Vercel deployments, and locally after `vercel env pull`
+ *    or under `vercel dev`.
+ *
+ * A non-empty configured API key is never replaced by OIDC, even if the key is
+ * invalid. An empty string option or environment variable falls through to
+ * OIDC; a callback must return a non-empty key. Callers wrap a failure here in a
+ * `GatewayAuthenticationError` ("No authentication provided").
+ */
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
 ): Promise<{ token: string; authMethod: 'api-key' | 'oidc' }> {
+  const resolvedApiKey =
+    typeof options.apiKey === 'string' || options.apiKey == null
+      ? options.apiKey
+      : await resolve(options.apiKey);
+  if (
+    options.apiKey != null &&
+    typeof options.apiKey !== 'string' &&
+    (typeof resolvedApiKey !== 'string' || !resolvedApiKey.trim())
+  ) {
+    throw new LoadAPIKeyError({
+      message: 'AI Gateway API key must be a non-empty string.',
+    });
+  }
+
   const apiKey = loadOptionalSetting({
-    settingValue: options.apiKey,
+    settingValue: resolvedApiKey,
     environmentVariableName: 'AI_GATEWAY_API_KEY',
   });
 

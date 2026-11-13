@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-cline",
-  "version": "1.0.92",
+  "version": "1.0.111",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -38,8 +38,8 @@
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@cline/agents": "^0.0.90",
-    "@cline/core": "^0.0.90"
+    "@cline/agents": "^0.2.0",
+    "@cline/core": "^0.2.0"
   },
   "peerDependencies": {
     "zod": "^3.25.76 || ^4.1.8"
@@ -50,7 +50,7 @@
     "@vercel/ai-tsdown-config": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "6.0.3",
-    "zod": "3.25.76"
+    "zod": "4.6.7"
   },
   "engines": {
     "node": ">=22"

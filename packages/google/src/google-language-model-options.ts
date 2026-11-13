@@ -36,6 +36,8 @@ export type GoogleModelId =
   | 'gemini-3.7-flash'
   | 'gemini-3.8-flash'
   | 'gemini-4-argon'
+  | 'gemini-4-carbon'
+  | 'gemini-4-hydrogen'
   | 'gemini-nano-banana-2.1'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
@@ -71,7 +73,7 @@ export const googleLanguageModelOptions = lazySchema(() =>
           includeThoughts: z.boolean().optional(),
           // https://ai.google.dev/gemini-api/docs/gemini-3?thinking=high#thinking_level
           thinkingLevel: z
-            .enum(['minimal', 'low', 'medium', 'high'])
+            .enum(['minimal', 'low', 'medium', 'high', 'xhigh'])
             .optional(),
         })
         .optional(),

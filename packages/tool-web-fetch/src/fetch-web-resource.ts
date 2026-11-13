@@ -74,8 +74,8 @@ function formatErrorCode(error: unknown): string {
  *
  * Redirects are followed manually so that every hop is checked against the
  * domain filter and the private-address guard before it is requested. On
- * Node.js, the default transport additionally validates and pins DNS results
- * at connect time. A custom fetch must provide equivalent validation.
+ * Node.js, inject guarded-fetch for additional connection-time DNS
+ * validation. The default transport uses the runtime's global fetch.
  */
 export async function fetchWebResource({
   url,
@@ -132,7 +132,7 @@ export async function fetchWebResource({
         throw error;
       }
 
-      // The DNS-pinned transport rejects hostnames that resolve to private
+      // An injected guarded transport rejects hostnames that resolve to private
       // addresses with a DownloadError cause.
       if (findCause(error, DownloadError.isInstance) !== undefined) {
         return {
@@ -161,7 +161,15 @@ export async function fetchWebResource({
     const location = response.headers.get('location');
     if (REDIRECT_STATUS_CODES.has(response.status) && location) {
       void cancelResponseBody(response);
-      currentUrl = new URL(location, currentUrl).toString();
+      try {
+        currentUrl = new URL(location, currentUrl).toString();
+      } catch {
+        return {
+          type: 'error',
+          errorCode: 'network_error',
+          message: 'The server returned an invalid redirect location.',
+        };
+      }
       continue;
     }
 

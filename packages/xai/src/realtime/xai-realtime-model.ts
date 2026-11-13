@@ -1,12 +1,20 @@
+import {
+  type Resolvable,
+  resolve,
+  resolveWith,
+  removeUndefinedEntries,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
 import type {
   Experimental_RealtimeModelV4 as RealtimeModelV4,
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ClientSecretOptions as RealtimeModelV4ClientSecretOptions,
   Experimental_RealtimeModelV4ClientSecretResult as RealtimeModelV4ClientSecretResult,
+  Experimental_RealtimeModelV4ServerConnection as RealtimeModelV4ServerConnection,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4SessionIntent as RealtimeModelV4SessionIntent,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
   buildXaiSessionConfig,
   parseXaiRealtimeServerEvent,
@@ -16,12 +24,17 @@ import {
 export type XaiRealtimeModelConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
 export class XaiRealtimeModel implements RealtimeModelV4 {
   readonly specificationVersion = 'v4' as const;
+  readonly capabilities = {
+    conversation: 'turn-based',
+    transports: ['websocket'],
+    connections: ['client-secret-websocket', 'server-websocket'],
+  } as const;
   readonly provider: string;
   readonly modelId: string;
 
@@ -47,7 +60,7 @@ export class XaiRealtimeModel implements RealtimeModelV4 {
     const response = await fetchFn(url, {
       method: 'POST',
       headers: {
-        ...this.config.headers(),
+        ...(await resolve(this.config.headers)),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
@@ -85,17 +98,50 @@ export class XaiRealtimeModel implements RealtimeModelV4 {
     };
   }
 
+  getServerWebSocketConfig(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }):
+    | RealtimeModelV4ServerConnection
+    | PromiseLike<RealtimeModelV4ServerConnection> {
+    // xAI exposes only the conversational voice endpoint; fail fast instead of
+    // silently downgrading unsupported intents.
+    this.assertConversationIntent(options);
+    const url = new URL(this.config.baseURL);
+    const protocol = url.protocol === 'http:' ? 'ws:' : 'wss:';
+    const base = `${protocol}//${url.host}${url.pathname.replace(/\/$/, '')}`;
+    return resolveWith(this.config.headers, headers => ({
+      url: `${base}/realtime?model=${encodeURIComponent(this.modelId)}`,
+      headers: removeUndefinedEntries(headers),
+    }));
+  }
+
+  private assertConversationIntent(options?: {
+    intent?: RealtimeModelV4SessionIntent;
+  }): void {
+    if (options?.intent != null && options.intent !== 'conversation') {
+      throw new Error(
+        `xAI realtime does not support the '${options.intent}' session intent.`,
+      );
+    }
+  }
+
   parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent {
     return parseXaiRealtimeServerEvent(raw);
   }
 
-  serializeClientEvent(event: RealtimeModelV4ClientEvent): unknown {
+  serializeClientEvent(
+    event: RealtimeModelV4ClientEvent,
+    options?: { intent?: RealtimeModelV4SessionIntent },
+  ): unknown {
+    this.assertConversationIntent(options);
     return serializeXaiRealtimeClientEvent(event);
   }
 
   buildSessionConfig(
     config: RealtimeModelV4SessionConfig,
+    options?: { intent?: RealtimeModelV4SessionIntent },
   ): Record<string, unknown> {
+    this.assertConversationIntent(options);
     return buildXaiSessionConfig(config);
   }
 }

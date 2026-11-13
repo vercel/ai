@@ -58,9 +58,10 @@ export function normalizeOpenAIJsonSchema(schema: JSONSchema7): {
     const propertyNames = schema.propertyNames;
 
     if (propertyNames != null) {
+      // Property names are always strings in JSON, so omitted type is a string schema.
       if (
         typeof propertyNames === 'boolean' ||
-        propertyNames.type !== 'string'
+        (propertyNames.type != null && propertyNames.type !== 'string')
       ) {
         throw new UnsupportedFunctionalityError({
           functionality:

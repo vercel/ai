@@ -1,7 +1,6 @@
 import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
-  LanguageModelV4StreamPart,
   LanguageModelV4ToolResultPart,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
@@ -21,7 +20,7 @@ import {
   isStepCount,
   NoOutputGeneratedError,
   type GenerateTextResult,
-  experimental_filterActiveTools as filterActiveTools,
+  filterActiveTools,
   type FinishReason,
   type LanguageModelResponseMetadata,
   type LanguageModelUsage,
@@ -69,6 +68,12 @@ import type {
 import { resolveToolContext } from './resolve-tool-context.js';
 import { toModelResponseMessages } from './to-model-response-messages.js';
 import { modelCallIterator } from './model-call-iterator.js';
+import { shouldDispatchModelCallTelemetryInStep } from './model-call-telemetry.js';
+import {
+  createWorkflowAgentTelemetryRecorder,
+  prepareWorkflowAgentTelemetry,
+  reportWorkflowAgentTelemetry,
+} from './workflow-agent-telemetry.js';
 import {
   resolveWorkflowStreamResult,
   type WorkflowExecutionData,
@@ -172,14 +177,6 @@ export type TelemetryOptions<
   TRuntimeContext extends Context = Context,
   TTools extends ToolSet = ToolSet,
 > = CoreTelemetryOptions<TRuntimeContext, TTools>;
-
-/**
- * A transformation that is applied to the stream.
- */
-export type StreamTextTransform<TTools extends ToolSet> = (options: {
-  tools: TTools;
-  stopStream: () => void;
-}) => TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>;
 
 /**
  * Function to repair a tool call that failed to parse.
@@ -686,6 +683,22 @@ export type WorkflowAgentOptions<
      * Callback called after a tool execution completes.
      */
     onToolExecutionEnd?: WorkflowAgentOnToolExecutionEndCallback<TTools>;
+
+    /**
+     * Callback that is called when an error occurs. Aborts are not reported.
+     *
+     * If `onError` is also passed to `generate()` or `stream()`, both
+     * callbacks are called.
+     */
+    onError?: WorkflowAgentOnErrorCallback;
+
+    /**
+     * Callback that is called when the operation is aborted.
+     *
+     * If `onAbort` is also passed to `generate()` or `stream()`, both
+     * callbacks are called.
+     */
+    onAbort?: WorkflowAgentOnAbortCallback<TTools>;
 
     /**
      * Prepare the parameters for the stream call.
@@ -1264,15 +1277,6 @@ export type WorkflowAgentStreamOptions<
   includeRawChunks?: boolean;
 
   /**
-   * Optional stream transformations.
-   * They are applied in the order they are provided.
-   * The stream transformations must maintain the stream structure for streamText to work correctly.
-   */
-  experimental_transform?:
-    | StreamTextTransform<TTools>
-    | Array<StreamTextTransform<TTools>>;
-
-  /**
    * Whether to send a 'finish' chunk to the writable stream when streaming completes.
    * @default true
    */
@@ -1590,6 +1594,8 @@ export class WorkflowAgent<
   >;
   private constructorOnToolExecutionStart?: WorkflowAgentOnToolExecutionStartCallback<TBaseTools>;
   private constructorOnToolExecutionEnd?: WorkflowAgentOnToolExecutionEndCallback<TBaseTools>;
+  private constructorOnError?: WorkflowAgentOnErrorCallback;
+  private constructorOnAbort?: WorkflowAgentOnAbortCallback<TBaseTools>;
   private prepareCall?: PrepareCallCallback<TBaseTools, TRuntimeContext>;
 
   constructor(
@@ -1628,6 +1634,8 @@ export class WorkflowAgent<
       options.onStepStart ?? options.experimental_onStepStart;
     this.constructorOnToolExecutionStart = options.onToolExecutionStart;
     this.constructorOnToolExecutionEnd = options.onToolExecutionEnd;
+    this.constructorOnError = options.onError;
+    this.constructorOnAbort = options.onAbort;
     this.prepareCall = options.prepareCall;
     this.allowSystemInMessages = options.allowSystemInMessages ?? false;
 
@@ -1846,12 +1854,25 @@ export class WorkflowAgent<
       options.toolCallConcurrency ?? effectiveToolCallConcurrency,
     );
     const effectiveTelemetry = effectiveTelemetryFromPrepare;
+    // In a durable run, globally registered integrations are only visible in
+    // steps. Record the run's telemetry and report it when the run ends so the
+    // whole run is reported by one process (see workflow-agent-telemetry.ts).
+    const telemetryRecorder =
+      isInWorkflow() &&
+      shouldDispatchModelCallTelemetryInStep(effectiveTelemetry)
+        ? createWorkflowAgentTelemetryRecorder()
+        : undefined;
     const telemetryDispatcher = createRestrictedTelemetryDispatcher<
       any,
       any,
       any
     >({
-      telemetry: effectiveTelemetry as any,
+      telemetry: (telemetryRecorder == null
+        ? effectiveTelemetry
+        : {
+            ...effectiveTelemetry,
+            integrations: telemetryRecorder.integration,
+          }) as any,
       includeRuntimeContext: effectiveTelemetry?.includeRuntimeContext,
       includeToolsContext: effectiveTelemetry?.includeToolsContext,
     }) as any;
@@ -1902,6 +1923,7 @@ export class WorkflowAgent<
       effectiveToolApprovalSecret,
       effectiveTelemetry,
       telemetryDispatcher,
+      telemetryRecorder,
       prompt,
       download: effectiveDownloadFromPrepare,
       workflowDownload,
@@ -1926,6 +1948,32 @@ export class WorkflowAgent<
     > & { include?: WorkflowAgentGenerateOptions['include'] },
     mode: 'generate' | 'stream' = 'stream',
   ): Promise<WorkflowExecutionResult<TTools, TOutput>> {
+    const telemetryReport: WorkflowAgentTelemetryReport = {};
+    try {
+      return await this.executeInvocation<TTools, TOutput, TPartialOutput>(
+        options,
+        mode,
+        telemetryReport,
+      );
+    } finally {
+      await reportRecordedTelemetry(telemetryReport);
+    }
+  }
+
+  private async executeInvocation<
+    TTools extends TBaseTools = TBaseTools,
+    TOutput = DefaultWorkflowAgentOutput<OUTPUT>,
+    TPartialOutput = DefaultWorkflowAgentOutput<PARTIAL_OUTPUT>,
+  >(
+    options: WorkflowAgentStreamOptions<
+      TTools,
+      TRuntimeContext,
+      TOutput,
+      TPartialOutput
+    > & { include?: WorkflowAgentGenerateOptions['include'] },
+    mode: 'generate' | 'stream',
+    telemetryReport: WorkflowAgentTelemetryReport,
+  ): Promise<WorkflowExecutionResult<TTools, TOutput>> {
     const {
       onEnd,
       effectiveModel,
@@ -1940,6 +1988,7 @@ export class WorkflowAgent<
       effectiveToolApprovalSecret,
       effectiveTelemetry,
       telemetryDispatcher,
+      telemetryRecorder,
       prompt,
       download,
       workflowDownload,
@@ -1949,6 +1998,8 @@ export class WorkflowAgent<
       mergedOnToolExecutionStart,
       mergedOnToolExecutionEnd,
     } = await this.prepareInvocation(options, mode);
+    telemetryReport.recorder = telemetryRecorder;
+    telemetryReport.telemetry = effectiveTelemetry;
     const initialResponseMessages: WorkflowAgentGenerateResult<TTools>['responseMessages'] =
       [];
     const abortReason = () =>
@@ -2300,6 +2351,18 @@ export class WorkflowAgent<
         | undefined,
       options.onStepStart ?? options.experimental_onStepStart,
     );
+    // Like the other callbacks, errors thrown by `onError` and `onAbort` are
+    // ignored so that they cannot replace the error or result of the run.
+    const mergedOnError = mergeCallbacks(
+      this.constructorOnError,
+      options.onError,
+    );
+    const mergedOnAbort = mergeCallbacks(
+      this.constructorOnAbort as
+        | WorkflowAgentOnAbortCallback<TTools>
+        | undefined,
+      options.onAbort,
+    );
     // Determine effective tool choice
     const effectiveToolChoice = effectiveToolChoiceFromPrepare;
 
@@ -2362,6 +2425,13 @@ export class WorkflowAgent<
       toolsContext: toolsContext as unknown as InferToolSetContext<TTools>,
     });
 
+    if (telemetryRecorder != null) {
+      telemetryRecorder.contexts = await prepareWorkflowAgentTelemetry({
+        callId: telemetryRecorder.callId,
+        event: telemetryRecorder.events[0],
+      });
+    }
+
     // Helper to wrap executeTool with onToolExecutionStart/onToolExecutionEnd callbacks
     async function executeToolWithCallbacks(
       toolCall: { toolCallId: string; toolName: string; input: unknown },
@@ -2412,7 +2482,7 @@ export class WorkflowAgent<
           executeTool(
             toolCall,
             tools,
-            messages,
+            modelMessages,
             resolvedContext,
             effectiveAbortSignal,
             workflowDownload,
@@ -2546,9 +2616,7 @@ export class WorkflowAgent<
 
     // Check for abort before starting
     if (mergedGenerationSettings.abortSignal?.aborted) {
-      if (options.onAbort) {
-        await options.onAbort({ steps });
-      }
+      await mergedOnAbort({ steps });
       return {
         outcome: { status: 'aborted' },
         abortReason: abortReason(),
@@ -2558,7 +2626,7 @@ export class WorkflowAgent<
           toolCalls: [],
           toolResults: [],
           finishReason: 'other',
-          totalUsage: aggregateExecutionUsage(steps, mode),
+          totalUsage: aggregateUsage(steps),
           output: undefined as TOutput,
         },
       };
@@ -2588,6 +2656,9 @@ export class WorkflowAgent<
       runtimeContext,
       toolsContext,
       telemetry: effectiveTelemetry,
+      telemetryRecorder: telemetryRecorder?.integration,
+      telemetryCallId: telemetryRecorder?.callId,
+      telemetryContexts: telemetryRecorder?.contexts,
       includeRawChunks: options.includeRawChunks ?? false,
       timeoutAt,
       repairToolCall: (options.repairToolCall ??
@@ -2595,10 +2666,6 @@ export class WorkflowAgent<
         this.repairToolCall) as ToolCallRepairFunction<ToolSet> | undefined,
       download,
       responseFormat: await (options.output ?? this.output)?.responseFormat,
-      experimental_transform: options.experimental_transform as
-        | StreamTextTransform<ToolSet>
-        | Array<StreamTextTransform<ToolSet>>
-        | undefined,
       experimental_sandbox: sandbox,
     });
 
@@ -2616,9 +2683,7 @@ export class WorkflowAgent<
         // Check for abort during iteration
         if (mergedGenerationSettings.abortSignal?.aborted) {
           wasAborted = true;
-          if (options.onAbort) {
-            await options.onAbort({ steps });
-          }
+          await mergedOnAbort({ steps });
           break;
         }
 
@@ -2925,7 +2990,7 @@ export class WorkflowAgent<
                   ]
             ) as ModelMessage[];
             const lastStep = steps[steps.length - 1];
-            const totalUsage = aggregateExecutionUsage(steps, mode);
+            const totalUsage = aggregateUsage(steps);
             const finishReason = lastStep?.finishReason ?? 'other';
 
             const data: WorkflowExecutionData<TTools, TOutput> = {
@@ -2937,10 +3002,12 @@ export class WorkflowAgent<
               totalUsage,
               output: undefined as TOutput,
             };
-            if (mode === 'generate' && step != null) {
-              await mergedOnStepEnd?.(
-                step as StepResult<TTools, TRuntimeContext>,
-              );
+            if (step != null) {
+              if (mode === 'generate') {
+                await mergedOnStepEnd?.(
+                  step as StepResult<TTools, TRuntimeContext>,
+                );
+              }
               await telemetryDispatcher.onStepEnd?.(
                 normalizeStepForTelemetry(step),
               );
@@ -3128,9 +3195,7 @@ export class WorkflowAgent<
         } else {
           finalMessages = result.value.messages;
           wasAborted = true;
-          if (options.onAbort) {
-            await options.onAbort({ steps });
-          }
+          await mergedOnAbort({ steps });
         }
       }
     } catch (error) {
@@ -3139,21 +3204,17 @@ export class WorkflowAgent<
       // Check if this is an abort error
       if (isAbortError(error)) {
         wasAborted = true;
-        if (options.onAbort) {
-          await options.onAbort({ steps });
-        }
-      } else if (options.onError) {
+        await mergedOnAbort({ steps });
+      } else {
         // Call onError for non-abort errors (including tool execution errors)
-        await options.onError({ error });
+        await mergedOnError({ error });
       }
       await telemetryDispatcher.onError?.(error);
       // Don't throw yet - we want to call onEnd first
     }
 
     if (hasTerminalError) {
-      if (options.onError) {
-        await options.onError({ error: terminalError });
-      }
+      await mergedOnError({ error: terminalError });
       await telemetryDispatcher.onError?.(terminalError);
     }
 
@@ -3191,7 +3252,7 @@ export class WorkflowAgent<
     }
 
     const lastStep = steps[steps.length - 1];
-    const totalUsage = aggregateExecutionUsage(steps, mode);
+    const totalUsage = aggregateUsage(steps);
     const finishReason = lastStep?.finishReason ?? 'other';
 
     const data: WorkflowExecutionData<TTools, TOutput> = {
@@ -3271,6 +3332,41 @@ function getModelInfo(model: LanguageModel): {
   return typeof model === 'string'
     ? { provider: model.split('/')[0] ?? 'gateway', modelId: model }
     : { provider: model.provider, modelId: model.modelId };
+}
+
+/**
+ * Telemetry recorded during a durable run, reported when the run ends.
+ */
+interface WorkflowAgentTelemetryReport {
+  recorder?: ReturnType<typeof createWorkflowAgentTelemetryRecorder>;
+  telemetry?: TelemetryOptions<any, any>;
+}
+
+async function reportRecordedTelemetry({
+  recorder,
+  telemetry,
+}: WorkflowAgentTelemetryReport): Promise<void> {
+  if (
+    recorder == null ||
+    recorder.events.length === 0 ||
+    recorder.contexts?.length === 0
+  )
+    return;
+
+  try {
+    await reportWorkflowAgentTelemetry({
+      telemetry: {
+        functionId: telemetry?.functionId,
+        recordInputs: telemetry?.recordInputs,
+        recordOutputs: telemetry?.recordOutputs,
+      },
+      events: recorder.events,
+      callId: recorder.callId,
+      contexts: recorder.contexts,
+    });
+  } catch {
+    // Telemetry must never change the outcome of the run.
+  }
 }
 
 function normalizeStepForTelemetry<
@@ -3545,18 +3641,16 @@ function isInWorkflow(): boolean {
   }
 }
 
+/**
+ * Sums the usage of all steps the same way `generateText` and `streamText`
+ * do: token details are kept, and a count that no step reported stays
+ * `undefined` instead of becoming `0`.
+ */
 function aggregateUsage(steps: StepResult<any, any>[]): LanguageModelUsage {
-  let inputTokens = 0;
-  let outputTokens = 0;
-  for (const step of steps) {
-    inputTokens += step.usage?.inputTokens ?? 0;
-    outputTokens += step.usage?.outputTokens ?? 0;
-  }
-  return {
-    inputTokens,
-    outputTokens,
-    totalTokens: inputTokens + outputTokens,
-  } as LanguageModelUsage;
+  return steps.reduce(
+    (usage, step) => addLanguageModelUsage(usage, step.usage),
+    createNullLanguageModelUsage(),
+  );
 }
 
 async function resolveProviderToolResult(
@@ -3638,18 +3732,25 @@ function createInvalidToolResult(toolCall: {
   };
 }
 
+/**
+ * Returns the conversation that tools and tool callbacks receive. Like in
+ * `generateText` and `streamText`, it contains neither the system prompt nor
+ * the assistant message with the tool call that is being executed.
+ */
 function getToolCallbackMessages(
   messages: LanguageModelV4Prompt,
 ): ModelMessage[] {
   const withoutAssistantToolCall =
     messages.at(-1)?.role === 'assistant' ? messages.slice(0, -1) : messages;
-  return withoutAssistantToolCall as unknown as ModelMessage[];
+  return withoutAssistantToolCall.filter(
+    message => message.role !== 'system',
+  ) as unknown as ModelMessage[];
 }
 
 async function executeTool(
   toolCall: { toolCallId: string; toolName: string; input: unknown },
   tools: ToolSet,
-  messages: LanguageModelV4Prompt,
+  messages: ModelMessage[],
   context?: unknown,
   abortSignal?: AbortSignal,
   download?: DownloadFunction,
@@ -3729,18 +3830,6 @@ async function executeTool(
     rawOutput: toolResult,
     isError: false,
   };
-}
-
-function aggregateExecutionUsage(
-  steps: StepResult<any, any>[],
-  mode: 'generate' | 'stream',
-): LanguageModelUsage {
-  return mode === 'stream'
-    ? aggregateUsage(steps)
-    : steps.reduce(
-        (usage, step) => addLanguageModelUsage(usage, step.usage),
-        createNullLanguageModelUsage(),
-      );
 }
 
 function addApprovalRequestsToMessages(

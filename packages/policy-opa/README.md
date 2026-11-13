@@ -1,4 +1,4 @@
-# Policy-Based Tool Approvals
+# AI SDK - Policy-Based Tool Approvals
 
 Policy-as-code authorization for AI SDK tool calls, powered by [Open Policy Agent](https://www.openpolicyagent.org/).
 

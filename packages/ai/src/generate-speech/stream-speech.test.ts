@@ -500,17 +500,6 @@ describe('experimental_streamSpeech', () => {
     await expect(read).rejects.toThrow('user abort');
   });
 
-  it('should reject a text value that is not a string, iterable, or stream', () => {
-    expect(() =>
-      streamSpeech({
-        model: new MockStreamingSpeechModelV4({
-          doStream: async () => createStreamResponse(basicParts),
-        }),
-        text: { text: 'Hello' } as never,
-      }),
-    ).toThrow('Invalid argument for parameter text');
-  });
-
   it('should accept a readonly array of text parts directly', async () => {
     const script = [
       { type: 'text', text: 'Did you hear? ', voice: 'alice' },

@@ -104,7 +104,8 @@
           "excludeFiles": [
             "${providerId}-realtime-model.ts",
             "${providerId}-video-model.ts",
-            "${providerId}-decision-model.ts"
+            "${providerId}-decision-model.ts",
+            "packages/scaledown/src/scaledown-extraction-model.ts"
           ]
         },
         {
@@ -135,7 +136,8 @@
             "packages/gateway/src/gateway-reranking-model.ts",
             "packages/gateway/src/gateway-speech-model.ts",
             "packages/gateway/src/gateway-transcription-model.ts",
-            "packages/typesafe-ai/src/typesafe-ai-decision-model.ts"
+            "packages/typesafe-ai/src/typesafe-ai-decision-model.ts",
+            "packages/scaledown/src/scaledown-decision-model.ts"
           ]
         },
         {
@@ -398,7 +400,11 @@
             ],
             "importValues": [
               {
-                "name": "createBridgeToken",
+                "name": "createBridgeAuthKeyPair",
+                "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "createBridgeWebSocketConnect",
                 "from": "@ai-sdk/harness/utils"
               },
               {
@@ -410,7 +416,11 @@
                 "from": "@ai-sdk/harness/utils"
               }
             ],
-            "callFunction": ["resolveBridgeEndpoint"],
+            "callFunction": [
+              "createBridgeAuthKeyPair",
+              "createBridgeWebSocketConnect",
+              "resolveBridgeEndpoint"
+            ],
             "importTypes": [
               {
                 "name": "SandboxChannelReconnectOptions",
@@ -424,6 +434,7 @@
                   "type": "object",
                   "properties": {
                     "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "hostDisconnectTimeoutMs": { "type": "number" },
                     "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
@@ -459,6 +470,7 @@
                   "type": "object",
                   "properties": {
                     "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "hostDisconnectTimeoutMs": { "type": "number" },
                     "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
@@ -489,6 +501,7 @@
                   "type": "object",
                   "properties": {
                     "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "hostDisconnectTimeoutMs": { "type": "number" },
                     "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
@@ -1060,6 +1073,33 @@
           }
         }
       ]
+    },
+    {
+      "name": "verifier-must-follow-required-conventions",
+      "description": "Each verifier script must follow the required conventions.",
+      "paths": [".agents/verifiers/{verifier}.ts"],
+      "must": [
+        {
+          "name": "verifier-script-must-have-matching-guideline",
+          "description": "The verifier script must have a matching guideline",
+          "must": {
+            "haveFiles": ["../guidelines/${verifier}.md"]
+          }
+        },
+        {
+          "name": "verifier-script-must-use-verifier-runner",
+          "description": "The verifier script must use runVerifier().",
+          "must": {
+            "importValues": [
+              { "name": "runVerifier", "from": "../../tools/verifiers/api.ts" }
+            ],
+            "callFunction": ["runVerifier"]
+          },
+          "mustNot": {
+            "importValuesFrom": ["../../tools/verifiers/internal/*"]
+          }
+        }
+      ]
     }
   ],
   "kebabToPascalMap": {
@@ -1082,6 +1122,7 @@
     "opencode": "OpenCode",
     "quiverai": "QuiverAI",
     "togetherai": "TogetherAI",
+    "scaledown": "ScaleDown",
     "typesafe-ai": "TypeSafeAi"
   },
   "kebabToCamelMap": {

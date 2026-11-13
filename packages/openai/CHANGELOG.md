@@ -1,5 +1,207 @@
 # @ai-sdk/openai
 
+## 4.0.117
+
+### Patch Changes
+
+- 6d50947: add experimental extraction models backed by structured language model output
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 4.0.116
+
+### Patch Changes
+
+- 2ebc78b: Forward the provider's configured fetch transport when downloading file inputs. Add a `fetch` option to `createDownload` so core downloads can also use `guarded-fetch` for opt-in DNS validation on Node.js. The function returned by `createDownload` can now also be passed as `experimental_download` to `generateText` and `streamText`, and `experimental_download` now also handles generated file URLs returned by the model, so one hook covers all core downloads. Document that the default URL checks do not resolve DNS and recommend the guarded transport or network egress controls for untrusted URLs.
+
+  Keep Azure image and Vertex tool-result downloads separate from provider authentication wrappers so file hosts never receive Azure bearer tokens or Vertex Express Mode API keys.
+
+  Pass the call's abort signal to custom download requests, including prompt assets and generated files, so `experimental_download: createDownload({ fetch })` preserves cancellation and timeouts.
+
+- 6eff958: feat(openai): add positioned additionalTools and accept custom and namespace tools
+- a279e86: fix(openai): keep tool-result additionalTools for parallel results and openai options
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 4.0.115
+
+### Patch Changes
+
+- 5a645e9: Support positioned Responses API format updates so changing structured output schemas can preserve earlier reasoning and prompt cache reuse. Add a stable request-level text format override and expose prompt cache comparison diagnostics for generation, streaming, and batch results.
+
+## 4.0.114
+
+### Patch Changes
+
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 4.0.113
+
+### Patch Changes
+
+- 22b8158: Avoid repeating the complete parallel-tool wrapper input in every expanded tool call's metadata while preserving wrapper reconstruction for follow-up Responses API requests.
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 4.0.112
+
+### Patch Changes
+
+- 9f37b45: refactor: separate provider-specific credential redaction from core telemetry
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 4.0.111
+
+### Patch Changes
+
+- 6400cf8: Add `resolveProviderOptions` to parse provider options that a model accepts under several `providerOptions` keys, either as aliases (`first`) or merged in order (`merge`), and use it for the existing multi-key lookups in the OpenAI, OpenAI-compatible, Anthropic, Google, and Amazon Bedrock models. Resolution behavior for these models is unchanged.
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 4.0.110
+
+### Patch Changes
+
+- c6efa4b: Refactor Azure model ID logic into a model catalog that declares capabilities and provider options, and generate provider capability documentation from it. Export the OpenAI catalog internally for Azure to reuse. Request behavior is unchanged.
+- f6dbf04: fix(openai): surface Chat Completions refusals as text content
+
+  The Chat Completions model ignored `message.refusal` (non-streaming) and `delta.refusal` (streaming). When the model refused to answer, `content` was `null`, so the AI SDK returned empty text with a `stop` finish reason and silently dropped the refusal. Refusal text is now emitted as text content in both `generateText` and `streamText` results, and it is emitted in addition to content when the API returns both. A refusal with a `stop` finish reason is now reported as a `content-filter` finish reason, matching the Anthropic provider and the Responses API.
+
+- 646a7e3: fix(openai,openai-compatible): surface refusal logprobs and openai-compatible refusals
+
+  `@ai-sdk/openai`: Chat Completions responses that contain a refusal can return `logprobs.refusal` next to `logprobs.content`. The provider previously read only `logprobs.content`, so `providerMetadata.openai.logprobs` was empty or missing for refusals. Refusal logprobs are now included in emission order (content logprobs followed by refusal logprobs) in both `generateText` and `streamText`.
+
+  Streaming logprobs are now collected across all chunks in `streamText`: previously only the logprobs of the last streamed chunk were reported. This applies to content logprobs as well, so `providerMetadata.openai.logprobs` now contains the logprobs of every streamed token instead of only the last chunk's tokens. Explicitly empty logprobs (`logprobs: { content: [], refusal: null }`) are reported as an empty array, as before.
+
+  A refusal that arrives in the same streamed chunk as the `finish_reason` is now taken into account: such a response is reported with a `content-filter` finish reason instead of `stop`.
+
+  `@ai-sdk/openai-compatible`: Chat Completions responses that carry `message.refusal` (non-streaming) or `delta.refusal` (streaming) were ignored, so providers such as OpenAI served through `createOpenAICompatible` lost the refusal text and reported an empty `stop` response. Refusals are now returned as text content after any content text, and a non-empty refusal with a `stop` finish reason is reported as a `content-filter` finish reason. This also applies when the refusal and the finish reason arrive in the same streamed chunk. Non-string refusals (for example `refusal: false` from servers that use booleans) are ignored instead of failing the response.
+
+- 6b97088: fix(openai): handle refusal content parts in the Responses API
+
+  The Responses API returns a `refusal` content part instead of `output_text` when the model declines a request. The response schema rejected these parts, so non-streaming calls failed with an `APICallError` ("Invalid JSON response"), and streamed `response.refusal.delta` / `response.refusal.done` events were dropped, producing empty text. Refusal content parts and stream events are now parsed: the refusal explanation is surfaced as text and the finish reason is mapped to `content-filter`. When the response also contains a client-side function call, the finish reason stays `tool-calls` so the tools are still executed.
+
+## 4.0.109
+
+### Patch Changes
+
+- 27528db: Expose `customTool` through `azure.tools` for Azure Responses models, sharing the OpenAI custom tool factory and its raw string input support.
+- 7bb309d: add memoryLimit and networkPolicy properties in codeInterpreter tool
+- 7a90522: Add Secure MCP tunnel support to the OpenAI MCP tool via `tunnelId`. Tunnel targets cannot be combined with `serverUrl` or `connectorId`; existing URL and connector configurations remain compatible.
+- 6549344: feat(openai): support GPT Image 2.6 models with `complexity`, markup-guided edits (`markup`), animated GIF output (`outputFormat: 'gif'`, `frameCount`, `frameDurationMs`), and `safetyIdentifier` for image models
+- 5f9bb8e: feat (provider/openai): forward the `moderation` option to `/images/edits`
+- 934100c: Report the actual OpenAI Chat HTTP endpoint (also used by Azure Chat and Bedrock Mantle Chat) through optional request metadata and model-call end events. Record its host and port on OpenTelemetry chat spans without exposing URL credentials, paths, queries, or fragments. Expose only the sanitized HTTP origin in text and object generation results and step/finish callbacks. Providers that do not report an endpoint leave these attributes unset.
+- 892af4d: feat (provider/openai): implement server-side realtime extensions
+
+  `OpenAIRealtimeModel` now implements `getServerWebSocketConfig()`, returning the upstream realtime WebSocket URL for `conversation` and `transcription` intents plus header auth derived from the model's configured credentials. Dedicated transcription sessions serialize with `session.type: "transcription"` and the selected realtime model id. Translation is rejected until the normalized realtime codec supports its distinct wire protocol. The event mapper now populates normalized `usage` on `response-done` and `input-transcription-completed` (gross input/output token counts with cached portions reported separately; duration usage for duration-billed transcription).
+
+  Transcription serialization honors the explicit transcription model and rejects unsupported output settings. Gross token totals and reported modality/cache counts are retained; duration uses `seconds`. OpenAI Live retains its existing connection API and rejects unsupported intents.
+
+- 243bf22: Forward per-message `providerOptions.openai.name` on Chat Completions system, developer, user, and assistant messages. Validate names as strings and warn when configured on unsupported tool messages.
+- 5cc6d28: Expose `azure.tools.shell` for local and hosted shell execution through the Azure Responses API.
+- 41465fd: Expose optional transcription word timings separately from segments and accept shared timestampGranularities. Explicit provider timing settings take precedence. OpenAI now sends timestamp_granularities only with verbose_json and warns when a requested timing is unavailable or excluded.
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 4.0.108
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 4.0.107
+
+### Patch Changes
+
+- 4ae6986: fix(openai): preserve valid JSON string tool arguments and serialize BigInt and cycles in tool calls and results, retaining malformed argument replay fallbacks
+- 226b7da: Forward `languages` and `keywords` transcription hints as repeated multipart fields instead of silently dropping them. Warn when these REST-only options are supplied to streaming transcription.
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 4.0.106
+
+### Patch Changes
+
+- 7716e18: Support promises and synchronous or asynchronous callbacks in provider API key and token settings. Resolve credentials per authenticated request while preserving existing authentication behavior and synchronous credential serialization.
+
+  The experimental OpenAI Live `getServerWebSocketConfig()` method can now resolve asynchronously. Await its result before using the connection settings.
+
+- dcd2f8d: Introduce a model entry contract with named capability sections and request configuration. Consolidate the OpenAI and Anthropic model catalogs so existing request behavior and generated capability documentation use the same source of truth. Catalogs also declare the provider options each provider accepts and which models support them.
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 4.0.105
+
+### Patch Changes
+
+- 47b1d8b: feat(openai): send native JSON input and prompt cache keys to Decisions
+- d07b475: fix(openai): map top-level `reasoning` to efforts supported by GPT-5.x models instead of sending unsupported values that OpenAI rejects with a 400. `max` is now only sent on the Responses API, and GPT-5.6 on Chat Completions sends `reasoning_effort: 'none'` when function tools are used, since it rejects function tools with reasoning. A warning is emitted when a reasoning level was requested.
+- 61a315e: fix: map the top-level `reasoning` option consistently across providers
+
+  Providers now resolve reasoning the same way:
+
+  1. A provider-specific reasoning setting in `providerOptions` is sent unchanged. OpenAI no longer drops `providerOptions.openai.reasoningEffort` values that are not in its list for the model, and Fireworks no longer rewrites `providerOptions.fireworks.reasoningEffort`. Fireworks also sends top-level `reasoning` values directly instead of rounding them to `'high'` at most, except for model families known to reject `'none'` (GPT-OSS, GLM-5.3, Muse Spark) or `'minimal'` (Nemotron, Inkling).
+  2. Otherwise, `reasoning` maps to the closest level the model supports, rounding down, and rounds up only when there is no lower level. For example, `'xhigh'` now maps to `'high'` instead of `'max'` on Anthropic and Bedrock models without `xhigh` effort, and `'medium'` maps to `'low'` instead of `'high'` on DeepSeek, Kimi K3, and Mistral GLM-5.3 models.
+  3. `'none'` on a model that cannot disable reasoning maps to the model's lowest level with a compatibility warning, instead of being dropped or sending a request the API rejects. This affects GPT-6 models without `'none'`, xAI grok-4.5 and later, Groq GPT-OSS, Kimi K3, Perplexity, QuiverAI, Bedrock OpenAI `gpt-oss` models, and Gemini 2.5 Pro (minimum thinking budget). Gemini 3 and Anthropic and Bedrock `between_tools` mappings now emit the compatibility warning too.
+
+  `mapReasoningToProviderEffort` now accepts any `reasoning` value, returns an optional `providerOptionsEffort` unchanged, and rounds levels that are missing from the effort map to the closest supported level. `mapReasoningToProviderBudget` maps `'none'` to the minimum reasoning budget, always returns a budget, and uses the default percentage for levels missing from `budgetPercentages`. `OpenAICompatibleChatConfig` adds an optional `mapReasoning` function for mapping the top-level `reasoning` option.
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
+## 4.0.104
+
+### Patch Changes
+
+- 01d7a03: feat(openai): add GPT-6.1 Terra model support
+- 599a97f: fix(openai): read transcription duration from `usage` for duration-billed `json` responses
+
+  `durationInSeconds` now falls back to `usage.seconds` when `usage.type` is `duration` and the response has no top-level `duration` (e.g. `gpt-transcribe` with the default `json` response format).
+
+- 8375141: Support streaming transcription with `gpt-live-transcribe` and `gpt-transcribe`. For these models the `language` provider option is sent as a single-entry `languages` list. `gpt-transcribe` warns about and omits `streaming.delay`, which it does not support. `gpt-live-transcribe` rejects non-streaming transcription, since it has no REST endpoint.
+- 7eac057: fix(openai): strip `propertyNames` schemas that omit `type: 'string'` (e.g. Zod 3 records with constrained keys) instead of throwing an unsupported functionality error
+- 436374e: fix(openai): report unfinished web searches as tool errors
+- 9026c7d: fix(openai): only send transcription response format and timestamp defaults when needed
+
+  Transcription requests no longer send `response_format=verbose_json` or `timestamp_granularities[]=segment` unless the caller sets them or the model needs them. Previously, any `providerOptions.openai` value (such as a `prompt`) caused `verbose_json` to be sent for models like `gpt-transcribe`, which rejected the request.
+
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 4.0.103
+
+### Patch Changes
+
+- 02dbab1: add azure.tools.toolSearch and support azure provider options on responses function tools
+- 27a53b4: Fix string interpolation in Amazon Bedrock unsupported provider tool warnings and OpenAI / OpenAI-compatible completion errors for unexpected system messages.
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
 ## 4.0.102
 
 ### Patch Changes

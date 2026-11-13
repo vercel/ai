@@ -24,7 +24,8 @@ import {
 import {
   applyCredentialForwarding,
   classifyDiskLog,
-  createBridgeToken,
+  BRIDGE_AUTH_PUBLIC_KEY_ENV,
+  createBridgeAuthKeyPair,
   createBridgeWebSocketConnect,
   resolveSandboxCredentialEnvironment,
   createBridgeErrorHandler,
@@ -42,6 +43,7 @@ import {
   shellQuote,
   validateBridgeSandboxSettings,
   warnCredentialBrokeringUnavailable,
+  warnMintBridgeTokenIgnored,
   waitForBridgeReady,
   writeSkills,
   type SandboxChannelReconnectOptions,
@@ -105,7 +107,8 @@ export type CodexHarnessSettings = {
   /**
    * Additional configuration passed through to Codex as-is. Codex config keys
    * typically use snake_case and must be provided in that form. Values managed
-   * by this adapter take precedence over conflicting entries.
+   * by this adapter take precedence over conflicting entries, except for the
+   * model_reasoning_summary default, which callers can override.
    */
   readonly codexConfig?: Record<string, unknown>;
   /**
@@ -137,15 +140,22 @@ export type CodexHarnessSettings = {
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
   /**
+   * Abort a running turn when its host disconnects and does not reconnect
+   * within this many milliseconds, so the turn stops spending. A suspended
+   * turn is exempt. Unset keeps the turn running until it finishes.
+   */
+  readonly hostDisconnectTimeoutMs?: number;
+  /**
    * Configures reconnection attempts after an established bridge connection
    * drops. The reconnect window includes connection establishment and
    * backoff delays. Defaults to 30 seconds with exponential backoff from 50
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
+  // TODO: Remove in the next major version.
   /**
-   * Creates the authentication token used by the sandbox bridge. Defaults to
-   * a random 32-byte hexadecimal token.
+   * @deprecated Sandbox bridge authentication now uses adapter-generated
+   * Ed25519 keys. This setting is ignored and emits a warning.
    */
   readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
@@ -199,7 +209,7 @@ const CODEX_BUILTIN_TOOLS = {
  */
 const codexBridgeCoordsSchema = z.object({
   port: z.number(),
-  token: z.string(),
+  privateKey: z.string(),
   lastSeenEventId: z.number(),
   sandboxId: z.string().optional(),
 });
@@ -224,6 +234,10 @@ type CodexBridgeCoords = z.infer<typeof codexBridgeCoordsSchema>;
 export function createCodex(
   settings: CodexHarnessSettings = {},
 ): HarnessV1<typeof CODEX_BUILTIN_TOOLS> {
+  warnMintBridgeTokenIgnored({
+    harnessId: 'codex',
+    mintBridgeToken: settings.mintBridgeToken,
+  });
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'codex',
@@ -250,10 +264,8 @@ export function createCodex(
       const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
       validateBridgeSandboxSettings({
         sandboxSession,
-        sandboxId,
         portOverride: settings.port,
         portEndpointOverride: settings.portEndpoint,
-        mintBridgeToken: settings.mintBridgeToken,
       });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
@@ -371,7 +383,7 @@ export function createCodex(
        * Rung 1 — ATTACH. With live coordinates, reopen a socket to the
        * still-running bridge. Parked between-turn sessions just attach and wait
        * for the next `start`; suspended in-flight turns request replay of
-       * everything past the persisted cursor. No spawn, no fresh token. If the
+       * everything past the persisted cursor. No spawn, no fresh key. If the
        * bridge is gone the open throws and we fall through to a spawn-based
        * recovery.
        */
@@ -381,11 +393,11 @@ export function createCodex(
             sandboxSession,
             port: coords.port,
             portEndpointOverride: settings.portEndpoint,
-            token: coords.token,
           });
           const attachChannel: CodexChannel = new SandboxChannel({
             connect: createBridgeWebSocketConnect({
               endpoint: attachEndpoint,
+              privateKey: coords.privateKey,
               webSocketConstructor: WebSocket,
             }),
             outboundSchema: outboundMessageSchema,
@@ -412,7 +424,7 @@ export function createCodex(
             seedResumeThreadOnFirstPrompt: false,
             rerunContinue: false,
             bridgePort: coords.port,
-            bridgeToken: coords.token,
+            bridgePrivateKey: coords.privateKey,
             sandboxId,
             sandboxCredentialEnvironment,
             debug: startOpts.observability?.debug,
@@ -453,10 +465,7 @@ export function createCodex(
         sandboxSession,
         portOverride: settings.port,
       });
-      const token =
-        settings.mintBridgeToken == null
-          ? createBridgeToken()
-          : settings.mintBridgeToken(sandboxId!);
+      const bridgeAuth = createBridgeAuthKeyPair();
       const forwardedAuthEnvironment = credentialsBrokered
         ? sandboxAuthEnvironment
         : await applyCredentialForwarding({
@@ -476,7 +485,7 @@ export function createCodex(
       const env = {
         ...forwardedAuthEnvironment,
         AI_SDK_HARNESS_CLIENT_APP: CODEX_CLIENT_APP,
-        BRIDGE_CHANNEL_TOKEN: token,
+        [BRIDGE_AUTH_PUBLIC_KEY_ENV]: bridgeAuth.publicKey,
         BRIDGE_WS_PORT: String(port),
         ...(respawnStrategy === 'replay'
           ? { BRIDGE_REPLAY_FROM_DISK: '1' }
@@ -498,7 +507,7 @@ export function createCodex(
       });
 
       const proc = await toolSafeSandboxSession.spawn({
-        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}${settings.hostDisconnectTimeoutMs !== undefined ? ` --host-disconnect-timeout-ms ${shellQuote(String(settings.hostDisconnectTimeoutMs))}` : ''}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -540,12 +549,12 @@ export function createCodex(
         sandboxSession,
         port: boundPort,
         portEndpointOverride: settings.portEndpoint,
-        token,
       });
 
       const channel: CodexChannel = new SandboxChannel({
         connect: createBridgeWebSocketConnect({
           endpoint: bridgeEndpoint,
+          privateKey: bridgeAuth.privateKey,
           webSocketConstructor: WebSocket,
           openRetryTimeoutMs: timeoutMs,
           startAbortSignal: startOpts.abortSignal,
@@ -581,7 +590,7 @@ export function createCodex(
         seedResumeThreadOnFirstPrompt: respawnStrategy !== undefined,
         rerunContinue: respawnStrategy === 'rerun',
         bridgePort: boundPort,
-        bridgeToken: token,
+        bridgePrivateKey: bridgeAuth.privateKey,
         sandboxId,
         sandboxCredentialEnvironment,
         debug: startOpts.observability?.debug,
@@ -610,7 +619,7 @@ function createSession({
   seedResumeThreadOnFirstPrompt,
   rerunContinue,
   bridgePort,
-  bridgeToken,
+  bridgePrivateKey,
   sandboxId,
   sandboxCredentialEnvironment,
   debug,
@@ -635,7 +644,7 @@ function createSession({
   seedResumeThreadOnFirstPrompt: boolean;
   rerunContinue: boolean;
   bridgePort: number;
-  bridgeToken: string;
+  bridgePrivateKey: string;
   sandboxId: string | undefined;
   sandboxCredentialEnvironment: Record<string, string> | undefined;
   debug: HarnessV1DebugConfig | undefined;
@@ -1053,7 +1062,7 @@ function createSession({
             : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
-            token: bridgeToken,
+            privateKey: bridgePrivateKey,
             lastSeenEventId,
             ...(sandboxId == null ? {} : { sandboxId }),
           },
@@ -1215,7 +1224,7 @@ function createSession({
             : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
-            token: bridgeToken,
+            privateKey: bridgePrivateKey,
             lastSeenEventId,
             ...(sandboxId == null ? {} : { sandboxId }),
           },

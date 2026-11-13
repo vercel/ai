@@ -1,5 +1,147 @@
 # @ai-sdk/mcp
 
+## 2.0.99
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
+## 2.0.98
+
+### Patch Changes
+
+- 2ebc78b: Move Node.js connection-time DNS validation to the optional `guarded-fetch` package. It uses an Undici agent to validate every resolved address and pin the connection to those results, independently of global fetch wrappers. It supports explicitly trusted private origins and connection-pool cleanup.
+
+  **Security behavior change:** provider-utils now uses the configured fetch or the runtime's global fetch and no longer depends on Undici. Default URL checks still reject private IP literals, local hostnames, unsafe schemes, and unsafe redirect URLs, but do not block public-looking hostnames that resolve to private addresses or DNS rebinding. Applications fetching untrusted URLs should inject `createGuardedFetch()` on Node.js or enforce equivalent network egress restrictions.
+
+  Allow `downloadBlob` to accept a fetch transport so applications can apply the same protection to file downloads.
+
+  MCP OAuth discovery keeps its strict DNS requirement: because Node.js no longer has a DNS-pinned default transport, untrusted authorization-server, redirect, token, and registration URLs now require an explicit custom fetch with connection-time DNS validation on Node.js too. Pass `createGuardedFetch()` through `transport.fetch`. The configured MCP server origin and browser window discovery remain supported.
+
+- Updated dependencies [2ebc78b]
+- Updated dependencies [cb4fa52]
+  - @ai-sdk/provider-utils@5.0.80
+  - @ai-sdk/provider@4.0.38
+
+## 2.0.97
+
+### Patch Changes
+
+- 6309382: Add support for `baseUriDomains` in MCP App CSP metadata.
+
+## 2.0.96
+
+### Patch Changes
+
+- 6141e6f: fix(mcp): reject with the network error when `server/discover` fails over Streamable HTTP instead of falling back to `initialize` against the same unreachable server
+- Updated dependencies [4311fa1]
+- Updated dependencies [4311fa1]
+  - @ai-sdk/provider-utils@5.0.79
+
+## 2.0.95
+
+### Patch Changes
+
+- 88b9575: Require a DNS-pinned fetch for untrusted MCP OAuth discovery and metadata-derived token/registration URLs on server runtimes without a protected default transport. Preserve developer-configured endpoints and allow explicitly supplied fetch implementations that provide equivalent connect-time validation. Browser workers without a DOM follow the same explicit custom-fetch requirement.
+- Updated dependencies [88b9575]
+  - @ai-sdk/provider-utils@5.0.78
+
+## 2.0.94
+
+### Patch Changes
+
+- Updated dependencies [9f37b45]
+  - @ai-sdk/provider-utils@5.0.77
+
+## 2.0.93
+
+### Patch Changes
+
+- dc0f7f2: Prevent newly registered OAuth clients from supplying an authorization server binding for existing unbound refresh tokens. Clear unbound tokens before saving new registration information, and stop authorization if they remain in storage.
+- Updated dependencies [6400cf8]
+- Updated dependencies [f608c05]
+- Updated dependencies [cab9c1f]
+- Updated dependencies [c70adf6]
+  - @ai-sdk/provider-utils@5.0.76
+  - @ai-sdk/provider@4.0.37
+
+## 2.0.92
+
+### Patch Changes
+
+- ae13fce: fix(mcp): include the canonical MCP resource in OAuth authorization, code exchange, and refresh requests when protected resource metadata is unavailable or custom resource validation returns undefined, preventing unbound authorization grants.
+
+## 2.0.91
+
+### Patch Changes
+
+- Updated dependencies [36802d4]
+- Updated dependencies [e0143b0]
+- Updated dependencies [934100c]
+- Updated dependencies [892af4d]
+- Updated dependencies [89aff56]
+- Updated dependencies [41465fd]
+- Updated dependencies [9754014]
+- Updated dependencies [4bb73b0]
+- Updated dependencies [2e44144]
+  - @ai-sdk/provider@4.0.36
+  - @ai-sdk/provider-utils@5.0.75
+
+## 2.0.90
+
+### Patch Changes
+
+- Updated dependencies [fa15312]
+  - @ai-sdk/provider-utils@5.0.74
+
+## 2.0.89
+
+### Patch Changes
+
+- Updated dependencies [51ca5b7]
+- Updated dependencies [dc6f1c3]
+- Updated dependencies [4ae6986]
+  - @ai-sdk/provider-utils@5.0.73
+
+## 2.0.88
+
+### Patch Changes
+
+- c3af430: Handle MCP 2026-07-28 input-required results through the registered elicitation handler and retry the original tool, prompt, or resource request with its answers and request state.
+
+  Preserve the browser fetch receiver in MCP HTTP and SSE transports to prevent illegal-invocation errors.
+
+- 1afa510: Graduate `StdioMCPTransport`, `MCPClient.listPrompts`, `MCPClient.getPrompt`, and `MCPAppRenderer` to stable APIs. Deprecate their experimental names while retaining them as compatible aliases. MCP events remain experimental.
+- Updated dependencies [7716e18]
+- Updated dependencies [5c247e9]
+- Updated dependencies [dcd2f8d]
+  - @ai-sdk/provider-utils@5.0.72
+  - @ai-sdk/provider@4.0.35
+
+## 2.0.87
+
+### Patch Changes
+
+- Updated dependencies [61a315e]
+  - @ai-sdk/provider-utils@5.0.71
+
+## 2.0.86
+
+### Patch Changes
+
+- ade2a33: Improve unsupported-version discovery errors when a server advertises a compatible legacy version. Include the requested and advertised versions and explain how to explicitly select legacy initialization with `protocolVersionDiscovery: false`, while preserving the original error details and avoiding automatic legacy fallback.
+- Updated dependencies [57086ff]
+- Updated dependencies [95348b3]
+  - @ai-sdk/provider-utils@5.0.70
+
+## 2.0.85
+
+### Patch Changes
+
+- Updated dependencies [e64ed82]
+  - @ai-sdk/provider-utils@5.0.69
+
 ## 2.0.84
 
 ### Patch Changes

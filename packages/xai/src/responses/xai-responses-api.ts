@@ -332,6 +332,7 @@ export const xaiResponsesResponseSchema = () =>
     output: z.array(outputItemSchema()),
     usage: xaiResponsesUsageSchema().nullish(),
     status: z.string(),
+    incomplete_details: z.object({ reason: z.string() }).nullish(),
     service_tier: z.string().nullish(),
     prompt_cache_key: z.string().nullish(),
     safety_identifier: z.string().nullish(),
