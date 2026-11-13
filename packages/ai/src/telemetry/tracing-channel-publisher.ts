@@ -120,6 +120,27 @@ export async function runWithTracingChannelSpan<T>(
 
   try {
     await tracingChannel.tracePromise(tracedExecute, message);
+
+    // When an ai:telemetry subscriber replaces result.stream (such as Sentry's
+    // or dd-trace's AI SDK instrumentation), ensure the application's executionResult
+    // receives the replaced stream so the tapped stream is consumed by the SDK
+    // instead of the original stream (which is locked by the subscriber's pipeThrough).
+    const messageResult = (message as { result?: unknown }).result;
+    if (
+      executionResult != null &&
+      typeof executionResult === 'object' &&
+      'stream' in executionResult &&
+      messageResult != null &&
+      typeof messageResult === 'object' &&
+      'stream' in messageResult &&
+      (messageResult as { stream?: unknown }).stream !==
+        (executionResult as { stream?: unknown }).stream
+    ) {
+      (executionResult as { stream: unknown }).stream = (
+        messageResult as { stream: unknown }
+      ).stream;
+    }
+
     return executionResult as T;
   } catch {
     if (hasExecutionError) {

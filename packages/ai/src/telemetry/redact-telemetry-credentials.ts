@@ -74,7 +74,32 @@ function replaceProperties<T>(
       descriptors[key] = { ...descriptor, value: redacted };
     }
   }
-  return descriptors == null
-    ? value
-    : Object.create(Object.getPrototypeOf(value), descriptors);
+  if (descriptors == null) {
+    return value;
+  }
+
+  // Forward access and mutations to result.stream back to the underlying
+  // execution result so telemetry subscribers (e.g. Sentry, dd-trace) that wrap
+  // or tap result.stream via pipeThrough() update the stream consumed by the SDK
+  // rather than locking the original stream and discarding the tapped stream.
+  if (
+    'stream' in value &&
+    Object.prototype.hasOwnProperty.call(value, 'stream')
+  ) {
+    const streamDesc = descriptors.stream;
+    if (streamDesc && 'value' in streamDesc) {
+      descriptors.stream = {
+        get() {
+          return (value as unknown as { stream: unknown }).stream;
+        },
+        set(newStream: unknown) {
+          (value as unknown as { stream: unknown }).stream = newStream;
+        },
+        enumerable: streamDesc.enumerable,
+        configurable: streamDesc.configurable,
+      };
+    }
+  }
+
+  return Object.create(Object.getPrototypeOf(value), descriptors);
 }
