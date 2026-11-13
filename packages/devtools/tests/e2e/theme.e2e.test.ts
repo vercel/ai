@@ -51,6 +51,13 @@ const selectedRun = {
       started_at: '2026-07-22T08:00:00.000Z',
       duration_ms: 1200,
       input: JSON.stringify({
+        tools: [
+          {
+            name: 'lookupWeather',
+            description: 'Look up the weather for a city.',
+            parameters: { type: 'object', properties: {} },
+          },
+        ],
         prompt: [
           {
             role: 'user',
@@ -358,6 +365,70 @@ test('selected-run content and timeline metadata meet contrast targets', async (
   await assertTextContrast([selectedRunMessage, toolCall, toolResult, error]);
 });
 
+test('dark controls, disclosure icons, grid lines and tooltips are distinguishable', async ({
+  page,
+}) => {
+  await page
+    .getByRole('button', { name: /Generate a concise status update/ })
+    .click();
+  const step = page
+    .locator('main')
+    .getByRole('button', { name: /Inspect representative selecte/ });
+  await step.click();
+  await expect(step).toHaveAttribute('aria-expanded', 'true');
+  await expect(step.locator('svg').first()).toHaveClass(/lucide-chevron-right/);
+
+  for (const name of ['1 available tool', 'Usage']) {
+    const control = page.getByRole('button', { name, exact: true });
+    await expect(control).toBeVisible();
+    expect(
+      await control.evaluate(browserContrastRatio, 'border'),
+    ).toBeGreaterThanOrEqual(3);
+    await control.focus();
+    await expect(control).toBeFocused();
+    await control.press('Enter');
+    await expect(page.getByRole('dialog')).toBeVisible();
+    if (name === '1 available tool') {
+      const tool = page.getByRole('button', {
+        name: 'lookupWeather',
+        exact: true,
+      });
+      await expect(tool.locator(':scope > :first-child')).toHaveClass(
+        /lucide-chevron-right/,
+      );
+      await tool.click();
+      await expect(tool).toHaveAttribute('aria-expanded', 'true');
+    }
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+  }
+
+  await page.getByRole('button', { name: 'Timeline' }).click();
+  const gridLines = page.locator('main .absolute.border-l');
+  expect(await gridLines.count()).toBeGreaterThan(0);
+  for (const line of await gridLines.all()) {
+    expect(
+      await line.evaluate(browserContrastRatio, 'border'),
+    ).toBeGreaterThanOrEqual(3);
+  }
+  await page.locator('main [data-slot="tooltip-trigger"]').first().hover();
+  const tooltip = page.locator('[data-slot="tooltip-content"]').first();
+  await expect(tooltip).toBeVisible();
+  expect(
+    await tooltip.evaluate(browserContrastRatio, 'border'),
+  ).toBeGreaterThanOrEqual(3);
+  expect(await textContrastRatio(tooltip)).toBeGreaterThanOrEqual(4.5);
+  expect(
+    await tooltip.evaluate(
+      element => getComputedStyle(element).backgroundColor,
+    ),
+  ).not.toBe(
+    await page
+      .locator('body')
+      .evaluate(element => getComputedStyle(element).backgroundColor),
+  );
+});
+
 test('shows media previews in prompts and tool results', async ({ page }) => {
   await page
     .getByRole('button', {
@@ -440,7 +511,7 @@ async function focusRingContrastRatio(locator: Locator): Promise<number> {
 
 function browserContrastRatio(
   element: Element,
-  mode: 'text' | 'focus-ring',
+  mode: 'text' | 'focus-ring' | 'border',
 ): number {
   type Color = {
     red: number;
@@ -550,6 +621,14 @@ function browserContrastRatio(
       background,
     );
     return contrastRatio(foreground, background);
+  }
+
+  if (mode === 'border') {
+    const style = getComputedStyle(element);
+    const color = parseColor(style.borderLeftColor);
+    return parseFloat(style.borderLeftWidth) > 0
+      ? contrastRatio(composite(color, background), background)
+      : 0;
   }
 
   const shadow = getComputedStyle(element).boxShadow;

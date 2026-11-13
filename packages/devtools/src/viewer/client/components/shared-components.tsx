@@ -31,6 +31,9 @@ import {
 } from '../utils';
 import { MediaPreviewList } from './media-components';
 
+const configControlClassName =
+  'inline-flex gap-1.5 items-center rounded-md border border-border bg-secondary px-2 py-1 text-foreground transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring';
+
 export function JsonBlock({
   data,
   compact = false,
@@ -459,10 +462,11 @@ export function ToolItem({ tool }: { tool: ToolDefinition }) {
   return (
     <div className="overflow-hidden rounded-md border border-border bg-background">
       <button
-        className="w-full flex items-center justify-between p-2.5 hover:bg-accent/50 transition-colors"
+        className="w-full flex items-center gap-2 p-2.5 text-left hover:bg-accent/50 transition-colors"
+        disabled={!hasExpandableContent}
+        aria-expanded={hasExpandableContent ? expanded : undefined}
         onClick={() => setExpanded(!expanded)}
       >
-        <span className="font-mono text-sm text-tool">{tool.name}</span>
         {hasExpandableContent && (
           <ChevronRight
             className={`size-3 text-muted-foreground transition-transform ${
@@ -470,6 +474,7 @@ export function ToolItem({ tool }: { tool: ToolDefinition }) {
             }`}
           />
         )}
+        <span className="font-mono text-sm text-tool">{tool.name}</span>
       </button>
       {!expanded && tool.description && (
         <div className="px-2.5 pb-2">
@@ -647,7 +652,7 @@ export function StepConfigBar({
           <span className="text-muted-foreground/30">·</span>
           <Drawer direction="right">
             <DrawerTrigger asChild>
-              <button className="inline-flex gap-1 items-center transition-colors cursor-pointer hover:text-foreground">
+              <button className={configControlClassName}>
                 <Wrench className="size-3" />
                 {toolCount} available {toolCount === 1 ? 'tool' : 'tools'}
               </button>
@@ -673,7 +678,7 @@ export function StepConfigBar({
           <span className="text-muted-foreground/30">·</span>
           <Drawer direction="right">
             <DrawerTrigger asChild>
-              <button className="inline-flex gap-1 items-center transition-colors cursor-pointer hover:text-foreground">
+              <button className={configControlClassName}>
                 <Settings className="size-3" />
                 Provider options
               </button>
@@ -695,7 +700,7 @@ export function StepConfigBar({
           <span className="text-muted-foreground/30">·</span>
           <Drawer direction="right">
             <DrawerTrigger asChild>
-              <button className="inline-flex gap-1 items-center transition-colors cursor-pointer hover:text-foreground">
+              <button className={configControlClassName}>
                 <BarChart3 className="size-3" />
                 Usage
               </button>
