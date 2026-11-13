@@ -12,6 +12,8 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId as defaultGenerateId,
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -22,6 +24,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from '../google-error';
+import { getGoogleLanguageModelEntry } from '../google-model-catalog';
 import { buildGoogleInteractionsStreamTransform } from './build-google-interactions-stream-transform';
 import {
   convertGoogleInteractionsUsage,
@@ -313,6 +316,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
       }
       if (options.maxOutputTokens != null)
         droppedFields.push('maxOutputTokens');
+      if (isCustomReasoning(options.reasoning)) droppedFields.push('reasoning');
       if (googleOptions?.thinkingLevel != null)
         droppedFields.push('thinkingLevel');
       if (googleOptions?.thinkingSummaries != null) {
@@ -337,7 +341,19 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
             ? options.stopSequences
             : undefined,
         max_output_tokens: options.maxOutputTokens ?? undefined,
-        thinking_level: googleOptions?.thinkingLevel ?? undefined,
+        thinking_level: mapReasoningToProviderEffort<
+          NonNullable<GoogleInteractionsGenerationConfig['thinking_level']>
+        >({
+          reasoning: options.reasoning,
+          providerOptionsEffort: googleOptions?.thinkingLevel,
+          effortMap: Object.fromEntries(
+            (
+              getGoogleLanguageModelEntry(this.modelId).capabilities.language
+                .reasoning.efforts ?? []
+            ).map(level => [level, level]),
+          ),
+          warnings,
+        }),
         thinking_summaries: googleOptions?.thinkingSummaries ?? undefined,
         tool_choice: toolChoiceForBody,
       });
