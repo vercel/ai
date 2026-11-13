@@ -779,7 +779,6 @@ The callbacks also run at different times:
 
 - Approval is configured with `needsApproval` on the tool. Approval request IDs have the form `approval-<toolCallId>`. `ToolLoopAgent` generates random IDs.
 - A tool whose `execute` function is an async generator is not supported. `ToolLoopAgent` treats every yielded value except the last one as a preliminary result. `WorkflowAgent` does not iterate the generator, and the tool result is an empty object.
-- In `stream()`, the `onInputStart` and `onInputAvailable` hooks of a tool are not called when the provider sends the tool call without streaming its input first. They are called in `generate()`.
 - Tool timeouts (`toolMs` and `tools` in the `timeout` object) are not supported.
 
 ### Requests
