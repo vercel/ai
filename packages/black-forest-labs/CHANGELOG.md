@@ -1,5 +1,11 @@
 # @ai-sdk/black-forest-labs
 
+## 2.0.85
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+
 ## 2.0.84
 
 ### Patch Changes

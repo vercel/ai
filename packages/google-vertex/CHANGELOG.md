@@ -1,5 +1,16 @@
 # @ai-sdk/google-vertex
 
+## 5.0.141
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+- c8fb453: Add the missing `gemini-4-hydrogen` model ID to the Vertex catalog so model suggestions and generated capability documentation include it.
+- Updated dependencies [f5fc6ba]
+- Updated dependencies [8e60cb4]
+  - @ai-sdk/anthropic@4.0.105
+  - @ai-sdk/google@4.0.121
+
 ## 5.0.140
 
 ### Patch Changes
