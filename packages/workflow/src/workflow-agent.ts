@@ -41,6 +41,10 @@ import {
   type Instructions,
   type Experimental_SandboxSession as SandboxSession,
   InvalidToolApprovalSignatureError,
+  type TypedToolCall,
+  type ToolApprovalConfiguration,
+  type ToolApprovalRequestOutput,
+  type ToolApprovalResponseOutput,
 } from 'ai';
 import {
   createRestrictedTelemetryDispatcher,
@@ -53,6 +57,7 @@ import {
   mergeCallbacks,
   mapWithConcurrency,
   prepareToolCallConcurrency,
+  resolveToolApproval,
   signToolApproval,
   standardizePrompt,
   validateApprovedToolApprovals,
@@ -61,6 +66,7 @@ import {
 import { getWorkflowMetadata } from 'workflow';
 import { addToolResultsToConversation } from './add-tool-results-to-conversation.js';
 import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
+import type { ParsedToolCall } from './model-call.js';
 import type {
   ModelCallStreamPart,
   ModelStopCondition,
@@ -653,6 +659,17 @@ export type WorkflowAgentOptions<
     experimental_sandbox?: SandboxSession;
 
     /**
+     * Default approval configuration for tool calls. This configuration takes
+     * precedence over tool-defined approval settings.
+     *
+     * The functions in the configuration run in workflow context, outside of
+     * the durable model steps, and are never passed across a step boundary.
+     *
+     * Per-stream `toolApproval` values passed to `stream()` override this default.
+     */
+    toolApproval?: ToolApprovalConfiguration<NoInfer<TTools>, TRuntimeContext>;
+
+    /**
      * Workflow-safe reference to the environment variable containing the
      * secret for HMAC-signing tool approval requests. When set, the agent signs
      * each approval request and verifies the signature before executing an
@@ -1188,6 +1205,17 @@ export type WorkflowAgentCallOptions<
     experimental_sandbox?: SandboxSession;
 
     /**
+     * Approval configuration for tool calls. This configuration takes
+     * precedence over tool-defined approval settings.
+     *
+     * The functions in the configuration run in workflow context, outside of
+     * the durable model steps, and are never passed across a step boundary.
+     *
+     * Overrides the constructor-level value if provided.
+     */
+    toolApproval?: ToolApprovalConfiguration<NoInfer<TTools>, TRuntimeContext>;
+
+    /**
      * Workflow-safe reference to the environment variable containing the
      * secret for HMAC-signing tool approval requests. When set, the agent signs
      * each approval request and verifies the signature before executing an
@@ -1653,6 +1681,7 @@ export class WorkflowAgent<
   private refineToolInput?: ToolInputRefinement<TBaseTools>;
   private experimentalDownload?: DownloadFunction;
   private experimentalSandbox?: SandboxSession;
+  private toolApproval?: ToolApprovalConfiguration<TBaseTools, TRuntimeContext>;
   private experimentalToolApprovalSecret?: WorkflowToolApprovalSecret;
   private prepareStep?: PrepareStepCallback<TBaseTools, TRuntimeContext>;
   private allowSystemInMessages: boolean;
@@ -1705,6 +1734,7 @@ export class WorkflowAgent<
     this.refineToolInput = options.experimental_refineToolInput;
     this.experimentalDownload = options.experimental_download;
     this.experimentalSandbox = options.experimental_sandbox;
+    this.toolApproval = options.toolApproval;
     this.experimentalToolApprovalSecret =
       options.experimental_toolApprovalSecret;
     this.prepareStep = options.prepareStep;
@@ -1982,6 +2012,7 @@ export class WorkflowAgent<
     const workflowDownload: DownloadFunction = async requests =>
       requests.map(() => null);
     const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
+    const toolApproval = options.toolApproval ?? this.toolApproval;
     // Model steps enforce the absolute deadline below. Avoid creating a native
     // timeout signal in the workflow VM, where timer APIs are unavailable.
     const {
@@ -2031,6 +2062,7 @@ export class WorkflowAgent<
       download: effectiveDownloadFromPrepare,
       workflowDownload,
       sandbox,
+      toolApproval,
       effectiveAbortSignal,
       timeoutAt,
       stepTimeoutMs,
@@ -2101,6 +2133,7 @@ export class WorkflowAgent<
       download,
       workflowDownload,
       sandbox,
+      toolApproval,
       effectiveAbortSignal,
       timeoutAt,
       stepTimeoutMs,
@@ -2186,7 +2219,32 @@ export class WorkflowAgent<
         execute: async approval => {
           const tool = (this.tools as ToolSet)[approval.toolName];
           if (tool && typeof tool.execute === 'function') {
-            if (!tool.needsApproval) {
+            // Approval responses replayed from client-supplied history are only
+            // accepted for calls that still require approval. The configured
+            // approval policy takes precedence over `needsApproval`, so a tool
+            // without `needsApproval` can still require approval.
+            const callRequiresApproval =
+              (tool.needsApproval != null && tool.needsApproval !== false) ||
+              (
+                await resolveToolApproval<ToolSet, TRuntimeContext>({
+                  tools: this.tools as ToolSet,
+                  toolApproval: toolApproval as
+                    | ToolApprovalConfiguration<ToolSet, TRuntimeContext>
+                    | undefined,
+                  toolCall: {
+                    type: 'tool-call',
+                    toolCallId: approval.toolCallId,
+                    toolName: approval.toolName,
+                    input: approval.input,
+                  } as TypedToolCall<ToolSet>,
+                  messages: prompt.messages,
+                  toolsContext:
+                    effectiveToolsContext as InferToolSetContext<ToolSet>,
+                  runtimeContext: effectiveRuntimeContext,
+                })
+              ).type !== 'not-applicable';
+
+            if (!callRequiresApproval) {
               const reason = `Tool "${approval.toolName}" does not require approval`;
               return {
                 modelResult: {
@@ -2228,7 +2286,9 @@ export class WorkflowAgent<
               } = await validateApprovedToolApprovals({
                 approvedToolApprovals: [approval.collected],
                 tools: this.tools as ToolSet,
-                toolApproval: undefined,
+                toolApproval: toolApproval as
+                  | ToolApprovalConfiguration<ToolSet, TRuntimeContext>
+                  | undefined,
                 messages: prompt.messages,
                 toolsContext:
                   effectiveToolsContext as InferToolSetContext<ToolSet>,
@@ -2889,45 +2949,77 @@ export class WorkflowAgent<
             ),
           ];
 
-          // Check which tools need approval (can be async)
-          const approvalNeeded = await Promise.all(
-            nonProviderToolCalls.map(async tc => {
-              const tool = stepTools[tc.toolName];
-              if (!tool) return false;
-              if (tool.needsApproval == null) return false;
-              if (typeof tool.needsApproval === 'boolean')
-                return tool.needsApproval;
-              const resolvedContext = await resolveToolContext({
-                toolName: tc.toolName,
-                tool,
-                toolsContext:
-                  toolsContext as unknown as InferToolSetContext<TTools>,
-              });
-              return tool.needsApproval(tc.input, {
-                toolCallId: tc.toolCallId,
+          // Resolve which tool calls need approval. The configured approval
+          // policy takes precedence over each tool's `needsApproval` setting.
+          // Approval functions run here in workflow context, outside of the
+          // durable model steps.
+          const approvalStatuses = await Promise.all(
+            nonProviderToolCalls.map(tc =>
+              resolveToolApproval<ToolSet, TRuntimeContext>({
+                tools: stepTools,
+                toolApproval: toolApproval as
+                  | ToolApprovalConfiguration<ToolSet, TRuntimeContext>
+                  | undefined,
+                toolCall: tc as unknown as TypedToolCall<ToolSet>,
                 messages: iterMessages as unknown as ModelMessage[],
-                context: resolvedContext,
-              });
-            }),
+                toolsContext:
+                  toolsContext as unknown as InferToolSetContext<ToolSet>,
+                runtimeContext: effectiveRuntimeContext,
+              }),
+            ),
+          );
+          // Only calls that wait for a user decision pause the loop. Calls
+          // that the configuration approved run in this step, and calls that
+          // it denied get a denial result without running.
+          const approvalNeeded = approvalStatuses.map(
+            status => status.type === 'user-approval',
           );
 
           // Further split non-provider tool calls into:
           // - executable: has execute function and doesn't need approval
           // - paused: no execute function (client-side) OR needs approval
+          // - denied: refused by the approval configuration
           // Note: missing tools (!tool) are left to executeTool which will throw.
           const executableToolCalls = nonProviderToolCalls.filter((tc, i) => {
             const tool = stepTools[tc.toolName];
             return (
               (!tool || typeof tool.execute === 'function') &&
-              !approvalNeeded[i]
+              !approvalNeeded[i] &&
+              approvalStatuses[i].type !== 'denied'
             );
           });
           const pausedToolCalls = nonProviderToolCalls.filter((tc, i) => {
             const tool = stepTools[tc.toolName];
             return (
-              (tool && typeof tool.execute !== 'function') || approvalNeeded[i]
+              ((tool && typeof tool.execute !== 'function') ||
+                approvalNeeded[i]) &&
+              approvalStatuses[i].type !== 'denied'
             );
           });
+          const deniedToolResults: LanguageModelV4ToolResultPart[] =
+            nonProviderToolCalls.flatMap((tc, index) => {
+              const status = approvalStatuses[index];
+              return status.type === 'denied'
+                ? [
+                    {
+                      type: 'tool-result' as const,
+                      toolCallId: tc.toolCallId,
+                      toolName: tc.toolName,
+                      output: {
+                        type: 'execution-denied' as const,
+                        reason: status.reason,
+                      },
+                    },
+                  ]
+                : [];
+            });
+          // Approved and denied calls add an automatic approval request and
+          // response part to the step content, as in `generateText` and
+          // `streamText`.
+          const automaticApprovals = createAutomaticApprovalParts(
+            nonProviderToolCalls,
+            approvalStatuses,
+          );
 
           // If there are paused tool calls (client-side or needing approval),
           // stop the loop and return them.
@@ -3002,6 +3094,7 @@ export class WorkflowAgent<
               ...executableResults.map(result => result.modelResult),
               ...providerResults.map(result => result.modelResult),
               ...continuationInvalidResults,
+              ...deniedToolResults,
             ];
             const executedResults = [...executableResults, ...providerResults];
 
@@ -3059,13 +3152,40 @@ export class WorkflowAgent<
                 };
               }),
             );
-            step?.content.push(
+            // Approval parts follow the order of the tool calls, like in
+            // `generateText` and `streamText`.
+            const toolCallOrder = new Map(
+              nonProviderToolCalls.map((toolCall, index) => [
+                toolCall.toolCallId,
+                index,
+              ]),
+            );
+            const orderedApprovalRequests: Array<
+              StepResult<ToolSet>['content'][number]
+            > = [
               ...approvalRequests.map(
                 ({ inputSchemaInput: _inputSchemaInput, ...request }) =>
                   request,
               ),
+              ...automaticApprovals.requests,
+            ].sort(
+              (a, b) =>
+                (toolCallOrder.get(a.toolCall.toolCallId) ?? 0) -
+                (toolCallOrder.get(b.toolCall.toolCallId) ?? 0),
+            );
+            step?.content.push(
+              ...orderedApprovalRequests,
+              ...automaticApprovals.responses,
             );
             const approvalMessages = approvalRequests.map(
+              ({ toolCall, ...request }) => ({
+                ...request,
+                toolCallId: toolCall.toolCallId,
+              }),
+            );
+            // Automatic approvals are part of the step content, not a request
+            // to the user, so they are not written to the stream.
+            const automaticApprovalMessages = automaticApprovals.requests.map(
               ({ toolCall, ...request }) => ({
                 ...request,
                 toolCallId: toolCall.toolCallId,
@@ -3088,6 +3208,7 @@ export class WorkflowAgent<
                 : (responseMessages as unknown as ModelMessage[]),
               [
                 ...approvalMessages,
+                ...automaticApprovalMessages,
                 ...providerApprovalRequests.map(({ toolCall, ...request }) => ({
                   ...request,
                   toolCallId: toolCall.toolCallId,
@@ -3156,6 +3277,15 @@ export class WorkflowAgent<
                 );
               }
 
+              if (deniedToolResults.length > 0) {
+                await writeToolOutputDenied(
+                  options.writable,
+                  deniedToolResults.map(result => ({
+                    toolCallId: result.toolCallId,
+                  })),
+                );
+              }
+
               if (approvalMessages.length > 0) {
                 await writeApprovalRequests(options.writable, approvalMessages);
               }
@@ -3171,7 +3301,7 @@ export class WorkflowAgent<
 
           // Execute client tools (all have execute functions at this point)
           const clientToolResults = await mapWithConcurrency({
-            items: nonProviderToolCalls,
+            items: executableToolCalls,
             concurrency: toolCallConcurrency,
             abortSignal: effectiveAbortSignal,
             execute: toolCall =>
@@ -3240,6 +3370,9 @@ export class WorkflowAgent<
               result => !currentToolCallIds.has(result.modelResult.toolCallId),
             ),
           );
+          const deniedToolResultByToolCallId = new Map(
+            deniedToolResults.map(result => [result.toolCallId, result]),
+          );
           const continuationToolResults = toolCalls.flatMap(tc => {
             const invalidResult = continuationInvalidToolResults.find(
               r => r.toolCallId === tc.toolCallId,
@@ -3249,6 +3382,10 @@ export class WorkflowAgent<
               r => r.modelResult.toolCallId === tc.toolCallId,
             );
             if (executedResult) return [executedResult.modelResult];
+            const deniedResult = deniedToolResultByToolCallId.get(
+              tc.toolCallId,
+            );
+            if (deniedResult) return [deniedResult];
             return [];
           });
           continuationToolResults.push(
@@ -3263,6 +3400,14 @@ export class WorkflowAgent<
           // transition tool parts to the appropriate output state and properly
           // separate multi-step model calls in the message history.
           if (options.writable) {
+            if (deniedToolResults.length > 0) {
+              await writeToolOutputDenied(
+                options.writable,
+                deniedToolResults.map(result => ({
+                  toolCallId: result.toolCallId,
+                })),
+              );
+            }
             await writeToolResults(
               options.writable,
               executedToolResults.map(r => ({
@@ -3294,6 +3439,11 @@ export class WorkflowAgent<
             )?.input,
             output: r.rawOutput,
           }));
+
+          step?.content.push(
+            ...automaticApprovals.requests,
+            ...automaticApprovals.responses,
+          );
 
           addToolResultsToStep(step, executedToolResults, mode);
 
@@ -3775,6 +3925,28 @@ async function writeApprovalToolResults(
   }
 }
 
+/**
+ * Write tool-output-denied chunks to the writable stream for tool calls that
+ * the approval configuration denied.
+ */
+async function writeToolOutputDenied(
+  writable: WritableStream<any>,
+  deniedResults: Array<{ toolCallId: string }>,
+) {
+  'use step';
+  const writer = writable.getWriter();
+  try {
+    for (const result of deniedResults) {
+      await writer.write({
+        type: 'tool-output-denied',
+        toolCallId: result.toolCallId,
+      });
+    }
+  } finally {
+    writer.releaseLock();
+  }
+}
+
 function isInWorkflow(): boolean {
   try {
     getWorkflowMetadata();
@@ -3857,6 +4029,55 @@ async function resolveProviderToolResult(
     rawOutput: result,
     isError: streamResult.isError === true,
   };
+}
+
+/**
+ * Creates the approval request and response parts for tool calls that the
+ * approval configuration approved or denied. These parts are added to the step
+ * content, like in `generateText` and `streamText`, and the loop continues
+ * without waiting for the user.
+ */
+function createAutomaticApprovalParts(
+  toolCalls: ParsedToolCall[],
+  statuses: Array<{ type: string; reason?: string }>,
+): {
+  requests: Array<ToolApprovalRequestOutput<ToolSet>>;
+  responses: Array<ToolApprovalResponseOutput<ToolSet>>;
+} {
+  const requests: Array<ToolApprovalRequestOutput<ToolSet>> = [];
+  const responses: Array<ToolApprovalResponseOutput<ToolSet>> = [];
+
+  for (const [index, toolCall] of toolCalls.entries()) {
+    const status = statuses[index];
+    if (status.type !== 'approved' && status.type !== 'denied') {
+      continue;
+    }
+
+    const { inputSchemaInput: _inputSchemaInput, ...toolCallWithoutInput } =
+      toolCall;
+    const approvalId = `approval-${toolCall.toolCallId}`;
+    const typedToolCall = {
+      ...toolCallWithoutInput,
+      type: 'tool-call' as const,
+    } as StepResult<ToolSet>['toolCalls'][number];
+
+    requests.push({
+      type: 'tool-approval-request',
+      approvalId,
+      toolCall: typedToolCall,
+      isAutomatic: true,
+    });
+    responses.push({
+      type: 'tool-approval-response',
+      approvalId,
+      toolCall: typedToolCall,
+      approved: status.type === 'approved',
+      reason: status.reason,
+      providerExecuted: toolCall.providerExecuted,
+    });
+  }
+
+  return { requests, responses };
 }
 
 function createInvalidToolResult(toolCall: {
@@ -4000,6 +4221,7 @@ function addApprovalRequestsToMessages(
     type: 'tool-approval-request';
     approvalId: string;
     toolCallId: string;
+    isAutomatic?: boolean;
     signature?: string;
     inputSchemaInput?: unknown;
   }>,
