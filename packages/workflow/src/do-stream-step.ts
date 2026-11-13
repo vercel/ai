@@ -2,7 +2,6 @@ import type {
   LanguageModelV4Prompt,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
@@ -187,7 +186,9 @@ async function streamModelStep(
 
       return stream;
     } catch (error) {
-      if (abortSignal?.aborted && isAbortError(error)) {
+      // An abort reason is an ordinary error, so the aborted signal decides
+      // whether the failure is an abort.
+      if (abortSignal?.aborted) {
         return undefined;
       }
 
@@ -462,7 +463,7 @@ async function streamModelStep(
       }
     }
   } catch (error) {
-    if (abortSignal?.aborted && isAbortError(error)) {
+    if (abortSignal?.aborted) {
       return { aborted: true };
     }
 
