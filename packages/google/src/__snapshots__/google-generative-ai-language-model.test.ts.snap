@@ -645,6 +645,31 @@ exports[`doStream > reasoning > should stream reasoning and text parts 1`] = `
   {
     "id": "dX6LadKVC7SZ28oPr9yJoQs",
     "type": "response-metadata",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 9,
+        "total": 9,
+      },
+      "outputTokens": {
+        "reasoning": 256,
+        "text": 10,
+        "total": 266,
+      },
+      "raw": {
+        "candidatesTokenCount": 10,
+        "promptTokenCount": 9,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 9,
+          },
+        ],
+        "thoughtsTokenCount": 256,
+        "totalTokenCount": 275,
+      },
+    },
   },
   {
     "id": "0",
@@ -745,6 +770,31 @@ exports[`doStream > reasoning-gemini3 > should stream reasoning with thoughtSign
   {
     "id": "M3iLaY-AI7zTxN8P3Piw4Qg",
     "type": "response-metadata",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 9,
+        "total": 9,
+      },
+      "outputTokens": {
+        "reasoning": 302,
+        "text": 13,
+        "total": 315,
+      },
+      "raw": {
+        "candidatesTokenCount": 13,
+        "promptTokenCount": 9,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 9,
+          },
+        ],
+        "thoughtsTokenCount": 302,
+        "totalTokenCount": 324,
+      },
+    },
   },
   {
     "id": "0",
@@ -845,6 +895,22 @@ exports[`doStream > streaming-tool-call-arguments > should stream partial functi
   {
     "id": "dqHOab6xGLzWodAPkPuViA4",
     "type": "response-metadata",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 0,
+        "total": 0,
+      },
+      "raw": {
+        "trafficType": "ON_DEMAND",
+      },
+    },
   },
   {
     "id": "test-id",
@@ -1002,6 +1068,22 @@ exports[`doStream > streaming-tool-call-arguments-nested > should stream nested 
   {
     "id": "tjXVaYaxFISTq8YP_MWiyAo",
     "type": "response-metadata",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 0,
+        "total": 0,
+      },
+      "raw": {
+        "trafficType": "ON_DEMAND",
+      },
+    },
   },
   {
     "id": "test-id",
@@ -1426,6 +1508,31 @@ exports[`doStream > text > should stream text deltas 1`] = `
   {
     "id": "bH6LaZW8Fp_3nsEPqtaSwQ4",
     "type": "response-metadata",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 9,
+        "total": 9,
+      },
+      "outputTokens": {
+        "reasoning": 185,
+        "text": 5,
+        "total": 190,
+      },
+      "raw": {
+        "candidatesTokenCount": 5,
+        "promptTokenCount": 9,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 9,
+          },
+        ],
+        "thoughtsTokenCount": 185,
+        "totalTokenCount": 199,
+      },
+    },
   },
   {
     "id": "0",
@@ -1526,6 +1633,31 @@ exports[`doStream > tool-call > should stream tool call 1`] = `
   {
     "id": "b36LacjwM668nsEP2tbsgQQ",
     "type": "response-metadata",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 29,
+        "total": 29,
+      },
+      "outputTokens": {
+        "reasoning": 45,
+        "text": 15,
+        "total": 60,
+      },
+      "raw": {
+        "candidatesTokenCount": 15,
+        "promptTokenCount": 29,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 29,
+          },
+        ],
+        "thoughtsTokenCount": 45,
+        "totalTokenCount": 89,
+      },
+    },
   },
   {
     "id": "test-id",
@@ -1633,6 +1765,31 @@ exports[`doStream > tool-call-gemini3 > should stream tool call with thoughtSign
   {
     "id": "QHiLaa6LBrb8vdIPoNztsAg",
     "type": "response-metadata",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 29,
+        "total": 29,
+      },
+      "outputTokens": {
+        "reasoning": 804,
+        "text": 15,
+        "total": 819,
+      },
+      "raw": {
+        "candidatesTokenCount": 15,
+        "promptTokenCount": 29,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 29,
+          },
+        ],
+        "thoughtsTokenCount": 804,
+        "totalTokenCount": 848,
+      },
+    },
   },
   {
     "id": "test-id",
