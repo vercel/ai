@@ -1,5 +1,11 @@
 # @ai-sdk/zai
 
+## 3.0.55
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+
 ## 3.0.54
 
 ### Patch Changes

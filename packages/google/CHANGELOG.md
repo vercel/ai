@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 4.0.121
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+- 8e60cb4: Fix Google Interactions ignoring top-level `reasoning` in generation and streaming calls. Map reasoning to model-supported thinking levels, including Hydrogen's `xhigh`, preserve explicit `thinkingLevel` overrides and API defaults, and warn when reasoning is unsupported.
+
 ## 4.0.120
 
 ### Patch Changes
