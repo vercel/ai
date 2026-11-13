@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: google.interactions('gemini-3.8-flash'),
+    model: google.interactions('gemini-4-hydrogen'),
     tools: { getWeather: weatherTool },
     stopWhen: isStepCount(5),
     prompt: 'What is the weather in San Francisco right now?',

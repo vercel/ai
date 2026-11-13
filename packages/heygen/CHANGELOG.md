@@ -1,5 +1,19 @@
 # @ai-sdk/heygen
 
+## 3.0.25
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+- 585caa7: feat(heygen): add experimental decision models with `heygen.decisionModel('heygen-decision-1')` and `heygen-decision-1-turbo`, including image and video inputs
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
 ## 3.0.23
 
 ### Patch Changes

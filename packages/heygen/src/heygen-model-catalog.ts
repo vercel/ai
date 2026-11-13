@@ -68,6 +68,42 @@ export function getHeyGenVideoModelEntry(_modelId: string) {
     },
   } satisfies ModelEntry;
 }
+
+// These adapter limits apply to custom IDs as well as catalog models.
+export const heyGenDecisionModelLimits = {
+  supportedQuestionTypes: ['choice', 'score', 'boolean'],
+  maxQuestions: 400,
+  maxChoiceOptions: 255,
+  maxScoreLevels: 10,
+  maxImages: 4,
+  maxVideos: 1,
+} as const;
+
+const decisionModelIds = [
+  'heygen-decision-1',
+  'heygen-decision-1-turbo',
+] as const;
+export function getHeyGenDecisionModelEntry(_modelId: string) {
+  return {
+    capabilities: {
+      decision: {
+        questionTypes: { boolean: true, choice: true, score: true, box: false },
+        inputs: { image: true },
+        reasoning: false,
+        maxOutputTokens: false,
+        ...heyGenDecisionModelLimits,
+      },
+    },
+  } satisfies ModelEntry;
+}
+
 export const heyGenModelCatalog = Object.fromEntries([
   ...videoModelIds.map(id => [id, getHeyGenVideoModelEntry(id)] as const),
+  ...decisionModelIds.map(id => [id, getHeyGenDecisionModelEntry(id)] as const),
 ]);
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type HeyGenModelIds = {
+  decision: (typeof decisionModelIds)[number];
+  video: (typeof videoModelIds)[number];
+};

@@ -4,12 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { AmazonBedrockModelIds } from './amazon-bedrock-model-catalog';
 
 export type AmazonBedrockEmbeddingModelId =
-  | 'amazon.titan-embed-text-v1'
-  | 'amazon.titan-embed-text-v2:0'
-  | 'cohere.embed-english-v3'
-  | 'cohere.embed-multilingual-v3'
+  | AmazonBedrockModelIds['embedding']
   | (string & {});
 
 export type AmazonBedrockEmbeddingModelSettings = {

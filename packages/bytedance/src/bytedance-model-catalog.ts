@@ -224,3 +224,9 @@ export const byteDanceModelCatalog = Object.fromEntries([
   ...imageModelIds.map(id => [id, getByteDanceImageModelEntry(id)] as const),
   ...videoModelIds.map(id => [id, getByteDanceVideoModelEntry(id)] as const),
 ]);
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type ByteDanceModelIds = {
+  image: (typeof imageModelIds)[number];
+  video: (typeof videoModelIds)[number];
+};

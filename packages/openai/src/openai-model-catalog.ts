@@ -123,62 +123,202 @@ const configurableNonReasoning: OpenAILanguageModelDefinition = {
   },
 };
 
-// Model-specific exceptions belong in the table; family rules provide defaults.
-const openaiLanguageModelDefinitions: Record<
-  string,
-  OpenAILanguageModelDefinition
-> = {
-  'gpt-6-astra': {},
-  'gpt-6.1-sol': {},
-  'gpt-6.1-terra': configurableNonReasoning,
-  'gpt-6-luna': configurableNonReasoning,
-  'gpt-6-sol': configurableNonReasoning,
-  'gpt-5.6': {},
-  'gpt-5.6-luna': {},
-  'gpt-5.6-sol': {},
-  'gpt-5.6-terra': {},
-  'gpt-5.5': {},
-  'gpt-5.4-pro': {},
-  'gpt-5.4': {},
-  'gpt-5.4-mini': {},
-  'gpt-5.4-nano': {},
-  'gpt-5.3-chat-latest': {},
-  'gpt-5.2-pro': {},
-  'gpt-5.2-chat-latest': {},
-  'gpt-5.2': {},
-  'gpt-5.1-codex-mini': {},
-  'gpt-5.1-codex': {},
-  'gpt-5.1-chat-latest': {},
-  'gpt-5.1': {},
-  'gpt-5-pro': {},
-  'gpt-5': {},
-  'gpt-5-mini': {},
-  'gpt-5-nano': {},
-  'gpt-5-codex': {},
+// Endpoint lists define suggestions independently of optional capability metadata.
+// An undefined definition retains family rules and the custom-model fallback.
+const openaiLanguageModelDefinitions = {
+  'gpt-6-astra': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-6.1-sol': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-6.1-terra': {
+    endpoints: ['chat', 'responses'],
+    definition: configurableNonReasoning,
+  },
+  'gpt-6-luna': {
+    endpoints: ['chat', 'responses'],
+    definition: configurableNonReasoning,
+  },
+  'gpt-6-sol': {
+    endpoints: ['chat', 'responses'],
+    definition: configurableNonReasoning,
+  },
+  'gpt-5.6': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.6-luna': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.6-sol': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.6-terra': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.5': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.4-pro': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.4': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.4-mini': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.4-nano': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.3-chat-latest': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.2-pro': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.2-chat-latest': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.2': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.1-codex-mini': { endpoints: ['responses'], definition: {} },
+  'gpt-5.1-codex': { endpoints: ['responses'], definition: {} },
+  'gpt-5.1-chat-latest': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5.1': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5-pro': { endpoints: ['responses'], definition: {} },
+  'gpt-5': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5-mini': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5-nano': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-5-codex': { endpoints: ['responses'], definition: {} },
   'gpt-5-chat-latest': {
-    capabilities: {
-      language: {
-        objectGeneration: false,
-        tools: { usage: false, streaming: false, async: false },
+    endpoints: ['chat', 'responses'],
+    definition: {
+      capabilities: {
+        language: {
+          objectGeneration: false,
+          tools: { usage: false, streaming: false, async: false },
+        },
       },
     },
   },
-  'gpt-4.1': {},
-  'gpt-4.1-mini': {},
-  'gpt-4.1-nano': {},
-  'gpt-4o': {},
-  'gpt-4o-mini': {},
-};
+  'gpt-4.1': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-4.1-mini': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-4.1-nano': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-4o': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-4o-mini': { endpoints: ['chat', 'responses'], definition: {} },
+  'gpt-3.5-turbo': { endpoints: ['chat', 'responses'], definition: undefined },
+  'gpt-3.5-turbo-0125': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-3.5-turbo-1106': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-3.5-turbo-16k': { endpoints: ['chat'], definition: undefined },
+  'gpt-4.1-2025-04-14': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-4.1-mini-2025-04-14': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-4.1-nano-2025-04-14': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-4o-2024-05-13': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-4o-2024-08-06': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-4o-2024-11-20': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-4o-audio-preview': { endpoints: ['chat'], definition: undefined },
+  'gpt-4o-audio-preview-2024-12-17': {
+    endpoints: ['chat'],
+    definition: undefined,
+  },
+  'gpt-4o-audio-preview-2025-06-03': {
+    endpoints: ['chat'],
+    definition: undefined,
+  },
+  'gpt-4o-mini-2024-07-18': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-4o-mini-audio-preview': { endpoints: ['chat'], definition: undefined },
+  'gpt-4o-mini-audio-preview-2024-12-17': {
+    endpoints: ['chat'],
+    definition: undefined,
+  },
+  'gpt-4o-mini-search-preview': { endpoints: ['chat'], definition: undefined },
+  'gpt-4o-mini-search-preview-2025-03-11': {
+    endpoints: ['chat'],
+    definition: undefined,
+  },
+  'gpt-4o-search-preview': { endpoints: ['chat'], definition: undefined },
+  'gpt-4o-search-preview-2025-03-11': {
+    endpoints: ['chat'],
+    definition: undefined,
+  },
+  'gpt-5-2025-08-07': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-5-mini-2025-08-07': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-5-nano-2025-08-07': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-5.1-2025-11-13': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-5.2-2025-12-11': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-5.2-pro-2025-12-11': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-5.4-2026-03-05': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-5.4-mini-2026-03-17': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-5.4-nano-2026-03-17': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-5.4-pro-2026-03-05': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-5.5-2026-04-23': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  o1: { endpoints: ['chat', 'responses'], definition: undefined },
+  'o1-2024-12-17': { endpoints: ['chat', 'responses'], definition: undefined },
+  o3: { endpoints: ['chat', 'responses'], definition: undefined },
+  'o3-2025-04-16': { endpoints: ['chat', 'responses'], definition: undefined },
+  'o3-mini': { endpoints: ['chat', 'responses'], definition: undefined },
+  'o3-mini-2025-01-31': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'o4-mini': { endpoints: ['chat', 'responses'], definition: undefined },
+  'o4-mini-2025-04-16': {
+    endpoints: ['chat', 'responses'],
+    definition: undefined,
+  },
+  'gpt-5-pro-2025-10-06': { endpoints: ['responses'], definition: undefined },
+  'gpt-5.1-codex-max': { endpoints: ['responses'], definition: undefined },
+  'gpt-5.2-codex': { endpoints: ['responses'], definition: undefined },
+  'gpt-5.3-codex': { endpoints: ['responses'], definition: undefined },
+} as const satisfies Record<
+  string,
+  {
+    endpoints: readonly ('chat' | 'responses')[];
+    definition: OpenAILanguageModelDefinition | undefined;
+  }
+>;
 
 const openaiLanguageModelEntries: Readonly<
   Record<string, OpenAILanguageModelEntry>
 > = Object.fromEntries(
-  Object.entries(openaiLanguageModelDefinitions).map(
-    ([modelId, definition]) => [
+  Object.entries(openaiLanguageModelDefinitions)
+    .filter(([, { definition }]) => definition != null)
+    .map(([modelId, { definition }]) => [
       modelId,
       createOpenAILanguageModelEntry(modelId, definition),
-    ],
-  ),
+    ]),
 );
 
 function createOpenAILanguageModelEntry(
@@ -421,9 +561,7 @@ export type OpenAITranscriptionModelEntry =
     };
   };
 
-const openaiEmbeddingModelEntries: Readonly<
-  Record<string, OperationModelEntry<'embedding'>>
-> = {
+const openaiEmbeddingModelEntries = {
   'text-embedding-3-large': {
     capabilities: {
       embedding: { defaultDimensions: 3072, customDimensions: true },
@@ -439,7 +577,7 @@ const openaiEmbeddingModelEntries: Readonly<
       embedding: { defaultDimensions: 1536, customDimensions: false },
     },
   },
-};
+} satisfies Readonly<Record<string, OperationModelEntry<'embedding'>>>;
 
 const gptImageSizes = ['1024x1024', '1536x1024', '1024x1536'];
 const customImageSizes = {
@@ -462,54 +600,55 @@ function createGptImageEntry(
   };
 }
 
-const openaiImageModelEntries: Readonly<Record<string, OpenAIImageModelEntry>> =
-  {
-    'gpt-image-2.6-flare': createGptImageEntry(customImageSizes),
-    'gpt-image-2.6-sunburst': createGptImageEntry(customImageSizes),
-    'gpt-image-2.5-flare': createGptImageEntry(customImageSizes),
-    'gpt-image-2.5-sunburst': createGptImageEntry(customImageSizes),
-    'gpt-image-2': createGptImageEntry(gptImageSizes),
-    'gpt-image-1.5': createGptImageEntry(gptImageSizes),
-    'gpt-image-1-mini': createGptImageEntry(gptImageSizes),
-    'gpt-image-1': createGptImageEntry(gptImageSizes),
-    'dall-e-3': {
-      capabilities: {
-        image: {
-          sizes: ['1024x1024', '1792x1024', '1024x1792'],
-          fileInput: false,
-          maskInput: false,
-          maxImagesPerCall: 1,
-        },
+const openaiImageModelEntries = {
+  'gpt-image-2.6-flare': createGptImageEntry(customImageSizes),
+  'gpt-image-2.6-sunburst': createGptImageEntry(customImageSizes),
+  'gpt-image-2.5-flare': createGptImageEntry(customImageSizes),
+  'gpt-image-2.5-sunburst': createGptImageEntry(customImageSizes),
+  'gpt-image-2': createGptImageEntry(gptImageSizes),
+  'gpt-image-1.5': createGptImageEntry(gptImageSizes),
+  'gpt-image-1-mini': createGptImageEntry(gptImageSizes),
+  'gpt-image-1': createGptImageEntry(gptImageSizes),
+  'dall-e-3': {
+    capabilities: {
+      image: {
+        sizes: ['1024x1024', '1792x1024', '1024x1792'],
+        fileInput: false,
+        maskInput: false,
+        maxImagesPerCall: 1,
       },
-      requestConfig: { image: { responseFormat: 'b64_json' } },
     },
-    'dall-e-2': {
-      capabilities: {
-        image: {
-          sizes: ['256x256', '512x512', '1024x1024'],
-          fileInput: true,
-          maskInput: true,
-          maxImagesPerCall: 10,
-        },
+    requestConfig: { image: { responseFormat: 'b64_json' } },
+  },
+  'dall-e-2': {
+    capabilities: {
+      image: {
+        sizes: ['256x256', '512x512', '1024x1024'],
+        fileInput: true,
+        maskInput: true,
+        maxImagesPerCall: 10,
       },
-      requestConfig: { image: { responseFormat: 'b64_json' } },
     },
-  };
+    requestConfig: { image: { responseFormat: 'b64_json' } },
+  },
+} satisfies Readonly<Record<string, OpenAIImageModelEntry>>;
 
-const imageModelAliases: Readonly<Record<string, OpenAIImageModelEntry>> = {
+const imageModelAliases = {
   'gpt-image-2.5-flare-2026-09-08':
     openaiImageModelEntries['gpt-image-2.5-flare'],
   'gpt-image-2.5-sunburst-2026-09-08':
     openaiImageModelEntries['gpt-image-2.5-sunburst'],
   'chatgpt-image-latest': createGptImageEntry({ description: 'Unknown' }),
-};
+} satisfies Readonly<Record<string, OpenAIImageModelEntry>>;
 
 function resolveOpenAIImageModelEntry(modelId: string): OpenAIImageModelEntry {
   if (Object.prototype.hasOwnProperty.call(openaiImageModelEntries, modelId)) {
-    return openaiImageModelEntries[modelId];
+    return openaiImageModelEntries[
+      modelId as keyof typeof openaiImageModelEntries
+    ];
   }
   if (Object.prototype.hasOwnProperty.call(imageModelAliases, modelId)) {
-    return imageModelAliases[modelId];
+    return imageModelAliases[modelId as keyof typeof imageModelAliases];
   }
   return {
     capabilities: {
@@ -547,9 +686,7 @@ const defaultTranscriptionRequestConfig: OpenAITranscriptionModelEntry['requestC
     languageField: 'language',
   };
 
-const openaiTranscriptionModelEntries: Readonly<
-  Record<string, OpenAITranscriptionModelEntry>
-> = {
+const openaiTranscriptionModelEntries = {
   'whisper-1': {
     capabilities: {
       transcription: {
@@ -652,7 +789,10 @@ const openaiTranscriptionModelEntries: Readonly<
     },
     requestConfig: { transcription: defaultTranscriptionRequestConfig },
   },
-};
+  // Known IDs without declared capabilities retain the custom-model fallback.
+  'gpt-4o-mini-transcribe-2025-03-20': undefined,
+  'gpt-4o-mini-transcribe-2025-12-15': undefined,
+} satisfies Readonly<Record<string, OpenAITranscriptionModelEntry | undefined>>;
 
 const transcriptionSnapshotModelIds = [
   'gpt-transcribe',
@@ -669,7 +809,11 @@ function resolveOpenAITranscriptionModelEntry(
       modelId,
     )
   ) {
-    return openaiTranscriptionModelEntries[modelId];
+    const entry =
+      openaiTranscriptionModelEntries[
+        modelId as keyof typeof openaiTranscriptionModelEntries
+      ];
+    if (entry != null) return entry;
   }
   for (const baseModelId of transcriptionSnapshotModelIds) {
     if (modelId.startsWith(`${baseModelId}-`)) {
@@ -691,9 +835,7 @@ function resolveOpenAITranscriptionModelEntry(
   };
 }
 
-const openaiSpeechTranslationModelEntries: Readonly<
-  Record<string, OperationModelEntry<'speechTranslation'>>
-> = {
+const openaiSpeechTranslationModelEntries = {
   'gpt-realtime-translate': {
     capabilities: {
       speechTranslation: {
@@ -703,15 +845,18 @@ const openaiSpeechTranslationModelEntries: Readonly<
       },
     },
   },
-};
+} satisfies Readonly<Record<string, OperationModelEntry<'speechTranslation'>>>;
 
-const openaiSpeechModelEntries: Readonly<
-  Record<string, OperationModelEntry<'speech'>>
-> = {
+const openaiSpeechModelEntries = {
   'tts-1': { capabilities: { speech: { instructions: false } } },
   'tts-1-hd': { capabilities: { speech: { instructions: false } } },
   'gpt-4o-mini-tts': { capabilities: { speech: { instructions: true } } },
-};
+  // Known IDs without declared capabilities retain the custom-model fallback.
+  'gpt-4o-mini-tts-2025-03-20': undefined,
+  'gpt-4o-mini-tts-2025-12-15': undefined,
+  'tts-1-1106': undefined,
+  'tts-1-hd-1106': undefined,
+} satisfies Readonly<Record<string, OperationModelEntry<'speech'> | undefined>>;
 
 type RealtimeRequestConfig = {
   api: 'live' | 'realtime';
@@ -809,11 +954,14 @@ export const openaiModelCatalog: Readonly<Record<string, OpenAIModelEntry>> =
   ]);
 
 function combineModelEntries(
-  catalogs: ReadonlyArray<Readonly<Record<string, OpenAIModelEntry>>>,
+  catalogs: ReadonlyArray<
+    Readonly<Record<string, OpenAIModelEntry | undefined>>
+  >,
 ): Record<string, OpenAIModelEntry> {
   const entries = new Map<string, OpenAIModelEntry>();
   for (const catalog of catalogs) {
     for (const [modelId, entry] of Object.entries(catalog)) {
+      if (entry == null) continue;
       const previous = entries.get(modelId);
       entries.set(modelId, {
         capabilities: { ...previous?.capabilities, ...entry.capabilities },
@@ -938,3 +1086,21 @@ export function getOpenAILanguageModelCapabilities(
       capabilities.reasoning.sampling === 'reasoning-effort-none',
   };
 }
+
+type OpenAIEndpointModelId<Endpoint extends 'chat' | 'responses'> = {
+  [ModelId in keyof typeof openaiLanguageModelDefinitions]: Endpoint extends (typeof openaiLanguageModelDefinitions)[ModelId]['endpoints'][number]
+    ? ModelId
+    : never;
+}[keyof typeof openaiLanguageModelDefinitions];
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type OpenAIModelIds = {
+  chat: OpenAIEndpointModelId<'chat'>;
+  responses: OpenAIEndpointModelId<'responses'>;
+  embedding: keyof typeof openaiEmbeddingModelEntries;
+  image: keyof typeof openaiImageModelEntries | keyof typeof imageModelAliases;
+  transcription: keyof typeof openaiTranscriptionModelEntries;
+  speechTranslation: keyof typeof openaiSpeechTranslationModelEntries;
+  speech: keyof typeof openaiSpeechModelEntries;
+  realtime: keyof typeof realtimeModelEntries;
+};

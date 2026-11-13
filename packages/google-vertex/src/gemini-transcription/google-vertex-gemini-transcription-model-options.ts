@@ -4,10 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { GoogleVertexModelIds } from '../google-vertex-model-catalog';
 
 export type GoogleVertexGeminiTranscriptionModelId =
-  | 'gemini-3.5-transcribe'
-  | 'gemini-3.5-transcribe-live'
+  | GoogleVertexModelIds['geminiTranscription']
   | (string & {});
 
 /**

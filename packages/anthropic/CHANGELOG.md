@@ -1,5 +1,19 @@
 # @ai-sdk/anthropic
 
+## 4.0.105
+
+### Patch Changes
+
+- f5fc6ba: Derive known model ID suggestions from each provider's model catalog declarations so catalog updates automatically update autocomplete, while preserving existing suggestions, endpoint-specific model lists, and support for custom model IDs.
+
+## 4.0.104
+
+### Patch Changes
+
+- 6d50947: add experimental extraction models backed by structured language model output
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
 ## 4.0.103
 
 ### Patch Changes

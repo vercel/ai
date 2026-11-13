@@ -37,6 +37,8 @@ export {
   type WorkflowAgentOnToolExecutionEndCallback,
 } from './workflow-agent.js';
 
+export type { WorkflowAgentTimeoutConfiguration } from './workflow-agent-timeout.js';
+
 export {
   createModelCallToUIChunkTransform,
   toUIMessageChunk,

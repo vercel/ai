@@ -1,5 +1,22 @@
 # @ai-sdk/harness-fx
 
+## 1.0.100
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.184
+
+## 1.0.99
+
+### Patch Changes
+
+- 71bef69: feat(harness): require approval for sensitive workspace file changes in `allow-edits` permission mode
+- Updated dependencies [6d50947]
+- Updated dependencies [71bef69]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/harness@1.0.183
+  - @ai-sdk/mcp@2.0.99
+
 ## 1.0.98
 
 ### Patch Changes
