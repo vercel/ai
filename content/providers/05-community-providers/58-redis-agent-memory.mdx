@@ -22,11 +22,12 @@ pnpm add @redis/vercel-ai-sdk
 Provision a store in [Redis Cloud](https://cloud.redis.io/#/agent-memory) and set these variables on your server:
 
 ```bash
+AGENT_MEMORY_URL=https://...
 AGENT_MEMORY_STORE_ID=your-store-id
 AGENT_MEMORY_API_KEY=your-api-key
-# Optional: only if your store uses a different endpoint
-AGENT_MEMORY_URL=https://...
 ```
+
+`AGENT_MEMORY_URL` (the `serverUrl` option) is required. Use the endpoint shown for your store in Redis Cloud.
 
 ## Provider Instance
 
@@ -131,7 +132,7 @@ const { text } = await generateText({
 ```
 
 The tool map includes `search_memories`, `create_memories`, `update_memory`, `get_session_memory`, `add_session_event` and others. Deletion tools (`allowDeletes`) and namespace tools (`namespaceTools`) are off by default.
-To record the conversation without relying on the model, use `tools.createSessionEventHook()` with `onStart` and `onEnd`. See the [tools guide](https://github.com/redis/vercel-ai-sdk/blob/main/TOOLS.md).
+To record the conversation without relying on the model, use `tools.createSessionEventHook()` with `onStart` and `onEnd`. The hook requires an `onError` callback, and `userId` and `sessionId` must be fixed in the tools' scope. See the [tools guide](https://github.com/redis/vercel-ai-sdk/blob/main/TOOLS.md).
 
 Do not combine automatic model recording with session-write tools or recording hooks for the same interaction. It duplicates events.
 
