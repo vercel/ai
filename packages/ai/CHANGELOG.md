@@ -1,5 +1,14 @@
 # ai
 
+## 7.0.172
+
+### Patch Changes
+
+- 79d2004: Require an explicit `experimental_download` hook for remote file URLs in `experimental_extract` and `experimental_decide` instead of silently downloading through global fetch. Callers can use `createDownload({ fetch })` with a DNS-protected transport for untrusted URLs; inline file data continues to work without a hook.
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+  - @ai-sdk/gateway@4.0.145
+
 ## 7.0.171
 
 ### Patch Changes

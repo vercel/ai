@@ -1,5 +1,12 @@
 # @ai-sdk/heygen
 
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
 ## 3.0.23
 
 ### Patch Changes
