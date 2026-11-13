@@ -1,6 +1,9 @@
 ---
 title: Transcription
 description: Learn how to transcribe audio with the AI SDK.
+keywords:
+  - speech to text
+  - audio transcription
 ---
 
 # Transcription
@@ -289,6 +292,13 @@ try {
   }
 }
 ```
+
+### DNS protection for audio downloads
+
+The audio download uses the `download` option, not the provider's `fetch`. For
+untrusted audio URLs on Node.js, pass a `guarded-fetch` transport via
+`download: createDownload({ fetch })`. See [Secure URL
+Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).
 
 ### Abort Signals and Timeouts
 

@@ -609,10 +609,62 @@ The provider validates these limits before sending the decision request:
 See Perplexity's [request limits](https://docs.perplexity.ai/docs/decisions/quickstart#request-limits)
 for API-enforced body, token, and image-size limits. The SDK does not resize images.
 
-Decision models have no Perplexity-specific provider options. Entries passed in
-`providerOptions.perplexity` produce unsupported-option warnings and are not sent
-to the API. Use the standard `abortSignal`, `headers`, and `maxRetries` options on
-`decide` for cancellation, request headers, and retries.
+Decision models accept these options under `providerOptions.perplexity`:
+
+- `mode`: Set to `'web_grounding'` to search the web before answering. Grounded requests support up to 100 questions.
+- `maxStaleness`: A non-negative integer specifying the maximum age of a fetched page in seconds. It applies to URL-only state with web grounding; it does not filter search results. Omit it to use a stored page without an age limit.
+
+Other Perplexity-specific options produce unsupported-option warnings and are not
+sent to the API. Use the standard `abortSignal`, `headers`, and `maxRetries`
+options on `decide` for cancellation, request headers, and retries.
+
+### Web grounding
+
+```ts
+import {
+  perplexity,
+  type PerplexityDecisionModelOptions,
+} from '@ai-sdk/perplexity';
+import { experimental_decide as decide } from 'ai';
+
+const result = await decide({
+  model: perplexity.decisionModel('pplx-decider-latest'),
+  state: 'https://en.wikipedia.org/wiki/James_Webb_Space_Telescope',
+  questions: {
+    launched: {
+      type: 'boolean',
+      instructions: 'Did Webb launch in December 2021?',
+    },
+  },
+  providerOptions: {
+    perplexity: {
+      mode: 'web_grounding',
+      maxStaleness: 86400,
+    } satisfies PerplexityDecisionModelOptions,
+  },
+});
+
+console.log(result.answers);
+console.log(result.providerMetadata?.perplexity.searchResults);
+console.log(result.providerMetadata?.perplexity.fetchedResults);
+console.log(result.providerMetadata?.perplexity.toolCalls);
+```
+
+Grounding metadata is available under `providerMetadata.perplexity` when returned
+by the API:
+
+- `searchResults`: Search evidence with `title`, `url`, `snippet`, and optional `date` and `last_updated` fields.
+- `fetchedResults`: Fetched page evidence with `title`, `url`, and `snippet`.
+- `toolCalls`: Invocation counts keyed by tool name, such as `search_web` and `fetch_url`, each with an `invocation` count. Counts are independent of the number of evidence results.
+
+Response headers are available on `result.response.headers`. On HTTP errors,
+`APICallError.responseHeaders` preserves headers including
+`x-perplexity-search-queries` and `x-perplexity-fetched-urls` when present, even
+when the error body has no usage information. A disconnected request may have no
+response headers; missing counts do not establish that no searches completed.
+
+See Perplexity's [web grounding documentation](https://docs.perplexity.ai/docs/decisions/quickstart#web-grounding)
+for search, page-fetching, and failure behavior.
 
 ### Decision Model Capabilities
 

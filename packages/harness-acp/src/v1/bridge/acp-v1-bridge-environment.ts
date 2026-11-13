@@ -88,6 +88,7 @@ export type ACPBridgeConfiguration = {
   readonly askUserQuestionsRequestMethod?: string;
   readonly hostToolMcpTransport?: ACPHostToolMCPTransport;
   readonly nonTextContentTypes?: ACPV1Settings['nonTextContentTypes'];
+  readonly writeProtectedPaths?: ACPV1Settings['writeProtectedPaths'];
 };
 
 const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
@@ -100,6 +101,7 @@ const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
   askUserQuestionsRequestMethod: z.string().optional(),
   hostToolMcpTransport: hostToolMcpTransportSchema.optional(),
   nonTextContentTypes: z.array(z.literal('image')).optional(),
+  writeProtectedPaths: z.array(z.string()).optional(),
 });
 
 export function createACPBridgeEnvironment({
@@ -112,6 +114,7 @@ export function createACPBridgeEnvironment({
   askUserQuestionsRequestMethod,
   hostToolMcpTransport,
   nonTextContentTypes,
+  writeProtectedPaths,
 }: ACPBridgeConfiguration): Record<string, string> {
   return {
     [ACP_BRIDGE_CONFIGURATION_ENV]: JSON.stringify({
@@ -126,6 +129,7 @@ export function createACPBridgeEnvironment({
         : { askUserQuestionsRequestMethod }),
       ...(hostToolMcpTransport == null ? {} : { hostToolMcpTransport }),
       ...(nonTextContentTypes == null ? {} : { nonTextContentTypes }),
+      ...(writeProtectedPaths == null ? {} : { writeProtectedPaths }),
     }),
   };
 }

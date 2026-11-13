@@ -92,3 +92,8 @@ export function getZaiLanguageModelEntry(modelId: string) {
 export const zaiModelCatalog = Object.fromEntries(
   languageModelIds.map(id => [id, getZaiLanguageModelEntry(id)]),
 );
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type ZaiModelIds = {
+  language: (typeof languageModelIds)[number];
+};

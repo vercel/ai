@@ -18,12 +18,84 @@ import {
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
-import {
-  openaiResponsesModelIds,
-  openaiResponsesReasoningModelIds,
-  type OpenAILanguageModelResponsesOptions,
-} from './openai-responses-language-model-options';
+import { type OpenAILanguageModelResponsesOptions } from './openai-responses-language-model-options';
 import type { OpenaiResponsesTextProviderMetadata } from './openai-responses-provider-metadata';
+
+const openaiResponsesReasoningModelIds = [
+  'o1',
+  'o1-2024-12-17',
+  'o3',
+  'o3-2025-04-16',
+  'o3-mini',
+  'o3-mini-2025-01-31',
+  'o4-mini',
+  'o4-mini-2025-04-16',
+  'gpt-5',
+  'gpt-5-2025-08-07',
+  'gpt-5-codex',
+  'gpt-5-mini',
+  'gpt-5-mini-2025-08-07',
+  'gpt-5-nano',
+  'gpt-5-nano-2025-08-07',
+  'gpt-5-pro',
+  'gpt-5-pro-2025-10-06',
+  'gpt-5.1',
+  'gpt-5.1-chat-latest',
+  'gpt-5.1-codex-mini',
+  'gpt-5.1-codex',
+  'gpt-5.1-codex-max',
+  'gpt-5.2',
+  'gpt-5.2-chat-latest',
+  'gpt-5.2-pro',
+  'gpt-5.2-codex',
+  'gpt-5.3-chat-latest',
+  'gpt-5.3-codex',
+  'gpt-5.4',
+  'gpt-5.4-2026-03-05',
+  'gpt-5.4-mini',
+  'gpt-5.4-mini-2026-03-17',
+  'gpt-5.4-nano',
+  'gpt-5.4-nano-2026-03-17',
+  'gpt-5.4-pro',
+  'gpt-5.4-pro-2026-03-05',
+  'gpt-5.5',
+  'gpt-5.5-2026-04-23',
+  'gpt-5.6',
+  'gpt-5.6-luna',
+  'gpt-5.6-sol',
+  'gpt-5.6-terra',
+  'gpt-6-astra',
+  'gpt-6.1-sol',
+  'gpt-6.1-terra',
+  'gpt-6-luna',
+  'gpt-6-sol',
+] as const;
+
+const openaiResponsesModelIds = [
+  'gpt-4.1',
+  'gpt-4.1-2025-04-14',
+  'gpt-4.1-mini',
+  'gpt-4.1-mini-2025-04-14',
+  'gpt-4.1-nano',
+  'gpt-4.1-nano-2025-04-14',
+  'gpt-4o',
+  'gpt-4o-2024-05-13',
+  'gpt-4o-2024-08-06',
+  'gpt-4o-2024-11-20',
+  'gpt-4o-audio-preview',
+  'gpt-4o-audio-preview-2024-12-17',
+  'gpt-4o-search-preview',
+  'gpt-4o-search-preview-2025-03-11',
+  'gpt-4o-mini-search-preview',
+  'gpt-4o-mini-search-preview-2025-03-11',
+  'gpt-4o-mini',
+  'gpt-4o-mini-2024-07-18',
+  'gpt-3.5-turbo-0125',
+  'gpt-3.5-turbo',
+  'gpt-3.5-turbo-1106',
+  'gpt-5-chat-latest',
+  ...openaiResponsesReasoningModelIds,
+] as const;
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
@@ -2151,7 +2223,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
             details:
-              'reasoningEffortUpdate is only supported by GPT-6 and later models',
+              'Configuration updates are only supported by GPT-6 and later models',
           },
         ]);
       });
@@ -2180,7 +2252,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
             details:
-              'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation',
+              'Configuration updates require standard reasoning mode without automatic compaction or automatic truncation',
           },
         ]);
       });

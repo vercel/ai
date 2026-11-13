@@ -195,30 +195,7 @@ export const tencentVideoModelOptionsSchema = lazySchema(() =>
   ),
 );
 
-/** Options that only TokenHub Kling models read. */
-export const TOKENHUB_ONLY_OPTIONS = [
-  'audio',
-  'multiShot',
-  'characterOrientation',
-  'elements',
-  'voices',
-  'externalTaskId',
-] as const satisfies ReadonlyArray<keyof TencentVideoModelOptions>;
-
-/** Options that only VOD models read. */
-export const VOD_ONLY_OPTIONS = [
-  'negativePrompt',
-  'enhancePrompt',
-  'inputRegion',
-  'sceneType',
-  'personGeneration',
-  'inputComplianceCheck',
-  'outputComplianceCheck',
-  'enhanceSwitch',
-  'offPeak',
-  'sessionId',
-  'sessionContext',
-  'tasksPriority',
-  'extInfo',
-  'assets',
-] as const satisfies ReadonlyArray<keyof TencentVideoModelOptions>;
+export {
+  TOKENHUB_ONLY_OPTIONS,
+  VOD_ONLY_OPTIONS,
+} from './tencent-model-catalog';

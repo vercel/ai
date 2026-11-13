@@ -4,6 +4,8 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { OpenAIModelIds } from '../openai-model-catalog';
+import { openaiResponsesTextFormatSchema } from './openai-responses-text-format';
 
 /**
  * `top_logprobs` request body argument can be set to an integer between
@@ -14,149 +16,8 @@ import { z } from 'zod/v4';
  */
 export const TOP_LOGPROBS_MAX = 20;
 
-export const openaiResponsesReasoningModelIds = [
-  'o1',
-  'o1-2024-12-17',
-  'o3',
-  'o3-2025-04-16',
-  'o3-mini',
-  'o3-mini-2025-01-31',
-  'o4-mini',
-  'o4-mini-2025-04-16',
-  'gpt-5',
-  'gpt-5-2025-08-07',
-  'gpt-5-codex',
-  'gpt-5-mini',
-  'gpt-5-mini-2025-08-07',
-  'gpt-5-nano',
-  'gpt-5-nano-2025-08-07',
-  'gpt-5-pro',
-  'gpt-5-pro-2025-10-06',
-  'gpt-5.1',
-  'gpt-5.1-chat-latest',
-  'gpt-5.1-codex-mini',
-  'gpt-5.1-codex',
-  'gpt-5.1-codex-max',
-  'gpt-5.2',
-  'gpt-5.2-chat-latest',
-  'gpt-5.2-pro',
-  'gpt-5.2-codex',
-  'gpt-5.3-chat-latest',
-  'gpt-5.3-codex',
-  'gpt-5.4',
-  'gpt-5.4-2026-03-05',
-  'gpt-5.4-mini',
-  'gpt-5.4-mini-2026-03-17',
-  'gpt-5.4-nano',
-  'gpt-5.4-nano-2026-03-17',
-  'gpt-5.4-pro',
-  'gpt-5.4-pro-2026-03-05',
-  'gpt-5.5',
-  'gpt-5.5-2026-04-23',
-  'gpt-5.6',
-  'gpt-5.6-luna',
-  'gpt-5.6-sol',
-  'gpt-5.6-terra',
-  'gpt-6-astra',
-  'gpt-6.1-sol',
-  'gpt-6.1-terra',
-  'gpt-6-luna',
-  'gpt-6-sol',
-] as const;
-
-export const openaiResponsesModelIds = [
-  'gpt-4.1',
-  'gpt-4.1-2025-04-14',
-  'gpt-4.1-mini',
-  'gpt-4.1-mini-2025-04-14',
-  'gpt-4.1-nano',
-  'gpt-4.1-nano-2025-04-14',
-  'gpt-4o',
-  'gpt-4o-2024-05-13',
-  'gpt-4o-2024-08-06',
-  'gpt-4o-2024-11-20',
-  'gpt-4o-audio-preview',
-  'gpt-4o-audio-preview-2024-12-17',
-  'gpt-4o-search-preview',
-  'gpt-4o-search-preview-2025-03-11',
-  'gpt-4o-mini-search-preview',
-  'gpt-4o-mini-search-preview-2025-03-11',
-  'gpt-4o-mini',
-  'gpt-4o-mini-2024-07-18',
-  'gpt-3.5-turbo-0125',
-  'gpt-3.5-turbo',
-  'gpt-3.5-turbo-1106',
-  'gpt-5-chat-latest',
-  ...openaiResponsesReasoningModelIds,
-] as const;
-
 export type OpenAIResponsesModelId =
-  | 'gpt-3.5-turbo-0125'
-  | 'gpt-3.5-turbo-1106'
-  | 'gpt-3.5-turbo'
-  | 'gpt-4.1-2025-04-14'
-  | 'gpt-4.1-mini-2025-04-14'
-  | 'gpt-4.1-mini'
-  | 'gpt-4.1-nano-2025-04-14'
-  | 'gpt-4.1-nano'
-  | 'gpt-4.1'
-  | 'gpt-4o-2024-05-13'
-  | 'gpt-4o-2024-08-06'
-  | 'gpt-4o-2024-11-20'
-  | 'gpt-4o-mini-2024-07-18'
-  | 'gpt-4o-mini'
-  | 'gpt-4o'
-  | 'gpt-5.1'
-  | 'gpt-5.1-2025-11-13'
-  | 'gpt-5.1-chat-latest'
-  | 'gpt-5.1-codex-mini'
-  | 'gpt-5.1-codex'
-  | 'gpt-5.1-codex-max'
-  | 'gpt-5.2'
-  | 'gpt-5.2-2025-12-11'
-  | 'gpt-5.2-chat-latest'
-  | 'gpt-5.2-pro'
-  | 'gpt-5.2-pro-2025-12-11'
-  | 'gpt-5.2-codex'
-  | 'gpt-5.3-chat-latest'
-  | 'gpt-5.3-codex'
-  | 'gpt-5.4'
-  | 'gpt-5.4-2026-03-05'
-  | 'gpt-5.4-mini'
-  | 'gpt-5.4-mini-2026-03-17'
-  | 'gpt-5.4-nano'
-  | 'gpt-5.4-nano-2026-03-17'
-  | 'gpt-5.4-pro'
-  | 'gpt-5.4-pro-2026-03-05'
-  | 'gpt-5.5'
-  | 'gpt-5.5-2026-04-23'
-  | 'gpt-5.6'
-  | 'gpt-5.6-luna'
-  | 'gpt-5.6-sol'
-  | 'gpt-5.6-terra'
-  | 'gpt-6-astra'
-  | 'gpt-6.1-sol'
-  | 'gpt-6.1-terra'
-  | 'gpt-6-luna'
-  | 'gpt-6-sol'
-  | 'gpt-5-2025-08-07'
-  | 'gpt-5-chat-latest'
-  | 'gpt-5-codex'
-  | 'gpt-5-mini-2025-08-07'
-  | 'gpt-5-mini'
-  | 'gpt-5-nano-2025-08-07'
-  | 'gpt-5-nano'
-  | 'gpt-5-pro-2025-10-06'
-  | 'gpt-5-pro'
-  | 'gpt-5'
-  | 'o1-2024-12-17'
-  | 'o1'
-  | 'o3-2025-04-16'
-  | 'o3-mini-2025-01-31'
-  | 'o3-mini'
-  | 'o3'
-  | 'o4-mini'
-  | 'o4-mini-2025-04-16'
+  | OpenAIModelIds['responses']
   | (string & {});
 
 // TODO AI SDK 6: use optional here instead of nullish
@@ -260,6 +121,7 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
           mode: z.enum(['implicit', 'explicit']).optional(),
           ttl: z.enum(['30m', '12h']).optional(),
           prewarm: z.boolean().optional(),
+          comparisonResponseId: z.string().optional(),
         })
         .optional(),
 
@@ -364,6 +226,12 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
 
       /**
+       * Override the request-level text format without changing Output parsing.
+       * Keep this initial format stable when replaying textFormatUpdate messages.
+       */
+      textFormat: openaiResponsesTextFormatSchema().optional(),
+
+      /**
        * Controls output truncation. 'auto' (default) performs truncation automatically;
        * 'disabled' turns truncation off.
        */
@@ -454,6 +322,15 @@ export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
       reasoningEffortUpdate: z
         .enum(['none', 'low', 'medium', 'high', 'xhigh', 'max'])
         .optional(),
+      /**
+       * Replace the response format at this position in history. Requires empty
+       * system message content and the same compatibility as reasoning updates.
+       */
+      textFormatUpdate: openaiResponsesTextFormatSchema().optional(),
+      /** Tool definitions to load at this position in history. Requires empty system message content. */
+      additionalTools: z
+        .array(openaiResponsesAdditionalToolSchema())
+        .optional(),
     }),
   ),
 );
@@ -465,17 +342,9 @@ export type OpenAIResponsesSystemMessageOptions = InferSchema<
 export const openaiResponsesToolResultOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      /** Function definitions to load immediately after this ordinary tool result. */
+      /** Tool definitions to load immediately after this ordinary tool result. */
       additionalTools: z
-        .array(
-          z.strictObject({
-            type: z.literal('function'),
-            name: z.string().min(1),
-            description: z.string().optional(),
-            parameters: z.record(z.string(), z.json()),
-            strict: z.boolean().optional(),
-          }),
-        )
+        .array(openaiResponsesAdditionalToolSchema())
         .optional(),
     }),
   ),
@@ -484,3 +353,41 @@ export const openaiResponsesToolResultOptionsSchema = lazySchema(() =>
 export type OpenAIResponsesToolResultOptions = InferSchema<
   typeof openaiResponsesToolResultOptionsSchema
 >;
+
+function openaiResponsesFunctionToolDefinitionSchema() {
+  return z.strictObject({
+    type: z.literal('function'),
+    name: z.string().min(1),
+    description: z.string().optional(),
+    parameters: z.record(z.string(), z.json()),
+    strict: z.boolean().optional(),
+    defer_loading: z.boolean().optional(),
+  });
+}
+
+function openaiResponsesAdditionalToolSchema() {
+  return z.discriminatedUnion('type', [
+    openaiResponsesFunctionToolDefinitionSchema(),
+    z.strictObject({
+      type: z.literal('custom'),
+      name: z.string().min(1),
+      description: z.string().optional(),
+      format: z
+        .discriminatedUnion('type', [
+          z.strictObject({ type: z.literal('text') }),
+          z.strictObject({
+            type: z.literal('grammar'),
+            syntax: z.enum(['regex', 'lark']),
+            definition: z.string(),
+          }),
+        ])
+        .optional(),
+    }),
+    z.strictObject({
+      type: z.literal('namespace'),
+      name: z.string().min(1),
+      description: z.string(),
+      tools: z.array(openaiResponsesFunctionToolDefinitionSchema()).min(1),
+    }),
+  ]);
+}

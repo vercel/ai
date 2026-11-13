@@ -305,10 +305,10 @@ const googleVertex = createGoogleVertex({
 ### Language Models
 
 You can create models that call the Vertex API using the provider instance.
-The first argument is the model id, e.g. `gemini-3.8-flash`.
+The first argument is the model id, e.g. `gemini-4-hydrogen`.
 
 ```ts
-const model = googleVertex('gemini-3.8-flash');
+const model = googleVertex('gemini-4-hydrogen');
 ```
 
 <Note>
@@ -583,7 +583,7 @@ import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: googleVertex('gemini-3.8-flash'),
+  model: googleVertex('gemini-4-hydrogen'),
   tools: {
     enterprise_web_search: googleVertex.tools.enterpriseWebSearch({}),
   },
@@ -601,7 +601,7 @@ import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: googleVertex('gemini-3.8-flash'),
+  model: googleVertex('gemini-4-hydrogen'),
   tools: {
     google_maps: googleVertex.tools.googleMaps({}),
   },
@@ -684,7 +684,7 @@ import { generateText, streamText } from 'ai';
 
 // For generateText:
 const { text, reasoningText, reasoning } = await generateText({
-  model: googleVertex('gemini-3.8-flash'), // Or other supported model via Vertex
+  model: googleVertex('gemini-4-hydrogen'), // Or other supported model via Vertex
   providerOptions: {
     vertex: {
       thinkingConfig: {
@@ -702,7 +702,7 @@ console.log('Final Text:', text);
 
 // For streamText:
 const result = streamText({
-  model: googleVertex('gemini-3.8-flash'), // Or other supported model via Vertex
+  model: googleVertex('gemini-4-hydrogen'), // Or other supported model via Vertex
   providerOptions: {
     vertex: {
       thinkingConfig: {
@@ -843,6 +843,14 @@ caller must have access to the referenced object.
 HTTP(S) tool-result files are downloaded and sent as inline data, subject to
 `toolResultDownloads.maxBytes`. Direct GCS tool-result forwarding is not supported
 for older Gemini models or MIME types outside the list above.
+
+<Note type="warning">
+  HTTP(S) tool-result files are downloaded using the `fetch` option of
+  `createGoogleVertex`; the Vertex API key is not sent to those hosts. For
+  untrusted URLs on Node.js, pass a `guarded-fetch` transport there. Direct
+  `gs://` references are fetched by Vertex instead. See [Secure URL
+  Fetching](/docs/advanced/secure-url-fetching#opt-in-dns-protection-on-nodejs).
+</Note>
 
 ### Cached Content
 
@@ -1052,6 +1060,7 @@ The following Zod features are known to not work with Google Vertex:
 | `gemini-nano-banana-2.1`         | <Check />   | <Cross />         | <Cross />  | <Cross />      |
 | `gemini-4-argon`                 | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-4-carbon`                | <Check />   | <Check />         | <Check />  | <Check />      |
+| `gemini-4-hydrogen`              | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.8-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.7-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.6-flash`               | <Check />   | <Check />         | <Check />  | <Check />      |

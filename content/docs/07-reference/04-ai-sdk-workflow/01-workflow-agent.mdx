@@ -9,6 +9,8 @@ Creates a durable, resumable AI agent for use inside a workflow. `WorkflowAgent`
 
 Unlike [`ToolLoopAgent`](/docs/reference/ai-sdk-core/tool-loop-agent) from the `ai` package, `WorkflowAgent` is designed to survive process restarts, pause for human approval, and integrate with the Workflow DevKit's step mechanism.
 
+`WorkflowAgent` does not implement the `Agent` interface, and its options, callbacks, and results differ from `ToolLoopAgent`. See [Differences from ToolLoopAgent](/docs/agents/workflow-agent#differences-from-toolloopagent) for the list.
+
 `WorkflowAgent` supports `runtimeContext` for shared agent state and `toolsContext` for per-tool context. Because these values can cross workflow and step boundaries, keep them serializable durable data. Unlike `ToolLoopAgent`, do not place functions, class instances, symbols, database clients, or SDK clients in context; pass identifiers or configuration and recreate non-serializable resources inside step functions.
 
 ```ts
@@ -116,6 +118,13 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default set of active tools. Limits which tools the model can call without changing tool call and result types. Per-stream values override this default.',
     },
     {
+      name: 'toolOrder',
+      type: 'ToolOrder<TTools>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
       name: 'output',
       type: 'OutputSpecification',
       isOptional: true,
@@ -130,11 +139,18 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         "Default function to repair tool calls that fail to parse. Mark the function with 'use step' when used in a workflow. Per-stream values override this default.",
     },
     {
+      name: 'experimental_refineToolInput',
+      type: 'ToolInputRefinement<TTools>',
+      isOptional: true,
+      description:
+        'Optional mapping of tool names to functions that refine parsed tool inputs. Each function receives the typed input for its tool and must return the same input type shape. The refined input is used for tool execution, output parts, lifecycle callbacks, and telemetry in both `generate()` and `stream()`. Per-stream values override this default.',
+    },
+    {
       name: 'experimental_download',
       type: 'DownloadFunction',
       isOptional: true,
       description:
-        "Default custom download function for URLs. Mark the function with 'use step' when used in a workflow. Per-stream values override this default.",
+        "Default custom download function for URLs. Mark the function with 'use step' when used in a workflow and create any fetch transport inside the step rather than passing it across workflow boundaries. Per-stream values override this default. For untrusted URLs, see [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).",
     },
     {
       name: 'experimental_sandbox',
@@ -395,6 +411,20 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Callback called when all agent steps are finished and the response is complete. Receives steps, messages, text, finish reason, total usage, and context. If also specified in `stream()`, both callbacks fire (constructor first).',
     },
     {
+      name: 'onError',
+      type: 'WorkflowAgentOnErrorCallback',
+      isOptional: true,
+      description:
+        'Callback called when an error occurs. Aborts are not reported. If also specified in `generate()` or `stream()`, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
+    },
+    {
+      name: 'onAbort',
+      type: 'WorkflowAgentOnAbortCallback',
+      isOptional: true,
+      description:
+        'Callback called when the operation is aborted. Receives all previously finished steps. If also specified in `generate()` or `stream()`, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
+    },
+    {
       name: 'maxOutputTokens',
       type: 'number',
       isOptional: true,
@@ -461,6 +491,27 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'ProviderOptions',
       isOptional: true,
       description: 'Additional provider-specific configuration.',
+    },
+    {
+      name: 'reasoning',
+      type: "LanguageModelV4CallOptions['reasoning']",
+      isOptional: true,
+      description:
+        'Reasoning effort for the model. Controls how much reasoning the model performs before it generates a response.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description:
+        'Default abort signal for every call on this agent. An `abortSignal` passed to `generate()` or `stream()` overrides it.',
+    },
+    {
+      name: 'allowSystemInMessages',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether system messages are allowed in the `prompt` or `messages` fields. When `false`, system messages in `prompt` or `messages` are rejected and must be provided through `instructions`. Default: false.',
     },
   ]}
 />
@@ -532,6 +583,8 @@ const result = await agent.stream({
 });
 ```
 
+In addition to the options in the table, `stream()` accepts the generation settings of the constructor (`maxOutputTokens`, `temperature`, `topP`, `topK`, `presencePenalty`, `frequencyPenalty`, `stopSequences`, `seed`, `reasoning`, `maxRetries`, `headers`, `providerOptions`) and `abortSignal`. A value passed to `stream()` overrides the constructor value.
+
 <PropertiesTable
   content={[
     {
@@ -590,6 +643,13 @@ const result = await agent.stream({
       description: 'Limits the subset of tools available for this call without changing tool call and result types.',
     },
     {
+      name: 'toolOrder',
+      type: 'ToolOrder<TTools>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
       name: 'output',
       type: 'OutputSpecification',
       isOptional: true,
@@ -598,9 +658,9 @@ const result = await agent.stream({
     },
     {
       name: 'timeout',
-      type: 'number',
+      type: 'WorkflowAgentTimeoutConfiguration',
       isOptional: true,
-      description: 'Model-call deadline in milliseconds. Inside a workflow, the absolute deadline is checked at dispatch and retry and remains in effect across suspension. It does not cancel a tool waiting on a Workflow hook; use run.cancel() to stop the suspended run.',
+      description: 'Timeout for model calls. A number, or `totalMs` in the object form, is one deadline in milliseconds for the whole run. Inside a workflow, the absolute deadline is checked at dispatch and retry and remains in effect across suspension. `stepMs` limits each model call. `firstChunkMs` limits the wait for the first output of each model call, and `chunkMs` limits the wait between two outputs. A timeout does not cancel a tool waiting on a Workflow hook; use run.cancel() to stop the suspended run.',
     },
     {
       name: 'sendFinish',
@@ -627,11 +687,18 @@ const result = await agent.stream({
       description: "Callback to attempt automatic recovery when a tool call cannot be parsed. Mark the function with 'use step' when used in a workflow.",
     },
     {
+      name: 'experimental_refineToolInput',
+      type: 'ToolInputRefinement<TTools>',
+      isOptional: true,
+      description:
+        'Optional mapping of tool names to functions that refine parsed tool inputs. Each function receives the typed input for its tool and must return the same input type shape. The refined input is used for tool execution, output parts, lifecycle callbacks, and telemetry in both `generate()` and `stream()`. Overrides the constructor default.',
+    },
+    {
       name: 'experimental_download',
       type: 'DownloadFunction',
       isOptional: true,
       description:
-        "Custom download function for fetching files/URLs. Mark the function with 'use step' when used in a workflow.",
+        "Custom download function for fetching files/URLs. Mark the function with 'use step' when used in a workflow. For untrusted URLs, see [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads).",
     },
     {
       name: 'experimental_sandbox',
@@ -741,13 +808,15 @@ const result = await agent.stream({
       name: 'onError',
       type: 'WorkflowAgentOnErrorCallback',
       isOptional: true,
-      description: 'Callback invoked when an error occurs during streaming.',
+      description:
+        'Callback invoked when an error occurs. Aborts are not reported. If also specified in the constructor, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
     },
     {
       name: 'onAbort',
       type: 'WorkflowAgentOnAbortCallback',
       isOptional: true,
-      description: 'Callback invoked when the operation is aborted. Receives all previously finished steps.',
+      description:
+        'Callback invoked when the operation is aborted. Receives all previously finished steps. If also specified in the constructor, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
     },
 
 ]}
@@ -780,6 +849,16 @@ Returns a `Promise<WorkflowAgentStreamResult>` with the following properties:
       type: 'Array<ToolResult>',
       description:
         'Tool results from the last step. Only includes results for tools that were executed.',
+    },
+    {
+      name: 'finishReason',
+      type: 'FinishReason',
+      description: 'The finish reason of the last step.',
+    },
+    {
+      name: 'totalUsage',
+      type: 'LanguageModelUsage',
+      description: 'The token usage of all steps combined.',
     },
     {
       name: 'error',
@@ -860,6 +939,21 @@ type ActiveTools<TTools extends ToolSet> =
 ```
 
 Limits a workflow agent call to the listed tool names. `undefined` means no tool restriction is applied.
+
+### `WorkflowAgentTimeoutConfiguration`
+
+```ts
+type WorkflowAgentTimeoutConfiguration =
+  | number
+  | {
+      totalMs?: number;
+      stepMs?: number;
+      firstChunkMs?: number;
+      chunkMs?: number;
+    };
+```
+
+The `timeout` option of `generate()` and `stream()`. A number is the total deadline in milliseconds. `generate()` uses `totalMs` and `stepMs`. `stream()` uses all four values. See [Deadlines, cancellation, and replay](/docs/agents/workflow-agent#deadlines-cancellation-and-replay).
 
 ### `InferWorkflowAgentUIMessage`
 

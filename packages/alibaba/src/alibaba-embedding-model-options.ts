@@ -4,10 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { AlibabaModelIds } from './alibaba-model-catalog';
 
 export type AlibabaEmbeddingModelId =
-  | 'text-embedding-v4'
-  | 'text-embedding-v3'
+  | AlibabaModelIds['embedding']
   | (string & {});
 
 export const alibabaEmbeddingModelOptions = lazySchema(() =>
