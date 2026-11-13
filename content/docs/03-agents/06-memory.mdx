@@ -256,6 +256,34 @@ Session memory supports two modes: **tool-driven** (the LLM decides when to read
 
 MongoDB memory works with any AI SDK model and embedding provider, with no vendor lock-in beyond MongoDB Atlas.
 
+### Membase
+
+[Membase](/providers/community-providers/membase) gives agents the user's own long-term memory through three tools: `membase_search`, `membase_save`, and `membase_profile`. Every search result names the Memory it came from, and the model saves only when the user asks. It is hosted, or runs locally with the open-source engine.
+
+```bash
+pnpm add @unibaseio/membase-ai-sdk
+```
+
+```ts
+__PROVIDER_IMPORT__;
+import { membaseTools } from '@unibaseio/membase-ai-sdk';
+import { ToolLoopAgent } from 'ai';
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: membaseTools({ apiKey: process.env.MEMBASE_API_KEY }),
+  instructions: 'You are a helpful assistant with long-term memory.',
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+```
+
+A Membase key is one person's memory. In multi-user apps, call `membaseTools` inside your request handler with the key of the signed-in user, taken from your auth session rather than from the request. Membase works with any AI SDK provider.
+
+See the [Membase provider documentation](/providers/community-providers/membase) for full setup and configuration.
+
 **When to use memory providers**: these providers are a good fit when you want memory without building any storage infrastructure. The tradeoff is that the provider controls memory behavior, so you have less visibility into what gets stored and how it is retrieved. You also take on a dependency on an external service.
 
 ### Redis Agent Memory
