@@ -10,7 +10,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const provider = google;
-  const model = 'gemini-3.8-flash';
+  const model = 'gemini-4-hydrogen';
   const tools = {
     google_search: google.tools.googleSearch({}),
   };

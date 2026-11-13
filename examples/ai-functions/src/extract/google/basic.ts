@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await experimental_extract({
-    model: google.extractionModel('gemini-3.8-flash'),
+    model: google.extractionModel('gemini-4-hydrogen'),
     referenceDate: '2026-11-11',
     state:
       'Invoice INV-2041 from Acme. Total due $1,250.00 by March 3 at 5:30 PM. Call Ana or Bo within 2 hours if anything is wrong.',
