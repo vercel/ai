@@ -7,7 +7,7 @@ Both templates record decisions and rationale with the same concise structure:
 3. Alternatives Considered, including benefits, drawbacks, and reasons for rejection
 4. More Information (optional)
 
-Use a single status line below the title. Neither template has YAML frontmatter, a separate Consequences section, implementation steps, or verification checklists. Link to issues or PRs for implementation and verification.
+Omit explicit status fields; a merged ADR pull request means the decision is accepted. Keep unfinished decisions in draft pull requests, which must not be merged. Neither template has YAML frontmatter, a separate Consequences section, implementation steps, or verification checklists. Link to issues or PRs for implementation and verification.
 
 ## Simple (Default)
 

@@ -35,14 +35,14 @@ Use [assets/templates/adr-simple.md](assets/templates/adr-simple.md) by default.
 - **Alternatives Considered**: the benefits and drawbacks of other options and why they were rejected. Avoid repeating the same tradeoffs in multiple sections.
 - **More Information** (optional): related records, PRs, issues, references, and revisit conditions.
 
-Do not add YAML frontmatter, a separate Consequences section, an Implementation Plan, or Verification checklists. Record status with a single `- Status: proposed` line below the title. Dates belong in date-prefixed filenames and the index; participants can be credited in the linked discussion or pull request.
+Do not add YAML frontmatter, a separate Consequences section, an Implementation Plan, or Verification checklists. Do not add explicit status fields; merging the ADR pull request accepts the decision. Dates belong in date-prefixed filenames and the index; participants can be credited in the linked discussion or pull request.
 
-Use the existing directory and filename convention, normally `YYYY-MM-DD-verb-phrase.md`. New ADRs start as `proposed`; do not mark a decision accepted without human agreement. Keep the index current.
+Use the existing directory and filename convention, normally `YYYY-MM-DD-verb-phrase.md`. Propose decisions in pull requests. Keep unfinished decisions in draft pull requests, which must not be merged. Merging the pull request accepts the decision; close it if the decision is rejected. Keep the index current.
 
 The generator creates a scaffold; fill or remove every placeholder before finalizing:
 
 ```bash
-node skills/adr-skill/scripts/new_adr.js --title "Choose database" --status proposed --update-index
+node skills/adr-skill/scripts/new_adr.js --title "Choose database" --update-index
 ```
 
 When used outside this repository, resolve the script path relative to the installed skill directory. It auto-detects the ADR directory and naming strategy; `--dir`, `--strategy`, and `--template simple|madr` override those choices.
@@ -67,17 +67,10 @@ ADRs can link to the implementation PR or key code entry points in More Informat
 
 ## Update an Existing ADR
 
-- **Accept or reject**: update its status and any final rationale after human agreement.
-- **Deprecate**: mark it `deprecated` and explain why it no longer applies.
+- **Deprecate**: explain why the decision no longer applies in More Information.
 - **Supersede**: create a replacement ADR and link both records.
 - **Add learnings**: append a dated note in More Information. Preserve the original rationale.
 - **Simplify formatting**: preserve the decision and relevant reasoning; move tradeoffs into Decision or Alternatives Considered and leave implementation and verification detail in linked PRs or issues.
-
-Use the status helper for inline status lines or legacy records with frontmatter or a Status section:
-
-```bash
-node skills/adr-skill/scripts/set_adr_status.js contributing/decisions/YYYY-MM-DD-title.md --status accepted
-```
 
 Update the index entry as well. Track implementation work in issues or PRs, link back to the ADR, and add later learnings when they affect the rationale or revisit conditions.
 

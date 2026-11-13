@@ -1,7 +1,5 @@
 # {TITLE}
 
-- Status: {STATUS}
-
 ## Context and Problem Statement
 
 {Why does this decision need to happen now? What constraints exist? Include enough background that a reader can understand the problem without prior conversations.}

@@ -1,9 +1,3 @@
----
-status: accepted
-date: 2026-03-11
-decision-makers:
----
-
 # Adopt architecture decision records
 
 ## Context and Problem Statement
@@ -23,7 +17,7 @@ Adopt Architecture Decision Records (ADRs) using the MADR 4.0 format, stored in 
 Conventions:
 
 - One ADR per file, named `YYYY-MM-DD-title-with-dashes.md`
-- New ADRs start as `proposed`, move to `accepted` or `rejected`
+- An ADR is accepted when its pull request merges; draft pull requests must not be merged
 - Superseded ADRs link to their replacement
 - ADRs are written to be self-contained — a coding agent should be able to read one and implement the decision without further context
 
@@ -46,4 +40,4 @@ Conventions:
 - MADR: <https://adr.github.io/madr/>
 - Michael Nygard, "Documenting Architecture Decisions": <https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions>
 
-- 2026-11-13: Simplify the ADR format to Context and Problem Statement, Decision, Alternatives Considered, and optional More Information. Use an inline status instead of YAML frontmatter, include tradeoffs with the decision and alternatives, and keep implementation plans and verification in issues or PRs. This updates the format convention above; existing decisions remain valid.
+- 2026-11-13: Simplify the ADR format to Context and Problem Statement, Decision, Alternatives Considered, and optional More Information. Omit YAML frontmatter and explicit status fields; merging the pull request accepts the decision. Include tradeoffs with the decision and alternatives, and keep implementation plans and verification in issues or PRs. This updates the format convention above; existing decisions remain valid.

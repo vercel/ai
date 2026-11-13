@@ -21,7 +21,6 @@ function parseArgs(argv) {
     forceIndex: false,
     indexFile: null,
     firstTitle: 'Adopt architecture decision records',
-    firstStatus: 'accepted',
     deciders: '',
     technicalStory: '',
     strategy: 'date',
@@ -40,7 +39,6 @@ function parseArgs(argv) {
     else if (a === '--force-index') out.forceIndex = true;
     else if (a === '--index-file') out.indexFile = next();
     else if (a === '--first-title') out.firstTitle = next();
-    else if (a === '--first-status') out.firstStatus = next();
     else if (a === '--deciders') out.deciders = next();
     else if (a === '--technical-story') out.technicalStory = next();
     else if (a === '--strategy') out.strategy = next();
@@ -56,7 +54,6 @@ function parseArgs(argv) {
           '  --index-file <path>    Override index file path (relative to repo root unless absolute)',
           '  --force-index          Overwrite index file if it exists',
           '  --first-title <text>   Title for initial ADR',
-          '  --first-status <text>  Status for initial ADR (default: accepted)',
           '  --strategy date|slug|auto  Filename strategy for initial ADR (default: date)',
           '  --json                 Output machine-readable JSON (default: off)',
           '',
@@ -107,10 +104,8 @@ function toPosix(p) {
   return p.split(path.sep).join('/');
 }
 
-function generateFirstAdr({ title, status, adrDir }) {
+function generateFirstAdr({ title, adrDir }) {
   return `# ${title}
-
-- Status: ${status}
 
 ## Context and Problem Statement
 
@@ -129,10 +124,10 @@ Adopt Architecture Decision Records (ADRs), stored in \`${adrDir}/\`.
 Conventions:
 
 - One ADR per file, named \`YYYY-MM-DD-title-with-dashes.md\`
-- New ADRs start as \`proposed\`, move to \`accepted\` or \`rejected\`
+- An ADR is accepted when its pull request merges; draft pull requests must not be merged
 - Superseded ADRs link to their replacement
 - Use Context and Problem Statement, Decision, Alternatives Considered, and optional More Information
-- Record status with a single line below the title, without YAML frontmatter
+- Omit YAML frontmatter and explicit status fields
 - Include tradeoffs with the decision and alternatives; keep implementation plans and verification in issues or PRs
 - ADRs are self-contained so contributors and coding agents can understand the decision and its rationale
 
@@ -149,12 +144,12 @@ Decisions are discoverable and version-controlled alongside the code, helping co
 - Michael Nygard, "Documenting Architecture Decisions": <https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions>`;
 }
 
-function updateIndexFile(indexFile, { relLink, title, status, date }) {
+function updateIndexFile(indexFile, { relLink, title, date }) {
   if (!fs.existsSync(indexFile)) return;
   let content = fs.readFileSync(indexFile, 'utf8');
   if (content.includes(relLink)) return;
 
-  const entryLine = `- [${title}](${relLink}) (${status}, ${date})`;
+  const entryLine = `- [${title}](${relLink}) (${date})`;
 
   // Append after "## ADRs" heading if found, otherwise append at end
   const normalized = content.replace(/\r\n/g, '\n');
@@ -201,7 +196,6 @@ function main() {
 
   const firstAdrContent = generateFirstAdr({
     title: args.firstTitle,
-    status: args.firstStatus,
     adrDir: args.dir,
   });
 
@@ -221,7 +215,6 @@ function main() {
   updateIndexFile(indexFile, {
     relLink,
     title: args.firstTitle,
-    status: args.firstStatus,
     date: today,
   });
 
@@ -238,7 +231,6 @@ function main() {
         createdAdrPath: firstAdrPath,
         createdAdrRelPath: toPosix(path.relative(repoRoot, firstAdrPath)),
         title: args.firstTitle,
-        status: args.firstStatus,
         strategy,
         date: today,
       },

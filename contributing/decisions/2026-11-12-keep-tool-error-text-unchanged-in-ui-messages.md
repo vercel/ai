@@ -1,7 +1,5 @@
 # Keep tool error text unchanged in UI messages
 
-- Status: accepted
-
 ## Context and Problem Statement
 
 A failed tool call produces an error text in two places:

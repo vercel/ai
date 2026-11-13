@@ -5,8 +5,6 @@ This filled-out example follows the Simple template. For a more complex decision
 ```markdown
 # Use SQLite for local development database
 
-- Status: accepted
-
 ## Context and Problem Statement
 
 Our integration tests hit a shared PostgreSQL instance, causing flaky tests from concurrent writes and slow CI (3+ minute setup per run). We need an isolated database for local development and CI that does not require infrastructure provisioning.

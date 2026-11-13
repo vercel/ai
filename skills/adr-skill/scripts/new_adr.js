@@ -36,7 +36,6 @@ function parseArgs(argv) {
     dir: null,
     noCreateDir: false,
     title: null,
-    status: 'proposed',
     template: 'simple', // simple | madr
     strategy: 'auto', // auto | date | slug
     deciders: '',
@@ -60,7 +59,6 @@ function parseArgs(argv) {
     else if (a === '--dir') out.dir = next();
     else if (a === '--no-create-dir') out.noCreateDir = true;
     else if (a === '--title') out.title = next();
-    else if (a === '--status') out.status = next();
     else if (a === '--template') out.template = next();
     else if (a === '--strategy') out.strategy = next();
     else if (a === '--deciders') out.deciders = next();
@@ -80,7 +78,6 @@ function parseArgs(argv) {
           '  --repo-root <path>     Repo root (default: .)',
           '  --dir <path>           ADR directory (default: auto-detect, else adr/)',
           '  --no-create-dir        Do not create ADR directory if missing',
-          '  --status <value>       ADR status (default: proposed)',
           '  --template simple|madr Template (default: simple)',
           '  --strategy auto|date|slug  Filename strategy (default: auto)',
           '  --deciders "a,b"      Deciders list',
@@ -170,12 +167,6 @@ function renderTemplate(raw, vars) {
   // Handle YAML front matter placeholders (quoted and unquoted)
   let out = raw;
 
-  // YAML front matter fields — replace the whole placeholder pattern
-  // e.g. status: "{proposed | accepted | ...}" → status: proposed
-  out = out.replace(
-    /^(status:\s*)["']?\{[^}]*\}["']?\s*$/m,
-    `$1${vars.status}`,
-  );
   out = out.replace(/^(date:\s*)\{[^}]*\}\s*$/m, `$1${vars.date}`);
   out = out.replace(
     /^(decision-makers:\s*)["']?\{[^}]*\}["']?\s*$/m,
@@ -207,7 +198,6 @@ function renderTemplate(raw, vars) {
   // Inline placeholders (title in heading, etc.)
   out = out
     .replaceAll('{TITLE}', vars.title)
-    .replaceAll('{STATUS}', vars.status)
     .replaceAll('{DATE}', vars.date)
     .replaceAll('{DECIDERS}', vars.deciders)
     .replaceAll('{TECHNICAL_STORY}', vars.technicalStory)
@@ -259,7 +249,7 @@ function insertIndexEntryUnderHeading(lines, headingRegex, entryLine) {
   return { lines: out, inserted: true };
 }
 
-function updateIndex(indexFile, { relLink, title, status, date }) {
+function updateIndex(indexFile, { relLink, title, date }) {
   let content = '';
   if (fs.existsSync(indexFile)) content = fs.readFileSync(indexFile, 'utf8');
   else content = '# ADR Log\n\n';
@@ -277,7 +267,7 @@ function updateIndex(indexFile, { relLink, title, status, date }) {
   ) {
     lines = lines.slice(0, -1);
   }
-  const entryLine = `- [${title}](${relLink}) (${status}, ${date})`;
+  const entryLine = `- [${title}](${relLink}) (${date})`;
 
   // Prefer inserting under "## ADRs" if it exists, otherwise append at EOF.
   const r = insertIndexEntryUnderHeading(lines, /^##\s+ADRs\s*$/i, entryLine);
@@ -355,7 +345,6 @@ function main() {
   const raw = loadTemplate(args.template);
   const rendered = renderTemplate(raw, {
     title,
-    status: String(args.status).trim(),
     date: today,
     deciders,
     consulted,
@@ -383,7 +372,6 @@ function main() {
     indexChanged = updateIndex(indexFile, {
       relLink,
       title,
-      status: String(args.status).trim(),
       date: today,
     });
     updatedIndexPath = indexFile;
@@ -396,7 +384,6 @@ function main() {
       createdAdrPath: out,
       createdAdrRelPath: toPosix(path.relative(repoRoot, out)),
       title,
-      status: String(args.status).trim(),
       template: args.template,
       strategy,
       date: today,

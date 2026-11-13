@@ -23,9 +23,9 @@ Could a contributor or coding agent understand what was decided and why without 
 ## Format and Lifecycle
 
 - Does the filename follow the repository convention?
-- Is the status accurate and consistent with the index?
+- Is an unfinished decision kept in a draft pull request that must not be merged?
 - Are there no unfinished placeholders or unnecessary sections?
-- Does the record use a status line instead of YAML frontmatter?
+- Does the record omit YAML frontmatter and explicit status fields, with acceptance determined by merging the pull request?
 - Are implementation steps and verification kept in linked issues or PRs?
 - Are superseding or related ADRs linked where relevant?
 

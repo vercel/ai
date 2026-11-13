@@ -28,31 +28,17 @@ Use Context and Problem Statement, Decision, and Alternatives Considered. More I
 
 Keep implementation plans and verification in issues and pull requests, linked from the ADR when useful. Do not add YAML frontmatter.
 
-## Status
+## Acceptance
 
-Use one line below the title:
+An ADR is accepted when its pull request merges. Propose and discuss decisions in pull requests; keep unfinished decisions in draft pull requests, which must not be merged. Close a pull request if the decision is rejected.
 
-```markdown
-- Status: proposed
-```
-
-Common statuses:
-
-| Status                        | Meaning                                         |
-| ----------------------------- | ----------------------------------------------- |
-| `proposed`                    | Under discussion, not yet decided               |
-| `accepted`                    | Decision is active and should be followed       |
-| `rejected`                    | Considered but explicitly not adopted           |
-| `deprecated`                  | Was accepted but no longer applies; explain why |
-| `superseded by [title](link)` | Replaced by a newer ADR; link both ways         |
-
-Keep status and creation date in the index entry as well. The status helper supports legacy YAML frontmatter and Status sections so older records can still be maintained.
+Do not add explicit status fields to ADRs or index entries. Keep the creation date in the filename and index. If a decision is deprecated or superseded, explain why in More Information and link any replacement in both directions.
 
 ## Mutability
 
 - Prefer appending new information with a date stamp over rewriting existing content.
 - If a decision is replaced, create a new ADR and explicitly supersede the old one.
-- Status changes and after-action notes are fine to edit in-place.
+- After-action notes are fine to edit in place.
 
 ## Categories (Large Projects)
 
