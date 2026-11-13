@@ -1,0 +1,43 @@
+{
+  "name": "ai-sdk",
+  "version": "0.1.1",
+  "description": "End-user agent skills for the Vercel AI SDK: build AI features from the installed package docs, and migrate apps from v6 to v7.",
+  "author": {
+    "name": "Vercel",
+    "url": "https://vercel.com"
+  },
+  "homepage": "https://ai-sdk.dev",
+  "repository": "https://github.com/vercel/ai",
+  "license": "Apache-2.0",
+  "keywords": [
+    "ai-sdk",
+    "vercel",
+    "llm",
+    "agents",
+    "typescript",
+    "migration",
+    "coding-agents"
+  ],
+  "skills": ["./use-ai-sdk", "./migrate-ai-sdk-v6-to-v7"],
+  "interface": {
+    "displayName": "AI SDK",
+    "shortDescription": "Build and migrate apps with the Vercel AI SDK",
+    "longDescription": "The AI SDK by Vercel is a TypeScript toolkit for building AI applications. This plugin gives coding agents two end-user skills from this repository.\n\nuse-ai-sdk answers questions about the AI SDK and helps build features — generateText, streamText, agents, tools, embeddings, providers, AI Gateway, and React hooks like useChat — by pointing at the installed ai package's bundled docs and source instead of stale training data. migrate-ai-sdk-v6-to-v7 walks through upgrading applications from AI SDK 6.x to 7.0 (API renames, instructions vs system, streaming, telemetry, and tool context).\n\nUse it when working with the ai package or @ai-sdk/* packages, building agents or chat UIs, or upgrading across a major AI SDK release. Contributor skills under skills/ stay in the tree but are not part of this marketplace plugin.",
+    "developerName": "Vercel",
+    "category": "Developer Tools",
+    "capabilities": [
+      "AI SDK guidance",
+      "v6 to v7 migration",
+      "Agents and tool calling"
+    ],
+    "websiteURL": "https://ai-sdk.dev",
+    "defaultPrompt": [
+      "Help me build a chatbot with the AI SDK and useChat",
+      "Migrate this project from AI SDK 6 to 7",
+      "Set up generateText with the Vercel AI Gateway"
+    ],
+    "brandColor": "#000000",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg"
+  }
+}
