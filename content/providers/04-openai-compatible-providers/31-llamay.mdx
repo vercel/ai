@@ -1,0 +1,123 @@
+---
+title: llamay
+description: Use the llamay OpenAI compatible API with the AI SDK.
+---
+
+# llamay Provider
+
+[llamay](https://llamay.com) is a local inference server for GGUF models developed by Kosa8 Labs.
+
+It contains an OpenAI-compatible API server that you can use with the AI SDK without needing an additional provider package.
+You can download llamay from the [download page](https://llamay.com/download/) and start the local server with `llamay serve -m <model>`.
+
+## Setup
+
+The llamay provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
+You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use llamay, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const llamay = createOpenAICompatible({
+  name: 'llamay',
+  baseURL: 'http://localhost:11435/v1',
+});
+```
+
+<Note>
+  llamay serves on port `11435` by default (`http://localhost:11435/v1`). You can change the listening address using the `-addr` flag when running `llamay serve`.
+  If you started llamay with an API key (`llamay serve -api-key <key>`), pass `apiKey` to `createOpenAICompatible`.
+</Note>
+
+## Language Models
+
+You can interact with local LLMs running in llamay using a provider instance.
+Model IDs can be Ollama-style names (e.g. `qwen2.5:7b`) or Hugging Face references (e.g. `hf.co/bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M`).
+You can query `GET /v1/models` on the server to list models stored on disk.
+
+```ts
+const model = llamay('qwen2.5:7b');
+```
+
+### Example
+
+You can use llamay language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const llamay = createOpenAICompatible({
+  name: 'llamay',
+  baseURL: 'http://localhost:11435/v1',
+});
+
+const { text } = await generateText({
+  model: llamay('qwen2.5:7b'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  maxRetries: 0, // immediately error if the server is not running
+});
+```
+
+llamay language models can also be used with `streamText`, structured outputs (`response_format: json_schema`), and multi-step tool calls.
+
+## Embedding Models
+
+When started with an embedding model (e.g. `llamay serve -m <chat-model> -embed <embedding-model>`), llamay exposes an `/v1/embeddings` endpoint.
+You can create models that call the llamay embeddings API using the `.embeddingModel()` factory method:
+
+```ts
+const model = llamay.embeddingModel('all-minilm');
+```
+
+### Example - Embedding a Single Value
+
+```tsx
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { embed } from 'ai';
+
+const llamay = createOpenAICompatible({
+  name: 'llamay',
+  baseURL: 'http://localhost:11435/v1',
+});
+
+// 'embedding' is a single embedding object (number[])
+const { embedding } = await embed({
+  model: llamay.embeddingModel('all-minilm'),
+  value: 'sunny day at the beach',
+});
+```
+
+### Example - Embedding Many Values
+
+When loading data, e.g. when preparing a data store for retrieval-augmented generation (RAG),
+it is often useful to embed many values at once (batch embedding).
+
+The AI SDK provides the [`embedMany`](/docs/reference/ai-sdk-core/embed-many) function for this purpose:
+
+```tsx
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { embedMany } from 'ai';
+
+const llamay = createOpenAICompatible({
+  name: 'llamay',
+  baseURL: 'http://localhost:11435/v1',
+});
+
+// 'embeddings' is an array of embedding objects (number[][]).
+// It is sorted in the same order as the input values.
+const { embeddings } = await embedMany({
+  model: llamay.embeddingModel('all-minilm'),
+  values: [
+    'sunny day at the beach',
+    'rainy afternoon in the city',
+    'snowy night in the mountains',
+  ],
+});
+```
