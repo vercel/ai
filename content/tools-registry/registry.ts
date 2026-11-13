@@ -1000,4 +1000,36 @@ console.log(text);`,
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
+  {
+    slug: 'bosco-labs',
+    name: 'Bosco Labs',
+    description:
+      'Official-records tools for agents: counterparty (KYB) checks with register status, LEI, insolvency, accounts, sanctions (OFAC, UN, UK, EU), VAT and IBAN; plus SEC EDGAR, company registers, EU and national law and more. A free planner turns a question into the exact calls and their price. Every row carries its source URL.',
+    packageName: '@bosco_labs/ai-sdk',
+    tags: ['kyb', 'compliance', 'company-data', 'sanctions'],
+    apiKeyEnvName: 'BOSCO_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @bosco_labs/ai-sdk',
+      npm: 'npm install @bosco_labs/ai-sdk',
+      yarn: 'yarn add @bosco_labs/ai-sdk',
+      bun: 'bun add @bosco_labs/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { counterpartyCheck } from '@bosco_labs/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  prompt: 'Can we do business with Novo Nordisk (CVR 24256790)?',
+  tools: {
+    counterpartyCheck: counterpartyCheck(),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/Bosco-Labs/bosco-labs-data/tree/main/ai-sdk',
+    apiKeyUrl: 'https://boscolabs.dev/api.html',
+    websiteUrl: 'https://boscolabs.dev',
+    npmUrl: 'https://www.npmjs.com/package/@bosco_labs/ai-sdk',
+  },
 ];
