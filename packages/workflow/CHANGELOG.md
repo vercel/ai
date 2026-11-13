@@ -1,5 +1,18 @@
 # @ai-sdk/workflow
 
+## 2.0.104
+
+### Patch Changes
+
+- b161730: fix(workflow): `WorkflowAgent` now accepts `onError` and `onAbort` in the constructor, like `ToolLoopAgent`. They are called before the callbacks passed to `generate()` or `stream()`. An error thrown by an `onError` or `onAbort` callback no longer replaces the error or result of the run.
+- c591e12: fix(workflow): tools called by `WorkflowAgent` no longer receive the system prompt or the assistant message that contains the current tool call in `options.messages`. The `messages` passed to `onToolExecutionStart` and `onToolExecutionEnd` no longer contain the system prompt either. This matches `ToolLoopAgent`, `generateText`, and `streamText`.
+- ec23d2d: fix(workflow): `model`, `toolChoice`, `activeTools`, and generation settings returned from `prepareStep` in `WorkflowAgent` now apply to the current step only, like in `ToolLoopAgent`. Before, an override returned for one step stayed in effect for all later steps.
+- 1876747: fix(workflow): `WorkflowAgent.stream()` now aggregates `totalUsage` the same way as `ToolLoopAgent`. Token details such as cached and reasoning tokens are kept, and counts that the provider did not report stay `undefined` instead of becoming `0`.
+- Updated dependencies [6d50947]
+- Updated dependencies [79d2004]
+  - @ai-sdk/provider-utils@5.0.81
+  - ai@7.0.172
+
 ## 2.0.103
 
 ### Patch Changes

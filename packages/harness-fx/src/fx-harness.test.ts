@@ -33,6 +33,13 @@ vi.mock('node:os', async importOriginal => ({
   ...(await importOriginal<typeof os>()),
   homedir: () => '/nonexistent-ai-sdk-fx-test-home',
 }));
+vi.mock('@ai-sdk/harness/utils', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  isSandboxWriteProtectedPath: vi.fn(
+    async ({ paths }: { paths: ReadonlyArray<string> }) =>
+      paths.some(filePath => filePath.startsWith('/workspace/.fx/')),
+  ),
+}));
 vi.mock('./fx-runtime', () => ({
   createFxRuntime: vi.fn(async (options: FxRuntimeOptions) => {
     runtime.options.push(options);
@@ -756,6 +763,59 @@ describe('fx harness', () => {
                 !command.includes('realpath'),
             ),
         ).toEqual(name === 'bash' ? ['touch important'] : []);
+      } finally {
+        await session.doDestroy();
+      }
+    },
+  );
+
+  it.each([
+    { filePath: 'notes.md', approval: false },
+    { filePath: '.fx/settings.json', approval: true },
+  ])(
+    'requires approval=$approval for an allow-edits write to $filePath',
+    async ({ filePath, approval }) => {
+      const { sandbox, files } = createSandbox();
+      runtime.run = async options => {
+        await invoke({
+          runtimeOptions: options,
+          name: 'write',
+          id: 'write-id',
+          input: { file_path: filePath, content: 'hello' },
+        }).catch(() => {});
+      };
+      const session = await createFx().doStart({
+        sandboxSession: sandbox,
+        sessionId: 'write-approval',
+        sessionWorkDir: '/workspace',
+        permissionMode: 'allow-edits',
+      });
+      const events: HarnessV1StreamPart[] = [];
+      let approvalRequested!: () => void;
+      const pending = new Promise<void>(resolve => {
+        approvalRequested = resolve;
+      });
+      try {
+        const control = await session.doPromptTurn({
+          ...turnOptions,
+          prompt: 'go',
+          emit: event => {
+            events.push(event);
+            if (event.type === 'tool-approval-request') approvalRequested();
+          },
+        });
+        if (approval) {
+          await pending;
+          expect(files.has(`/workspace/${filePath}`)).toBe(false);
+          await control.submitToolApproval!({
+            approvalId: 'fx:write-id',
+            approved: true,
+          });
+        }
+        await control.done;
+        expect(
+          events.filter(event => event.type === 'tool-approval-request'),
+        ).toHaveLength(approval ? 1 : 0);
       } finally {
         await session.doDestroy();
       }
