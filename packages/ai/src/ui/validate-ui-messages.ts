@@ -1,5 +1,9 @@
-import { citationSchema } from '../types/citation';
-import { TypeValidationError, type JSONObject } from '@ai-sdk/provider';
+import { createCitationSchema } from '../types/citation';
+import {
+  TypeValidationError,
+  type JSONObject,
+  type JSONValue,
+} from '@ai-sdk/provider';
 import {
   lazySchema,
   safeValidateTypes,
@@ -10,10 +14,10 @@ import {
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error';
-import { jsonValueSchema } from '../types/json-value';
+import type { ProviderMetadata } from '../types/provider-metadata';
 import { getOwn } from '../util/get-own';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
-import { providerMetadataSchema as providerMetadataRecordSchema } from '../types/provider-metadata';
+import { normalizeJsonValue } from '../util/normalize-json-value';
 import { z, type ZodOutput, type ZodType } from '../util/zod';
 import type {
   DataUIPart,
@@ -27,103 +31,54 @@ import { markToolPartAsUnavailable } from './unavailable-tool';
 import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
 
 /**
- * Returns the path to the first value that can never be part of a JSON value
- * (a non-finite number, bigint, symbol, or function), if there is one.
+ * Validates a JSON value in a single pass and reports an invalid JSON value
+ * with a single issue.
+ *
+ * UI messages are untrusted input. The recursive JSON value schema tries
+ * every alternative for every nested value and returns a copy of the value,
+ * so accepting a value would need several times the memory of the value. It
+ * also reports the issues of every alternative at every nesting level around
+ * an invalid value, so the size of a validation error would grow much faster
+ * than the input.
  */
-function findInvalidJsonValuePath(
-  value: unknown,
-  path: PropertyKey[] = [],
-  visited = new WeakSet<object>(),
-): PropertyKey[] | undefined {
-  switch (typeof value) {
-    case 'number':
-      return Number.isFinite(value) ? undefined : [...path];
-    case 'bigint':
-    case 'symbol':
-    case 'function':
-      return [...path];
-    case 'object': {
-      if (value === null || visited.has(value)) {
-        return undefined;
-      }
-      visited.add(value);
+const jsonValueSchema = z.pipe(
+  z.unknown(),
+  z.transform((value: unknown, context) => {
+    const result = normalizeJsonValue(value);
 
-      const keys = Array.isArray(value) ? value.keys() : Object.keys(value);
-      for (const key of keys) {
-        // record schemas ignore `__proto__` keys:
-        if (key === '__proto__') continue;
+    if (!result.success) {
+      context.issues.push({
+        code: 'custom',
+        message:
+          'Invalid JSON value. Expected null, a string, a finite number, ' +
+          'a boolean, an array, or an object.',
+        input: value,
+        path: result.path,
+      });
 
-        path.push(key);
-        const invalidPath = findInvalidJsonValuePath(
-          (value as Record<PropertyKey, unknown>)[key],
-          path,
-          visited,
-        );
-        if (invalidPath != null) return invalidPath;
-        path.pop();
-      }
-      return undefined;
+      return z.NEVER;
     }
-    default:
-      return undefined;
-  }
-}
 
-/**
- * Rejects values that contain an invalid JSON value with a single issue before
- * `schema` validates them.
- *
- * The JSON value schema is a recursive union. It reports the issues of every
- * alternative at every nesting level around an invalid value, so the size of a
- * validation error would grow much faster than the (untrusted) input.
- *
- * @param jsonValuePath - Path from the validated value to the JSON value.
- */
-function withJsonValueCheck<SCHEMA extends ZodType>(
-  schema: SCHEMA,
-  jsonValuePath: string[] = [],
-) {
-  return z.pipe(
-    z.unknown().check(context => {
-      let jsonValue = context.value;
-      for (const key of jsonValuePath) {
-        jsonValue =
-          jsonValue != null && typeof jsonValue === 'object'
-            ? (jsonValue as Record<string, unknown>)[key]
-            : undefined;
-      }
-
-      const invalidPath = findInvalidJsonValuePath(jsonValue);
-      if (invalidPath != null) {
-        context.issues.push({
-          code: 'custom',
-          message:
-            'Invalid JSON value. Expected null, a string, a finite number, ' +
-            'a boolean, an array, or an object.',
-          input: context.value,
-          path: [...jsonValuePath, ...invalidPath],
-        });
-      }
-    }),
-    schema,
-  );
-}
-
-const toolMetadataRecordSchema: ZodType<JSONObject> = z.record(
-  z.string(),
-  z.optional(jsonValueSchema),
+    return result.value;
+  }),
 );
 
-const toolMetadataSchema = withJsonValueCheck(toolMetadataRecordSchema);
+// The values of the records are JSON values that have already been validated.
+const validatedJsonValueSchema = z.custom<JSONValue | undefined>();
 
-const providerMetadataSchema = withJsonValueCheck(providerMetadataRecordSchema);
+const toolMetadataSchema: ZodType<JSONObject> = z.pipe(
+  jsonValueSchema,
+  z.record(z.string(), validatedJsonValueSchema),
+);
+
+const providerMetadataSchema: ZodType<ProviderMetadata> = z.pipe(
+  jsonValueSchema,
+  z.record(z.string(), z.record(z.string(), validatedJsonValueSchema)),
+);
 
 const providerReferenceSchema = z.record(z.string(), z.string());
 
-const uiCitationSchema = withJsonValueCheck(citationSchema, [
-  'source',
-  'providerMetadata',
-]);
+const uiCitationSchema = createCitationSchema(providerMetadataSchema);
 
 function isEmptyObject(value: unknown): value is Record<string, never> {
   return (
