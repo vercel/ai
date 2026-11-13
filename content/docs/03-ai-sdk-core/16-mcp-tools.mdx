@@ -662,6 +662,26 @@ If a server returns `structuredContent` without the backwards-compatible `conten
   containing `content` and optional `isError` fields.
 </Note>
 
+### Tool Results Passed to the Model
+
+The raw `CallToolResult` that your application receives can contain more than what is sent to the model.
+Fields that are not part of the standard result shape pass validation and stay on the tool output,
+so you can read them in your own code.
+
+Only the `content` parts are passed to the model:
+
+- Text parts are passed as text. Other fields on the part (e.g. `annotations`) are not included.
+- Image parts are passed as files.
+- All other parts (e.g. resources, resource links, and custom part types) are passed as text containing the serialized JSON of the part.
+
+Fields outside of `content`, such as `_meta`, `structuredContent`, or custom fields on the result, are not passed to the model.
+If an MCP server needs the model to see additional information, it must include that information in `content`.
+
+<Note>
+  When you define an `outputSchema`, the validated structured output is passed
+  to the model as JSON instead.
+</Note>
+
 ## Using MCP Resources
 
 According to the [MCP specification](https://modelcontextprotocol.io/docs/learn/server-concepts#resources), resources are **application-driven** data sources that provide context to the model. Unlike tools (which are model-controlled), your application decides when to fetch and pass resources as context.
