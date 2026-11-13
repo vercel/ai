@@ -176,12 +176,12 @@ describe('createStreamWriter', () => {
     expect(await readRecords(world)).toEqual([{ part: part('a') }]);
   });
 
-  test('writes withdraw parts', async () => {
+  test('writes retract parts', async () => {
     const { world, writer } = setup();
-    writer.withdraw({ startIds: ['start-1', 'start-2'] });
+    writer.retract({ startIds: ['start-1', 'start-2'] });
     await writer.flush();
     expect(await readRecords(world)).toEqual([
-      { part: { type: 'withdraw', startIds: ['start-1', 'start-2'] } },
+      { part: { type: 'retract', startIds: ['start-1', 'start-2'] } },
     ]);
   });
 
@@ -205,11 +205,11 @@ describe('decodeStreamRecords', () => {
     expect(
       await decodeStreamRecords({
         text:
-          '{"version":1,"part":{"type":"withdraw","startIds":["a"]}}\n\n' +
+          '{"version":1,"part":{"type":"retract","startIds":["a"]}}\n\n' +
           '{"version":1,"part":{"type":"reset-step"},"startId":"s"}\n\n',
       }),
     ).toEqual([
-      { part: { type: 'withdraw', startIds: ['a'] } },
+      { part: { type: 'retract', startIds: ['a'] } },
       { part: { type: 'reset-step' }, startId: 's' },
     ]);
   });

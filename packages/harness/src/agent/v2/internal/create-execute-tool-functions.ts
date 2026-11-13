@@ -284,7 +284,7 @@ function emitToolError(options: {
  * does not run again and no stream parts are emitted again. A recorded
  * retryable interruption runs the tool again in a new attempt. Every
  * preliminary, final and error `tool-result` part is emitted through the
- * attempt's `emit()`, so readers can withdraw them if the attempt is
+ * attempt's `emit()`, so readers can retract them if the attempt is
  * interrupted. An aborted attempt emits no error part and resolves
  * `interrupted`. Input that is not a JSON value rejects without recording,
  * since it can only come from an adapter bug. Concurrent calls with the same

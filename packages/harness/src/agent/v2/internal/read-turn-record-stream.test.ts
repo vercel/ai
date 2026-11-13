@@ -81,7 +81,7 @@ describe('readTurnRecordStream', () => {
       world,
       records: [
         { part: finishPart, key: 'finish-turn:previous' },
-        { part: { type: 'withdraw', startIds: ['old'] } },
+        { part: { type: 'retract', startIds: ['old'] } },
         { part: { type: 'start' }, key: 'turn-start:turn' },
         { part: { type: 'text-delta', id: 't', delta: 'hi' }, startId: 'a' },
         { part: { type: 'yield' } },
@@ -139,7 +139,7 @@ describe('readTurnRecordStream', () => {
     await writeRecords({
       world,
       records: [
-        { part: { type: 'withdraw', startIds: ['a'] } },
+        { part: { type: 'retract', startIds: ['a'] } },
         { part: finishPart, key: 'finish-turn:turn' },
         { part: { type: 'start' }, key: 'turn-start:next' },
       ],
@@ -148,7 +148,7 @@ describe('readTurnRecordStream', () => {
     expect(await reading).toEqual([
       { part: { type: 'start' }, key: 'turn-start:turn' },
       { part: { type: 'text-delta', id: 't', delta: 'a' }, startId: 'a' },
-      { part: { type: 'withdraw', startIds: ['a'] } },
+      { part: { type: 'retract', startIds: ['a'] } },
       { part: finishPart, key: 'finish-turn:turn' },
     ]);
   });

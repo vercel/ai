@@ -273,7 +273,7 @@ describe('startDrive', () => {
     ]);
     expect(await readRecords({ world })).toEqual([
       { part: { type: 'start' }, key: 'turn-start:turn' },
-      { part: { type: 'withdraw', startIds: ['model', 'unstarted'] } },
+      { part: { type: 'retract', startIds: ['model', 'unstarted'] } },
     ]);
   });
 
@@ -303,7 +303,7 @@ describe('startDrive', () => {
     ]);
   });
 
-  test('does not withdraw attempts of an earlier turn', async () => {
+  test('does not retract attempts of an earlier turn', async () => {
     const { world, log, writer } = await setup({
       events: [
         effectStart({ id: 'earlier', key: 'model:earlier', replay: 'safe' }),

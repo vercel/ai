@@ -109,15 +109,15 @@ type CollectedReasoningContent = {
  * TODO: Replace `HarnessStreamEntry`, `StepPart` and `RESET_STEP_KIND` with a
  * reset that `ai`'s `toUIMessageStream()` understands natively. Today
  * `TextStreamPart` has no variant that maps to the UI `reset-step` chunk, so
- * a withdrawal travels through the helper as a `custom` marker that is
+ * a retraction travels through the helper as a `custom` marker that is
  * converted afterwards, followed by the step's surviving parts, all tagged
  * `uiOnly` so `fullStream` stays free of them. This also means the messages
- * that the helper builds for `onEnd` and `onStepEnd` still contain withdrawn
+ * that the helper builds for `onEnd` and `onStepEnd` still contain retracted
  * parts. The more ideal change in `ai`:
- * - add a `reset-step` (or more targeted withdrawal) `TextStreamPart` that
+ * - add a `reset-step` (or more targeted retraction) `TextStreamPart` that
  *   `toUIMessageStream()` maps to the UI `reset-step` chunk and applies in the
  *   message it builds for its callbacks;
- * - ideally let it withdraw individual parts of the current step (e.g. by
+ * - ideally let it retract individual parts of the current step (e.g. by
  *   part ID), so surviving parts do not need to be sent again.
  * Then this result could emit the reset into its regular stream and drop the
  * UI-only entries.
@@ -133,7 +133,7 @@ type HarnessStreamEntry<TOOLS extends ToolSet> = {
 
   /**
    * Whether the part is only for `toUIMessageStream()`: the reset marker and
-   * the surviving parts it is followed by after a withdrawal.
+   * the surviving parts it is followed by after a retraction.
    */
   uiOnly?: true;
 };
@@ -169,15 +169,15 @@ type StepPart<TOOLS extends ToolSet> = {
  *
  * Records are tagged with the effect attempt that produced them (`startId`)
  * and, for boundary parts, their log key (`key`). A record whose key this
- * result already received is dropped. A `withdraw` part withdraws the output
+ * result already received is dropped. A `retract` part retracts the output
  * of the listed attempts: their later records are dropped, and if the current
  * step contains parts of them, the step's collected content is rebuilt from
- * the surviving parts, so `steps` and `text` exclude withdrawn output. The
+ * the surviving parts, so `steps` and `text` exclude retracted output. The
  * UI message stream then gets a `reset-step` chunk followed by the surviving
  * parts again. `fullStream` cannot retract parts it already delivered, and
  * the messages passed to `toUIMessageStream()`'s `onEnd` and `onStepEnd`
  * callbacks, which the AI SDK builds before the reset is applied, still
- * contain withdrawn parts and a `custom` part.
+ * contain retracted parts and a `custom` part.
  *
  * Except after an abort, the result closes only once `records` ended, which
  * for a `stream()` call happens only after the drive ended, so the session
@@ -221,7 +221,7 @@ export class HarnessStreamTextResult<
   private stepReasoningContent = new Map<string, CollectedReasoningContent>();
   private stepParts: Array<StepPart<TOOLS>> = [];
   private readonly seenKeys = new Set<string>();
-  private readonly withdrawnStartIds = new Set<string>();
+  private readonly retractedStartIds = new Set<string>();
   private stepStarted = false;
   private yielded = false;
   private firstError: unknown;
@@ -315,7 +315,7 @@ export class HarnessStreamTextResult<
    * - `incomplete` if the records ended without any of the above; an `error`
    *   part is added.
    *
-   * Records with an already received key and records of withdrawn attempts
+   * Records with an already received key and records of retracted attempts
    * are dropped. Parts after a `finish` or `yield` part are dropped, but
    * still read until `records` ends, so the result closes only once the
    * drive ended.
@@ -344,7 +344,7 @@ export class HarnessStreamTextResult<
         }
         if (
           value.startId != null &&
-          this.withdrawnStartIds.has(value.startId)
+          this.retractedStartIds.has(value.startId)
         ) {
           continue;
         }
@@ -422,8 +422,8 @@ export class HarnessStreamTextResult<
         this.yielded = true;
         return;
 
-      case 'withdraw':
-        this.withdraw({ startIds: part.startIds });
+      case 'retract':
+        this.retract({ startIds: part.startIds });
         return;
 
       case 'finish-step':
@@ -472,25 +472,25 @@ export class HarnessStreamTextResult<
   }
 
   /**
-   * Withdraws the output of the given effect attempts. Their later records
+   * Retracts the output of the given effect attempts. Their later records
    * are dropped. If the current step contains parts of them, its collected
    * content is rebuilt from the surviving parts, and the UI message stream
    * gets the reset marker followed by the surviving parts again. Parts of
    * finished steps are not affected.
    */
-  private withdraw(options: {
+  private retract(options: {
     /**
-     * Start IDs of the attempts whose output is withdrawn.
+     * Start IDs of the attempts whose output is retracted.
      */
     startIds: readonly string[];
   }): void {
     for (const startId of options.startIds) {
-      this.withdrawnStartIds.add(startId);
+      this.retractedStartIds.add(startId);
     }
     const surviving = this.stepParts.filter(
       stepPart =>
         stepPart.startId == null ||
-        !this.withdrawnStartIds.has(stepPart.startId),
+        !this.retractedStartIds.has(stepPart.startId),
     );
     if (surviving.length === this.stepParts.length) return;
 
@@ -956,7 +956,7 @@ export class HarnessStreamTextResult<
 
   /**
    * Converts the stream of translated parts to a UI message stream. After a
-   * withdrawal that affects the current step, the stream gets a `reset-step`
+   * retraction that affects the current step, the stream gets a `reset-step`
    * chunk followed by the step's surviving parts again.
    */
   toUIMessageStream<UI_MESSAGE extends UIMessage>(

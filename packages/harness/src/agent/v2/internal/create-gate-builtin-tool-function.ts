@@ -241,7 +241,7 @@ function emitToolResult(options: {
  * `partial()`, `result()` or `error()` reports,
  * processed in order. Each report emits its `tool-result` part through the
  * attempt's `emit()` and is recorded as the attempt's progress or end, so
- * readers can withdraw the parts of an interrupted attempt and a replay emits
+ * readers can retract the parts of an interrupted attempt and a replay emits
  * nothing again. When the drive's abort signal fires before the call ended,
  * the attempt is recorded as `interrupted`, with the last committed partial.
  *

@@ -51,7 +51,7 @@ type LogEventOf<TYPE extends HarnessAgentLogEvent['type']> = Extract<
  * 5. If the latest turn is unfinished, its stream is repaired: its `start`
  *    part and its latest `finish-step` part are written under their log keys
  *    if no record with that key is in the stream (a crash between the log
- *    append and the stream write loses the part), and a `withdraw` part
+ *    append and the stream write loses the part), and a `retract` part
  *    lists the turn's latest attempts whose output is a retryable
  *    interruption, since a retry replaces their output. A non-retryable
  *    interruption's output stays, matching the partial output the harness
@@ -217,7 +217,7 @@ export async function startDrive(options: {
     writer.emit({ part: { type: 'start' }, key: startKey });
   }
 
-  const withdrawn = [...latestStarts.values()]
+  const retracted = [...latestStarts.values()]
     .filter(start => {
       const output = outputs.get(start.id);
       return (
@@ -227,7 +227,7 @@ export async function startDrive(options: {
       );
     })
     .map(start => start.id);
-  if (withdrawn.length > 0) writer.withdraw({ startIds: withdrawn });
+  if (retracted.length > 0) writer.retract({ startIds: retracted });
 
   if (latestFinishStep != null && !keys.has(latestFinishStep.id)) {
     const part: Extract<HarnessAgentStreamPart, { type: 'finish-step' }> = {

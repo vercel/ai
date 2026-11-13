@@ -451,7 +451,7 @@ export class HarnessAgent<
    * The drive first recovers what an earlier drive left behind: if a drive
    * that provably is gone (it crashed on request, or its deadline passed)
    * left effect attempts unfinished, they are recorded as interrupted and
-   * their output is withdrawn where a retry replaces it. Without that proof,
+   * their output is retracted where a retry replaces it. Without that proof,
    * the call resolves without changing the session. The harness then
    * continues the latest unfinished turn, or starts the turn of a prompt
    * that has not started one. Without either, the call resolves without

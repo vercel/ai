@@ -275,7 +275,7 @@ describe('HarnessStreamTextResult', () => {
     },
   );
 
-  describe('withdrawals', () => {
+  describe('retractions', () => {
     const keptRecords: HarnessAgentStreamPartRecord[] = [
       { part: { type: 'start' }, key: 'turn-start:turn' },
       { part: { type: 'text-start', id: 'kept' }, startId: 'kept-attempt' },
@@ -285,7 +285,7 @@ describe('HarnessStreamTextResult', () => {
       },
       { part: { type: 'text-end', id: 'kept' }, startId: 'kept-attempt' },
     ];
-    const withdrawnRecords: HarnessAgentStreamPartRecord[] = [
+    const retractedRecords: HarnessAgentStreamPartRecord[] = [
       { part: { type: 'text-start', id: 'cut' }, startId: 'crashed-attempt' },
       {
         part: { type: 'text-delta', id: 'cut', delta: 'Cut off' },
@@ -300,12 +300,12 @@ describe('HarnessStreamTextResult', () => {
       },
     ];
 
-    function createWithdrawnResult() {
+    function createRetractedResult() {
       return createResult({
         records: [
           ...keptRecords,
-          ...withdrawnRecords,
-          { part: { type: 'withdraw', startIds: ['crashed-attempt'] } },
+          ...retractedRecords,
+          { part: { type: 'retract', startIds: ['crashed-attempt'] } },
           {
             part: { type: 'text-delta', id: 'cut', delta: ' late' },
             startId: 'crashed-attempt',
@@ -321,8 +321,8 @@ describe('HarnessStreamTextResult', () => {
       });
     }
 
-    test('excludes withdrawn output from the steps and drops later records of withdrawn attempts', async () => {
-      const result = createWithdrawnResult();
+    test('excludes retracted output from the steps and drops later records of retracted attempts', async () => {
+      const result = createRetractedResult();
 
       expect(await result.text).toBe('Kept Retried');
       expect((await result.steps)[0].content).toEqual([
@@ -332,7 +332,7 @@ describe('HarnessStreamTextResult', () => {
     });
 
     test('keeps already delivered parts in fullStream without adding the reset', async () => {
-      const result = createWithdrawnResult();
+      const result = createRetractedResult();
 
       expect(await readPartTypes(result.fullStream)).toEqual([
         'start',
@@ -351,7 +351,7 @@ describe('HarnessStreamTextResult', () => {
     });
 
     test('resets the step in the UI message stream and sends the surviving parts again', async () => {
-      const result = createWithdrawnResult();
+      const result = createRetractedResult();
 
       const chunks: Array<{ type: string; delta?: string }> = [];
       for await (const chunk of result.toUIMessageStream()) {

@@ -25,7 +25,7 @@ test('copies every adapter stream part into the agent stream parts', () => {
   expectTypeOf<
     Exclude<
       HarnessAgentStreamPart,
-      { type: 'start' | 'finish-step' | 'finish' | 'withdraw' | 'yield' }
+      { type: 'start' | 'finish-step' | 'finish' | 'retract' | 'yield' }
     >
   >().toEqualTypeOf<HarnessV2StreamPart>();
 });

@@ -162,7 +162,7 @@ async function setup(options?: {
   const writer = {
     emit: vi.fn(),
     unsafeEmit: vi.fn(),
-    withdraw: vi.fn(),
+    retract: vi.fn(),
     flush: vi.fn(async () => {}),
     close: vi.fn(async () => {}),
   } satisfies HarnessAgentStreamWriter;

@@ -22,10 +22,10 @@ import type {
 
 /**
  * Stream events handled by the HarnessAgent engine: the engine-side superset of
- * `HarnessV2StreamPart`. The `start`, `finish-step`, `finish`, `withdraw` and
+ * `HarnessV2StreamPart`. The `start`, `finish-step`, `finish`, `retract` and
  * `yield` variants are produced only by the engine: `start` when a turn
  * starts, the finish parts from the drive context's `finishStep()` and
- * `finishTurn()`, `withdraw` from the stream writer's `withdraw()`, and
+ * `finishTurn()`, `retract` from the stream writer's `retract()`, and
  * `yield` when a drive yields at its deadline. A harness never emits them.
  *
  * This union is redeclared rather than derived from `HarnessV2StreamPart`, so
@@ -298,13 +298,13 @@ export type HarnessAgentStreamPart =
     }
   | {
       /**
-       * Instructs readers to withdraw the output of interrupted effect
+       * Instructs readers to retract the output of interrupted effect
        * attempts. Emitted by the engine only.
        */
-      type: 'withdraw';
+      type: 'retract';
 
       /**
-       * Start IDs of the attempts whose output readers withdraw.
+       * Start IDs of the attempts whose output readers retract.
        */
       startIds: string[];
     }
@@ -350,7 +350,7 @@ export type HarnessAgentStreamPartRecord = {
 export type HarnessAgentStreamWriter = {
   /**
    * Emits a part tagged with the effect attempt that produced it and/or the
-   * log key of a step or turn finish. `startId` lets readers withdraw the part
+   * log key of a step or turn finish. `startId` lets readers retract the part
    * if its attempt was interrupted; `key` lets readers drop duplicate finishes.
    * Throws synchronously if the part is not serializable.
    */
@@ -388,18 +388,18 @@ export type HarnessAgentStreamWriter = {
 
   /**
    * Emits an untagged part, as produced by the drive context's `unsafeEmit()`.
-   * Readers can never withdraw it. Throws synchronously if the part is not
+   * Readers can never retract it. Throws synchronously if the part is not
    * serializable.
    */
   unsafeEmit(part: HarnessAgentStreamPart): void;
 
   /**
-   * Emits the engine-only `withdraw` part withdrawing the output of the given
+   * Emits the engine-only `retract` part retracting the output of the given
    * effect attempts.
    */
-  withdraw(options: {
+  retract(options: {
     /**
-     * Start IDs of the attempts whose output readers withdraw.
+     * Start IDs of the attempts whose output readers retract.
      */
     startIds: readonly string[];
   }): void;
@@ -539,8 +539,8 @@ export function createStreamWriter(options: {
       push({ part });
     },
 
-    withdraw({ startIds }) {
-      push({ part: { type: 'withdraw', startIds: [...startIds] } });
+    retract({ startIds }) {
+      push({ part: { type: 'retract', startIds: [...startIds] } });
     },
 
     flush,

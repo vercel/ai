@@ -680,7 +680,7 @@ export function createEffectFunction(options: {
 
       /*
        * Parts are tagged with the attempt that produced them, so readers can
-       * withdraw them if the attempt is interrupted. Emits after the callback
+       * retract them if the attempt is interrupted. Emits after the callback
        * settled are dropped, and the writer is flushed before the end commits:
        * a committed end therefore implies the attempt's parts were written or
        * failed, never still buffered in a process that may die.
