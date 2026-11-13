@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.81
+
+### Patch Changes
+
+- 6d50947: add experimental extraction models backed by structured language model output
+
 ## 5.0.80
 
 ### Patch Changes

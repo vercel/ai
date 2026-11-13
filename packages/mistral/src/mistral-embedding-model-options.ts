@@ -1,10 +1,8 @@
 import { z } from 'zod/v4';
+import type { MistralModelIds } from './mistral-model-catalog';
 
 export type MistralEmbeddingModelId =
-  | 'mistral-embed'
-  | 'mistral-embed-2312'
-  | 'codestral-embed'
-  | 'codestral-embed-2505'
+  | MistralModelIds['embedding']
   | (string & {});
 
 export const mistralEmbeddingModelOptions = z.object({

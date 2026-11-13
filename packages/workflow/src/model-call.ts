@@ -63,6 +63,12 @@ export interface ModelCallOptions {
   maxRetries?: number;
   abortSignal?: AbortSignal;
   timeoutAt?: number;
+  /** Time limit for this model call, including SDK retries. */
+  stepTimeoutMs?: number;
+  /** Stream mode: time limit for the first output chunk of this model call. */
+  firstChunkTimeoutMs?: number;
+  /** Stream mode: time limit between two output chunks of this model call. */
+  chunkTimeoutMs?: number;
   headers?: Record<string, string | undefined>;
   reasoning?: LanguageModelV4CallOptions['reasoning'];
   providerOptions?: ProviderOptions;
@@ -235,6 +241,16 @@ export interface ModelCallTiming {
   endedAt: number;
 }
 
+/**
+ * Provider name and model ID of the model that a durable model step called.
+ * Optional wherever it crosses the step boundary because results persisted by
+ * older versions do not contain it.
+ */
+export interface ModelCallModelInfo {
+  provider: string;
+  modelId: string;
+}
+
 export type ModelCallResult =
   | { aborted: true; timing?: ModelCallTiming }
   | {
@@ -243,6 +259,8 @@ export type ModelCallResult =
       toolCalls: ParsedToolCall[];
       finish: ModelCallFinish | undefined;
       raw: ModelCallRawResult;
+      /** Present only on results that recorded the model they called. */
+      model?: ModelCallModelInfo;
       providerExecutedToolResults: Map<string, ProviderExecutedToolResult>;
       /**
        * Optional for compatibility with model-step results persisted before

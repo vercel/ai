@@ -32,7 +32,9 @@ export {
 } from '../src/types/usage';
 export { resolveLanguageModel } from '../src/model/resolve-model';
 export { mergeAbortSignals } from '../src/util/merge-abort-signals';
+export { setAbortTimeout } from '../src/util/set-abort-timeout';
 export { mergeCallbacks } from '../src/util/merge-callbacks';
+export { mergeObjects } from '../src/util/merge-objects';
 export { createTelemetryDispatcher } from '../src/telemetry/create-telemetry-dispatcher';
 export { filterIncludedContext } from '../src/telemetry/filter-included-context';
 export { createRestrictedTelemetryDispatcher } from '../src/generate-text/restricted-telemetry-dispatcher';

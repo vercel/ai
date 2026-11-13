@@ -114,7 +114,7 @@ const standard = { image: false, objectGeneration: true, tools: true };
 const legacy = { image: false, objectGeneration: false, tools: false };
 
 // Preserve the provider page's model set and per-model exceptions.
-const languageDefinitions: Record<string, LanguageDefinition> = {
+const languageDefinitions = {
   'command-a-03-2025': standard,
   'command-a-reasoning-08-2025': { ...standard, reasoning: true },
   'command-a-vision-07-2025': { ...standard, image: true },
@@ -128,7 +128,7 @@ const languageDefinitions: Record<string, LanguageDefinition> = {
   'command-nightly': legacy,
   'command-light': legacy,
   'command-light-nightly': legacy,
-};
+} satisfies Record<string, LanguageDefinition>;
 
 function createLanguageModelEntry(
   definition?: LanguageDefinition,
@@ -237,13 +237,7 @@ function createRerankingModelEntry(
   };
 }
 
-export const cohereModelCatalog: Readonly<Record<string, CohereModelEntry>> = {
-  ...Object.fromEntries(
-    Object.entries(languageDefinitions).map(([modelId, definition]) => [
-      modelId,
-      createLanguageModelEntry(definition),
-    ]),
-  ),
+const cohereEmbeddingModelEntries = {
   'embed-v5.0-pro': createEmbeddingModelEntry(
     2048,
     [256, 512, 768, 1024, 1536, 2048],
@@ -264,11 +258,25 @@ export const cohereModelCatalog: Readonly<Record<string, CohereModelEntry>> = {
     ['float'],
   ),
   'embed-multilingual-v2.0': createEmbeddingModelEntry(768, [768], ['float']),
+};
+
+const cohereRerankingModelEntries = {
   'rerank-v4.0-pro': createRerankingModelEntry(true),
   'rerank-v4.0-fast': createRerankingModelEntry(true),
   'rerank-v3.5': createRerankingModelEntry(true),
   'rerank-english-v3.0': createRerankingModelEntry(true),
   'rerank-multilingual-v3.0': createRerankingModelEntry(true),
+};
+
+export const cohereModelCatalog: Readonly<Record<string, CohereModelEntry>> = {
+  ...Object.fromEntries(
+    Object.entries(languageDefinitions).map(([modelId, definition]) => [
+      modelId,
+      createLanguageModelEntry(definition),
+    ]),
+  ),
+  ...cohereEmbeddingModelEntries,
+  ...cohereRerankingModelEntries,
 };
 
 function findModelEntry(modelId: string) {
@@ -342,3 +350,10 @@ function declareProviderOptions<Option extends string>(
     ]),
   ) as Record<Option, ModelCapability>;
 }
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type CohereModelIds = {
+  language: keyof typeof languageDefinitions;
+  embedding: keyof typeof cohereEmbeddingModelEntries;
+  reranking: keyof typeof cohereRerankingModelEntries;
+};
