@@ -66,6 +66,15 @@ rendered by `app/[lang]/og/[...slug]/route.tsx`, which serves both the
 Geistdocs URL shape (`/og/<slugs>/image.png`) and the legacy production
 shape (`/og/docs?title=…&description=…`).
 
+The homepage and docs share `lib/geistdocs/og.tsx` and its local Geist Sans and
+Geist Mono fonts, copied from the Geistdocs 2.15.3 template (`1efeba6`). The
+1200×630 cards use a black background, Vercel triangle, white title, and a gray
+monospace description. The text uses the card's full padded width and wraps
+without line limits; longer titles use a smaller font. Keep our route's source
+lookup and cache headers when adopting future template updates. Bump the image
+URL version in `lib/og.ts` when changing the design so immutable query-based
+cards refresh.
+
 Mirroring production, every cookbook recipe is served on two URL surfaces:
 `/cookbook/...` and `/resources/recipes/...`. The sitemap, llms.txt, and
 search canonicalize on `/cookbook`.
@@ -100,7 +109,7 @@ the original interactive section (simulated generation progress, custom audio
 player, animated transcription and provider carousel) and uses `motion`.
 The Core/UI section in `components/home/code-examples/` mirrors the one on
 vercel.com/ai-sdk, with a live preview for each example and a Code view.
-Image/video previews and the social card use the existing public Blob store,
+Image/video previews use the existing public Blob store,
 and speech uses the original ElevenLabs audio sample.
 Stats are cached hourly and fall back to conservative counts if public npm or
 GitHub requests fail. Starter prompts live in `lib/home/prompt-templates.ts`.
