@@ -1,138 +1,82 @@
 ---
 title: 'Supermemory'
-description: 'Learn how to use the Supermemory AI SDK provider for the Vercel AI SDK.'
+description: 'Learn how to use Supermemory memory tools and middleware with the AI SDK.'
 ---
 
 # Supermemory
 
-[Supermemory](https://supermemory.ai) is a long-term memory platform that adds persistent, self-growing memory to your AI applications. The Supermemory provider for the AI SDK enables you to build AI applications with memory that works like the human brain:
+[Supermemory](https://supermemory.ai) is a memory platform that gives agents persistent, long-term memory across conversations.
+The [`@supermemory/tools`](https://www.npmjs.com/package/@supermemory/tools) package adds it to the AI SDK in two ways:
 
-- **Persistent Memory**: Long-term storage that grows with each interaction
-- **Semantic Search**: Find relevant memories using natural language queries
-- **Automatic Memory Management**: AI automatically saves and retrieves relevant information
-- **Easy Integration**: Simple setup with existing AI SDK applications
-- **Memory Router**: Direct integration with language model providers
-- **Free Tier Available**: Get started with a free API key
+- **Middleware**: `withSupermemory` wraps a model you have already configured. Before each call it loads the user's profile (and, optionally, memories relevant to the latest message) into the prompt, and afterwards it saves the conversation.
+- **Memory tools**: `supermemoryTools` returns a standard AI SDK tool set that lets the model search, add and forget memories, read the user's profile, and manage documents.
 
-Learn more about Supermemory's capabilities in the [Supermemory Documentation](https://supermemory.ai/docs/ai-sdk/overview).
+Every call reads and writes one **namespace**, usually one per end user. The package calls the Supermemory v5 API and works with AI SDK 5, 6 and 7.
 
 ## Setup
 
-The Supermemory provider is available in the `@supermemory/tools` module. You can install it with:
+The Supermemory integration is available in the `@supermemory/tools` module. You can install it with:
 
 <InstallPackages packages="@supermemory/tools" />
 
-## Provider Instance
+Get an API key from the [Supermemory Console](https://console.supermemory.ai) and set it as `SUPERMEMORY_API_KEY`.
 
-You can obtain your Supermemory API key for free at [https://console.supermemory.ai](https://console.supermemory.ai).
+## Middleware
 
-There are two ways to integrate Supermemory with your AI applications:
+Wrap any AI SDK model with `withSupermemory`. Both options are required: `namespace` identifies whose memories to use and `id` identifies the conversation.
 
-**1. Using Supermemory Tools**
-
-Import and use Supermemory tools with your existing AI SDK setup:
-
-```typescript
-import { supermemoryTools } from '@supermemory/tools/ai-sdk';
-```
-
-**2. Using the Memory Router**
-
-Use the Memory Router for direct integration with language model providers:
-
-```typescript
-import { createAnthropic } from '@ai-sdk/anthropic';
-
-const supermemoryRouter = createAnthropic({
-  baseUrl: 'https://api.supermemory.ai/v3/https://api.anthropic.com/v1',
-  apiKey: 'your-provider-api-key',
-  headers: {
-    'x-supermemory-api-key': 'supermemory-api-key',
-    'x-sm-conversation-id': 'conversation-id',
-  },
-});
-```
-
-## Examples
-
-Here are examples of using Supermemory with the AI SDK:
-
-### `generateText` with Tools
-
-```javascript
+```ts
 import { generateText } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
-import { supermemoryTools } from '@supermemory/tools/ai-sdk';
+import { withSupermemory } from '@supermemory/tools/ai-sdk';
+import { openai } from '@ai-sdk/openai';
 
-const openai = createOpenAI({
-  apiKey: 'YOUR_OPENAI_KEY',
+const modelWithMemory = withSupermemory(openai('gpt-5'), {
+  namespace: 'user-123',
+  id: 'conversation-456',
 });
 
-const { text } = await generateText({
-  model: openai('gpt-5-mini'),
-  prompt: 'Remember that my name is Alice',
-  tools: supermemoryTools('YOUR_SUPERMEMORY_KEY'),
+const result = await generateText({
+  model: modelWithMemory,
+  messages: [{ role: 'user', content: 'What do you know about me?' }],
 });
-
-console.log(text);
 ```
 
-### `streamText` with Automatic Memory
+By default the middleware injects the user's profile (`mode: 'profile'`) and saves new conversations (`addMemory: 'always'`).
+Set `mode: 'query'` to search memories based on the user's message, `mode: 'full'` to do both, or `addMemory: 'never'` to only read.
+The API key is read from `SUPERMEMORY_API_KEY`, or can be passed with the `apiKey` option.
 
-```javascript
-import { streamText } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
+## Memory Tools
+
+`supermemoryTools` returns the tools `searchMemories`, `addMemory`, `getProfile`, `documentList`, `documentAdd`, `documentDelete` and `memoryForget`.
+Pass them to `generateText`, `streamText` or `ToolLoopAgent`:
+
+```ts
+import { generateText, isStepCount } from 'ai';
+import { openai } from '@ai-sdk/openai';
 import { supermemoryTools } from '@supermemory/tools/ai-sdk';
 
-const openai = createOpenAI({
-  apiKey: 'YOUR_OPENAI_KEY',
-});
-
-const result = streamText({
+const result = await generateText({
   model: openai('gpt-5'),
-  prompt: 'What are my dietary preferences?',
-  tools: supermemoryTools('YOUR_SUPERMEMORY_KEY'),
-});
-
-// The AI will automatically call searchMemories tool
-// Example tool call:
-// searchMemories({ informationToGet: "dietary preferences and restrictions" })
-// OR
-// addMemory({ memory: "User is allergic to peanuts" })
-
-for await (const chunk of result.textStream) {
-  console.log(chunk);
-}
-```
-
-### Using Memory Router
-
-```javascript
-import { streamText } from 'ai';
-import { createAnthropic } from '@ai-sdk/anthropic';
-
-const supermemoryRouter = createAnthropic({
-  baseUrl: 'https://api.supermemory.ai/v3/https://api.anthropic.com/v1',
-  apiKey: 'your-provider-api-key',
-  headers: {
-    'x-supermemory-api-key': 'supermemory-api-key',
-    'x-sm-conversation-id': 'conversation-id',
-  },
-});
-
-const result = streamText({
-  model: supermemoryRouter('claude-3-sonnet'),
-  messages: [
-    { role: 'user', content: 'Hello! Remember that I love TypeScript.' },
-  ],
+  prompt: 'Remember that my name is Alice',
+  tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
+    namespace: 'user-123',
+  }),
+  stopWhen: isStepCount(5),
 });
 ```
 
-For more information about these features and advanced configuration options, visit the [Supermemory Documentation](https://supermemory.ai/docs/).
+Individual tools such as `searchMemoriesTool` and `addMemoryTool` are also exported if you only want some of them.
+
+<Note>
+  The Memory Router (a provider `baseUrl` under
+  `https://api.supermemory.ai/v3/`) uses the legacy v3 API, which is deprecated
+  and shuts down on December 31, 2026. Use `withSupermemory` instead. If you are
+  on `@supermemory/tools` 2.x, see the [3.0 upgrade
+  guide](https://supermemory.ai/docs/migration/tools-v3-upgrade).
+</Note>
 
 ## Additional Resources
 
-- [Supermemory Documentation](https://supermemory.ai/docs/?ref=ai-sdk)
-- [AI SDK Integration Cookbook](https://supermemory.ai/docs/cookbook/ai-sdk-integration)
+- [Supermemory AI SDK documentation](https://supermemory.ai/docs/integrations/ai-sdk)
+- [`@supermemory/tools` on npm](https://www.npmjs.com/package/@supermemory/tools)
 - [Supermemory Console](https://console.supermemory.ai)
-- [Memory Engine Blog Post](https://supermemory.ai/blog/memory-engine/)
