@@ -17,7 +17,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   Output,
-  isStepCount,
   NoOutputGeneratedError,
   type GenerateTextResult,
   filterActiveTools,
@@ -67,6 +66,7 @@ import type {
 } from './do-stream-step.js';
 import { resolveToolContext } from './resolve-tool-context.js';
 import { toModelResponseMessages } from './to-model-response-messages.js';
+import { logDefaultStepLimitWarning } from './log-default-step-limit-warning.js';
 import { modelCallIterator } from './model-call-iterator.js';
 import { shouldDispatchModelCallTelemetryInStep } from './model-call-telemetry.js';
 import {
@@ -1756,10 +1756,15 @@ export class WorkflowAgent<
     let effectiveToolChoiceFromPrepare = options.toolChoice ?? this.toolChoice;
     let effectiveToolCallConcurrency =
       options.toolCallConcurrency ?? this.toolCallConcurrency;
+    const defaultStepLimit = { stepCount: 20, stopped: false };
+    const usesDefaultStepLimit =
+      mode === 'generate' && (options.stopWhen ?? this.stopWhen) == null;
     let effectiveStopWhenFromPrepare =
       options.stopWhen ??
       this.stopWhen ??
-      (mode === 'generate' ? isStepCount(20) : undefined);
+      (usesDefaultStepLimit
+        ? createDefaultStepLimitStopCondition(defaultStepLimit)
+        : undefined);
     let effectiveActiveToolsFromPrepare =
       options.activeTools ?? this.activeTools;
     let effectiveDownloadFromPrepare =
@@ -1813,6 +1818,10 @@ export class WorkflowAgent<
           prepared.toolChoice as ToolChoice<TBaseTools>;
       if (prepared.toolCallConcurrency !== undefined)
         effectiveToolCallConcurrency = prepared.toolCallConcurrency;
+      // A stop condition from prepareCall replaces the default one, which then
+      // never runs and never records the limit. If prepareCall returns the
+      // default condition it received, the warning still applies, as in
+      // ToolLoopAgent.
       if (prepared.stopWhen !== undefined)
         effectiveStopWhenFromPrepare = prepared.stopWhen;
       if (prepared.activeTools !== undefined)
@@ -1919,6 +1928,7 @@ export class WorkflowAgent<
       effectiveToolChoiceFromPrepare,
       toolCallConcurrency,
       effectiveStopWhenFromPrepare,
+      defaultStepLimit: usesDefaultStepLimit ? defaultStepLimit : undefined,
       effectiveActiveToolsFromPrepare,
       effectiveToolApprovalSecret,
       effectiveTelemetry,
@@ -1984,6 +1994,7 @@ export class WorkflowAgent<
       effectiveToolChoiceFromPrepare,
       toolCallConcurrency,
       effectiveStopWhenFromPrepare,
+      defaultStepLimit,
       effectiveActiveToolsFromPrepare,
       effectiveToolApprovalSecret,
       effectiveTelemetry,
@@ -3218,6 +3229,18 @@ export class WorkflowAgent<
       await telemetryDispatcher.onError?.(terminalError);
     }
 
+    // The default stop condition records the limit in workflow context, where
+    // replay evaluates it again. Logging runs in a step so replay does not
+    // repeat the warning.
+    if (defaultStepLimit?.stopped && steps.length > 0) {
+      const defaultLimitStep = steps[steps.length - 1];
+      await logDefaultStepLimitWarning({
+        stepCount: defaultStepLimit.stepCount,
+        provider: defaultLimitStep.model.provider,
+        modelId: defaultLimitStep.model.modelId,
+      });
+    }
+
     // Use the final messages from the iterator, or fall back to standardized messages
     const messages = (finalMessages ??
       prompt.messages) as unknown as ModelMessage[];
@@ -3861,4 +3884,21 @@ function addApprovalRequestsToMessages(
   }
   result.unshift({ role: 'assistant', content: requests });
   return result;
+}
+
+/**
+ * Creates the default stop condition for `generate()`. It records that the
+ * limit stopped the loop so the warning is logged after the loop ends.
+ */
+function createDefaultStepLimitStopCondition(limit: {
+  stepCount: number;
+  stopped: boolean;
+}): ModelStopCondition {
+  return ({ steps }) => {
+    if (steps.length !== limit.stepCount) {
+      return false;
+    }
+    limit.stopped = true;
+    return true;
+  };
 }
