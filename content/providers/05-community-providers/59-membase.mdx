@@ -1,0 +1,159 @@
+---
+title: Membase
+description: Learn how to use Membase long-term memory with the AI SDK.
+---
+
+# Membase
+
+[Membase](https://membase.com) is a long-term memory layer for AI agents: one memory that belongs to the user and that every AI they use can read and write. The [`@unibaseio/membase-ai-sdk`](https://www.npmjs.com/package/@unibaseio/membase-ai-sdk) package provides three AI SDK tools over the user's Membase account.
+
+Features include:
+
+- Three memory tools: `membase_search`, `membase_save`, and `membase_profile`
+- Works with `generateText`, `streamText`, and `ToolLoopAgent`, on AI SDK 6 and 7
+- Every search result names the Memory it came from, so the model can cite it
+- Saving happens only when the user asks; there is no delete tool
+- Hosted, or local with the open-source engine
+- Full TypeScript support
+
+## Setup
+
+Create a developer key in the [Membase app](https://app.membase.com) under **Connect › Developer keys** and set it as `MEMBASE_API_KEY`. A **Read** key can search and, with **Profile** ticked, read the profile. Saving needs a **Read & write** key.
+
+## Installation
+
+<InstallPackages packages="@unibaseio/membase-ai-sdk" />
+
+## Creating Tools
+
+`membaseTools` returns the three tools, sharing one Membase client:
+
+```ts
+import { membaseTools } from '@unibaseio/membase-ai-sdk';
+
+const tools = membaseTools({ apiKey: process.env.MEMBASE_API_KEY });
+```
+
+## Basic Usage
+
+### generateText
+
+```ts
+import { membaseTools } from '@unibaseio/membase-ai-sdk';
+import { generateText, isStepCount } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-6-astra'),
+  tools: membaseTools({ apiKey: process.env.MEMBASE_API_KEY }),
+  stopWhen: isStepCount(5),
+  system: 'You are a helpful assistant with long-term memory.',
+  prompt: 'What do you remember about my current projects?',
+});
+```
+
+### ToolLoopAgent
+
+```ts
+import { ToolLoopAgent } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { membaseTools } from '@unibaseio/membase-ai-sdk';
+
+const agent = new ToolLoopAgent({
+  model: openai('gpt-6-astra'),
+  tools: membaseTools({ apiKey: process.env.MEMBASE_API_KEY }),
+  instructions: 'You are a helpful assistant with long-term memory.',
+});
+
+const result = await agent.generate({
+  prompt: 'Remember that my favorite editor is Neovim',
+});
+```
+
+## Multi-User Memory
+
+A Membase key belongs to one person's account. In multi-user applications, create the tools inside your request handler with the key of the user your authentication identified, so each request reads and writes that user's memory only. Never pick the key from a user ID in the request body: anyone could send someone else's ID.
+
+```ts
+// app/api/chat/route.ts
+import {
+  createUIMessageStreamResponse,
+  streamText,
+  isStepCount,
+  convertToModelMessages,
+  toUIMessageStream,
+} from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { membaseTools } from '@unibaseio/membase-ai-sdk';
+
+export async function POST(req: Request) {
+  // The signed-in user, from your auth session (not from the request body).
+  const userId = await getSessionUserId(req);
+  // That user's own Membase developer key, stored by your application.
+  const apiKey = await getMembaseKey(userId);
+
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model: openai('gpt-6-astra'),
+    tools: membaseTools({ apiKey }),
+    stopWhen: isStepCount(5),
+    system: 'You are a helpful assistant with long-term memory.',
+    messages: await convertToModelMessages(messages),
+  });
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
+}
+```
+
+## Configuration
+
+`membaseTools` takes the Membase client's options:
+
+| Parameter    | Type      | Default                       | Description                                                                       |
+| ------------ | --------- | ----------------------------- | --------------------------------------------------------------------------------- |
+| `apiKey`     | `string`  | `MEMBASE_API_KEY`             | The user's developer key                                                          |
+| `baseUrl`    | `string`  | `https://api.app.membase.com` | The Membase API, or a local engine                                                |
+| `timeoutMs`  | `number`  | `90000`                       | Per-request timeout; the first search after a quiet spell can take up to a minute |
+| `maxRetries` | `number`  | `2`                           | Retries on 408, 409, 429, 5xx and connection errors                               |
+| `client`     | `Membase` | —                             | A ready client from `@unibaseio/membase`, instead of the above                    |
+
+To leave a tool out, destructure it away:
+
+```ts
+const { membase_save, ...readOnlyTools } = membaseTools({
+  apiKey: process.env.MEMBASE_API_KEY,
+});
+```
+
+## Memory Tools
+
+| Tool              | Description                                                             |
+| ----------------- | ----------------------------------------------------------------------- |
+| `membase_search`  | Searches the user's memory; each passage names the Memory it came from  |
+| `membase_save`    | Saves one fact or note in the user's own words, only when the user asks |
+| `membase_profile` | Reads who the user is (name, role, lasting preferences), newest first   |
+
+A failed call throws the Membase SDK's error (for example `PermissionDeniedError` or `RateLimitError`), which the AI SDK passes to the model as a tool error so it can tell the user.
+
+## Local Memory
+
+Membase also runs on your machine with the open-source Python engine:
+
+```bash
+pip install 'unibaseio-membase[local]'
+membase --local serve
+```
+
+```ts
+const tools = membaseTools({
+  apiKey: 'local',
+  baseUrl: 'http://127.0.0.1:8787',
+});
+```
+
+## More Information
+
+For the full API and the other integrations, see the [Membase documentation](https://docs.membase.com) and the [source on GitHub](https://github.com/unibaseio/membase/tree/main/integrations/ai-sdk).
