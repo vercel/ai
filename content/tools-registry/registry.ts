@@ -1000,4 +1000,32 @@ console.log(text);`,
     websiteUrl: 'https://keenable.ai',
     npmUrl: 'https://www.npmjs.com/package/@keenable/ai-sdk',
   },
+  {
+    slug: 'agentsearch',
+    name: 'AgentSearch',
+    description:
+      'Live web search for AI agents with no API key or signup: free search (25 per day per IP), plus URL-to-markdown extraction and a headless browser for JavaScript pages with a small free daily trial. Pay-per-call news search, screenshots and search-and-read are paid in USDC on Base via x402, with no account or API key.',
+    packageName: '@agentsearchhq/ai-sdk',
+    tags: ['search', 'web', 'extraction', 'browser', 'news', 'x402'],
+    installCommand: {
+      pnpm: 'pnpm add @agentsearchhq/ai-sdk',
+      npm: 'npm install @agentsearchhq/ai-sdk',
+      yarn: 'yarn add @agentsearchhq/ai-sdk',
+      bun: 'bun add @agentsearchhq/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { agentSearchFreeTools } from '@agentsearchhq/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'What changed in the latest Next.js release? Read the release notes and cite URLs.',
+  tools: agentSearchFreeTools(),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/agentsearchhq-coder/agentsearch-ai-sdk#readme',
+    websiteUrl: 'https://agentsearchhq.com',
+    npmUrl: 'https://www.npmjs.com/package/@agentsearchhq/ai-sdk',
+  },
 ];
