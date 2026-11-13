@@ -690,7 +690,6 @@ TypeScript rejects these options on `WorkflowAgent`. If you pass them anyway, fo
 | ToolLoopAgent option                                            | With WorkflowAgent                                                                                                                                                       |
 | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `toolApproval`                                                  | Set `needsApproval` on each tool. See [Tool Approval](#tool-approval).                                                                                                   |
-| `toolOrder`                                                     | Not supported. Tools are sent in the order of the `tools` object.                                                                                                        |
 | `callOptionsSchema` and the `options` call parameter            | Not supported. Pass settings to `generate()` or `stream()` directly.                                                                                                     |
 | `experimental_refineToolInput`                                  | Not supported.                                                                                                                                                           |
 | `experimental_toolCallers`                                      | Not supported.                                                                                                                                                           |
@@ -736,7 +735,6 @@ In `ToolLoopAgent`, `prepareCall` receives the settings together with the `promp
 - To change the system prompt, return `system` as a string. A returned `instructions` value is ignored.
 - A returned `providerOptions` object replaces the `providerOptions` of the agent. `ToolLoopAgent` merges the two objects.
 - You can return `headers`. They replace all headers of the call, including the `user-agent` value that identifies the agent. `ToolLoopAgent` does not accept `headers` from `prepareStep`.
-- You cannot return `toolOrder`.
 
 ### Callbacks
 

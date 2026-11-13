@@ -25,6 +25,7 @@ import {
   type DurableTelemetryContext,
   type ToolCallRepairFunction,
   type ToolChoice,
+  type ToolOrder,
   type ToolSet,
 } from 'ai';
 import {
@@ -153,6 +154,7 @@ export async function* modelCallIterator({
   prepareStep,
   generationSettings,
   toolChoice,
+  toolOrder,
   runtimeContext,
   toolsContext,
   telemetry,
@@ -183,6 +185,7 @@ export async function* modelCallIterator({
   prepareStep?: PrepareStepCallback<any>;
   generationSettings?: GenerationSettings;
   toolChoice?: ToolChoice<ToolSet>;
+  toolOrder?: ToolOrder<ToolSet>;
   runtimeContext?: Context;
   toolsContext?: Record<string, Context | undefined>;
   telemetry?: TelemetryOptions<Context, ToolSet>;
@@ -212,6 +215,7 @@ export async function* modelCallIterator({
   let currentModel: LanguageModel = model;
   let currentGenerationSettings = generationSettings ?? {};
   let currentToolChoice = toolChoice;
+  let currentToolOrder = toolOrder;
   let currentRuntimeContext: Context = runtimeContext ?? {};
   let currentToolsContext: Record<string, Context | undefined> =
     toolsContext ?? {};
@@ -267,6 +271,7 @@ export async function* modelCallIterator({
     currentModel = model;
     currentGenerationSettings = generationSettings ?? {};
     currentToolChoice = toolChoice;
+    currentToolOrder = toolOrder;
     currentActiveTools = undefined;
 
     // Call prepareStep callback before each step if provided
@@ -326,6 +331,9 @@ export async function* modelCallIterator({
       }
       if (prepareResult?.activeTools !== undefined) {
         currentActiveTools = prepareResult.activeTools;
+      }
+      if (prepareResult?.toolOrder !== undefined) {
+        currentToolOrder = prepareResult.toolOrder;
       }
       currentGenerationSettings = mergePrepareStepGenerationSettings(
         currentGenerationSettings,
@@ -418,6 +426,7 @@ export async function* modelCallIterator({
       const callOptions = {
         ...currentGenerationSettings,
         toolChoice: currentToolChoice,
+        toolOrder: currentToolOrder,
         includeRawChunks,
         timeoutAt,
         repairToolCall,
