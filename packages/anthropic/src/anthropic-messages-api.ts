@@ -73,6 +73,7 @@ export interface AnthropicAssistantMessage {
     | AnthropicTextContent
     | AnthropicThinkingContent
     | AnthropicRedactedThinkingContent
+    | AnthropicFallbackContent
     | AnthropicToolCallContent
     | AnthropicServerToolUseContent
     | AnthropicCodeExecutionToolResultContent
@@ -87,6 +88,18 @@ export interface AnthropicAssistantMessage {
     | AnthropicCompactionContent
   >;
 }
+
+export const anthropicFallbackContentSchema = z.object({
+  type: z.literal('fallback'),
+  from: z.object({ model: z.string() }),
+  to: z.object({ model: z.string() }),
+});
+
+export type AnthropicFallbackContent = InferSchema<
+  typeof anthropicFallbackContentSchema
+> & {
+  cache_control?: never;
+};
 
 export interface AnthropicCompactionContent {
   type: 'compaction';
@@ -998,12 +1011,7 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
-          // Server-side fallback marker. Parsed so the response validates, but
-          // dropped from the content output (the AI SDK has no model-hop
-          // primitive). The hop remains observable via usage.iterations.
-          z.object({
-            type: z.literal('fallback'),
-          }),
+          anthropicFallbackContentSchema,
         ]),
       ),
       stop_reason: z.string().nullish(),
@@ -1369,11 +1377,7 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
               }),
             ]),
           }),
-          // Server-side fallback marker; dropped from content output (see the
-          // response schema). The hop remains observable via usage.iterations.
-          z.object({
-            type: z.literal('fallback'),
-          }),
+          anthropicFallbackContentSchema,
         ]),
       }),
       z.object({
