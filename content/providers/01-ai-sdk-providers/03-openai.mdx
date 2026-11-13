@@ -301,6 +301,11 @@ The following provider options are available:
 - **forceReasoning** _boolean_
   Force treating this model as a reasoning model. This is useful for "stealth" reasoning models (e.g. via a custom baseURL) where the model ID is not recognized by the SDK's allowlist. When enabled, the SDK applies reasoning-model parameter compatibility rules and defaults `systemMessageMode` to `developer` unless overridden.
 
+- **contextManagement** _Array&lt;object&gt;_
+  Enable server-side context management (compaction). When configured, the server automatically compresses conversation context when token usage crosses a specified threshold. Each object in the array should have:
+  - `type`: `'compaction'`
+  - `compactThreshold`: _number_ — the token count at which compaction is triggered
+
 The OpenAI responses provider also returns provider-specific metadata:
 
 For Responses models, you can type this metadata using `OpenaiResponsesProviderMetadata`:
@@ -629,6 +634,48 @@ console.log('Reasoning:', result.reasoning);
 ```
 
 Learn more about reasoning summaries in the [OpenAI documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries).
+
+#### Compaction
+
+The OpenAI Responses API supports server-side context compaction. When enabled, the server automatically compresses conversation context when token usage crosses a configured threshold. This is useful for long-running conversations or agent loops where you want to stay within token limits without manually managing context.
+
+The compaction item returned by the server is opaque and encrypted. It carries forward key prior state and reasoning into the next turn using fewer tokens. The AI SDK handles this automatically: compaction items are returned as empty reasoning parts with `providerMetadata.openai` set to `{ type: 'compaction', itemId, encryptedContent }`, and when passed back in subsequent requests they are sent as compaction input items (or item references when `store` is enabled).
+
+```ts highlight="10"
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.4'),
+  messages: conversationHistory,
+  providerOptions: {
+    openai: {
+      store: false,
+      contextManagement: [{ type: 'compaction', compactThreshold: 50000 }],
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+
+// Keep the compaction part in the history for the next turn.
+conversationHistory.push(...result.response.messages);
+```
+
+**Configuration:**
+
+- **type** — Must be `'compaction'`
+- **compactThreshold** — The token count at which compaction is triggered. When the rendered input token count crosses this threshold, the server runs a compaction pass before continuing inference.
+
+When streaming, a compaction item arrives as a `reasoning-start` and `reasoning-end` pair with the same `providerMetadata`. Use `OpenaiResponsesCompactionProviderMetadata` to type it.
+
+Configuration updates (`reasoningEffortUpdate` and `textFormatUpdate`) can't be combined with `contextManagement`.
+
+<Note>
+  Server-side compaction is ZDR-friendly when you set `store: false` on your
+  requests.
+</Note>
 
 #### WebSocket Transport
 

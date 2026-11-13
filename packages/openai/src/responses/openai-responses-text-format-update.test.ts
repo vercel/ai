@@ -179,7 +179,7 @@ describe.each(['generate', 'stream'] as const)(
           name: 'AI_UnsupportedFunctionalityError',
           functionality: 'Message-level textFormatUpdate',
           message:
-            'Configuration updates require standard reasoning mode without automatic truncation',
+            'Configuration updates require standard reasoning mode without automatic compaction or automatic truncation',
         });
         expect(server.calls).toHaveLength(0);
       },

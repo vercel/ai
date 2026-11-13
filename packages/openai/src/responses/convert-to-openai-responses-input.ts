@@ -42,6 +42,7 @@ import {
 } from '../tool/tool-search';
 import { webSearchOutputSchema } from '../tool/web-search';
 import type {
+  OpenAIResponsesCompactionItem,
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
@@ -1105,6 +1106,30 @@ export async function convertToOpenAIResponsesInput({
             }
 
             case 'reasoning': {
+              const compaction = part.providerOptions?.[providerOptionsName];
+              if (
+                compaction?.type === 'compaction' &&
+                typeof compaction.itemId === 'string'
+              ) {
+                if (hasConversation) {
+                  break;
+                }
+
+                if (store) {
+                  input.push({ type: 'item_reference', id: compaction.itemId });
+                  break;
+                }
+
+                if (typeof compaction.encryptedContent === 'string') {
+                  input.push({
+                    type: 'compaction',
+                    id: compaction.itemId,
+                    encrypted_content: compaction.encryptedContent,
+                  } satisfies OpenAIResponsesCompactionItem);
+                }
+                break;
+              }
+
               hasPrecedingReasoning = true;
 
               const providerOptions = await parseProviderOptions({

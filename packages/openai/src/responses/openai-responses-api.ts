@@ -122,6 +122,7 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesWebSearchCall
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference
+  | OpenAIResponsesCompactionItem
   | OpenAIResponsesConfigurationUpdate;
 
 export type OpenAIResponsesIncludeValue =
@@ -389,6 +390,12 @@ export type OpenAIResponsesToolSearchOutput = {
 export type OpenAIResponsesItemReference = {
   type: 'item_reference';
   id: string;
+};
+
+export type OpenAIResponsesCompactionItem = {
+  type: 'compaction';
+  id: string;
+  encrypted_content: string;
 };
 
 /**
@@ -716,6 +723,7 @@ const openaiResponsesModeledChunkTypes = new Set([
 const openaiResponsesModeledOutputItemTypes = new Set([
   'apply_patch_call',
   'code_interpreter_call',
+  'compaction',
   'computer_call',
   'custom_tool_call',
   'file_search_call',
@@ -949,6 +957,11 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             }),
           }),
           z.object({
+            type: z.literal('compaction'),
+            id: z.string(),
+            encrypted_content: z.string().nullish(),
+          }),
+          z.object({
             type: z.literal('shell_call_output'),
             id: z.string(),
             call_id: z.string(),
@@ -1178,6 +1191,11 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             action: z.object({
               commands: z.array(z.string()),
             }),
+          }),
+          z.object({
+            type: z.literal('compaction'),
+            id: z.string(),
+            encrypted_content: z.string(),
           }),
           z.object({
             type: z.literal('shell_call_output'),
@@ -1619,6 +1637,11 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               action: z.object({
                 commands: z.array(z.string()),
               }),
+            }),
+            z.object({
+              type: z.literal('compaction'),
+              id: z.string(),
+              encrypted_content: z.string(),
             }),
             z.object({
               type: z.literal('shell_call_output'),

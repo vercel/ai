@@ -23,6 +23,7 @@ export type { OpenAISpeechModelOptions } from './speech/openai-speech-options';
 export type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-options';
 export type { OpenAIToolOptions } from './responses/openai-responses-prepare-tools';
 export type {
+  OpenaiResponsesCompactionProviderMetadata,
   OpenaiResponsesProviderMetadata,
   OpenaiResponsesReasoningProviderMetadata,
   OpenaiResponsesToolCallProviderMetadata,
