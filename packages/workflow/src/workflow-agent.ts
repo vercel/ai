@@ -3747,6 +3747,15 @@ function getToolCallbackMessages(
   ) as unknown as ModelMessage[];
 }
 
+function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
+  return (
+    value != null &&
+    typeof (value as { [Symbol.asyncIterator]?: unknown })[
+      Symbol.asyncIterator
+    ] === 'function'
+  );
+}
+
 async function executeTool(
   toolCall: { toolCallId: string; toolName: string; input: unknown },
   tools: ToolSet,
@@ -3775,7 +3784,7 @@ async function executeTool(
     // When the execute function is a workflow step (marked with 'use step'),
     // the step system captures `this` for serialization, causing failures.
     const { execute } = tool;
-    toolResult = await execute(parsedInput, {
+    const result = execute(parsedInput, {
       toolCallId: toolCall.toolCallId,
       // Pass the conversation messages to the tool so it has context about the conversation
       messages,
@@ -3785,6 +3794,16 @@ async function executeTool(
       context,
       experimental_sandbox: sandbox,
     });
+    // For an async generator, the last yielded value is the tool result.
+    // Like in `ToolLoopAgent`, the earlier values are preliminary results,
+    // which are not written to the stream here.
+    if (isAsyncIterable(result)) {
+      for await (const output of result) {
+        toolResult = output;
+      }
+    } else {
+      toolResult = await result;
+    }
   } catch (error) {
     // Convert tool errors to error-text results sent back to the model,
     // allowing the agent to recover rather than killing the entire stream.
