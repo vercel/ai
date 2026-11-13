@@ -14,6 +14,7 @@ import {
 } from '@workflow/world';
 import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 import { isValidHarnessAgentLogEvent } from './is-valid-harness-agent-log-event';
+import type { HarnessAgentDriveIdentity } from './start-drive';
 import type { HarnessV2LogEvent } from '../../../v2/harness-v2-log';
 import type {
   HarnessV2FinishReason,
@@ -158,20 +159,9 @@ export type HarnessAgentLogEvent =
       readonly type: 'drive-start';
 
       /**
-       * Drive identity and the time by which its process is terminated.
+       * Identity of the drive.
        */
-      readonly data: {
-        /**
-         * Identifier of the drive.
-         */
-        readonly driveId: string;
-
-        /**
-         * Runtime deadline of the drive's process in epoch milliseconds, if
-         * the World reports one. Once it passed, the drive is gone.
-         */
-        readonly deadline?: number;
-      };
+      readonly data: HarnessAgentDriveIdentity;
 
       /**
        * Stable event identity within the session, used for deduplication.
@@ -189,9 +179,16 @@ export type HarnessAgentLogEvent =
       readonly type: 'crash-request';
 
       /**
-       * No data.
+       * How the drive crashes.
        */
-      readonly data: Record<string, never>;
+      readonly data: {
+        /**
+         * Whether the drive records a `drive-crash` before it crashes. If
+         * not set, the drive crashes like a real crash would, without any
+         * record.
+         */
+        readonly recordCrash?: boolean;
+      };
 
       /**
        * Stable event identity within the session, used for deduplication.
@@ -203,8 +200,11 @@ export type HarnessAgentLogEvent =
       /**
        * Records that a drive is about to crash its process on request,
        * visible only to the agent engine. Written under the ID
-       * `drive-crash:${driveId}` right before the process is killed, so it
-       * proves to recovery that the drive is gone.
+       * `drive-crash:${driveId}` right before the process is killed, only
+       * if the request asked for it (`recordCrash`). It proves to recovery
+       * at once that the drive is gone. Its absence proves nothing: a drive
+       * may have crashed without it, which recovery then has to prove from
+       * the drive's `drive-start`.
        */
       readonly type: 'drive-crash';
 

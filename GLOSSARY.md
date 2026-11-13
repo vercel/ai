@@ -53,5 +53,6 @@
 - **Yield**: A drive stopping on purpose before its deadline at a safe point, so the turn continues in a later drive.
 - **Retraction**: Removing the stream parts of an interrupted attempt from a session's output, because a retry of the attempt replaces them. Consumers of the stream, such as a chat UI, drop the retracted parts they already received.
 - **Background drive**: A drive started by the system instead of by a user request, for example from a queue message to continue a turn after a yield or crash.
+- **Backstop**: A queue message sent when a drive starts and delayed until just past that drive's deadline, which starts a background drive of the same session. If the drive finished, the background drive finds nothing to do; if it yielded or crashed, the background drive continues the turn.
 - **Queue**: The world's mechanism for scheduling future work, such as background drives, so it still happens when no request is waiting for it.
 - **Fencing**: Preventing a drive that lost ownership of a session from making further changes, for example by having the sandbox refuse its operations.

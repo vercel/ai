@@ -7,7 +7,12 @@ import {
   decodeStreamRecords,
   type HarnessAgentStreamPartRecord,
 } from './create-stream-writer';
-import { startDrive } from './start-drive';
+import {
+  getDriveProcess,
+  trackRunningDrive,
+  type HarnessAgentDriveProcess,
+} from './drive-process';
+import { startDrive, type HarnessAgentDriveIdentity } from './start-drive';
 
 const abortControllers = new Set<AbortController>();
 
@@ -74,19 +79,34 @@ function effectStart(options: {
 }
 
 /**
- * Returns a `drive-start` event.
+ * Returns a drive identity without the properties that are not given.
  */
-function driveStart(options: {
+function driveIdentity(options: {
   driveId: string;
   deadline?: number;
-}): HarnessAgentLogEvent {
+  queueMessageId?: string;
+  process?: HarnessAgentDriveProcess;
+}): HarnessAgentDriveIdentity {
+  return {
+    driveId: options.driveId,
+    ...(options.deadline != null && { deadline: options.deadline }),
+    ...(options.queueMessageId != null && {
+      queueMessageId: options.queueMessageId,
+    }),
+    ...(options.process != null && { process: options.process }),
+  };
+}
+
+/**
+ * Returns a `drive-start` event.
+ */
+function driveStart(
+  options: Parameters<typeof driveIdentity>[0],
+): HarnessAgentLogEvent {
   return {
     type: 'drive-start',
     id: `drive-start:${options.driveId}`,
-    data:
-      options.deadline == null
-        ? { driveId: options.driveId }
-        : { driveId: options.driveId, deadline: options.deadline },
+    data: driveIdentity(options),
   };
 }
 
@@ -150,15 +170,27 @@ describe('startDrive', () => {
     });
 
     expect(
-      await startDrive({ log, writer, world, session, driveId: 'drive' }),
+      await startDrive({
+        log,
+        writer,
+        world,
+        session,
+        driveIdentity: { driveId: 'drive' },
+      }),
     ).toBe(false);
     await writer.flush();
     expect((await log.read()).events).toHaveLength(3);
     expect(await readRecords({ world })).toEqual([]);
   });
 
-  test('starts a drive for a prompt without a turn, recording its deadline', async () => {
+  test('starts a drive for a prompt without a turn, recording its identity', async () => {
     const { world, log, writer } = await setup({ events: [prompt] });
+    const driveProcess = {
+      pid: 1,
+      bootId: 'boot',
+      hostname: 'host',
+      startedAt: 0,
+    };
 
     expect(
       await startDrive({
@@ -166,29 +198,98 @@ describe('startDrive', () => {
         writer,
         world,
         session,
-        driveId: 'drive',
-        deadline: new Date(1_000),
+        driveIdentity: driveIdentity({
+          driveId: 'drive',
+          deadline: 1_000,
+          queueMessageId: 'message',
+          process: driveProcess,
+        }),
       }),
     ).toBe(true);
     expect((await log.read({ types: ['drive-start'] })).events).toEqual([
-      driveStart({ driveId: 'drive', deadline: 1_000 }),
+      driveStart({
+        driveId: 'drive',
+        deadline: 1_000,
+        queueMessageId: 'message',
+        process: driveProcess,
+      }),
     ]);
   });
 
-  test('leaves the session unchanged while the drive of abandoned attempts may still run', async () => {
-    const events = [
-      prompt,
-      driveStart({ driveId: 'old', deadline: Date.now() + 60_000 }),
-      turnStart,
-      effectStart({ id: 'model', key: 'model:0', replay: 'safe' }),
-    ];
-    const { world, log, writer } = await setup({ events });
+  test.each([
+    {
+      case: 'its deadline has not passed',
+      drive: () =>
+        driveStart({ driveId: 'old', deadline: Date.now() + 60_000 }),
+      queueMessageId: undefined,
+    },
+    {
+      case: 'it ran under another queue message',
+      drive: () =>
+        driveStart({ driveId: 'old', queueMessageId: 'old-message' }),
+      queueMessageId: 'new-message',
+    },
+    {
+      case: 'it ran on another host',
+      drive: () =>
+        driveStart({
+          driveId: 'old',
+          process: { pid: 1, bootId: 'boot', hostname: '', startedAt: 0 },
+        }),
+      queueMessageId: undefined,
+    },
+  ])(
+    'leaves the session unchanged while the drive of abandoned attempts may still run: $case',
+    async ({ drive, queueMessageId }) => {
+      const events = [
+        prompt,
+        drive(),
+        turnStart,
+        effectStart({ id: 'model', key: 'model:0', replay: 'safe' }),
+      ];
+      const { world, log, writer } = await setup({ events });
 
-    expect(
-      await startDrive({ log, writer, world, session, driveId: 'drive' }),
-    ).toBe(false);
-    expect((await log.read()).events).toEqual(events);
-  });
+      expect(
+        await startDrive({
+          log,
+          writer,
+          world,
+          session,
+          driveIdentity: driveIdentity({ driveId: 'drive', queueMessageId }),
+        }),
+      ).toBe(false);
+      expect((await log.read()).events).toEqual(events);
+    },
+  );
+
+  test.skipIf(getDriveProcess() == null)(
+    'leaves the session unchanged while the drive of abandoned attempts runs in this process',
+    async () => {
+      const untrack = trackRunningDrive({ driveId: 'old' });
+      try {
+        const events = [
+          prompt,
+          driveStart({ driveId: 'old', process: getDriveProcess() }),
+          turnStart,
+          effectStart({ id: 'model', key: 'model:0', replay: 'safe' }),
+        ];
+        const { world, log, writer } = await setup({ events });
+
+        expect(
+          await startDrive({
+            log,
+            writer,
+            world,
+            session,
+            driveIdentity: { driveId: 'drive' },
+          }),
+        ).toBe(false);
+        expect((await log.read()).events).toEqual(events);
+      } finally {
+        untrack();
+      }
+    },
+  );
 
   test('leaves the session unchanged without any drive-start to prove abandoned attempts', async () => {
     const { world, log, writer } = await setup({
@@ -200,7 +301,13 @@ describe('startDrive', () => {
     });
 
     expect(
-      await startDrive({ log, writer, world, session, driveId: 'drive' }),
+      await startDrive({
+        log,
+        writer,
+        world,
+        session,
+        driveIdentity: { driveId: 'drive' },
+      }),
     ).toBe(false);
   });
 
@@ -208,74 +315,105 @@ describe('startDrive', () => {
     {
       proof: 'a past deadline',
       events: [driveStart({ driveId: 'old', deadline: 1 })],
+      queueMessageId: undefined,
     },
     {
       proof: 'a drive-crash',
       events: [driveStart({ driveId: 'old' }), driveCrash({ driveId: 'old' })],
+      queueMessageId: undefined,
     },
-  ])('recovers abandoned attempts given $proof', async ({ events }) => {
-    const { world, log, writer } = await setup({
-      events: [
-        prompt,
-        ...events.slice(0, 1),
-        turnStart,
-        effectStart({ id: 'model', key: 'model:0', replay: 'safe' }),
-        {
-          type: 'effect-progress',
-          id: 'progress',
-          data: { startId: 'model', partial: 'partial' },
-        },
-        effectStart({ id: 'unstarted', key: 'tool:a', replay: 'never' }),
-        effectStart({ id: 'executed', key: 'tool:b', replay: 'never' }),
-        {
-          type: 'tool-execution-start',
-          id: 'tool-execution-start:executed',
-          data: { startId: 'executed' },
-        },
-        ...events.slice(1),
-      ],
-    });
+    {
+      proof: 'a redelivered queue message',
+      events: [driveStart({ driveId: 'old', queueMessageId: 'message' })],
+      queueMessageId: 'message',
+    },
+    ...(getDriveProcess() == null
+      ? []
+      : [
+          {
+            proof: 'an ended drive of this process',
+            events: [
+              driveStart({ driveId: 'old', process: getDriveProcess() }),
+            ],
+            queueMessageId: undefined,
+          },
+        ]),
+  ])(
+    'recovers abandoned attempts given $proof',
+    async ({ events, queueMessageId }) => {
+      const { world, log, writer } = await setup({
+        events: [
+          prompt,
+          ...events.slice(0, 1),
+          turnStart,
+          effectStart({ id: 'model', key: 'model:0', replay: 'safe' }),
+          {
+            type: 'effect-progress',
+            id: 'progress',
+            data: { startId: 'model', partial: 'partial' },
+          },
+          effectStart({ id: 'unstarted', key: 'tool:a', replay: 'never' }),
+          effectStart({ id: 'executed', key: 'tool:b', replay: 'never' }),
+          {
+            type: 'tool-execution-start',
+            id: 'tool-execution-start:executed',
+            data: { startId: 'executed' },
+          },
+          ...events.slice(1),
+        ],
+      });
 
-    expect(
-      await startDrive({ log, writer, world, session, driveId: 'drive' }),
-    ).toBe(true);
-    await writer.flush();
+      expect(
+        await startDrive({
+          log,
+          writer,
+          world,
+          session,
+          driveIdentity: driveIdentity({ driveId: 'drive', queueMessageId }),
+        }),
+      ).toBe(true);
+      await writer.flush();
 
-    const { events: logEvents } = await log.read({
-      types: ['drive-start', 'effect-end'],
-    });
-    expect(logEvents.slice(1)).toEqual([
-      driveStart({ driveId: 'drive' }),
-      {
-        type: 'effect-end',
-        id: expect.any(String),
-        data: {
-          startId: 'model',
-          output: { type: 'interrupted', retryable: true, partial: 'partial' },
+      const { events: logEvents } = await log.read({
+        types: ['drive-start', 'effect-end'],
+      });
+      expect(logEvents.slice(1)).toEqual([
+        driveStart({ driveId: 'drive', queueMessageId }),
+        {
+          type: 'effect-end',
+          id: expect.any(String),
+          data: {
+            startId: 'model',
+            output: {
+              type: 'interrupted',
+              retryable: true,
+              partial: 'partial',
+            },
+          },
         },
-      },
-      {
-        type: 'effect-end',
-        id: expect.any(String),
-        data: {
-          startId: 'unstarted',
-          output: { type: 'interrupted', retryable: true },
+        {
+          type: 'effect-end',
+          id: expect.any(String),
+          data: {
+            startId: 'unstarted',
+            output: { type: 'interrupted', retryable: true },
+          },
         },
-      },
-      {
-        type: 'effect-end',
-        id: expect.any(String),
-        data: {
-          startId: 'executed',
-          output: { type: 'interrupted', retryable: false },
+        {
+          type: 'effect-end',
+          id: expect.any(String),
+          data: {
+            startId: 'executed',
+            output: { type: 'interrupted', retryable: false },
+          },
         },
-      },
-    ]);
-    expect(await readRecords({ world })).toEqual([
-      { part: { type: 'start' }, key: 'turn-start:turn' },
-      { part: { type: 'retract', startIds: ['model', 'unstarted'] } },
-    ]);
-  });
+      ]);
+      expect(await readRecords({ world })).toEqual([
+        { part: { type: 'start' }, key: 'turn-start:turn' },
+        { part: { type: 'retract', startIds: ['model', 'unstarted'] } },
+      ]);
+    },
+  );
 
   test('writes only the missing boundary parts of the unfinished turn', async () => {
     const finishStep: HarnessAgentLogEvent = {
@@ -290,7 +428,13 @@ describe('startDrive', () => {
     await writer.flush();
 
     expect(
-      await startDrive({ log, writer, world, session, driveId: 'drive' }),
+      await startDrive({
+        log,
+        writer,
+        world,
+        session,
+        driveIdentity: { driveId: 'drive' },
+      }),
     ).toBe(true);
     await writer.flush();
 
@@ -321,7 +465,13 @@ describe('startDrive', () => {
     });
 
     expect(
-      await startDrive({ log, writer, world, session, driveId: 'drive' }),
+      await startDrive({
+        log,
+        writer,
+        world,
+        session,
+        driveIdentity: { driveId: 'drive' },
+      }),
     ).toBe(true);
     await writer.flush();
 

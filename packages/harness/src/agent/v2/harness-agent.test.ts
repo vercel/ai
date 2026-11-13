@@ -927,7 +927,7 @@ describe('HarnessAgent crash recovery', () => {
     return copy;
   }
 
-  test('recovers a turn whose drive crashed on request in a later drive', async () => {
+  test('recovers a turn whose drive recorded its crash in a later drive', async () => {
     const { harness, started, release } = createBlockingHarness();
     const kill = vi.spyOn(process, 'kill').mockImplementation(() => true);
     try {
@@ -937,7 +937,7 @@ describe('HarnessAgent crash recovery', () => {
       await agent.stream({ prompt: 'hello', session });
       await started.promise;
 
-      await agent.experimental_crash({ session });
+      await agent.experimental_crash({ session, recordCrash: true });
       await vi.waitFor(() =>
         expect(kill).toHaveBeenCalledWith(process.pid, 'SIGKILL'),
       );
@@ -990,6 +990,75 @@ describe('HarnessAgent crash recovery', () => {
         'finish-step',
         'finish',
       ]);
+    } finally {
+      release.resolve('late');
+      kill.mockRestore();
+    }
+  });
+
+  test('recovers a turn whose drive crashed without a record under a redelivery of its queue message', async () => {
+    const { harness, started, release } = createBlockingHarness();
+    const kill = vi.spyOn(process, 'kill').mockImplementation(() => true);
+    try {
+      const world = new InMemoryWorld();
+      const agent = new HarnessAgent({ harness, world, getSandboxSession });
+      const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+      await createLog({ world, runId: session.runId }).append({
+        type: 'submission',
+        id: 'prompt',
+        data: {
+          type: 'prompt',
+          message: { role: 'user', content: 'hello' },
+          settings: { skills: [], tools: [] },
+        },
+      });
+      void agent.drive({ session, queueMessageId: 'message' });
+      await started.promise;
+
+      await agent.experimental_crash({ session });
+      await vi.waitFor(() =>
+        expect(kill).toHaveBeenCalledWith(process.pid, 'SIGKILL'),
+      );
+
+      const recoveryWorld = await copyWorld({ world, runId: session.runId });
+      const recoveryAgent = new HarnessAgent({
+        harness,
+        world: recoveryWorld,
+        getSandboxSession,
+      });
+      const restored = await recoveryAgent.createSession({
+        runId: session.runId,
+      });
+      const log = createLog({ world: recoveryWorld, runId: session.runId });
+      const before = (await log.read()).events;
+
+      await recoveryAgent.drive({
+        session: restored,
+        queueMessageId: 'other-message',
+      });
+      expect((await log.read()).events).toEqual(before);
+
+      const reading = await recoveryAgent.readStream({ session: restored });
+      await recoveryAgent.drive({
+        session: restored,
+        queueMessageId: 'message',
+      });
+
+      expect(await reading.text).toBe('Recovered');
+      const { events } = await log.read({
+        types: ['drive-start', 'drive-crash', 'effect-end', 'finish-turn'],
+      });
+      expect(events.map(event => event.type)).toEqual([
+        'drive-start',
+        'drive-start',
+        'effect-end',
+        'effect-end',
+        'finish-turn',
+      ]);
+      expect(events[0].data).toMatchObject({ queueMessageId: 'message' });
+      expect(events[2].data).toMatchObject({
+        output: { type: 'interrupted', retryable: true },
+      });
     } finally {
       release.resolve('late');
       kill.mockRestore();
@@ -1136,24 +1205,34 @@ describe('HarnessAgent crash recovery', () => {
     ).toEqual([]);
   });
 
-  test('rejects a crash once the current drive crashed', async () => {
-    const { harness, started, release } = createBlockingHarness();
-    const kill = vi.spyOn(process, 'kill').mockImplementation(() => true);
-    try {
-      const world = new InMemoryWorld();
-      const agent = new HarnessAgent({ harness, world, getSandboxSession });
-      const session = await agent.createSession({ sandboxId: 'sandbox-id' });
-      await agent.stream({ prompt: 'hello', session });
-      await started.promise;
-      await agent.experimental_crash({ session });
-      await vi.waitFor(() => expect(kill).toHaveBeenCalled());
+  test.each([{ recordCrash: false }, { recordCrash: true }])(
+    'rejects a crash once a crash of the current drive was requested (recordCrash: $recordCrash)',
+    async ({ recordCrash }) => {
+      const { harness, started, release } = createBlockingHarness();
+      const kill = vi.spyOn(process, 'kill').mockImplementation(() => true);
+      try {
+        const world = new InMemoryWorld();
+        const agent = new HarnessAgent({ harness, world, getSandboxSession });
+        const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+        await agent.stream({ prompt: 'hello', session });
+        await started.promise;
+        await agent.experimental_crash({ session, recordCrash });
+        await vi.waitFor(() => expect(kill).toHaveBeenCalled());
 
-      await expect(agent.experimental_crash({ session })).rejects.toThrow(
-        'there is no current drive to crash',
-      );
-    } finally {
-      release.resolve('late');
-      kill.mockRestore();
-    }
-  });
+        await expect(agent.experimental_crash({ session })).rejects.toThrow(
+          'there is no current drive to crash',
+        );
+        const { events } = await createLog({
+          world,
+          runId: session.runId,
+        }).read({ types: ['crash-request', 'drive-crash'] });
+        expect(events.map(event => event.type)).toEqual(
+          recordCrash ? ['crash-request', 'drive-crash'] : ['crash-request'],
+        );
+      } finally {
+        release.resolve('late');
+        kill.mockRestore();
+      }
+    },
+  );
 });

@@ -969,7 +969,10 @@ export class HarnessAgent<
    * the turn of a prompt that has not started one. Only supported with
    * HarnessV2.
    */
-  async drive(options: { session: HarnessAgentV2Session }): Promise<void> {
+  async drive(options: {
+    session: HarnessAgentV2Session;
+    queueMessageId?: string;
+  }): Promise<void> {
     if (this.harnessAgentV2 == null) {
       throw new Error(
         'HarnessAgent: drive() is only supported with HarnessV2.',
@@ -1006,6 +1009,7 @@ export class HarnessAgent<
    */
   async experimental_crash(options: {
     session: HarnessAgentV2Session;
+    recordCrash?: boolean;
   }): Promise<void> {
     if (this.harnessAgentV2 == null) {
       throw new Error(

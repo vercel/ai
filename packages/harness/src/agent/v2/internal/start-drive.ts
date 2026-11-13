@@ -9,6 +9,10 @@ import {
   type HarnessAgentStreamPart,
   type HarnessAgentStreamWriter,
 } from './create-stream-writer';
+import {
+  isDriveProcessGone,
+  type HarnessAgentDriveProcess,
+} from './drive-process';
 
 /**
  * Log event of the given type.
@@ -24,6 +28,37 @@ type LogEventOf<TYPE extends HarnessAgentLogEvent['type']> = Extract<
 >;
 
 /**
+ * Identity of a drive, recorded on its `drive-start`: what tells the drive
+ * apart from others, and what proves later that it is gone.
+ */
+export type HarnessAgentDriveIdentity = {
+  /**
+   * Identifier of the drive.
+   */
+  readonly driveId: string;
+
+  /**
+   * Runtime deadline of the drive's process in epoch milliseconds, if the
+   * World reports one. Once it passed, the drive is gone.
+   */
+  readonly deadline?: number;
+
+  /**
+   * ID of the World queue message whose delivery runs the drive, if a queue
+   * message started it. A later delivery of the same message proves the
+   * drive is gone, since the queue only redelivers a message once its
+   * previous handler lost it.
+   */
+  readonly queueMessageId?: string;
+
+  /**
+   * OS process that runs the drive, where it can be identified. Once that
+   * process is gone, the drive is gone.
+   */
+  readonly process?: HarnessAgentDriveProcess;
+};
+
+/**
  * Starts a drive of a session: recovers what an earlier drive left behind,
  * appends the drive's `drive-start` event, and returns whether the drive
  * should run the harness. Returns `false` without changing the session when
@@ -34,15 +69,18 @@ type LogEventOf<TYPE extends HarnessAgentLogEvent['type']> = Extract<
  * 1. Abandoned attempts are the latest `effect-start` of each effect key
  *    without an `effect-end`. If there are any, the drive that may still run
  *    them is the one of the latest `drive-start`, and it must provably be
- *    gone: it recorded a `drive-crash`, or its recorded deadline passed.
- *    Without that proof (including when there is no `drive-start`), this
- *    returns `false`. Attribution by log position assumes one drive at a
- *    time.
+ *    gone. A `drive-crash` proves that at once, but a drive that crashed
+ *    for real records none, so without one, any of these proves it from the
+ *    drive's `drive-start`: its deadline passed, this drive runs under a
+ *    delivery of the same queue message (which the queue only redelivers
+ *    once its previous handler lost it), or its process is gone. Without
+ *    any proof (including when there is no `drive-start`), this returns
+ *    `false`. Attribution by log position assumes one drive at a time.
  * 2. Without abandoned attempts, an unfinished latest turn, or a `prompt`
  *    submission that has not started its turn, there is nothing to drive and
  *    this returns `false`.
  * 3. The drive's `drive-start` is appended (ID `drive-start:${driveId}`),
- *    with the runtime deadline if there is one.
+ *    with the drive's identity as its data.
  * 4. Each abandoned attempt gets an `effect-end` with an `interrupted` output
  *    and its last committed partial, if any. It is retryable if its replay
  *    policy is `safe`, or if it is a tool call attempt (key `tool:...`)
@@ -79,16 +117,11 @@ export async function startDrive(options: {
   session: HarnessAgentSession;
 
   /**
-   * Identifier of the drive.
+   * Identity of the drive.
    */
-  driveId: string;
-
-  /**
-   * Runtime deadline of the drive's process, if the World reports one.
-   */
-  deadline?: Date;
+  driveIdentity: HarnessAgentDriveIdentity;
 }): Promise<boolean> {
-  const { log, writer, world, session, driveId, deadline } = options;
+  const { log, writer, world, session, driveIdentity } = options;
   const { events } = await log.read();
 
   const latestStarts = new Map<string, LogEventOf<'effect-start'>>();
@@ -150,13 +183,15 @@ export async function startDrive(options: {
   const abandoned = [...latestStarts.values()].filter(
     start => !outputs.has(start.id),
   );
-  if (abandoned.length > 0) {
-    const gone =
-      latestDrive != null &&
-      (crashedDrives.has(latestDrive.data.driveId) ||
-        (latestDrive.data.deadline != null &&
-          latestDrive.data.deadline <= Date.now()));
-    if (!gone) return false;
+  if (
+    abandoned.length > 0 &&
+    !isDriveGone({
+      drive: latestDrive?.data,
+      crashedDrives,
+      queueMessageId: driveIdentity.queueMessageId,
+    })
+  ) {
+    return false;
   }
 
   const turnUnfinished = turnId != null && !finishedTurns.has(turnId);
@@ -167,11 +202,8 @@ export async function startDrive(options: {
 
   await log.append({
     type: 'drive-start',
-    id: `drive-start:${driveId}`,
-    data:
-      deadline == null
-        ? { driveId }
-        : { driveId, deadline: deadline.getTime() },
+    id: `drive-start:${driveIdentity.driveId}`,
+    data: driveIdentity,
   });
 
   for (const start of abandoned) {
@@ -242,4 +274,36 @@ export async function startDrive(options: {
   }
 
   return true;
+}
+
+/**
+ * Returns whether the drive with the given identity is provably gone,
+ * checking the synthetic `drive-crash` record first and then what the
+ * drive's identity recorded. Returns `false` without a drive.
+ */
+function isDriveGone(options: {
+  /**
+   * Identity of the session's latest drive, from its `drive-start`.
+   */
+  drive?: HarnessAgentDriveIdentity;
+
+  /**
+   * IDs of the drives that recorded a `drive-crash`.
+   */
+  crashedDrives: Set<string>;
+
+  /**
+   * ID of the World queue message whose delivery runs the current drive.
+   */
+  queueMessageId?: string;
+}): boolean {
+  const { drive, crashedDrives, queueMessageId } = options;
+  if (drive == null) return false;
+  return (
+    crashedDrives.has(drive.driveId) ||
+    (drive.deadline != null && drive.deadline <= Date.now()) ||
+    (queueMessageId != null && drive.queueMessageId === queueMessageId) ||
+    (drive.process != null &&
+      isDriveProcessGone({ driveId: drive.driveId, process: drive.process }))
+  );
 }
