@@ -201,6 +201,83 @@ describe('new Vercel sandbox sessions', () => {
     ]);
     expect(prepare).toHaveBeenCalledTimes(3);
   });
+
+  it('names the template with templateName and the fork with its live name', async () => {
+    const { sandbox } = makeMockSandbox();
+    const prepare = vi.fn(async () => {});
+    mockTemplateCreation(sandbox);
+    getOrCreateMock.mockResolvedValue(sandbox);
+    snapshotListMock.mockResolvedValue({
+      async *[Symbol.asyncIterator]() {
+        yield {
+          id: 'derived-snapshot',
+          status: 'created',
+          creationMethod: 'manual',
+        };
+      },
+    });
+    createMock.mockResolvedValue(sandbox);
+    const create = (liveName: { sandboxId: string } | { name: string }) =>
+      createVercelNetworkSandboxSession({
+        runtime: 'node24',
+        template: { identity: 'recipe-one', prepare },
+        templateName: 'app-template',
+        ...liveName,
+      });
+
+    await create({ sandboxId: 'live-sandbox-id' });
+    await create({ name: 'live-name' });
+
+    expect(getOrCreateMock.mock.calls.map(([options]) => options.name)).toEqual(
+      ['app-template', 'app-template'],
+    );
+    expect(prepare).toHaveBeenCalledOnce();
+    expect(snapshotListMock).toHaveBeenCalledOnce();
+    expect(snapshotListMock).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'app-template' }),
+    );
+    expect(createMock.mock.calls.map(([options]) => options.name)).toEqual([
+      'live-sandbox-id',
+      'live-name',
+    ]);
+    for (const [options] of [
+      ...getOrCreateMock.mock.calls,
+      ...createMock.mock.calls,
+    ]) {
+      expect(options).not.toHaveProperty('templateName');
+    }
+  });
+
+  it('keeps the derived template name when templateName is absent', async () => {
+    const { sandbox } = makeMockSandbox();
+    mockTemplateCreation(sandbox);
+    createMock.mockResolvedValue(sandbox);
+
+    await createVercelNetworkSandboxSession({
+      runtime: 'node24',
+      template: { identity: 'recipe-one', prepare: async () => {} },
+    });
+
+    expect(getOrCreateMock.mock.calls[0][0].name).toBe(
+      'ai-sdk-harness-v3-64e5720db4de086b7e11288e',
+    );
+  });
+
+  it('ignores templateName when there is no template', async () => {
+    createMock.mockResolvedValue(makeMockSandbox().sandbox);
+
+    await createVercelNetworkSandboxSession({
+      sandboxId: 'live-name',
+      runtime: 'node24',
+      template: undefined,
+      templateName: 'app-template',
+    });
+
+    expect(getOrCreateMock).not.toHaveBeenCalled();
+    expect(createMock).toHaveBeenCalledOnce();
+    expect(createMock.mock.calls[0][0]).toMatchObject({ name: 'live-name' });
+    expect(createMock.mock.calls[0][0]).not.toHaveProperty('templateName');
+  });
 });
 
 const { createMock, getMock, getOrCreateMock, snapshotListMock } = vi.hoisted(
@@ -220,6 +297,15 @@ vi.mock('@vercel/sandbox', () => ({
   },
   Snapshot: { list: snapshotListMock },
 }));
+
+function mockTemplateCreation(sandbox: Sandbox) {
+  getOrCreateMock.mockImplementationOnce(
+    async ({ onCreate }: { onCreate: (sandbox: Sandbox) => Promise<void> }) => {
+      await onCreate(sandbox);
+      return sandbox;
+    },
+  );
+}
 
 type MockSpies = {
   domain: ReturnType<typeof vi.fn>;
