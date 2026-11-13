@@ -1,0 +1,118 @@
+---
+title: AnimeAPI
+description: Learn how to use the AnimeAPI provider for the AI SDK.
+---
+
+# AnimeAPI
+
+[AnimeAPI](https://animeapi.ai) is an anime image generation API: $0.003 per image on the `anime` model, paid from a prepaid balance with no subscription. The [AnimeAPI provider](https://github.com/animeapi-ai/ai-sdk-provider) adds image model support to the AI SDK, so you can call it with `generateImage`.
+
+Learn more in the [AnimeAPI documentation](https://animeapi.ai/docs).
+
+## Setup
+
+The AnimeAPI provider is available in the `@animeapi/ai-sdk-provider` module. You can install it with:
+
+<InstallPackages packages="@animeapi/ai-sdk-provider" />
+
+Create an API key in the [AnimeAPI dashboard](https://animeapi.ai/dashboard/api-keys) and set it as an environment variable:
+
+```bash
+ANIMEAPI_KEY=ank_...
+```
+
+## Provider Instance
+
+You can import the default provider instance `animeapi` from `@animeapi/ai-sdk-provider`:
+
+```ts
+import { animeapi } from "@animeapi/ai-sdk-provider";
+```
+
+If you need a customized setup, you can use `createAnimeAPI` and create a provider instance with your settings:
+
+```ts
+import { createAnimeAPI } from "@animeapi/ai-sdk-provider";
+
+const animeapi = createAnimeAPI({
+  apiKey: process.env.ANIMEAPI_KEY,
+});
+```
+
+You can use the following optional settings to customize the AnimeAPI provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `ANIMEAPI_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Image Models
+
+You can create image models with the `.image()` factory method and use them with `generateImage`:
+
+```ts
+import { generateImage } from "ai";
+import { animeapi } from "@animeapi/ai-sdk-provider";
+
+const { image } = await generateImage({
+  model: animeapi.image("anime"),
+  prompt: "a knight cat drinking tea in a sunflower field",
+  aspectRatio: "16:9",
+});
+```
+
+Prompts are plain English, up to 1,000 characters. `aspectRatio` and `size` are mapped to one of three shapes (`portrait`, `square` or `landscape`); the model chooses the exact pixel size. `seed` and image inputs are not supported.
+
+### Model Capabilities
+
+| Model       | Price per image | Notes                                                 |
+| ----------- | --------------- | ----------------------------------------------------- |
+| `anime`     | $0.003          | Characters, portraits, avatars and scenes.            |
+| `ultra`     | $0.01           | Long, detailed prompts and legible text in the image. |
+| `ultra-max` | $0.02           | Highest detail.                                       |
+
+Every shape costs the same.
+
+### Provider Options
+
+You can pass the following options under `providerOptions.animeapi`:
+
+```ts
+import { generateImage } from "ai";
+import { animeapi } from "@animeapi/ai-sdk-provider";
+
+const { image, providerMetadata } = await generateImage({
+  model: animeapi.image("anime"),
+  prompt: "a shrine maiden sweeping autumn leaves",
+  providerOptions: {
+    animeapi: {
+      orientation: "landscape",
+      enhance: true,
+    },
+  },
+});
+```
+
+- **orientation** _'portrait' | 'square' | 'landscape'_
+
+  Shape of the image. Overrides `size` and `aspectRatio`. Defaults to `portrait`.
+
+- **enhance** _boolean_
+
+  Rewrites a plain-English prompt into tags for the `anime` model. Defaults to `true`.
+
+The result's `providerMetadata.animeapi` contains the prompt the model received (`images[i].revisedPrompt`) and the balance left after the call (`balanceUsd`).
+
+AnimeAPI does not generate adult content. Explicit prompts are refused and not charged.
