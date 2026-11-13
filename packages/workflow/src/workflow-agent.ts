@@ -71,6 +71,10 @@ import { toModelResponseMessages } from './to-model-response-messages.js';
 import { modelCallIterator } from './model-call-iterator.js';
 import { shouldDispatchModelCallTelemetryInStep } from './model-call-telemetry.js';
 import {
+  resolveTimeoutSettings,
+  type WorkflowAgentTimeoutConfiguration,
+} from './workflow-agent-timeout.js';
+import {
   createWorkflowAgentTelemetryRecorder,
   prepareWorkflowAgentTelemetry,
   reportWorkflowAgentTelemetry,
@@ -1252,11 +1256,17 @@ export type WorkflowAgentCallOptions<
     prepareStep?: PrepareStepCallback<TTools, TRuntimeContext>;
 
     /**
-     * Timeout in milliseconds for model calls in this operation.
-     * When specified, creates an AbortSignal that will abort the operation after the given time.
-     * If both `timeout` and `abortSignal` are provided, whichever triggers first will abort.
+     * Timeout for the model calls of this operation.
+     *
+     * A number, or `totalMs`, is one deadline in milliseconds for the whole
+     * run. `stepMs` limits each model call. In `stream()`, `firstChunkMs`
+     * limits the wait for the first output chunk of each model call and
+     * `chunkMs` limits the wait between two output chunks.
+     *
+     * A timeout aborts the operation with a `TimeoutError`. If both `timeout`
+     * and `abortSignal` are provided, whichever triggers first aborts.
      */
-    timeout?: number;
+    timeout?: WorkflowAgentTimeoutConfiguration;
   };
 
 /** Streaming options add transport controls to the shared call options. */
@@ -1918,13 +1928,19 @@ export class WorkflowAgent<
     const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
     // Model steps enforce the absolute deadline below. Avoid creating a native
     // timeout signal in the workflow VM, where timer APIs are unavailable.
-    const abortSignalTimeout = isInWorkflow() ? undefined : options.timeout;
+    const {
+      totalTimeoutMs,
+      stepTimeoutMs,
+      firstChunkTimeoutMs,
+      chunkTimeoutMs,
+    } = resolveTimeoutSettings(options.timeout);
+    const abortSignalTimeout = isInWorkflow() ? undefined : totalTimeoutMs;
     const effectiveAbortSignal = mergeAbortSignals(
       options.abortSignal ?? effectiveGenerationSettings.abortSignal,
       abortSignalTimeout,
     );
     const timeoutAt =
-      options.timeout == null ? undefined : Date.now() + options.timeout;
+      totalTimeoutMs == null ? undefined : Date.now() + totalTimeoutMs;
     const mergedOnToolExecutionStart = mergeCallbacks(
       this.constructorOnToolExecutionStart as
         | WorkflowAgentOnToolExecutionStartCallback<TTools>
@@ -1959,6 +1975,9 @@ export class WorkflowAgent<
       sandbox,
       effectiveAbortSignal,
       timeoutAt,
+      stepTimeoutMs,
+      firstChunkTimeoutMs,
+      chunkTimeoutMs,
       mergedOnToolExecutionStart,
       mergedOnToolExecutionEnd,
     };
@@ -2024,6 +2043,9 @@ export class WorkflowAgent<
       sandbox,
       effectiveAbortSignal,
       timeoutAt,
+      stepTimeoutMs,
+      firstChunkTimeoutMs,
+      chunkTimeoutMs,
       mergedOnToolExecutionStart,
       mergedOnToolExecutionEnd,
     } = await this.prepareInvocation(options, mode);
@@ -2696,6 +2718,10 @@ export class WorkflowAgent<
       telemetryContexts: telemetryRecorder?.contexts,
       includeRawChunks: options.includeRawChunks ?? false,
       timeoutAt,
+      stepTimeoutMs,
+      // The output timeouts need a stream of model output.
+      firstChunkTimeoutMs: mode === 'stream' ? firstChunkTimeoutMs : undefined,
+      chunkTimeoutMs: mode === 'stream' ? chunkTimeoutMs : undefined,
       repairToolCall: (options.repairToolCall ??
         options.experimental_repairToolCall ??
         this.repairToolCall) as ToolCallRepairFunction<ToolSet> | undefined,

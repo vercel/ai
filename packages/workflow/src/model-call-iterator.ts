@@ -162,6 +162,9 @@ export async function* modelCallIterator({
   telemetryContexts,
   includeRawChunks = false,
   timeoutAt,
+  stepTimeoutMs,
+  firstChunkTimeoutMs,
+  chunkTimeoutMs,
   repairToolCall,
   refineToolInput,
   download,
@@ -199,6 +202,9 @@ export async function* modelCallIterator({
   telemetryContexts?: Array<DurableTelemetryContext | undefined>;
   includeRawChunks?: boolean;
   timeoutAt?: number;
+  stepTimeoutMs?: number;
+  firstChunkTimeoutMs?: number;
+  chunkTimeoutMs?: number;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   refineToolInput?: ToolInputRefinement<ToolSet>;
   download?: ModelCallOptions['download'];
@@ -423,6 +429,9 @@ export async function* modelCallIterator({
         toolChoice: currentToolChoice,
         includeRawChunks,
         timeoutAt,
+        stepTimeoutMs,
+        firstChunkTimeoutMs,
+        chunkTimeoutMs,
         repairToolCall,
         download,
         responseFormat,
