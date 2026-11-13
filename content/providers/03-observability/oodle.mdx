@@ -1,0 +1,165 @@
+---
+title: Oodle
+description: Trace AI SDK calls and agents with Oodle over OpenTelemetry
+---
+
+# Oodle Observability
+
+[Oodle](https://oodle.ai) is an OpenTelemetry-native observability platform for metrics, logs, traces and agent traces. It ingests the GenAI semantic-convention spans that `@ai-sdk/otel` emits, so there is no Oodle SDK to install: point the standard OTLP exporter at Oodle and every AI SDK call shows up as a trace with:
+
+- The full transcript: system prompt, messages and model output
+- Token counts and cost per call, aggregated by model
+- Agent structure: agent runs, steps and tool calls on one trace
+- [Signals](https://docs.oodle.ai/agent-observability/signals): labels for loops, rate limits, refusals and tool failures, detected as the trace arrives
+
+## Setup
+
+### 1. Get your Oodle credentials
+
+[Sign up for Oodle](https://us1.oodle.ai/signup), then open **Settings → API Keys** to get:
+
+- your instance ID
+- an API key
+- your OTLP endpoint (shown on the **Vercel AI SDK** tile on the Integrations page, which fills the snippets below in for you)
+
+### 2. Install dependencies
+
+<InstallPackages packages="ai @ai-sdk/otel @opentelemetry/exporter-trace-otlp-proto @opentelemetry/sdk-trace-base @opentelemetry/sdk-trace-node @opentelemetry/resources @opentelemetry/semantic-conventions" />
+
+### 3. Set environment variables
+
+The OTLP exporter reads the standard OpenTelemetry environment variables:
+
+```bash filename=".env"
+OTEL_EXPORTER_OTLP_ENDPOINT="https://<OTLP_ENDPOINT>"
+OTEL_EXPORTER_OTLP_HEADERS="X-API-KEY=<OODLE_API_KEY>,X-OODLE-INSTANCE=<OODLE_INSTANCE>"
+# Compress the export: prompt payloads are large
+OTEL_EXPORTER_OTLP_COMPRESSION="gzip"
+```
+
+### 4. Register the integration
+
+Register a tracer provider and the AI SDK OpenTelemetry integration once at startup. Every AI SDK call then emits GenAI semantic-convention spans, with no per-call flag:
+
+```ts filename="instrumentation.ts"
+import { registerTelemetry } from "ai";
+import { OpenTelemetry } from "@ai-sdk/otel";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
+import { resourceFromAttributes } from "@opentelemetry/resources";
+import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
+import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
+import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
+
+// NodeTracerProvider does not read OTEL_SERVICE_NAME, so name the
+// service here or every trace lands under unknown_service:node.
+export const provider = new NodeTracerProvider({
+  resource: resourceFromAttributes({ [ATTR_SERVICE_NAME]: "my-ai-app" }),
+  spanProcessors: [new BatchSpanProcessor(new OTLPTraceExporter())],
+});
+
+provider.register();
+
+registerTelemetry(new OpenTelemetry());
+```
+
+Import the instrumentation file before anything else in your entry point:
+
+```ts filename="index.ts"
+import { provider } from "./instrumentation";
+import { openai } from "@ai-sdk/openai";
+import { generateText } from "ai";
+
+async function main() {
+  const { text } = await generateText({
+    model: openai("gpt-4o-mini"),
+    system: "You are a helpful assistant.",
+    prompt: "Hello!",
+  });
+  console.log(text);
+
+  // Short-lived processes must flush before they exit.
+  await provider.forceFlush();
+}
+
+main();
+```
+
+#### Next.js
+
+In a Next.js application, register the exporter through `@vercel/otel` in `instrumentation.ts` at the project root:
+
+<InstallPackages packages="ai @ai-sdk/otel @vercel/otel" />
+
+```ts filename="instrumentation.ts"
+import { registerOTel, OTLPHttpProtoTraceExporter } from "@vercel/otel";
+import { registerTelemetry } from "ai";
+import { OpenTelemetry } from "@ai-sdk/otel";
+
+export function register() {
+  registerOTel({
+    serviceName: "my-ai-app",
+    traceExporter: new OTLPHttpProtoTraceExporter({
+      url: `${process.env.OTEL_EXPORTER_OTLP_ENDPOINT}/v1/traces`,
+      headers: {
+        "X-API-KEY": process.env.OODLE_API_KEY!,
+        "X-OODLE-INSTANCE": process.env.OODLE_INSTANCE!,
+      },
+    }),
+  });
+
+  registerTelemetry(new OpenTelemetry());
+}
+```
+
+```bash filename=".env.local"
+OTEL_EXPORTER_OTLP_ENDPOINT="https://<OTLP_ENDPOINT>"
+OODLE_API_KEY="<OODLE_API_KEY>"
+OODLE_INSTANCE="<OODLE_INSTANCE>"
+```
+
+## Usage
+
+Once registered, every call is traced. Use the `telemetry` option to attach a `functionId`, and `includeRuntimeContext` to pick which `runtimeContext` values travel with the trace. Oodle shows both as span attributes:
+
+```ts
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
+
+const { text } = await generateText({
+  model: openai("gpt-4o-mini"),
+  prompt: "Write a short welcome message for a new user.",
+  runtimeContext: { requestId: "req_abc" },
+  telemetry: {
+    functionId: "welcome-message",
+    includeRuntimeContext: { requestId: true },
+  },
+});
+```
+
+Run your application, then open **Agent Observability → Traces** in Oodle. Click a trace for the transcript, the span waterfall and the cost breakdown.
+
+## Through a collector
+
+If you already run an OpenTelemetry Collector, keep the application pointed at the collector and add Oodle as an exporter there. Redaction and sampling belong in the collector:
+
+```yaml filename="otel-collector-config.yaml"
+exporters:
+  otlphttp/oodle:
+    endpoint: "https://<OTLP_ENDPOINT>"
+    headers:
+      X-OODLE-INSTANCE: "<OODLE_INSTANCE>"
+      X-API-KEY: "<OODLE_API_KEY>"
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/oodle]
+```
+
+## Resources
+
+- [Oodle docs: Vercel AI SDK](https://docs.oodle.ai/integrations/agent-observability/vercel)
+- [Oodle docs: Agent Observability](https://docs.oodle.ai/agent-observability)
+- [Oodle docs: Signals](https://docs.oodle.ai/agent-observability/signals)
