@@ -11,6 +11,13 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { DeepSeekChatModelId } from './chat/deepseek-chat-options';
 import { DeepSeekChatLanguageModel } from './chat/deepseek-chat-language-model';
+<<<<<<< HEAD
+=======
+import { DeepSeekFiles } from './files/deepseek-files';
+import { DeepSeekResponsesLanguageModel } from './responses/deepseek-responses-language-model';
+import type { DeepSeekResponsesModelId } from './responses/deepseek-responses-language-model-options';
+import { deepseekTools } from './tool';
+>>>>>>> f9d43bdaa7 (feat(provider/deepseek): add Responses API model and web search tool (#24304))
 import { VERSION } from './version';
 
 export interface DeepSeekProviderSettings {
@@ -50,7 +57,27 @@ export interface DeepSeekProvider extends ProviderV3 {
   /**
    * Creates a DeepSeek chat model for text generation.
    */
+<<<<<<< HEAD
   chat(modelId: DeepSeekChatModelId): LanguageModelV3;
+=======
+  chat(modelId: DeepSeekChatModelId): LanguageModelV4;
+
+  /**
+   * Creates a DeepSeek model that uses the Responses API. Supports
+   * server-side tools such as `deepseek.tools.webSearch()`.
+   */
+  responses(modelId: DeepSeekResponsesModelId): LanguageModelV4;
+
+  /**
+   * DeepSeek server-side tools for use with the Responses API.
+   */
+  tools: typeof deepseekTools;
+
+  /**
+   * Creates a DeepSeek files interface for uploading images.
+   */
+  files(): FilesV4;
+>>>>>>> f9d43bdaa7 (feat(provider/deepseek): add Responses API model and web search tool (#24304))
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -88,12 +115,37 @@ export function createDeepSeek(
     });
   };
 
+<<<<<<< HEAD
+=======
+  const createResponsesModel = (modelId: DeepSeekResponsesModelId) =>
+    new DeepSeekResponsesLanguageModel(modelId, {
+      provider: 'deepseek.responses',
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const createFiles = () =>
+    new DeepSeekFiles({
+      provider: 'deepseek.files',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+>>>>>>> f9d43bdaa7 (feat(provider/deepseek): add Responses API model and web search tool (#24304))
   const provider = (modelId: DeepSeekChatModelId) =>
     createLanguageModel(modelId);
 
   provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
+<<<<<<< HEAD
+=======
+  provider.responses = createResponsesModel;
+  provider.tools = deepseekTools;
+  provider.files = createFiles;
+>>>>>>> f9d43bdaa7 (feat(provider/deepseek): add Responses API model and web search tool (#24304))
 
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
