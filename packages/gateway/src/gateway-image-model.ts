@@ -23,6 +23,7 @@ import { z } from './zod';
 import type { GatewayConfig } from './gateway-config';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
+import { splitClientGatewayOptions } from './client-gateway-options';
 
 type GatewayImageConfig = GatewayConfig & {
   provider: string;
@@ -71,27 +72,8 @@ export class GatewayImageModel implements ImageModelV4 {
   }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const gatewayOptions = providerOptions?.gateway;
-    const streamingImageDecoding =
-      gatewayOptions?.experimental_streamingImageDecoding === true;
-    let requestProviderOptions: typeof providerOptions | undefined =
-      providerOptions;
-    if (
-      gatewayOptions &&
-      'experimental_streamingImageDecoding' in gatewayOptions
-    ) {
-      const { experimental_streamingImageDecoding: _, ...serviceOptions } =
-        gatewayOptions;
-      requestProviderOptions = { ...providerOptions };
-      if (Object.keys(serviceOptions).length > 0) {
-        requestProviderOptions.gateway = serviceOptions;
-      } else {
-        delete requestProviderOptions.gateway;
-      }
-      if (Object.keys(requestProviderOptions).length === 0) {
-        requestProviderOptions = undefined;
-      }
-    }
+    const { streamingImageDecoding, providerOptions: requestProviderOptions } =
+      splitClientGatewayOptions(providerOptions);
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
