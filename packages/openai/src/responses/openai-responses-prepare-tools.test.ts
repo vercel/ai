@@ -2263,6 +2263,17 @@ describe('prepareResponsesTools', () => {
           { type: 'shell' },
         ],
         [
+          'local shell',
+          {
+            type: 'provider',
+            id: 'openai.local_shell',
+            name: 'localShell',
+            args: {},
+          },
+          'localShell',
+          { type: 'local_shell' },
+        ],
+        [
           'mcp (carries its server label)',
           {
             type: 'provider',
@@ -2281,13 +2292,13 @@ describe('prepareResponsesTools', () => {
           {
             type: 'provider',
             id: 'openai.custom',
-            name: 'write_sql',
+            name: 'sql',
             args: {
               name: 'write_sql',
               description: 'Write a SQL SELECT query.',
             },
           },
-          'write_sql',
+          'sql',
           { type: 'custom', name: 'write_sql' },
         ],
       ])(
