@@ -80,7 +80,7 @@ const naga = createOpenAI({
 });
 
 const result = streamText({
-  model: naga('google/gemini-3.5-flash'),
+  model: naga('deepseek/deepseek-v4.1-flash'),
   prompt: 'Count from 1 to 5, separated by spaces.',
   providerOptions: { openai: { store: false } },
 });
