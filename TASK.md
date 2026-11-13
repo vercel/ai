@@ -93,7 +93,7 @@ The steps are below:
 - Without such proof, the new drive must yield without changing the session.
 - At the start of a drive, re-emit the latest turn's boundary parts to the session's stream, each under its log key: the turn's `start`, then its `finish` if it finished, or else its latest `finish-step`. A crash between a boundary event's log append and its stream write loses the part, and the drive cannot tell whether the write landed, so readers must drop parts whose key they already saw.
 
-17. [ ] Implement `packages/harness-fx-v2/`, a new durable from-scratch reimplementation of the fx harness, using libfx.
+17. [x] Implement `packages/harness-fx-v2/`, a new durable from-scratch reimplementation of the fx harness, using libfx.
 
 - Keep it minimal like the Pi v2 reimplementation, follow the applicable key harness requirements.
 - libfx itself is durable, so for the most part this needs wiring up with the HarnessV2 adapter layer and the given integration points for log etc.

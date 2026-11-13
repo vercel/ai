@@ -112,6 +112,9 @@
       "path": "packages/harness-fx"
     },
     {
+      "path": "packages/harness-fx-v2"
+    },
+    {
       "path": "packages/harness-github-copilot"
     },
     {
