@@ -23,6 +23,38 @@ export interface Tool {
 
 export const tools: Tool[] = [
   {
+    slug: 'mailrambo',
+    name: 'MailRambo',
+    description:
+      'Email-quality tools for AI agents: free signup screening for syntax, typos, disposable providers, and mail-domain problems, plus free credit-balance inspection. Full mailbox verification is opt-in, requires approval, and has a developer-configured per-toolset attempt limit. Screening does not confirm mailbox existence or ownership.',
+    packageName: 'mailrambo-ai-sdk',
+    tags: ['email', 'verification', 'signup'],
+    apiKeyEnvName: 'MAILRAMBO_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add mailrambo-ai-sdk ai zod',
+      npm: 'npm install mailrambo-ai-sdk ai zod',
+      yarn: 'yarn add mailrambo-ai-sdk ai zod',
+      bun: 'bun add mailrambo-ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { mailramboTools } from 'mailrambo-ai-sdk';
+
+// Set MAILRAMBO_API_KEY on your server. Default tools use no verification credits.
+// Model inference may be billed separately by your provider or gateway.
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Screen jane@example.com for signup problems; explain whether the mailbox was checked.',
+  tools: mailramboTools(),
+  stopWhen: isStepCount(2),
+});
+
+console.log(text);`,
+    docsUrl: 'https://humblepoc.github.io/mailrambo-ai-sdk/',
+    apiKeyUrl: 'https://www.mailrambo.com/api-keys',
+    websiteUrl: 'https://www.mailrambo.com',
+    npmUrl: 'https://www.npmjs.com/package/mailrambo-ai-sdk',
+  },
+  {
     slug: 'code-execution',
     name: 'Code Execution',
     description:
