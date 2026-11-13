@@ -71,3 +71,8 @@ export function getHeyGenVideoModelEntry(_modelId: string) {
 export const heyGenModelCatalog = Object.fromEntries([
   ...videoModelIds.map(id => [id, getHeyGenVideoModelEntry(id)] as const),
 ]);
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type HeyGenModelIds = {
+  video: (typeof videoModelIds)[number];
+};

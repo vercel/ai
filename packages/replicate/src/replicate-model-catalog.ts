@@ -201,3 +201,9 @@ export const replicateModelCatalog = Object.fromEntries([
   ...imageModelIds.map(id => [id, getReplicateImageModelEntry(id)] as const),
   ...videoModelIds.map(id => [id, getReplicateVideoModelEntry(id)] as const),
 ]);
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type ReplicateModelIds = {
+  image: (typeof imageModelIds)[number];
+  video: (typeof videoModelIds)[number];
+};

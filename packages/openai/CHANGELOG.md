@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 4.0.117
+
+### Patch Changes
+
+- 6d50947: add experimental extraction models backed by structured language model output
+- Updated dependencies [6d50947]
+  - @ai-sdk/provider-utils@5.0.81
+
 ## 4.0.116
 
 ### Patch Changes

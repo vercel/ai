@@ -389,3 +389,10 @@ export const alibabaModelCatalog = Object.fromEntries([
   ),
   ...videoModelIds.map(id => [id, getAlibabaVideoModelEntry(id)] as const),
 ]);
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type AlibabaModelIds = {
+  language: (typeof languageModelIds)[number];
+  embedding: (typeof embeddingModelIds)[number];
+  video: (typeof videoModelIds)[number];
+};

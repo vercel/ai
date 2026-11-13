@@ -4,11 +4,11 @@ import {
   type FlexibleSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { TogetherAIModelIds } from '../togetherai-model-catalog';
 
 // see https://docs.together.ai/docs/serverless-models#rerank-models
 export type TogetherAIRerankingModelId =
-  | 'Salesforce/Llama-Rank-v1'
-  | 'mixedbread-ai/Mxbai-Rerank-Large-V2'
+  | TogetherAIModelIds['reranking']
   | (string & {});
 
 export type TogetherAIRerankingModelOptions = {
