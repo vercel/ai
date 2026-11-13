@@ -756,7 +756,6 @@ The callbacks also run at different times:
 - After a failed run, `stream()` calls `onEnd` before it rejects. `generate()` and `ToolLoopAgent` do not call `onEnd` for a failed run.
 - `onAbort` is called by `generate()` and by `stream()`, and its event has only `steps`. `ToolLoopAgent` calls `onAbort` only for `stream()`, with `callId`, `reason`, and `steps`.
 - An aborted `stream()` call resolves with the steps that finished. An aborted `generate()` call rejects.
-- If `generate()` is aborted during a step with a custom abort reason, it calls `onError` with that reason. `ToolLoopAgent` does not report aborts to `onError`.
 
 ### Results
 

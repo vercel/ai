@@ -3241,8 +3241,15 @@ export class WorkflowAgent<
     } catch (error) {
       encounteredError = error;
       hasEncounteredError = true;
-      // Check if this is an abort error
-      if (isAbortError(error)) {
+      // In generate mode a failed model step is rethrown here, including the
+      // reason the call was aborted with. An abort reason is an ordinary error,
+      // so an aborted call signal also marks the run as aborted. Stream mode
+      // needs no signal check here, because its model steps report aborts as
+      // step data.
+      if (
+        isAbortError(error) ||
+        (mode === 'generate' && effectiveAbortSignal?.aborted)
+      ) {
         wasAborted = true;
         await mergedOnAbort({ steps });
       } else {
