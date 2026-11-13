@@ -967,8 +967,13 @@ async function invokeToolInputLifecycleCallbacks({
       toolNamesByCallId.set(toolCallId, value);
     }
 
+    // An available event can lack a start event when the input was not
+    // streamed, so the parsed tool call provides the tool name.
     const toolName =
-      type === 'start' ? value : toolNamesByCallId.get(toolCallId);
+      type === 'start'
+        ? value
+        : (toolNamesByCallId.get(toolCallId) ??
+          toolCallsById.get(toolCallId)?.toolName);
     if (toolName == null) {
       continue;
     }

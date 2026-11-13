@@ -344,10 +344,10 @@ async function streamModelStep(
             toolCallPart.toolCallId,
           );
           ongoingToolCallToolNames.delete(toolCallPart.toolCallId);
-          if (
-            lifecycleToolName != null &&
-            serializedTools?.[lifecycleToolName]?.hasOnInputAvailable
-          ) {
+          // A provider can send the tool call without streaming the input
+          // first, so the tool name does not always come from a start event.
+          const availableToolName = lifecycleToolName ?? toolCallPart.toolName;
+          if (serializedTools?.[availableToolName]?.hasOnInputAvailable) {
             toolInputLifecycleEvents.push([
               'available',
               toolCallPart.toolCallId,
