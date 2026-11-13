@@ -62,6 +62,12 @@ export interface ModelCallOptions {
   maxRetries?: number;
   abortSignal?: AbortSignal;
   timeoutAt?: number;
+  /** Time limit for this model call, including SDK retries. */
+  stepTimeoutMs?: number;
+  /** Stream mode: time limit for the first output chunk of this model call. */
+  firstChunkTimeoutMs?: number;
+  /** Stream mode: time limit between two output chunks of this model call. */
+  chunkTimeoutMs?: number;
   headers?: Record<string, string | undefined>;
   reasoning?: LanguageModelV4CallOptions['reasoning'];
   providerOptions?: ProviderOptions;
