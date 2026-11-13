@@ -53,7 +53,8 @@ describe('GatewayAuthenticationError', () => {
       });
 
       expect(error.message).toContain('Invalid API key');
-      expect(error.message).toContain('vercel.com/d?to=');
+      expect(error.message).toContain('showCreateKeyModal%3Dtrue');
+      expect(error.credentialStatus).toBe('invalid_api_key');
       expect(error.statusCode).toBe(401);
     });
 
@@ -65,6 +66,7 @@ describe('GatewayAuthenticationError', () => {
 
       expect(error.message).toContain('Invalid OIDC token');
       expect(error.message).toContain('npx vercel link');
+      expect(error.credentialStatus).toBe('invalid_oidc_token');
       expect(error.statusCode).toBe(401);
     });
 
@@ -77,6 +79,7 @@ describe('GatewayAuthenticationError', () => {
       expect(error.message).toContain('No authentication provided');
       expect(error.message).toContain('Option 1');
       expect(error.message).toContain('Option 2');
+      expect(error.credentialStatus).toBe('missing_credentials');
       expect(error.statusCode).toBe(401);
     });
 
