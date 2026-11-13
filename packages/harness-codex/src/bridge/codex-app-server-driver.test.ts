@@ -119,6 +119,11 @@ vi.mock('./codex-app-server-client', () => ({
         }
         return { turn };
       }
+      if (method === 'thread/backgroundTerminals/list') {
+        // Codex drops an exited process from this list before the client
+        // receives its end, so it can be empty while an end is on its way.
+        return { data: [], nextCursor: null };
+      }
       if (method === 'turn/steer') {
         return (
           server.steerResponse?.(params) ?? {
@@ -916,6 +921,91 @@ describe('Codex app-server runtime lifecycle', () => {
     server.autoComplete = true;
     await runtime.runTurn(createOptions({ threadId: 'thread-1' }));
     expect(server.clients).toHaveLength(1);
+    await runtime.close();
+  });
+
+  it('keeps the turn open for a background terminal that ends after turn/completed, and answers its end', async () => {
+    server.autoComplete = false;
+    const runtime = createCodexAppServerRuntime();
+    const options = createOptions({
+      start: { prompt: 'Run the suite in the background, then report.' },
+    });
+    let settled = false;
+    const pending = runtime.runTurn(options).finally(() => {
+      settled = true;
+    });
+    const turnStarts = () =>
+      server.clients[0]!.calls.filter(call => call.method === 'turn/start');
+    await vi.waitFor(() => expect(turnStarts()).toHaveLength(1));
+    const client = server.clients[0]!;
+    const notify = (method: string, params: Record<string, unknown>) =>
+      client.onNotification({
+        method,
+        params: { threadId: 'thread-1', ...params },
+      });
+    const terminal = {
+      type: 'commandExecution',
+      id: 'call-bg',
+      command: "/bin/bash -lc 'sleep 45 && echo BG_DONE'",
+      cwd: '/workspace',
+      processId: '1001',
+      status: 'inProgress',
+      commandActions: [],
+      aggregatedOutput: null,
+      exitCode: null,
+      durationMs: null,
+    };
+
+    // exec_command left the process running; Codex completes the turn anyway.
+    notify('turn/started', { turn: { id: 'turn-1', status: 'inProgress' } });
+    notify('item/started', { turnId: 'turn-1', item: terminal });
+    notify('item/completed', {
+      turnId: 'turn-1',
+      item: {
+        type: 'agentMessage',
+        id: 'msg-1',
+        text: 'The suite is running in the background.',
+      },
+    });
+    notify('turn/completed', { turn: { id: 'turn-1', status: 'completed' } });
+    // The process exits later. Codex reports its end in the context of the
+    // turn that started it.
+    notify('item/completed', {
+      turnId: 'turn-1',
+      item: {
+        ...terminal,
+        status: 'completed',
+        exitCode: 0,
+        aggregatedOutput: 'BG_DONE\n',
+        durationMs: 45012,
+      },
+    });
+
+    await vi.waitFor(() => expect(turnStarts()).toHaveLength(2));
+    expect(settled).toBe(false);
+    expect(turnStarts()[1]?.params).toMatchObject({ threadId: 'thread-1' });
+    expect(JSON.stringify(turnStarts()[1]?.params)).toContain('BG_DONE');
+
+    notify('turn/started', { turn: { id: 'turn-2', status: 'inProgress' } });
+    notify('item/completed', {
+      turnId: 'turn-2',
+      item: {
+        type: 'agentMessage',
+        id: 'msg-2',
+        text: 'Tests passed: BG_DONE',
+      },
+    });
+    notify('turn/completed', { turn: { id: 'turn-2', status: 'completed' } });
+    await pending;
+
+    expect(options.emitStreamEvent).toHaveBeenCalledWith({
+      type: 'item.completed',
+      item: {
+        type: 'agent_message',
+        id: 'msg-2',
+        text: 'Tests passed: BG_DONE',
+      },
+    });
     await runtime.close();
   });
 });
