@@ -1,0 +1,77 @@
+---
+title: OrcaReplay
+description: Record the AI SDK's provider traffic and replay a run offline with no model called
+---
+
+# OrcaReplay
+
+[OrcaReplay](https://github.com/Continuum-AI-Corp/OrcaReplay) records an AI SDK
+application's traffic to its model provider and replays it later with **no provider
+contacted and no tokens spent**. It works at the HTTP boundary rather than through
+`experimental_telemetry`, so it needs no instrumentation in your code and captures the
+bytes the SDK actually sent and received.
+
+It is not a dashboard or a hosted service: it is an Apache-2.0 CLI that writes a local
+trace and serves it back.
+
+## Setup
+
+```bash
+npm i -g orcareplay
+```
+
+Run your application under the recorder, then replay it:
+
+```bash
+orca record node -- node app.mjs   # runs normally, records the provider exchange
+orca replay last                   # the same run again — no network, no tokens
+```
+
+Nothing in `app.mjs` changes. `orca record node` installs a `fetch` hook in the child
+process, which also covers providers whose origin is compiled into the application
+rather than read from the environment.
+
+If your provider reads a base URL from the environment, the environment path works too:
+
+```bash
+orca record generic-openai -- node app.mjs
+```
+
+Measured on `ai@7.0.102` with `@ai-sdk/openai@4.0.67`: setting `OPENAI_BASE_URL` does
+redirect the SDK, and the request it sends is `POST /v1/responses` — the Responses API,
+not `/v1/chat/completions`. That matters if you point the SDK at anything that speaks
+only the older shape.
+
+## Replaying and forking
+
+`orca replay last` serves the recorded turns back in order. Because the recording holds
+the whole exchange, a run can also be resumed on a different model from any step:
+
+```bash
+orca replay last --from 4 --model claude-haiku-4-5
+```
+
+Everything before step 4 is byte-identical to the original run, so the model is the only
+variable — which is what makes a comparison mean anything.
+
+## Limits
+
+Worth knowing before relying on it:
+
+- **A matching replay is not a determinism result.** It proves the recorded exchange
+  reproduces, not that your application or the model is deterministic, and not that a
+  fresh run would behave the same way.
+- **Replay blocks model-provider egress only. It is not a sandbox.** Tool calls recorded
+  in the run still execute for real on replay — a recorded `fetch` to your own API
+  reaches your own API again.
+- **The default adapter does not capture every call.** Embedding calls, for instance, are
+  not captured, so a run whose behaviour depends on retrieval can replay cleanly at the
+  language-model layer and still not reproduce.
+
+## More
+
+- Repository: [Continuum-AI-Corp/OrcaReplay](https://github.com/Continuum-AI-Corp/OrcaReplay)
+- The on-disk trace format is specified separately under CC BY 4.0 in
+  [`spec/orca-trace-v0.md`](https://github.com/Continuum-AI-Corp/OrcaReplay/blob/main/spec/orca-trace-v0.md),
+  so a recording is readable without the CLI.
+- Requires Node 20+.
