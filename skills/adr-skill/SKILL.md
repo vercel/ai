@@ -28,7 +28,7 @@ When an architectural choice comes up during implementation, propose capturing i
 
 ### Draft
 
-Use [assets/templates/adr-simple.md](assets/templates/adr-simple.md) by default. For alternatives that need more room, expand that section with option headings; [assets/templates/adr-madr.md](assets/templates/adr-madr.md) provides that layout with the same concise sections. See [references/template-variants.md](references/template-variants.md).
+Use [assets/templates/adr-simple.md](assets/templates/adr-simple.md). Alternatives can be short bullets or use option headings when they need more explanation; both fit the same template.
 
 - **Context and Problem Statement**: the problem, trigger, and relevant constraints.
 - **Decision**: what is chosen, why, scope, non-goals, and accepted tradeoffs.
@@ -45,7 +45,7 @@ The generator creates a scaffold; fill or remove every placeholder before finali
 node skills/adr-skill/scripts/new_adr.js --title "Choose database" --update-index
 ```
 
-When used outside this repository, resolve the script path relative to the installed skill directory. It auto-detects the ADR directory and naming strategy; `--dir`, `--strategy`, and `--template simple|madr` override those choices.
+When used outside this repository, resolve the script path relative to the installed skill directory. It auto-detects the ADR directory and naming strategy; `--dir` and `--strategy` override those choices.
 
 ### Review
 

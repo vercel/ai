@@ -21,8 +21,6 @@ function parseArgs(argv) {
     forceIndex: false,
     indexFile: null,
     firstTitle: 'Adopt architecture decision records',
-    deciders: '',
-    technicalStory: '',
     strategy: 'date',
     json: false,
   };
@@ -39,8 +37,6 @@ function parseArgs(argv) {
     else if (a === '--force-index') out.forceIndex = true;
     else if (a === '--index-file') out.indexFile = next();
     else if (a === '--first-title') out.firstTitle = next();
-    else if (a === '--deciders') out.deciders = next();
-    else if (a === '--technical-story') out.technicalStory = next();
     else if (a === '--strategy') out.strategy = next();
     else if (a === '--json') out.json = true;
     else if (a === '--help' || a === '-h') {
