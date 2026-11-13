@@ -2698,7 +2698,7 @@ export class WorkflowAgent<
           providerExecutedToolResults,
           providerExecutedToolResultPositions,
         } = result.value;
-        if (mode === 'generate' && step != null) {
+        if (step != null) {
           for (const call of toolCalls) {
             if (call.invalid && !call.providerExecuted)
               step.content.push({
