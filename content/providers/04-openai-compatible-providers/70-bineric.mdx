@@ -1,0 +1,94 @@
+---
+title: Bineric
+description: Use the Bineric OpenAI compatible API, with EU-hosted models, with the AI SDK.
+---
+
+# Bineric Provider
+
+[Bineric](https://bineric.com) is an EU-hosted model API. One key reaches Claude through Amazon Bedrock, GPT through Azure, open models, the National Library of Norway's Borealis 2, and Bineric's own Lynx model. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+
+Most Bineric models run in EU data centres, and some run in the US. The public model list at `https://api.bineric.com/v1/models` shows each model's `hosting` (`EU` or `US`), context length and price, and needs no key.
+
+## Setup
+
+The Bineric provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API. You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use Bineric, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const bineric = createOpenAICompatible({
+  name: 'bineric',
+  baseURL: 'https://api.bineric.com/v1',
+  apiKey: process.env.BINERIC_API_KEY,
+  includeUsage: true,
+});
+```
+
+<Note>
+  Create an API key at [platform.bineric.com](https://platform.bineric.com) and
+  set the `BINERIC_API_KEY` environment variable with your API key.
+</Note>
+
+## Language Models
+
+You can create Bineric models using the provider instance. The first argument is a model ID from the [model list](https://api.bineric.com/v1/models), for example `claude-sonnet-5.5`, `gpt-5.4` or `borealis-2`.
+
+```ts
+const model = bineric('borealis-2');
+```
+
+### Example
+
+You can use Bineric language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const bineric = createOpenAICompatible({
+  name: 'bineric',
+  baseURL: 'https://api.bineric.com/v1',
+  apiKey: process.env.BINERIC_API_KEY,
+  includeUsage: true,
+});
+
+const { text } = await generateText({
+  model: bineric('borealis-2'),
+  prompt: 'Hva er hovedstaden i Norge?',
+});
+
+console.log(text);
+```
+
+Bineric language models can also generate text in a streaming fashion with the `streamText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const bineric = createOpenAICompatible({
+  name: 'bineric',
+  baseURL: 'https://api.bineric.com/v1',
+  apiKey: process.env.BINERIC_API_KEY,
+  includeUsage: true,
+});
+
+const result = streamText({
+  model: bineric('claude-haiku-5.5'),
+  prompt: 'Say hello in Norwegian, in one short sentence.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+## Zuse Decision Models
+
+Bineric's Zuse models (`zuse-27b` and `zuse-9b`) are decision models trained on European languages. They answer typed questions about a text with probabilities instead of generating text, so they use Bineric's own `/v1/zuse` endpoint rather than Chat Completions, and are not language models in the AI SDK. See the [Zuse API documentation](https://bineric.com/zuse/docs) for how to call them.
