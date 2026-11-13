@@ -5,7 +5,7 @@ description: Use the Bineric OpenAI compatible API, with EU-hosted models, with 
 
 # Bineric Provider
 
-[Bineric](https://bineric.com) is an EU-hosted model API. One key reaches Claude through Amazon Bedrock, GPT through Azure, open models, the National Library of Norway's Borealis 2, and Bineric's own Lynx model. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
+[Bineric](https://bineric.com) trains its own European models, Zuse, a decision model trained on European languages, and Lynx, a European general model. Bineric also makes NorskGPT, a Norwegian AI assistant. The same EU-hosted API, with one key, also serves Borealis 2 from the National Library of Norway, Claude through Amazon Bedrock, GPT through Azure, and open models. You can use its Chat Completions endpoint with the AI SDK through the `@ai-sdk/openai-compatible` module.
 
 Most Bineric models run in EU data centres, and some run in the US. The public model list at `https://api.bineric.com/v1/models` shows each model's `hosting` (`EU` or `US`), context length and price, and needs no key.
 
@@ -37,10 +37,10 @@ const bineric = createOpenAICompatible({
 
 ## Language Models
 
-You can create Bineric models using the provider instance. The first argument is a model ID from the [model list](https://api.bineric.com/v1/models), for example `claude-sonnet-5.5`, `gpt-5.4` or `borealis-2`.
+You can create Bineric models using the provider instance. The first argument is a model ID from the [model list](https://api.bineric.com/v1/models), for example Bineric's own `lynx-30b`, or `borealis-2`, `claude-sonnet-5.5` and `gpt-5.4`.
 
 ```ts
-const model = bineric('borealis-2');
+const model = bineric('lynx-30b');
 ```
 
 ### Example
@@ -59,7 +59,7 @@ const bineric = createOpenAICompatible({
 });
 
 const { text } = await generateText({
-  model: bineric('borealis-2'),
+  model: bineric('lynx-30b'),
   prompt: 'Hva er hovedstaden i Norge?',
 });
 
@@ -91,4 +91,4 @@ for await (const textPart of result.textStream) {
 
 ## Zuse Decision Models
 
-Bineric's Zuse models (`zuse-27b` and `zuse-9b`) are decision models trained on European languages. They answer typed questions about a text with probabilities instead of generating text, so they use Bineric's own `/v1/zuse` endpoint rather than Chat Completions, and are not language models in the AI SDK. See the [Zuse API documentation](https://bineric.com/zuse/docs) for how to call them.
+Zuse (`zuse-27b` and `zuse-9b`) is Bineric's own European decision model, trained on European languages. It answers typed questions about a text with probabilities instead of generating text, so it uses Bineric's own `/v1/zuse` endpoint rather than Chat Completions, and is not a language model in the AI SDK. See the [Zuse API documentation](https://bineric.com/zuse/docs) for how to call it.
