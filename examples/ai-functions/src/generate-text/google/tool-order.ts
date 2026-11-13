@@ -67,7 +67,7 @@ const tools = {
 
 run(async () => {
   const { text } = await generateText({
-    model: google('gemini-3.8-flash'),
+    model: google('gemini-4-hydrogen'),
     tools,
     toolOrder: ['middle'],
     prompt: 'Verify the order tools are sent to the provider.',

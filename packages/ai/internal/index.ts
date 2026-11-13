@@ -31,6 +31,7 @@ export {
   createNullLanguageModelUsage,
 } from '../src/types/usage';
 export { resolveLanguageModel } from '../src/model/resolve-model';
+export { logWarnings } from '../src/logger/log-warnings';
 export { mergeAbortSignals } from '../src/util/merge-abort-signals';
 export { setAbortTimeout } from '../src/util/set-abort-timeout';
 export { mergeCallbacks } from '../src/util/merge-callbacks';
@@ -54,6 +55,7 @@ export {
   verifyToolApprovalSignature,
 } from '../src/generate-text/tool-approval-signature';
 export { validateApprovedToolApprovals } from '../src/generate-text/validate-tool-approvals';
+export { resolveToolApproval } from '../src/generate-text/resolve-tool-approval';
 export { toResponseMessages } from '../src/generate-text/to-response-messages';
 
 export { DefaultGenerateTextResult } from '../src/generate-text/default-generate-text-result';

@@ -21,10 +21,6 @@ function parseArgs(argv) {
     forceIndex: false,
     indexFile: null,
     firstTitle: 'Adopt architecture decision records',
-    firstStatus: 'accepted',
-    deciders: '',
-    technicalStory: '',
-    strategy: 'date',
     json: false,
   };
 
@@ -40,10 +36,6 @@ function parseArgs(argv) {
     else if (a === '--force-index') out.forceIndex = true;
     else if (a === '--index-file') out.indexFile = next();
     else if (a === '--first-title') out.firstTitle = next();
-    else if (a === '--first-status') out.firstStatus = next();
-    else if (a === '--deciders') out.deciders = next();
-    else if (a === '--technical-story') out.technicalStory = next();
-    else if (a === '--strategy') out.strategy = next();
     else if (a === '--json') out.json = true;
     else if (a === '--help' || a === '-h') {
       process.stdout.write(
@@ -56,8 +48,6 @@ function parseArgs(argv) {
           '  --index-file <path>    Override index file path (relative to repo root unless absolute)',
           '  --force-index          Overwrite index file if it exists',
           '  --first-title <text>   Title for initial ADR',
-          '  --first-status <text>  Status for initial ADR (default: accepted)',
-          '  --strategy date|slug|auto  Filename strategy for initial ADR (default: date)',
           '  --json                 Output machine-readable JSON (default: off)',
           '',
         ].join('\n'),
@@ -68,8 +58,6 @@ function parseArgs(argv) {
     }
   }
 
-  if (!['auto', 'date', 'slug'].includes(out.strategy))
-    die(`Invalid --strategy: ${out.strategy}`);
   return out;
 }
 
@@ -107,22 +95,8 @@ function toPosix(p) {
   return p.split(path.sep).join('/');
 }
 
-function generateFirstAdr({ title, status, date, deciders, adrDir }) {
-  const deciderLine = deciders
-    ? String(deciders)
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean)
-        .join(', ')
-    : '';
-
-  return `---
-status: ${status}
-date: ${date}
-decision-makers: ${deciderLine}
----
-
-# ${title}
+function generateFirstAdr({ title, adrDir }) {
+  return `# ${title}
 
 ## Context and Problem Statement
 
@@ -136,40 +110,37 @@ We need a lightweight, version-controlled way to capture decisions where the cod
 
 ## Decision
 
-Adopt Architecture Decision Records (ADRs) using the MADR 4.0 format, stored in \`${adrDir}/\`.
+Adopt Architecture Decision Records (ADRs), stored in \`${adrDir}/\`.
 
 Conventions:
+
 - One ADR per file, named \`YYYY-MM-DD-title-with-dashes.md\`
-- New ADRs start as \`proposed\`, move to \`accepted\` or \`rejected\`
+- An ADR is accepted when its pull request merges; an explicit status is unnecessary
 - Superseded ADRs link to their replacement
-- ADRs are written to be self-contained — a coding agent should be able to read one and implement the decision without further context
+- Use Context and Problem Statement, Decision, Alternatives Considered, and optional More Information
+- Omit YAML frontmatter and explicit status fields
+- Include tradeoffs with the decision and alternatives; keep implementation plans and verification in issues or PRs
+- ADRs are self-contained so contributors and coding agents can understand the decision and its rationale
 
-## Consequences
-
-* Good, because decisions are discoverable and version-controlled alongside the code
-* Good, because new contributors (human or agent) can understand the "why" behind architecture choices
-* Good, because the team builds a shared decision log that prevents relitigating settled questions
-* Bad, because writing ADRs takes time — though a good ADR saves more time than it costs
-* Neutral, because ADRs require periodic review to mark outdated decisions as deprecated or superseded
+Decisions are discoverable and version-controlled alongside the code, helping contributors understand the rationale and avoid relitigating settled questions. Writing records takes time, and they need periodic review to mark outdated decisions as deprecated or superseded.
 
 ## Alternatives Considered
 
-* No formal records: Continue making decisions in conversations and code comments. Rejected because context is lost and decisions get relitigated.
-* Wiki or Notion pages: Capture decisions outside the repo. Rejected because they drift out of sync with the code and are not version-controlled.
-* Lightweight RFCs: More heavyweight process with formal review cycles. Rejected as overkill for most decisions — ADRs can scale up to RFC-level detail when needed.
+- No formal records: Continue making decisions in conversations and code comments. Rejected because context is lost and decisions get relitigated.
+- Wiki or Notion pages: Capture decisions outside the repo. Rejected because they drift out of sync with the code and are not version-controlled.
+- Lightweight RFCs: A more heavyweight process with formal review cycles. Rejected as overkill for most decisions; ADRs can expand the analysis when needed.
 
 ## More Information
 
-* MADR: <https://adr.github.io/madr/>
-* Michael Nygard, "Documenting Architecture Decisions": <https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions>`;
+- Michael Nygard, "Documenting Architecture Decisions": <https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions>`;
 }
 
-function updateIndexFile(indexFile, { relLink, title, status, date }) {
+function updateIndexFile(indexFile, { relLink, title, date }) {
   if (!fs.existsSync(indexFile)) return;
   let content = fs.readFileSync(indexFile, 'utf8');
   if (content.includes(relLink)) return;
 
-  const entryLine = `- [${title}](${relLink}) (${status}, ${date})`;
+  const entryLine = `- [${title}](${relLink}) (${date})`;
 
   // Append after "## ADRs" heading if found, otherwise append at end
   const normalized = content.replace(/\r\n/g, '\n');
@@ -216,20 +187,10 @@ function main() {
 
   const firstAdrContent = generateFirstAdr({
     title: args.firstTitle,
-    status: args.firstStatus,
-    date: today,
-    deciders: args.deciders,
     adrDir: args.dir,
   });
 
-  // Determine filename using same logic as new_adr.js
-  const strategy = args.strategy === 'auto' ? 'date' : args.strategy;
-  let firstAdrFilename;
-  if (strategy === 'date') {
-    firstAdrFilename = `${today}-${slugify(args.firstTitle)}.md`;
-  } else {
-    firstAdrFilename = `${slugify(args.firstTitle)}.md`;
-  }
+  const firstAdrFilename = `${today}-${slugify(args.firstTitle)}.md`;
   const firstAdrPath = path.join(adrDir, firstAdrFilename);
   fs.writeFileSync(firstAdrPath, `${firstAdrContent.trimEnd()}\n`, 'utf8');
 
@@ -238,7 +199,6 @@ function main() {
   updateIndexFile(indexFile, {
     relLink,
     title: args.firstTitle,
-    status: args.firstStatus,
     date: today,
   });
 
@@ -255,8 +215,6 @@ function main() {
         createdAdrPath: firstAdrPath,
         createdAdrRelPath: toPosix(path.relative(repoRoot, firstAdrPath)),
         title: args.firstTitle,
-        status: args.firstStatus,
-        strategy,
         date: today,
       },
       date: today,
