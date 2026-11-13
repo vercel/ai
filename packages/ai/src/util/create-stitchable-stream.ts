@@ -26,32 +26,42 @@ export function createStitchableStream<T>(): {
   let controller: ReadableStreamDefaultController<T> | null = null;
   let isClosed = false;
   let isCancelled = false;
+  // Graceful closure still drains queued streams; terminal completion does not.
+  let isFinished = false;
   let waitForNewStream = createResolvablePromise<void>();
 
-  const terminate = () => {
-    if (isCancelled) {
-      return;
-    }
-
-    isClosed = true;
-    waitForNewStream.resolve();
-
-    innerStreams.forEach(({ reader, onCancel }) => {
-      onCancel?.();
-      reader.cancel();
-    });
+  const cancelInnerStreams = () => {
+    const streamsToCancel = innerStreams;
     innerStreams = [];
+    streamsToCancel.forEach(({ reader, onCancel }) => {
+      onCancel?.();
+      void reader.cancel().catch(() => {});
+    });
+  };
+
+  const closeOuterStream = () => {
+    if (isFinished) return;
+    isFinished = true;
     controller?.close();
   };
 
+  const terminate = () => {
+    if (isCancelled || isFinished) return;
+
+    isClosed = true;
+    waitForNewStream.resolve();
+    closeOuterStream();
+    cancelInnerStreams();
+  };
+
   const processPull = async () => {
-    if (isCancelled) {
+    if (isCancelled || isFinished) {
       return;
     }
 
     // Case 1: Outer stream is closed and no more inner streams
     if (isClosed && innerStreams.length === 0) {
-      controller?.close();
+      closeOuterStream();
       return;
     }
 
@@ -68,7 +78,7 @@ export function createStitchableStream<T>(): {
     try {
       const { value, done } = await currentStream.reader.read();
 
-      if (isCancelled) {
+      if (isCancelled || isFinished) {
         return;
       }
 
@@ -78,7 +88,7 @@ export function createStitchableStream<T>(): {
 
         if (innerStreams.length === 0 && isClosed) {
           // when closed and no more inner streams, stop pulling
-          controller?.close();
+          closeOuterStream();
         } else {
           // continue pulling from the next stream
           await processPull();
@@ -88,15 +98,17 @@ export function createStitchableStream<T>(): {
         controller?.enqueue(value);
       }
     } catch (error) {
-      if (isCancelled) {
+      if (isCancelled || isFinished) {
         return;
       }
 
       // Case 5: Current inner stream throws an error
+      isFinished = true;
+      isClosed = true;
       currentStream.onError?.(error);
       controller?.error(error);
       innerStreams.shift(); // Remove the errored stream
-      terminate(); // we have errored, terminate all streams
+      cancelInnerStreams();
     }
   };
 
@@ -147,7 +159,7 @@ export function createStitchableStream<T>(): {
      * finish processing and then close the outer stream.
      */
     close: () => {
-      if (isCancelled) {
+      if (isCancelled || isFinished) {
         return;
       }
 
@@ -155,7 +167,7 @@ export function createStitchableStream<T>(): {
       waitForNewStream.resolve();
 
       if (innerStreams.length === 0) {
-        controller?.close();
+        closeOuterStream();
       }
     },
 
