@@ -690,7 +690,6 @@ TypeScript rejects these options on `WorkflowAgent`. If you pass them anyway, fo
 | ToolLoopAgent option                                            | With WorkflowAgent                                                                                                                                                       |
 | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `toolApproval`                                                  | Set `needsApproval` on each tool. See [Tool Approval](#tool-approval).                                                                                                   |
-| `toolOrder`                                                     | Not supported. Tools are sent in the order of the `tools` object.                                                                                                        |
 | `callOptionsSchema` and the `options` call parameter            | Not supported. Pass settings to `generate()` or `stream()` directly.                                                                                                     |
 | `experimental_refineToolInput`                                  | Not supported.                                                                                                                                                           |
 | `experimental_toolCallers`                                      | Not supported.                                                                                                                                                           |
@@ -734,7 +733,6 @@ In `ToolLoopAgent`, `prepareCall` receives the settings together with the `promp
 - `messages` uses the provider prompt format (`LanguageModelV4Prompt`) in the argument and in the return value, and it includes the system message. `ToolLoopAgent` uses `ModelMessage[]` without the system message.
 - The argument has no `responseMessages`. `initialInstructions`, `instructions`, and `initialMessages` are available.
 - You can return `headers`. They are merged over the headers of the call, and the request keeps the `user-agent` value that identifies the agent. `ToolLoopAgent` does not accept `headers` from `prepareStep`.
-- You cannot return `toolOrder`.
 
 ### Callbacks
 
