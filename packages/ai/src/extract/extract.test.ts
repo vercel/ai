@@ -205,6 +205,51 @@ it('extracts every field in one call and preserves metadata', async () => {
   });
 });
 
+it.each(['', ' INV-2041 ', '   '])(
+  'normalizes empty answers and preserves text %j and metadata',
+  async value => {
+    const providerAnswers: ExtractionModelV4Result['answers'] = {
+      ...answers,
+      invoiceNumber: {
+        type: 'text',
+        value,
+        confidence: 0.98,
+        source: { type: 'text', part: 0, start: 8, end: 16 },
+      },
+      dueDate: { type: 'date', value: '' },
+      contacts: {
+        type: 'list',
+        value: [],
+        items: [],
+        confidence: 0.8,
+        pNull: 0.9,
+      },
+    };
+    const result = await extract({
+      ...setup({ answers: providerAnswers, warnings: [] }),
+      state,
+      fields,
+    });
+    expect(result.answers).toEqual({
+      ...providerAnswers,
+      invoiceNumber: {
+        ...providerAnswers.invoiceNumber,
+        value: value === '' ? null : value,
+      },
+      dueDate: { type: 'date', value: null },
+      contacts: { type: 'list', value: null, confidence: 0.8, pNull: 0.9 },
+    });
+    expect(result.answers.contacts).not.toHaveProperty('items');
+    expect(providerAnswers.contacts).toEqual({
+      type: 'list',
+      value: [],
+      items: [],
+      confidence: 0.8,
+      pNull: 0.9,
+    });
+  },
+);
+
 it('accepts null values for fields the state does not contain', async () => {
   const empty = Object.fromEntries(
     Object.entries(fields).map(([id, field]) => [
