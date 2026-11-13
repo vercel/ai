@@ -118,6 +118,13 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default set of active tools. Limits which tools the model can call without changing tool call and result types. Per-stream values override this default.',
     },
     {
+      name: 'toolOrder',
+      type: 'ToolOrder<TTools>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
       name: 'output',
       type: 'OutputSpecification',
       isOptional: true,
@@ -132,6 +139,13 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         "Default function to repair tool calls that fail to parse. Mark the function with 'use step' when used in a workflow. Per-stream values override this default.",
     },
     {
+      name: 'experimental_refineToolInput',
+      type: 'ToolInputRefinement<TTools>',
+      isOptional: true,
+      description:
+        'Optional mapping of tool names to functions that refine parsed tool inputs. Each function receives the typed input for its tool and must return the same input type shape. The refined input is used for tool execution, output parts, lifecycle callbacks, and telemetry in both `generate()` and `stream()`. Per-stream values override this default.',
+    },
+    {
       name: 'experimental_download',
       type: 'DownloadFunction',
       isOptional: true,
@@ -144,6 +158,13 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'Default sandbox session passed to tool descriptions and execution as `experimental_sandbox`, and exposed to `prepareStep`. Per-stream values override this default.',
+    },
+    {
+      name: 'toolApproval',
+      type: 'ToolApprovalConfiguration<TTools, TRuntimeContext>',
+      isOptional: true,
+      description:
+        "Default approval configuration for tool calls. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext`. This setting takes precedence over a tool's `needsApproval` default. The functions in the configuration run in workflow context, outside of the durable model steps, and are never passed across a step boundary. Per-stream values override this default.",
     },
     {
       name: 'experimental_toolApprovalSecret',
@@ -629,6 +650,13 @@ In addition to the options in the table, `stream()` accepts the generation setti
       description: 'Limits the subset of tools available for this call without changing tool call and result types.',
     },
     {
+      name: 'toolOrder',
+      type: 'ToolOrder<TTools>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
       name: 'output',
       type: 'OutputSpecification',
       isOptional: true,
@@ -637,9 +665,9 @@ In addition to the options in the table, `stream()` accepts the generation setti
     },
     {
       name: 'timeout',
-      type: 'number',
+      type: 'WorkflowAgentTimeoutConfiguration',
       isOptional: true,
-      description: 'Model-call deadline in milliseconds. Inside a workflow, the absolute deadline is checked at dispatch and retry and remains in effect across suspension. It does not cancel a tool waiting on a Workflow hook; use run.cancel() to stop the suspended run.',
+      description: 'Timeout for model calls. A number, or `totalMs` in the object form, is one deadline in milliseconds for the whole run. Inside a workflow, the absolute deadline is checked at dispatch and retry and remains in effect across suspension. `stepMs` limits each model call. `firstChunkMs` limits the wait for the first output of each model call, and `chunkMs` limits the wait between two outputs. A timeout does not cancel a tool waiting on a Workflow hook; use run.cancel() to stop the suspended run.',
     },
     {
       name: 'sendFinish',
@@ -666,6 +694,13 @@ In addition to the options in the table, `stream()` accepts the generation setti
       description: "Callback to attempt automatic recovery when a tool call cannot be parsed. Mark the function with 'use step' when used in a workflow.",
     },
     {
+      name: 'experimental_refineToolInput',
+      type: 'ToolInputRefinement<TTools>',
+      isOptional: true,
+      description:
+        'Optional mapping of tool names to functions that refine parsed tool inputs. Each function receives the typed input for its tool and must return the same input type shape. The refined input is used for tool execution, output parts, lifecycle callbacks, and telemetry in both `generate()` and `stream()`. Overrides the constructor default.',
+    },
+    {
       name: 'experimental_download',
       type: 'DownloadFunction',
       isOptional: true,
@@ -678,6 +713,13 @@ In addition to the options in the table, `stream()` accepts the generation setti
       isOptional: true,
       description:
         'Sandbox session passed to tool descriptions and execution as `experimental_sandbox`, and exposed to `prepareStep`. Overrides the constructor default.',
+    },
+    {
+      name: 'toolApproval',
+      type: 'ToolApprovalConfiguration<TTools, TRuntimeContext>',
+      isOptional: true,
+      description:
+        "Approval configuration for tool calls. Pass a `GenericToolApprovalFunction` to handle all tool calls in one callback with `toolCall`, `tools`, `toolsContext`, `messages`, and `runtimeContext`, or pass a per-tool object where each key can be a status (`'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`), an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or a `SingleToolApprovalFunction` that receives the tool input and options `toolCallId`, `messages`, `toolContext`, and `runtimeContext`. This setting takes precedence over a tool's `needsApproval` default. The functions in the configuration run in workflow context, outside of the durable model steps, and are never passed across a step boundary. Overrides the constructor default.",
     },
     {
       name: 'experimental_toolApprovalSecret',
@@ -912,6 +954,21 @@ type ActiveTools<TTools extends ToolSet> =
 
 Limits a workflow agent call to the listed tool names. `undefined` means no tool restriction is applied.
 
+### `WorkflowAgentTimeoutConfiguration`
+
+```ts
+type WorkflowAgentTimeoutConfiguration =
+  | number
+  | {
+      totalMs?: number;
+      stepMs?: number;
+      firstChunkMs?: number;
+      chunkMs?: number;
+    };
+```
+
+The `timeout` option of `generate()` and `stream()`. A number is the total deadline in milliseconds. `generate()` uses `totalMs` and `stepMs`. `stream()` uses all four values. See [Deadlines, cancellation, and replay](/docs/agents/workflow-agent#deadlines-cancellation-and-replay).
+
 ### `InferWorkflowAgentUIMessage`
 
 Infers the UI message type for a `WorkflowAgent` instance. Optionally accepts a second type argument for custom message metadata.
@@ -1079,9 +1136,9 @@ console.log(result.output);
 
 ### Agent with Tool Approval
 
-For `WorkflowAgent`, tool approval is configured on the tool definition with
-`needsApproval`. For `generateText`, `streamText`, and `ToolLoopAgent`, use
-`toolApproval` instead.
+Tool approval is configured on the tool definition with `needsApproval` or on
+the agent with `toolApproval`. The `toolApproval` configuration takes precedence
+over `needsApproval`.
 
 ```ts
 import { WorkflowAgent } from '@ai-sdk/workflow';

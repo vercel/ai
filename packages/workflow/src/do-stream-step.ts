@@ -2,7 +2,6 @@ import type {
   LanguageModelV4Prompt,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
@@ -10,8 +9,12 @@ import {
   type LanguageModel,
   type ToolSet,
 } from 'ai';
-import { isOutputChunk, prepareRetries } from 'ai/internal';
+import { isOutputChunk, logWarnings, prepareRetries } from 'ai/internal';
 import { languageModelPromptToModelMessages } from './language-model-prompt-to-model-messages.js';
+import {
+  createModelCallTimeouts,
+  readUntilAborted,
+} from './model-call-timeouts.js';
 import {
   resolveSerializableTools,
   type SerializableToolDef,
@@ -93,12 +96,21 @@ async function streamModelStep(
     return { aborted: true };
   }
 
-  const abortSignal =
+  const callAbortSignal =
     timeout == null
       ? options?.abortSignal
       : options?.abortSignal == null
         ? AbortSignal.timeout(timeout)
         : AbortSignal.any([options.abortSignal, AbortSignal.timeout(timeout)]);
+
+  // The step, first-chunk, and chunk timeouts apply to this model call only.
+  const timeouts = createModelCallTimeouts({
+    abortSignal: callAbortSignal,
+    stepTimeoutMs: options?.stepTimeoutMs,
+    firstChunkTimeoutMs: options?.firstChunkTimeoutMs,
+    chunkTimeoutMs: options?.chunkTimeoutMs,
+  });
+  const abortSignal = timeouts.abortSignal;
 
   // Resolve model inside step (must happen here for serialization boundary)
   const model =
@@ -153,6 +165,8 @@ async function streamModelStep(
     maxRetries: options?.maxRetries,
     abortSignal,
   });
+  // The step timeout covers dispatch, SDK retries, and stream consumption.
+  timeouts.startStepTimeout();
   const modelStream = await (async () => {
     try {
       const { stream } = await retry(() =>
@@ -165,6 +179,7 @@ async function streamModelStep(
           allowSystemInMessages: true,
           tools,
           toolChoice: options?.toolChoice,
+          toolOrder: options?.toolOrder,
           includeRawChunks: options?.includeRawChunks,
           providerOptions: options?.providerOptions,
           abortSignal,
@@ -187,7 +202,11 @@ async function streamModelStep(
 
       return stream;
     } catch (error) {
-      if (abortSignal?.aborted && isAbortError(error)) {
+      timeouts.clear();
+
+      // An abort reason is an ordinary error, so the aborted signal decides
+      // whether the failure is an abort.
+      if (abortSignal?.aborted) {
         return undefined;
       }
 
@@ -225,18 +244,29 @@ async function streamModelStep(
   let hasReceivedOutputChunk = false;
   const ongoingToolCallToolNames = new Map<string, string>();
 
-  // Acquire writer once before the loop to avoid per-chunk lock overhead
-  const writer = writable?.getWriter();
+  let writer:
+    | WritableStreamDefaultWriter<ModelCallStreamPart<ToolSet>>
+    | undefined;
+
+  // The provider response stream has started. Like in streamText, the wait
+  // for its first output chunk starts here.
+  timeouts.startFirstChunkTimeout();
 
   try {
+    // Acquire writer once before the loop to avoid per-chunk lock overhead
+    writer = writable?.getWriter();
+
     // A workflow step can be retried after already writing partial output.
     // Reset the current UI step before every attempt so a retry invalidates
     // chunks left behind by an earlier execution.
     await writer?.write({ type: 'reset-step' });
 
-    for await (const part of modelStream) {
+    for await (const part of readUntilAborted(modelStream, abortSignal)) {
+      // Only model output counts for the first-chunk and chunk timeouts.
+      // Metadata, start and end markers, and empty deltas do not.
       if (isOutputChunk(part)) {
         hasReceivedOutputChunk = true;
+        timeouts.onOutputChunk();
       }
 
       switch (part.type) {
@@ -344,10 +374,10 @@ async function streamModelStep(
             toolCallPart.toolCallId,
           );
           ongoingToolCallToolNames.delete(toolCallPart.toolCallId);
-          if (
-            lifecycleToolName != null &&
-            serializedTools?.[lifecycleToolName]?.hasOnInputAvailable
-          ) {
+          // A provider can send the tool call without streaming the input
+          // first, so the tool name does not always come from a start event.
+          const availableToolName = lifecycleToolName ?? toolCallPart.toolName;
+          if (serializedTools?.[availableToolName]?.hasOnInputAvailable) {
             toolInputLifecycleEvents.push([
               'available',
               toolCallPart.toolCallId,
@@ -406,6 +436,7 @@ async function streamModelStep(
           break;
         }
         case 'model-call-end':
+          timeouts.clearOutputTimeouts();
           finish = {
             finishReason: part.finishReason,
             rawFinishReason: part.rawFinishReason,
@@ -462,12 +493,13 @@ async function streamModelStep(
       }
     }
   } catch (error) {
-    if (abortSignal?.aborted && isAbortError(error)) {
+    if (abortSignal?.aborted) {
       return { aborted: true };
     }
 
     throw error;
   } finally {
+    timeouts.clear();
     writer?.releaseLock();
   }
 
@@ -486,6 +518,12 @@ async function streamModelStep(
     hasTerminalError = true;
   }
 
+  logWarnings({
+    warnings: (warnings ?? []) as Parameters<typeof logWarnings>[0]['warnings'],
+    provider: model.provider,
+    model: model.modelId,
+  });
+
   return {
     toolCalls,
     finish,
@@ -496,6 +534,7 @@ async function streamModelStep(
       performance,
       warnings,
     },
+    model: { provider: model.provider, modelId: model.modelId },
     providerExecutedToolResults,
     toolInputLifecycleEvents,
     repairedToolCallIds: [...repairedToolCallIds],

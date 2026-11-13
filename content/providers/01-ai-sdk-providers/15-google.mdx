@@ -1,6 +1,10 @@
 ---
 title: Google
 description: Learn how to use Google models through AI Gateway or the direct Google provider.
+keywords:
+  - gemini
+  - gemini flash
+  - gemini pro
 ---
 
 # Google Provider
@@ -680,7 +684,7 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
 
-const model = 'gemini-3.8-flash';
+const model = 'gemini-4-hydrogen';
 
 // Create a cache with the content you want to reuse
 const cache = await ai.caches.create({
@@ -1579,6 +1583,30 @@ any other AI SDK language model.
   request bodies and SSE event vocabularies.
 </Note>
 
+### Reasoning
+
+Use the top-level `reasoning` option with `generateText` or `streamText` to
+control thinking depth on Interactions models that support thinking levels:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google.interactions('gemini-4-hydrogen'),
+  reasoning: 'xhigh',
+  prompt: 'What is AGI?',
+});
+```
+
+The provider maps `reasoning` to `generation_config.thinking_level` using the
+model's supported levels. `xhigh` is supported only by Gemini 4 Hydrogen.
+Unsupported levels fall back to a supported level with a compatibility warning;
+`none` maps to the lowest supported level. Models without thinking-level
+support and agent calls emit a warning and omit the setting. Omitting `reasoning`
+or setting it to `'provider-default'` preserves the API default.
+An explicit `providerOptions.google.thinkingLevel` takes precedence.
+
 ### Provider Options
 
 The Interactions model reads its options from the shared
@@ -1647,6 +1675,7 @@ The following optional provider options are available:
 
   Controls reasoning depth for thinking-enabled models. Mapped onto the
   Interactions request's `thinking_level`.
+  Overrides the top-level `reasoning` option when set.
   The `xhigh` level is only supported by Gemini 4 Hydrogen and requests its
   maximum reasoning depth.
 
@@ -2733,7 +2762,7 @@ import { google } from '@ai-sdk/google';
 import { experimental_extract } from 'ai';
 
 const { answers } = await experimental_extract({
-  model: google.extractionModel('gemini-3.8-flash'),
+  model: google.extractionModel('gemini-4-hydrogen'),
   referenceDate: '2026-11-11',
   state: 'Invoice INV-2041. Total due $1,250.00 by March 3.',
   fields: {

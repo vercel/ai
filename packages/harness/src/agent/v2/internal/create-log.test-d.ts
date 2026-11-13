@@ -34,9 +34,20 @@ test('allows adapters to append events without an ID', () => {
   }>().toMatchTypeOf<Parameters<HarnessV2Log['append']>[0]>();
 });
 
-test('keeps turn start and step finish events internal to the agent', () => {
+test('keeps engine-only events internal to the agent', () => {
   expectTypeOf<
-    Extract<HarnessV2LogEvent, { type: 'turn-start' | 'finish-step' }>
+    Extract<
+      HarnessV2LogEvent,
+      {
+        type:
+          | 'turn-start'
+          | 'finish-step'
+          | 'drive-start'
+          | 'crash-request'
+          | 'drive-crash'
+          | 'tool-execution-start';
+      }
+    >
   >().toBeNever();
 });
 

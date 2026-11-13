@@ -14,6 +14,7 @@ import {
 } from '@workflow/world';
 import type { JSONValue, SerializableValue } from '@ai-sdk/provider';
 import { isValidHarnessAgentLogEvent } from './is-valid-harness-agent-log-event';
+import type { HarnessAgentDriveIdentity } from './start-drive';
 import type { HarnessV2LogEvent } from '../../../v2/harness-v2-log';
 import type {
   HarnessV2FinishReason,
@@ -140,6 +141,112 @@ export type HarnessAgentLogEvent =
          * starts the turn.
          */
         readonly turnId: string;
+      };
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    }
+  | {
+      /**
+       * Records the start of a drive, visible only to the agent engine.
+       * Written under the ID `drive-start:${driveId}` before the drive
+       * changes anything else in the session. Recovery uses the latest one
+       * to decide whether the drive that left attempts unfinished is gone.
+       */
+      readonly type: 'drive-start';
+
+      /**
+       * Identity of the drive.
+       */
+      readonly data: HarnessAgentDriveIdentity;
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    }
+  | {
+      /**
+       * Asks the drive running the session's current turn to crash its
+       * process, visible only to the agent engine. Written by
+       * `experimental_crash()`. It applies to the latest `drive-start`
+       * before it.
+       */
+      readonly type: 'crash-request';
+
+      /**
+       * How the drive crashes.
+       */
+      readonly data: {
+        /**
+         * Whether the drive records a `drive-crash` before it crashes. If
+         * not set, the drive crashes like a real crash would, without any
+         * record.
+         */
+        readonly recordCrash?: boolean;
+      };
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    }
+  | {
+      /**
+       * Records that a drive is about to crash its process on request,
+       * visible only to the agent engine. Written under the ID
+       * `drive-crash:${driveId}` right before the process is killed, only
+       * if the request asked for it (`recordCrash`). It proves to recovery
+       * at once that the drive is gone. Its absence proves nothing: a drive
+       * may have crashed without it, which recovery then has to prove from
+       * the drive's `drive-start`.
+       */
+      readonly type: 'drive-crash';
+
+      /**
+       * Crashing drive and the request it follows.
+       */
+      readonly data: {
+        /**
+         * Identifier of the crashing drive.
+         */
+        readonly driveId: string;
+
+        /**
+         * ID of the `crash-request` event the drive follows.
+         */
+        readonly requestId: string;
+      };
+
+      /**
+       * Stable event identity within the session, used for deduplication.
+       * Independent of the event's committed log position.
+       */
+      readonly id: string;
+    }
+  | {
+      /**
+       * Records that a tool call attempt is about to run its tool, visible
+       * only to the agent engine. Written under the ID
+       * `tool-execution-start:${startId}` and committed right before the tool
+       * runs. An abandoned tool attempt without it provably never ran its
+       * tool, so recovery may retry it regardless of its replay policy.
+       */
+      readonly type: 'tool-execution-start';
+
+      /**
+       * Effect attempt of the tool call.
+       */
+      readonly data: {
+        /**
+         * ID of the corresponding `effect-start` event.
+         */
+        readonly startId: string;
       };
 
       /**

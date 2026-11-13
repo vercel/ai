@@ -48,7 +48,7 @@ The steps are below:
    - Add a `HarnessAgentEffectFunction` type to `packages/harness/src/agent/v2/internal/types.ts`, which is the same as `HarnessV2DriveContext["effect"]` (redeclare it, DO NOT import).
    - The input for the `createEffectFunction()` function must include the `HarnessAgentLog`.
 9. [x] Scaffold `packages/harness/src/agent/v2/internal/create-stream-writer.ts` with function `createStreamWriter(input): HarnessAgentStreamWriter`, and update the contract for replay-safe stream emission, per "Error representation", "Raw stream parts" and "Replay-safe stream emission" in HARNESS-V2.md.
-   - Add the `HarnessAgentStreamWriter` type (`emit`, `unsafeEmit`, `withdraw`, `flush`, `close`) and the `HarnessAgentStreamPartRecord` type (a part plus the engine-only `startId` and `key` tags; every stream record is one) to `packages/harness/src/agent/v2/internal/types.ts`. Withdrawals are an engine-only `withdraw` variant of `HarnessAgentStreamPart`. There is no `createEmitFunction()` and no `HarnessAgentEmitFunction` type.
+   - Add the `HarnessAgentStreamWriter` type (`emit`, `unsafeEmit`, `retract`, `flush`, `close`) and the `HarnessAgentStreamPartRecord` type (a part plus the engine-only `startId` and `key` tags; every stream record is one) to `packages/harness/src/agent/v2/internal/types.ts`. Retractions are an engine-only `retract` variant of `HarnessAgentStreamPart`. There is no `createEmitFunction()` and no `HarnessAgentEmitFunction` type.
    - The input for the `createStreamWriter()` function must include `world: World`, the `HarnessAgentSession` and the drive's `abortSignal`; the writer writes to the session's World stream, named by `session.getStreamName()`, in strict order (one write in flight). Add `decodeStreamRecords()` next to it.
    - Add `HarnessV2EffectError` and use it for the `error` of `HarnessV2StreamPart` and `HarnessV2EffectOutput`; update `createEffectFunction()`'s error outputs accordingly.
    - Type the `raw` stream part's `rawValue` as `SerializableValue`.
@@ -87,11 +87,13 @@ The steps are below:
 
 16. [ ] Implement recovery of effect attempts that a dead drive left unfinished, so that a durable session continues after a crash.
 
-- At the start of a drive, find the attempts with an `effect-start` but no `effect-end`, and treat them as abandoned only once there is proof that the drive that started them is gone (e.g. that drive's recorded deadline has passed). Never treat an attempt that a live drive may still be running as abandoned.
-- Record each abandoned attempt as `interrupted` (`retryable` from its `replay`, with its last committed partial), and emit a `withdraw` part for their `startId`s to the session's stream.
-- Have `executeHostTool()` and `executeBuiltinTool()` append an engine-internal `tool-execution-start` event, and await its commit, right before calling the tool's `execute` (after input validation and sandbox resolution). An abandoned tool attempt without that event provably never started its tool, so record it as `interrupted` with `retryable: true` regardless of the tool's `replay` policy. No end marker is needed: the `effect-end` is committed after `execute` returns. `gateBuiltinTool()` gets no such event, since the runtime runs the call as soon as the gate approves it.
+- Every drive appends an engine-internal `drive-start` event (with its runtime deadline, if any) before it changes anything else in the session.
+- At the start of a drive, find the attempts with an `effect-start` but no `effect-end`, and treat them as abandoned only once there is proof that the drive that started them is gone: the latest `drive-start`'s drive recorded a `drive-crash`, or its recorded deadline has passed. Never treat an attempt that a live drive may still be running as abandoned.
+- Record each abandoned attempt as `interrupted` (`retryable` from its `replay`, with its last committed partial), and emit a `retract` part for the `startId`s of the current turn's attempts whose output is a retryable interruption, since a retry replaces their output. A non-retryable interruption's output stays.
+- Have `executeHostTool()` and `executeBuiltinTool()` append an engine-internal `tool-execution-start` event, and await its commit, right before calling the tool's `execute` (after input validation and sandbox resolution). An abandoned tool attempt without that event provably never started its tool, so record it as `interrupted` with `retryable: true` regardless of the tool's `replay` policy. No end marker is needed: the `effect-end` is committed after `execute` returns. `gateBuiltinTool()` appends the same event right before it approves the call, since its effects share the `tool:` key with `executeBuiltinTool()` effects; it cannot cover a crash between the approval and the runtime starting the tool (see the TODO there).
 - Without such proof, the new drive must yield without changing the session.
-- At the start of a drive, re-emit the latest turn's boundary parts to the session's stream, each under its log key: the turn's `start`, then its `finish` if it finished, or else its latest `finish-step`. A crash between a boundary event's log append and its stream write loses the part, and the drive cannot tell whether the write landed, so readers must drop parts whose key they already saw.
+- At the start of a drive in an unfinished turn, write the turn's missing boundary parts to the session's stream, each under its log key: its `start` and its latest `finish-step`, if no record with that key is in the stream. A crash between a boundary event's log append and its stream write loses the part. Readers drop parts whose key they already saw. A finished turn is not repaired.
+- Add `HarnessAgent.drive({ session })` (runs a drive without submitting a prompt: continues an unfinished turn or starts the turn of a prompt that has not started one), `HarnessAgent.readStream({ session, abortSignal })` (reads the latest turn from its `start` record across drives until its `finish`, in any process), and `HarnessAgent.experimental_crash({ session })` (appends a `crash-request`; the running drive records a `drive-crash`, flushes its writer and kills its process). Stream results apply `retract` parts: retracted output leaves `steps` and the UI message stream (`reset-step`, then the step's surviving parts again).
 
 17. [x] Implement `packages/harness-fx-v2/`, a new durable from-scratch reimplementation of the fx harness, using libfx.
 
@@ -101,11 +103,15 @@ The steps are below:
 
 18. [ ] Add durable cancellation of a running turn: a new `HarnessAgent` method (e.g. `cancel({ session })`) appends an engine-internal cancel event to the session's log; the drive running the session, in any process, observes it, aborts its drive `stopAbortSignal`, and finishes the turn as `interrupted`. A call's `abortSignal` stays a local control that only ends that call's result.
 
-19. [ ] Treat errors caught from a drive like crashes: the engine no longer finishes the current turn for every error thrown out of a drive (`failCurrentTurn()`), but leaves the turn unfinished, so that a later drive continues it from the log.
+19. [ ] Pass the session's work directory to the `execute` of the app's own tools run through `executeHostTool()`, which currently only receive the sandbox session (`experimental_sandbox`). Built-in tools run through `executeBuiltinTool()` do not need this, since the adapter's `execute` gets the work directory from `sandbox()`.
+
+- Remove `sandboxConfig: { workDir: '.' }` from the agent configurations in `examples/durable-harness-e2e-next` that only set it as a workaround, so that the app's own tools resolve relative paths against the same directory as the harness's built-in tools.
+
+20. [ ] Treat errors caught from a drive like crashes: the engine no longer finishes the current turn for every error thrown out of a drive (`failCurrentTurn()`), but leaves the turn unfinished, so that a later drive continues it from the log.
 
 - Only end the turn (`finishReason: 'error'`, recorded as `finish-turn`) for errors known to be permanent, where another drive cannot succeed, and for a turn whose drives keep failing a bounded number of times in a row, as far as either case is relevant to us. `durable-harness` does the same with its `Unavailable` errors and its `failing` code after 8 failed deliveries in a row.
 
-20. [ ] Allow several queued prompts to be delivered together as a single turn.
+21. [ ] Allow several queued prompts to be delivered together as a single turn.
 
 - Accept prompts while a turn is running (`generate()` and `stream()` currently reject), and queue them for after that turn.
 - Merging is up to the adapter: it delivers all pending prompts in one effect (listing all of them in `deliveredSubmissionIds`), so that they start a single turn. Update the Pi adapter to do so.
@@ -113,12 +119,10 @@ The steps are below:
 - Decide how `turnId` is derived for a turn started by several prompts. It stays opaque to adapters.
 - Decide whose turn settings apply to a turn started by several prompts.
 
-21. [ ] Let the turn of a follow-up prompt continue the stream that `agent.stream()` returned for the turn running when the prompt was submitted.
+22. [ ] Let the turn of a follow-up prompt continue the stream that `agent.stream()` returned for the turn running when the prompt was submitted.
 
 - A stream is not a per-turn construct: the session's World stream already spans all turns. The result keeps reading past its turn's `finish` part into the turns of follow-up prompts, instead of ending at its own turn's `finish`.
 - This does not merge turns: each follow-up prompt still starts its own turn. No `HarnessV2` change.
-
-22. [ ] Pass the session's work directory to the `execute` of the app's own tools run through `executeHostTool()`, which currently only receive the sandbox session (`experimental_sandbox`). Built-in tools run through `executeBuiltinTool()` do not need this, since the adapter's `execute` gets the work directory from `sandbox()`.
 
 23. [ ] Define `HarnessV2Store` and its engine counterpart `HarnessAgentStore`, under the hood relying on specific `HarnessAgentLog` events (e.g. with type `store:...`), and include the adapter-specific type on `HarnessV2DriveContext`.
 

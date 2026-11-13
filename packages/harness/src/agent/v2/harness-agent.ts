@@ -36,16 +36,17 @@ import { createGateBuiltinToolFunction } from './internal/create-gate-builtin-to
 import { createLog, type HarnessAgentLog } from './internal/create-log';
 import {
   createStreamWriter,
-  decodeStreamRecords,
-  type HarnessAgentStreamPart,
   type HarnessAgentStreamWriter,
 } from './internal/create-stream-writer';
+import { readTurnRecordStream } from './internal/read-turn-record-stream';
 import {
   HarnessAfterFinishError,
   HarnessBeforeStartError,
 } from './internal/errors';
 import { HarnessGenerateTextResult } from './internal/harness-generate-text-result';
 import { HarnessStreamTextResult } from './internal/harness-stream-text-result';
+import { getDriveProcess, trackRunningDrive } from './internal/drive-process';
+import { startDrive } from './internal/start-drive';
 import type {
   HarnessAgentSandboxConfig,
   HarnessAgentSettings,
@@ -445,6 +446,184 @@ export class HarnessAgent<
   }
 
   /**
+   * Runs one drive of the session without submitting a prompt, and resolves
+   * once it ended.
+   *
+   * The drive first recovers what an earlier drive left behind: if a drive
+   * that provably is gone left effect attempts unfinished, they are recorded
+   * as interrupted and their output is retracted where a retry replaces it.
+   * A drive is provably gone if it recorded a crash, its deadline passed,
+   * its process is gone, or this call runs under a redelivery of the queue
+   * message that started it. Without that proof, the call resolves without
+   * changing the session. The harness then
+   * continues the latest unfinished turn, or starts the turn of a prompt
+   * that has not started one. Without either, the call resolves without
+   * writing anything.
+   *
+   * Resolves without doing anything if this process already runs a drive of
+   * the session. Rejects like the drive of a `stream()` call.
+   */
+  async drive(options: {
+    /**
+     * Session to drive.
+     */
+    session: HarnessAgentSession;
+
+    /**
+     * ID of the World queue message whose delivery runs this drive (the
+     * `messageId` a queue handler receives), if a queue message started it.
+     * A later delivery of the same message proves to recovery that this
+     * drive is gone.
+     */
+    queueMessageId?: string;
+  }): Promise<void> {
+    const { session, queueMessageId } = options;
+    const { runId } = session;
+    this.bindSession({ session });
+
+    let busy = busySessions.get(this.world);
+    if (busy == null) {
+      busy = new Set();
+      busySessions.set(this.world, busy);
+    }
+    if (busy.has(runId)) return;
+    busy.add(runId);
+    try {
+      await this.runDrive({ session, queueMessageId });
+    } finally {
+      busy.delete(runId);
+    }
+  }
+
+  /**
+   * Reads the session's latest turn from the session's stream and returns
+   * it as a stream result, in any process, without driving the session.
+   *
+   * Reading starts at the turn's `start` part and follows the turn across
+   * drives until its `finish` part, so a finished turn is read from its
+   * stored output, and an unfinished one until a later drive finishes it.
+   * Output that recovery withdrew after a crash is removed from the result's
+   * steps and from its UI message stream. `abortSignal` only ends the
+   * result (with an `abort` part). Rejects if the session has no turn.
+   */
+  async readStream(options: {
+    /**
+     * Session whose latest turn is read.
+     */
+    session: HarnessAgentSession;
+
+    /**
+     * Ends reading early.
+     */
+    abortSignal?: AbortSignal;
+  }): Promise<
+    StreamTextResult<
+      HarnessAllTools<THarness, TUserTools>,
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >
+  > {
+    const { session, abortSignal } = options;
+    const { events } = await createLog({
+      world: this.world,
+      runId: session.runId,
+    }).read({ types: ['turn-start'] });
+    const turnStart = events.at(-1);
+    if (turnStart?.type !== 'turn-start') {
+      throw new Error('HarnessAgent.readStream: the session has no turn.');
+    }
+
+    return new HarnessStreamTextResult({
+      records: readTurnRecordStream({
+        world: this.world,
+        session,
+        turnId: turnStart.data.turnId,
+        startIndex: 0,
+        abortSignal,
+      }),
+      abortSignal,
+      tools: this.tools,
+      harnessId: this.harnessId,
+      callId: generateId(),
+    });
+  }
+
+  /**
+   * Crashes the process of the drive that runs the session's current turn,
+   * for testing crash recovery. Experimental.
+   *
+   * Appends a `crash-request` to the session's log and resolves once it is
+   * committed. The drive of the latest `drive-start`, in any process,
+   * observes it and kills its process with `SIGKILL`, including any other
+   * work in that process, like a real crash would: nothing is recorded or
+   * flushed, so a later drive recovers the session once it can prove the
+   * drive gone, e.g. because its process is gone. With `recordCrash`, the
+   * drive first records a `drive-crash` and flushes its stream writer,
+   * which proves to a later drive at once that it is gone. Rejects without
+   * writing if the session has no turn, its latest turn finished, its
+   * latest drive recorded a crash, or a crash of its latest drive was
+   * already requested.
+   */
+  async experimental_crash(options: {
+    /**
+     * Session whose current drive crashes.
+     */
+    session: HarnessAgentSession;
+
+    /**
+     * Whether the drive records a `drive-crash` before it crashes, so that
+     * recovery does not need to prove it gone otherwise. Defaults to
+     * `false`.
+     */
+    recordCrash?: boolean;
+  }): Promise<void> {
+    const { session, recordCrash } = options;
+    const log = createLog({ world: this.world, runId: session.runId });
+    const { events } = await log.read({
+      types: [
+        'turn-start',
+        'finish-turn',
+        'drive-start',
+        'drive-crash',
+        'crash-request',
+      ],
+    });
+
+    let turnId: string | undefined;
+    let driveId: string | undefined;
+    let crashRequested = false;
+    const finishedTurns = new Set<string>();
+    const crashedDrives = new Set<string>();
+    for (const event of events) {
+      if (event.type === 'turn-start') turnId = event.data.turnId;
+      if (event.type === 'finish-turn') finishedTurns.add(event.data.turnId);
+      if (event.type === 'drive-start') {
+        driveId = event.data.driveId;
+        crashRequested = false;
+      }
+      if (event.type === 'crash-request') crashRequested = true;
+      if (event.type === 'drive-crash') crashedDrives.add(event.data.driveId);
+    }
+    if (
+      turnId == null ||
+      finishedTurns.has(turnId) ||
+      driveId == null ||
+      crashedDrives.has(driveId) ||
+      crashRequested
+    ) {
+      throw new Error(
+        'HarnessAgent.experimental_crash: there is no current drive to crash.',
+      );
+    }
+
+    await log.append({
+      type: 'crash-request',
+      id: generateId(),
+      data: recordCrash ? { recordCrash: true } : {},
+    });
+  }
+
+  /**
    * Validates the call, appends its prompt as a `prompt` submission, starts
    * a drive of the session, and returns the result reading the drive's
    * output.
@@ -498,6 +677,7 @@ export class HarnessAgent<
     if (busy.has(runId)) throw createTurnRunningError();
     busy.add(runId);
 
+    const submissionId = generateId();
     let driveEnd: Promise<void>;
     let startIndex: number;
     try {
@@ -513,10 +693,10 @@ export class HarnessAgent<
         (await this.world.streams.getInfo(runId, streamName)).tailIndex + 1;
       await log.append({
         type: 'submission',
-        id: generateId(),
+        id: submissionId,
         data: { type: 'prompt', message, settings },
       });
-      driveEnd = this.drive({ session });
+      driveEnd = this.runDrive({ session });
     } catch (error) {
       busy.delete(runId);
       throw error;
@@ -524,125 +704,21 @@ export class HarnessAgent<
     void driveEnd.finally(() => busy.delete(runId)).catch(() => {});
 
     /*
-     * The result reads the parts written to the session's stream from
-     * `startIndex` on, which are all output of this call's turn. The drive
-     * flushes its stream writer before it settles, so once it settled,
-     * reading continues up to the stream's end at that moment and then stops.
-     * Every chunk of the World stream ends with a blank line; counting those
-     * lines is how the reader knows it reached that end. Reading also stops
-     * as soon as `abortSignal` fired, which never affects the drive. If the
-     * drive rejects, the parts stream errors with the drive's error.
+     * The result reads the session's stream from `startIndex` on, starting
+     * at this turn's `start` record (the turn's ID is the submission's ID),
+     * until the drive ended and everything it wrote was read. Records the
+     * drive writes before the turn starts, such as recovery output for an
+     * earlier turn, are not part of this turn.
      */
-    const world = this.world;
-    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
-    let ended = false;
-    let onAbort = (): void => {};
-
-    /**
-     * Returns whether reading ended. `ended` is set by callbacks (the drive's
-     * end, the abort signal, cancellation), so loops check it through this
-     * function after every await.
-     */
-    const isEnded = (): boolean => ended;
-
-    /**
-     * Marks reading as ended and stops reading the World stream.
-     */
-    const release = (): void => {
-      ended = true;
-      abortSignal?.removeEventListener('abort', onAbort);
-      void reader?.cancel().catch(() => {});
-    };
-
-    const parts = new ReadableStream<HarnessAgentStreamPart>({
-      start(controller) {
-        let lastChunk = startIndex - 1;
-        let tailIndex: number | undefined;
-
-        /**
-         * Closes the parts stream, once.
-         */
-        const close = (): void => {
-          if (ended) return;
-          release();
-          controller.close();
-        };
-
-        /**
-         * Errors the parts stream, once.
-         */
-        const fail = (error: unknown): void => {
-          if (ended) return;
-          release();
-          controller.error(error);
-        };
-
-        /**
-         * Closes the parts stream once the drive settled and every chunk
-         * written before that was read.
-         */
-        const closeIfDrained = (): void => {
-          if (tailIndex != null && lastChunk >= tailIndex) close();
-        };
-
-        if (abortSignal != null) {
-          if (abortSignal.aborted) {
-            close();
-            return;
-          }
-          onAbort = close;
-          abortSignal.addEventListener('abort', onAbort, { once: true });
-        }
-
-        void driveEnd
-          .then(async () => {
-            tailIndex = (await world.streams.getInfo(runId, streamName))
-              .tailIndex;
-            closeIfDrained();
-          })
-          .catch(fail);
-
-        void (async () => {
-          const stream = await world.streams.get(runId, streamName, startIndex);
-          reader = stream.getReader();
-          if (isEnded()) {
-            void reader.cancel().catch(() => {});
-            return;
-          }
-          const decoder = new TextDecoder();
-          let buffer = '';
-          while (!isEnded()) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            for (
-              let index = buffer.indexOf('\n');
-              index !== -1 && !isEnded();
-              index = buffer.indexOf('\n')
-            ) {
-              const line = buffer.slice(0, index);
-              buffer = buffer.slice(index + 1);
-              if (line === '') {
-                lastChunk++;
-                closeIfDrained();
-                continue;
-              }
-              for (const record of await decodeStreamRecords({ text: line })) {
-                if (!isEnded()) controller.enqueue(record.part);
-              }
-            }
-          }
-          close();
-        })().catch(fail);
-      },
-
-      cancel() {
-        release();
-      },
-    });
-
     return new HarnessStreamTextResult({
-      parts,
+      records: readTurnRecordStream({
+        world: this.world,
+        session,
+        turnId: submissionId,
+        startIndex,
+        abortSignal,
+        driveEnd,
+      }),
       abortSignal,
       tools: this.tools,
       harnessId: this.harnessId,
@@ -664,15 +740,21 @@ export class HarnessAgent<
    * what the harness or the engine threw if the drive failed without an
    * unfinished turn to report the error in.
    */
-  private drive(options: {
+  private runDrive(options: {
     /**
      * Session to drive.
      */
     session: HarnessAgentSession;
+
+    /**
+     * ID of the World queue message whose delivery runs the drive.
+     */
+    queueMessageId?: string;
   }): Promise<void> {
     return runDrivePass({
       world: this.world,
       session: options.session,
+      queueMessageId: options.queueMessageId,
       harness: this.harness,
       userTools: this.userTools,
       workDir: this.sandboxConfig.workDir,
@@ -745,6 +827,20 @@ const unknownUsage: HarnessV2Usage = {
  * Runs one drive of a session: creates the engine pieces for the drive, passes
  * the resulting drive context to the harness's `drive()`, and ends the drive.
  *
+ * Before the harness runs, `startDrive()` recovers what an earlier drive left
+ * behind and appends this drive's `drive-start`. If it decides that the drive
+ * must not run (nothing to do, or unfinished attempts of a drive that is not
+ * provably gone), the drive ends without running the harness.
+ *
+ * While the drive runs, it listens for `crash-request` events committed after
+ * its own `drive-start` and before any later one. On the first, it kills its
+ * process with `SIGKILL`, like a real crash would. If the request asks to
+ * record the crash, it first records a `drive-crash` and flushes its stream
+ * writer; if the `drive-crash` cannot be recorded, the process stays alive.
+ * The drive is registered as running in this process from before its
+ * `drive-start` until it ended, so that recovery in this process can tell
+ * an ended drive from a running one.
+ *
  * Signals:
  * - `stopAbortSignal` aborts once the drive ended, after the stream writer was
  *   flushed. That releases the pieces' log subscriptions and records every
@@ -776,6 +872,11 @@ async function runDrivePass(options: {
   session: HarnessAgentSession;
 
   /**
+   * ID of the World queue message whose delivery runs the drive.
+   */
+  queueMessageId?: string;
+
+  /**
    * Harness adapter that drives the session.
    */
   harness: HarnessV2;
@@ -790,7 +891,8 @@ async function runDrivePass(options: {
    */
   workDir?: string;
 }): Promise<void> {
-  const { world, session, harness, userTools, workDir } = options;
+  const { world, session, queueMessageId, harness, userTools, workDir } =
+    options;
   const { runId } = session;
 
   const stopController = new AbortController();
@@ -802,6 +904,8 @@ async function runDrivePass(options: {
   let log: HarnessAgentLog | undefined;
   let writer: HarnessAgentStreamWriter | undefined;
   let finishTurn: HarnessAgentFinishTurnFunction | undefined;
+  let stopCrashListener: (() => void) | undefined;
+  let untrackDrive: (() => void) | undefined;
 
   try {
     const runtimeDeadline = await world.getRuntimeDeadline?.();
@@ -823,6 +927,60 @@ async function runDrivePass(options: {
       session,
       abortSignal: stopAbortSignal,
     });
+
+    const driveId = generateId();
+    untrackDrive = trackRunningDrive({ driveId });
+    const driveLog = log;
+    const driveWriter = writer;
+    let targeted = false;
+    let crashing = false;
+    stopCrashListener = driveLog.onAppend({
+      config: { types: ['drive-start', 'crash-request'] },
+      listener: event => {
+        if (event.type === 'drive-start') {
+          targeted = event.data.driveId === driveId;
+          return;
+        }
+        if (event.type !== 'crash-request' || !targeted || crashing) return;
+        crashing = true;
+        if (!event.data.recordCrash) {
+          process.kill(process.pid, 'SIGKILL');
+          return;
+        }
+        void (async () => {
+          await driveLog.append({
+            type: 'drive-crash',
+            id: `drive-crash:${driveId}`,
+            data: { driveId, requestId: event.id },
+          });
+          await driveWriter.flush();
+          process.kill(process.pid, 'SIGKILL');
+        })().catch(() => {
+          crashing = false;
+        });
+      },
+    });
+
+    const driveProcess = getDriveProcess();
+    if (
+      !(await startDrive({
+        log,
+        writer,
+        world,
+        session,
+        driveIdentity: {
+          driveId,
+          ...(runtimeDeadline != null && {
+            deadline: runtimeDeadline.getTime(),
+          }),
+          ...(queueMessageId != null && { queueMessageId }),
+          ...(driveProcess != null && { process: driveProcess }),
+        },
+      }))
+    ) {
+      return;
+    }
+
     const effect = createEffectFunction({
       log,
       stopAbortSignal,
@@ -836,12 +994,14 @@ async function runDrivePass(options: {
     });
     finishTurn = finishFunctions.finishTurn;
     const { executeHostTool, executeBuiltinTool } = createExecuteToolFunctions({
+      log,
       tools: userTools,
       builtinTools: harness.builtinTools,
       effect,
       getSandboxSession: () => session.getSandboxSession(),
     });
     const gateBuiltinTool = createGateBuiltinToolFunction({
+      log,
       builtinTools: harness.builtinTools,
       effect,
       abortSignal: AbortSignal.any([stopAbortSignal, yieldAbortSignal]),
@@ -879,9 +1039,14 @@ async function runDrivePass(options: {
     }
     await failCurrentTurn({ log, writer, finishTurn, error });
   } finally {
-    clearTimeout(yieldTimer);
-    await writer?.flush();
-    stopController.abort(new Error('HarnessAgent: the drive ended.'));
+    try {
+      stopCrashListener?.();
+      clearTimeout(yieldTimer);
+      await writer?.flush();
+      stopController.abort(new Error('HarnessAgent: the drive ended.'));
+    } finally {
+      untrackDrive?.();
+    }
   }
 }
 

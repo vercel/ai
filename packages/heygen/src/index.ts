@@ -1,4 +1,8 @@
 export { createHeyGen, heygen } from './heygen-provider';
+export type {
+  HeyGenDecisionModelId,
+  HeyGenDecisionModelOptions,
+} from './heygen-decision-model-options';
 export type { HeyGenProvider, HeyGenProviderSettings } from './heygen-provider';
 export type {
   HeyGenVideoAsset,

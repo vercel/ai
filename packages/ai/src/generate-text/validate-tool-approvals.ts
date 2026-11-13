@@ -111,22 +111,27 @@ export async function validateApprovedToolApprovals<
     }
 
     if (isExecutableTool(tool) && tool.inputSchema != null) {
-      const hasInputSchemaInput = Object.prototype.hasOwnProperty.call(
-        approvalRequest,
-        'inputSchemaInput',
-      );
-      const validation = await safeValidateTypes({
-        value: hasInputSchemaInput
-          ? approvalRequest.inputSchemaInput
-          : toolCall.input,
-        schema: asSchema(tool.inputSchema),
-      });
-
       let validationError: unknown;
-      if (!validation.success) {
-        validationError = validation.error;
-      } else {
-        try {
+      try {
+        // Preserve the approved input before validators or refiners can mutate
+        // it, and give them an independent copy of the schema input.
+        const approvedInput = structuredClone(toolCall.input);
+        const hasInputSchemaInput = Object.prototype.hasOwnProperty.call(
+          approvalRequest,
+          'inputSchemaInput',
+        );
+        const validation = await safeValidateTypes({
+          value: structuredClone(
+            hasInputSchemaInput
+              ? approvalRequest.inputSchemaInput
+              : toolCall.input,
+          ),
+          schema: asSchema(tool.inputSchema),
+        });
+
+        if (!validation.success) {
+          validationError = validation.error;
+        } else {
           const revalidatedToolCall = await refineParsedToolCallInput({
             toolCall: {
               ...toolCall,
@@ -135,9 +140,8 @@ export async function validateApprovedToolApprovals<
             refineToolInput,
           });
 
-          // Clone both inputs into the current realm before comparing them.
+          // Normalize the revalidated input to the snapshot's realm.
           const revalidatedInput = structuredClone(revalidatedToolCall.input);
-          const approvedInput = structuredClone(toolCall.input);
 
           // Revalidation must never change the operation that was approved,
           // including when older or projected history omits the schema input.
@@ -146,9 +150,9 @@ export async function validateApprovedToolApprovals<
               'Approved tool input does not match the validated schema output.',
             );
           }
-        } catch (error) {
-          validationError = error;
         }
+      } catch (error) {
+        validationError = error;
       }
 
       if (validationError != null) {

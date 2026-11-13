@@ -63,6 +63,7 @@ function createDrive(options: { world: InMemoryWorld; log: HarnessAgentLog }): {
     }),
   });
   const gateBuiltinTool = createGateBuiltinToolFunction({
+    log: options.log,
     builtinTools,
     effect,
     abortSignal: abortController.signal,
@@ -120,6 +121,23 @@ function getApproved(
 }
 
 describe('createGateBuiltinToolFunction', () => {
+  test('commits tool-execution-start before approving a call', async () => {
+    const { log, gateBuiltinTool } = await setup();
+
+    getApproved(await gateBuiltinTool(call));
+
+    const [start] = (await log.read({ types: ['effect-start'] })).events;
+    expect(
+      (await log.read({ types: ['tool-execution-start'] })).events,
+    ).toEqual([
+      {
+        type: 'tool-execution-start',
+        id: `tool-execution-start:${start.id}`,
+        data: { startId: start.id },
+      },
+    ]);
+  });
+
   test('approves a built-in tool call once its start is committed', async () => {
     const { log, gateBuiltinTool } = await setup();
 

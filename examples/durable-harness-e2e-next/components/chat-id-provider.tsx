@@ -1,6 +1,7 @@
 'use client';
 
 import { clearStoredAgentSession } from '@/lib/stored-agent-session';
+import { clearStoredChatState } from '@/lib/stored-chat-state';
 import {
   createContext,
   useContext,
@@ -58,6 +59,7 @@ export default function ChatIdProvider({
         chatId,
         resetChatId: () => {
           clearStoredAgentSession({ chatId });
+          clearStoredChatState({ chatId });
           window.sessionStorage.removeItem(storageKey);
           window.location.reload();
         },

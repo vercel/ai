@@ -76,6 +76,7 @@ function createDrive(options: {
   });
   const getSandboxSession = vi.fn(async () => sandboxSession);
   const { executeHostTool, executeBuiltinTool } = createExecuteToolFunctions({
+    log: options.log,
     tools: options.tools ?? {},
     builtinTools,
     effect,
@@ -531,6 +532,41 @@ describe('createExecuteToolFunctions', () => {
       expect((await log.read({ types: ['effect-start'] })).events).toHaveLength(
         1,
       );
+      expect(
+        (await log.read({ types: ['tool-execution-start'] })).events,
+      ).toEqual([]);
+    });
+
+    test('commits tool-execution-start after resolving the sandbox and before executing the tool', async () => {
+      const committedBeforeExecute: unknown[] = [];
+      let log!: HarnessAgentLog;
+      const setupResult = await setup({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async () => {
+              committedBeforeExecute.push(
+                ...(await log.read({ types: ['tool-execution-start'] })).events,
+              );
+              return 'sunny';
+            },
+          }),
+        },
+      });
+      log = setupResult.log;
+      const { getSandboxSession, executeHostTool } = setupResult;
+
+      await executeHostTool(call);
+
+      const [start] = (await log.read({ types: ['effect-start'] })).events;
+      expect(getSandboxSession).toHaveBeenCalledTimes(1);
+      expect(committedBeforeExecute).toEqual([
+        {
+          type: 'tool-execution-start',
+          id: `tool-execution-start:${start.id}`,
+          data: { startId: start.id },
+        },
+      ]);
     });
 
     test('hides tool context validation details', async () => {
@@ -639,7 +675,7 @@ describe('createExecuteToolFunctions', () => {
   });
 
   describe('executeBuiltinTool', () => {
-    test('records the returned value and emits the final tool result', async () => {
+    test('records the returned value as one partial and the final value, and emits the final tool result', async () => {
       const { world, log, executeBuiltinTool } = await setup();
 
       const output = await executeBuiltinTool({
@@ -665,9 +701,9 @@ describe('createExecuteToolFunctions', () => {
           deliveredSubmissionIds: [],
         },
       ]);
-      expect(await readEffectEvents({ log, type: 'effect-progress' })).toEqual(
-        [],
-      );
+      expect(await readEffectEvents({ log, type: 'effect-progress' })).toEqual([
+        { startId: expect.any(String), partial: value },
+      ]);
       expect(await readEffectEvents({ log, type: 'effect-end' })).toEqual([
         { startId: expect.any(String), output: { type: 'result', value } },
       ]);
@@ -678,6 +714,65 @@ describe('createExecuteToolFunctions', () => {
           toolName: 'bash',
           result: { stdout: 'file.txt' },
         },
+      ]);
+    });
+
+    test('commits tool-execution-start before running execute', async () => {
+      const { log, executeBuiltinTool } = await setup();
+      let committedBeforeExecute: unknown[] = [];
+
+      await executeBuiltinTool({
+        ...bashCall,
+        execute: async () => {
+          committedBeforeExecute = (
+            await log.read({ types: ['tool-execution-start'] })
+          ).events;
+          return { raw: 'file.txt' };
+        },
+      });
+
+      const [start] = (await log.read({ types: ['effect-start'] })).events;
+      expect(committedBeforeExecute).toEqual([
+        {
+          type: 'tool-execution-start',
+          id: `tool-execution-start:${start.id}`,
+          data: { startId: start.id },
+        },
+      ]);
+    });
+
+    test('runs a never-replay attempt again when its interruption was recorded as retryable', async () => {
+      const { log, executeBuiltinTool } = await setup();
+      await log.append({
+        type: 'effect-start',
+        id: 'abandoned',
+        data: {
+          key: 'tool:call-1',
+          attempt: 1,
+          name: 'tool.bash',
+          replay: 'never',
+          input: { command: 'ls' },
+          deliveredSubmissionIds: [],
+        },
+      });
+      await log.append({
+        type: 'effect-end',
+        id: 'recovered',
+        data: {
+          startId: 'abandoned',
+          output: { type: 'interrupted', retryable: true },
+        },
+      });
+
+      expect(
+        await executeBuiltinTool({
+          ...bashCall,
+          execute: async () => ({ raw: 'file.txt' }),
+        }),
+      ).toEqual({ type: 'result', value: { raw: 'file.txt' } });
+      expect(await readEffectEvents({ log, type: 'effect-start' })).toEqual([
+        expect.objectContaining({ attempt: 1 }),
+        expect.objectContaining({ attempt: 2 }),
       ]);
     });
 
@@ -891,6 +986,13 @@ describe('createExecuteToolFunctions', () => {
 
       expect(output).toEqual({ type: 'error', error: { message } });
       expect(execute).not.toHaveBeenCalled();
+      expect(
+        (
+          await createLog({ world, runId }).read({
+            types: ['tool-execution-start'],
+          })
+        ).events,
+      ).toEqual([]);
       expect(await readParts({ world })).toEqual([
         {
           type: 'tool-result',

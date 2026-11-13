@@ -45,7 +45,7 @@ export type TranslatedToolCall = {
  *   under the reserved names `fileChange` and `compaction`.
  * - `error` becomes an AI SDK `error` part carrying a `HarnessEffectError`.
  * - `stream-start`, `tool-approval-request`, `reset-step`, `finish-step`,
- *   `finish`, `withdraw` and `yield` return nothing: they are handled by the
+ *   `finish`, `retract` and `yield` return nothing: they are handled by the
  *   stream result or not supported yet.
  */
 export async function translateStreamPart<TOOLS extends ToolSet>(options: {
@@ -208,7 +208,7 @@ export async function translateStreamPart<TOOLS extends ToolSet>(options: {
     case 'reset-step':
     case 'finish-step':
     case 'finish':
-    case 'withdraw':
+    case 'retract':
     case 'yield':
       return [];
   }

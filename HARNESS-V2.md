@@ -409,7 +409,7 @@ interface HarnessV2EffectContext {
    *
    * Replay-safe: a replayed effect does not run its callback, so nothing is
    * emitted again. The agent attributes each part to this attempt; after a
-   * crash it withdraws the output of interrupted attempts. Parts emitted
+   * crash it retracts the output of interrupted attempts. Parts emitted
    * after the attempt ended are dropped.
    * Step and turn ends go through `finishStep()` and `finishTurn()` on the
    * drive context.
@@ -732,6 +732,19 @@ const result = agent.stream({ prompt, session });
 - Adapters never see the deadline itself, only `yieldAbortSignal`. If an adapter ever needs to know the remaining time up front (e.g. to set the timeout of a sandbox command), the deadline can be added to the drive context then.
 - `stopAbortSignal` is independent of the deadline.
 
+### Crash recovery
+
+- Every drive appends an engine-only `drive-start` event (ID `drive-start:${driveId}`, with the runtime deadline in epoch milliseconds if the World reports one) before it changes anything else in the session.
+- At its start, a drive reads the log. Abandoned attempts are the latest `effect-start` of each effect key without an `effect-end`. If there are any, the drive of the latest `drive-start` must provably be gone: it recorded a `drive-crash`, or its recorded deadline passed. Otherwise the drive ends without changing the session. Attribution by log position assumes one drive at a time, until fencing.
+- Each abandoned attempt gets an `effect-end` with an `interrupted` output and its last committed partial. It is retryable if its `replay` is `safe`, or if it is a tool call attempt without a `tool-execution-start` event.
+- `executeHostTool()` and `executeBuiltinTool()` commit an engine-only `tool-execution-start` event (ID `tool-execution-start:${startId}`) right before the tool runs, after validation and sandbox resolution. `gateBuiltinTool()` commits it right before approving the call, since gate effects share the `tool:` key with `executeBuiltinTool()` effects. An abandoned tool attempt without it provably never ran its tool. Known gap: a crash after the gate approved but before the runtime started the tool counts as possibly executed.
+- A recorded interruption permits a new attempt whenever it is marked `retryable`, independent of the effect's `replay` policy.
+- Without abandoned attempts, an unfinished latest turn, or a prompt that has not started its turn, a drive has nothing to do and ends without writing anything.
+- `HarnessAgent.drive({ session })` runs a drive without submitting a prompt. In this process it does nothing while another drive of the session runs.
+- `HarnessAgent.readStream({ session, abortSignal })` reads the session's latest turn from its `start` record, across drives (dropping `yield` parts), until its `finish` part, in any process, without driving the session.
+- `HarnessAgent.experimental_crash({ session })` appends an engine-only `crash-request`. The drive of the latest `drive-start` before it, in any process, records a `drive-crash` (ID `drive-crash:${driveId}`), flushes its stream writer and kills its process with `SIGKILL`. It rejects without writing if the session has no turn, its latest turn finished, or its latest drive already crashed.
+- Limits: without a runtime deadline (e.g. a local World), a real crash without `drive-crash` is never provably gone. A lost `finish` part of a finished turn is not repaired. The repair and `readStream()` read the session's stream from its first chunk.
+
 ## Open questions
 
 1. Should we directly connect a sandbox session to its agent session? In today’s `HarnessV1` layer that is the case. Between the process of harness bootstrap, the working directory being in there, and some harnesses storing their session history in there coupling the two seems safest. Though in the future, we could certainly support a way to migrate a session to continue in another sandbox session. But that’s probably a good piece to leave out of scope for now, given how large the scope of this already is.
@@ -744,31 +757,7 @@ const result = agent.stream({ prompt, session });
 
 ## Glossary
 
-**Existing AI SDK concepts:**
-
-- **Harness:** The underlying agentic harness, broadly falling in one of two groups:
-  - In-process loop (e.g. Pi, fx)
-  - Closed runtime (e.g. Claude Code, Codex)
-- **Adapter:** Package that adapts a harness to the `HarnessV2` spec
-- **Turn:** A full harness turn, from user prompt until the harness sits idle and waits for the next user prompt.
-  - Steering is not a prompt in this context, but a message that gets injected mid-turn.
-  - A follow-up prompt may be queued and emitted as soon as the harness's final response has arrived. Technically there is no difference though, it still starts a fresh turn.
-- **Step:** A single model call request & response cycle, accompanied by its relevant tool executions.
-- **Built-in tools:** The tools that the harness itself executes. For closed runtime harnesses, the tool implementations are also fully owned by the harness.
-- **Host tools:** Any additional tools made available to the harness. These are run by the `HarnessAgent` engine, triggered by the harness. There are two groups:
-  - Regular host tools (can be executed in-process)
-  - Client-side tools (do not have in-process execution, run on the client, e.g. in the browser)
-
-**Durability / Workflow concepts:**
-
-- **World:** The backend for durable run, providing the infrastructure for each run's append-only event log, named streams, hooks and queue jobs
-- **Run:** A run in a workflow world, in this context equal to a harness session
-- **Effect:** Durable unit of work in the world's log, basically one workflow step; the term "Step" is not used for this because in AI SDK terminology it already refers to a harness step (one model inference call): an effect is closely related to a step, though each tool execution is its own effect, while for the harness it's part of another step which includes a model inference call
-- **Message:** Agent conversation message (from user, assistant, tool or system)
-- **Submission:** Payload sent to a session's inbox hook (e.g. of type `prompt`, `steer`, etc.); some of these eventually become user messages once received by the harness
-- **Recovery note:** Harness-written user message after a crash; only relevant for the closed CLI harnesses since they require a user message to continue
-- **Queue job:** Item on the world's queue that wakes a run
-- **Log event:** Entry in the world's append-only event log (e.g. of type `run_created`, `step_started`, `step_completed`)
+See [GLOSSARY.md](./GLOSSARY.md).
 
 ## Misc decisions
 
@@ -797,13 +786,13 @@ type HarnessV2StreamPart =
   // ... text-*, reasoning-*, tool parts, ...
   {
     /**
-     * Withdraws every part emitted since the last `finish-step` (or since
+     * Retracts every part emitted since the last `finish-step` (or since
      * the turn started), because the step starts over, e.g. after the
      * runtime retried a model request that had already streamed output.
      * The step continues with new parts and still ends with `finish-step`.
      *
      * Not needed after a crash: when a drive starts while the previous one
-     * left a step unfinished, the agent withdraws the interrupted attempts'
+     * left a step unfinished, the agent retracts the interrupted attempts'
      * output itself.
      */
     readonly type: 'reset-step';
@@ -815,7 +804,7 @@ export type HarnessTextStreamPart<TOOLS extends ToolSet> =
   | TextStreamPart<TOOLS>
   | {
       /**
-       * Withdraws every part since the last `start-step`: the step was cut
+       * Retracts every part since the last `start-step`: the step was cut
        * off (e.g. a runtime retry) and starts over. Consumers
        * that accumulate parts must drop that step's parts.
        */
@@ -830,7 +819,7 @@ After a crash, a new drive reruns the harness from the log. Any stream part emit
 | Output                                                      | API                               | Replay-safe because                                                                                                 |
 | ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Turn start (`start`)                                        | Engine only, inside `effect()`    | The engine appends a `turn-start` log event keyed by the prompt submission, and emits only when that append was new |
-| Content parts (text, reasoning, tool parts)                 | `effectContext.emit()`            | A replayed effect does not run its callback; after a crash, the engine withdraws the output of interrupted attempts |
+| Content parts (text, reasoning, tool parts)                 | `effectContext.emit()`            | A replayed effect does not run its callback; after a crash, the engine retracts the output of interrupted attempts  |
 | Step end (`finish-step`)                                    | `finishStep({ stepNumber, ... })` | The engine appends a log event keyed by the turn and `stepNumber`, and emits only when that append was new          |
 | Turn end (`finish`)                                         | `finishTurn({ ... })`             | Same, keyed by the prompt submission that started the turn                                                          |
 | Output of a runtime that cannot run steps inside `effect()` | `unsafeEmit()`                    | Undesirable exception: the harness must never emit already emitted parts again                                      |
@@ -846,33 +835,31 @@ After a crash, a new drive reruns the harness from the log. Any stream part emit
 - `turnId` (on `turn-start`, `finish-step` and `finish-turn`) is currently the ID of the `prompt` submission that started the turn, and the engine relies on that. To adapters it is an opaque string: an adapter must never use it, let alone assume it is a submission ID, so the submission-to-turn relationship can change (e.g. several prompts merged into one turn) without affecting adapters. An adapter only uses a `finish-turn` event's position in the log.
 - `finishStep()` checks `stepNumber` (a non-negative integer) against the steps recorded for the current turn: lower is a replay, equal is a new step. A higher number, a new step for a finished turn, or a call before any turn started rejects with `HarnessInvalidDriveStateError`. `finishTurn()` on a finished turn is a replay; before any turn started it rejects. `finishTurn()` does not check that the turn's steps were finished.
 - Limit: an adapter that replays finish calls of turns older than the current one would misattribute them. Adapters must therefore rebuild from the log and re-enter at most the latest step, never replaying older turns.
-- Crash between the log append and the stream write of a turn boundary part: the part is lost. Re-emitting it is part of recovery, which is not implemented yet.
-- Crash recovery truncates, scoped to interrupted attempts, following the same approach as truncating a cut-off reply to its committed length:
-  - At the start of a drive in an unfinished turn, the drive finds the interrupted attempts in the log (an `effect-start` without `effect-end`, or an end with `interrupted` output) and emits an engine-only `withdraw` part listing their `startId`s. It does not emit `reset-step` and does not read the stream. Withdrawing an attempt again has no further effect.
-  - The engine's stream reader computes what to drop from what it delivered for the withdrawn attempts: it counts text and reasoning characters separately and emits a consumer-facing truncation part that drops that many characters off the end of each kind. It also drops any later records of withdrawn attempts, which covers late writes from the dead process.
-  - Consumers drop tool inputs without a matching `tool-call` when they receive the truncation part.
-  - The truncation part's name and shape are decided with the consumer stream translation.
-  - Limits: truncating from the end assumes withdrawn text and reasoning come last, which holds because model calls in a turn run one after another. `unsafeEmit()` output cannot be withdrawn.
+- Crash between the log append and the stream write of a turn boundary part: the part is lost. At the start of a drive in an unfinished turn, the engine writes the turn's `start` and latest `finish-step` parts under their keys if the stream has no record with that key (see "Crash recovery").
+- Crash recovery retracts, scoped to attempts that a retry replaces:
+  - At the start of a drive in an unfinished turn, the drive emits an engine-only `retract` part listing the `startId`s of the turn's latest attempts whose output is a retryable interruption. Retracting an attempt again has no further effect. A non-retryable interruption's output stays, matching the partial output the harness receives.
+  - The engine's stream reader drops any later records of retracted attempts, which covers late writes from the dead process. If the current step contains parts of retracted attempts, it rebuilds the step's collected content from the surviving parts, so `steps` and `text` exclude retracted output, and the UI message stream gets a `reset-step` chunk followed by the step's surviving parts again.
+  - Limits: `fullStream` cannot retract parts it already delivered. The messages passed to `toUIMessageStream()`'s `onEnd` and `onStepEnd` callbacks are built by the AI SDK before the reset is applied, so they still contain retracted parts. `unsafeEmit()` output cannot be retracted.
   - Harness adapters are not involved: the engine has the attempt identities (log) and the attempt-tagged records (stream).
 - For now, `generate()` and `stream()` reject while a turn of the session is running: while another call for the session is in progress in this process, or while the session's log shows a turn that has not finished or a prompt that has not started its turn. Eventually, such a call will queue its prompt instead. The in-process check only covers calls in the same process; making sure that only one drive changes a session across processes comes with queueing, recovery and fencing.
-- Each call starts one drive, and reads the session's World stream from the position it had before the call appended its `prompt` submission. Since no other turn can run meanwhile, everything from there on is output of the call's turn. The result reads until the drive ended and everything it wrote was read, and is decided by what the stream contains:
+- Each call starts one drive, and reads the session's World stream from the position it had before the call appended its `prompt` submission, starting at its turn's `start` record. Records the drive writes before that, such as recovery output for an earlier turn, are dropped. The result reads until the drive ended and everything it wrote was read, and is decided by what the stream contains:
   - a `finish` part: the turn finished.
   - a `yield` part: the drive ran out of time, and the result ends without a `finish` part and without an error. The turn continues in a later drive.
   - neither: the result ends with an error.
-  - Parts after a `finish` or `yield` part are dropped. `withdraw` parts are ignored until recovery is implemented.
+  - Parts after a `finish` or `yield` part are dropped. Records with a key the result already received are dropped. `retract` parts are applied as described above.
 - A call's `abortSignal` is a local control: it only ends that call's result (with an `abort` part), while the turn continues. It is never stored or passed to a drive.
 - A drive fails when the harness or the engine throws. If the current turn started and is unfinished, the engine emits an `error` part and finishes the turn with `finishReason: 'error'`. Otherwise there is no turn to report the error in, so the drive rejects with the original error, which `generate()` rejects with and `stream()` emits as an `error` part.
 - A drive that returns after its `yieldAbortSignal` fired emits an engine-only `yield` part.
 - `reset-step` remains for runtime retries within a running drive.
 - Writes are in strict order: one World write in flight per writer, the same model as the Workflow runtime's stream writer behind `@ai-sdk/workflow`. Stream order is what `reset-step`, finish parts and reader-side attribution depend on.
 
-The engine implements all of this on one internal stream writer per drive, created by `createStreamWriter()`, writing to one World stream per session, named by `session.getStreamName()`. Every stream record is a part record (`HarnessAgentStreamPartRecord`): a part plus the engine-only tags (`startId`, `key`). The engine-only `withdraw` and `yield` parts are `HarnessAgentStreamPart` variants like the finish parts. Adapters never see or pass the tags or these parts:
+The engine implements all of this on one internal stream writer per drive, created by `createStreamWriter()`, writing to one World stream per session, named by `session.getStreamName()`. Every stream record is a part record (`HarnessAgentStreamPartRecord`): a part plus the engine-only tags (`startId`, `key`). The engine-only `retract` and `yield` parts are `HarnessAgentStreamPart` variants like the finish parts. Adapters never see or pass the tags or these parts:
 
 ```ts
 type HarnessAgentStreamWriter = {
   /**
    * Emits an engine-tagged part. `startId` attributes it to an effect attempt,
-   * which lets readers withdraw it if the attempt was interrupted. `key`
+   * which lets readers retract it if the attempt was interrupted. `key`
    * deduplicates a step or turn finish part on read.
    */
   emit(
@@ -881,10 +868,10 @@ type HarnessAgentStreamWriter = {
       | { startId?: string; key: string }
     ),
   ): void;
-  /** Untagged part (the drive context's `unsafeEmit()`); never withdrawable. */
+  /** Untagged part (the drive context's `unsafeEmit()`); never retractable. */
   unsafeEmit(part: HarnessAgentStreamPart): void;
-  /** Engine-only `withdraw` part withdrawing the output of these attempts. */
-  withdraw(options: { startIds: readonly string[] }): void;
+  /** Engine-only `retract` part retracting the output of these attempts. */
+  retract(options: { startIds: readonly string[] }): void;
   /** Resolves once every write issued so far has landed or failed. */
   flush(): Promise<void>;
   /** Ends the stream after flushing; only when the session ends. */
@@ -955,7 +942,7 @@ A closed runtime (e.g. Claude Code) runs its built-in tools itself, so the engin
 - `input` is typed `JSONValue` and rejects at runtime if it is not a plain JSON value. It is not validated against the tool's `inputSchema`, since the runtime validates its own tools.
 - A new call resolves `approved` once its start event is committed. The effect stays open until the adapter calls `result({ raw, modelOutput? })` or `error({ message })` on the approved output; `partial({ raw, modelOutput? })` reports complete intermediate values before that, recorded as `effect-progress`. Values have the shape of `HarnessV2ToolExecutionValue`, so readers of the log see the same shape as for host tools. `modelOutput` is for adapters that transform tool outputs for the model themselves (e.g. with AI SDK's `toModelOutput()`).
 - Exactly one of `result()` and `error()` ends the call; the first call wins and later calls do nothing. Values that are not JSON (or a `modelOutput` that is not serializable) reject without being recorded, and the call stays open.
-- The engine emits the call's `tool-result` parts (preliminary, final and error) through the effect attempt's `emit()`, so a replayed call emits nothing again and the parts of an interrupted attempt can be withdrawn. The adapter emits the built-in call's `tool-call` part, but never its results.
+- The engine emits the call's `tool-result` parts (preliminary, final and error) through the effect attempt's `emit()`, so a replayed call emits nothing again and the parts of an interrupted attempt can be retracted. The adapter emits the built-in call's `tool-call` part, but never its results.
 - A call follows the same replay rules as any effect, so the gate only needs `effect()`: when the effect returns a recorded output instead of starting an attempt (a result, an error, or an interruption that is not retryable), the call is `denied` and does not run again. The reason tells the model what the log knows (`This call already ran in this session. Its recorded result: …` or `This call was interrupted in an earlier attempt and may or may not have taken effect.`, with any partial output appended).
 - A recorded retryable interruption (a `replay: 'safe'` built-in tool) starts a new attempt, so a call the runtime dispatches again with the same `toolCallId` is `approved` again, the same as a host tool call. A `'never'` built-in tool's interruption is not retryable, so it is denied.
 - A call to a tool that is not one of the harness's built-in tools is recorded as an `error` effect and `denied` with that error, so a replay gives the same answer.

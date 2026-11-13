@@ -1,5 +1,54 @@
 # @ai-sdk/workflow
 
+## 2.0.105
+
+### Patch Changes
+
+- ff89832: fix(workflow): call `onAbort` instead of `onError` when a `WorkflowAgent` call is aborted during a model step with a custom abort reason. `generate()` still rejects with that reason. `stream()` now resolves with the steps that finished, as it does for an abort without a reason.
+- 2473a71: fix(workflow): `WorkflowAgent` uses the last value yielded by an async generator tool as the tool result, like `ToolLoopAgent`. A generator that throws after yielding produces a tool error.
+- f43ee39: fix(workflow): log the default step limit warning when `WorkflowAgent.generate()` stops at the default limit.
+- 7ce7ffc: fix(workflow): log provider warnings in `WorkflowAgent`
+
+  `WorkflowAgent.generate()` and `WorkflowAgent.stream()` now log the warnings of every model call through the AI SDK warning logger, like `ToolLoopAgent`. The `AI_SDK_LOG_WARNINGS` global controls the output.
+
+- f6809e3: fix(workflow): align the `prepareStep` results of `WorkflowAgent` with `ToolLoopAgent`. Returned `instructions` (or the deprecated `system`) replace the instructions of the step and carry forward to later steps, returned `providerOptions` are merged with the agent options, and returned `headers` are merged over the headers of the call.
+- 9307549: feat(workflow): support `experimental_refineToolInput` in `WorkflowAgent`, in the constructor and per call. Refined tool inputs are used for tool execution, step results, callbacks, and the next model call, like in `ToolLoopAgent`.
+- bf1dd2a: fix(workflow): `WorkflowAgent.stream()` keeps the tool call in the step result when the model calls an unknown tool or passes input that does not match the schema. The call is marked `invalid` and the step has a `tool-error` part, as in `generate()` and `ToolLoopAgent`. The model still receives the error as a tool result.
+- 453d880: fix(workflow): call the `onInputAvailable` tool hook in `stream()` when the provider sends a tool call without streaming its input first.
+- 5c0e984: fix(workflow): report the provider name and model ID of the called model in the steps of `WorkflowAgent.stream()` results, matching `ToolLoopAgent` and `WorkflowAgent.generate()`
+- 2559173: feat(workflow): support `toolApproval` in `WorkflowAgent`
+
+  `WorkflowAgent` accepts a `toolApproval` configuration in the constructor and per `generate()` or `stream()` call. The configuration takes precedence over a tool's `needsApproval` setting, and its functions run in workflow context, outside of the durable model steps. Calls that the configuration approves run in the same step, and calls that it denies receive an `execution-denied` tool result without pausing the workflow.
+
+- b9f6c82: feat(workflow): support `toolOrder` in `WorkflowAgent`
+
+  `WorkflowAgent` accepts `toolOrder` in the constructor, per call in `generate()` and `stream()`, and from `prepareCall` and `prepareStep`. Listed tools are sent first in the listed order, and the remaining tools follow in alphabetical order.
+
+- f1de9cb: feat(workflow): support the `timeout` object in `WorkflowAgent`
+
+  `generate()` and `stream()` accept `timeout: { totalMs, stepMs, firstChunkMs, chunkMs }` in addition to a number. `stepMs` limits each model call. In `stream()`, `firstChunkMs` and `chunkMs` limit the wait for model output. Invalid timeout values are rejected with an `InvalidArgumentError`. A timeout now also ends a model step when the provider stream ignores the abort signal.
+
+- Updated dependencies [3c09e00]
+- Updated dependencies [f43ee39]
+- Updated dependencies [7ce7ffc]
+- Updated dependencies [f6809e3]
+- Updated dependencies [2559173]
+- Updated dependencies [f1de9cb]
+  - ai@7.0.173
+
+## 2.0.104
+
+### Patch Changes
+
+- b161730: fix(workflow): `WorkflowAgent` now accepts `onError` and `onAbort` in the constructor, like `ToolLoopAgent`. They are called before the callbacks passed to `generate()` or `stream()`. An error thrown by an `onError` or `onAbort` callback no longer replaces the error or result of the run.
+- c591e12: fix(workflow): tools called by `WorkflowAgent` no longer receive the system prompt or the assistant message that contains the current tool call in `options.messages`. The `messages` passed to `onToolExecutionStart` and `onToolExecutionEnd` no longer contain the system prompt either. This matches `ToolLoopAgent`, `generateText`, and `streamText`.
+- ec23d2d: fix(workflow): `model`, `toolChoice`, `activeTools`, and generation settings returned from `prepareStep` in `WorkflowAgent` now apply to the current step only, like in `ToolLoopAgent`. Before, an override returned for one step stayed in effect for all later steps.
+- 1876747: fix(workflow): `WorkflowAgent.stream()` now aggregates `totalUsage` the same way as `ToolLoopAgent`. Token details such as cached and reasoning tokens are kept, and counts that the provider did not report stay `undefined` instead of becoming `0`.
+- Updated dependencies [6d50947]
+- Updated dependencies [79d2004]
+  - @ai-sdk/provider-utils@5.0.81
+  - ai@7.0.172
+
 ## 2.0.103
 
 ### Patch Changes

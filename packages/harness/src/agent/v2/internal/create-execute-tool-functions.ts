@@ -26,6 +26,7 @@ import type { HarnessV2NetworkSandboxSession } from '../../../v2/harness-v2-netw
 import type { HarnessV2ToolResult } from '../../../v2/harness-v2-stream-part';
 import { isPlainJSONValue } from './utils';
 import type { HarnessAgentEffectFunction } from './create-effect-function';
+import type { HarnessAgentLog } from './create-log';
 
 /**
  * Executes one of the app's own tools as a recorded effect. Same as
@@ -53,6 +54,58 @@ export type HarnessAgentExecuteHostToolFunction =
  */
 export type HarnessAgentExecuteBuiltinToolFunction =
   HarnessV2ExecuteBuiltinToolFunction;
+
+/**
+ * Prefix of the key of a tool call effect, followed by the tool call ID.
+ */
+const TOOL_EFFECT_KEY_PREFIX = 'tool:';
+
+/**
+ * Prefix of the name of a tool call effect, followed by the tool name.
+ */
+const TOOL_EFFECT_NAME_PREFIX = 'tool.';
+
+/**
+ * Returns the tool call ID and the tool name of an effect recorded by
+ * `executeHostTool()` or `executeBuiltinTool()`, from its key
+ * (`tool:${toolCallId}`) and name (`tool.${toolName}`). Returns `undefined`
+ * for any other effect.
+ */
+export function parseToolEffect(options: {
+  /**
+   * Key of the effect.
+   */
+  key: string;
+
+  /**
+   * Name of the effect.
+   */
+  name: string;
+}):
+  | {
+      /**
+       * ID of the tool call.
+       */
+      toolCallId: string;
+
+      /**
+       * Name of the called tool.
+       */
+      toolName: string;
+    }
+  | undefined {
+  const { key, name } = options;
+  if (
+    !key.startsWith(TOOL_EFFECT_KEY_PREFIX) ||
+    !name.startsWith(TOOL_EFFECT_NAME_PREFIX)
+  ) {
+    return undefined;
+  }
+  return {
+    toolCallId: key.slice(TOOL_EFFECT_KEY_PREFIX.length),
+    toolName: name.slice(TOOL_EFFECT_NAME_PREFIX.length),
+  };
+}
 
 /**
  * Returns the tool registered under the name as an own property, if any.
@@ -283,7 +336,7 @@ function emitToolError(options: {
  * does not run again and no stream parts are emitted again. A recorded
  * retryable interruption runs the tool again in a new attempt. Every
  * preliminary, final and error `tool-result` part is emitted through the
- * attempt's `emit()`, so readers can withdraw them if the attempt is
+ * attempt's `emit()`, so readers can retract them if the attempt is
  * interrupted. An aborted attempt emits no error part and resolves
  * `interrupted`. Input that is not a JSON value rejects without recording,
  * since it can only come from an adapter bug. Concurrent calls with the same
@@ -292,7 +345,8 @@ function emitToolError(options: {
  * `executeHostTool()` runs one of the app's own tools. Inside a fresh
  * attempt, the call is validated (unknown or provider-executed tools, input
  * that does not match the input schema, tool context), the sandbox is
- * resolved, and the tool is executed. Validation failures and thrown errors
+ * resolved, a `tool-execution-start` event is committed, and the tool is
+ * executed. Validation failures and thrown errors
  * become recorded `error` outcomes. Preliminary values of a generator tool
  * are recorded as partial output. Values are converted to JSON, and
  * `modelOutput` is computed from the raw output only when the tool defines
@@ -302,15 +356,27 @@ function emitToolError(options: {
  *
  * `executeBuiltinTool()` runs one of the harness's built-in tools with the
  * implementation the adapter passes as `execute`, with the attempt's abort
- * signal. Each value an async iterable yields is recorded as partial output
- * and emitted as a preliminary `tool-result` part; the last one is the final
- * value, emitted as the final `tool-result` part once the iterable is done.
- * A value that is not a valid tool value, an iterable that yields nothing and
- * a thrown error become recorded `error` outcomes. A call to a tool that is
- * not one of the harness's built-in tools is recorded as an `error` without
- * running `execute`.
+ * signal, after committing a `tool-execution-start` event. Each value an
+ * async iterable yields is recorded as partial output and emitted as a
+ * preliminary `tool-result` part; the last one is the final value, emitted as
+ * the final `tool-result` part once the iterable is done. A promise's value is
+ * emitted as the final `tool-result` part and recorded as partial output once,
+ * then as the final value. A value that is not a valid tool value, an
+ * iterable that yields nothing and a thrown error become recorded `error`
+ * outcomes. A call to a tool that is not one of the harness's built-in tools
+ * is recorded as an `error` without running `execute`.
+ *
+ * The `tool-execution-start` event (ID `tool-execution-start:${startId}`) is
+ * committed right before the tool runs. An attempt that a crashed drive left
+ * unfinished without it provably never ran its tool, so recovery records it
+ * as retryable regardless of the tool's replay policy.
  */
 export function createExecuteToolFunctions(options: {
+  /**
+   * Engine log of the session, used to record `tool-execution-start` events.
+   */
+  log: HarnessAgentLog;
+
   /**
    * The agent's own tools, without the harness's built-in tools.
    */
@@ -337,7 +403,21 @@ export function createExecuteToolFunctions(options: {
   executeHostTool: HarnessAgentExecuteHostToolFunction;
   executeBuiltinTool: HarnessAgentExecuteBuiltinToolFunction;
 } {
-  const { tools, builtinTools, effect, getSandboxSession } = options;
+  const { log, tools, builtinTools, effect, getSandboxSession } = options;
+
+  /**
+   * Commits the `tool-execution-start` event of an attempt, right before its
+   * tool runs.
+   */
+  async function markExecutionStart(
+    context: HarnessV2EffectContext,
+  ): Promise<void> {
+    await log.append({
+      type: 'tool-execution-start',
+      id: `tool-execution-start:${context.startId}`,
+      data: { startId: context.startId },
+    });
+  }
 
   /**
    * Runs one attempt of a host tool call, emitting its `tool-result` parts
@@ -422,6 +502,7 @@ export function createExecuteToolFunctions(options: {
       }
 
       const sandboxSession = await getSandboxSession();
+      await markExecutionStart(context);
 
       let rawOutput: unknown;
       for await (const part of executeTool({
@@ -488,57 +569,21 @@ export function createExecuteToolFunctions(options: {
   }
 
   /**
-   * Runs one attempt of a built-in tool call whose `execute` returned a
-   * promise: records and emits its value as the final value.
-   */
-  async function runBuiltinToolPromise(options: {
-    /**
-     * ID of the tool call.
-     */
-    toolCallId: string;
-
-    /**
-     * Name of the called tool.
-     */
-    toolName: string;
-
-    /**
-     * Final value returned by `execute`.
-     */
-    pending: PromiseLike<HarnessV2ToolExecutionValue>;
-
-    /**
-     * Context of the current effect attempt.
-     */
-    context: HarnessV2EffectContext;
-  }): Promise<SerializableValue> {
-    const { toolCallId, toolName, pending, context } = options;
-    try {
-      const value = await pending;
-      validateBuiltinToolValue({ value });
-      emitToolResult({ context, toolCallId, toolName, result: value.raw });
-      /*
-       * The cast is needed because `ToolResultOutput` contains interfaces,
-       * which TypeScript never treats as `SerializableValue`; the value was
-       * verified to be serializable above.
-       */
-      return value as SerializableValue;
-    } catch (error) {
-      emitToolError({ context, toolCallId, toolName, error });
-      throw error;
-    }
-  }
-
-  /**
-   * Runs one attempt of a built-in tool call whose `execute` returned an async
-   * iterable: records and emits each value as a partial value, and the last
-   * one as the final value.
+   * Runs one attempt of a built-in tool call: fails it for a tool that is not
+   * a built-in tool, and otherwise commits the attempt's
+   * `tool-execution-start` event and runs the adapter's `execute`.
    *
-   * @yields Each value the iterable produces. The effect records every
-   * yielded value as partial output and the last one as the final output, so
-   * the recorded output is exactly what `executeBuiltinTool()` returns.
+   * If `execute` returns an async iterable, each value it produces is emitted
+   * as a preliminary `tool-result` part and yielded, and the last one is
+   * emitted as the final `tool-result` part once the iterable is done. If it
+   * returns a promise, its value is emitted as the final `tool-result` part
+   * and yielded once. Errors emit the error `tool-result` part and rethrow.
+   *
+   * @yields Each value the tool produces. The effect records every yielded
+   * value as partial output and the last one as the final output, so the
+   * recorded output is exactly what `executeBuiltinTool()` returns.
    */
-  async function* runBuiltinToolIterable(options: {
+  async function* runBuiltinTool(options: {
     /**
      * ID of the tool call.
      */
@@ -550,19 +595,46 @@ export function createExecuteToolFunctions(options: {
     toolName: string;
 
     /**
-     * Values produced by `execute`.
+     * The called built-in tool, if it is one.
      */
-    iterable: AsyncIterable<HarnessV2ToolExecutionValue>;
+    tool?: Tool;
+
+    /**
+     * Runs the tool, supplied by the adapter.
+     */
+    execute: Parameters<HarnessAgentExecuteBuiltinToolFunction>[0]['execute'];
 
     /**
      * Context of the current effect attempt.
      */
     context: HarnessV2EffectContext;
   }): AsyncGenerator<SerializableValue> {
-    const { toolCallId, toolName, iterable, context } = options;
+    const { toolCallId, toolName, tool, execute, context } = options;
     try {
+      if (tool == null) {
+        throw new NoSuchToolError({
+          toolName,
+          availableTools: Object.keys(builtinTools),
+        });
+      }
+      await markExecutionStart(context);
+      const result = execute({ abortSignal: context.abortSignal });
+
+      if (!(Symbol.asyncIterator in result)) {
+        const value = await result;
+        validateBuiltinToolValue({ value });
+        emitToolResult({ context, toolCallId, toolName, result: value.raw });
+        /*
+         * The cast is needed because `ToolResultOutput` contains interfaces,
+         * which TypeScript never treats as `SerializableValue`; the value was
+         * verified to be serializable above.
+         */
+        yield value as SerializableValue;
+        return;
+      }
+
       let last: HarnessV2ToolExecutionValue | undefined;
-      for await (const value of iterable) {
+      for await (const value of result) {
         validateBuiltinToolValue({ value });
         emitToolResult({
           context,
@@ -589,65 +661,6 @@ export function createExecuteToolFunctions(options: {
     }
   }
 
-  /**
-   * Starts one attempt of a built-in tool call: fails it for a tool that is
-   * not a built-in tool, and otherwise runs the adapter's `execute`.
-   */
-  function runBuiltinTool(options: {
-    /**
-     * ID of the tool call.
-     */
-    toolCallId: string;
-
-    /**
-     * Name of the called tool.
-     */
-    toolName: string;
-
-    /**
-     * The called built-in tool, if it is one.
-     */
-    tool?: Tool;
-
-    /**
-     * Runs the tool, supplied by the adapter.
-     */
-    execute: Parameters<HarnessAgentExecuteBuiltinToolFunction>[0]['execute'];
-
-    /**
-     * Context of the current effect attempt.
-     */
-    context: HarnessV2EffectContext;
-  }): PromiseLike<SerializableValue> | AsyncIterable<SerializableValue> {
-    const { toolCallId, toolName, tool, execute, context } = options;
-    let result: ReturnType<typeof execute>;
-    try {
-      if (tool == null) {
-        throw new NoSuchToolError({
-          toolName,
-          availableTools: Object.keys(builtinTools),
-        });
-      }
-      result = execute({ abortSignal: context.abortSignal });
-    } catch (error) {
-      emitToolError({ context, toolCallId, toolName, error });
-      return Promise.reject(error);
-    }
-    return Symbol.asyncIterator in result
-      ? runBuiltinToolIterable({
-          toolCallId,
-          toolName,
-          iterable: result,
-          context,
-        })
-      : runBuiltinToolPromise({
-          toolCallId,
-          toolName,
-          pending: result,
-          context,
-        });
-  }
-
   return {
     async executeHostTool<T extends JSONValue = JSONValue>(call: {
       toolCallId: string;
@@ -669,8 +682,8 @@ export function createExecuteToolFunctions(options: {
       assertJSONInput({ input: toolInput, functionName: 'executeHostTool' });
 
       const output = await effect({
-        key: `tool:${toolCallId}`,
-        name: `tool.${toolName}`,
+        key: `${TOOL_EFFECT_KEY_PREFIX}${toolCallId}`,
+        name: `${TOOL_EFFECT_NAME_PREFIX}${toolName}`,
         replay: tool?.replay ?? 'never',
         input: toolInput,
         fn: context =>
@@ -701,8 +714,8 @@ export function createExecuteToolFunctions(options: {
 
       const tool = getTool({ tools: builtinTools, toolName });
       const output = await effect({
-        key: `tool:${toolCallId}`,
-        name: `tool.${toolName}`,
+        key: `${TOOL_EFFECT_KEY_PREFIX}${toolCallId}`,
+        name: `${TOOL_EFFECT_NAME_PREFIX}${toolName}`,
         replay: tool?.replay ?? 'never',
         input,
         fn: context =>

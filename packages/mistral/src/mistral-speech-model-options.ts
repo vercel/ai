@@ -4,13 +4,9 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { MistralModelIds } from './mistral-model-catalog';
 
-export type MistralSpeechModelId =
-  | 'voxtral-mini-tts-2603'
-  | 'voxtral-mini-tts-3-0'
-  | 'voxtral-mini-tts-3'
-  | 'voxtral-mini-tts-latest'
-  | (string & {});
+export type MistralSpeechModelId = MistralModelIds['speech'] | (string & {});
 
 export const mistralSpeechModelOptions = lazySchema(() =>
   zodSchema(

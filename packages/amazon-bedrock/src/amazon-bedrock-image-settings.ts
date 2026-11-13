@@ -1,7 +1,10 @@
-import { amazonBedrockImageModelCatalog } from './amazon-bedrock-model-catalog';
+import {
+  amazonBedrockImageModelCatalog,
+  type AmazonBedrockModelIds,
+} from './amazon-bedrock-model-catalog';
 
 export type AmazonBedrockImageModelId =
-  | 'amazon.nova-canvas-v1:0'
+  | AmazonBedrockModelIds['image']
   | (string & {});
 
 // Compatibility projection of the model catalog.

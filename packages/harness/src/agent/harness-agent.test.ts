@@ -467,6 +467,35 @@ describe('HarnessAgent', () => {
     );
   });
 
+  test.each(['drive', 'readStream', 'experimental_crash'] as const)(
+    'rejects %s() when using a HarnessV1 adapter',
+    async method => {
+      const { harness } = mockHarness({ script: () => [] });
+      const agent = new HarnessAgent({ harness });
+
+      await expect(agent[method]({ session: {} as never })).rejects.toThrow(
+        `${method}() is only supported with HarnessV2`,
+      );
+    },
+  );
+
+  test('routes experimental_crash() to the HarnessV2 implementation', async () => {
+    const agent = new HarnessAgent({
+      harness: {
+        specificationVersion: 'harness-v2',
+        harnessId: 'mock-v2',
+        builtinTools: {},
+        drive: async () => {},
+      },
+      getSandboxSession: async () => ({}) as SandboxSession,
+    });
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    await expect(agent.experimental_crash({ session })).rejects.toThrow(
+      'HarnessAgent.experimental_crash: there is no current drive to crash.',
+    );
+  });
+
   test('uses prepared runtime context for each prompt turn and filters telemetry', async () => {
     type RuntimeContext = { requestId: string; secret: string };
     const configuredContext = { requestId: 'default', secret: 'configured' };

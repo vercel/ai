@@ -136,7 +136,7 @@ export interface HarnessV2EffectContext {
    * parts.
    *
    * Replay-safe: a replayed effect does not run its callback, so nothing is
-   * emitted again. After a crash, the agent withdraws the output of
+   * emitted again. After a crash, the agent retracts the output of
    * interrupted attempts. Parts emitted after the attempt's callback settled,
    * or after the drive aborted, are dropped. Throws synchronously if the part
    * is not serializable.

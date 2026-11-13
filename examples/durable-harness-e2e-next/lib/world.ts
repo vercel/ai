@@ -30,7 +30,8 @@ const worldGlobal = globalThis as { __durableHarnessE2EWorld?: World };
  *
  * The local World's own recovery of active runs is turned off: it would
  * re-enqueue the sessions' runs to the Workflow SDK's queue, which this app
- * does not consume.
+ * does not consume. The app recovers them on its own drive queue instead
+ * (`lib/start-drive-queue.ts`).
  */
 export function getWorld(): World {
   worldGlobal.__durableHarnessE2EWorld ??=
