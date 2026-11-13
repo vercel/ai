@@ -30,6 +30,7 @@ import {
   type GenerateTextOnStepEndCallback,
   type ActiveTools,
   type ToolCallRepairFunction,
+  type ToolInputRefinement,
   type ToolChoice,
   type ToolSet,
   type InferUITools,
@@ -584,6 +585,22 @@ export type WorkflowAgentOptions<
     experimental_repairToolCall?: ToolCallRepairFunction<TTools>;
 
     /**
+     * Default mapping of tool names to functions that refine parsed tool inputs.
+     *
+     * The refined input must have the same type shape as the tool input. Refined
+     * inputs are used for tool execution, outputs, callbacks, and telemetry.
+     *
+     * The functions run in the workflow context after the model step returns.
+     * Two values keep the unrefined input: the `tool-call` chunk that `stream()`
+     * writes to `writable` for a tool without its own runtime validator, and the
+     * input of provider-executed tool calls.
+     *
+     * Per-stream `experimental_refineToolInput` values passed to `stream()`
+     * override this default.
+     */
+    experimental_refineToolInput?: ToolInputRefinement<NoInfer<TTools>>;
+
+    /**
      * Default custom download function to use for URLs.
      * Mark the function with `'use step'` when used in a workflow.
      *
@@ -1103,6 +1120,16 @@ export type WorkflowAgentCallOptions<
     experimental_repairToolCall?: ToolCallRepairFunction<TTools>;
 
     /**
+     * Mapping of tool names to functions that refine parsed tool inputs.
+     *
+     * The refined input must have the same type shape as the tool input. Refined
+     * inputs are used for tool execution, outputs, callbacks, and telemetry.
+     *
+     * Overrides the constructor-level `experimental_refineToolInput` if provided.
+     */
+    experimental_refineToolInput?: ToolInputRefinement<NoInfer<TTools>>;
+
+    /**
      * Custom download function to use for URLs.
      * By default, files are downloaded if the model does not support the URL for the given media type.
      * Mark the function with `'use step'` when used in a workflow.
@@ -1571,6 +1598,7 @@ export class WorkflowAgent<
   private activeTools?: ActiveTools<TBaseTools>;
   private output?: OutputSpecification<OUTPUT, PARTIAL_OUTPUT>;
   private repairToolCall?: ToolCallRepairFunction<TBaseTools>;
+  private refineToolInput?: ToolInputRefinement<TBaseTools>;
   private experimentalDownload?: DownloadFunction;
   private experimentalSandbox?: SandboxSession;
   private experimentalToolApprovalSecret?: WorkflowToolApprovalSecret;
@@ -1621,6 +1649,7 @@ export class WorkflowAgent<
     this.output = options.output;
     this.repairToolCall =
       options.repairToolCall ?? options.experimental_repairToolCall;
+    this.refineToolInput = options.experimental_refineToolInput;
     this.experimentalDownload = options.experimental_download;
     this.experimentalSandbox = options.experimental_sandbox;
     this.experimentalToolApprovalSecret =
@@ -2122,6 +2151,12 @@ export class WorkflowAgent<
                 toolsContext:
                   effectiveToolsContext as InferToolSetContext<ToolSet>,
                 runtimeContext: effectiveRuntimeContext,
+                // The approved input is the refined input, so revalidation
+                // has to refine the schema input again before comparing.
+                refineToolInput: (options.experimental_refineToolInput ??
+                  this.refineToolInput) as
+                  | ToolInputRefinement<ToolSet>
+                  | undefined,
               });
 
               if (invalidToolApprovals.length > 0) {
@@ -2664,6 +2699,8 @@ export class WorkflowAgent<
       repairToolCall: (options.repairToolCall ??
         options.experimental_repairToolCall ??
         this.repairToolCall) as ToolCallRepairFunction<ToolSet> | undefined,
+      refineToolInput: (options.experimental_refineToolInput ??
+        this.refineToolInput) as ToolInputRefinement<ToolSet> | undefined,
       download,
       responseFormat: await (options.output ?? this.output)?.responseFormat,
       experimental_sandbox: sandbox,
