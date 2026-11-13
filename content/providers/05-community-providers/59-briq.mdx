@@ -1,0 +1,105 @@
+---
+title: briq
+description: Run AI SDK harness sessions in briq sandboxes.
+---
+
+# briq
+
+[briq](https://briq.cloud) runs sandboxes and services for AI agents, each in its own microVM.
+The [`@briq-cloud/ai-sdk-sandbox`](https://www.npmjs.com/package/@briq-cloud/ai-sdk-sandbox) package, maintained by briq, runs the tools of a [harness](/providers/ai-sdk-harnesses) session in a briq sandbox.
+It implements the harness network sandbox session on top of the briq API.
+
+It is a sandbox provider, not a model provider. It works with any harness that runs in a sandbox, such as Claude Code or Codex.
+
+## Setup
+
+<InstallPackages packages="@briq-cloud/ai-sdk-sandbox @ai-sdk/harness @ai-sdk/harness-claude-code" />
+
+Create an API key in the [briq dashboard](https://app.briq.cloud) and set it on your server:
+
+```bash
+BRIQ_API_KEY=your-api-key
+```
+
+`BRIQ_API_URL` points at another briq API. You can pass `apiKey` and `baseUrl` to the functions below instead.
+
+## Create an Agent
+
+Create a sandbox with `createBriqNetworkSandboxSession` and pass it to the session:
+
+```ts
+import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { createBriqNetworkSandboxSession } from '@briq-cloud/ai-sdk-sandbox';
+
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  model: 'claude-sonnet-4-6',
+});
+
+const sandboxSession = await createBriqNetworkSandboxSession({
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
+try {
+  console.log(
+    (await agent.generate({ session, prompt: 'Inspect this project.' })).text,
+  );
+} finally {
+  await session.destroy();
+  await sandboxSession.destroy();
+}
+```
+
+Declare every port the harness reaches in `ports`. The harness documentation says which ports it needs.
+Commands run in `/workspace`.
+Destroy the sandbox when you are done.
+
+## Settings
+
+| Setting            | Default             | Description                                                                                             |
+| ------------------ | ------------------- | ------------------------------------------------------------------------------------------------------- |
+| `template`         | none                | A harness sandbox template. It runs once on the new sandbox. The sandbox is destroyed if it throws.     |
+| `ports`            | none                | Ports the harness reaches through `getPortEndpoint`.                                                    |
+| `size`             | the account default | `small`, `medium`, `large` or `xlarge`. Any other value throws an `unsupported` error before a request. |
+| `name`             | generated           | Lowercase letters, digits and dashes, up to 32 characters.                                              |
+| `env`              | none                | Variables of the whole sandbox. The briq API must allow literal values, otherwise the call fails.       |
+| `labels`           | none                | Labels shown on the sandbox in briq.                                                                    |
+| `commandTimeoutMs` | `600000`            | The longest `run` waits for a command.                                                                  |
+| `apiKey`           | `BRIQ_API_KEY`      | A briq API key. A rejected key throws `HarnessSandboxAuthenticationError`.                              |
+| `baseUrl`          | `BRIQ_API_URL`      | The briq API origin.                                                                                    |
+
+## Resume a Sandbox
+
+```ts
+import { resumeBriqNetworkSandboxSession } from '@briq-cloud/ai-sdk-sandbox';
+
+const sandboxSession = await resumeBriqNetworkSandboxSession({ sandboxId });
+```
+
+`sandboxSession.stop()` stops the sandbox and keeps its disk. Resuming starts a stopped sandbox, and a sleeping sandbox wakes on its first command.
+An id that `@briq-cloud/ai-sdk-sandbox` did not create, or a destroyed sandbox, fails with a `not_found` error.
+
+## Supported Features
+
+- Files: read, write, stat, list and delete, text and binary. Writing creates parent directories.
+- `run` and `spawn` through `bash`, with a working directory and environment per command. `kill` stops a spawned command.
+- Ports: `getPortEndpoint` returns an HTTPS URL, or `wss` for `protocol: 'ws'`. The access token is returned as a `cookie` header, not in the URL.
+- Create, resume, stop and destroy.
+- `createBriqSandbox`, the deprecated `HarnessV1SandboxProvider` form, with `resumeSession` by session id.
+
+## Not Supported
+
+- Network policy (`setNetworkPolicy`). A sandbox can reach the internet.
+- Request transformations and `setPorts`. Declare ports when you create the sandbox.
+- A caller-chosen sandbox id. briq assigns it. Use `name` for a readable one.
+- Writable stdin for `spawn`.
+- A snapshot per template. Each new sandbox runs the template again.
+- Binary output from `run` and `spawn`. Output is UTF-8 text.
+- A `spawn` that runs longer than one hour.
+
+## More Information
+
+- [Package source and README](https://github.com/briq-cloud/ai-sdk-sandbox)
+- [briq documentation](https://briq.cloud/docs)
