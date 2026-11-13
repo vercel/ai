@@ -1,0 +1,141 @@
+---
+title: OneTag
+description: Learn how to use the OneTag provider for the AI SDK.
+---
+
+# OneTag
+
+[OneTag](https://onetagai.com) is a hosted LLM endpoint whose API key is designed to be public. The key goes into a static page or other browser code and stays there in production, with no server or proxy of your own. Every key has a hard token cap, and on the paid plan a key can be locked to your domains.
+
+Because the key is public, the API only answers requests from browser pages and browser extensions. Calls from server-side code (Node.js, route handlers, server actions, SSR) are refused with a `403 origin_required` error.
+
+The OneTag provider for the AI SDK supports:
+
+- **Text generation**: `generateText` and `streamText`, called from the browser
+- **Structured output**: `Output.object` through JSON mode (`response_format: json_object`)
+- **Chat UI**: `useChat` with a transport that runs in the browser (see [Using useChat](#using-usechat))
+
+It does not support tools or function calling, image, audio or file input, or embeddings.
+
+Learn more in the [OneTag documentation](https://onetagai.com/docs#openai).
+
+## Setup
+
+The OneTag provider is available in the `ai-sdk-onetag` module. You can install it with:
+
+<InstallPackages packages="ai-sdk-onetag" />
+
+Get a key by entering your email at [onetagai.com](https://onetagai.com/#get-key). The key is sent by email. The free tier is 1,000,000 tokens, one time, with no monthly reset.
+
+## Provider Instance
+
+In browser code, create a provider instance with `createOneTag` and your key:
+
+```ts
+import { createOneTag } from 'ai-sdk-onetag';
+
+const onetag = createOneTag({
+  apiKey: 'ot_...', // public by design, safe to ship in the page
+});
+```
+
+You can also import the default provider instance `onetag` from `ai-sdk-onetag`. It reads the `ONETAG_API_KEY` environment variable where `process.env` exists, for example in tests.
+
+You can use the following optional settings to customize the OneTag provider instance:
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `ONETAG_API_KEY` environment variable when `process.env` is available.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls.
+  The default prefix is `https://onetagai.com/v1`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Language Models
+
+OneTag has one model, `onetag`. Calling the provider without a model ID uses it:
+
+```ts
+const model = onetag('onetag');
+```
+
+### Example
+
+You can use the OneTag language model to stream text with the `streamText` function in browser code:
+
+```ts
+import { createOneTag } from 'ai-sdk-onetag';
+import { streamText } from 'ai';
+
+const onetag = createOneTag({ apiKey: 'ot_...' });
+
+const result = streamText({
+  model: onetag('onetag'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+for await (const textPart of result.textStream) {
+  console.log(textPart);
+}
+```
+
+The OneTag language model can also be used in the `generateText` function
+(see [AI SDK Core](/docs/ai-sdk-core)).
+
+### Using useChat
+
+By default, `useChat` sends messages to an API route such as `/api/chat`, and the model is called from that route on the server. OneTag refuses server-side calls, so use [`DirectChatTransport`](/docs/reference/ai-sdk-ui/direct-chat-transport) to run the agent in the browser instead:
+
+```tsx
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { DirectChatTransport, ToolLoopAgent } from 'ai';
+import { createOneTag } from 'ai-sdk-onetag';
+
+const onetag = createOneTag({ apiKey: 'ot_...' });
+
+const agent = new ToolLoopAgent({
+  model: onetag('onetag'),
+  instructions: 'You are a helpful assistant.',
+});
+
+export default function Chat() {
+  const { messages, sendMessage } = useChat({
+    transport: new DirectChatTransport({ agent }),
+  });
+
+  // ... render chat UI
+}
+```
+
+### Errors
+
+API errors are thrown as `OneTagError`, a subclass of `APICallError`, with the OneTag error `code` (`origin_required`, `bad_key`, `domain_not_allowed`, `quota_exceeded`, `rate_limited`, `too_large`, `paused`, `upstream`) and a message that explains the cause.
+`quota_exceeded` and the other errors that cannot succeed on a second try are not retried.
+Tools and non-text content are rejected with an `UnsupportedFunctionalityError` before a request is sent.
+
+### Model Capabilities
+
+| Model    | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| -------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `onetag` | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+
+## Additional Resources
+
+- [OneTag Provider Repository](https://github.com/fengyiqicoder/ai-sdk-onetag)
+- [NPM Package](https://www.npmjs.com/package/ai-sdk-onetag)
+- [OneTag Documentation](https://onetagai.com/docs#openai)
+- [Get a OneTag Key](https://onetagai.com/#get-key)
