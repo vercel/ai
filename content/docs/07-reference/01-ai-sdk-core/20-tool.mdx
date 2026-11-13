@@ -7,7 +7,7 @@ description: Helper function for tool type inference
 
 Tool is a helper function that infers the tool input and context for its `execute` method and lifecycle callbacks.
 
-It does not have any runtime behavior, but it helps TypeScript infer the types for the tool callbacks.
+When `inputSchema` is omitted, `tool()` defaults it to an empty object schema so tools with no parameters do not need `inputSchema: z.object({})`. Otherwise it returns the tool definition as-is and helps TypeScript infer the types for the tool callbacks.
 
 Without this helper function, TypeScript is unable to connect the `inputSchema` and `contextSchema` properties to the tool callbacks,
 and the callback argument types cannot be inferred.
@@ -88,9 +88,10 @@ export const weatherTool = tool({
             },
             {
               name: 'inputSchema',
+              isOptional: true,
               type: 'Zod Schema | JSON Schema',
               description:
-                'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function).',
+                'The schema of the input that the tool expects. The language model will use this to generate the input. It is also used to validate the output of the language model. Use descriptions to make the input understandable for the language model. You can either pass in a Zod schema or a JSON schema (using the `jsonSchema` function). Defaults to an empty object schema when omitted.',
             },
             {
               name: 'inputExamples',
@@ -252,4 +253,4 @@ export const weatherTool = tool({
 
 ### Returns
 
-The tool that was passed in.
+The tool that was passed in. If `inputSchema` was omitted, the returned tool includes a default empty object schema.

@@ -2550,6 +2550,63 @@ describe('generateText', () => {
         ]
       `);
     });
+
+    it('should execute tools that omit inputSchema', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async ({ tools }) => {
+            expect(tools).toStrictEqual([
+              {
+                type: 'function',
+                name: 'ping',
+                description: 'Ping',
+                inputSchema: {
+                  type: 'object',
+                  properties: {},
+                  additionalProperties: false,
+                },
+              },
+            ]);
+
+            return {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'ping',
+                  input: '',
+                },
+              ],
+            };
+          },
+        }),
+        tools: {
+          ping: tool({
+            description: 'Ping',
+            execute: async input => {
+              expect(input).toStrictEqual({});
+              return 'pong';
+            },
+          }),
+        },
+        prompt: 'test-input',
+      });
+
+      expect(result.toolResults).toMatchInlineSnapshot(`
+        [
+          {
+            "dynamic": false,
+            "input": {},
+            "output": "pong",
+            "toolCallId": "call-1",
+            "toolName": "ping",
+            "type": "tool-result",
+          },
+        ]
+      `);
+    });
   });
 
   describe('class-based tool `this` binding', () => {

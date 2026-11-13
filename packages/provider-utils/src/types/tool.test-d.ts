@@ -498,6 +498,83 @@ describe('tool helper', () => {
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<FlexibleSchema<T>>();
     });
 
+    it('should default input type to an empty object when inputSchema is omitted', () => {
+      const aTool = tool({
+        description: 'Get the current time',
+        execute: async input => {
+          expectTypeOf(input).toEqualTypeOf<Record<string, never>>();
+          return '12:00' as const;
+        },
+      });
+
+      expectTypeOf(aTool).toEqualTypeOf<
+        ExecutableTool<Tool<Record<string, never>, '12:00', Context>>
+      >();
+      expectTypeOf(aTool.execute).toEqualTypeOf<
+        ToolExecuteFunction<Record<string, never>, '12:00', Context>
+      >();
+      expectTypeOf(aTool.inputSchema).toEqualTypeOf<
+        FlexibleSchema<Record<string, never>>
+      >();
+    });
+
+    it('should default input type to an empty object when inputSchema and execute are omitted', () => {
+      const aTool = tool({
+        description: 'Ping',
+      });
+
+      expectTypeOf(aTool).toEqualTypeOf<
+        Tool<Record<string, never>, never, Context>
+      >();
+      expectTypeOf(aTool.execute).toEqualTypeOf<undefined>();
+      expectTypeOf(aTool.inputSchema).toEqualTypeOf<
+        FlexibleSchema<Record<string, never>>
+      >();
+    });
+
+    it('should default input type to an empty object when inputSchema is omitted and there is an output schema', () => {
+      const aTool = tool({
+        description: 'Get the user location',
+        outputSchema: z.object({ lat: z.number(), lng: z.number() }),
+      });
+
+      expectTypeOf(aTool).toEqualTypeOf<
+        Tool<Record<string, never>, { lat: number; lng: number }, Context>
+      >();
+    });
+
+    it('should infer context type when inputSchema is omitted', () => {
+      const aTool = tool({
+        contextSchema: z.object({ userId: z.string() }),
+        execute: async (input, { context }) => {
+          expectTypeOf(input).toEqualTypeOf<Record<string, never>>();
+          expectTypeOf(context).toEqualTypeOf<{ userId: string }>();
+          return context.userId;
+        },
+      });
+
+      expectTypeOf(aTool).toEqualTypeOf<
+        ExecutableTool<Tool<Record<string, never>, string, { userId: string }>>
+      >();
+    });
+
+    it('should reject non-function tool properties when inputSchema is omitted', () => {
+      tool({
+        // @ts-expect-error provider tools cannot omit inputSchema
+        type: 'provider',
+      });
+
+      tool({
+        // @ts-expect-error provider tools cannot omit inputSchema
+        id: 'test.tool',
+      });
+
+      tool({
+        // @ts-expect-error dynamic tools cannot omit inputSchema
+        type: 'dynamic',
+      });
+    });
+
     it('should infer input type when inputExamples are present with an optional/default Zod schema', () => {
       const inputSchema = z.object({
         location: z.string(),
