@@ -75,6 +75,22 @@ function assertSupportedBatchRequests(
         message: `The Google Batch API does not support batch requests with type "${requestType}".`,
       });
     }
+
+    // The batch endpoint applies `responseMimeType` but silently ignores
+    // `responseJsonSchema` (it only enforces the legacy `responseSchema`), so a
+    // schema would produce unvalidated output without any warning.
+    if (
+      request.type === 'text' &&
+      request.options.responseFormat?.type === 'json' &&
+      request.options.responseFormat.schema != null
+    ) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'structured output schemas in Google batches',
+        message:
+          `The Google Batch API does not enforce JSON schemas (request "${request.id}"). ` +
+          'Remove the output schema or use `Output.json()` without a schema.',
+      });
+    }
   }
 }
 

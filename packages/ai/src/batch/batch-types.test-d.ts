@@ -46,6 +46,8 @@ import {
 import type { AsyncIterableStream } from '../util/async-iterable-stream';
 import type { ContentPart } from '../generate-text/content-part';
 import { jsonSchema, type ToolSet } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+import { Output } from '../generate-text';
 
 it('exposes typed Gateway async-job metadata', () => {
   expectTypeOf<
@@ -302,5 +304,35 @@ it('exports the experimental batch functions with the public result types', () =
   });
   expectTypeOf(getBatchResults).returns.toEqualTypeOf<
     AsyncIterableStream<TextBatchItemResult | ImageBatchItemResult>
+  >();
+});
+
+it('infers the parsed output of text batch results from the output specification', async () => {
+  const output = Output.object({ schema: z.object({ text: z.string() }) });
+
+  const results = getBatchResults({
+    batch: {} as BatchReference,
+    output,
+  });
+  for await (const item of results) {
+    if (item.type === 'text' && item.status === 'succeeded') {
+      expectTypeOf(item.output).toEqualTypeOf<{ text: string } | undefined>();
+      expectTypeOf(item.outputError).toEqualTypeOf<BatchError | undefined>();
+      if (item.outputError == null) {
+        expectTypeOf(item.output).toEqualTypeOf<{ text: string }>();
+      }
+    }
+  }
+
+  for await (const item of getBatchResults({ batch: {} as BatchReference })) {
+    if (item.type === 'text' && item.status === 'succeeded') {
+      expectTypeOf(item).not.toHaveProperty('output');
+    }
+  }
+});
+
+it('accepts an output specification when starting a batch', () => {
+  expectTypeOf<StartBatchOptions['output']>().toEqualTypeOf<
+    Output.Output | undefined
   >();
 });

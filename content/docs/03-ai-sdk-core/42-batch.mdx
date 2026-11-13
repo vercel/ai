@@ -224,6 +224,67 @@ the provider when supported by that provider's batch API. Their tool calls and
 results are returned as normalized `content` parts. See the provider
 documentation for the tools and models available in batches.
 
+## Structured output
+
+`startBatch` accepts the same `output` specification as `generateText`. Its
+response format is sent with every text request in the batch. Image requests
+ignore it:
+
+```ts
+import {
+  experimental_getBatchResults as getBatchResults,
+  experimental_startBatch as startBatch,
+  Output,
+} from 'ai';
+import { z } from 'zod';
+
+const output = Output.object({
+  schema: z.object({ translation: z.string() }),
+});
+
+const batch = await startBatch({
+  output,
+  requests: [
+    {
+      id: 'translate-1',
+      type: 'text',
+      model: 'openai/gpt-5-mini',
+      prompt: 'Translate to English: Directeur commercial',
+    },
+  ],
+});
+```
+
+Results are retrieved separately, so the AI SDK cannot carry the output type
+across the two calls. Pass the same `output` to `getBatchResults` to parse and
+validate each successful item:
+
+```ts
+for await (const item of getBatchResults({ batch, output })) {
+  if (item.type === 'text' && item.status === 'succeeded') {
+    if (item.outputError == null) {
+      console.log(item.id, item.output); // typed from the schema
+    } else {
+      console.error(item.id, item.outputError.message, item.text);
+    }
+  }
+}
+```
+
+A parsing or validation failure does not fail the item or the iteration. The
+item stays `succeeded` with `text`, `usage`, and the other results intact, and
+has an `outputError` instead of `output`. This lets you resubmit only the
+requests whose response was not valid. Without `output`, the raw JSON is
+available in `text`.
+
+Because `output` applies to the whole batch, all text items are parsed with the
+same specification. To use different schemas, start separate batches. Support for structured output depends on the provider and model:
+
+- Anthropic batches require a model with native structured output.
+- Google batches do not support output schemas, because the Google batch
+  endpoint does not enforce them. Requests with a schema are rejected when the
+  batch is started.
+
 ## Checking batch status
 
 The start result includes the initial status. Use `getBatchStatus` to retrieve
