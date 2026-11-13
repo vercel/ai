@@ -596,8 +596,8 @@ const agent = new WorkflowAgent({
 A `model`, `toolChoice`, `activeTools`, or generation setting returned from
 `prepareStep` applies to the current step only, as in `ToolLoopAgent`. Later
 steps use the agent or call values again unless `prepareStep` returns an
-override for them too. Returned `messages`, `system`, `runtimeContext`, and
-`toolsContext` values stay in effect for later steps.
+override for them too. Returned `messages`, `instructions`, `runtimeContext`,
+and `toolsContext` values stay in effect for later steps.
 
 `prepareStep` can also be passed per call in `generate()` and `stream()`.
 `prepareCall` is a constructor option only.
@@ -732,10 +732,8 @@ In `ToolLoopAgent`, `prepareCall` receives the settings together with the `promp
 ### prepareStep
 
 - `messages` uses the provider prompt format (`LanguageModelV4Prompt`) in the argument and in the return value, and it includes the system message. `ToolLoopAgent` uses `ModelMessage[]` without the system message.
-- The argument has no `instructions` and no `responseMessages`. `initialInstructions` and `initialMessages` are available.
-- To change the system prompt, return `system` as a string. A returned `instructions` value is ignored.
-- A returned `providerOptions` object replaces the `providerOptions` of the agent. `ToolLoopAgent` merges the two objects.
-- You can return `headers`. They replace all headers of the call, including the `user-agent` value that identifies the agent. `ToolLoopAgent` does not accept `headers` from `prepareStep`.
+- The argument has no `responseMessages`. `initialInstructions`, `instructions`, and `initialMessages` are available.
+- You can return `headers`. They are merged over the headers of the call, and the request keeps the `user-agent` value that identifies the agent. `ToolLoopAgent` does not accept `headers` from `prepareStep`.
 - You cannot return `toolOrder`.
 
 ### Callbacks
