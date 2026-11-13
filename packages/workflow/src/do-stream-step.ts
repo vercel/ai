@@ -10,7 +10,7 @@ import {
   type LanguageModel,
   type ToolSet,
 } from 'ai';
-import { isOutputChunk, prepareRetries } from 'ai/internal';
+import { isOutputChunk, logWarnings, prepareRetries } from 'ai/internal';
 import { languageModelPromptToModelMessages } from './language-model-prompt-to-model-messages.js';
 import {
   resolveSerializableTools,
@@ -485,6 +485,12 @@ async function streamModelStep(
     });
     hasTerminalError = true;
   }
+
+  logWarnings({
+    warnings: (warnings ?? []) as Parameters<typeof logWarnings>[0]['warnings'],
+    provider: model.provider,
+    model: model.modelId,
+  });
 
   return {
     toolCalls,
