@@ -596,8 +596,8 @@ const agent = new WorkflowAgent({
 A `model`, `toolChoice`, `activeTools`, or generation setting returned from
 `prepareStep` applies to the current step only, as in `ToolLoopAgent`. Later
 steps use the agent or call values again unless `prepareStep` returns an
-override for them too. Returned `messages`, `system`, `runtimeContext`, and
-`toolsContext` values stay in effect for later steps.
+override for them too. Returned `messages`, `instructions`, `runtimeContext`,
+and `toolsContext` values stay in effect for later steps.
 
 `prepareStep` can also be passed per call in `generate()` and `stream()`.
 `prepareCall` is a constructor option only.
@@ -699,20 +699,20 @@ TypeScript rejects these options on `WorkflowAgent`. If you pass them anyway, fo
 | `onStepError`                                                   | Not supported. Use `onError`.                                                                                                                                            |
 | `onLanguageModelCallStart`, `onLanguageModelCallEnd`            | Not supported.                                                                                                                                                           |
 | `include` in the constructor                                    | Pass `include` to `generate()`. `stream()` has no `include` option and does not record request data in its steps. Use `includeRawChunks` to receive raw provider chunks. |
-| `timeout` in the constructor, and `timeout` as an object        | Pass `timeout` as a number of milliseconds to `generate()` or `stream()`. An object value fails with a `TypeError`.                                                      |
+| `timeout` in the constructor                                    | Pass `timeout` to `generate()` or `stream()`.                                                                                                                            |
 | `experimental_telemetry`                                        | Use `telemetry`.                                                                                                                                                         |
 | `experimental_onToolCallStart`, `experimental_onToolCallFinish` | Use `onToolExecutionStart` and `onToolExecutionEnd`.                                                                                                                     |
 
 ### Options with a different shape
 
-| Option                                                                                                                               | ToolLoopAgent                                                | WorkflowAgent                                                                                                                                                                          |
-| ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Generation settings, `instructions`, `toolChoice`, `activeTools`, `stopWhen`, `output`, `telemetry`, `prepareStep`, `repairToolCall` | Constructor only. Use `prepareCall` to change them per call. | Constructor, or per call in `generate()` and `stream()`. The per-call value overrides the constructor value.                                                                           |
-| `abortSignal`                                                                                                                        | Per call.                                                    | Constructor or per call.                                                                                                                                                               |
-| `experimental_sandbox`                                                                                                               | Per call.                                                    | Constructor or per call.                                                                                                                                                               |
-| `timeout`                                                                                                                            | A number or an object, in the constructor or per call.       | A number, per call. It sets a deadline for model calls and does not cancel a tool that waits on a hook. See [Deadlines, cancellation, and replay](#deadlines-cancellation-and-replay). |
-| `experimental_toolApprovalSecret`                                                                                                    | The secret, as a `string` or `Uint8Array`.                   | `{ environmentVariable: string }`, the name of an environment variable that holds the secret. See [Signed Tool Approvals](#signed-tool-approvals).                                     |
-| `runtimeContext`, `toolsContext`                                                                                                     | Any JavaScript value.                                        | Serializable values. See [runtimeContext and toolsContext](#runtimecontext-and-toolscontext).                                                                                          |
+| Option                                                                                                                               | ToolLoopAgent                                                | WorkflowAgent                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Generation settings, `instructions`, `toolChoice`, `activeTools`, `stopWhen`, `output`, `telemetry`, `prepareStep`, `repairToolCall` | Constructor only. Use `prepareCall` to change them per call. | Constructor, or per call in `generate()` and `stream()`. The per-call value overrides the constructor value.                                                                                                |
+| `abortSignal`                                                                                                                        | Per call.                                                    | Constructor or per call.                                                                                                                                                                                    |
+| `experimental_sandbox`                                                                                                               | Per call.                                                    | Constructor or per call.                                                                                                                                                                                    |
+| `timeout`                                                                                                                            | A number or an object, in the constructor or per call.       | A number or an object, per call. The object has no tool timeouts, and `stepMs` covers the model call without tool execution. See [Deadlines, cancellation, and replay](#deadlines-cancellation-and-replay). |
+| `experimental_toolApprovalSecret`                                                                                                    | The secret, as a `string` or `Uint8Array`.                   | `{ environmentVariable: string }`, the name of an environment variable that holds the secret. See [Signed Tool Approvals](#signed-tool-approvals).                                                          |
+| `runtimeContext`, `toolsContext`                                                                                                     | Any JavaScript value.                                        | Serializable values. See [runtimeContext and toolsContext](#runtimecontext-and-toolscontext).                                                                                                               |
 
 ### Default step limit
 
@@ -732,10 +732,8 @@ In `ToolLoopAgent`, `prepareCall` receives the settings together with the `promp
 ### prepareStep
 
 - `messages` uses the provider prompt format (`LanguageModelV4Prompt`) in the argument and in the return value, and it includes the system message. `ToolLoopAgent` uses `ModelMessage[]` without the system message.
-- The argument has no `instructions` and no `responseMessages`. `initialInstructions` and `initialMessages` are available.
-- To change the system prompt, return `system` as a string. A returned `instructions` value is ignored.
-- A returned `providerOptions` object replaces the `providerOptions` of the agent. `ToolLoopAgent` merges the two objects.
-- You can return `headers`. They replace all headers of the call, including the `user-agent` value that identifies the agent. `ToolLoopAgent` does not accept `headers` from `prepareStep`.
+- The argument has no `responseMessages`. `initialInstructions`, `instructions`, and `initialMessages` are available.
+- You can return `headers`. They are merged over the headers of the call, and the request keeps the `user-agent` value that identifies the agent. `ToolLoopAgent` does not accept `headers` from `prepareStep`.
 - You cannot return `toolOrder`.
 
 ### Callbacks
@@ -758,7 +756,6 @@ The callbacks also run at different times:
 - After a failed run, `stream()` calls `onEnd` before it rejects. `generate()` and `ToolLoopAgent` do not call `onEnd` for a failed run.
 - `onAbort` is called by `generate()` and by `stream()`, and its event has only `steps`. `ToolLoopAgent` calls `onAbort` only for `stream()`, with `callId`, `reason`, and `steps`.
 - An aborted `stream()` call resolves with the steps that finished. An aborted `generate()` call rejects.
-- If `generate()` is aborted during a step with a custom abort reason, it calls `onError` with that reason. `ToolLoopAgent` does not report aborts to `onError`.
 
 ### Results
 
@@ -772,7 +769,7 @@ The callbacks also run at different times:
 - `output` is `undefined` unless you set an `output` specification. `ToolLoopAgent` defaults to the generated text.
 - If the structured output cannot be parsed, the `stream()` call rejects. In `ToolLoopAgent`, the call resolves and only `result.output` rejects.
 - If the model call throws, the `stream()` call rejects with that error. In `ToolLoopAgent`, the call resolves and the error is reported through the stream and `onError`.
-- Each step is a plain object. Its `request` is empty, its `model.provider` is derived from the model ID of the response and can differ from the provider name, and its `providerMetadata` is `{}` when the provider sends none. Steps from `generate()` match `ToolLoopAgent`.
+- Each step is a plain object. Its `request` is empty, and its `providerMetadata` is `{}` when the provider sends none. Steps from `generate()` match `ToolLoopAgent`.
 - A tool call for an unknown tool, or with input that does not match the schema, is missing from `content` and `toolCalls` of the step. The model still receives the error as a tool result and the loop continues. `generate()` and `ToolLoopAgent` keep the call in the step, marked `invalid`, with a `tool-error` part.
 
 `WorkflowAgent` does not log provider warnings. Read them from `warnings` on each step.
@@ -780,13 +777,18 @@ The callbacks also run at different times:
 ### Tools
 
 - Approval is configured with `needsApproval` on the tool. Approval request IDs have the form `approval-<toolCallId>`. `ToolLoopAgent` generates random IDs.
-- For a tool whose `execute` function is an async generator, the last yielded value is the tool result, as in `ToolLoopAgent`. `ToolLoopAgent` also reports the earlier values as preliminary results. `WorkflowAgent` does not send them to the `writable`.
-- In `stream()`, the `onInputStart` and `onInputAvailable` hooks of a tool are not called when the provider sends the tool call without streaming its input first. They are called in `generate()`.
+- A tool whose `execute` function is an async generator is not supported. `ToolLoopAgent` treats every yielded value except the last one as a preliminary result. `WorkflowAgent` does not iterate the generator, and the tool result is an empty object.
 - Tool timeouts (`toolMs` and `tools` in the `timeout` object) are not supported.
 
 ### Requests
 
 Requests carry `ai-sdk-agent/workflow` in the `user-agent` header. `ToolLoopAgent` sends `ai-sdk-agent/tool-loop`.
+
+### Timeouts
+
+- `stepMs` limits one model call. In `ToolLoopAgent` it also covers the tool calls of the step.
+- `generate()` ignores `firstChunkMs` and `chunkMs`. `ToolLoopAgent` also logs a warning for them.
+- A timeout value that is not a finite number, or that is larger than 2147483647, is rejected with an `InvalidArgumentError`. So is a negative `stepMs`, `firstChunkMs`, or `chunkMs`. `ToolLoopAgent` does not validate the values.
 
 ## Migrating from `DurableAgent`
 
@@ -955,7 +957,33 @@ Local tools execute only after approval validation; denied tools produce an exec
 
 #### Deadlines, cancellation, and replay
 
-Inside a workflow, `timeout` sets an absolute deadline for model calls. Each model step checks it before dispatch, before SDK retry attempts, and after the provider returns. The same deadline remains in effect after a tool suspends and resumes. SDK `maxRetries` governs model retries; the durable model step does not add another retry layer. Expiration before dispatch rejects with `TimeoutError`; expiration during SDK retry backoff rejects with `AbortError`. Neither starts a new retry.
+`timeout` accepts a number of milliseconds or an object:
+
+```ts
+const result = await agent.stream({
+  messages,
+  timeout: {
+    totalMs: 5 * 60_000,
+    stepMs: 60_000,
+    firstChunkMs: 15_000,
+    chunkMs: 10_000,
+  },
+});
+```
+
+A number has the same meaning as `totalMs`. Inside a workflow, it sets an absolute deadline for model calls. Each model step checks it before dispatch, before SDK retry attempts, and after the provider returns. The same deadline remains in effect after a tool suspends and resumes. SDK `maxRetries` governs model retries; the durable model step does not add another retry layer. Expiration before dispatch rejects with `TimeoutError`; expiration during SDK retry backoff rejects with `AbortError`. Neither starts a new retry.
+
+The other values apply to one model call and start again for the next one:
+
+- `stepMs` limits the whole model call: dispatch, SDK retries, and reading the response. Tool execution is not part of it.
+- `firstChunkMs` limits the wait for the first output of the model call, counted from the start of the response stream.
+- `chunkMs` limits the wait between two outputs.
+
+`firstChunkMs` and `chunkMs` are used by `stream()` only. Only generated output counts for them: files, tool calls, and text, reasoning, or tool-input deltas that are not empty. Response metadata, start and end markers, and empty deltas do not start or reset these timers.
+
+When one of these limits is reached, the model call is aborted with a `TimeoutError` and the run ends like an aborted run: `stream()` resolves with the steps that finished, `generate()` rejects with the error, and both call `onAbort`. The timers run inside the durable model step. A model step that has completed is not timed again on replay.
+
+Each value must be a finite number of at most 2147483647, which is about 24.8 days. A negative `timeout` or `totalMs` is a deadline that has already passed. Any other invalid value is rejected with an `InvalidArgumentError` before the first model call.
 
 A model deadline does not cancel a tool waiting on a Workflow hook. The run can remain suspended after that deadline. Once the hook resumes, any subsequent model call fails before dispatch if the deadline has expired. To stop the suspended run, use the Workflow runtime's `run.cancel()` API. Cancellation does not undo external side effects that already happened.
 
