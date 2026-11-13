@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google.interactions('gemini-3.8-flash'),
+    model: google.interactions('gemini-4-hydrogen'),
     messages: [
       {
         role: 'user',

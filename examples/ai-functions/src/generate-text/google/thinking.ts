@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: google('gemini-3.8-flash'),
+    model: google('gemini-4-hydrogen'),
     prompt: 'what is the sum of the first 10 prime numbers?',
     reasoning: 'medium',
     providerOptions: {

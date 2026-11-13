@@ -680,7 +680,7 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
 
-const model = 'gemini-3.8-flash';
+const model = 'gemini-4-hydrogen';
 
 // Create a cache with the content you want to reuse
 const cache = await ai.caches.create({
@@ -2733,7 +2733,7 @@ import { google } from '@ai-sdk/google';
 import { experimental_extract } from 'ai';
 
 const { answers } = await experimental_extract({
-  model: google.extractionModel('gemini-3.8-flash'),
+  model: google.extractionModel('gemini-4-hydrogen'),
   referenceDate: '2026-11-11',
   state: 'Invoice INV-2041. Total due $1,250.00 by March 3.',
   fields: {
