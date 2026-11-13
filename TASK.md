@@ -74,7 +74,7 @@ The steps are below:
 - It has to decorate `HarnessAgentLog` into `HarnessAgentV2Log`, and it has to create the sandbox session function based on the given session's sandbox session getter function. The other shapes should be compatible.
 
 13. [x] Wire all the pieces that are individually handled by steps 7 to 11 together in `HarnessAgent`, so that the resulting `HarnessV2DriveContext` object can be passed to the `harness: HarnessV2` instance's `drive()` method.
-14. [ ] Implement `packages/harness-pi-v2`, a new from-scratch reimplementation of the Pi harness. Keep it minimal, but follow the key harness requirements. For now, the only things that it will support are custom `tools` (through `executeHostTool()`) and Pi's built-in tools (through `executeBuiltinTool()`).
+14. [x] Implement `packages/harness-pi-v2`, a new from-scratch reimplementation of the Pi harness. Keep it minimal, but follow the key harness requirements. For now, the only things that it will support are custom `tools` (through `executeHostTool()`) and Pi's built-in tools (through `executeBuiltinTool()`).
 
 - Ignore existing harnesses' code structure and architectural conventions. We'll want to build this as ideal as it is for the new architecture.
 - Pi's built-in tools run in the adapter's process, with implementations that operate on the session's sandbox (from `sandbox()`), like the remote operations of the existing `packages/harness-pi` adapter.
