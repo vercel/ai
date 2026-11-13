@@ -301,6 +301,66 @@ describe('type + anyOf on the same node', () => {
   });
 });
 
+describe('definitions', () => {
+  // Zod 4 with the draft-07 target (used by `zodSchema`) emits reused and
+  // recursive schemas under `definitions`, not `$defs`.
+  it('normalizes schemas under draft-07 definitions', () => {
+    const result = normalizeJsonSchemaForMFJS({
+      type: 'object',
+      properties: { root: { $ref: '#/definitions/__schema0' } },
+      required: ['root'],
+      definitions: {
+        __schema0: {
+          type: 'object',
+          properties: {
+            point: {
+              type: 'array',
+              items: [{ type: 'number' }, { type: 'number' }],
+            },
+            label: {
+              type: 'string',
+              anyOf: [{ minLength: 1 }, { const: '' }],
+            },
+            children: {
+              type: 'array',
+              items: { $ref: '#/definitions/__schema0' },
+            },
+          },
+          required: ['point', 'children'],
+        },
+      },
+    });
+
+    expect(result).toEqual({
+      type: 'object',
+      properties: { root: { $ref: '#/definitions/__schema0' } },
+      required: ['root'],
+      definitions: {
+        __schema0: {
+          type: 'object',
+          properties: {
+            point: {
+              type: 'array',
+              prefixItems: [{ type: 'number' }, { type: 'number' }],
+            },
+            label: {
+              anyOf: [
+                { type: 'string', minLength: 1 },
+                { type: 'string', const: '' },
+              ],
+            },
+            children: {
+              type: 'array',
+              items: { $ref: '#/definitions/__schema0' },
+            },
+          },
+          required: ['point', 'children'],
+        },
+      },
+    });
+  });
+});
+
 describe('root unions of objects', () => {
   const city = {
     type: 'object',
