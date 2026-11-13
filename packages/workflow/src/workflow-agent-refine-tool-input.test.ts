@@ -468,6 +468,65 @@ describe('experimental_refineToolInput', () => {
     },
   );
 
+  it.each(['generate', 'stream'] as const)(
+    'runs an approved call of a tool without a runtime validator when %s() resumes and the refinement is not idempotent',
+    async mode => {
+      const executedInputs: Input[] = [];
+      const agent = new WorkflowAgent({
+        model: createAgentModel([toolResponse(), textResponse('It is 18°C.')]),
+        tools: {
+          weather: tool({
+            inputSchema: jsonSchema<Input>({
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+            }),
+            needsApproval: true,
+            execute: async ({ city }) => {
+              executedInputs.push({ city });
+              return { temperature: 18 };
+            },
+          }),
+        },
+        // Applying this refinement twice gives a different input.
+        experimental_refineToolInput: {
+          weather: input => ({ ...input, city: `${input.city}!` }),
+        },
+      });
+      const run = async (messages: ModelMessage[]) => {
+        if (mode === 'generate') {
+          const result = await agent.generate({ messages });
+          return result.responseMessages as ModelMessage[];
+        }
+        const result = await agent.stream({ messages });
+        return result.steps.flatMap(
+          step => step.response.messages,
+        ) as ModelMessage[];
+      };
+      const userMessage: ModelMessage = { role: 'user', content: prompt };
+
+      const issued = await run([userMessage]);
+      expect(executedInputs).toEqual([]);
+
+      await run([
+        userMessage,
+        ...issued,
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'approval-weather-call',
+              approved: true,
+            },
+          ],
+        },
+      ]);
+
+      expect(executedInputs).toEqual([{ city: 'London!' }]);
+    },
+  );
+
   it('supports async refinement functions', async () => {
     const responses = [toolResponse(), textResponse('It is 18°C.')];
     const generateModel = createAgentModel(responses);

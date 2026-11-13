@@ -893,7 +893,17 @@ async function validateToolCallInputs({
           return toolCall;
         }
         try {
-          return { ...toolCall, input: await refine(toolCall.input as never) };
+          const input = await refine(toolCall.input as never);
+          return {
+            ...toolCall,
+            input,
+            // Keep the input from before the refinement. When an approved call
+            // is validated again, the refinement runs on this value, so a
+            // refinement that is not idempotent still gives the approved input.
+            ...(isDeepEqualData(toolCall.input, input)
+              ? {}
+              : { inputSchemaInput: toolCall.input }),
+          };
         } catch (error) {
           // Like parseToolCall, a refinement that throws makes the call invalid.
           return { ...toolCall, dynamic: true, invalid: true, error };
