@@ -91,7 +91,7 @@ describe('SseMCPTransport', () => {
 
     expect(caughtError).toBeInstanceOf(MCPClientError);
     expect(caughtError?.statusCode).toBe(500);
-    expect(caughtError?.url).toBe('http://localhost:3000/sse');
+    expect(caughtError?.url).toBe('http://localhost:3000');
     expect(caughtError?.responseBody).toBe('Internal Server Error');
   });
 
@@ -620,16 +620,52 @@ describe('SseMCPTransport', () => {
       message:
         'MCP SSE Transport Error: POSTing to endpoint (HTTP 500): Internal Server Error',
       statusCode: 500,
-      url: 'http://localhost:3000/messages',
+      url: 'http://localhost:3000',
       responseBody: 'Internal Server Error',
     });
     expect(reportedError).toBeInstanceOf(MCPClientError);
     expect(reportedError).toMatchObject({
       statusCode: 500,
-      url: 'http://localhost:3000/messages',
+      url: 'http://localhost:3000',
       responseBody: 'Internal Server Error',
     });
     expect(transport['connected']).toBe(true);
+
+    await transport.close();
+  });
+
+  it('keeps only the origin of the advertised POST endpoint on errors', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    server.urls['http://localhost:3000/messages'].response = {
+      type: 'error',
+      status: 500,
+      body: 'Internal Server Error',
+    };
+
+    const connectPromise = transport.start();
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3000/messages?session=secret-session-token\n\n',
+    );
+    await connectPromise;
+
+    const error = await transport
+      .send({ jsonrpc: '2.0' as const, method: 'test', id: '1' })
+      .catch((e: unknown) => e as MCPClientError);
+
+    expect(error).toBeInstanceOf(MCPClientError);
+    expect((error as MCPClientError).url).toBe('http://localhost:3000');
+    expect(
+      JSON.stringify({
+        ...(error as MCPClientError),
+        message: (error as MCPClientError).message,
+      }),
+    ).not.toMatch(/secret/);
 
     await transport.close();
   });
