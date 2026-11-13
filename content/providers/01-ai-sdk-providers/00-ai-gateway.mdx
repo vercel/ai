@@ -1702,7 +1702,7 @@ The AI Gateway provider accepts provider options that control routing behavior a
 
 ### Gateway Provider Options
 
-You can use the `gateway` key in `providerOptions` to control how AI Gateway routes requests. Without any routing options, AI Gateway picks providers based on recent uptime and latency and falls back to other providers that serve the same model, so most applications don't need to set them.
+You can use the `gateway` key in `providerOptions` to control how AI Gateway handles requests. Default routing is recommended for almost every application: AI Gateway picks providers per request from live uptime, latency, health, and rate limits, and falls back to other providers that serve the same model. The routing options `order`, `only`, and `sort` replace that with a fixed rule, so leave them unset unless a specific requirement needs one.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -1713,7 +1713,8 @@ const { text } = await generateText({
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {
-      order: ['vertex', 'anthropic'], // Try Vertex AI first, then Anthropic, then other providers
+      zeroDataRetention: true, // Only route to providers with zero data retention agreements
+      tags: ['chat'], // Categorize usage in reports
     } satisfies GatewayProviderOptions,
   },
 });
@@ -1725,13 +1726,15 @@ The following gateway provider options are available:
 
   Specifies the sequence of providers to attempt when routing requests. The gateway will try providers in the order specified. If a provider fails or is unavailable, it will move to the next provider in the list.
 
+  The listed providers are tried first even when default routing would move them back for health or rate limits, so use `order` only when a requirement needs a fixed provider sequence.
+
   Example: `order: ['bedrock', 'anthropic']` will attempt Amazon Bedrock first, then fall back to Anthropic.
 
 - **only** _string[]_
 
   Restricts routing to only the specified providers. When set, the gateway will never route to providers not in this list, even if they would otherwise be available.
 
-  Because unlisted providers are never tried, the request fails instead of falling back when the listed providers are unavailable. When the requirement is about data handling or a model capability, `zeroDataRetention`, `disallowPromptTraining`, or `has` filter by that requirement while keeping every qualifying provider eligible.
+  Because unlisted providers are never tried, the request fails instead of falling back when the listed providers are unavailable. When the requirement is about data handling, `zeroDataRetention` or `disallowPromptTraining` filter by that requirement while keeping every qualifying provider eligible.
 
   Example: `only: ['anthropic', 'vertex']` will only allow routing to Anthropic or Vertex AI.
 
@@ -1743,6 +1746,8 @@ The following gateway provider options are available:
   - `'tps'` — highest tokens-per-second first
 
   When combined with `order`, the user-specified providers are promoted to the front while remaining providers follow the sorted order.
+
+  `sort` replaces the default ranking with a single metric, so use it only when that metric is a requirement.
 
   Example: `sort: 'ttft'` will route to the provider with the fastest time-to-first-token.
 
@@ -1849,7 +1854,7 @@ The following gateway provider options are available:
   });
   ```
 
-You can combine these options to have fine-grained control over routing and tracking. For example, prefer Vertex AI while keeping fallbacks, and require zero data retention:
+You can combine these options in one request. For example, require zero data retention and attribute usage to an end user:
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -1860,8 +1865,8 @@ const { text } = await generateText({
   prompt: 'Write a haiku about programming',
   providerOptions: {
     gateway: {
-      order: ['vertex'], // Prefer Vertex AI
       zeroDataRetention: true, // Only route to providers with zero data retention agreements
+      user: 'user-123', // Attribute usage to this end user
     } satisfies GatewayProviderOptions,
   },
 });
@@ -2070,7 +2075,7 @@ const { text } = await generateText({
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {
-      order: ['vertex', 'anthropic'],
+      tags: ['chat'],
     } satisfies GatewayProviderOptions,
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 12000 },
