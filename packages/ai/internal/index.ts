@@ -31,6 +31,7 @@ export {
   createNullLanguageModelUsage,
 } from '../src/types/usage';
 export { resolveLanguageModel } from '../src/model/resolve-model';
+export { logWarnings } from '../src/logger/log-warnings';
 export { mergeAbortSignals } from '../src/util/merge-abort-signals';
 export { setAbortTimeout } from '../src/util/set-abort-timeout';
 export { mergeCallbacks } from '../src/util/merge-callbacks';

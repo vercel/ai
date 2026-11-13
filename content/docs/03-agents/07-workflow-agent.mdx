@@ -768,8 +768,6 @@ The callbacks also run at different times:
 - If the model call throws, the `stream()` call rejects with that error. In `ToolLoopAgent`, the call resolves and the error is reported through the stream and `onError`.
 - Each step is a plain object. Its `request` is empty, and its `providerMetadata` is `{}` when the provider sends none. Steps from `generate()` match `ToolLoopAgent`.
 
-`WorkflowAgent` does not log provider warnings. Read them from `warnings` on each step.
-
 ### Tools
 
 - Approval is configured with `needsApproval` on the tool. Approval request IDs have the form `approval-<toolCallId>`. `ToolLoopAgent` generates random IDs.
