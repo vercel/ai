@@ -86,6 +86,45 @@ describe('default step limit warning', () => {
     expect(defaultLimitWarnings()).toEqual([]);
   });
 
+  it('does not warn when step 20 has only a provider-executed tool call', async () => {
+    const providerToolResponse: LanguageModelV4GenerateResult = {
+      ...textResponse('Checked by the provider.'),
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'provider-call',
+          toolName: 'weather',
+          input: '{"city":"London"}',
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'provider-call',
+          toolName: 'weather',
+          result: { temperature: 18 },
+        },
+      ],
+      finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+    };
+    const responses = [
+      ...Array.from({ length: 19 }, () => toolResponse()),
+      providerToolResponse,
+    ];
+
+    const core = await new ToolLoopAgent({
+      model: new MockLanguageModelV4({ doGenerate: responses }),
+      tools: weatherTools(),
+    }).generate({ prompt });
+    const workflow = await new WorkflowAgent({
+      model: new MockLanguageModelV4({ doGenerate: responses }),
+      tools: weatherTools(),
+    }).generate({ prompt });
+
+    expect(core.steps).toHaveLength(20);
+    expect(workflow.steps).toHaveLength(20);
+    expect(defaultLimitWarnings()).toEqual([]);
+  });
+
   it('does not warn for an explicit default limit in the constructor', async () => {
     const responses = alwaysToolCallResponses();
     const core = await new ToolLoopAgent({

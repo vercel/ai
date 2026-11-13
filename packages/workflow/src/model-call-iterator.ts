@@ -753,17 +753,17 @@ export async function* modelCallIterator({
             : Array.isArray(stopConditions)
               ? stopConditions
               : [stopConditions];
-        const stopConditionMet = stopConditionList.some(test =>
-          test({ steps }),
-        );
         const hasClientToolCalls = toolCalls.some(
           toolCall => !toolCall.providerExecuted,
         );
+        // Like in generateText, stop conditions are only evaluated when the
+        // loop can otherwise continue. A condition that records why the loop
+        // stopped is then not called for a run that ends on its own.
+        const canContinue =
+          isToolExecutionAllowed &&
+          (hasClientToolCalls || pendingDeferredToolCallIds.size > 0);
 
-        done =
-          !isToolExecutionAllowed ||
-          stopConditionMet ||
-          (!hasClientToolCalls && pendingDeferredToolCallIds.size === 0);
+        done = !canContinue || stopConditionList.some(test => test({ steps }));
       } else if (
         hasTerminalError ||
         mode === 'generate' ||
