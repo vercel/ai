@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "app/api/drive-queue/route.ts": {
+      "maxDuration": 800,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "__harness_wkf_workflow_*",
+          "retryAfterSeconds": 5,
+          "initialDelaySeconds": 0
+        }
+      ]
+    }
+  }
+}

@@ -78,7 +78,7 @@ The steps are below:
 
 - Ignore existing harnesses' code structure and architectural conventions. We'll want to build this as ideal as it is for the new architecture.
 - Pi's built-in tools run in the adapter's process, with implementations that operate on the session's sandbox (from `sandbox()`), like the remote operations of the existing `packages/harness-pi` adapter.
-- Deliver at most one prompt per turn (e.g. Pi's `followUpMode: 'one-at-a-time'`), as the current spec requires, until step 19 lifts that restriction.
+- Deliver at most one prompt per turn (e.g. Pi's `followUpMode: 'one-at-a-time'`), as the current spec requires, until step 20 lifts that restriction.
 
 15. [ ] Implement `examples/durable-harness-e2e-next`, a Next.js app with interactive testing UI for durable harness execution.
 
@@ -97,11 +97,15 @@ The steps are below:
 
 17. [ ] Add durable cancellation of a running turn: a new `HarnessAgent` method (e.g. `cancel({ session })`) appends an engine-internal cancel event to the session's log; the drive running the session, in any process, observes it, aborts its drive `stopAbortSignal`, and finishes the turn as `interrupted`. A call's `abortSignal` stays a local control that only ends that call's result.
 
-18. [ ] Treat errors caught from a drive like crashes: the engine no longer finishes the current turn for every error thrown out of a drive (`failCurrentTurn()`), but leaves the turn unfinished, so that a later drive continues it from the log.
+18. [ ] Pass the session's work directory to the `execute` of the app's own tools run through `executeHostTool()`, which currently only receive the sandbox session (`experimental_sandbox`). Built-in tools run through `executeBuiltinTool()` do not need this, since the adapter's `execute` gets the work directory from `sandbox()`.
+
+- Remove `sandboxConfig: { workDir: '.' }` from the agent configurations in `examples/durable-harness-e2e-next` that only set it as a workaround, so that the app's own tools resolve relative paths against the same directory as the harness's built-in tools.
+
+19. [ ] Treat errors caught from a drive like crashes: the engine no longer finishes the current turn for every error thrown out of a drive (`failCurrentTurn()`), but leaves the turn unfinished, so that a later drive continues it from the log.
 
 - Only end the turn (`finishReason: 'error'`, recorded as `finish-turn`) for errors known to be permanent, where another drive cannot succeed, and for a turn whose drives keep failing a bounded number of times in a row, as far as either case is relevant to us. `durable-harness` does the same with its `Unavailable` errors and its `failing` code after 8 failed deliveries in a row.
 
-19. [ ] Allow several queued prompts to be delivered together as a single turn.
+20. [ ] Allow several queued prompts to be delivered together as a single turn.
 
 - Accept prompts while a turn is running (`generate()` and `stream()` currently reject), and queue them for after that turn.
 - Merging is up to the adapter: it delivers all pending prompts in one effect (listing all of them in `deliveredSubmissionIds`), so that they start a single turn. Update the Pi adapter to do so.
@@ -109,12 +113,10 @@ The steps are below:
 - Decide how `turnId` is derived for a turn started by several prompts. It stays opaque to adapters.
 - Decide whose turn settings apply to a turn started by several prompts.
 
-20. [ ] Let the turn of a follow-up prompt continue the stream that `agent.stream()` returned for the turn running when the prompt was submitted.
+21. [ ] Let the turn of a follow-up prompt continue the stream that `agent.stream()` returned for the turn running when the prompt was submitted.
 
 - A stream is not a per-turn construct: the session's World stream already spans all turns. The result keeps reading past its turn's `finish` part into the turns of follow-up prompts, instead of ending at its own turn's `finish`.
 - This does not merge turns: each follow-up prompt still starts its own turn. No `HarnessV2` change.
-
-21. [ ] Pass the session's work directory to the `execute` of the app's own tools run through `executeHostTool()`, which currently only receive the sandbox session (`experimental_sandbox`). Built-in tools run through `executeBuiltinTool()` do not need this, since the adapter's `execute` gets the work directory from `sandbox()`.
 
 22. [ ] Define `HarnessV2Store` and its engine counterpart `HarnessAgentStore`, under the hood relying on specific `HarnessAgentLog` events (e.g. with type `store:...`), and include the adapter-specific type on `HarnessV2DriveContext`.
 

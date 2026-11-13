@@ -1,11 +1,12 @@
 import { Agent, type PiHarnessAgentMessage } from '@/agent/pi/basic';
+import { sendBackstop } from '@/lib/drive-queue';
 import { isStoredAgentSession } from '@/lib/stored-agent-session';
+import { getWorld } from '@/lib/world';
 import { getHarnessE2EErrorMessage } from '@/util/harness-ui-stream';
 import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
-  toUIMessageStream,
 } from 'ai';
 
 export const maxDuration = 800;
@@ -30,11 +31,21 @@ export async function POST(request: Request) {
     stream: createUIMessageStream<PiHarnessAgentMessage>({
       execute: async ({ writer }) => {
         const session = await Agent.createSession(storedSession);
+        /*
+         * `stream()` runs the turn's drive in this process. The backstop,
+         * sent before the drive starts, continues the turn in a background
+         * drive if this process dies or the drive yields at its deadline.
+         */
+        await sendBackstop({ world: getWorld(), runId: session.runId });
         const result = await Agent.stream({ session, messages });
 
+        /*
+         * The result's own `toUIMessageStream()` is used instead of the
+         * standalone helper, since only it turns a retraction (the output of
+         * an attempt that a retry replaces) into a `reset-step` chunk.
+         */
         writer.merge(
-          toUIMessageStream({
-            stream: result.stream,
+          result.toUIMessageStream({
             onError: getHarnessE2EErrorMessage,
             originalMessages: body.messages,
           }),
