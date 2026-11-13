@@ -141,3 +141,10 @@ export const prodiaModelCatalog = Object.fromEntries([
   ...languageModelIds.map(id => [id, getProdiaLanguageModelEntry(id)] as const),
   ...videoModelIds.map(id => [id, getProdiaVideoModelEntry(id)] as const),
 ]);
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type ProdiaModelIds = {
+  image: (typeof imageModelIds)[number];
+  language: (typeof languageModelIds)[number];
+  video: (typeof videoModelIds)[number];
+};

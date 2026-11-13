@@ -118,6 +118,13 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default set of active tools. Limits which tools the model can call without changing tool call and result types. Per-stream values override this default.',
     },
     {
+      name: 'toolOrder',
+      type: 'ToolOrder<TTools>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
       name: 'output',
       type: 'OutputSpecification',
       isOptional: true,
@@ -130,6 +137,13 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         "Default function to repair tool calls that fail to parse. Mark the function with 'use step' when used in a workflow. Per-stream values override this default.",
+    },
+    {
+      name: 'experimental_refineToolInput',
+      type: 'ToolInputRefinement<TTools>',
+      isOptional: true,
+      description:
+        'Optional mapping of tool names to functions that refine parsed tool inputs. Each function receives the typed input for its tool and must return the same input type shape. The refined input is used for tool execution, output parts, lifecycle callbacks, and telemetry in both `generate()` and `stream()`. Per-stream values override this default.',
     },
     {
       name: 'experimental_download',
@@ -636,6 +650,13 @@ In addition to the options in the table, `stream()` accepts the generation setti
       description: 'Limits the subset of tools available for this call without changing tool call and result types.',
     },
     {
+      name: 'toolOrder',
+      type: 'ToolOrder<TTools>',
+      isOptional: true,
+      description:
+        'Controls the order in which tools are sent to the provider. The list can be partial. Tools not listed in `toolOrder` are sent after the listed tools, sorted alphabetically. Tool names are restricted to the string keys of the tool set.',
+    },
+    {
       name: 'output',
       type: 'OutputSpecification',
       isOptional: true,
@@ -671,6 +692,13 @@ In addition to the options in the table, `stream()` accepts the generation setti
       type: 'ToolCallRepairFunction',
       isOptional: true,
       description: "Callback to attempt automatic recovery when a tool call cannot be parsed. Mark the function with 'use step' when used in a workflow.",
+    },
+    {
+      name: 'experimental_refineToolInput',
+      type: 'ToolInputRefinement<TTools>',
+      isOptional: true,
+      description:
+        'Optional mapping of tool names to functions that refine parsed tool inputs. Each function receives the typed input for its tool and must return the same input type shape. The refined input is used for tool execution, output parts, lifecycle callbacks, and telemetry in both `generate()` and `stream()`. Overrides the constructor default.',
     },
     {
       name: 'experimental_download',

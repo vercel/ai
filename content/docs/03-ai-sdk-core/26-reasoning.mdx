@@ -40,7 +40,7 @@ The `reasoning` parameter works the same way with `streamText`:
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: 'google/gemini-3.8-flash',
+  model: 'google/gemini-4-hydrogen',
   reasoning: 'high',
   prompt: 'Explain the Riemann hypothesis in simple terms.',
 });
@@ -153,7 +153,7 @@ If you need to enforce an exact token budget (e.g. exactly 12000 tokens), keep u
 
 ```ts
 const { text } = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-hydrogen'),
   providerOptions: {
     google: {
       thinkingConfig: { thinkingLevel: 'high', includeThoughts: true },
@@ -167,7 +167,7 @@ const { text } = await generateText({
 
 ```ts
 const { text } = await generateText({
-  model: google('gemini-3.8-flash'),
+  model: google('gemini-4-hydrogen'),
   reasoning: 'high',
   providerOptions: {
     google: { thinkingConfig: { includeThoughts: true } },

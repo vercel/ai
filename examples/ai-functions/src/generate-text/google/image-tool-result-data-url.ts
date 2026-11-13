@@ -43,7 +43,7 @@ run(async () => {
   });
 
   const result = await generateText({
-    model: google('gemini-3.8-flash'),
+    model: google('gemini-4-hydrogen'),
     prompt:
       'Please read the image using the tool provided and return the summary of that image',
     tools: {

@@ -17,7 +17,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   Output,
-  isStepCount,
   NoOutputGeneratedError,
   type GenerateTextResult,
   filterActiveTools,
@@ -30,7 +29,9 @@ import {
   type GenerateTextOnStepEndCallback,
   type ActiveTools,
   type ToolCallRepairFunction,
+  type ToolInputRefinement,
   type ToolChoice,
+  type ToolOrder,
   type ToolSet,
   type InferUITools,
   type UIMessage,
@@ -73,6 +74,7 @@ import type {
 } from './do-stream-step.js';
 import { resolveToolContext } from './resolve-tool-context.js';
 import { toModelResponseMessages } from './to-model-response-messages.js';
+import { logDefaultStepLimitWarning } from './log-default-step-limit-warning.js';
 import { modelCallIterator } from './model-call-iterator.js';
 import { shouldDispatchModelCallTelemetryInStep } from './model-call-telemetry.js';
 import {
@@ -316,6 +318,12 @@ export interface PrepareStepInfo<
   initialInstructions: Instructions | undefined;
 
   /**
+   * The instructions sent to the model for the current step. This is the
+   * initial instructions until `prepareStep` returns an override.
+   */
+  instructions: Instructions | undefined;
+
+  /**
    * The initial messages passed to the stream.
    */
   initialMessages: Array<ModelMessage>;
@@ -371,7 +379,15 @@ export interface PrepareStepResult<
   model?: LanguageModel;
 
   /**
+   * Override the instructions for this step. The override carries forward to
+   * later steps.
+   */
+  instructions?: Instructions;
+
+  /**
    * Override the system message for this step.
+   *
+   * @deprecated Use `instructions` instead.
    */
   system?: string;
 
@@ -391,6 +407,11 @@ export interface PrepareStepResult<
    * Limits the tools that are available for the model to call.
    */
   activeTools?: ActiveTools<NoInfer<TTools>>;
+
+  /**
+   * Override the order in which tools are sent to the provider for this step.
+   */
+  toolOrder?: ToolOrder<NoInfer<TTools>>;
 
   /**
    * Updated runtime context for the current and subsequent steps.
@@ -440,6 +461,7 @@ export interface PrepareCallOptions<
     | StopCondition<NoInfer<TTools>, TRuntimeContext>
     | Array<StopCondition<NoInfer<TTools>, TRuntimeContext>>;
   activeTools?: ActiveTools<NoInfer<TTools>>;
+  toolOrder?: ToolOrder<NoInfer<TTools>>;
   experimental_download?: DownloadFunction;
   telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
   /**
@@ -570,6 +592,17 @@ export type WorkflowAgentOptions<
     activeTools?: ActiveTools<NoInfer<TTools>>;
 
     /**
+     * Default order in which tools are sent to the provider.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically.
+     *
+     * Per-call `toolOrder` values passed to `generate()` or `stream()` override
+     * this default.
+     */
+    toolOrder?: ToolOrder<NoInfer<TTools>>;
+
+    /**
      * Default output specification for structured outputs.
      * Use `Output.object({ schema })` for structured output or `Output.text()` for text output.
      *
@@ -592,6 +625,22 @@ export type WorkflowAgentOptions<
      * @deprecated Use `repairToolCall` instead.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<TTools>;
+
+    /**
+     * Default mapping of tool names to functions that refine parsed tool inputs.
+     *
+     * The refined input must have the same type shape as the tool input. Refined
+     * inputs are used for tool execution, outputs, callbacks, and telemetry.
+     *
+     * The functions run in the workflow context after the model step returns.
+     * Two values keep the unrefined input: the `tool-call` chunk that `stream()`
+     * writes to `writable` for a tool without its own runtime validator, and the
+     * input of provider-executed tool calls.
+     *
+     * Per-stream `experimental_refineToolInput` values passed to `stream()`
+     * override this default.
+     */
+    experimental_refineToolInput?: ToolInputRefinement<NoInfer<TTools>>;
 
     /**
      * Default custom download function to use for URLs.
@@ -1057,6 +1106,15 @@ export type WorkflowAgentCallOptions<
     activeTools?: ActiveTools<NoInfer<TTools>>;
 
     /**
+     * Order in which tools are sent to the provider for this call.
+     *
+     * The list can be partial. Tools not listed in `toolOrder` are sent after
+     * the listed tools, sorted alphabetically. Overrides the constructor-level
+     * `toolOrder` if provided.
+     */
+    toolOrder?: ToolOrder<NoInfer<TTools>>;
+
+    /**
      * Optional telemetry configuration.
      */
     telemetry?: TelemetryOptions<TRuntimeContext, TTools>;
@@ -1122,6 +1180,16 @@ export type WorkflowAgentCallOptions<
      * @deprecated Use `repairToolCall` instead.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<TTools>;
+
+    /**
+     * Mapping of tool names to functions that refine parsed tool inputs.
+     *
+     * The refined input must have the same type shape as the tool input. Refined
+     * inputs are used for tool execution, outputs, callbacks, and telemetry.
+     *
+     * Overrides the constructor-level `experimental_refineToolInput` if provided.
+     */
+    experimental_refineToolInput?: ToolInputRefinement<NoInfer<TTools>>;
 
     /**
      * Custom download function to use for URLs.
@@ -1607,8 +1675,10 @@ export class WorkflowAgent<
     | StopCondition<TBaseTools, TRuntimeContext>
     | Array<StopCondition<TBaseTools, TRuntimeContext>>;
   private activeTools?: ActiveTools<TBaseTools>;
+  private toolOrder?: ToolOrder<TBaseTools>;
   private output?: OutputSpecification<OUTPUT, PARTIAL_OUTPUT>;
   private repairToolCall?: ToolCallRepairFunction<TBaseTools>;
+  private refineToolInput?: ToolInputRefinement<TBaseTools>;
   private experimentalDownload?: DownloadFunction;
   private experimentalSandbox?: SandboxSession;
   private toolApproval?: ToolApprovalConfiguration<TBaseTools, TRuntimeContext>;
@@ -1657,9 +1727,11 @@ export class WorkflowAgent<
     this.toolsContext = options.toolsContext;
     this.stopWhen = options.stopWhen;
     this.activeTools = options.activeTools;
+    this.toolOrder = options.toolOrder;
     this.output = options.output;
     this.repairToolCall =
       options.repairToolCall ?? options.experimental_repairToolCall;
+    this.refineToolInput = options.experimental_refineToolInput;
     this.experimentalDownload = options.experimental_download;
     this.experimentalSandbox = options.experimental_sandbox;
     this.toolApproval = options.toolApproval;
@@ -1796,12 +1868,18 @@ export class WorkflowAgent<
     let effectiveToolChoiceFromPrepare = options.toolChoice ?? this.toolChoice;
     let effectiveToolCallConcurrency =
       options.toolCallConcurrency ?? this.toolCallConcurrency;
+    const defaultStepLimit = { stepCount: 20, stopped: false };
+    const usesDefaultStepLimit =
+      mode === 'generate' && (options.stopWhen ?? this.stopWhen) == null;
     let effectiveStopWhenFromPrepare =
       options.stopWhen ??
       this.stopWhen ??
-      (mode === 'generate' ? isStepCount(20) : undefined);
+      (usesDefaultStepLimit
+        ? createDefaultStepLimitStopCondition(defaultStepLimit)
+        : undefined);
     let effectiveActiveToolsFromPrepare =
       options.activeTools ?? this.activeTools;
+    let effectiveToolOrderFromPrepare = options.toolOrder ?? this.toolOrder;
     let effectiveDownloadFromPrepare =
       options.experimental_download ?? this.experimentalDownload;
     const effectiveToolApprovalSecret =
@@ -1826,6 +1904,7 @@ export class WorkflowAgent<
         toolCallConcurrency: effectiveToolCallConcurrency,
         stopWhen: effectiveStopWhenFromPrepare,
         activeTools: effectiveActiveToolsFromPrepare,
+        toolOrder: effectiveToolOrderFromPrepare,
         experimental_download: effectiveDownloadFromPrepare,
         telemetry: effectiveTelemetryFromPrepare,
         runtimeContext: effectiveRuntimeContext,
@@ -1853,10 +1932,16 @@ export class WorkflowAgent<
           prepared.toolChoice as ToolChoice<TBaseTools>;
       if (prepared.toolCallConcurrency !== undefined)
         effectiveToolCallConcurrency = prepared.toolCallConcurrency;
+      // A stop condition from prepareCall replaces the default one, which then
+      // never runs and never records the limit. If prepareCall returns the
+      // default condition it received, the warning still applies, as in
+      // ToolLoopAgent.
       if (prepared.stopWhen !== undefined)
         effectiveStopWhenFromPrepare = prepared.stopWhen;
       if (prepared.activeTools !== undefined)
         effectiveActiveToolsFromPrepare = prepared.activeTools;
+      if (prepared.toolOrder !== undefined)
+        effectiveToolOrderFromPrepare = prepared.toolOrder;
       if (prepared.experimental_download !== undefined)
         effectiveDownloadFromPrepare = prepared.experimental_download;
       if (prepared.telemetry !== undefined)
@@ -1966,7 +2051,9 @@ export class WorkflowAgent<
       effectiveToolChoiceFromPrepare,
       toolCallConcurrency,
       effectiveStopWhenFromPrepare,
+      defaultStepLimit: usesDefaultStepLimit ? defaultStepLimit : undefined,
       effectiveActiveToolsFromPrepare,
+      effectiveToolOrderFromPrepare,
       effectiveToolApprovalSecret,
       effectiveTelemetry,
       telemetryDispatcher,
@@ -2035,7 +2122,9 @@ export class WorkflowAgent<
       effectiveToolChoiceFromPrepare,
       toolCallConcurrency,
       effectiveStopWhenFromPrepare,
+      defaultStepLimit,
       effectiveActiveToolsFromPrepare,
+      effectiveToolOrderFromPrepare,
       effectiveToolApprovalSecret,
       effectiveTelemetry,
       telemetryDispatcher,
@@ -2204,6 +2293,12 @@ export class WorkflowAgent<
                 toolsContext:
                   effectiveToolsContext as InferToolSetContext<ToolSet>,
                 runtimeContext: effectiveRuntimeContext,
+                // The approved input is the refined input, so revalidation
+                // has to refine the schema input again before comparing.
+                refineToolInput: (options.experimental_refineToolInput ??
+                  this.refineToolInput) as
+                  | ToolInputRefinement<ToolSet>
+                  | undefined,
               });
 
               if (invalidToolApprovals.length > 0) {
@@ -2735,6 +2830,7 @@ export class WorkflowAgent<
           | undefined)) as any,
       generationSettings: mergedGenerationSettings,
       toolChoice: effectiveToolChoice as ToolChoice<ToolSet>,
+      toolOrder: effectiveToolOrderFromPrepare as ToolOrder<ToolSet>,
       runtimeContext,
       toolsContext,
       telemetry: effectiveTelemetry,
@@ -2750,6 +2846,8 @@ export class WorkflowAgent<
       repairToolCall: (options.repairToolCall ??
         options.experimental_repairToolCall ??
         this.repairToolCall) as ToolCallRepairFunction<ToolSet> | undefined,
+      refineToolInput: (options.experimental_refineToolInput ??
+        this.refineToolInput) as ToolInputRefinement<ToolSet> | undefined,
       download,
       responseFormat: await (options.output ?? this.output)?.responseFormat,
       experimental_sandbox: sandbox,
@@ -2784,7 +2882,7 @@ export class WorkflowAgent<
           providerExecutedToolResults,
           providerExecutedToolResultPositions,
         } = result.value;
-        if (mode === 'generate' && step != null) {
+        if (step != null) {
           for (const call of toolCalls) {
             if (call.invalid && !call.providerExecuted)
               step.content.push({
@@ -3377,8 +3475,15 @@ export class WorkflowAgent<
     } catch (error) {
       encounteredError = error;
       hasEncounteredError = true;
-      // Check if this is an abort error
-      if (isAbortError(error)) {
+      // In generate mode a failed model step is rethrown here, including the
+      // reason the call was aborted with. An abort reason is an ordinary error,
+      // so an aborted call signal also marks the run as aborted. Stream mode
+      // needs no signal check here, because its model steps report aborts as
+      // step data.
+      if (
+        isAbortError(error) ||
+        (mode === 'generate' && effectiveAbortSignal?.aborted)
+      ) {
         wasAborted = true;
         await mergedOnAbort({ steps });
       } else {
@@ -3392,6 +3497,18 @@ export class WorkflowAgent<
     if (hasTerminalError) {
       await mergedOnError({ error: terminalError });
       await telemetryDispatcher.onError?.(terminalError);
+    }
+
+    // The default stop condition records the limit in workflow context, where
+    // replay evaluates it again. Logging runs in a step so replay does not
+    // repeat the warning.
+    if (defaultStepLimit?.stopped && steps.length > 0) {
+      const defaultLimitStep = steps[steps.length - 1];
+      await logDefaultStepLimitWarning({
+        stepCount: defaultStepLimit.stepCount,
+        provider: defaultLimitStep.model.provider,
+        modelId: defaultLimitStep.model.modelId,
+      });
     }
 
     // Use the final messages from the iterator, or fall back to standardized messages
@@ -3994,6 +4111,15 @@ function getToolCallbackMessages(
   ) as unknown as ModelMessage[];
 }
 
+function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
+  return (
+    value != null &&
+    typeof (value as { [Symbol.asyncIterator]?: unknown })[
+      Symbol.asyncIterator
+    ] === 'function'
+  );
+}
+
 async function executeTool(
   toolCall: { toolCallId: string; toolName: string; input: unknown },
   tools: ToolSet,
@@ -4022,7 +4148,7 @@ async function executeTool(
     // When the execute function is a workflow step (marked with 'use step'),
     // the step system captures `this` for serialization, causing failures.
     const { execute } = tool;
-    toolResult = await execute(parsedInput, {
+    const result = execute(parsedInput, {
       toolCallId: toolCall.toolCallId,
       // Pass the conversation messages to the tool so it has context about the conversation
       messages,
@@ -4032,6 +4158,16 @@ async function executeTool(
       context,
       experimental_sandbox: sandbox,
     });
+    // For an async generator, the last yielded value is the tool result.
+    // Like in `ToolLoopAgent`, the earlier values are preliminary results,
+    // which are not written to the stream here.
+    if (isAsyncIterable(result)) {
+      for await (const output of result) {
+        toolResult = output;
+      }
+    } else {
+      toolResult = await result;
+    }
   } catch (error) {
     // Convert tool errors to error-text results sent back to the model,
     // allowing the agent to recover rather than killing the entire stream.
@@ -4109,4 +4245,21 @@ function addApprovalRequestsToMessages(
   }
   result.unshift({ role: 'assistant', content: requests });
   return result;
+}
+
+/**
+ * Creates the default stop condition for `generate()`. It records that the
+ * limit stopped the loop so the warning is logged after the loop ends.
+ */
+function createDefaultStepLimitStopCondition(limit: {
+  stepCount: number;
+  stopped: boolean;
+}): ModelStopCondition {
+  return ({ steps }) => {
+    if (steps.length !== limit.stepCount) {
+      return false;
+    }
+    limit.stopped = true;
+    return true;
+  };
 }

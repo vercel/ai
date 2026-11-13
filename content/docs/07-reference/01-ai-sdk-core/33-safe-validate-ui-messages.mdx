@@ -7,6 +7,9 @@ description: API Reference for safeValidateUIMessages
 
 `safeValidateUIMessages` is an async function that validates UI messages like [`validateUIMessages`](/docs/reference/ai-sdk-core/validate-ui-messages), but instead of throwing it returns an object with a `success` key and either `data` or `error`.
 
+Structural validation stops at the first invalid element in message and part
+arrays, retaining its path in the returned error.
+
 ## Basic Usage
 
 Simple validation without custom schemas:
