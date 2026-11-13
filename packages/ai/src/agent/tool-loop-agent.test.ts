@@ -217,6 +217,54 @@ describe('ToolLoopAgent', () => {
       expect(recordedSandbox).toBe(sandbox);
     });
 
+    it.each([undefined, 1, 2, 3])(
+      'should not execute tools after input callbacks abort with concurrency %s',
+      async toolCallConcurrency => {
+        const abortController = new AbortController();
+        const reason = new DOMException('request cancelled', 'AbortError');
+        const execute = vi.fn(async () => 'written');
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4({
+            doGenerate: {
+              content: [1, 2].map(id => ({
+                type: 'tool-call',
+                toolCallId: `call-${id}`,
+                toolName: 'write',
+                input: JSON.stringify({ id }),
+              })),
+              finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+              usage: {
+                inputTokens: {
+                  total: 1,
+                  noCache: 1,
+                  cacheRead: 0,
+                  cacheWrite: 0,
+                },
+                outputTokens: { total: 1, text: 1, reasoning: 0 },
+              },
+              warnings: [],
+            },
+          }),
+          toolCallConcurrency,
+          tools: {
+            write: tool({
+              inputSchema: z.object({ id: z.number() }),
+              onInputAvailable: () => abortController.abort(reason),
+              execute,
+            }),
+          },
+        });
+
+        await expect(
+          agent.generate({
+            prompt: 'Write two records',
+            abortSignal: abortController.signal,
+          }),
+        ).rejects.toBe(reason);
+        expect(execute).not.toHaveBeenCalled();
+      },
+    );
+
     it('should pass abortSignal to generateText', async () => {
       const abortController = new AbortController();
 
