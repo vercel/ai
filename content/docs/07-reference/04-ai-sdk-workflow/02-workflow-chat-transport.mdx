@@ -196,11 +196,72 @@ Returns a `Promise<ReadableStream<UIMessageChunk> | null>`.
 The transport follows this flow:
 
 1. **POST** to `{api}` with messages. The response must include an `x-workflow-run-id` header.
-2. **Stream** the SSE response, counting chunks as they arrive.
+2. **Stream** the SSE response, tracking the position to resume from: the `id` field of each event when the server sets one, otherwise a count of the chunks received.
 3. **Detect interruption**: If the stream closes without a `finish` event (e.g., function timeout, network error), the transport knows the response is incomplete.
-4. **Reconnect** via GET to `{api}/{runId}/stream?startIndex={chunkIndex}` to resume from the last received chunk.
+4. **Reconnect** via GET to `{api}/{runId}/stream?startIndex={position}` to resume from the last received chunk.
 5. **Retry**: If the reconnection stream also interrupts, resume from the updated chunk index. Streams that end without receiving any UI message chunks count toward `maxConsecutiveErrors`, as do stream parsing errors. A successfully parsed stream that receives chunks resets the consecutive error count.
 6. **Complete**: Once a `finish` event is received, call `onChatEnd` and close the stream.
+
+### Stream Positions
+
+A chunk too large to store in one durable chunk is written across several, so
+the number of UI chunks the transport has received stops matching the position
+the stream has reached. Resuming from that count lands behind the large chunk,
+and the server resumes at the next whole value after it — delivering chunks the
+client already has.
+
+To avoid that, set each SSE event's `id` field to the position the chunk was
+read from. The transport treats a non-negative integer `id` as the stream's own
+cursor and resumes at `id + 1`; anything else (a missing `id`, or one your
+server already uses for something else) leaves the count-based fallback in
+place.
+
+With the Workflow SDK, that position is `readable.position`:
+
+```ts
+import { getRun } from 'workflow/api';
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ runId: string }> },
+) {
+  const { runId } = await params;
+  const startIndexParam = new URL(request.url).searchParams.get('startIndex');
+
+  const readable = getRun(runId).getReadable<UIMessageChunk>({
+    startIndex: startIndexParam
+      ? Number.parseInt(startIndexParam, 10)
+      : undefined,
+  });
+
+  const reader = readable.getReader();
+  const encoder = new TextEncoder();
+
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) {
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+        return;
+      }
+      // Read `position` right after the chunk: it advances with each one.
+      controller.enqueue(
+        encoder.encode(
+          `id: ${readable.position}\ndata: ${JSON.stringify(value)}\n\n`,
+        ),
+      );
+    },
+  });
+
+  return new Response(body, {
+    headers: {
+      'content-type': 'text/event-stream',
+      'x-vercel-ai-ui-message-stream': 'v1',
+    },
+  });
+}
+```
 
 ### Negative Start Index
 
@@ -226,6 +287,7 @@ For `WorkflowChatTransport` to work, your server must provide two endpoints:
 
 - Accept a `startIndex` query parameter
 - Return the SSE stream starting from the given chunk index
+- Set each event's `id` to the stream position it was read from, so resumes stay exact when a chunk is stored across several chunks (see [Stream Positions](#stream-positions))
 - For negative `startIndex`, resolve to the tail and include `x-workflow-stream-tail-index` response header
 
 See the [WorkflowAgent guide](/docs/agents/workflow-agent) for complete endpoint examples.
