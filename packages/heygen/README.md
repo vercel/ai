@@ -1,6 +1,6 @@
 # AI SDK - HeyGen Provider
 
-The **[HeyGen provider](https://ai-sdk.dev/providers/ai-sdk-providers/heygen)** for the [AI SDK](https://ai-sdk.dev/docs) supports text-to-video, image-to-video, and reference-to-video generation with `heygen-video-1`.
+The **[HeyGen provider](https://ai-sdk.dev/providers/ai-sdk-providers/heygen)** for the [AI SDK](https://ai-sdk.dev/docs) supports text-to-video, image-to-video, and reference-to-video generation with `heygen-video-1`, and decision models with `heygen-decision-1` and `heygen-decision-1-turbo`.
 
 ## Setup
 
