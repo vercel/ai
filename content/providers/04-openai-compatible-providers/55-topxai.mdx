@@ -5,7 +5,7 @@ description: Use the TopxAI OpenAI compatible API with the AI SDK.
 
 # TopxAI Provider
 
-[TopxAI](https://ai.topxea.com/) is an API gateway that provides access to
+[TopxAI](https://api.topxai.xyz/) is an API gateway that provides access to
 models from multiple AI providers through an OpenAI-compatible API. You can use
 its Chat Completions endpoint with the AI SDK through the
 `@ai-sdk/openai-compatible` module.
@@ -16,7 +16,7 @@ Install the OpenAI Compatible provider:
 
 <InstallPackages packages="@ai-sdk/openai-compatible" />
 
-Create a [TopxAI API key](https://ai.topxea.com/keys), choose a route that
+Create a [TopxAI API key](https://api.topxai.xyz/keys), choose a route that
 includes the models you want to use, and set the key as a server-side
 environment variable:
 
@@ -24,7 +24,7 @@ environment variable:
 export TOPXAI_API_KEY=your-api-key
 ```
 
-See the [TopxAI API key guide](https://ai.topxea.com/docs/create-an-api-key-and-choose-a-route)
+See the [TopxAI API key guide](https://api.topxai.xyz/docs/create-an-api-key-and-choose-a-route)
 for details.
 
 ## Provider Instance
@@ -37,7 +37,7 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 const topxai = createOpenAICompatible({
   name: 'topxai',
   apiKey: process.env.TOPXAI_API_KEY,
-  baseURL: 'https://ai.topxea.com/v1',
+  baseURL: 'https://api.topxai.xyz/v1',
   includeUsage: true,
 });
 ```
@@ -64,7 +64,7 @@ import { generateText } from 'ai';
 const topxai = createOpenAICompatible({
   name: 'topxai',
   apiKey: process.env.TOPXAI_API_KEY,
-  baseURL: 'https://ai.topxea.com/v1',
+  baseURL: 'https://api.topxai.xyz/v1',
   includeUsage: true,
 });
 
@@ -97,8 +97,8 @@ Retired IDs such as `kimi-k3`, `deepseek-flash`, and `deepseek-v4-pro` are
 rejected; they are not upgrade aliases.
 
 The available models and the routes enabled for a key can change. Use the
-authenticated [`GET /v1/models`](https://ai.topxea.com/v1/models) endpoint or
-the [TopxAI model and pricing catalog](https://ai.topxea.com/pricing) for the
+authenticated [`GET /v1/models`](https://api.topxai.xyz/v1/models) endpoint or
+the [TopxAI model and pricing catalog](https://api.topxai.xyz/pricing) for the
 current model IDs.
 
 The `jev-1.13.0` model in the TopxAI catalog uses a separate System One
@@ -119,7 +119,7 @@ To send JSON Schema structured-output requests, enable
 const topxai = createOpenAICompatible({
   name: 'topxai',
   apiKey: process.env.TOPXAI_API_KEY,
-  baseURL: 'https://ai.topxea.com/v1',
+  baseURL: 'https://api.topxai.xyz/v1',
   supportsStructuredOutputs: true,
 });
 ```
@@ -130,8 +130,8 @@ Responses and Messages APIs.
 
 ## Resources
 
-- [TopxAI AI SDK guide](https://ai.topxea.com/docs/use-topxai-with-vercel-ai-sdk)
-- [TopxAI API reference](https://ai.topxea.com/docs/api-reference)
-- [TopxAI API key guide](https://ai.topxea.com/docs/create-an-api-key-and-choose-a-route)
-- [TopxAI model and pricing catalog](https://ai.topxea.com/pricing)
+- [TopxAI AI SDK guide](https://api.topxai.xyz/docs/use-topxai-with-vercel-ai-sdk)
+- [TopxAI API reference](https://api.topxai.xyz/docs/api-reference)
+- [TopxAI API key guide](https://api.topxai.xyz/docs/create-an-api-key-and-choose-a-route)
+- [TopxAI model and pricing catalog](https://api.topxai.xyz/pricing)
 - [AI SDK OpenAI Compatible provider](/providers/openai-compatible-providers)
