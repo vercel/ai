@@ -395,6 +395,18 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       forceReasoning: z.boolean().optional(),
 
       /**
+       * Enable server-side context management (compaction).
+       */
+      contextManagement: z
+        .array(
+          z.object({
+            type: z.literal('compaction'),
+            compactThreshold: z.number(),
+          }),
+        )
+        .nullish(),
+
+      /**
        * Restrict the callable tools to a subset while keeping the full tools
        * list intact, so prompt caching is preserved across requests with
        * different allowlists.

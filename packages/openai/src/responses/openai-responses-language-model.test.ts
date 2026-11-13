@@ -1920,7 +1920,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
             details:
-              'Configuration updates require standard reasoning mode without automatic truncation',
+              'Configuration updates require standard reasoning mode without automatic compaction or automatic truncation',
           },
         ]);
       });
@@ -1947,7 +1947,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             type: 'unsupported',
             feature: 'reasoningEffortUpdate',
             details:
-              'Configuration updates require standard reasoning mode without automatic truncation',
+              'Configuration updates require standard reasoning mode without automatic compaction or automatic truncation',
           },
         ]);
       });

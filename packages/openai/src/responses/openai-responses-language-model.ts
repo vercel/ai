@@ -81,6 +81,7 @@ import {
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import type {
   ResponsesProviderMetadata,
+  ResponsesCompactionProviderMetadata,
   ResponsesReasoningProviderMetadata,
   ResponsesSourceDocumentProviderMetadata,
   ResponsesTextProviderMetadata,
@@ -129,8 +130,12 @@ function getConfigurationUpdateUnsupportedReason({
     return 'Configuration updates are only supported by GPT-6 and later models';
   }
 
-  if (options?.reasoningMode === 'pro' || options?.truncation === 'auto') {
-    return 'Configuration updates require standard reasoning mode without automatic truncation';
+  if (
+    options?.reasoningMode === 'pro' ||
+    options?.contextManagement != null ||
+    options?.truncation === 'auto'
+  ) {
+    return 'Configuration updates require standard reasoning mode without automatic compaction or automatic truncation';
   }
 
   return undefined;
@@ -472,6 +477,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       top_logprobs: topLogprobs,
       truncation: openaiOptions?.truncation,
 
+      // context management (server-side compaction):
+      ...(openaiOptions?.contextManagement && {
+        context_management: openaiOptions.contextManagement.map(cm => ({
+          type: cm.type,
+          compact_threshold: cm.compactThreshold,
+        })),
+      }),
+
       // model-specific settings:
       ...(isReasoningModel &&
         (resolvedReasoningEffort != null ||
@@ -729,6 +742,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               },
             });
           }
+          break;
+        }
+
+        case 'compaction': {
+          content.push({
+            type: 'reasoning',
+            text: '',
+            providerMetadata: {
+              [providerOptionsName]: {
+                type: 'compaction',
+                itemId: part.id,
+                encryptedContent: part.encrypted_content,
+              } satisfies ResponsesCompactionProviderMetadata,
+            },
+          });
           break;
         }
 
@@ -2179,6 +2207,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 }
 
                 delete activeReasoning[value.item.id];
+              } else if (value.item.type === 'compaction') {
+                const providerMetadata = {
+                  [providerOptionsName]: {
+                    type: 'compaction',
+                    itemId: value.item.id,
+                    encryptedContent: value.item.encrypted_content,
+                  } satisfies ResponsesCompactionProviderMetadata,
+                };
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: value.item.id,
+                  providerMetadata,
+                });
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: value.item.id,
+                  providerMetadata,
+                });
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];

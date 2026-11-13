@@ -29,6 +29,16 @@ export type OpenaiResponsesReasoningProviderMetadata = {
   openai: ResponsesReasoningProviderMetadata;
 };
 
+export type ResponsesCompactionProviderMetadata = {
+  type: 'compaction';
+  itemId: string;
+  encryptedContent?: string;
+};
+
+export type OpenaiResponsesCompactionProviderMetadata = {
+  openai: ResponsesCompactionProviderMetadata;
+};
+
 export type OpenaiResponsesProviderMetadata = {
   openai: ResponsesProviderMetadata;
 };
