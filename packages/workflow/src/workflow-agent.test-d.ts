@@ -12,6 +12,7 @@ import {
 } from 'ai';
 import type { ModelCallStreamPart } from './do-stream-step.js';
 import type {
+  WorkflowAgentTimeoutConfiguration,
   WorkflowAgentToolExecutionEndEvent as PublicWorkflowAgentToolExecutionEndEvent,
   WorkflowAgentToolExecutionStartEvent as PublicWorkflowAgentToolExecutionStartEvent,
 } from './index.js';
@@ -503,5 +504,26 @@ describe('WorkflowAgent types', () => {
     >().toEqualTypeOf<unknown>();
     expectTypeOf<DynamicStartEvent['toolContext']>().toEqualTypeOf<undefined>();
     expectTypeOf<DynamicSuccessEvent['output']>().toEqualTypeOf<unknown>();
+  });
+
+  it('accepts a number and a timeout configuration object', () => {
+    const agent = new WorkflowAgent({ model });
+    const duration: WorkflowAgentTimeoutConfiguration = 1000;
+    const configuration: WorkflowAgentTimeoutConfiguration = {
+      totalMs: 1000,
+      stepMs: 200,
+      firstChunkMs: 300,
+      chunkMs: 400,
+    };
+
+    void agent.stream({ prompt: 'Hello', timeout: duration });
+    void agent.stream({ prompt: 'Hello', timeout: configuration });
+    void agent.generate({ prompt: 'Hello', timeout: duration });
+    void agent.generate({ prompt: 'Hello', timeout: configuration });
+
+    // @ts-expect-error toolMs is not a workflow agent timeout
+    void agent.stream({ prompt: 'Hello', timeout: { toolMs: 1000 } });
+    // @ts-expect-error toolMs is not a workflow agent timeout
+    void agent.generate({ prompt: 'Hello', timeout: { toolMs: 1000 } });
   });
 });
