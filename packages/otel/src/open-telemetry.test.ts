@@ -35,8 +35,10 @@ import {
   experimental_evaluate,
   generateObject,
   generateText,
+  isStepCount,
   streamObject,
   streamText,
+  tool,
   type GenerateTextEndEvent,
   type Telemetry,
 } from 'ai';
@@ -2723,6 +2725,179 @@ describe('OpenTelemetry', () => {
             },
           ],
         }
+      `);
+    });
+
+    it('records output message parts in the order they were produced', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doGenerate: {
+            content: [
+              { type: 'text', text: 'Summary of earlier work.' },
+              { type: 'reasoning', text: 'I should answer.' },
+              { type: 'text', text: 'The answer is 7.' },
+            ],
+            finishReason: { raw: undefined, unified: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 2,
+                noCache: 2,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+            warnings: [],
+          },
+        }),
+        prompt: 'Hello',
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat gpt-4');
+      const rootSpan = getExportedSpan(sdkTrace.exporter, 'invoke_agent gpt-4');
+      expect(
+        parseJsonAttributes(rootSpan.attributes, 'gen_ai.output.messages'),
+      ).toEqual(
+        parseJsonAttributes(chatSpan.attributes, 'gen_ai.output.messages'),
+      );
+      expect(parseJsonAttributes(chatSpan.attributes, 'gen_ai.output.messages'))
+        .toMatchInlineSnapshot(`
+          {
+            "gen_ai.output.messages": [
+              {
+                "finish_reason": "stop",
+                "parts": [
+                  {
+                    "content": "Summary of earlier work.",
+                    "type": "text",
+                  },
+                  {
+                    "content": "I should answer.",
+                    "type": "reasoning",
+                  },
+                  {
+                    "content": "The answer is 7.",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+          }
+        `);
+    });
+
+    it('records step output parts the same way as the next step input', async () => {
+      const sdkTrace = createSdkTracer();
+      integration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+
+      const usage = {
+        inputTokens: {
+          total: 2,
+          noCache: 2,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 1,
+          text: 1,
+          reasoning: undefined,
+        },
+      };
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          provider: 'openai.chat',
+          modelId: 'gpt-4',
+          doGenerate: [
+            {
+              content: [
+                { type: 'text', text: 'Summary of earlier work.' },
+                { type: 'reasoning', text: 'I should look this up.' },
+                { type: 'text', text: 'Looking it up now.' },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'lookup',
+                  input: '{"id":7}',
+                },
+              ],
+              finishReason: { raw: undefined, unified: 'tool-calls' },
+              usage,
+              warnings: [],
+            },
+            {
+              content: [{ type: 'text', text: 'It is seven.' }],
+              finishReason: { raw: undefined, unified: 'stop' },
+              usage,
+              warnings: [],
+            },
+          ],
+        }),
+        prompt: 'Find 7',
+        tools: {
+          lookup: tool({
+            inputSchema: z.object({ id: z.number() }),
+            execute: async () => 'seven',
+          }),
+        },
+        stopWhen: isStepCount(2),
+        telemetry: {
+          integrations: integration,
+        },
+      });
+
+      const [firstChatSpan, secondChatSpan] = sdkTrace.exporter
+        .getFinishedSpans()
+        .filter(span => span.name === 'chat gpt-4');
+
+      const firstOutput = parseJsonAttributes(
+        firstChatSpan.attributes,
+        'gen_ai.output.messages',
+      )['gen_ai.output.messages'] as Array<{ parts: unknown[] }>;
+      const secondInput = parseJsonAttributes(
+        secondChatSpan.attributes,
+        'gen_ai.input.messages',
+      )['gen_ai.input.messages'] as Array<{ role: string; parts: unknown[] }>;
+
+      expect(firstOutput[0].parts).toEqual(
+        secondInput.find(message => message.role === 'assistant')?.parts,
+      );
+      expect(firstOutput[0].parts).toMatchInlineSnapshot(`
+        [
+          {
+            "content": "Summary of earlier work.",
+            "type": "text",
+          },
+          {
+            "content": "I should look this up.",
+            "type": "reasoning",
+          },
+          {
+            "content": "Looking it up now.",
+            "type": "text",
+          },
+          {
+            "arguments": {
+              "id": 7,
+            },
+            "id": "call-1",
+            "name": "lookup",
+            "type": "tool_call",
+          },
+        ]
       `);
     });
   });

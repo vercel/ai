@@ -3,6 +3,7 @@ export {
   formatInputMessages,
   formatModelMessages,
   formatObjectOutputMessages,
+  formatOutputContent,
   formatOutputMessages,
   formatSystemInstructions,
 } from './gen-ai-format-messages';
