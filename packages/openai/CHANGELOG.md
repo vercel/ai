@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.143
+
+### Patch Changes
+
+- 61c32d9: feat(openai): support Responses contextManagement and compaction items
+
 ## 3.0.142
 
 ### Patch Changes
