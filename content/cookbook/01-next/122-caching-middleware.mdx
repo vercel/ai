@@ -67,12 +67,12 @@ You can control the initial delay and delay between chunks by adjusting the `ini
 
 ```tsx filename='ai/middleware.ts'
 import { Redis } from '@upstash/redis';
-import {
-  type LanguageModelV4,
-  type LanguageModelV4Middleware,
-  type LanguageModelV4StreamPart,
-  simulateReadableStream,
-} from 'ai';
+import type {
+  LanguageModelV4,
+  LanguageModelV4Middleware,
+  LanguageModelV4StreamPart,
+} from '@ai-sdk/provider';
+import { simulateReadableStream } from 'ai';
 
 const redis = new Redis({
   url: process.env.KV_URL,
@@ -80,6 +80,7 @@ const redis = new Redis({
 });
 
 export const cacheMiddleware: LanguageModelV4Middleware = {
+  specificationVersion: 'v4',
   wrapGenerate: async ({ doGenerate, params, model }) => {
     const cacheKey = JSON.stringify({
       provider: model.provider,
