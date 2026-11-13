@@ -111,9 +111,8 @@ it('maps text and lists, missing values, confidence, sources, and usage', async 
       ],
     },
     missing: { type: 'text', value: null },
-    empty: { type: 'list', value: null },
+    empty: { type: 'list', value: [], items: [] },
   });
-  expect(result.answers.empty).not.toHaveProperty('items');
   expect(result.usage).toEqual({ inputTokens: 42, outputTokens: 12 });
   expect(result.response).toMatchObject({
     id: 'extract-123',
