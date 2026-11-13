@@ -4,9 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { XaiModelIds } from './xai-model-catalog';
 
 export type XaiTranscriptionModelId =
-  | 'grok-voice-transcribe-2.0'
+  | XaiModelIds['transcription']
   | (string & {});
 
 export const xaiTranscriptionModelOptionsSchema = lazySchema(() =>

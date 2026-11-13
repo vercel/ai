@@ -4,11 +4,10 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { OpenAIModelIds } from '../openai-model-catalog';
 
 export type OpenAIEmbeddingModelId =
-  | 'text-embedding-3-small'
-  | 'text-embedding-3-large'
-  | 'text-embedding-ada-002'
+  | OpenAIModelIds['embedding']
   | (string & {});
 
 export const openaiEmbeddingModelOptions = lazySchema(() =>
