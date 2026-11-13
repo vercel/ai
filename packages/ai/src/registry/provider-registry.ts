@@ -74,7 +74,7 @@ export type ExtractionProviderRegistry<
     ProviderV4 | ProviderV3
   >,
   SEPARATOR extends string = ':',
-> = ProviderRegistryProvider<PROVIDERS, SEPARATOR> & {
+> = DecisionProviderRegistry<PROVIDERS, SEPARATOR> & {
   extractionModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
       ? `${KEY & string}${SEPARATOR}${ProviderExtractionModelIdentifier<PROVIDERS[KEY]>}`
@@ -221,8 +221,7 @@ export function createProviderRegistry<
       | LanguageModelMiddleware[];
     imageModelMiddleware?: ImageModelMiddleware | ImageModelMiddleware[];
   } = {},
-): DecisionProviderRegistry<PROVIDERS, SEPARATOR> &
-  ExtractionProviderRegistry<PROVIDERS, SEPARATOR> {
+): ExtractionProviderRegistry<PROVIDERS, SEPARATOR> {
   const registry = new DefaultProviderRegistry<PROVIDERS, SEPARATOR>({
     separator,
     languageModelMiddleware,
