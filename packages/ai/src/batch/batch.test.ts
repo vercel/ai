@@ -11,7 +11,9 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
+import { Output } from '../generate-text';
 import { MockProviderV4 } from '../test/mock-provider-v4';
 import {
   cancelBatch,
@@ -571,6 +573,52 @@ describe('startBatch', () => {
     });
   });
 
+  it('sends the response format of the output specification', async () => {
+    const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
+    const batchApi = createMockBatchApi({
+      doStartBatch: async options => {
+        calls.push(options);
+        return { batchId: 'batch-123', status: 'pending', warnings: [] };
+      },
+    });
+
+    await startBatch({
+      provider: batchApi,
+      requests: [
+        {
+          id: 'request-1',
+          type: 'text',
+          model: 'mock-model-id',
+          prompt: 'translate',
+          output: Output.object({ schema: z.object({ text: z.string() }) }),
+        },
+        {
+          id: 'request-2',
+          type: 'text',
+          model: 'mock-model-id',
+          prompt: 'translate',
+        },
+      ],
+    });
+
+    expect(calls[0].requests[0].options).toMatchObject({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { text: { type: 'string' } },
+        },
+      },
+    });
+    expect(calls[0].requests[1].options).not.toHaveProperty('responseFormat', {
+      type: 'json',
+    });
+    expect(
+      (calls[0].requests[1].options as { responseFormat?: unknown })
+        .responseFormat,
+    ).toBeUndefined();
+  });
+
   it('rejects incompatible definitions for the same tool name', async () => {
     const batchApi = createMockBatchApi();
 
@@ -954,6 +1002,184 @@ describe('getBatchResults', () => {
         ],
       },
     ]);
+  });
+
+  describe('output', () => {
+    const outputSchema = z.object({ text: z.string() });
+
+    function textItem(
+      id: string,
+      result: Partial<LanguageModelV4GenerateResult>,
+    ) {
+      return {
+        type: 'text' as const,
+        id,
+        status: 'succeeded' as const,
+        result: {
+          content: [{ type: 'text' as const, text: '' }],
+          finishReason: { unified: 'stop' as const, raw: 'stop' },
+          usage: testUsage,
+          warnings: [],
+          ...result,
+        },
+      };
+    }
+
+    async function collect(
+      items: Array<ReturnType<typeof textItem>>,
+      extra: { output?: ReturnType<typeof Output.object<{ text: string }>> },
+    ) {
+      const batchApi = createMockBatchApi({
+        doGetBatchResults: async () => convertArrayToReadableStream(items),
+      });
+      const results = [];
+      for await (const item of getBatchResults({
+        provider: batchApi,
+        batch: batchReference,
+        maxRetries: 0,
+        ...extra,
+      })) {
+        results.push(item);
+      }
+      return results;
+    }
+
+    it('parses and validates the text of successful items', async () => {
+      const results = await collect(
+        [
+          textItem('ok', {
+            content: [{ type: 'text', text: '{"text":"hello"}' }],
+          }),
+        ],
+        { output: Output.object({ schema: outputSchema }) },
+      );
+
+      expect(results).toMatchObject([
+        { id: 'ok', status: 'succeeded', text: '{"text":"hello"}' },
+      ]);
+      expect((results[0] as any).output).toEqual({ text: 'hello' });
+      expect((results[0] as any).outputError).toBeUndefined();
+    });
+
+    it('reports parse failures per item without dropping text and usage', async () => {
+      const results = await collect(
+        [
+          textItem('not-json', {
+            content: [{ type: 'text', text: 'oops' }],
+          }),
+          textItem('wrong-shape', {
+            content: [{ type: 'text', text: '{"text":1}' }],
+          }),
+          textItem('ok', {
+            content: [{ type: 'text', text: '{"text":"fine"}' }],
+          }),
+        ],
+        { output: Output.object({ schema: outputSchema }) },
+      );
+
+      expect(results).toMatchObject([
+        {
+          id: 'not-json',
+          status: 'succeeded',
+          text: 'oops',
+          usage: { inputTokens: 3 },
+          outputError: {
+            type: 'AI_NoObjectGeneratedError',
+            message: 'No object generated: could not parse the response.',
+          },
+        },
+        {
+          id: 'wrong-shape',
+          outputError: {
+            type: 'AI_NoObjectGeneratedError',
+            message: 'No object generated: response did not match schema.',
+          },
+        },
+        { id: 'ok', output: { text: 'fine' } },
+      ]);
+      expect((results[0] as any).output).toBeUndefined();
+    });
+
+    it('prefers structuredOutputText for JSON output', async () => {
+      const results = await collect(
+        [
+          textItem('structured', {
+            content: [{ type: 'text', text: 'draft {"text":"final"}' }],
+            structuredOutputText: '{"text":"final"}',
+          }),
+        ],
+        { output: Output.object({ schema: outputSchema }) },
+      );
+
+      expect((results[0] as any).output).toEqual({ text: 'final' });
+    });
+
+    it('reports an output error when the item did not finish with a response', async () => {
+      const results = await collect(
+        [
+          textItem('tool-call', {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: '{}',
+              },
+            ],
+            finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+          }),
+        ],
+        { output: Output.object({ schema: outputSchema }) },
+      );
+
+      expect(results[0]).toMatchObject({
+        outputError: { type: 'AI_NoOutputGeneratedError' },
+      });
+    });
+
+    it('does not parse failed items or add fields without output', async () => {
+      const failed = {
+        type: 'text' as const,
+        id: 'failed',
+        status: 'failed' as const,
+        error: { message: 'boom' },
+      };
+      const batchApi = createMockBatchApi({
+        doGetBatchResults: async () =>
+          convertArrayToReadableStream([
+            failed,
+            textItem('plain', {
+              content: [{ type: 'text', text: '{"text":"x"}' }],
+            }),
+          ]),
+      });
+
+      const withOutput = [];
+      for await (const item of getBatchResults({
+        provider: batchApi,
+        batch: batchReference,
+        maxRetries: 0,
+        output: Output.object({ schema: outputSchema }),
+      })) {
+        withOutput.push(item);
+      }
+      expect(withOutput[0]).toEqual({
+        ...failed,
+        providerMetadata: undefined,
+      });
+      expect('outputError' in withOutput[0]).toBe(false);
+
+      const withoutOutput = [];
+      for await (const item of getBatchResults({
+        provider: batchApi,
+        batch: batchReference,
+        maxRetries: 0,
+      })) {
+        withoutOutput.push(item);
+      }
+      expect('output' in withoutOutput[1]).toBe(false);
+      expect('outputError' in withoutOutput[1]).toBe(false);
+    });
   });
 });
 

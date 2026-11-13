@@ -20,6 +20,8 @@ import {
   normalizePrompt as normalizeImagePrompt,
 } from '../generate-image/generate-image';
 import { DefaultGeneratedFile } from '../generate-text/generated-file';
+import { NoOutputGeneratedError } from '../error/no-output-generated-error';
+import type { Output } from '../generate-text/output';
 import { parseToolCall } from '../generate-text/parse-tool-call';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
@@ -198,6 +200,7 @@ export async function startBatch<
           modelId: request.model,
           options: {
             ...prepareLanguageModelCallOptions(request),
+            responseFormat: await request.output?.responseFormat,
             prompt: await convertToLanguageModelPrompt({
               prompt: standardizedPrompt,
               supportedUrls,
@@ -347,16 +350,20 @@ export async function getBatchStatus({
 /**
  * Streams complete terminal results for the requests in a batch.
  */
-export function getBatchResults<TOOLS extends ToolSet>({
+export function getBatchResults<
+  TOOLS extends ToolSet,
+  OUTPUT extends Output | undefined = undefined,
+>({
   provider,
   batch,
   tools,
+  output,
   providerOptions,
   maxRetries,
   abortSignal,
   headers,
   timeout,
-}: GetBatchResultsOptions<TOOLS>) {
+}: GetBatchResultsOptions<TOOLS, OUTPUT>) {
   const batchApi = resolveBatchApi(provider);
   validateBatchReference({ batchApi, batch });
 
@@ -370,7 +377,10 @@ export function getBatchResults<TOOLS extends ToolSet>({
     maxRetries,
     abortSignal: operationAbortSignal,
   });
-  const transformer: Transformer<BatchV4ItemResult, BatchItemResult<TOOLS>> & {
+  const transformer: Transformer<
+    BatchV4ItemResult,
+    BatchItemResult<TOOLS, OUTPUT>
+  > & {
     cancel?: (reason?: unknown) => void;
   } = {
     async transform(item, controller) {
@@ -378,6 +388,7 @@ export function getBatchResults<TOOLS extends ToolSet>({
         await convertBatchItemResult({
           item,
           tools,
+          output,
           abortSignal: operationAbortSignal,
         }),
       );
@@ -391,7 +402,7 @@ export function getBatchResults<TOOLS extends ToolSet>({
   };
   const transform = new TransformStream<
     BatchV4ItemResult,
-    BatchItemResult<TOOLS>
+    BatchItemResult<TOOLS, OUTPUT>
   >(transformer);
 
   void (async () => {
@@ -502,15 +513,20 @@ function validateBatchReference({
   }
 }
 
-async function convertBatchItemResult<TOOLS extends ToolSet>({
+async function convertBatchItemResult<
+  TOOLS extends ToolSet,
+  OUTPUT extends Output | undefined,
+>({
   item,
   tools,
+  output,
   abortSignal,
 }: {
   item: BatchV4ItemResult;
   tools: TOOLS | undefined;
+  output: OUTPUT | undefined;
   abortSignal: AbortSignal | undefined;
-}): Promise<BatchItemResult<TOOLS>> {
+}): Promise<BatchItemResult<TOOLS, OUTPUT>> {
   switch (item.type) {
     case 'text':
       switch (item.status) {
@@ -524,7 +540,10 @@ async function convertBatchItemResult<TOOLS extends ToolSet>({
               tools,
               abortSignal,
             })),
-          };
+            ...(output != null
+              ? await parseBatchOutput({ result: item.result, output })
+              : {}),
+          } as BatchItemResult<TOOLS, OUTPUT>;
         case 'failed':
           return {
             type: item.type,
@@ -599,6 +618,71 @@ function convertImageResult(
     providerMetadata: result.providerMetadata,
     usage: result.usage,
   };
+}
+
+/**
+ * Parses the structured output of a successful text item. Failures are
+ * reported as `outputError` so that one malformed item does not affect the
+ * rest of the batch or discard the item's text and usage.
+ */
+async function parseBatchOutput({
+  result,
+  output,
+}: {
+  result: LanguageModelV4GenerateResult;
+  output: Output;
+}): Promise<
+  { output: unknown } | { outputError: { message: string; type: string } }
+> {
+  const generatedText = result.content
+    .filter((part): part is Extract<typeof part, { type: 'text' }> => {
+      return part.type === 'text';
+    })
+    .map(part => part.text)
+    .join('');
+  const finishReason = result.finishReason.unified;
+
+  // same conditions as generateText: stop responses and non-empty responses
+  // that are not tool calls
+  if (
+    !(
+      finishReason === 'stop' ||
+      (finishReason !== 'tool-calls' && generatedText.length > 0)
+    )
+  ) {
+    const error = new NoOutputGeneratedError();
+    return { outputError: { message: error.message, type: error.name } };
+  }
+
+  const textForOutput =
+    (await output.responseFormat)?.type === 'json'
+      ? (result.structuredOutputText ?? generatedText)
+      : generatedText;
+
+  try {
+    return {
+      output: await output.parseCompleteOutput(
+        { text: textForOutput },
+        {
+          response: {
+            id: result.response?.id ?? '',
+            timestamp: result.response?.timestamp ?? new Date(0),
+            modelId: result.response?.modelId ?? '',
+            headers: result.response?.headers,
+          },
+          usage: asLanguageModelUsage(result.usage),
+          finishReason,
+        },
+      ),
+    };
+  } catch (error) {
+    return {
+      outputError: {
+        message: error instanceof Error ? error.message : String(error),
+        type: error instanceof Error ? error.name : 'Error',
+      },
+    };
+  }
 }
 
 async function convertGenerateResult<TOOLS extends ToolSet>({
