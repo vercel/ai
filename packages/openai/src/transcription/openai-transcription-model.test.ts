@@ -1717,10 +1717,9 @@ describe('doStream', () => {
       inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
       providerOptions: {
         openai: {
-          languages: ['en', 'fr'],
-          keywords: ['AC-42'],
-          prompt: 'context prompt',
+          include: ['logprobs'],
           temperature: 0.5,
+          timestampGranularities: ['word'],
         },
       },
     });
@@ -1741,18 +1740,8 @@ describe('doStream', () => {
       warnings: [
         {
           type: 'unsupported',
-          feature: 'providerOptions.openai.languages',
-          details: 'OpenAI streaming transcription does not support languages.',
-        },
-        {
-          type: 'unsupported',
-          feature: 'providerOptions.openai.keywords',
-          details: 'OpenAI streaming transcription does not support keywords.',
-        },
-        {
-          type: 'unsupported',
-          feature: 'providerOptions.openai.prompt',
-          details: 'OpenAI streaming transcription does not support prompt.',
+          feature: 'providerOptions.openai.include',
+          details: 'OpenAI streaming transcription does not support include.',
         },
         {
           type: 'unsupported',
@@ -1760,8 +1749,99 @@ describe('doStream', () => {
           details:
             'OpenAI streaming transcription does not support temperature.',
         },
+        {
+          type: 'unsupported',
+          feature: 'providerOptions.openai.timestampGranularities',
+          details:
+            'OpenAI streaming transcription does not support timestampGranularities.',
+        },
       ],
     });
+  });
+
+  it('should send prompt, keywords and languages in the transcription session', async () => {
+    MockWebSocket.instances = [];
+    const model = new OpenAITranscriptionModel('gpt-live-transcribe', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://api.openai.com/v1${path}`,
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      providerOptions: {
+        openai: {
+          prompt: 'A customer support call about a premium plan.',
+          keywords: ['premium plan', 'AC-42'],
+          languages: ['en', 'fr'],
+          streaming: { delay: 'low' },
+        },
+      },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    await flush();
+
+    expect(
+      JSON.parse(ws.send.mock.calls[0][0]).session.audio.input.transcription,
+    ).toEqual({
+      model: 'gpt-live-transcribe',
+      languages: ['en', 'fr'],
+      prompt: 'A customer support call about a premium plan.',
+      keywords: ['premium plan', 'AC-42'],
+      delay: 'low',
+    });
+
+    ws.message({
+      type: 'conversation.item.input_audio_transcription.completed',
+      item_id: 'item-1',
+      transcript: 'Hello',
+    });
+
+    expect((await partsPromise)[0]).toEqual({
+      type: 'stream-start',
+      warnings: [],
+    });
+  });
+
+  it('should wrap a singular language for models that take the plural field', async () => {
+    MockWebSocket.instances = [];
+    const model = new OpenAITranscriptionModel('gpt-live-transcribe', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://api.openai.com/v1${path}`,
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      webSocket: MockWebSocket,
+    });
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      providerOptions: { openai: { language: 'en' } },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    ws.open();
+    await flush();
+
+    // OpenAI rejects a session carrying both the singular and plural forms.
+    expect(
+      JSON.parse(ws.send.mock.calls[0][0]).session.audio.input.transcription,
+    ).toEqual({
+      model: 'gpt-live-transcribe',
+      languages: ['en'],
+    });
+
+    ws.message({
+      type: 'conversation.item.input_audio_transcription.completed',
+      item_id: 'item-1',
+      transcript: 'Hello',
+    });
+    await expect(partsPromise).resolves.toBeDefined();
   });
 
   it('should error the stream with the server message on error events', async () => {
