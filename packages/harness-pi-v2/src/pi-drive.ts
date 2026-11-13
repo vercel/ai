@@ -1,5 +1,4 @@
 import {
-  HarnessCapabilityUnsupportedError,
   type HarnessV2DriveContext,
   type HarnessV2EffectContext,
   type HarnessV2EffectOutput,
@@ -8,6 +7,7 @@ import {
   type HarnessV2TurnSettings,
   type HarnessV2Usage,
 } from '@ai-sdk/harness';
+import { extractHarnessPromptContent } from '@ai-sdk/harness/utils';
 import type { UserModelMessage } from '@ai-sdk/provider-utils';
 import {
   Agent,
@@ -99,8 +99,11 @@ function waitBeforeRetry(options: {
 }
 
 /**
- * Converts a prompt's user message into a Pi user message. Only text is
- * supported so far.
+ * Converts a prompt's user message into a Pi user message. Text parts become
+ * Pi text content, and image parts and image file parts become Pi image
+ * content, in their original order. Images must be inline (bytes, base64 or a
+ * base64 data URL); other content throws a
+ * `HarnessCapabilityUnsupportedError`.
  */
 export function toPiUserMessage(options: {
   /**
@@ -114,20 +117,17 @@ export function toPiUserMessage(options: {
   timestamp: number;
 }): UserMessage {
   const { message, timestamp } = options;
-  if (typeof message.content === 'string') {
-    return { role: 'user', content: message.content, timestamp };
+  const content = extractHarnessPromptContent({ prompt: message });
+  if (typeof content === 'string') {
+    return { role: 'user', content, timestamp };
   }
   return {
     role: 'user',
-    content: message.content.map(part => {
-      if (part.type !== 'text') {
-        throw new HarnessCapabilityUnsupportedError({
-          message: `Pi harness: prompts support only text parts, but received a '${part.type}' part.`,
-          harnessId: 'pi',
-        });
-      }
-      return { type: 'text', text: part.text };
-    }),
+    content: content.map(part =>
+      part.type === 'text'
+        ? { type: 'text', text: part.text }
+        : { type: 'image', data: part.data, mimeType: part.mediaType },
+    ),
     timestamp,
   };
 }

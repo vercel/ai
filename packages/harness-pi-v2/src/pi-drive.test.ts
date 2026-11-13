@@ -5,7 +5,7 @@ import {
   type Message,
 } from '@earendil-works/pi-ai';
 import { describe, expect, test } from 'vitest';
-import { PiDrive } from './pi-drive';
+import { PiDrive, toPiUserMessage } from './pi-drive';
 import { readPiLogState } from './pi-log-state';
 import {
   createTestDriveContext,
@@ -34,6 +34,79 @@ function modelStarts(test: TestDriveContext) {
       event.type === 'effect-start' && event.data.name === 'model',
   );
 }
+
+describe('toPiUserMessage', () => {
+  test('keeps a text-only message as a string', () => {
+    expect(
+      toPiUserMessage({
+        message: { role: 'user', content: 'Hello' },
+        timestamp: 1,
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "content": "Hello",
+        "role": "user",
+        "timestamp": 1,
+      }
+    `);
+  });
+
+  test('converts an image file part with a data URL to Pi image content', () => {
+    expect(
+      toPiUserMessage({
+        message: {
+          role: 'user',
+          content: [
+            { type: 'text', text: "What's in the picture?" },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: {
+                type: 'url',
+                url: new URL('data:image/png;base64,iVBORw=='),
+              },
+            },
+          ],
+        },
+        timestamp: 1,
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "text": "What's in the picture?",
+            "type": "text",
+          },
+          {
+            "data": "iVBORw==",
+            "mimeType": "image/png",
+            "type": "image",
+          },
+        ],
+        "role": "user",
+        "timestamp": 1,
+      }
+    `);
+  });
+
+  test('rejects a remote image URL', () => {
+    expect(() =>
+      toPiUserMessage({
+        message: {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: new URL('https://example.com/image.png'),
+            },
+          ],
+        },
+        timestamp: 1,
+      }),
+    ).toThrow('remote image URLs');
+  });
+});
 
 describe('PiDrive', () => {
   test('runs a text-only turn', async () => {
