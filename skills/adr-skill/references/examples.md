@@ -1,6 +1,6 @@
 # ADR Example
 
-This filled-out example follows the Simple template. For a more complex decision, use option headings within Alternatives Considered and give each tradeoff enough room.
+This filled-out example follows the ADR template. For a more complex decision, use option headings within Alternatives Considered and give each tradeoff enough room.
 
 ```markdown
 # Use SQLite for local development database

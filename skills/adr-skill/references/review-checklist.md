@@ -23,7 +23,6 @@ Could a contributor or coding agent understand what was decided and why without 
 ## Format and Lifecycle
 
 - Does the filename follow the repository convention?
-- Is an unfinished decision kept in a draft pull request that must not be merged?
 - Are there no unfinished placeholders or unnecessary sections?
 - Does the record omit YAML frontmatter and explicit status fields, with acceptance determined by merging the pull request?
 - Are implementation steps and verification kept in linked issues or PRs?

@@ -3,7 +3,7 @@
  * Create a new ADR markdown file using repo conventions and a template.
  *
  * Design goals:
- * - Safe defaults (auto-detect adr directory + numbering)
+ * - Date-prefixed filenames using the repository convention
  * - No external deps
  * - Works even if the repo has no ADRs yet
  */
@@ -36,7 +36,6 @@ function parseArgs(argv) {
     dir: null,
     noCreateDir: false,
     title: null,
-    strategy: 'auto', // auto | date | slug
     updateIndex: false,
     indexFile: null,
     json: false,
@@ -53,7 +52,6 @@ function parseArgs(argv) {
     else if (a === '--dir') out.dir = next();
     else if (a === '--no-create-dir') out.noCreateDir = true;
     else if (a === '--title') out.title = next();
-    else if (a === '--strategy') out.strategy = next();
     else if (a === '--update-index') out.updateIndex = true;
     else if (a === '--index-file') out.indexFile = next();
     else if (a === '--json') out.json = true;
@@ -66,7 +64,6 @@ function parseArgs(argv) {
           '  --repo-root <path>     Repo root (default: .)',
           '  --dir <path>           ADR directory (default: auto-detect, else adr/)',
           '  --no-create-dir        Do not create ADR directory if missing',
-          '  --strategy auto|date|slug  Filename strategy (default: auto)',
           '  --update-index         Update adr/README.md (or existing index)',
           '  --index-file <path>    Override index file (relative to repo root unless absolute)',
           '  --json                 Output machine-readable JSON (default: off)',
@@ -80,9 +77,6 @@ function parseArgs(argv) {
   }
 
   if (!out.title) die('Missing required --title');
-
-  if (!['auto', 'date', 'slug'].includes(out.strategy))
-    die(`Invalid --strategy: ${out.strategy}`);
 
   return out;
 }
@@ -104,27 +98,6 @@ function detectAdrDir(repoRoot) {
     }
   }
   return null;
-}
-
-function listMdFiles(dir) {
-  let entries = [];
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-  return entries
-    .filter(e => e.isFile() && e.name.toLowerCase().endsWith('.md'))
-    .map(e => e.name);
-}
-
-function detectStrategy(adrDir) {
-  const md = listMdFiles(adrDir);
-  for (const name of md) {
-    if (/^\d{4}-\d{2}-\d{2}-/.test(name)) return 'date';
-  }
-  if (md.length > 0) return 'slug';
-  return 'date';
 }
 
 function todayISO() {
@@ -233,34 +206,14 @@ function main() {
     fs.mkdirSync(adrDir, { recursive: true });
   }
 
-  let strategy = args.strategy;
-  if (strategy === 'auto') strategy = detectStrategy(adrDir);
-
   const title = String(args.title).trim();
   const slug = slugify(title);
 
   const today = todayISO();
 
-  let filename;
-  if (strategy === 'date') {
-    filename = `${today}-${slug}.md`;
-  } else {
-    filename = `${slug}.md`;
-  }
-
-  let out = path.join(adrDir, filename);
-  if (fs.existsSync(out)) {
-    if (strategy === 'date') die(`ADR already exists: ${out}`);
-    let i = 2;
-    while (true) {
-      const candidate = path.join(adrDir, `${slug}-${i}.md`);
-      if (!fs.existsSync(candidate)) {
-        out = candidate;
-        break;
-      }
-      i++;
-    }
-  }
+  const filename = `${today}-${slug}.md`;
+  const out = path.join(adrDir, filename);
+  if (fs.existsSync(out)) die(`ADR already exists: ${out}`);
 
   const rendered = loadTemplate().replaceAll('{TITLE}', title);
 
@@ -295,7 +248,6 @@ function main() {
       createdAdrPath: out,
       createdAdrRelPath: toPosix(path.relative(repoRoot, out)),
       title,
-      strategy,
       date: today,
       indexUpdated: Boolean(updatedIndexPath),
       indexChanged,

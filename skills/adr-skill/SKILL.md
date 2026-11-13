@@ -1,6 +1,6 @@
 ---
 name: adr-skill
-description: Create, update, or consult Architecture Decision Records (ADRs). Use when capturing an architecture decision and its rationale, maintaining its lifecycle, or checking decisions that govern planned changes.
+description: Create, update, or consult Architecture Decision Records (ADRs). Use when capturing an architecture decision and its rationale, maintaining its lifecycle, checking decisions that govern planned changes, or when a session leads to a new decision affecting future work across multiple layers. Do not use for routine bug fixes or features confined to API internals or a single provider or harness adapter.
 metadata:
   internal: true
 ---
@@ -15,13 +15,13 @@ Write an ADR for decisions that change how the system is built or operated, have
 
 Routine implementation choices, bug fixes, and style preferences usually do not need an ADR. If a decision is already covered, update or reference the existing record.
 
-When an architectural choice comes up during implementation, propose capturing it if its rationale would help future contributors. Respect the user's requested scope.
+When an architectural choice comes up during implementation, propose capturing it if its rationale would help future contributors. If the user did not explicitly ask you to write an ADR, confirm with them first before writing or editing one. Respect the user's requested scope.
 
 ## Create an ADR
 
 ### Gather Context
 
-1. Find the ADR directory and read its index. This repo uses `contributing/decisions/`; other repos may use `docs/decisions/` or `adr/`.
+1. Read the ADR index at `contributing/decisions/README.md`.
 2. Read relevant accepted decisions and inspect related code, dependencies, and constraints.
 3. Use the supplied discussion or request to identify the problem, chosen option, alternatives, tradeoffs, and non-goals. Ask focused questions only for material gaps; do not repeat questions already answered by the source.
 4. If a choice would contradict an accepted ADR, discuss the conflict with the human before implementing it. An explicit request to change that decision provides the intent for updating the record.
@@ -37,15 +37,13 @@ Use [assets/templates/adr-simple.md](assets/templates/adr-simple.md). Alternativ
 
 Do not add YAML frontmatter, a separate Consequences section, an Implementation Plan, or Verification checklists. Do not add explicit status fields; merging the ADR pull request accepts the decision. Dates belong in date-prefixed filenames and the index; participants can be credited in the linked discussion or pull request.
 
-Use the existing directory and filename convention, normally `YYYY-MM-DD-verb-phrase.md`. Propose decisions in pull requests. Keep unfinished decisions in draft pull requests, which must not be merged. Merging the pull request accepts the decision; close it if the decision is rejected. Keep the index current.
+Store ADRs in `contributing/decisions/` as `YYYY-MM-DD-verb-phrase.md`. Merging the ADR pull request accepts the decision. Keep the index current.
 
 The generator creates a scaffold; fill or remove every placeholder before finalizing:
 
 ```bash
 node skills/adr-skill/scripts/new_adr.js --title "Choose database" --update-index
 ```
-
-When used outside this repository, resolve the script path relative to the installed skill directory. It auto-detects the ADR directory and naming strategy; `--dir` and `--strategy` override those choices.
 
 ### Review
 

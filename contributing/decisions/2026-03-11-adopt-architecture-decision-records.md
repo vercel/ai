@@ -17,7 +17,7 @@ Adopt Architecture Decision Records (ADRs) using the MADR 4.0 format, stored in 
 Conventions:
 
 - One ADR per file, named `YYYY-MM-DD-title-with-dashes.md`
-- An ADR is accepted when its pull request merges; draft pull requests must not be merged
+- An ADR is accepted when its pull request merges; an explicit status is unnecessary
 - Superseded ADRs link to their replacement
 - ADRs are written to be self-contained — a coding agent should be able to read one and implement the decision without further context
 
