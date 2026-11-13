@@ -1985,12 +1985,19 @@ export function processLangGraphEvent(
 
     case 'values': {
       /**
-       * Finalize all pending message chunks
+       * Finalize pending message chunks of this namespace and the graphs
+       * nested under it. A root values event finalizes all of them.
        */
       for (const [id, seen] of messageSeen) {
-        const messageNamespace = getLangGraphNamespaceKey(
-          state.messageNamespaces.get(id),
-        );
+        const pendingNamespace = state.messageNamespaces.get(id) ?? [];
+        if (
+          namespace?.some(
+            (segment, index) => pendingNamespace[index] !== segment,
+          )
+        ) {
+          continue;
+        }
+        const messageNamespace = getLangGraphNamespaceKey(pendingNamespace);
         if (seen.text) controller.enqueue({ type: 'text-end', id });
         if (seen.tool) {
           for (const toolCallId of seen.tool) {

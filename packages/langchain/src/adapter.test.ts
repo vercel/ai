@@ -1212,6 +1212,108 @@ describe('toUIMessageStream', () => {
     ]);
   });
 
+  it('should not finalize messages of another namespace on a subgraph values event', async () => {
+    const namespace = ['batch-a'];
+    const inputStream = convertArrayToReadableStream([
+      [
+        namespace,
+        'messages',
+        [new AIMessageChunk({ id: 'a-text', content: 'Checking ' }), {}],
+      ],
+      [
+        namespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'a-tool',
+            content: '',
+            tool_call_chunks: [
+              { id: 'lookup-1', name: 'lookup', args: '{"query":', index: 0 },
+            ],
+          }),
+          {},
+        ],
+      ],
+      [['batch-b'], 'values', { messages: [] }],
+      [
+        namespace,
+        'messages',
+        [new AIMessageChunk({ id: 'a-text', content: 'spend' }), {}],
+      ],
+      [
+        namespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'a-tool',
+            content: '',
+            tool_call_chunks: [
+              { id: 'lookup-1', name: 'lookup', args: '"spend"}', index: 0 },
+            ],
+          }),
+          {},
+        ],
+      ],
+      [[], 'values', { messages: [] }],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toEqual([
+      { type: 'start' },
+      {
+        type: 'text-start',
+        id: 'a-text',
+        providerMetadata: { langchain: { namespace } },
+      },
+      {
+        type: 'text-delta',
+        id: 'a-text',
+        delta: 'Checking ',
+        providerMetadata: { langchain: { namespace } },
+      },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'lookup-1',
+        toolName: 'lookup',
+        dynamic: true,
+        providerMetadata: { langchain: { namespace } },
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'lookup-1',
+        inputTextDelta: '{"query":',
+      },
+      {
+        type: 'text-delta',
+        id: 'a-text',
+        delta: 'spend',
+        providerMetadata: { langchain: { namespace } },
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'lookup-1',
+        inputTextDelta: '"spend"}',
+      },
+      {
+        type: 'text-end',
+        id: 'a-text',
+        providerMetadata: { langchain: { namespace } },
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'lookup-1',
+        toolName: 'lookup',
+        input: { query: 'spend' },
+        dynamic: true,
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      { type: 'finish' },
+    ]);
+  });
+
   it('should handle non-array events as model stream', async () => {
     // Non-array events are treated as model stream chunks (AIMessageChunk)
     // This tests that the auto-detection works correctly
