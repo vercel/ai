@@ -620,6 +620,9 @@ importers:
       '@ai-sdk/hume':
         specifier: workspace:*
         version: link:../../packages/hume
+      '@ai-sdk/inference-coop':
+        specifier: workspace:*
+        version: link:../../packages/inference-coop
       '@ai-sdk/klingai':
         specifier: workspace:*
         version: link:../../packages/klingai
@@ -3741,6 +3744,40 @@ importers:
       zod:
         specifier: 4.6.7
         version: 4.6.7
+
+  packages/inference-coop:
+    dependencies:
+      '@ai-sdk/openai-compatible':
+        specifier: workspace:*
+        version: link:../openai-compatible
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
+      tsdown:
+        specifier: ^0.23.0
+        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.3.21)(tsx@4.23.12)(typescript@6.0.3)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/klingai:
     dependencies:
