@@ -1130,6 +1130,11 @@ To see `generateText` in action, check out [these examples](#examples).
           type: 'GenerateTextStartEvent',
           parameters: [
             {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for the generation call.',
+            },
+            {
               name: 'provider',
               type: 'string',
               description:
@@ -1214,6 +1219,11 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'Random seed for reproducible generation.',
             },
             {
+              name: 'reasoning',
+              type: "'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined",
+              description: 'Reasoning effort level for the model.',
+            },
+            {
               name: 'maxRetries',
               type: 'number',
               description: 'Maximum number of retries for failed requests.',
@@ -1239,17 +1249,6 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'OUTPUT | undefined',
               description:
                 'The output specification for structured outputs, if configured.',
-            },
-            {
-              name: 'abortSignal',
-              type: 'AbortSignal | undefined',
-              description: 'Abort signal for cancelling the operation.',
-            },
-            {
-              name: 'include',
-              type: '{ requestBody?: boolean; requestMessages?: boolean; responseBody?: boolean } | undefined',
-              description:
-                'Settings for controlling what data is included in step results.',
             },
             {
               name: 'runtimeContext',
