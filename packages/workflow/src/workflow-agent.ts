@@ -306,6 +306,12 @@ export interface PrepareStepInfo<
   initialInstructions: Instructions | undefined;
 
   /**
+   * The instructions sent to the model for the current step. This is the
+   * initial instructions until `prepareStep` returns an override.
+   */
+  instructions: Instructions | undefined;
+
+  /**
    * The initial messages passed to the stream.
    */
   initialMessages: Array<ModelMessage>;
@@ -361,7 +367,15 @@ export interface PrepareStepResult<
   model?: LanguageModel;
 
   /**
+   * Override the instructions for this step. The override carries forward to
+   * later steps.
+   */
+  instructions?: Instructions;
+
+  /**
    * Override the system message for this step.
+   *
+   * @deprecated Use `instructions` instead.
    */
   system?: string;
 
