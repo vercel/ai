@@ -4,11 +4,11 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type { PerplexityModelIds } from './perplexity-model-catalog';
 
 // https://docs.perplexity.ai/docs/embeddings/quickstart
 export type PerplexityEmbeddingModelId =
-  | 'pplx-embed-v1-0.6b'
-  | 'pplx-embed-v1-4b'
+  | PerplexityModelIds['embedding']
   | (string & {});
 
 export const perplexityEmbeddingModelOptions = lazySchema(() =>

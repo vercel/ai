@@ -596,8 +596,8 @@ const agent = new WorkflowAgent({
 A `model`, `toolChoice`, `activeTools`, or generation setting returned from
 `prepareStep` applies to the current step only, as in `ToolLoopAgent`. Later
 steps use the agent or call values again unless `prepareStep` returns an
-override for them too. Returned `messages`, `system`, `runtimeContext`, and
-`toolsContext` values stay in effect for later steps.
+override for them too. Returned `messages`, `instructions`, `runtimeContext`,
+and `toolsContext` values stay in effect for later steps.
 
 `prepareStep` can also be passed per call in `generate()` and `stream()`.
 `prepareCall` is a constructor option only.
@@ -732,10 +732,8 @@ In `ToolLoopAgent`, `prepareCall` receives the settings together with the `promp
 ### prepareStep
 
 - `messages` uses the provider prompt format (`LanguageModelV4Prompt`) in the argument and in the return value, and it includes the system message. `ToolLoopAgent` uses `ModelMessage[]` without the system message.
-- The argument has no `instructions` and no `responseMessages`. `initialInstructions` and `initialMessages` are available.
-- To change the system prompt, return `system` as a string. A returned `instructions` value is ignored.
-- A returned `providerOptions` object replaces the `providerOptions` of the agent. `ToolLoopAgent` merges the two objects.
-- You can return `headers`. They replace all headers of the call, including the `user-agent` value that identifies the agent. `ToolLoopAgent` does not accept `headers` from `prepareStep`.
+- The argument has no `responseMessages`. `initialInstructions`, `instructions`, and `initialMessages` are available.
+- You can return `headers`. They are merged over the headers of the call, and the request keeps the `user-agent` value that identifies the agent. `ToolLoopAgent` does not accept `headers` from `prepareStep`.
 - You cannot return `toolOrder`.
 
 ### Callbacks
@@ -758,7 +756,6 @@ The callbacks also run at different times:
 - After a failed run, `stream()` calls `onEnd` before it rejects. `generate()` and `ToolLoopAgent` do not call `onEnd` for a failed run.
 - `onAbort` is called by `generate()` and by `stream()`, and its event has only `steps`. `ToolLoopAgent` calls `onAbort` only for `stream()`, with `callId`, `reason`, and `steps`.
 - An aborted `stream()` call resolves with the steps that finished. An aborted `generate()` call rejects.
-- If `generate()` is aborted during a step with a custom abort reason, it calls `onError` with that reason. `ToolLoopAgent` does not report aborts to `onError`.
 
 ### Results
 
@@ -772,7 +769,7 @@ The callbacks also run at different times:
 - `output` is `undefined` unless you set an `output` specification. `ToolLoopAgent` defaults to the generated text.
 - If the structured output cannot be parsed, the `stream()` call rejects. In `ToolLoopAgent`, the call resolves and only `result.output` rejects.
 - If the model call throws, the `stream()` call rejects with that error. In `ToolLoopAgent`, the call resolves and the error is reported through the stream and `onError`.
-- Each step is a plain object. Its `request` is empty, its `model.provider` is derived from the model ID of the response and can differ from the provider name, and its `providerMetadata` is `{}` when the provider sends none. Steps from `generate()` match `ToolLoopAgent`.
+- Each step is a plain object. Its `request` is empty, and its `providerMetadata` is `{}` when the provider sends none. Steps from `generate()` match `ToolLoopAgent`.
 - A tool call for an unknown tool, or with input that does not match the schema, is missing from `content` and `toolCalls` of the step. The model still receives the error as a tool result and the loop continues. `generate()` and `ToolLoopAgent` keep the call in the step, marked `invalid`, with a `tool-error` part.
 
 `WorkflowAgent` does not log provider warnings. Read them from `warnings` on each step.
@@ -781,7 +778,6 @@ The callbacks also run at different times:
 
 - Approval is configured with `needsApproval` on the tool. Approval request IDs have the form `approval-<toolCallId>`. `ToolLoopAgent` generates random IDs.
 - A tool whose `execute` function is an async generator is not supported. `ToolLoopAgent` treats every yielded value except the last one as a preliminary result. `WorkflowAgent` does not iterate the generator, and the tool result is an empty object.
-- In `stream()`, the `onInputStart` and `onInputAvailable` hooks of a tool are not called when the provider sends the tool call without streaming its input first. They are called in `generate()`.
 - Tool timeouts (`toolMs` and `tools` in the `timeout` object) are not supported.
 
 ### Requests

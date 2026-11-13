@@ -43,10 +43,10 @@ type CerebrasLanguageModelEntry = ModelEntry & {
 };
 
 // Preserve the provider page's model set and image-input exception.
-const languageDefinitions: Record<string, boolean> = {
+const languageDefinitions = {
   'gpt-oss-120b': false,
   'gemma-4-31b': true,
-};
+} satisfies Record<string, boolean>;
 
 function createLanguageModelEntry(image?: boolean): CerebrasLanguageModelEntry {
   const support = image != null ? true : 'unknown';
@@ -121,3 +121,8 @@ function declareProviderOptions<Option extends string>(
     ]),
   ) as Record<Option, ModelCapability>;
 }
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type CerebrasModelIds = {
+  language: keyof typeof languageDefinitions;
+};

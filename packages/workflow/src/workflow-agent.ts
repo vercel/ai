@@ -310,6 +310,12 @@ export interface PrepareStepInfo<
   initialInstructions: Instructions | undefined;
 
   /**
+   * The instructions sent to the model for the current step. This is the
+   * initial instructions until `prepareStep` returns an override.
+   */
+  instructions: Instructions | undefined;
+
+  /**
    * The initial messages passed to the stream.
    */
   initialMessages: Array<ModelMessage>;
@@ -365,7 +371,15 @@ export interface PrepareStepResult<
   model?: LanguageModel;
 
   /**
+   * Override the instructions for this step. The override carries forward to
+   * later steps.
+   */
+  instructions?: Instructions;
+
+  /**
    * Override the system message for this step.
+   *
+   * @deprecated Use `instructions` instead.
    */
   system?: string;
 
@@ -3238,8 +3252,15 @@ export class WorkflowAgent<
     } catch (error) {
       encounteredError = error;
       hasEncounteredError = true;
-      // Check if this is an abort error
-      if (isAbortError(error)) {
+      // In generate mode a failed model step is rethrown here, including the
+      // reason the call was aborted with. An abort reason is an ordinary error,
+      // so an aborted call signal also marks the run as aborted. Stream mode
+      // needs no signal check here, because its model steps report aborts as
+      // step data.
+      if (
+        isAbortError(error) ||
+        (mode === 'generate' && effectiveAbortSignal?.aborted)
+      ) {
         wasAborted = true;
         await mergedOnAbort({ steps });
       } else {

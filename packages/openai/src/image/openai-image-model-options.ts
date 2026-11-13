@@ -7,23 +7,10 @@ import { z } from 'zod/v4';
 import {
   getOpenAIImageModelEntry,
   openaiImageModelMaxImagesPerCall,
+  type OpenAIModelIds,
 } from '../openai-model-catalog';
 
-export type OpenAIImageModelId =
-  | 'dall-e-3'
-  | 'dall-e-2'
-  | 'gpt-image-1'
-  | 'gpt-image-1-mini'
-  | 'gpt-image-1.5'
-  | 'gpt-image-2'
-  | 'gpt-image-2.6-flare'
-  | 'gpt-image-2.6-sunburst'
-  | 'gpt-image-2.5-flare'
-  | 'gpt-image-2.5-flare-2026-09-08'
-  | 'gpt-image-2.5-sunburst'
-  | 'gpt-image-2.5-sunburst-2026-09-08'
-  | 'chatgpt-image-latest'
-  | (string & {});
+export type OpenAIImageModelId = OpenAIModelIds['image'] | (string & {});
 
 export const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> =
   openaiImageModelMaxImagesPerCall;
