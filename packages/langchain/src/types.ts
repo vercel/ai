@@ -38,6 +38,8 @@ export interface LangGraphEventState {
   emittedImages: Set<string>;
   /** Maps reasoning block IDs to their message IDs (for chunks that don't include the ID) */
   emittedReasoningIds: Set<string>;
+  /** Tracks message IDs whose reasoning content was emitted during streaming */
+  streamedReasoningMessageIds: Set<string>;
   /** Maps message IDs to their reasoning block IDs (for chunks that don't include the ID) */
   messageReasoningIds: Map<string, string>;
   /** Maps message ID + tool call index to tool call info (for streaming chunks without ID) */
