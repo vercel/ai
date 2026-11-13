@@ -33,6 +33,7 @@ export {
 export { resolveLanguageModel } from '../src/model/resolve-model';
 export { logWarnings } from '../src/logger/log-warnings';
 export { mergeAbortSignals } from '../src/util/merge-abort-signals';
+export { setAbortTimeout } from '../src/util/set-abort-timeout';
 export { mergeCallbacks } from '../src/util/merge-callbacks';
 export { createTelemetryDispatcher } from '../src/telemetry/create-telemetry-dispatcher';
 export { filterIncludedContext } from '../src/telemetry/filter-included-context';
