@@ -680,6 +680,9 @@ importers:
       '@ai-sdk/sandbox-vercel':
         specifier: workspace:*
         version: link:../../packages/sandbox-vercel
+      '@ai-sdk/scaledown':
+        specifier: workspace:*
+        version: link:../../packages/scaledown
       '@ai-sdk/tencent':
         specifier: workspace:*
         version: link:../../packages/tencent
@@ -4676,6 +4679,40 @@ importers:
       typescript:
         specifier: 6.0.3
         version: 6.0.3
+
+  packages/scaledown:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
+      '@edge-runtime/vm':
+        specifier: ^5.0.0
+        version: 5.0.0
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      '@vercel/ai-tsdown-config':
+        specifier: workspace:*
+        version: link:../../tools/tsdown-config
+      tsdown:
+        specifier: ^0.23.0
+        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.3.21)(tsx@4.23.12)(typescript@6.0.3)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
 
   packages/svelte:
     dependencies:

@@ -1,9 +1,7 @@
 import type { ToolCallUpdate } from '@agentclientprotocol/sdk';
-import type { Stats } from 'node:fs';
-import { lstat, readdir, realpath } from 'node:fs/promises';
+import { isWriteProtectedPath } from '@ai-sdk/harness/bridge';
+import { lstat, realpath } from 'node:fs/promises';
 import path from 'node:path';
-
-const ACP_WRITE_PROTECTION_SCAN_LIMIT = 2000;
 
 export async function areACPToolLocationsTrusted({
   toolCall,
@@ -49,22 +47,8 @@ export async function areACPToolLocationsTrusted({
 
 /*
  * Returns whether a write tool call touches a write-protected path and
- * therefore requires the host's approval. A location matches when its
- * canonical path is a protected path, lies inside one, or is a parent of one,
- * since moving or deleting a parent replaces the protected contents.
- *
- * Each configured path is protected both at its literal location below the
- * canonical working directory and at its canonical location. The literal
- * location covers parents of a protected path that is itself a symlink, whose
- * canonical location lies elsewhere.
- *
- * Protected paths are resolved on every call because the filesystem can change
- * during a session. Symlinks found inside protected directories protect their
- * targets as well, so files reachable through a protected path cannot be
- * written through an unprotected alias. Hard links are invisible to path
- * resolution, so while any protected path exists, writes to files with more
- * than one link require approval. Any resolution failure, including dangling
- * or looping symlinks, fails closed.
+ * therefore requires the host's approval. File operations need explicit
+ * locations, so a call without usable locations is treated as protected.
  */
 export async function areACPToolWriteLocationsProtected({
   toolCall,
@@ -75,110 +59,17 @@ export async function areACPToolWriteLocationsProtected({
   workDir: string;
   writeProtectedPaths: ReadonlyArray<string>;
 }): Promise<boolean> {
-  const locations = toolCall.locations;
-  if (locations == null || locations.length === 0) return true;
-
-  try {
-    const canonicalWorkDir = await realpath(workDir);
-    const protectedRoots = await Promise.all(
-      writeProtectedPaths.map(entry =>
-        resolvePermissionPath(`${workDir}/${entry}`),
-      ),
-    );
-    const protection = await collectWriteProtectedPaths({
-      canonicalWorkDir,
-      protectedRoots,
-    });
-    if (protection == null) return true;
-    const protectedPaths = [
-      ...writeProtectedPaths.map(entry =>
-        path.posix.join(canonicalWorkDir, entry),
-      ),
-      ...protection.paths,
-    ];
-
-    for (const location of locations) {
-      if (
-        typeof location.path !== 'string' ||
-        location.path.trim().length === 0
-      ) {
-        return true;
-      }
-      const target = await resolvePermissionPath(
-        path.posix.isAbsolute(location.path)
-          ? location.path
-          : `${workDir}/${location.path}`,
-      );
-      if (
-        protectedPaths.some(
-          protectedPath =>
-            isInsidePath(protectedPath, target) ||
-            isInsidePath(target, protectedPath),
-        )
-      ) {
-        return true;
-      }
-      if (protection.anyRootExists) {
-        const stats = await lstatIfExists(target);
-        if (stats?.isFile() === true && stats.nlink > 1) return true;
-      }
-    }
-    return false;
-  } catch {
+  const paths = (toolCall.locations ?? []).map(location => location.path);
+  if (
+    paths.length === 0 ||
+    !paths.every(
+      (value): value is string =>
+        typeof value === 'string' && value.trim().length > 0,
+    )
+  ) {
     return true;
   }
-}
-
-/*
- * Collects the canonical protected roots plus the canonical targets of every
- * symlink inside existing protected directories, transitively for targets that
- * are directories inside the working directory. Symlinks are never descended
- * into; their targets are scanned instead. Targets outside the working
- * directory are not scanned because writes there already require approval.
- * Returns `undefined` when the scan exceeds its entry limit.
- */
-async function collectWriteProtectedPaths({
-  canonicalWorkDir,
-  protectedRoots,
-}: {
-  canonicalWorkDir: string;
-  protectedRoots: ReadonlyArray<string>;
-}): Promise<{ paths: string[]; anyRootExists: boolean } | undefined> {
-  const paths = [...protectedRoots];
-  const queue: string[] = [];
-  let anyRootExists = false;
-  for (const root of protectedRoots) {
-    const stats = await lstatIfExists(root);
-    if (stats == null) continue;
-    anyRootExists = true;
-    if (stats.isDirectory()) queue.push(root);
-  }
-
-  const scanned = new Set<string>();
-  let entryCount = 0;
-  while (queue.length > 0) {
-    const directory = queue.shift()!;
-    if (scanned.has(directory)) continue;
-    scanned.add(directory);
-    for (const entry of await readdir(directory, { withFileTypes: true })) {
-      entryCount += 1;
-      if (entryCount > ACP_WRITE_PROTECTION_SCAN_LIMIT) return undefined;
-      const entryPath = path.posix.join(directory, entry.name);
-      if (entry.isSymbolicLink()) {
-        const target = await realpath(entryPath);
-        paths.push(target);
-        if (
-          isInsidePath(canonicalWorkDir, target) &&
-          (await lstat(target)).isDirectory()
-        ) {
-          queue.push(target);
-        }
-      } else if (entry.isDirectory()) {
-        queue.push(entryPath);
-      }
-    }
-  }
-  return { paths, anyRootExists };
+  return isWriteProtectedPath({ workDir, paths, writeProtectedPaths });
 }
 
 // Resolves the nearest existing ancestor for new files. A dangling symlink is
@@ -210,22 +101,6 @@ async function entryExists(entryPath: string): Promise<boolean> {
       error.code === 'ENOENT'
     ) {
       return false;
-    }
-    throw error;
-  }
-}
-
-async function lstatIfExists(entryPath: string): Promise<Stats | undefined> {
-  try {
-    return await lstat(entryPath);
-  } catch (error) {
-    if (
-      error != null &&
-      typeof error === 'object' &&
-      'code' in error &&
-      error.code === 'ENOENT'
-    ) {
-      return undefined;
     }
     throw error;
   }

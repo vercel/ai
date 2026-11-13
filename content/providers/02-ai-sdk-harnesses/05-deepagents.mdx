@@ -223,6 +223,16 @@ human-in-the-loop interrupts. Native absolute paths keep their original meaning.
 `allow-all` remains unrestricted. These approval rules are not a filesystem
 sandbox, and approved shell commands can access paths outside the workdir.
 
+Under `allow-edits`, file changes that touch `.agents/skills` or `.deepagents`
+in the session workdir always require host approval. These paths hold memory,
+configuration, and skills that can change the agent's behavior in later
+sessions. A path matches when it is a protected path, lies inside one, or is a
+parent of one. Symlinks are resolved in both directions: writes through an
+alias that points into a protected path match, as do writes to targets of
+symlinks inside protected directories. While a protected path exists, writes to
+hard-linked files also require approval. Reads of protected paths follow the
+usual rules.
+
 ## Known Limitations
 
 - **Resuming a stopped session's conversation** is not supported — after

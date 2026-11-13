@@ -9,6 +9,8 @@ Creates a durable, resumable AI agent for use inside a workflow. `WorkflowAgent`
 
 Unlike [`ToolLoopAgent`](/docs/reference/ai-sdk-core/tool-loop-agent) from the `ai` package, `WorkflowAgent` is designed to survive process restarts, pause for human approval, and integrate with the Workflow DevKit's step mechanism.
 
+`WorkflowAgent` does not implement the `Agent` interface, and its options, callbacks, and results differ from `ToolLoopAgent`. See [Differences from ToolLoopAgent](/docs/agents/workflow-agent#differences-from-toolloopagent) for the list.
+
 `WorkflowAgent` supports `runtimeContext` for shared agent state and `toolsContext` for per-tool context. Because these values can cross workflow and step boundaries, keep them serializable durable data. Unlike `ToolLoopAgent`, do not place functions, class instances, symbols, database clients, or SDK clients in context; pass identifiers or configuration and recreate non-serializable resources inside step functions.
 
 ```ts
@@ -395,6 +397,20 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Callback called when all agent steps are finished and the response is complete. Receives steps, messages, text, finish reason, total usage, and context. If also specified in `stream()`, both callbacks fire (constructor first).',
     },
     {
+      name: 'onError',
+      type: 'WorkflowAgentOnErrorCallback',
+      isOptional: true,
+      description:
+        'Callback called when an error occurs. Aborts are not reported. If also specified in `generate()` or `stream()`, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
+    },
+    {
+      name: 'onAbort',
+      type: 'WorkflowAgentOnAbortCallback',
+      isOptional: true,
+      description:
+        'Callback called when the operation is aborted. Receives all previously finished steps. If also specified in `generate()` or `stream()`, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
+    },
+    {
       name: 'maxOutputTokens',
       type: 'number',
       isOptional: true,
@@ -461,6 +477,27 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'ProviderOptions',
       isOptional: true,
       description: 'Additional provider-specific configuration.',
+    },
+    {
+      name: 'reasoning',
+      type: "LanguageModelV4CallOptions['reasoning']",
+      isOptional: true,
+      description:
+        'Reasoning effort for the model. Controls how much reasoning the model performs before it generates a response.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description:
+        'Default abort signal for every call on this agent. An `abortSignal` passed to `generate()` or `stream()` overrides it.',
+    },
+    {
+      name: 'allowSystemInMessages',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Whether system messages are allowed in the `prompt` or `messages` fields. When `false`, system messages in `prompt` or `messages` are rejected and must be provided through `instructions`. Default: false.',
     },
   ]}
 />
@@ -531,6 +568,8 @@ const result = await agent.stream({
   messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
 });
 ```
+
+In addition to the options in the table, `stream()` accepts the generation settings of the constructor (`maxOutputTokens`, `temperature`, `topP`, `topK`, `presencePenalty`, `frequencyPenalty`, `stopSequences`, `seed`, `reasoning`, `maxRetries`, `headers`, `providerOptions`) and `abortSignal`. A value passed to `stream()` overrides the constructor value.
 
 <PropertiesTable
   content={[
@@ -741,13 +780,15 @@ const result = await agent.stream({
       name: 'onError',
       type: 'WorkflowAgentOnErrorCallback',
       isOptional: true,
-      description: 'Callback invoked when an error occurs during streaming.',
+      description:
+        'Callback invoked when an error occurs. Aborts are not reported. If also specified in the constructor, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
     },
     {
       name: 'onAbort',
       type: 'WorkflowAgentOnAbortCallback',
       isOptional: true,
-      description: 'Callback invoked when the operation is aborted. Receives all previously finished steps.',
+      description:
+        'Callback invoked when the operation is aborted. Receives all previously finished steps. If also specified in the constructor, both callbacks fire (constructor first). Errors thrown by the callback are ignored.',
     },
 
 ]}
@@ -780,6 +821,16 @@ Returns a `Promise<WorkflowAgentStreamResult>` with the following properties:
       type: 'Array<ToolResult>',
       description:
         'Tool results from the last step. Only includes results for tools that were executed.',
+    },
+    {
+      name: 'finishReason',
+      type: 'FinishReason',
+      description: 'The finish reason of the last step.',
+    },
+    {
+      name: 'totalUsage',
+      type: 'LanguageModelUsage',
+      description: 'The token usage of all steps combined.',
     },
     {
       name: 'error',

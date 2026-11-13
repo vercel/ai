@@ -15,6 +15,7 @@ import {
 import { logWarnings } from '../logger/log-warnings';
 import { resolveExtractionModel } from '../model/resolve-model';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
+import type { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { ExtractionModel, ExtractionResult } from './extraction-result';
@@ -35,6 +36,7 @@ export async function extract<
   reasoning,
   maxRetries,
   abortSignal,
+  experimental_download: download,
   headers,
   providerOptions = {},
 }: {
@@ -51,6 +53,11 @@ export async function extract<
   /** Maximum retries for transient provider failures. Defaults to 2. */
   maxRetries?: number;
   abortSignal?: AbortSignal;
+  /**
+   * Download function required for URL-backed file state. Use createDownload({ fetch })
+   * with a DNS-protected transport for untrusted URLs. The model's fetch is not used.
+   */
+  experimental_download?: DownloadFunction;
   headers?: Record<string, string>;
   providerOptions?: ProviderOptions;
 }): Promise<ExtractionResult<FIELDS>> {
@@ -71,7 +78,11 @@ export async function extract<
   }
 
   const { retry } = prepareRetries({ maxRetries, abortSignal });
-  const preparedState = await prepareDecisionState(state, abortSignal);
+  const preparedState = await prepareDecisionState({
+    state,
+    abortSignal,
+    download,
+  });
   const result = await retry(async () => {
     abortSignal?.throwIfAborted();
     return await model.doExtract({

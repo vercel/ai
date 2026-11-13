@@ -49,6 +49,41 @@ answers.contacts.value; // string[] | null
 `referenceDate` is an optional `YYYY-MM-DD` date that anchors relative dates and
 dates without a year.
 
+## File URLs
+
+Remote file URLs in `state` require `experimental_download`; otherwise extraction
+throws `DownloadError` before making a network request. Inline bytes and data URLs
+work without a download hook. The model's custom `fetch` does not cover these
+core downloads.
+
+For user-supplied URLs on Node.js, configure a DNS-protected transport:
+
+```ts
+import { createGuardedFetch } from 'guarded-fetch';
+import {
+  createDownload,
+  experimental_extract,
+  type Experimental_ExtractionModel,
+} from 'ai';
+
+async function readInvoiceFile(model: Experimental_ExtractionModel, url: URL) {
+  const fetch = createGuardedFetch();
+  try {
+    return await experimental_extract({
+      model,
+      state: [{ type: 'file', mediaType: 'application/pdf', data: url }],
+      fields: { invoiceNumber: { type: 'text' } },
+      experimental_download: createDownload({ fetch }),
+    });
+  } finally {
+    await fetch.close();
+  }
+}
+```
+
+See [Secure URL Fetching](/docs/advanced/secure-url-fetching#core-file-downloads)
+for installation and transport requirements on other server runtimes.
+
 ## Field types
 
 Every field has a `type` and optional `instructions`. Instructions accept
@@ -65,6 +100,29 @@ strings, JSON objects, or JSON arrays.
 | `list`     | `string[]` or `number[]`                              | Required `items` (`'text'`, `'number'`, or `'date'`), `integer` and `decimals` for numbers        |
 
 Answer value types are inferred from the field definitions.
+
+## Provider models
+
+Use a provider's `extractionModel` factory:
+
+| Provider  | Example model                                    |
+| --------- | ------------------------------------------------ |
+| OpenAI    | `openai.extractionModel('gpt-6.1-sol')`          |
+| Anthropic | `anthropic.extractionModel('claude-sonnet-5-5')` |
+| Google    | `google.extractionModel('gemini-3.8-flash')`     |
+
+These adapt structured language-model output and extract every field in one
+prompt. Anthropic sends more than 16 fields as parallel calls, see
+[Anthropic extraction models](/providers/ai-sdk-providers/anthropic#extraction-models).
+They return `null` for missing values but no `pNull`, `confidence`,
+`guess`, or `source`. Judge quality against your own labeled examples before
+choosing a model for a task.
+
+- Empty strings and empty lists are returned as `null`.
+- Numbers, durations, and number list items are rounded to `decimals`.
+- When the provider refuses a request, the fields in that request are reported
+  as refused and `experimental_extract` throws
+  `Experimental_ExtractionRefusalError`.
 
 ## Answers
 

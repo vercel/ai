@@ -2853,3 +2853,38 @@ Decision models can also be accessed through `customProvider` aliases or
 use Gateway by default, or an explicitly configured default provider with an
 `decisionModel` method. See
 [model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).
+
+## Extraction Models
+
+Create an experimental extraction model with `anthropic.extractionModel(modelId)`.
+It wraps an Anthropic language model and uses the Messages API's structured
+output to extract typed fields in one call.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { experimental_extract } from 'ai';
+
+const { answers } = await experimental_extract({
+  model: anthropic.extractionModel('claude-sonnet-5-5'),
+  referenceDate: '2026-11-11',
+  state: 'Invoice INV-2041. Total due $1,250.00 by March 3.',
+  fields: {
+    invoiceNumber: { type: 'text', instructions: 'The invoice number' },
+    total: { type: 'number', instructions: 'Total due', decimals: 2 },
+    dueDate: { type: 'date', instructions: 'Payment due date' },
+  },
+});
+```
+
+The adapter supports every field type and returns `null` when the state has no
+value for a field. It does not return `pNull`, `confidence`, `guess`, or
+`source`, since a prompted model cannot give calibrated estimates or exact
+offsets. Image and PDF files are passed to the language model, which must
+support them. The adapter requests `reasoning: 'none'` by default and forwards
+`providerOptions.anthropic`. See [Extractions](/docs/ai-sdk-core/extractions).
+
+Anthropic's structured output allows at most 16 nullable properties per schema,
+so field maps with more than 16 fields are sent as parallel calls of up to 16
+fields each, and the answers are merged into one result. Usage is summed across
+the calls, and response and provider metadata come from the first call. If any
+call fails, the extraction fails and the other calls are cancelled.
