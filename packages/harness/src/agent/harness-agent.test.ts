@@ -458,6 +458,15 @@ describe('HarnessAgent', () => {
     ).rejects.toThrow('`sandboxId` is only supported with HarnessV2');
   });
 
+  test('rejects runId when using a HarnessV1 adapter', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({ harness });
+
+    await expect(agent.createSession({ runId: 'wrun_1' })).rejects.toThrow(
+      '`runId` is only supported with HarnessV2',
+    );
+  });
+
   test('uses prepared runtime context for each prompt turn and filters telemetry', async () => {
     type RuntimeContext = { requestId: string; secret: string };
     const configuredContext = { requestId: 'default', secret: 'configured' };

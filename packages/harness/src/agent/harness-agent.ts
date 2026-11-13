@@ -167,6 +167,12 @@ type HarnessAgentCreateSessionOptions<
    * session object.
    */
   sandboxId?: string;
+  /**
+   * ID of the World run of an existing HarnessV2 session. When given, the
+   * session is restored from that run instead of creating a new one. Only
+   * supported with HarnessV2.
+   */
+  runId?: string;
   abortSignal?: AbortSignal;
 };
 
@@ -512,12 +518,19 @@ export class HarnessAgent<
         sessionId: options?.sessionId,
         sandboxId: options?.sandboxId,
         sandboxSession: options?.sandboxSession,
+        runId: options?.runId,
       });
     }
 
     if (options?.sandboxId != null) {
       throw new Error(
         'HarnessAgent.createSession: `sandboxId` is only supported with HarnessV2.',
+      );
+    }
+
+    if (options?.runId != null) {
+      throw new Error(
+        'HarnessAgent.createSession: `runId` is only supported with HarnessV2.',
       );
     }
 

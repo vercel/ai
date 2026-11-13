@@ -293,6 +293,92 @@ describe('HarnessAgent', () => {
     });
   });
 
+  test("mints the run ID with the World's createRunId when available", async () => {
+    const world = new InMemoryWorld();
+    vi.spyOn(world, 'createRunId').mockReturnValue(
+      '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+    );
+    const agent = new HarnessAgent({ harness, world, getSandboxSession });
+
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    expect(session.runId).toBe('wrun_01ARZ3NDEKTSV4RRFFQ69G5FAV');
+    expect(await world.runs.get(session.runId)).toMatchObject({
+      runId: 'wrun_01ARZ3NDEKTSV4RRFFQ69G5FAV',
+    });
+  });
+
+  test('mints a run ID locally when the World has no createRunId', async () => {
+    const world = new InMemoryWorld();
+    Object.defineProperty(world, 'createRunId', { value: undefined });
+    const create = vi.spyOn(world.events, 'create');
+    const agent = new HarnessAgent({ harness, world, getSandboxSession });
+
+    const session = await agent.createSession({ sandboxId: 'sandbox-id' });
+
+    expect(session.runId).toMatch(/^wrun_[0-9A-HJKMNP-TV-Z]{26}$/);
+    expect(create.mock.calls[0]?.[0]).toBe(session.runId);
+  });
+
+  test('restores an existing session from its run ID without writing to the World', async () => {
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({ harness, world, getSandboxSession });
+    const created = await agent.createSession({
+      sessionId: 'session-id',
+      sandboxId: 'sandbox-id',
+    });
+    const create = vi.spyOn(world.events, 'create');
+
+    const restored = await agent.createSession({ runId: created.runId });
+
+    expect(restored).toMatchObject({
+      sessionId: 'session-id',
+      sandboxId: 'sandbox-id',
+      runId: created.runId,
+    });
+    expect(restored.getStreamName()).toBe(created.getStreamName());
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test('rejects restoring a run that does not hold a session of its harness', async () => {
+    const world = new InMemoryWorld();
+    const otherAgent = new HarnessAgent({
+      harness: fakeHarness,
+      world,
+      getSandboxSession,
+    });
+    const agent = new HarnessAgent({ harness, world, getSandboxSession });
+    const otherSession = await otherAgent.createSession({
+      sandboxId: 'sandbox-id',
+    });
+
+    await expect(
+      agent.createSession({ runId: otherSession.runId }),
+    ).rejects.toThrow('does not hold a session of harness `mock-v2`');
+  });
+
+  test('rejects restoring a session with a mismatching session or sandbox ID', async () => {
+    const world = new InMemoryWorld();
+    const agent = new HarnessAgent({ harness, world, getSandboxSession });
+    const created = await agent.createSession({
+      sessionId: 'session-id',
+      sandboxId: 'sandbox-id',
+    });
+
+    await expect(
+      agent.createSession({ runId: created.runId, sessionId: 'other' }),
+    ).rejects.toThrow('`sessionId` does not match the session of the given');
+    await expect(
+      agent.createSession({ runId: created.runId, sandboxId: 'other' }),
+    ).rejects.toThrow('`sandboxId` does not match the session of the given');
+    await expect(
+      agent.createSession({
+        runId: created.runId,
+        sandboxSession: { id: 'other' } as SandboxSession & { id: string },
+      }),
+    ).rejects.toThrow('`sandboxId` does not match the session of the given');
+  });
+
   test('creates a session that retains its sandbox session', async () => {
     const sandboxSession = {} as SandboxSession;
     const agent = new HarnessAgent({ harness, getSandboxSession });

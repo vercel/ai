@@ -4,6 +4,7 @@ import {
   asSchema,
   generateId,
   getErrorMessage,
+  safeParseJSON,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
   type ModelMessage,
@@ -232,14 +233,19 @@ export class HarnessAgent<
    * A sandbox session object is optional; when omitted, it is resolved lazily
    * from the stable sandbox ID.
    *
-   * Every call creates a new run, whose ID the World mints. To continue a
-   * session later, or in another process, keep the session object (it is
-   * serializable) instead of creating a new one with the same `sessionId`.
+   * Without `runId`, every call creates a new run. To continue an existing
+   * session later, or in another process, pass its `runId`: the session is
+   * then restored from that run instead, and nothing is written to the World.
+   * Its `sessionId` and `sandboxId` are read from the run; the call rejects
+   * if the run does not hold a session of this agent's harness, or if a
+   * given `sessionId`, `sandboxId` or sandbox session ID does not match the
+   * run's.
    */
   async createSession(options: {
     sessionId?: string;
     sandboxId?: string;
     sandboxSession?: SandboxSession | HarnessV2NetworkSandboxSession;
+    runId?: string;
   }): Promise<HarnessAgentSession> {
     const sandboxSession = options.sandboxSession;
     const sandboxSessionId =
@@ -254,15 +260,43 @@ export class HarnessAgent<
       );
     }
 
-    const sandboxId = sandboxSessionId ?? options.sandboxId;
+    let sessionId = options.sessionId;
+    let sandboxId = sandboxSessionId ?? options.sandboxId;
+    let runId = options.runId;
+    if (runId != null) {
+      const run = await this.world.runs.get(runId);
+      const runInput = await parseRunInput({ input: run.input });
+      if (
+        runInput?.harnessId !== this.harnessId ||
+        typeof runInput.sessionId !== 'string' ||
+        typeof runInput.sandboxId !== 'string'
+      ) {
+        throw new Error(
+          `HarnessAgent.createSession: run \`${runId}\` does not hold a session of harness \`${this.harnessId}\`.`,
+        );
+      }
+      if (sessionId != null && sessionId !== runInput.sessionId) {
+        throw new Error(
+          'HarnessAgent.createSession: `sessionId` does not match the session of the given `runId`.',
+        );
+      }
+      if (sandboxId != null && sandboxId !== runInput.sandboxId) {
+        throw new Error(
+          'HarnessAgent.createSession: `sandboxId` does not match the session of the given `runId`.',
+        );
+      }
+      sessionId = runInput.sessionId;
+      sandboxId = runInput.sandboxId;
+    }
+
     if (sandboxId == null) {
       throw new Error(
         'HarnessAgent.createSession: a stable `sandboxId` is required when `sandboxSession` is omitted or has no `id`.',
       );
     }
+    sessionId ??= generateId();
+    runId ??= await this.createRun({ sessionId, sandboxId });
 
-    const sessionId = options.sessionId ?? generateId();
-    const runId = await this.createRun({ sessionId, sandboxId });
     const session = new DefaultHarnessAgentSession({
       sessionId,
       sandboxId,
@@ -275,7 +309,11 @@ export class HarnessAgent<
 
   /**
    * Creates and starts the World run of a new session and returns its ID.
-   * Rejects if the World does not report the created run's ID.
+   *
+   * The run ID is minted before `run_created` is written, since some Worlds
+   * (e.g. world-vercel) require a client-generated run ID. The World's
+   * `createRunId()` is used when it implements one, which returns the bare
+   * ULID; otherwise a ULID is generated locally.
    */
   private async createRun(options: {
     /**
@@ -289,7 +327,8 @@ export class HarnessAgent<
     sandboxId: string;
   }): Promise<string> {
     const { sessionId, sandboxId } = options;
-    const result = await this.world.events.create(null, {
+    const runId = `wrun_${this.world.createRunId?.({}) ?? createUlid()}`;
+    await this.world.events.create(runId, {
       eventType: 'run_created',
       specVersion: this.world.specVersion,
       eventData: {
@@ -305,12 +344,6 @@ export class HarnessAgent<
         ),
       },
     });
-    const runId = result.run?.runId ?? result.event?.runId;
-    if (runId == null) {
-      throw new Error(
-        'HarnessAgent.createSession: the World did not report the ID of the created run.',
-      );
-    }
     await this.world.events.create(runId, {
       eventType: 'run_started',
       specVersion: this.world.specVersion,
@@ -653,6 +686,47 @@ export class HarnessAgent<
  * platform terminates the process.
  */
 const DEADLINE_MARGIN_MS = 15_000;
+
+/**
+ * Decodes the JSON input recorded on a session's run. Returns `undefined`
+ * if the input is not encoded JSON. The decoded value is not validated, so
+ * callers must check the properties they read.
+ */
+async function parseRunInput(options: {
+  /**
+   * Input of the run, as returned by the World.
+   */
+  input: unknown;
+}): Promise<Record<string, unknown> | null | undefined> {
+  if (!(options.input instanceof Uint8Array)) return undefined;
+  const parsed = await safeParseJSON({
+    text: new TextDecoder().decode(options.input),
+  });
+  return parsed.success
+    ? (parsed.value as Record<string, unknown> | null)
+    : undefined;
+}
+
+/**
+ * Generates a 26-character ULID from the current millisecond and a random
+ * suffix, for Worlds that do not mint run IDs themselves. Not suitable for
+ * security tokens, since the suffix comes from `Math.random`.
+ */
+function createUlid(): string {
+  const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  let timestamp = Date.now();
+  let time = '';
+  for (let index = 0; index < 10; index++) {
+    time = alphabet[timestamp % 32] + time;
+    timestamp = Math.floor(timestamp / 32);
+  }
+
+  let randomness = '';
+  for (let index = 0; index < 16; index++) {
+    randomness += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return `${time}${randomness}`;
+}
 
 /**
  * Usage reported for a turn the engine finishes itself, when nothing is known.
