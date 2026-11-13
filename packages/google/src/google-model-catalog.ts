@@ -109,7 +109,7 @@ const standard = {
   urlContext: true,
 } as const;
 
-const documentedModels: Record<string, DocumentedCapabilities> = {
+const languageModelDefinitions = {
   'gemini-nano-banana-2.1': {
     image: true,
     objectGeneration: false,
@@ -137,15 +137,45 @@ const documentedModels: Record<string, DocumentedCapabilities> = {
   'gemini-2.5-flash-lite': standard,
   'gemini-2.5-flash-lite-preview-06-17': standard,
   'gemini-2.0-flash': standard,
-};
+  // Known IDs without declared capabilities retain the custom-model fallback.
+  aqa: undefined,
+  'deep-research-max-preview-04-2026': undefined,
+  'deep-research-preview-04-2026': undefined,
+  'deep-research-pro-preview-12-2025': undefined,
+  'gemini-2.0-flash-001': undefined,
+  'gemini-2.0-flash-lite': undefined,
+  'gemini-2.0-flash-lite-001': undefined,
+  'gemini-2.5-computer-use-preview-10-2025': undefined,
+  'gemini-2.5-flash-image': undefined,
+  'gemini-2.5-flash-native-audio-latest': undefined,
+  'gemini-2.5-flash-native-audio-preview-09-2025': undefined,
+  'gemini-2.5-flash-native-audio-preview-12-2025': undefined,
+  'gemini-2.5-flash-preview-tts': undefined,
+  'gemini-2.5-pro-preview-tts': undefined,
+  'gemini-3.1-flash-tts-preview': undefined,
+  'gemini-3.1-pro-preview-customtools': undefined,
+  'gemini-flash-latest': undefined,
+  'gemini-flash-lite-latest': undefined,
+  'gemini-pro-latest': undefined,
+  'gemini-robotics-er-1.5-preview': undefined,
+  'gemma-3-12b-it': undefined,
+  'gemma-3-1b-it': undefined,
+  'gemma-3-27b-it': undefined,
+  'gemma-3-4b-it': undefined,
+  'gemma-3n-e2b-it': undefined,
+  'gemma-3n-e4b-it': undefined,
+  'nano-banana-pro-preview': undefined,
+} satisfies Record<string, DocumentedCapabilities | undefined>;
 
 export const googleModelCatalog: Readonly<
   Record<string, GoogleLanguageModelEntry>
 > = Object.fromEntries(
-  Object.entries(documentedModels).map(([modelId, documented]) => [
-    modelId,
-    createGoogleLanguageModelEntry(modelId, documented),
-  ]),
+  Object.entries(languageModelDefinitions)
+    .filter(([, definition]) => definition != null)
+    .map(([modelId, documented]) => [
+      modelId,
+      createGoogleLanguageModelEntry(modelId, documented),
+    ]),
 );
 
 export function getGoogleLanguageModelEntry(
@@ -323,3 +353,8 @@ function getMinimumThinkingLevelForGemini3Model(
     ? 'low'
     : 'minimal';
 }
+
+/** Known model IDs, derived from the declarations used to build the catalog. */
+export type GoogleModelIds = {
+  language: keyof typeof languageModelDefinitions;
+};
