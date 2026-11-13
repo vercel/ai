@@ -496,6 +496,7 @@ async function streamModelStep(
       performance,
       warnings,
     },
+    model: { provider: model.provider, modelId: model.modelId },
     providerExecutedToolResults,
     toolInputLifecycleEvents,
     repairedToolCallIds: [...repairedToolCallIds],

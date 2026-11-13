@@ -500,6 +500,7 @@ export async function* modelCallIterator({
         toolCalls: serializedToolCalls,
         finish,
         raw,
+        model: modelInfo,
         providerExecutedToolResults,
         toolInputLifecycleEvents,
         repairedToolCallIds,
@@ -550,6 +551,7 @@ export async function* modelCallIterator({
         finish,
         providerExecutedToolResults,
         {
+          model: modelInfo,
           tools: effectiveTools,
           requestMessages:
             mode === 'generate' && include?.requestMessages
