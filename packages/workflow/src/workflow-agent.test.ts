@@ -217,6 +217,76 @@ describe('WorkflowAgent', () => {
         }),
       );
     });
+
+    it('passes URL-backed image and file parts to model steps without downloading them', async () => {
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+      const download = vi.fn(async requests => requests.map(() => null));
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
+        throw new Error('fetch is unavailable in workflow functions');
+      });
+      const imageUrl = new URL('https://example.com/image.png');
+      const fileUrl = new URL('https://example.com/file.pdf');
+
+      try {
+        const agent = new WorkflowAgent({
+          model: createMockModel(),
+          experimental_download: download,
+        });
+        await agent.stream({
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  image: imageUrl,
+                  mediaType: 'image/png',
+                },
+                {
+                  type: 'file',
+                  data: fileUrl,
+                  mediaType: 'application/pdf',
+                },
+              ],
+            },
+          ],
+        });
+
+        const prompt = vi
+          .mocked(modelCallIterator)
+          .mock.calls.at(-1)?.[0].prompt;
+        expect(prompt).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: { type: 'url', url: imageUrl },
+                mediaType: 'image/png',
+                providerOptions: undefined,
+              },
+              {
+                type: 'file',
+                data: { type: 'url', url: fileUrl },
+                mediaType: 'application/pdf',
+                filename: undefined,
+                providerOptions: undefined,
+              },
+            ],
+          },
+        ]);
+        expect(download).not.toHaveBeenCalled();
+        expect(modelCallIterator).toHaveBeenLastCalledWith(
+          expect.objectContaining({ download }),
+        );
+        expect(fetchSpy).not.toHaveBeenCalled();
+      } finally {
+        fetchSpy.mockRestore();
+      }
+    });
   });
 
   describe('tool execution error handling', () => {
@@ -320,38 +390,6 @@ describe('WorkflowAgent', () => {
       expect(receivedSignal?.aborted).toBe(true);
       expect(receivedSignal?.reason).toHaveProperty('name', 'TimeoutError');
       expect(cooperativelyCancelled).toBe(true);
-    });
-
-    it('should split streaming timeout configuration into total and step settings', async () => {
-      const { modelCallIterator } = await import('./model-call-iterator.js');
-      vi.mocked(modelCallIterator).mockReturnValue({
-        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
-      } as unknown as MockIterator);
-      const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1000);
-      const agent = new WorkflowAgent({ model: createMockModel() });
-
-      try {
-        await agent.stream({
-          messages: [{ role: 'user', content: 'test' }],
-          timeout: {
-            totalMs: 5000,
-            stepMs: 4000,
-            firstChunkMs: 3000,
-            chunkMs: 2000,
-          },
-        });
-
-        expect(modelCallIterator).toHaveBeenCalledWith(
-          expect.objectContaining({
-            timeoutAt: 6000,
-            stepTimeoutMs: 4000,
-            firstChunkTimeoutMs: 3000,
-            chunkTimeoutMs: 2000,
-          }),
-        );
-      } finally {
-        nowSpy.mockRestore();
-      }
     });
 
     it('should convert FatalError to tool error result', async () => {
@@ -2159,7 +2197,8 @@ describe('WorkflowAgent', () => {
       expect(receivedToolCallId).toBe('test-call-id');
       expect(receivedMessages).toBeDefined();
       expect(Array.isArray(receivedMessages)).toBe(true);
-      expect(receivedMessages).toEqual(conversationMessages);
+      // like in core, without the assistant message that contains the tool call
+      expect(receivedMessages).toEqual(conversationMessages.slice(0, -1));
     });
 
     it('should pass messages to multiple tools in parallel execution', async () => {
@@ -2255,8 +2294,10 @@ describe('WorkflowAgent', () => {
       });
 
       // Both tools should have received the same conversation messages
-      expect(receivedByTools['weatherTool']).toEqual(conversationMessages);
-      expect(receivedByTools['newsTool']).toEqual(conversationMessages);
+      // like in core, without the assistant message that contains the tool calls
+      const expectedMessages = conversationMessages.slice(0, -1);
+      expect(receivedByTools['weatherTool']).toEqual(expectedMessages);
+      expect(receivedByTools['newsTool']).toEqual(expectedMessages);
     });
 
     it('should pass updated messages on subsequent tool call rounds', async () => {
@@ -2374,8 +2415,9 @@ describe('WorkflowAgent', () => {
 
       // Verify messages grow with each round
       expect(messagesPerRound).toHaveLength(2);
-      expect(messagesPerRound[0]).toEqual(firstRoundMessages);
-      expect(messagesPerRound[1]).toEqual(secondRoundMessages);
+      // like in core, without the assistant message that contains the tool call
+      expect(messagesPerRound[0]).toEqual(firstRoundMessages.slice(0, -1));
+      expect(messagesPerRound[1]).toEqual(secondRoundMessages.slice(0, -1));
       // Second round should have more messages than first
       expect((messagesPerRound[1] as unknown[]).length).toBeGreaterThan(
         (messagesPerRound[0] as unknown[]).length,

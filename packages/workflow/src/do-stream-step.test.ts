@@ -1,4 +1,4 @@
-import { APICallError } from '@ai-sdk/provider';
+import { APICallError, type LanguageModelV4StreamPart } from '@ai-sdk/provider';
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { doStreamStep } from './do-stream-step.js';
@@ -106,6 +106,34 @@ describe('doStreamStep', () => {
     });
   });
 
+  it('uses model URL support when invoking a custom downloader', async () => {
+    const fileUrl = new URL('https://example.com/file.pdf');
+    const urlPrompt = [
+      {
+        role: 'user' as const,
+        content: [
+          {
+            type: 'file' as const,
+            data: { type: 'url' as const, url: fileUrl },
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ];
+    const download = vi.fn(async () => [null]);
+    const model = new MockLanguageModelV4({
+      doStream: async () => successfulStream(),
+      supportedUrls: { 'application/pdf': [/.*/] },
+    });
+
+    await doStreamStep(urlPrompt, model, undefined, undefined, { download });
+
+    expect(download).toHaveBeenCalledWith([
+      { url: fileUrl, isUrlSupportedByModel: true },
+    ]);
+    expect(model.doStreamCalls[0].prompt).toEqual(urlPrompt);
+  });
+
   it('preserves reasoning text and provider metadata as one content part', async () => {
     const providerMetadata = {
       anthropic: { signature: 'reasoning-signature' },
@@ -160,6 +188,69 @@ describe('doStreamStep', () => {
         ],
       },
     });
+  });
+
+  it('preserves measured model call performance', async () => {
+    let timestamp = 0;
+    vi.spyOn(globalThis.performance, 'now').mockImplementation(
+      () => (timestamp += 100),
+    );
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          { type: 'text-start' as const, id: 'text-1' },
+          {
+            type: 'text-delta' as const,
+            id: 'text-1',
+            delta: 'Measured output',
+          },
+          { type: 'text-end' as const, id: 'text-1' },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'stop' as const, raw: 'stop' },
+            usage: {
+              inputTokens: {
+                total: 10,
+                noCache: 10,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 20,
+                text: 20,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model);
+
+    if (result.aborted) {
+      throw new Error('Expected the model call to complete.');
+    }
+
+    expect(result.raw.performance).toMatchObject({
+      responseTimeMs: expect.any(Number),
+      effectiveOutputTokensPerSecond: expect.any(Number),
+      outputTokensPerSecond: expect.any(Number),
+      inputTokensPerSecond: expect.any(Number),
+      effectiveTotalTokensPerSecond: expect.any(Number),
+      timeToFirstOutputMs: expect.any(Number),
+    });
+    expect(result.raw.performance?.responseTimeMs).toBeGreaterThan(0);
+    expect(
+      result.raw.performance?.effectiveOutputTokensPerSecond,
+    ).toBeGreaterThan(0);
+    expect(result.raw.performance?.outputTokensPerSecond).toBeGreaterThan(0);
+    expect(result.raw.performance?.inputTokensPerSecond).toBeGreaterThan(0);
+    expect(
+      result.raw.performance?.effectiveTotalTokensPerSecond,
+    ).toBeGreaterThan(0);
+    expect(result.raw.performance?.timeToFirstOutputMs).toBeGreaterThan(0);
   });
 
   it('preserves provider metadata on provider-executed tool results', async () => {
@@ -372,132 +463,6 @@ describe('doStreamStep', () => {
     }
   });
 
-  it.each([
-    {
-      name: 'step timeout',
-      options: { stepTimeoutMs: 50 },
-      expectedMessage: 'Step timeout of 50ms exceeded',
-      chunks: [{ type: 'response-metadata' as const, id: 'response-1' }],
-    },
-    {
-      name: 'first chunk timeout',
-      options: { firstChunkTimeoutMs: 50 },
-      expectedMessage: 'First chunk timeout of 50ms exceeded',
-      chunks: [
-        { type: 'response-metadata' as const, id: 'response-1' },
-        { type: 'text-start' as const, id: 'text-1' },
-        {
-          type: 'text-delta' as const,
-          id: 'text-1',
-          delta: '',
-        },
-      ],
-    },
-    {
-      name: 'chunk timeout',
-      options: { chunkTimeoutMs: 50 },
-      expectedMessage: 'Chunk timeout of 50ms exceeded',
-      chunks: [
-        { type: 'text-start' as const, id: 'text-1' },
-        {
-          type: 'text-delta' as const,
-          id: 'text-1',
-          delta: 'partial output',
-        },
-        { type: 'response-metadata' as const, id: 'response-1' },
-      ],
-    },
-  ])(
-    'returns an aborted result when the $name expires',
-    async ({ options, expectedMessage, chunks }) => {
-      vi.useFakeTimers({ shouldAdvanceTime: true });
-      let receivedAbortSignal: AbortSignal | undefined;
-      const model = new MockLanguageModelV4({
-        doStream: async ({ abortSignal }) => {
-          receivedAbortSignal = abortSignal;
-
-          return {
-            stream: new ReadableStream({
-              start(controller) {
-                for (const chunk of chunks) {
-                  controller.enqueue(chunk);
-                }
-                abortSignal?.addEventListener(
-                  'abort',
-                  () => controller.error(abortSignal.reason),
-                  { once: true },
-                );
-              },
-            }),
-          };
-        },
-      });
-
-      const result = doStreamStep(prompt, model, undefined, undefined, options);
-
-      await vi.advanceTimersByTimeAsync(100);
-
-      await expect(result).resolves.toEqual({ aborted: true });
-      expect(receivedAbortSignal?.aborted).toBe(true);
-      expect(receivedAbortSignal?.reason).toMatchObject({
-        name: 'TimeoutError',
-        message: expectedMessage,
-      });
-    },
-  );
-
-  it('clears streaming timeout timers after the model step completes', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    let receivedAbortSignal: AbortSignal | undefined;
-    const model = new MockLanguageModelV4({
-      doStream: async ({ abortSignal }) => {
-        receivedAbortSignal = abortSignal;
-        return {
-          stream: convertArrayToReadableStream([
-            { type: 'text-start' as const, id: 'text-1' },
-            {
-              type: 'text-delta' as const,
-              id: 'text-1',
-              delta: 'complete',
-            },
-            { type: 'text-end' as const, id: 'text-1' },
-            {
-              type: 'finish' as const,
-              finishReason: { unified: 'stop' as const, raw: 'stop' },
-              usage: {
-                inputTokens: {
-                  total: 1,
-                  noCache: 1,
-                  cacheRead: undefined,
-                  cacheWrite: undefined,
-                },
-                outputTokens: {
-                  total: 1,
-                  text: 1,
-                  reasoning: undefined,
-                },
-              },
-            },
-          ]),
-        };
-      },
-    });
-
-    await expect(
-      doStreamStep(prompt, model, undefined, undefined, {
-        stepTimeoutMs: 50,
-        firstChunkTimeoutMs: 50,
-        chunkTimeoutMs: 50,
-      }),
-    ).resolves.toMatchObject({
-      finish: { finishReason: 'stop' },
-    });
-
-    await vi.advanceTimersByTimeAsync(100);
-
-    expect(receivedAbortSignal?.aborted).toBe(false);
-  });
-
   it('returns model stream errors as terminal step data', async () => {
     const terminal = new Error('terminal model error');
     const streamedParts: unknown[] = [];
@@ -542,6 +507,98 @@ describe('doStreamStep', () => {
       finish: { finishReason: 'error' },
     });
     expect(streamedParts).toContainEqual({ type: 'error', error: terminal });
+  });
+
+  it.each([
+    {
+      name: 'stream start only',
+      parts: [{ type: 'stream-start', warnings: [] }],
+    },
+    {
+      name: 'response metadata only',
+      parts: [
+        { type: 'stream-start', warnings: [] },
+        { type: 'response-metadata', id: 'response-1', modelId: 'mock-model' },
+      ],
+    },
+    {
+      name: 'bare text start',
+      parts: [
+        { type: 'stream-start', warnings: [] },
+        { type: 'text-start', id: 'text-1' },
+      ],
+    },
+    {
+      name: 'empty encrypted reasoning delta',
+      parts: [
+        { type: 'stream-start', warnings: [] },
+        {
+          type: 'reasoning-start',
+          id: 'reasoning-1',
+          providerMetadata: {
+            openai: { reasoningEncryptedContent: 'encrypted-reasoning' },
+          },
+        },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: '',
+          providerMetadata: {
+            openai: { reasoningEncryptedContent: 'encrypted-reasoning' },
+          },
+        },
+      ],
+    },
+  ] satisfies Array<{
+    name: string;
+    parts: LanguageModelV4StreamPart[];
+  }>)(
+    'returns a no-output error when an incomplete stream contains $name',
+    async ({ parts }) => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream(
+            parts as LanguageModelV4StreamPart[],
+          ),
+        }),
+      });
+
+      const result = await doStreamStep(prompt, model);
+
+      expect(result).toMatchObject({
+        terminalError: {
+          name: 'AI_NoOutputGeneratedError',
+          message:
+            'No output generated. The model stream ended without a finish chunk.',
+        },
+      });
+    },
+  );
+
+  it('retains partial output when the model stream ends without a finish part', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          { type: 'text-start' as const, id: 'text-1' },
+          {
+            type: 'text-delta' as const,
+            id: 'text-1',
+            delta: 'partial output',
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model);
+
+    expect(result).not.toHaveProperty('terminalError');
+    expect(result).toMatchObject({
+      finish: undefined,
+      raw: {
+        content: [{ type: 'text', text: 'partial output' }],
+      },
+    });
   });
 
   it('records tool input lifecycle events for callbacks outside the step', async () => {
@@ -612,6 +669,87 @@ describe('doStreamStep', () => {
     });
   });
 
+  it('withholds tool calls with tool choice none', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'tool-input-start' as const,
+            id: 'call-1',
+            toolName: 'search',
+          },
+          { type: 'tool-input-delta' as const, id: 'call-1', delta: '{}' },
+          { type: 'tool-input-end' as const, id: 'call-1' },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: '{}',
+          },
+          {
+            type: 'finish' as const,
+            finishReason: {
+              unified: 'tool-calls' as const,
+              raw: 'tool-calls',
+            },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+    const repairToolCall = vi.fn();
+    const writtenParts: Array<{ type: string }> = [];
+
+    const result = await doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+      {
+        search: {
+          hasOnInputStart: true,
+          hasOnInputDelta: true,
+          hasOnInputAvailable: true,
+          inputSchema: {
+            type: 'object',
+            properties: { query: { type: 'string' } },
+            required: ['query'],
+          },
+        },
+      },
+      { toolChoice: 'none', repairToolCall },
+    );
+
+    expect(result).toMatchObject({
+      toolCalls: [],
+      toolInputLifecycleEvents: [],
+      terminalError: expect.objectContaining({
+        name: 'AI_ToolChoiceViolationError',
+        toolChoice: { type: 'none' },
+      }),
+    });
+    expect(repairToolCall).not.toHaveBeenCalled();
+    expect(writtenParts.filter(part => part.type.startsWith('tool-'))).toEqual(
+      [],
+    );
+  });
+
   it('does not retain input deltas for tools without delta callbacks', async () => {
     const model = new MockLanguageModelV4({
       doStream: async () => ({
@@ -669,5 +807,68 @@ describe('doStreamStep', () => {
     });
 
     expect(result).toMatchObject({ toolInputLifecycleEvents: [] });
+  });
+  it('defers tool-call and tool-error chunks of self-validating tools', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call-1',
+            toolName: 'validated',
+            input: '{"value":',
+          },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call-2',
+            toolName: 'plain',
+            input: '{"value":',
+          },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'tool-calls' as const, raw: 'tool_calls' },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: { total: 0, text: 0, reasoning: undefined },
+            },
+          },
+        ]),
+      }),
+    });
+    const inputSchema = {
+      type: 'object' as const,
+      properties: { value: { type: 'string' as const } },
+      required: ['value'],
+    };
+    const writtenParts: Array<{ type: string; toolCallId?: string }> = [];
+
+    await doStreamStep(
+      prompt,
+      model,
+      new WritableStream({
+        write(part) {
+          writtenParts.push(part);
+        },
+      }),
+      {
+        validated: { inputSchema, hasOwnValidator: true },
+        plain: { inputSchema },
+      },
+    );
+
+    const forTool = (toolCallId: string) =>
+      writtenParts
+        .filter(part => part.toolCallId === toolCallId)
+        .map(part => part.type);
+    // the deferred writer is the sole emitter for self-validating tools
+    expect(forTool('call-1')).toEqual([]);
+    // other tools keep streaming their call and error from the step
+    expect(forTool('call-2')).toEqual(['tool-call', 'tool-error']);
   });
 });
