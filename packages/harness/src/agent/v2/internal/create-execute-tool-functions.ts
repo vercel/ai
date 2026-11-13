@@ -56,6 +56,58 @@ export type HarnessAgentExecuteBuiltinToolFunction =
   HarnessV2ExecuteBuiltinToolFunction;
 
 /**
+ * Prefix of the key of a tool call effect, followed by the tool call ID.
+ */
+const TOOL_EFFECT_KEY_PREFIX = 'tool:';
+
+/**
+ * Prefix of the name of a tool call effect, followed by the tool name.
+ */
+const TOOL_EFFECT_NAME_PREFIX = 'tool.';
+
+/**
+ * Returns the tool call ID and the tool name of an effect recorded by
+ * `executeHostTool()` or `executeBuiltinTool()`, from its key
+ * (`tool:${toolCallId}`) and name (`tool.${toolName}`). Returns `undefined`
+ * for any other effect.
+ */
+export function parseToolEffect(options: {
+  /**
+   * Key of the effect.
+   */
+  key: string;
+
+  /**
+   * Name of the effect.
+   */
+  name: string;
+}):
+  | {
+      /**
+       * ID of the tool call.
+       */
+      toolCallId: string;
+
+      /**
+       * Name of the called tool.
+       */
+      toolName: string;
+    }
+  | undefined {
+  const { key, name } = options;
+  if (
+    !key.startsWith(TOOL_EFFECT_KEY_PREFIX) ||
+    !name.startsWith(TOOL_EFFECT_NAME_PREFIX)
+  ) {
+    return undefined;
+  }
+  return {
+    toolCallId: key.slice(TOOL_EFFECT_KEY_PREFIX.length),
+    toolName: name.slice(TOOL_EFFECT_NAME_PREFIX.length),
+  };
+}
+
+/**
  * Returns the tool registered under the name as an own property, if any.
  */
 function getTool(options: {
@@ -630,8 +682,8 @@ export function createExecuteToolFunctions(options: {
       assertJSONInput({ input: toolInput, functionName: 'executeHostTool' });
 
       const output = await effect({
-        key: `tool:${toolCallId}`,
-        name: `tool.${toolName}`,
+        key: `${TOOL_EFFECT_KEY_PREFIX}${toolCallId}`,
+        name: `${TOOL_EFFECT_NAME_PREFIX}${toolName}`,
         replay: tool?.replay ?? 'never',
         input: toolInput,
         fn: context =>
@@ -662,8 +714,8 @@ export function createExecuteToolFunctions(options: {
 
       const tool = getTool({ tools: builtinTools, toolName });
       const output = await effect({
-        key: `tool:${toolCallId}`,
-        name: `tool.${toolName}`,
+        key: `${TOOL_EFFECT_KEY_PREFIX}${toolCallId}`,
+        name: `${TOOL_EFFECT_NAME_PREFIX}${toolName}`,
         replay: tool?.replay ?? 'never',
         input,
         fn: context =>

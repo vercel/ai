@@ -411,9 +411,86 @@ describe('startDrive', () => {
       expect(await readRecords({ world })).toEqual([
         { part: { type: 'start' }, key: 'turn-start:turn' },
         { part: { type: 'retract', startIds: ['model', 'unstarted'] } },
+        {
+          part: {
+            type: 'tool-result',
+            toolCallId: 'b',
+            toolName: 'bash',
+            result: 'The bash call was interrupted before it finished.',
+            isError: true,
+          },
+          key: 'tool-interrupted:executed',
+        },
       ]);
     },
   );
+
+  test('ends an interrupted tool call of the unfinished turn with an error part, once', async () => {
+    const finishStep: HarnessAgentLogEvent = {
+      type: 'finish-step',
+      id: 'finish-step:turn:0',
+      data: { turnId: 'turn', stepNumber: 0, finishReason, usage },
+    };
+    const partial = { raw: { status: 'in-progress' } };
+    const { world, log, writer } = await setup({
+      events: [
+        prompt,
+        turnStart,
+        finishStep,
+        effectStart({ id: 'executed', key: 'tool:call-1', replay: 'never' }),
+        {
+          type: 'tool-execution-start',
+          id: 'tool-execution-start:executed',
+          data: { startId: 'executed' },
+        },
+        {
+          type: 'effect-progress',
+          id: 'progress',
+          data: { startId: 'executed', partial },
+        },
+        {
+          type: 'effect-end',
+          id: 'executed-end',
+          data: {
+            startId: 'executed',
+            output: { type: 'interrupted', retryable: false, partial },
+          },
+        },
+      ],
+    });
+
+    for (const driveId of ['drive-1', 'drive-2']) {
+      expect(
+        await startDrive({
+          log,
+          writer,
+          world,
+          session,
+          driveIdentity: { driveId },
+        }),
+      ).toBe(true);
+      await writer.flush();
+    }
+
+    expect(await readRecords({ world })).toEqual([
+      { part: { type: 'start' }, key: 'turn-start:turn' },
+      {
+        part: { type: 'finish-step', finishReason, usage },
+        key: 'finish-step:turn:0',
+      },
+      {
+        part: {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'bash',
+          result:
+            'The bash call was interrupted before it finished.\nPartial output before the interruption:\n{"status":"in-progress"}',
+          isError: true,
+        },
+        key: 'tool-interrupted:executed',
+      },
+    ]);
+  });
 
   test('writes only the missing boundary parts of the unfinished turn', async () => {
     const finishStep: HarnessAgentLogEvent = {

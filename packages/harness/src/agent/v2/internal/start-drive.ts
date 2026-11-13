@@ -3,6 +3,7 @@ import { generateId } from '@ai-sdk/provider-utils';
 import type { World } from '@workflow/world';
 import type { HarnessAgentSession } from '../harness-agent-session';
 import type { HarnessV2EffectOutput } from '../../../v2/harness-v2-effect';
+import { parseToolEffect } from './create-execute-tool-functions';
 import type { HarnessAgentLog, HarnessAgentLogEvent } from './create-log';
 import {
   decodeStreamRecords,
@@ -93,7 +94,11 @@ export type HarnessAgentDriveIdentity = {
  *    lists the turn's latest attempts whose output is a retryable
  *    interruption, since a retry replaces their output. A non-retryable
  *    interruption's output stays, matching the partial output the harness
- *    receives. A finished turn is not repaired.
+ *    receives. Each of the turn's tool calls whose latest attempt is a
+ *    non-retryable interruption gets an error `tool-result` part under the
+ *    key `tool-interrupted:${startId}`, unless the stream has it already:
+ *    the tool does not run again, so no other part ends the call. A
+ *    finished turn is not repaired.
  */
 export async function startDrive(options: {
   /**
@@ -209,7 +214,7 @@ export async function startDrive(options: {
   for (const start of abandoned) {
     const retryable =
       start.data.replay === 'safe' ||
-      (start.data.key.startsWith('tool:') && !executed.has(start.id));
+      (parseToolEffect(start.data) != null && !executed.has(start.id));
     const output: HarnessV2EffectOutput = partials.has(start.id)
       ? { type: 'interrupted', retryable, partial: partials.get(start.id) }
       : { type: 'interrupted', retryable };
@@ -273,7 +278,60 @@ export async function startDrive(options: {
     writer.emit({ part, key: latestFinishStep.id });
   }
 
+  for (const start of latestStarts.values()) {
+    const output = outputs.get(start.id);
+    const toolEffect = parseToolEffect(start.data);
+    const key = `tool-interrupted:${start.id}`;
+    if (
+      (startPositions.get(start.id) ?? -1) <= turnPosition ||
+      toolEffect == null ||
+      output?.type !== 'interrupted' ||
+      output.retryable ||
+      keys.has(key)
+    ) {
+      continue;
+    }
+    writer.emit({
+      part: {
+        type: 'tool-result',
+        toolCallId: toolEffect.toolCallId,
+        toolName: toolEffect.toolName,
+        result: describeInterruptedToolCall({
+          toolName: toolEffect.toolName,
+          partial: output.partial,
+        }),
+        isError: true,
+      },
+      key,
+    });
+  }
+
   return true;
+}
+
+/**
+ * Describes a tool call that a crashed drive interrupted, as the error
+ * result of its `tool-result` part. Includes the call's last partial output,
+ * if any, since that is all that is known about what the call did.
+ */
+function describeInterruptedToolCall(options: {
+  /**
+   * Name of the called tool.
+   */
+  toolName: string;
+
+  /**
+   * Last partial output of the call, as recorded by `executeHostTool()` or
+   * `executeBuiltinTool()`.
+   */
+  partial?: SerializableValue;
+}): string {
+  const { toolName, partial } = options;
+  const message = `The ${toolName} call was interrupted before it finished.`;
+  if (partial == null || typeof partial !== 'object' || !('raw' in partial)) {
+    return message;
+  }
+  return `${message}\nPartial output before the interruption:\n${JSON.stringify(partial.raw)}`;
 }
 
 /**
